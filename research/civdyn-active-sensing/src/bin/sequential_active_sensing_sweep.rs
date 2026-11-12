@@ -11,10 +11,18 @@ use civdyn_active_sensing::{
 const CSV_COLUMNS: usize = 25;
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "sequential-sensing receipt schema mismatch");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "sequential-sensing receipt schema mismatch"
+    );
     println!(
         "{}",
-        fields.iter().map(|field| csv_field(field)).collect::<Vec<_>>().join(",")
+        fields
+            .iter()
+            .map(|field| csv_field(field))
+            .collect::<Vec<_>>()
+            .join(",")
     );
 }
 
@@ -46,8 +54,14 @@ fn worlds() -> Vec<DecisionWorld> {
             world_digest: "sha256-world_a".to_owned(),
             service_floor: 70.0,
             policies: vec![
-                PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 90.0 },
-                PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 50.0 },
+                PolicyOutcome {
+                    policy_id: "repair_a".to_owned(),
+                    service_units: 90.0,
+                },
+                PolicyOutcome {
+                    policy_id: "repair_b".to_owned(),
+                    service_units: 50.0,
+                },
             ],
         },
         DecisionWorld {
@@ -55,8 +69,14 @@ fn worlds() -> Vec<DecisionWorld> {
             world_digest: "sha256-world_b".to_owned(),
             service_floor: 70.0,
             policies: vec![
-                PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 50.0 },
-                PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 90.0 },
+                PolicyOutcome {
+                    policy_id: "repair_a".to_owned(),
+                    service_units: 50.0,
+                },
+                PolicyOutcome {
+                    policy_id: "repair_b".to_owned(),
+                    service_units: 90.0,
+                },
             ],
         },
     ]
@@ -68,7 +88,9 @@ fn prediction(
     observation_id: &str,
     latency_loss_per_tick: f64,
 ) -> SensorPrediction {
-    let world = worlds().into_iter().find(|world| world.world_id == world_id)
+    let world = worlds()
+        .into_iter()
+        .find(|world| world.world_id == world_id)
         .expect("fixture world exists");
     SensorPrediction {
         world_id: world_id.to_owned(),
@@ -98,8 +120,11 @@ fn fixture_plan(second_stage_outcomes: [(&str, &str, f64); 2]) -> SequentialSens
         energy_cost_kwh: 0.15,
         service_units_per_kwh: 2.0,
         latency_ticks: 1,
-        predictions: second_stage_outcomes.into_iter()
-            .map(|(world, observation, loss)| prediction("fine_inspection", world, observation, loss))
+        predictions: second_stage_outcomes
+            .into_iter()
+            .map(|(world, observation, loss)| {
+                prediction("fine_inspection", world, observation, loss)
+            })
             .collect(),
     };
     SequentialSensorPlan {
@@ -128,18 +153,30 @@ fn summary_fields(
         result.status.id().to_owned(),
         result.recommended.to_string(),
         result.myopic_stage_one_status.id().to_owned(),
-        result.myopic_stage_one_regret.map_or_else(String::new, |v| format!("{v:.6}")),
+        result
+            .myopic_stage_one_regret
+            .map_or_else(String::new, |v| format!("{v:.6}")),
         result.baseline.common_feasible_policy_count.to_string(),
         format!("{:.6}", result.total_energy_kwh),
         format!("{:.6}", result.total_energy_cost_service_units),
         result.total_latency_ticks.to_string(),
         format!("{:.6}", result.maximum_latency_service_loss),
         format!("{:.6}", result.maximum_total_penalty_service_units),
-        result.worst_case_post_sensing_regret.map_or_else(String::new, |v| format!("{v:.6}")),
-        result.worst_case_regret_reduction.map_or_else(String::new, |v| format!("{v:.6}")),
+        result
+            .worst_case_post_sensing_regret
+            .map_or_else(String::new, |v| format!("{v:.6}")),
+        result
+            .worst_case_regret_reduction
+            .map_or_else(String::new, |v| format!("{v:.6}")),
         result.resolves_no_sensing_infeasibility.to_string(),
-        String::new(), String::new(), String::new(), String::new(),
-        String::new(), String::new(), String::new(), String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
         String::new(),
     ]
 }
@@ -178,7 +215,9 @@ fn main() -> Result<(), String> {
         row[16] = partition.observation_history.clone();
         row[17] = partition.selected_policy_id.clone().unwrap_or_default();
         row[18] = partition.world_regrets.len().to_string();
-        row[19] = partition.worst_case_regret.map_or_else(String::new, |v| format!("{v:.6}"));
+        row[19] = partition
+            .worst_case_regret
+            .map_or_else(String::new, |v| format!("{v:.6}"));
         emit(row);
         for world in &partition.world_regrets {
             let mut world_row = summary_fields(&result);
