@@ -11,7 +11,7 @@ use std::fmt;
 
 use crate::{
     ComponentIdentity, ConditionClaim, ConditionDisposition, ConditionEvent, ConditionQuantity,
-    DamageMechanism, EvidenceClass, EvidenceRef, EventTime, TransitionError, TransitionKind,
+    EventTime, EvidenceClass, EvidenceRef, TransitionError, TransitionKind,
 };
 
 const PARIS_CLOSURE_RELATIVE_TOLERANCE: f64 = 64.0 * f64::EPSILON;
@@ -27,14 +27,8 @@ pub enum DamageModelFamily {
 /// rejected; the adapter does not extrapolate or infer material applicability.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ModelApplicability {
-    MinerStressAmplitudeMpa {
-        minimum: f64,
-        maximum: f64,
-    },
-    ParisDeltaKMpaSqrtM {
-        minimum: f64,
-        maximum: f64,
-    },
+    MinerStressAmplitudeMpa { minimum: f64, maximum: f64 },
+    ParisDeltaKMpaSqrtM { minimum: f64, maximum: f64 },
 }
 
 /// Exact model/profile identity and its source artifact.
@@ -211,7 +205,9 @@ impl DamageReceipt {
         validate_evidence(&self.output, "damage output")?;
 
         if self.output.class != EvidenceClass::ModelEstimate {
-            return Err(DamageReceiptError::InvalidEvidenceClass("damage output must be ModelEstimate"));
+            return Err(DamageReceiptError::InvalidEvidenceClass(
+                "damage output must be ModelEstimate",
+            ));
         }
         if !matches!(
             self.cycle_count.artifact.class,
@@ -244,7 +240,9 @@ impl DamageReceipt {
         if self.cycle_count.algorithm_profile_id.trim().is_empty() {
             return Err(DamageReceiptError::EmptyCycleCountProfile);
         }
-        if self.material_grade_id.trim().is_empty() || self.calibration.material_grade_id.trim().is_empty() {
+        if self.material_grade_id.trim().is_empty()
+            || self.calibration.material_grade_id.trim().is_empty()
+        {
             return Err(DamageReceiptError::EmptyMaterialGrade);
         }
         if self.material_grade_id != self.calibration.material_grade_id {
@@ -359,7 +357,10 @@ impl DamageReceipt {
                 (
                     DamageMechanism::FatigueAccumulation,
                     ConditionQuantity::MinerDamage(damage_fraction),
-                    format!("{}@{}", self.model_profile.profile_id, self.model_profile.version),
+                    format!(
+                        "{}@{}",
+                        self.model_profile.profile_id, self.model_profile.version
+                    ),
                 )
             }
             DamageModelOutput::Paris {
@@ -384,7 +385,8 @@ impl DamageReceipt {
                     .as_ref()
                     .ok_or(DamageReceiptError::MissingDeltaKInput)?;
                 if delta_k_source.subject != self.subject
-                    || delta_k_source.source_load_history_evidence_id != self.load_history.evidence_id
+                    || delta_k_source.source_load_history_evidence_id
+                        != self.load_history.evidence_id
                     || delta_k_source.source_load_history_sha256 != self.load_history.sha256
                 {
                     return Err(DamageReceiptError::DeltaKBindingMismatch);
@@ -432,7 +434,10 @@ impl DamageReceipt {
                 (
                     DamageMechanism::CrackGrowth,
                     ConditionQuantity::CrackLengthMetres(final_crack_length_m),
-                    format!("{}@{}", self.model_profile.profile_id, self.model_profile.version),
+                    format!(
+                        "{}@{}",
+                        self.model_profile.profile_id, self.model_profile.version
+                    ),
                 )
             }
         };
@@ -476,10 +481,7 @@ impl ModelProfileArtifact {
     }
 }
 
-fn validate_evidence(
-    evidence: &EvidenceRef,
-    role: &'static str,
-) -> Result<(), DamageReceiptError> {
+fn validate_evidence(evidence: &EvidenceRef, role: &'static str) -> Result<(), DamageReceiptError> {
     evidence
         .validate()
         .map_err(|_| DamageReceiptError::InvalidEvidence(role))
@@ -501,11 +503,7 @@ fn values_close(left: f64, right: f64) -> bool {
 }
 
 fn validate_positive_range(minimum: f64, maximum: f64) -> Result<(), DamageReceiptError> {
-    if !minimum.is_finite()
-        || !maximum.is_finite()
-        || minimum <= 0.0
-        || maximum <= minimum
-    {
+    if !minimum.is_finite() || !maximum.is_finite() || minimum <= 0.0 || maximum <= minimum {
         return Err(DamageReceiptError::InvalidApplicability);
     }
     Ok(())
@@ -587,8 +585,7 @@ mod tests {
     fn paris_receipt() -> DamageReceipt {
         let mut receipt = base_receipt();
         receipt.claim_id = "claim-paris-001".into();
-        receipt.cycle_count.artifact =
-            evidence("cycle-record-paris", EvidenceClass::Derived, '1');
+        receipt.cycle_count.artifact = evidence("cycle-record-paris", EvidenceClass::Derived, '1');
         receipt.cycle_count.total_cycles = 10_000;
         receipt.cycle_count.minimum_stress_amplitude_mpa = None;
         receipt.cycle_count.maximum_stress_amplitude_mpa = None;
@@ -844,9 +841,7 @@ mod tests {
     #[test]
     fn unknown_uncertainty_stays_unknown() {
         let receipt = base_receipt();
-        let event = receipt
-            .into_condition_event("event-1", 0, time())
-            .unwrap();
+        let event = receipt.into_condition_event("event-1", 0, time()).unwrap();
         let crate::TransitionKind::Assessment { claims } = event.kind else {
             panic!("damage receipt must produce an assessment event");
         };
@@ -895,9 +890,7 @@ mod tests {
     #[test]
     fn stale_condition_revision_is_rejected_by_the_existing_ledger() {
         let receipt = base_receipt();
-        let event = receipt
-            .into_condition_event("event-1", 3, time())
-            .unwrap();
+        let event = receipt.into_condition_event("event-1", 3, time()).unwrap();
         let mut ledger = ConditionLedger::new(subject(), "test-clock").unwrap();
         let before = ledger.clone();
         assert_eq!(ledger.apply(event), Err(TransitionError::StaleRevision));
