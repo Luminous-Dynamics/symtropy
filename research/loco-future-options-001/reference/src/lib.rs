@@ -23,6 +23,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const PROTOCOL_ID: &str = "LOCO-FUTURE-OPTIONS-001";
 
+/// Resource ceilings for the one-step finite evaluator. Inputs above these
+/// bounds are rejected, never silently truncated.
+pub const MAX_OPTION_BRANCHES: usize = 4_096;
+pub const MAX_OPTION_ACTION_ALIASES: usize = 1_024;
+pub const MAX_OPTION_THERMAL_NODES: usize = 256;
+pub const MAX_OPTION_RECOVERY_RECEIPTS: usize = 4_096;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceManifest {
     pub complete: bool,
@@ -184,6 +191,11 @@ pub enum EvaluationError {
     },
     NoPhysicallyPossibleBranches,
     EmptyActionDomain,
+    InputLimitExceeded {
+        field: &'static str,
+        limit: usize,
+        observed: usize,
+    },
 }
 
 impl std::fmt::Display for EvaluationError {
@@ -248,6 +260,18 @@ fn validate_thermal(
             required_node_ids,
             observed_nodes,
         } => {
+            for (field, observed) in [
+                ("thermal_required_nodes", required_node_ids.len()),
+                ("thermal_observed_nodes", observed_nodes.len()),
+            ] {
+                if observed > MAX_OPTION_THERMAL_NODES {
+                    return Err(EvaluationError::InputLimitExceeded {
+                        field,
+                        limit: MAX_OPTION_THERMAL_NODES,
+                        observed,
+                    });
+                }
+            }
             if branch_manifest_digest.trim().is_empty() {
                 unknown.push("thermal:branch-manifest-digest-missing".to_owned());
             } else if !branch_manifest.complete {
@@ -312,7 +336,14 @@ fn validate_recovery(
     branch_manifest: &EvidenceManifest,
     declared_branch_ids: &BTreeSet<String>,
     physically_possible_branch_state_digests: &BTreeMap<String, String>,
-) -> (Vec<String>, Vec<String>) {
+) -> Result<(Vec<String>, Vec<String>), EvaluationError> {
+    if recovery.branch_receipts.len() > MAX_OPTION_RECOVERY_RECEIPTS {
+        return Err(EvaluationError::InputLimitExceeded {
+            field: "recovery_receipts",
+            limit: MAX_OPTION_RECOVERY_RECEIPTS,
+            observed: recovery.branch_receipts.len(),
+        });
+    }
     let mut unknown = Vec::new();
     let mut invalid = Vec::new();
     match recovery.disposition {
@@ -392,7 +423,7 @@ fn validate_recovery(
         UpstreamDisposition::Unknown => unknown.push("recovery:upstream-unknown".to_owned()),
         UpstreamDisposition::Invalid => invalid.push("recovery:upstream-invalid".to_owned()),
     }
-    (unknown, invalid)
+    Ok((unknown, invalid))
 }
 
 fn canonical_domain(
@@ -400,6 +431,13 @@ fn canonical_domain(
 ) -> Result<(BTreeMap<String, String>, BTreeSet<String>), EvaluationError> {
     if domain.aliases.is_empty() {
         return Err(EvaluationError::EmptyActionDomain);
+    }
+    if domain.aliases.len() > MAX_OPTION_ACTION_ALIASES {
+        return Err(EvaluationError::InputLimitExceeded {
+            field: "action_aliases",
+            limit: MAX_OPTION_ACTION_ALIASES,
+            observed: domain.aliases.len(),
+        });
     }
     let mut label_to_physical = BTreeMap::new();
     let mut physical_ids = BTreeSet::new();
@@ -440,6 +478,13 @@ pub fn evaluate_future_options(
     ])?;
 
     let (label_to_physical, _physical_domain) = canonical_domain(&scenario.continuation_domain)?;
+    if scenario.branches.len() > MAX_OPTION_BRANCHES {
+        return Err(EvaluationError::InputLimitExceeded {
+            field: "branches",
+            limit: MAX_OPTION_BRANCHES,
+            observed: scenario.branches.len(),
+        });
+    }
     let mut branch_ids = BTreeSet::new();
     let mut possible: Vec<&SuccessorBranch> = Vec::new();
     let mut unknown_reasons = Vec::new();
@@ -494,7 +539,7 @@ pub fn evaluate_future_options(
         &scenario.branch_manifest,
         &declared_branch_ids,
         &physically_possible_branch_state_digests,
-    );
+    )?;
     unknown_reasons.extend(recovery_unknown);
     invalid_reasons.extend(recovery_invalid);
 
@@ -538,6 +583,13 @@ pub fn evaluate_future_options(
             )),
         }
 
+        if branch.admitted_action_labels.len() > MAX_OPTION_ACTION_ALIASES {
+            return Err(EvaluationError::InputLimitExceeded {
+                field: "admitted_action_labels_per_branch",
+                limit: MAX_OPTION_ACTION_ALIASES,
+                observed: branch.admitted_action_labels.len(),
+            });
+        }
         if !branch.viability_complete || branch.viability_receipt_digest.trim().is_empty() {
             unknown_reasons.push(format!(
                 "branch:{}:viability-domain-or-receipt-incomplete",
@@ -1218,6 +1270,60 @@ mod tests {
         assert!(matches!(
             evaluate_future_options(&s),
             Err(EvaluationError::ProbabilityMassOutOfRange { .. })
+        ));
+    }
+
+
+    #[test]
+    fn one_step_evaluator_rejects_oversized_branch_action_thermal_and_recovery_vectors() {
+        let mut aliases = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        aliases.continuation_domain.aliases =
+            (0..=MAX_OPTION_ACTION_ALIASES)
+                .map(|i| ActionAlias {
+                    label: format!("alias-{i}"),
+                    physical_action_id: format!("physical-{i}"),
+                })
+                .collect();
+        assert!(matches!(
+            evaluate_future_options(&aliases),
+            Err(EvaluationError::InputLimitExceeded {
+                field: "action_aliases",
+                ..
+            })
+        ));
+
+        let mut branch_list = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        branch_list.branches = (0..=MAX_OPTION_BRANCHES)
+            .map(|i| branch(&format!("b{i}"), "o1", 0, &[]))
+            .collect();
+        assert!(matches!(
+            evaluate_future_options(&branch_list),
+            Err(EvaluationError::InputLimitExceeded {
+                field: "branches",
+                ..
+            })
+        ));
+
+        let mut recovery = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        recovery.recovery.branch_receipts =
+            vec![recovery.recovery.branch_receipts[0].clone(); MAX_OPTION_RECOVERY_RECEIPTS + 1];
+        assert!(matches!(
+            evaluate_future_options(&recovery),
+            Err(EvaluationError::InputLimitExceeded {
+                field: "recovery_receipts",
+                ..
+            })
+        ));
+
+        let mut branch_actions = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        branch_actions.branches[0].admitted_action_labels =
+            vec!["continue".to_owned(); MAX_OPTION_ACTION_ALIASES + 1];
+        assert!(matches!(
+            evaluate_future_options(&branch_actions),
+            Err(EvaluationError::InputLimitExceeded {
+                field: "admitted_action_labels_per_branch",
+                ..
+            })
         ));
     }
 
