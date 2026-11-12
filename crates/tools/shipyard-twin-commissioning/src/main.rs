@@ -417,7 +417,11 @@ fn main() -> ExitCode {
     match validate_corpus(&schema_text, &corpus_text) {
         Ok(summary) => {
             println!(
-                "PASS: {cases} synthetic cases; {ready} READY / {limited} READY_LIMITED / {blocked} NOT_READY; {agreements} exact oracle agreements; no ISO conformance claimed",
+                concat!(
+                    "PASS: {cases} synthetic cases; {ready} READY / {limited} READY_LIMITED / ",
+                    "{blocked} NOT_READY; {agreements} exact oracle agreements; ",
+                    "no ISO conformance claimed"
+                ),
                 cases = summary.cases,
                 ready = summary.ready,
                 limited = summary.ready_limited,
