@@ -165,6 +165,21 @@
       "method": "Set-valued intersection of calibrated, regime-specific multivariate behavioral envelopes with observation-uncertainty intervals; return all admissible hypotheses and preserve ambiguity.",
       "status": "protocol_only_not_executed",
       "claim_ceiling": "singleton only within frozen catalogue; never global unique physical cause"
+    },
+    {
+      "id": "published_dx2026_graybox_lstm",
+      "family": "physics_informed_grey_box_state_space_lstm",
+      "role": "Current DX2026 LiU-ICE public hidden-test reference: physically informed recurrent hidden states, four MSO/virtual-sensor residuals, fixed diagnosis matrix, adaptive covariate-shift compensation, and explicit debounce/warm-up. Faithful reproduction required before matched comparison.",
+      "status": "published_reference_not_reproduced",
+      "source": "10.4230/OASIcs.DX.2026.15",
+      "historical_reference": {
+        "tdr_percent": 92.26,
+        "one_minus_far_percent": 92.14,
+        "far_percent": 7.86,
+        "fia_percent": 79.62,
+        "official_score_percent": 88.01
+      },
+      "reference_manifest": "published-dx2026-graybox-baseline-v0.1.json"
     }
   ],
   "primary_metrics": [
@@ -300,7 +315,11 @@
     "candidate likelihood models bind a stable hypothesis-space digest that excludes prior probabilities",
     "every selection portfolio separately binds the exact prior/posterior distribution digest used for that round",
     "after an acquired observation updates the posterior, the unchanged candidate likelihood model can be replayed only if the stable hypothesis-space digest matches",
-    "sequential observation receipts form one ledger chain; replayed receipt digests cannot be applied twice"
+    "sequential observation receipts form one ledger chain; replayed receipt digests cannot be applied twice",
+    "the current DX2026 official grey-box LSTM result is included as a literature reference and is not labelled reproduced until the original train/evaluation protocol and model details are recovered",
+    "published Table 7 TDR, 1-FAR, FIA and score are preserved as separate metrics; score is never recomputed from older TIR",
+    "reproduction stress tests include the published FTP75 Standard intake-manifold -10% and WLTP intercooler-pressure +8% failure cells",
+    "startup fault cases are evaluated separately from post-warm-up cases; adaptation cannot silently absorb a startup fault into the healthy reference"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -421,6 +440,21 @@
     {
       "id": "behavioral_diagnostic_gain",
       "target": "At least +5 percentage points event recall versus a matched selective classifier without increasing false alarms per observed normal hour, while preserving ambiguity.",
+      "status": "aspirational"
+    },
+    {
+      "id": "dx2026_sota_score_frontier",
+      "target": "On the matched DX2026 protocol, exceed the published 88.01% official score by at least 2.00 absolute percentage points while keeping FAR at or below 7.86%, and report all 12 per-condition cells with no hidden aggregate masking.",
+      "status": "aspirational"
+    },
+    {
+      "id": "dx2026_debounce_frontier",
+      "target": "Achieve p95 event confirmation latency at or below 0.50 seconds on supported onset-annotated cases at FAR no higher than the reproduced DX2026 baseline, without retroactively changing predictions.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_fault_non_masking",
+      "target": "Zero startup-fault episodes absorbed into an adaptive healthy baseline; each startup fault must be detected or explicitly abstained within 0.50 seconds, with no automatic baseline mutation.",
       "status": "aspirational"
     }
   ],
@@ -569,7 +603,20 @@
     "same_benchmark": "Jung et al., A fault diagnosis benchmark of technical systems with incomplete data — six solutions, Control Engineering Practice 164 (2025), 106427. https://doi.org/10.1016/j.conengprac.2025.106427",
     "adjacent_marine_research": "Lin et al., Fault diagnosis of marine diesel engine via control-aware domain-adversarial network (2026). The published abstract reports thermodynamic simulation results and explicitly notes absence of real-engine validation. https://doi.org/10.1177/01423312261487500",
     "deployment_assessment": "The 2026 industrial CPS/ICS deployability survey finds that accuracy is much more commonly assessed than other deployment criteria; use a wider readiness matrix rather than accuracy-only comparisons. https://doi.org/10.1007/s10207-026-01330-1",
-    "standards_alignment": "ISO 13379-1:2025 diagnostic guidance is contextual alignment, not certification. https://www.iso.org/standard/88027.html"
+    "standards_alignment": "ISO 13379-1:2025 diagnostic guidance is contextual alignment, not certification. https://www.iso.org/standard/88027.html",
+    "current_dx2026_official_solution": {
+      "title": "Physics-Informed ML Diagnostic Engine: DXC’26 LiU-ICE Track Solution",
+      "doi": "10.4230/OASIcs.DX.2026.15",
+      "status": "published_reference_not_reproduced",
+      "result": "TDR 92.26%, 1-FAR 92.14%, FIA 79.62%, official score 88.01%",
+      "known_edge_cases": [
+        "FTP75 Standard f_pim -10%: TDR 21.12%",
+        "WLTP f_pic +8%: FIA 0.00%, 1-FAR 34.61%",
+        "0.75 second debounce adds detection latency",
+        "90 second adaptation warm-up can mask faults present at startup"
+      ],
+      "protocol_file": "published-dx2026-graybox-baseline-v0.1.json"
+    }
   },
   "external_dataset_track": {
     "path": "external-marine-engine-dataset-v0.1.json",
