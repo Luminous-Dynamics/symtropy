@@ -98,6 +98,8 @@ The test suite now checks:
 - a 3×3 grid combining independent generalized-coordinate and constraint-equation rebases;
 - wrong multiplier/residual variance and singular constraint-transform negative controls.
 
+A separate row-scaling ladder covers diagonal constraint-basis changes from (10^{-2}) through (10^2). It reports the coordinate condition estimate and raw Jacobian component growth beside invariant Delassus norms, pairing, congruence and minimum correction. A near-singular row scaling is separately tested for profile-based abstention. Scaling is not hidden by restricting the study to determinant-one shears.
+
 A deterministic seven-point report is available:
 
 ```sh
