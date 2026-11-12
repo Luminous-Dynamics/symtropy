@@ -194,7 +194,7 @@ pub struct QualificationReceipt {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ScanDecision {
-    Qualified(QualificationReceipt),
+    Qualified(Box<QualificationReceipt>),
     Abstain(Vec<AbstainReason>),
 }
 
@@ -496,19 +496,18 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
             None
         }
     };
-    if let Some(value) = expanded {
-        if value > evidence.uncertainty.maximum_expanded_uncertainty_units
-            || value > evidence.uncertainty.decision_tolerance_units
-        {
-            push_reason(&mut reasons, AbstainReason::ExpandedUncertaintyAboveLimit);
-        }
+    if let Some(value) = expanded
+        && (value > evidence.uncertainty.maximum_expanded_uncertainty_units
+            || value > evidence.uncertainty.decision_tolerance_units)
+    {
+        push_reason(&mut reasons, AbstainReason::ExpandedUncertaintyAboveLimit);
     }
 
     if !reasons.is_empty() {
         return ScanDecision::Abstain(reasons);
     }
     let expanded_uncertainty_units = expanded.unwrap_or(0);
-    ScanDecision::Qualified(QualificationReceipt {
+    ScanDecision::Qualified(Box::new(QualificationReceipt {
         workpiece_id: evidence.workpiece_id.clone(),
         joint_revision: evidence.joint_revision.clone(),
         layer_id: evidence.layer_id.clone(),
@@ -524,7 +523,7 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
         expanded_uncertainty_units,
         decision_tolerance_units: evidence.uncertainty.decision_tolerance_units,
         claim_ceiling: "SYNTHETIC_SCAN_MEASUREMENT_CONTRACT_ONLY",
-    })
+    }))
 }
 
 #[cfg(test)]
