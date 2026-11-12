@@ -16,18 +16,90 @@ struct ExpectedGroup {
 }
 
 const EXPECTED_GROUPS: [ExpectedGroup; 12] = [
-    ExpectedGroup { id: "experiments/logs_PPO/icu/mnar-ident", stacked: "no", model: "icu", pattern: "mnar-ident", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO/icu/mnar-unident", stacked: "no", model: "icu", pattern: "mnar-unident", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO/icu/smar", stacked: "no", model: "icu", pattern: "smar", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO/predator/mcar_search_big", stacked: "no", model: "predator", pattern: "mcar_search_big", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO/predator/mnar-unident", stacked: "no", model: "predator", pattern: "mnar-unident", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO/predator/smar", stacked: "no", model: "predator", pattern: "smar", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO_stacked/icu/mnar-ident", stacked: "yes", model: "icu", pattern: "mnar-ident", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO_stacked/icu/mnar-unident", stacked: "yes", model: "icu", pattern: "mnar-unident", expected_runs: 19 },
-    ExpectedGroup { id: "experiments/logs_PPO_stacked/icu/smar", stacked: "yes", model: "icu", pattern: "smar", expected_runs: 23 },
-    ExpectedGroup { id: "experiments/logs_PPO_stacked/predator/mcar_search_big", stacked: "yes", model: "pred", pattern: "mcar_search_big", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO_stacked/predator/mnar-unident", stacked: "yes", model: "pred", pattern: "mnar-unident", expected_runs: 20 },
-    ExpectedGroup { id: "experiments/logs_PPO_stacked/predator/smar", stacked: "yes", model: "pred", pattern: "smar", expected_runs: 20 },
+    ExpectedGroup {
+        id: "experiments/logs_PPO/icu/mnar-ident",
+        stacked: "no",
+        model: "icu",
+        pattern: "mnar-ident",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO/icu/mnar-unident",
+        stacked: "no",
+        model: "icu",
+        pattern: "mnar-unident",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO/icu/smar",
+        stacked: "no",
+        model: "icu",
+        pattern: "smar",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO/predator/mcar_search_big",
+        stacked: "no",
+        model: "predator",
+        pattern: "mcar_search_big",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO/predator/mnar-unident",
+        stacked: "no",
+        model: "predator",
+        pattern: "mnar-unident",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO/predator/smar",
+        stacked: "no",
+        model: "predator",
+        pattern: "smar",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO_stacked/icu/mnar-ident",
+        stacked: "yes",
+        model: "icu",
+        pattern: "mnar-ident",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO_stacked/icu/mnar-unident",
+        stacked: "yes",
+        model: "icu",
+        pattern: "mnar-unident",
+        expected_runs: 19,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO_stacked/icu/smar",
+        stacked: "yes",
+        model: "icu",
+        pattern: "smar",
+        expected_runs: 23,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO_stacked/predator/mcar_search_big",
+        stacked: "yes",
+        model: "pred",
+        pattern: "mcar_search_big",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO_stacked/predator/mnar-unident",
+        stacked: "yes",
+        model: "pred",
+        pattern: "mnar-unident",
+        expected_runs: 20,
+    },
+    ExpectedGroup {
+        id: "experiments/logs_PPO_stacked/predator/smar",
+        stacked: "yes",
+        model: "pred",
+        pattern: "smar",
+        expected_runs: 20,
+    },
 ];
 
 #[derive(Debug)]
@@ -49,11 +121,15 @@ struct PpoRun {
 }
 
 fn parse_u64(value: &str, field: &str) -> Result<u64, String> {
-    value.parse::<u64>().map_err(|_| format!("invalid {field}: {value}"))
+    value
+        .parse::<u64>()
+        .map_err(|_| format!("invalid {field}: {value}"))
 }
 
 fn parse_f64(value: &str, field: &str) -> Result<f64, String> {
-    let parsed = value.parse::<f64>().map_err(|_| format!("invalid {field}: {value}"))?;
+    let parsed = value
+        .parse::<f64>()
+        .map_err(|_| format!("invalid {field}: {value}"))?;
     if !parsed.is_finite() {
         return Err(format!("non-finite {field}"));
     }
@@ -106,7 +182,12 @@ fn median(values: &mut [f64]) -> f64 {
 
 fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     if runs.len() != group.expected_runs {
-        return Err(format!("{} has {} runs, expected {}", group.id, runs.len(), group.expected_runs));
+        return Err(format!(
+            "{} has {} runs, expected {}",
+            group.id,
+            runs.len(),
+            group.expected_runs
+        ));
     }
     let mut ids = BTreeSet::new();
     let mut seeds = BTreeSet::new();
@@ -118,8 +199,10 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     let mut hparams = BTreeSet::new();
 
     for run in runs {
-        if run.group != group.id || run.stacked != group.stacked
-            || run.model != group.model || run.pattern != group.pattern
+        if run.group != group.id
+            || run.stacked != group.stacked
+            || run.model != group.model
+            || run.pattern != group.pattern
         {
             return Err(format!("PPO group identity mismatch in {}", group.id));
         }
@@ -130,7 +213,10 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
             return Err(format!("zero PPO seed in {}", group.id));
         }
         if run.train_steps != 1_000_000 || run.eval_episodes != 2_000 {
-            return Err(format!("training/evaluation budget mismatch in {}", group.id));
+            return Err(format!(
+                "training/evaluation budget mismatch in {}",
+                group.id
+            ));
         }
         if run.frames == 0 || run.layers == 0 || run.hidden == 0 {
             return Err(format!("invalid architecture dimensions in {}", group.id));
@@ -185,21 +271,32 @@ fn run_audit(input: &str) -> Result<String, String> {
             continue;
         }
         let fields: Vec<&str> = line.split('\t').collect();
-        let run = parse_run(&fields)
-            .map_err(|error| format!("line {}: {error}", line_index + 1))?;
+        let run =
+            parse_run(&fields).map_err(|error| format!("line {}: {error}", line_index + 1))?;
         grouped.entry(run.group.clone()).or_default().push(run);
     }
 
     if grouped.len() != EXPECTED_GROUPS.len() {
-        return Err(format!("expected {} PPO groups, got {}", EXPECTED_GROUPS.len(), grouped.len()));
+        return Err(format!(
+            "expected {} PPO groups, got {}",
+            EXPECTED_GROUPS.len(),
+            grouped.len()
+        ));
     }
-    let expected_total: usize = EXPECTED_GROUPS.iter().map(|group| group.expected_runs).sum();
+    let expected_total: usize = EXPECTED_GROUPS
+        .iter()
+        .map(|group| group.expected_runs)
+        .sum();
     let actual_total: usize = grouped.values().map(Vec::len).sum();
     if actual_total != expected_total || actual_total != 242 {
-        return Err(format!("PPO artifact total mismatch: {actual_total}, expected {expected_total}"));
+        return Err(format!(
+            "PPO artifact total mismatch: {actual_total}, expected {expected_total}"
+        ));
     }
 
-    let mut output = String::from("group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden\n");
+    let mut output = String::from(
+        "group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden\n",
+    );
     for group in EXPECTED_GROUPS {
         let runs = grouped
             .get(group.id)
@@ -209,7 +306,11 @@ fn run_audit(input: &str) -> Result<String, String> {
         output.push('\n');
     }
     let all: Vec<&PpoRun> = grouped.values().flat_map(|runs| runs.iter()).collect();
-    let unique_seeds = all.iter().map(|run| run.seed).collect::<BTreeSet<_>>().len();
+    let unique_seeds = all
+        .iter()
+        .map(|run| run.seed)
+        .collect::<BTreeSet<_>>()
+        .len();
     let minimum_seed = all.iter().map(|run| run.seed).min().unwrap_or(0);
     let maximum_seed = all.iter().map(|run| run.seed).max().unwrap_or(0);
     // ICU and Predator returns have different task semantics/scales; do not
@@ -245,9 +346,25 @@ mod tests {
     #[test]
     fn twelve_group_counts_sum_to_242() {
         assert_eq!(EXPECTED_GROUPS.len(), 12);
-        assert_eq!(EXPECTED_GROUPS.iter().map(|group| group.expected_runs).sum::<usize>(), 242);
-        assert_eq!(expected_group("experiments/logs_PPO_stacked/icu/mnar-unident").unwrap().expected_runs, 19);
-        assert_eq!(expected_group("experiments/logs_PPO_stacked/icu/smar").unwrap().expected_runs, 23);
+        assert_eq!(
+            EXPECTED_GROUPS
+                .iter()
+                .map(|group| group.expected_runs)
+                .sum::<usize>(),
+            242
+        );
+        assert_eq!(
+            expected_group("experiments/logs_PPO_stacked/icu/mnar-unident")
+                .unwrap()
+                .expected_runs,
+            19
+        );
+        assert_eq!(
+            expected_group("experiments/logs_PPO_stacked/icu/smar")
+                .unwrap()
+                .expected_runs,
+            23
+        );
     }
 
     #[test]
