@@ -207,10 +207,9 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
     // W_ij = 1/m + (r_i x n)^T I^-1 (r_j x n).
     let rotational_rows = offsets.map(|offset| offset.cross(&normal));
     let mut effective_mass = [[0.0; 2]; 2];
-    for i in 0..2 {
-        for j in 0..2 {
-            effective_mass[i][j] =
-                1.0 / mass + rotational_rows[i].dot(&rotational_rows[j]) / inertia;
+    for (row, rotational_row) in effective_mass.iter_mut().zip(rotational_rows.iter()) {
+        for (entry, other_row) in row.iter_mut().zip(rotational_rows.iter()) {
+            *entry = 1.0 / mass + rotational_row.dot(other_row) / inertia;
         }
     }
     let rhs = [-free_speed[0], -free_speed[1]];
@@ -272,19 +271,19 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
             + integrator::angular_point_velocity(&after.angular_velocity, &offset))
         .dot(&normal)
     });
-    for i in 0..2 {
+    for (i, ((observed, expected), speed)) in observed_impulses
+        .iter()
+        .zip(expected_impulses.iter())
+        .zip(after_speeds.iter())
+        .enumerate()
+    {
         assert!(
-            (observed_impulses[i] - expected_impulses[i]).abs()
-                / expected_impulses[i].abs().max(f64::MIN_POSITIVE)
-                < 2.0e-12,
-            "contact {i} impulse disagrees with the independent coupled Delassus solution: observed={:e}, expected={:e}",
-            observed_impulses[i],
-            expected_impulses[i]
+            (observed - expected).abs() / expected.abs().max(f64::MIN_POSITIVE) < 2.0e-12,
+            "contact {i} impulse disagrees with the independent coupled Delassus solution: observed={observed:e}, expected={expected:e}"
         );
         assert!(
-            after_speeds[i].abs() < 2.0e-12,
-            "contact {i} retains normal velocity {:e}",
-            after_speeds[i]
+            speed.abs() < 2.0e-12,
+            "contact {i} retains normal velocity {speed:e}"
         );
     }
 
