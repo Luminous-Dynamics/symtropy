@@ -331,10 +331,7 @@ pub fn assess_solution<const N: usize>(
     let condition_inf_estimate = lu.condition_inf(matrix)?;
     let condition_times_backward_error = condition_inf_estimate * normwise_backward_error;
     let forward_error_bound_estimate = if condition_times_backward_error < 1.0 {
-        Some(
-            2.0 * condition_times_backward_error
-                / (1.0 - condition_times_backward_error),
-        )
+        Some(2.0 * condition_times_backward_error / (1.0 - condition_times_backward_error))
     } else {
         None
     };
