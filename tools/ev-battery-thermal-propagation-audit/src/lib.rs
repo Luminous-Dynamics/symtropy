@@ -153,6 +153,9 @@ pub struct EvidenceRecord {
     pub admission: Admission,
     pub claim_scope: String,
     pub authority_or_lab_ref: String,
+    pub reference_id: Option<String>,
+    pub standard_id: Option<String>,
+    pub standard_revision: Option<String>,
     pub metrology_ref: Option<String>,
 }
 
@@ -332,6 +335,15 @@ fn evidence_registry(
             &record.authority_or_lab_ref,
             "authority/laboratory reference",
         )?;
+        for (value, label) in [
+            (record.reference_id.as_deref(), "typed evidence reference ID"),
+            (record.standard_id.as_deref(), "typed evidence standard ID"),
+            (record.standard_revision.as_deref(), "typed evidence standard revision"),
+        ] {
+            if let Some(value) = value {
+                require_nonempty(value, label)?;
+            }
+        }
         if record.evidence_class.is_physical()
             && record.metrology_ref.as_deref().is_none_or(str::is_empty)
         {
@@ -411,17 +423,15 @@ fn validate_test<'e>(
                 test.test_id
             )));
         }
-        for required_scope in [
-            criteria_id,
-            test.standard_id.as_str(),
-            test.standard_revision.as_str(),
-        ] {
-            if !criteria_evidence.claim_scope.contains(required_scope) {
-                return Err(AuditError(format!(
-                    "test {} acceptance-criteria evidence does not bind {}",
-                    test.test_id, required_scope
-                )));
-            }
+        if criteria_evidence.reference_id.as_deref() != Some(criteria_id)
+            || criteria_evidence.standard_id.as_deref() != Some(test.standard_id.as_str())
+            || criteria_evidence.standard_revision.as_deref()
+                != Some(test.standard_revision.as_str())
+        {
+            return Err(AuditError(format!(
+                "test {} acceptance-criteria evidence must exactly match criteria ID, standard ID and standard revision",
+                test.test_id
+            )));
         }
     }
 
@@ -792,6 +802,9 @@ mod tests {
             admission: Admission::AdmittedForEvaluation,
             claim_scope: format!("scope:{id}"),
             authority_or_lab_ref: format!("lab-or-authority:{id}"),
+            reference_id: None,
+            standard_id: None,
+            standard_revision: None,
             metrology_ref: metrology.map(str::to_string),
         }
     }
@@ -1068,6 +1081,9 @@ mod tests {
                     claim_scope: "UN-R100-2026 UN-R100-6.15-Annex-9K-05-series-criteria 05-series"
                         .into(),
                     authority_or_lab_ref: "SYNTHETIC-UN-R100-REFERENCE".into(),
+                    reference_id: Some("UN-R100-6.15-Annex-9K-05-series-criteria".into()),
+                    standard_id: Some("UN-R100-2026".into()),
+                    standard_revision: Some("05-series".into()),
                     metrology_ref: None,
                 },
                 EvidenceRecord {
@@ -1078,6 +1094,9 @@ mod tests {
                     claim_scope: "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition"
                         .into(),
                     authority_or_lab_ref: "SYNTHETIC-UL-9540A-REFERENCE".into(),
+                    reference_id: Some("UL-9540A-6th-edition-acceptance-criteria".into()),
+                    standard_id: Some("UL-9540A".into()),
+                    standard_revision: Some("6th-edition".into()),
                     metrology_ref: None,
                 },
                 EvidenceRecord {
@@ -1089,6 +1108,9 @@ mod tests {
                         "IEC-62660-3 IEC-62660-3-2022-cell-block-safety-criteria 2022 edition"
                             .into(),
                     authority_or_lab_ref: "SYNTHETIC-IEC-62660-3-REFERENCE".into(),
+                    reference_id: Some("IEC-62660-3-2022-cell-block-safety-criteria".into()),
+                    standard_id: Some("IEC-62660-3".into()),
+                    standard_revision: Some("2022 edition".into()),
                     metrology_ref: None,
                 },
             ],
