@@ -44,14 +44,14 @@ The base request's camera/vehicle timestamps, renderer receipt, action reference
 | clean-control | Unchanged renderer request, with expected calibration pinned | Accept; emit one receipt and HDC artifact per frame |
 | pixel-corruption | Flip one pixel byte, keep the original renderer receipt | `UpstreamFrameMismatch` |
 | calibration-shift | Change calibration digest to a different valid SHA-256 while retaining the clean calibration pin in BridgeConfig | `UpstreamCalibrationMismatch` |
-| stale-sequence-replay | Replay an earlier upstream sequence in a later outer observation | `UpstreamSequenceMismatch` |
+| stale-sequence-replay | Replay the entire previous accepted observation—same RGB frame, upstream receipt, action, sequence and timestamps—at the next position | `SequenceRegression` |
 | clock-order-violation | Delivery timestamp precedes render completion | `UpstreamClockOrderInvalid` |
 | sensor-clock-skew | Vehicle-state timestamp exceeds configured skew | `SensorClockSkewExceeded` |
 | delivery-age-exceeded | Delivered timestamp exceeds the configured maximum observation age | `UpstreamDeliveryAgeExceeded` |
 | camera-identity-mismatch | Replace the pinned camera ID | `UpstreamIdentityMismatch` |
 | missing-action-receipt | Remove the required applied-action receipt/command/tick references | `UpstreamActionReferenceInvalid` |
 
-The harness reads the clean renderer calibration digest and pins it into `BridgeConfig.expected_camera_calibration_sha256` before any fault mutation. This makes the calibration shift a real pin mismatch rather than a malformed digest. All other source request fields remain unchanged except those required by the named mutation.
+The harness reads the clean renderer calibration digest and pins it into `BridgeConfig.expected_camera_calibration_sha256` before any fault mutation. This makes the calibration shift a real pin mismatch rather than a malformed digest. The stale replay case is stronger than a metadata mismatch: it duplicates the last accepted frame/receipt/sequence/action/time as the next observation, so the bridge reaches its persistent `SequenceRegression` guard. The pixel case changes the copied RGB bytes but preserves the source receipt and frame digest. All other source request fields remain unchanged except those required by the named mutation.
 
 ## Run
 
@@ -91,11 +91,12 @@ The report schema is `schemas/fault-campaign-report-v1.schema.json`.
 
 ## Tests and validation
 
-Six authored Rust tests cover:
+Seven authored Rust tests cover:
 - calibration pinning from the clean renderer receipt;
 - valid-but-different calibration mutation;
 - delayed delivery versus invalid clock ordering;
-- clock-skew versus stale-sequence mutation separation;
+- clock-skew versus exact prior-observation replay;
+- pixel corruption that preserves the original frame and receipt digests;
 - camera identity and missing action receipt mutations;
 - unique expected BridgeError attribution for every negative control.
 
