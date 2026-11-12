@@ -79,7 +79,9 @@
           "conditions",
           "perturbations",
           "expected_disposition",
-          "oracle_requirement"
+          "oracle_requirement",
+          "expected_action",
+          "oracle_action_reason"
         ],
         "properties": {
           "id": {
@@ -118,6 +120,20 @@
           "oracle_requirement": {
             "type": "string",
             "minLength": 12
+          },
+          "expected_action": {
+            "enum": [
+              "CONTINUE_MOVING",
+              "SLOW_AND_SAMPLE",
+              "PAUSE_AND_CHIRP",
+              "CHANGE_EXCITATION",
+              "REVERSE_VIEW",
+              "DEFER_OR_ABSTAIN"
+            ]
+          },
+          "oracle_action_reason": {
+            "type": "string",
+            "minLength": 20
           }
         }
       }
