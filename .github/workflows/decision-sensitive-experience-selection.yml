@@ -1,0 +1,37 @@
+name: decision-sensitive-experience-selection
+
+on:
+  pull_request:
+    paths:
+      - "research/decision-sensitive-experience-selection-001/**"
+      - ".github/workflows/decision-sensitive-experience-selection.yml"
+  push:
+    paths:
+      - "research/decision-sensitive-experience-selection-001/**"
+      - ".github/workflows/decision-sensitive-experience-selection.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/decision-sensitive-experience-selection-001/Cargo.toml -- --check
+
+      - name: Run known-answer and adversarial tests
+        run: cargo test --locked --manifest-path research/decision-sensitive-experience-selection-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/decision-sensitive-experience-selection-001/Cargo.toml --all-targets --all-features -- -D warnings
