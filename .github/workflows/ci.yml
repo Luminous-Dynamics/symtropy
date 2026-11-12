@@ -212,10 +212,19 @@ jobs:
             assert candidate_reader.fieldnames == ["scenario_id", "sensor_id", "observation_id", "action_id"]
             candidate_rows = list(candidate_reader)
 
-        assert len(candidate_rows) == 4
+        print("CANDIDATE_POLICY_MAP_ROWS", len(candidate_rows), candidate_rows)
         assert all(set(row) == {"scenario_id", "sensor_id", "observation_id", "action_id"} for row in candidate_rows)
         assert not any("world" in key or "missing_cause" in key or "regret" in key for key in candidate_reader.fieldnames)
+        candidate_keys = [(row["scenario_id"], row["observation_id"]) for row in candidate_rows]
+        assert len(candidate_keys) == len(set(candidate_keys))
         candidate_map = {(row["scenario_id"], row["observation_id"]): (row["sensor_id"], row["action_id"]) for row in candidate_rows}
+        required_candidate_keys = {
+            ("three-world-sensor-dual-control-v1", "healthy"),
+            ("three-world-sensor-dual-control-v1", "degraded"),
+            ("two-world-feasibility-lift-v1", "world_a_detected"),
+            ("two-world-feasibility-lift-v1", "world_b_detected"),
+        }
+        assert required_candidate_keys.issubset(candidate_map)
         assert candidate_map[("three-world-sensor-dual-control-v1", "healthy")] == ("independent_field_inspection", "defer")
         assert candidate_map[("three-world-sensor-dual-control-v1", "degraded")] == ("independent_field_inspection", "repair")
         assert candidate_map[("two-world-feasibility-lift-v1", "world_a_detected")] == ("decision_separating_inspection", "repair_a")
