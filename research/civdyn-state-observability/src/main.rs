@@ -44,7 +44,7 @@ struct Contract {
     baseline_failed: usize,
     mconst_count: usize,
     mconst_failed: usize,
-    pomcp_count,exception_class_count,known_belief_collapse_exception_rows: usize,
+    pomcp_count: usize,
     pomcp_failed: usize,
     baseline_ids: Vec<String>,
     algorithms: Vec<String>,
