@@ -837,7 +837,10 @@ mod tests {
         m.entropy.reason = None;
         m.entropy.artifact = None;
         let report = m.qualify().unwrap();
-        assert_eq!(report.overall, OverallDisposition::QualifiedForDeclaredProfile);
+        assert_eq!(
+            report.overall,
+            OverallDisposition::QualifiedForDeclaredProfile
+        );
         assert_eq!(report.exergy, ExergyDisposition::NotRequested);
     }
 
