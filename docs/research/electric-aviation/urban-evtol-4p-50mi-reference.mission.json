@@ -2,7 +2,7 @@
   "schema_version": "mission-card/v1",
   "mission_id": "urban-evtol-four-passenger-50-mile-reference",
   "revision": 1,
-  "title": "NASA indicative four-passenger, 50-mile urban eVTOL energy-reference case",
+  "title": "2022 vendor-workshop four-passenger, 50-mile urban eVTOL energy-reference case",
   "status": "planning_reference",
   "aircraft_class": "battery_electric_evtol",
   "architectures_to_compare": [
@@ -57,7 +57,7 @@
     "source_url": "https://www.nasa.gov/wp-content/uploads/2024/01/next-generation-solid-state-batteries-for-aerospace-applications.pdf",
     "source_type": "government_research",
     "accessed_date": "2026-11-12",
-    "source_claim": "NASA workshop material lists an indicative 300 Wh/kg specific-energy requirement alongside a four-passenger, 50-mile urban eVTOL planning case. The mission card records the reference case only; it does not establish a qualified design requirement or certified aircraft performance."
+    "source_claim": "A slide in Ion Storage Systems' November 2022 vendor presentation included in the NASA Aerospace Battery Workshop lists 300 Wh/kg as an enabling-battery-specific-energy figure for a commercial four-passenger, 50-mile urban eVTOL. This is a vendor-stated planning reference, not a NASA certification requirement, a verified production pack result, or evidence that the battery boundary is pack-level. The mission card records the scenario only."
   },
   "maturity": {
     "evidence_class": "planning_reference",
