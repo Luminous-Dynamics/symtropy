@@ -3,13 +3,13 @@ name: Kerr event localization audit
 on:
   push:
     branches:
-      - research/black-hole-physics-program-current
+      - research/kerr-separated-null-geodesics-v0.1
     paths:
       - crates/domains/symtropy-relativity/**
       - .github/workflows/kerr-event-localization.yml
   pull_request:
     branches:
-      - research/kerr-separated-null-geodesics-v0.1
+      - research/black-hole-physics-program-current
     paths:
       - crates/domains/symtropy-relativity/**
       - .github/workflows/kerr-event-localization.yml
