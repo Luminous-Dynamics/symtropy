@@ -1,0 +1,88 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "PRESSURIZED-WATER-LEAK-DIAGNOSTICS-BENCH",
+  "status": "proposed_synthetic_first",
+  "evidence_class": "benchmark_contract_only",
+  "evidence_ceiling": "no_detector_or_field_network_qualified_no_verified_savings_or_repair_claim",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4963",
+  "data_sources": [
+    {
+      "id": "SYNTHETIC_NET3_2026",
+      "type": "synthetic_network",
+      "study": "https://doi.org/10.1016/j.jwpe.2026.110114",
+      "reported_scope": "47000_plus_EPANET_WNTR_Net3_scenarios",
+      "reported_claim": "authors_report_over_95_percent_detection_accuracy",
+      "limitations": [
+        "synthetic_only",
+        "localization_remains_harder",
+        "not_field_deployment"
+      ]
+    },
+    {
+      "id": "SLOVAK_UTILITY_SCADA_2026",
+      "type": "real_utility_dataset",
+      "study": "https://doi.org/10.1038/s41597-026-07203-5",
+      "reported_scope": "one_year_hourly_SCADA_single_distribution_zone",
+      "limitations": [
+        "single_zone",
+        "hourly_sampling",
+        "transfer_not_established"
+      ]
+    },
+    {
+      "id": "LEAKTESTBED",
+      "type": "controlled_physical_lab_dataset",
+      "url": "https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/LeakTestbed.html",
+      "reported_scope": "280_signals_47m_152_4mm_PVC_four_leak_types_plus_no_leak",
+      "limitations": [
+        "small_lab_rig",
+        "not_full_network"
+      ]
+    },
+    {
+      "id": "REVIEW_2026",
+      "type": "systematic_review",
+      "study": "https://doi.org/10.2166/hydro.2026.069",
+      "reported_scope": "86_studies_2015_to_2026",
+      "limitations": [
+        "review_not_shared_leaderboard"
+      ]
+    }
+  ],
+  "scales": [
+    "household_building",
+    "community_DMA",
+    "municipal_trunk_distribution"
+  ],
+  "proposed_t0_cases": [
+    "WDN-T0-001-legitimate-demand-shift",
+    "WDN-T0-002-pump-valve-transient-confounder",
+    "WDN-T0-003-insufficient-localization-observability",
+    "WDN-T0-004-common-mode-sensor-drift",
+    "WDN-T0-005-missing-telemetry-no-leak-absence",
+    "WDN-T0-006-repair-claim-without-outcome-observation"
+  ],
+  "metrics": [
+    "event_precision_recall_pr_auc_by_leak_class",
+    "false_alarms_per_household_month_sensor_day_or_DMA_month",
+    "detection_delay",
+    "localization_distance_P50_P95_max",
+    "leak_volume_estimation_bias_and_interval_coverage",
+    "high_confidence_wrong_segment_rate",
+    "abstention_and_observability_coverage",
+    "callouts_inspection_time_and_pipe_length_per_confirmed_leak",
+    "independently_verified_repair_and_post_repair_service_change"
+  ],
+  "hard_invariants": [
+    "no_leak_absence_from_missing_or_unobserved_telemetry",
+    "no_train_test_split_across_samples_from_same_physical_event",
+    "no_simulated_score_reported_as_field_accuracy",
+    "no_model_only_physical_actuation",
+    "repair_and_saved_water_claims_require_independent_post_repair_observations"
+  ],
+  "proposed_targets_not_achieved": {
+    "false_alarm_reduction": "seek >=25% reduction at matched recall on one held-out profile",
+    "localization": "seek >=25% lower P95 localization error at matched sensor budget on one held-out profile",
+    "reproduction": "reproduce published synthetic benchmark before algorithmic superiority claim"
+  }
+}
