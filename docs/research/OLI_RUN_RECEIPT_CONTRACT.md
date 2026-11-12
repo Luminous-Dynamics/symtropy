@@ -37,6 +37,24 @@ References:
 - in-toto Attestation Framework 1.2: https://github.com/in-toto/attestation/tree/v1.2
 - SLSA Provenance 1.2: https://slsa.dev/spec/v1.2/provenance
 
+
+## Schema-enforced obligations
+
+The v0.1 JSON Schema also enforces several state/evidence obligations without needing a Rust semantic validator:
+
+- `planned` records must have null start/end times.
+- `completed` records require start/end timestamps and at least one output artifact.
+- `failed` and `aborted` records require start/end timestamps and at least one limitation/failure note.
+- `model_inadequate` and `not_observable_with_current_instrument` assessments require linked evidence artifact IDs.
+- Blind-independent, separate-implementation and held-out-functional oracle modes require a named predictor actor.
+- A replay marked `replayed` requires at least one attempt and a non-`not_assessed` equivalence result; `not_attempted` requires zero attempts.
+- Attestations marked `verified` require signer identity, URI and an artifact digest.
+- Artifacts carry a `sha256_status`: `recorded` requires a digest; `pending` requires null. This avoids a fabricated placeholder hash.
+- A `public_license_verified` rights status requires a named licence/terms string.
+- A calibrated detection probability requires a reference abundance and calibration-artifact ID.
+
+These are structural checks. Cross-record links (for example, confirming that a calibration-artifact ID resolves to an artifact in the same receipt) and identity independence still require the semantic validator.
+
 ## Three distinct result layers
 
 ### 1. Activity facts
