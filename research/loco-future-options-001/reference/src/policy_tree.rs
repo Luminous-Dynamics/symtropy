@@ -428,16 +428,14 @@ fn solve_node(
         }
 
         let evidence_complete = node.state_ids.iter().all(|state_id| {
-            evidence_by_state
-                .get(state_id.as_str())
-                .is_some_and(|e| {
-                    e.complete
-                        && !e.receipt_digest.trim().is_empty()
-                        && !e.supporting_receipt_digests.is_empty()
-                        && e.supporting_receipt_digests
-                            .iter()
-                            .all(|digest| !digest.trim().is_empty())
-                })
+            evidence_by_state.get(state_id.as_str()).is_some_and(|e| {
+                e.complete
+                    && !e.receipt_digest.trim().is_empty()
+                    && !e.supporting_receipt_digests.is_empty()
+                    && e.supporting_receipt_digests
+                        .iter()
+                        .all(|digest| !digest.trim().is_empty())
+            })
         });
         if !evidence_complete || evidence_by_state.len() != node.state_ids.len() {
             NodeSolution {
