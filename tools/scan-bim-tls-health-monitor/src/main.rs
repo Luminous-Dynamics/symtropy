@@ -622,7 +622,7 @@ mod tests {
     fn insufficient_session_count_is_rejected() {
         let mut input: serde_json::Value =
             serde_json::from_str(NO_CHANGE).expect("fixture parses");
-        input["baseline_sessions"].as_array_mut().unwrap().pop();
+        input["baseline_sessions"].as_array_mut().unwrap().truncate(4);
         let bytes = serde_json::to_vec(&input).expect("modified input serializes");
         assert!(evaluate_bytes(&bytes).is_err());
     }
