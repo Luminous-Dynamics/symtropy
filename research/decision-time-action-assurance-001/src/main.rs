@@ -238,11 +238,10 @@ mod tests {
                 .cloned()
                 .collect(),
         );
-        let mut bundle: EvidenceBundle =
+        let bundle: EvidenceBundle =
             serde_json::from_value(input["bundle"].clone()).unwrap();
         input["proposal"]["source_evidence_bundle_sha256"] =
             serde_json::json!(evidence_bundle_sha256(&bundle).unwrap());
-        bundle.samples.clear();
         let report = evaluate_request(&input.to_string()).unwrap();
         assert_eq!(report.status, "fallback_required");
         assert!(report.evaluation.envelope.is_none());
