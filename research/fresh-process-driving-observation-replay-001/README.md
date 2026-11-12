@@ -82,7 +82,7 @@ This is the auditor owned by [Symtropy #4666](https://github.com/Luminous-Dynami
 
 
 
-5. Use the generated `bridge-config.json`, `vision-config.json` and all three built binary paths. The Symthaea generator pins the fixture episode, scenario, agent and camera identities:
+5. Use the generated `bridge-config.json`, `vision-config.json` and all three built binary paths. The Symthaea generator pins the fixture episode, scenario, agent and camera identities, the 5,000 µs capture-to-delivery age limit, and a 1,000 µs sensor-clock skew limit. The integration harness derives and pins the exact expected camera-calibration SHA-256 from the first unmodified renderer receipt:
 - `episode_id = fresh-process-driving-episode-v0-1`;
 - `scenario_id = straight-to-curved-road-two-actors-v0-1`;
 - `agent_id = ego`;
@@ -94,20 +94,28 @@ It also pins 640×360 RGB geometry, an initial 33,333 µs frame interval, a 66,6
 
 ## Actual bridge fail-closed negative controls
 
-After a successful fresh-process replay, the harness invokes the real Symthaea bridge binary against eight negative controls:
+After the nominal fresh-process replay, the harness invokes the real Symthaea bridge binary in a fresh OS process for each of **12 negative controls**:
 
-- stale-frame reuse: tick 1 RGB bytes are supplied under tick 2's otherwise valid receipt;
-- pixel corruption: one RGB byte is flipped while the original receipt is retained;
-- camera-calibration digest mismatch against the expected calibration pinned in BridgeConfig;
-- capture timestamp/receipt mismatch;
-- zero sequence;
-- upstream policy-receipt commitment tampering;
-- true observation-sequence rollback: world tick advances but the observation sequence drops from 2 to 1, with a newly rendered and internally consistent receipt;
-- true capture-clock regression: world tick and sequence advance while capture time moves behind the preceding capture, again with a newly rendered and internally consistent receipt.
+1. stale-frame reuse: tick-1 RGB bytes are supplied under tick 2's otherwise valid receipt;
+2. pixel corruption: one RGB byte is flipped while the original frame receipt is retained;
+3. calibration mismatch: change the camera-calibration SHA-256, recompute the unkeyed receipt commitment, and require rejection against the expected calibration pin derived from the untouched episode;
+4. capture timestamp/receipt mismatch;
+5. zero observation sequence;
+6. upstream policy-receipt commitment tampering;
+7. true observation-sequence rollback: world tick advances but the observation sequence drops from 2 to 1, with a newly rendered and internally consistent receipt;
+8. true capture-clock regression: world tick and sequence advance while capture time moves behind the preceding capture, again with a newly rendered, internally consistent receipt;
+9. wrong camera identity: change camera ID and recompute the policy receipt, then require identity rejection;
+10. clock-order violation: make delivery occur before renderer completion and recompute the policy receipt, then require the clock-order error;
+11. camera/vehicle sensor-clock skew: move the vehicle-state clock more than the configured skew budget while retaining a valid camera receipt;
+12. delayed frame beyond the delivery-age budget: render a valid receipt with capture-to-delivery age of 5,001 µs against the fixture's 5,000 µs maximum.
 
-Each control requires the expected bridge error name, a non-zero exit status, no receipts JSON and zero HDC artifact files. The multi-observation rollback specifically proves that the first valid vector is staged but not committed when a later observation rejects.
+The expected exact bridge errors are respectively UpstreamFrameMismatch, UpstreamFrameMismatch, UpstreamCalibrationMismatch, UpstreamTimestampMismatch, UpstreamSequenceMismatch, UpstreamReceiptCommitmentMismatch, SequenceRegression, TimestampRegression, UpstreamIdentityMismatch, UpstreamClockOrderInvalid, SensorClockSkewExceeded and UpstreamDeliveryAgeExceeded.
 
-The Symthaea bridge CLI now stages all HDC vectors and writes neither the receipt file nor policy-input artifacts until the full episode has passed validation. The output receipt path must be unused and the policy-input directory absent or empty before a run. This is output atomicity for validation failures, not a claim of crash-safe multi-file storage transactions.
+Every negative control requires a non-zero exit status, the expected error name, no receipts JSON and zero HDC artifact files. The two-observation stale/sequence controls also prove that an earlier valid vector is staged but not committed when a later observation rejects.
+
+The harness requires maximum_observation_delivery_age_us >= 5,000 in the fixture BridgeConfig and derives expected_camera_calibration_sha256 from the first unmodified renderer observation. It also checks that all nominal frames share that exact calibration identity. The calibration negative control's receipt recomputation is a consistency mutation only; it is not a signature or authentication mechanism.
+
+The Symthaea bridge CLI stages all HDC vectors and writes neither the receipt file nor policy-input artifacts until the full episode has passed validation. The output receipt path must be unused and the policy-input directory absent or empty before a run. This is output atomicity for validation failures, not a claim of crash-safe multi-file storage transactions.
 
 ## Run
 
@@ -140,7 +148,7 @@ The output directory must be empty or new. Reusing a non-empty directory is reje
 - `symthaea-bridge/policy-inputs/`: first-process 16,384D dimension-prefixed little-endian f32 vectors; each binary SHA-256 equals its receipt's `fused_policy_input_sha256`.
 - `symthaea-bridge/fresh-process-replay/`: second independent bridge process receipts and HDC vectors; the harness requires receipt JSON and every HDC artifact byte to match the first process exactly.
 - `symthaea-bridge/fresh-process-replay-comparison.json`: exact bridge receipt/vector replay result;
-- `bridge-negative-controls/negative-control-results.json`: eight exact-error fail-closed checks, each recording exit code, receipts-file presence and number of HDC artifact files.
+- `bridge-negative-controls/negative-control-results.json`: twelve exact-error fail-closed checks, each recording exit code, receipts-file presence and number of HDC artifact files.
 - `fresh-process-replay-comparison.json`: exact renderer frame, audit, missing-event and disposition-ledger replay result.
 - `fresh-process-replay-input.json`, `fresh-process-replay-output.json`: serialized snapshots and OS-process replay results.
 - `counterfactual-branch/` and `counterfactual-branch-record.json`: changed-action/changed-actor-pose branch fixture.
