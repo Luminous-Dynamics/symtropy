@@ -159,7 +159,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "pointwise Sachs optical tide and local parallel-transport RHS authored; full frame/Jacobi integration pending",
+      "status": "fixed-step coupled Sachs-frame/Jacobi source and radial Schwarzschild known-answer tests authored; Rust execution and step-refinement receipts pending",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -177,7 +177,11 @@
         "parallel_transport_screen_basis_rhs",
         "screen_orthonormality_rate_residual",
         "screen_transversality_rate_residual",
-        "metric_compatibility_residual"
+        "metric_compatibility_residual",
+        "integrated_parallel_transport_screen_frame",
+        "integrated_Sachs_Jacobi_matrix_D_doubleprime_equals_minus_T_D",
+        "radial_Schwarzschild_vertex_D_equals_lambda_I",
+        "Jacobi_step_refinement_N_2N_4N"
       ],
       "target": {
         "screen_basis_parallel_transport_residual": 1e-10,
@@ -187,7 +191,10 @@
         "jacobi_matrix_relative_error_well_conditioned": 0.00001,
         "radial_Schwarzschild_optical_tidal_absolute_residual": 1e-10,
         "nonradial_Schwarzschild_vacuum_trace": 1e-8,
-        "nonradial_Schwarzschild_tidal_symmetry": 1e-8
+        "nonradial_Schwarzschild_tidal_symmetry": 1e-8,
+        "radial_Schwarzschild_Jacobi_absolute_error": 2e-7,
+        "radial_Schwarzschild_endpoint_determinant_absolute_error": 3e-8,
+        "jacobi_step_refinement_relative_change_2N_vs_4N": 0.000001
       },
       "required": [
         "integrate the screen basis and 2x2 Jacobi matrix without reselecting a fresh reference-axis frame at every sample",
@@ -230,12 +237,57 @@
           "orthonormality-rate residual derived from partial_lambda g + connection terms",
           "transversality-rate residual derived from metric variation, screen derivative and geodesic acceleration",
           "metric-compatibility residual from LeviCivitaConnection4"
-        ]
+        ],
+        "integrated_api": "integrate_kerr_sachs_jacobi_fixed_step(hole, chart, initial_state, initial_screen_basis, affine_interval, step_count, tolerance)",
+        "integrated_state": "24-component coupled state: 8 canonical coordinates/momenta + 8 transported screen-vector components + 4 Jacobi matrix components + 4 Jacobi derivative components",
+        "integrator": "classical fixed-step RK4; the returned step count is explicit and is not an adaptive global error bound",
+        "initial_data": "D(0)=0, D'(0)=I; initial screen rows must be supplied as orthonormal transverse contravariant vectors in the selected dimensionless Kerr chart",
+        "samples": [
+          "canonical state",
+          "parallel-transported screen frame",
+          "pointwise Riemann optical tidal matrix",
+          "Jacobi matrix and derivative",
+          "signed determinant, ascending singular values, condition number",
+          "null, screen, tidal symmetry, vacuum trace, transport-rate and metric-compatibility residuals"
+        ],
+        "authored_tests": [
+          "inward finite-ZAMO Schwarzschild radial null ray reproduces D(lambda)=lambda*I within 2e-7 at 17 stored samples",
+          "radial Schwarzschild endpoint determinant equals lambda squared within 3e-8",
+          "radial Schwarzschild endpoint singular values equal lambda and condition number equals one",
+          "zero step count and non-finite tolerance are rejected"
+        ],
+        "limitations": [
+          "fixed-step only; must compare step counts N, 2N, and 4N",
+          "does not yet compare the Sachs Jacobi matrix against the canonical 8x8 fundamental matrix projected into the same transported frame",
+          "does not perform caustic root localization or catastrophe classification",
+          "no finite-frequency diffraction or wave-optics solve"
+        ],
+        "step_refinement_protocol": {
+          "required_step_counts": "N, 2N, 4N over the same affine interval and identical initial state/frame",
+          "compare": [
+            "Jacobi matrix relative difference when well-conditioned",
+            "determinant and both singular values",
+            "screen-frame orthonormality/transversality",
+            "null constraint",
+            "optical-tidal symmetry and vacuum trace",
+            "canonical variational map after same-frame projection"
+          ],
+          "proposed_acceptance": {
+            "jacobi_matrix_relative_difference_2N_vs_4N": 0.000001,
+            "screen_orthonormality_residual": 1e-8,
+            "screen_transversality_residual": 1e-8,
+            "null_constraint_residual": 1e-8,
+            "vacuum_trace_residual": 1e-8,
+            "canonical_vs_sachs_jacobi_relative_error_well_conditioned": 0.00001
+          },
+          "caveat": "These are proposed acceptance thresholds. No 2N/4N or canonical-vs-Sachs convergence result has been measured yet."
+        }
       },
       "remaining": [
-        "integrate the two Sachs screen vectors along the accepted canonical ray",
-        "integrate D'' = -T D with vertex conditions D(0)=0 and D'(0)=I",
-        "compare the curvature-based 2x2 Jacobi matrix against canonical 8x8 variation projected into the same transported frame",
+        "execute and record the 17-point radial Schwarzschild known-answer tests in Rust",
+        "run fixed-step refinements at N, 2N, 4N and report matrix and invariant convergence",
+        "compare the curvature-based Sachs Jacobi matrix against the canonical 8x8 variation projected into the same transported frame",
+        "add nonradial Schwarzschild and generic Kerr trajectory cross-formulation receipts",
         "benchmark convergence through a caustic without determinant-only classification"
       ]
     },
@@ -406,6 +458,30 @@
       "system": "Extreme lensing signatures revealed by correlations of simulated black hole movies (Nature Astronomy, 2026)",
       "role": "Uses two-point image correlations of brightness fluctuations to expose lagged, strongly lensed images; the reported signatures are not visible in time-averaged images or light-curve autocorrelations at expected next-generation ground-array resolution.",
       "symtropy_position": "Motivates a future OS-9 time-domain observable pipeline; source variability, GRMHD emission, finite observation windows and instrument transfer functions must be explicit."
+    },
+    {
+      "system": "Kerr lensing image positions/shapes, MNRAS 552(4), published 6 October 2026",
+      "role": "Geometric-optics external comparator for primary/secondary image positions and extended-source shapes across Kerr spin.",
+      "matched_comparison": "Pin the article's observer/source geometry, spin, orientation, source pattern and branch identity; compare image centroids, image-shape observables, magnification proxies and ray travel time only for matching cases.",
+      "reference": "https://doi.org/10.1093/mnras/stag1890",
+      "status": "published external reference; matched Symtropy reproduction not yet run",
+      "symtropy_position": "Our added Jacobi map and caustic-conditioning gates can move beyond image-position-only comparison, but the new source integration is not yet executed."
+    },
+    {
+      "system": "Strong-field gravitational-wave lensing in Kerr, PRD 113, 084056, published 27 April 2026",
+      "role": "Frequency-domain wave-optical comparator using the Mano-Suzuki-Takasugi formalism and strong-field scattering factor.",
+      "matched_comparison": "Compare amplification factor, phase, polarization and scattering observables only when frequency, incidence, spin, source angular pattern and waveform conventions match.",
+      "reference": "https://doi.org/10.1103/9bxg-sqn5",
+      "status": "published external reference; wave-optics implementation not present",
+      "symtropy_position": "Use the Sachs/geodesic branch structure as a geometric-optics asymptotic baseline; do not substitute ray density or geometric magnification for the MST wave solution."
+    },
+    {
+      "system": "Time-domain Kerr GW lensing, arXiv:2610.39181, submitted 29 October 2026",
+      "role": "Preprint comparator for time-domain hyperboloidal evolution with a large coupled angular-mode system (reported approximately 68,000 modes).",
+      "matched_comparison": "Pin preprint version and conventions, then compare waveform phase/amplitude and convergence at matched source incidence, spin and polarization.",
+      "reference": "https://arxiv.org/abs/2610.39181",
+      "status": "preprint; peer-reviewed status not assumed; no Symtropy reproduction",
+      "symtropy_position": "A separate future wave-propagation track, not a direct geodesic or fixed-step Jacobi benchmark."
     }
   ],
   "benchmark_policy": {
@@ -449,10 +525,11 @@
     "https://arxiv.org/abs/2610.39181",
     "https://doi.org/10.1103/tkk2-x9st",
     "https://arxiv.org/abs/2610.18958",
-    "https://www.nature.com/articles/s41550-026-02874-x"
+    "https://www.nature.com/articles/s41550-026-02874-x",
+    "https://doi.org/10.1093/mnras/stag1890"
   ],
   "screen_frame_policy": {
-    "status": "same-event SO(2) screen re-expression, pointwise Sachs optical tide and local parallel-transport RHS implemented at source level; screen/Jacobi integration pending",
+    "status": "same-event SO(2) re-expression, pointwise Sachs optical tide, local frame-transport RHS, and fixed-step coupled Sachs-frame/Jacobi source implemented; Rust execution and refinement pending",
     "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
     "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
     "risks": [
@@ -488,10 +565,13 @@
       "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
     ],
     "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
-    "sachs_transport_status": "not implemented",
+    "sachs_transport_status": "fixed-step RK4 source implemented; step-refinement and canonical-vs-Sachs comparison unexecuted",
     "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
     "sachs_transport_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
-    "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta"
+    "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
+    "sachs_jacobi_api": "integrate_kerr_sachs_jacobi_fixed_step",
+    "sachs_jacobi_initial_data": "D(0)=0; D'(0)=I; two initial chart-coordinate Sachs basis vectors must be null-transverse and orthonormal",
+    "sachs_jacobi_integration": "24-component fixed-step RK4 jointly evolves canonical ray, transported frame, D and D'"
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
