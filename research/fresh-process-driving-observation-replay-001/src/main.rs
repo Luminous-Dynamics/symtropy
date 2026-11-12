@@ -7,7 +7,7 @@
 
 use action_conditioned_offscreen_camera::{
     sha256_hex, ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration,
-    MissingFrameReason, MissingObservationEvent, ObservationDisposition,
+    MissingFrameReason, MissingObservationEvent, MissingObservationInput, ObservationDisposition,
     ObservationStreamGuard, RenderClocks,
     RoadMarkingKind, RoadPolyline, SoftwareCameraRenderer, TimingPolicy, WorldRenderSnapshot,
     Q16_ONE, RENDERER_REVISION,
@@ -1591,16 +1591,16 @@ fn run_parent(
         });
 
         if tick == MISSING_TICK {
-            let event = guard.record_missing(
-                EPISODE_ID,
-                AGENT_ID,
-                CLOCK_ID,
+            let event = guard.record_missing(MissingObservationInput {
+                episode_id: EPISODE_ID,
+                agent_id: AGENT_ID,
+                clock_id: CLOCK_ID,
                 tick,
-                tick,
-                capture_time,
-                capture_time + 1_200,
-                MissingFrameReason::CameraDrop,
-            )?;
+                sequence: tick,
+                capture_timestamp_us: capture_time,
+                noticed_timestamp_us: capture_time + 1_200,
+                reason: MissingFrameReason::CameraDrop,
+            })?;
             missing_events.push(event);
             continue;
         }
