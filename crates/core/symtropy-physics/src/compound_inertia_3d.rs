@@ -494,7 +494,8 @@ mod tests {
         for sample in 1..=32 {
             let k = sample as f64;
             let mass = 0.25 + 0.75 * k;
-            let offset = SVector::<f64, 3>::new((0.17 * k).sin(), (0.31 * k).cos(), (0.23 * k).sin() + 0.4);
+            let offset =
+                SVector::<f64, 3>::new((0.17 * k).sin(), (0.31 * k).cos(), (0.23 * k).sin() + 0.4);
             let observed = checked_parallel_axis_tensor(mass, &offset).unwrap();
             let expected = (identity * offset.norm_squared() - offset * offset.transpose()) * mass;
             let error = (observed - expected).norm();
