@@ -1,0 +1,330 @@
+{
+  "schema_version": "epanet-rs-differential-manifest-v0.1",
+  "manifest_id": "SYMTROPY-EPANET-RS-DIFF-V0.1",
+  "reviewed_at": "2026-11-09",
+  "scope": "Downstream differential-qualification manifest for a Rust EPANET hydraulic solver against pinned OWA-EPANET. This manifest records upstream fixture identities and support boundaries; it contains no claim of parity or performance.",
+  "upstream": {
+    "repository": "https://github.com/Vitens/epanet-rs",
+    "repository_head": "fee0d03b11ed71a6da7366f07290d6e44556add4",
+    "crate": "epanet-rs",
+    "crate_version": "0.2.3",
+    "crate_release_date": "2026-07-02",
+    "license": "MIT OR Apache-2.0",
+    "source_policy": "Upstream states that pull requests are not currently accepted and that AI-generated contributions are not accepted. This work is downstream-only: pin and evaluate published artifacts; do not submit generated code or patches upstream."
+  },
+  "reference_engine": {
+    "repository": "https://github.com/OpenWaterAnalytics/EPANET",
+    "version": "2.3.5",
+    "tag": "v2.3.5",
+    "commit": "444725fbf16ab28b0470ef0ed281dc4849d49583",
+    "release_date": "2026-02-20",
+    "role": "Acceptance oracle for new differential cases and all required supported features."
+  },
+  "upstream_declared_feature_matrix": {
+    "implemented": [
+      {
+        "feature": "INP file support",
+        "evidence": "upstream README feature checklist"
+      },
+      {
+        "feature": "parallel extended-period hydraulic solver",
+        "evidence": "upstream README; parallel mode separately constrained"
+      },
+      {
+        "feature": "partial EPANET 2.3 API compatibility",
+        "evidence": "upstream README feature checklist"
+      },
+      {
+        "feature": "pressure-dependent demand (PDA)",
+        "evidence": "upstream README feature checklist and pda fixtures"
+      },
+      {
+        "feature": "CONTROLS",
+        "evidence": "upstream README feature checklist and controls fixtures"
+      },
+      {
+        "feature": "EMITTERS",
+        "evidence": "upstream README feature checklist and emitter fixtures"
+      }
+    ],
+    "not_implemented_or_unchecked": [
+      {
+        "feature": "pipe leakage / FAVAD leakage",
+        "evidence": "upstream README marks LEAKAGE unchecked",
+        "required_routing": "OWA-only"
+      },
+      {
+        "feature": "RULES",
+        "evidence": "upstream README marks RULES unchecked",
+        "required_routing": "OWA-only"
+      },
+      {
+        "feature": "ENERGY",
+        "evidence": "upstream README marks ENERGY unchecked",
+        "required_routing": "OWA-only"
+      },
+      {
+        "feature": "water quality",
+        "evidence": "upstream README marks quality simulation unchecked",
+        "required_routing": "OWA-only"
+      }
+    ],
+    "parallel_mode_declared_limit": "Upstream advertises up to 5x speedup only for supported extended-period simulations without tanks or controls. This is an unverified upstream claim, not a Luminous benchmark result.",
+    "caution": "A serial feature checklist does not prove that a feature is supported by the parallel solver. Qualify serial and parallel modes separately."
+  },
+  "upstream_test_source": {
+    "path": "tests/solver_test.rs",
+    "git_blob_sha": "6b72294888ff5fe34e88c0e9e5e1ae220815a490",
+    "fixture_root": "tests/",
+    "test_names": [
+      "test_solve_pump_network",
+      "test_disabled_leaf_junction",
+      "test_disabled_node_closes_check_valve_branch",
+      "test_zero_flow_check_valve_head",
+      "test_solve_valve_network",
+      "test_solve_tanks_network",
+      "test_solve_2tanks_controls_network",
+      "test_solve_emitters_network",
+      "test_solve_pda_network",
+      "test_pump_speed_cv_network",
+      "test_solve_tankmodel_network",
+      "test_solve_pcv_valve_minor_loss_si_units",
+      "test_emitter_inp_roundtrip",
+      "test_solve_pcv_valve_minor_loss_si_units_status_change",
+      "test_bidirectional_gpv_curve"
+    ]
+  },
+  "fixtures": [
+    {
+      "path": "tests/pump.inp",
+      "git_blob_sha": "f1f657f00c8ba813c4c3b4858c86711277b95d21",
+      "features": [
+        "pump",
+        "junctions",
+        "reservoirs",
+        "check_valves"
+      ],
+      "upstream_tests": [
+        "test_solve_pump_network",
+        "test_disabled_leaf_junction",
+        "test_disabled_node_closes_check_valve_branch"
+      ]
+    },
+    {
+      "path": "tests/pump-cv.inp",
+      "git_blob_sha": "781eefc4a9ebd312ae5f8653c6355f742a938805",
+      "features": [
+        "pump",
+        "check_valve"
+      ],
+      "upstream_tests": [
+        "test_pump_speed_cv_network"
+      ]
+    },
+    {
+      "path": "tests/pump15.inp",
+      "git_blob_sha": "4b9fb03e9b5c7a136bba5e2e86f9190a5bed5c19",
+      "features": [
+        "pump",
+        "network_fixture"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/valves.inp",
+      "git_blob_sha": "445391b6f93d368e287d6edf42c1c3c5eaeff12b",
+      "features": [
+        "PRV",
+        "PSV",
+        "PBV",
+        "FCV",
+        "TCV",
+        "PCV",
+        "GPV"
+      ],
+      "upstream_tests": [
+        "test_solve_valve_network"
+      ]
+    },
+    {
+      "path": "tests/valves2.inp",
+      "git_blob_sha": "5c7cfc2f50bf7f5265451d2ac38b482377f82804",
+      "features": [
+        "valve_network"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/valves3.inp",
+      "git_blob_sha": "22929a93d7037ac76b54997d1b249b4d6da422b6",
+      "features": [
+        "valve_network"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/pcv-si.inp",
+      "git_blob_sha": "ee4a88085a7eefa160d44b034274a7e6fe3f6e09",
+      "features": [
+        "PCV",
+        "SI_units",
+        "valve_minor_loss",
+        "status_change"
+      ],
+      "upstream_tests": [
+        "test_solve_pcv_valve_minor_loss_si_units",
+        "test_solve_pcv_valve_minor_loss_si_units_status_change"
+      ]
+    },
+    {
+      "path": "tests/pda.inp",
+      "git_blob_sha": "ea8267d88395cd55abb28d964b305fcd16354b92",
+      "features": [
+        "PDA",
+        "demand_pressure_curve"
+      ],
+      "upstream_tests": [
+        "test_solve_pda_network"
+      ]
+    },
+    {
+      "path": "tests/pda-prv.inp",
+      "git_blob_sha": "7c70f103301e11286705df1772a90dc57437de8a",
+      "features": [
+        "PDA",
+        "PRV",
+        "pressure_control"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/emitter.inp",
+      "git_blob_sha": "0e568aaaa87957a9b35cf127d93ac5d480b50e65",
+      "features": [
+        "emitters"
+      ],
+      "upstream_tests": [
+        "test_solve_emitters_network"
+      ]
+    },
+    {
+      "path": "tests/emitter-lpm.inp",
+      "git_blob_sha": "d1a219c44bdc0d127ca01e3c08484feba19b1c20",
+      "features": [
+        "emitters",
+        "litres_per_minute"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/controls.inp",
+      "git_blob_sha": "9340820e7a7c09797f55457c90cc56c85d6a422a",
+      "features": [
+        "controls"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/tanks.inp",
+      "git_blob_sha": "1b23a799c373508bce5a02b4a88c88c9049fa4b4",
+      "features": [
+        "tank",
+        "extended_period"
+      ],
+      "upstream_tests": [
+        "test_solve_tanks_network"
+      ]
+    },
+    {
+      "path": "tests/2tanks.inp",
+      "git_blob_sha": "1aae44279a74380edea9cd4a3c69bce36bdaf74b",
+      "features": [
+        "two_tanks",
+        "extended_period"
+      ],
+      "upstream_tests": [],
+      "status": "unmapped_upstream_test; inspect before admission"
+    },
+    {
+      "path": "tests/2tanks-controls.inp",
+      "git_blob_sha": "218a677fea9ff770ea9e249280ecba026b934bb0",
+      "features": [
+        "two_tanks",
+        "controls",
+        "extended_period"
+      ],
+      "upstream_tests": [
+        "test_solve_2tanks_controls_network"
+      ]
+    },
+    {
+      "path": "tests/tankmodel.inp",
+      "git_blob_sha": "1c0345441134ee7a9cd41dc725ac92e1993280f4",
+      "features": [
+        "tank_model",
+        "extended_period"
+      ],
+      "upstream_tests": [
+        "test_solve_tankmodel_network"
+      ]
+    },
+    {
+      "path": "tests/bidirectional.inp",
+      "git_blob_sha": "2217809e222eb252f325ca4bd9cfff890d15a015",
+      "features": [
+        "bidirectional_flow",
+        "GPV"
+      ],
+      "upstream_tests": [
+        "test_bidirectional_gpv_curve"
+      ]
+    },
+    {
+      "path": "tests/zeroflow-cv.inp",
+      "git_blob_sha": "1b39a3b4871ea47404206fb24d44a873c92aa60f",
+      "features": [
+        "zero_flow",
+        "check_valve"
+      ],
+      "upstream_tests": [
+        "test_zero_flow_check_valve_head"
+      ]
+    }
+  ],
+  "upstream_validation_workflow": {
+    "path": ".github/workflows/validate.yml",
+    "git_blob_sha": "8d4b6f332a3d03576f02e09346a994a20ca103de",
+    "behavior": "Builds epanet-rs release, clones the unpinned OWA EPANET default branch and unpinned OWA example-networks repository, validates all example INP files using rtol 0.01 and atol 0.1, and respects an ignore list.",
+    "qualification": "This upstream workflow is useful context, but it is not an immutable OWA 2.3.5 parity receipt because the OWA clone is shallow/unpinned. Luminous qualification must use the immutable OWA tag/commit."
+  },
+  "upstream_benchmark_workflow": {
+    "path": ".github/workflows/benchmark.yml",
+    "git_blob_sha": "8d296eb045be90fdb161a2c2e7912cd76bc0d91c",
+    "behavior": "Runs Hyperfine on one benchmarks/benchmark.inp network and compares OWA 2.3.5, epanet-rs sequential and epanet-rs parallel using at least five runs after two warmups.",
+    "qualification": "This is a single-network runtime benchmark. It does not establish representative PAT/WDN workload throughput, numerical parity across all tested features, FAVAD support or 5x general speedup."
+  },
+  "local_status": {
+    "imported_fixture_bytes": 0,
+    "fixture_outputs_reproduced": 0,
+    "differential_cases_passed": 0,
+    "benchmark_runs_completed": 0,
+    "status": "manifest_only_not_yet_executed"
+  },
+  "required_next_steps": [
+    "Acquire crate epanet-rs 0.2.3 by exact registry checksum and build with a pinned Rust toolchain.",
+    "Acquire OWA-EPANET 2.3.5 by immutable tag/commit and pin the Linux/Windows/macOS binary or source-build digest.",
+    "Materialize only the selected upstream fixture files by pinned Git blob SHA; preserve their upstream licence and provenance.",
+    "Run serial parity first on fixtures with known upstream assertions, comparing node heads, link flows, delivered demand, convergence and time sequence.",
+    "Run the same fixture set with the parallel mode only where supported; compare every result field to serial and OWA.",
+    "Keep tanks/controls out of the parallel speed claim until upstream limits and actual tests prove support.",
+    "Route all pipe leakage/FAVAD cases to OWA until epanet-rs implements and passes differential leakage tests.",
+    "Benchmark 100, 1000 and 10000 independent scenarios only after exact scenario parity is established."
+  ],
+  "claim_ceiling": "This manifest pins the upstream source and identifies candidate tests/features. It does not claim numerical parity, benchmark speedup, FAVAD support, field hydraulic truth or suitability for a South African water network."
+}

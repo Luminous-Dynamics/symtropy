@@ -1,0 +1,41 @@
+name: EPANET-RS differential manifest
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "benchmarks/epanet-rs-differential/**"
+      - ".github/workflows/epanet-rs-differential-manifest.yml"
+  push:
+    branches: [research/epanet-rs-differential-v0.1]
+    paths:
+      - "benchmarks/epanet-rs-differential/**"
+      - ".github/workflows/epanet-rs-differential-manifest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Validate JSON and pinned source identities
+        run: |
+          set -euo pipefail
+          manifest=benchmarks/epanet-rs-differential/v0.1/fixture-manifest.json
+          jq -e . "$manifest" >/dev/null
+          test "$(jq '.fixtures | length' "$manifest")" = "18"
+          test "$(jq '.upstream_test_source.test_names | length' "$manifest")" = "15"
+          test "$(jq -r '.upstream.repository_head' "$manifest")" = "fee0d03b11ed71a6da7366f07290d6e44556add4"
+          test "$(jq -r '.reference_engine.commit' "$manifest")" = "444725fbf16ab28b0470ef0ed281dc4849d49583"
+          test "$(jq -r '.local_status.differential_cases_passed' "$manifest")" = "0"
+          test "$(jq -r '.local_status.status' "$manifest")" = "manifest_only_not_yet_executed"
+          jq -e '[.fixtures[].git_blob_sha | select(test("^[0-9a-f]{40}$"))] | length == 18' "$manifest" >/dev/null
+          jq -e '[.fixtures[].path] | unique | length == 18' "$manifest" >/dev/null
+          jq -e '[.fixtures[].git_blob_sha] | unique | length == 18' "$manifest" >/dev/null
+          git diff --check
