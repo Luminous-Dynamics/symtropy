@@ -1,0 +1,533 @@
+{
+  "corpus_id": "luminous.symtropy.port-shore-power-interface",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic interface compatibility is not electrical safety, IEC/IEEE conformity, live capacity, provider reservation, safe energization or authority to switch equipment.",
+  "base_cases": {
+    "valid_interface": {
+      "case_id": "SYNTH-SHORE-INTERFACE-001",
+      "fixture_kind": "synthetic_fixture",
+      "evaluation_cutoff_utc": "2026-11-10T06:00:00Z",
+      "facility": {
+        "port_id": "SYNTH-PORT-01",
+        "facility_feature_id": "SYNTH-S131-OSP-01",
+        "feature_revision": "S131-2.0.0",
+        "berth_id": "SYNTH-BERTH-07",
+        "connection_point_id": "SYNTH-CONNECT-07A",
+        "source_state": "described",
+        "source_observed_at_utc": "2026-11-10T05:00:00Z"
+      },
+      "vessel": {
+        "vessel_id": "SYNTH-VESSEL-01",
+        "configuration_revision": "VESSEL-CFG-08",
+        "electrical_installation_revision": "ELEC-REV-05",
+        "capability_ref": "SYNTH-VESSEL-CAP-01",
+        "connection_class": "LVSC",
+        "voltage_band": "SYNTH-VOLTAGE-CLASS-A",
+        "frequency_class": "SYNTH-FREQ-50HZ",
+        "phase_class": "SYNTH-THREE-PHASE",
+        "current_class": "SYNTH-CURRENT-CLASS-01",
+        "power_class": "SYNTH-POWER-CLASS-01",
+        "connector_family": "SYNTH-CONNECTOR-A",
+        "earthing_arrangement": "SYNTH-EARTH-SYSTEM-A",
+        "transient_envelope_ref": "SYNTH-TRANSIENT-ENVELOPE-01",
+        "transient_envelope_status": "within_declared_envelope"
+      },
+      "shore_supply": {
+        "supply_point_id": "SYNTH-SUPPLY-07A",
+        "state": "available_synthetic",
+        "connection_class": "LVSC",
+        "voltage_band": "SYNTH-VOLTAGE-CLASS-A",
+        "frequency_class": "SYNTH-FREQ-50HZ",
+        "phase_class": "SYNTH-THREE-PHASE",
+        "current_class": "SYNTH-CURRENT-CLASS-01",
+        "power_class": "SYNTH-POWER-CLASS-02",
+        "observed_at_utc": "2026-11-10T05:30:00Z",
+        "valid_until_utc": "2026-11-10T08:00:00Z",
+        "meter_boundary": "SYNTH-METER-BOUNDARY-01",
+        "capacity_receipt": "SYNTH-CAPACITY-RECEIPT-01"
+      },
+      "standard": {
+        "system_class": "LVSC",
+        "standard_id": "IEC/IEEE 80005-3",
+        "edition": "2025",
+        "amendments": [],
+        "maturity": "published",
+        "scope": "synthetic_in_scope"
+      },
+      "equipment": {
+        "shore_converter_id": "SYNTH-CONVERTER-01",
+        "shore_converter_revision": "CONVERTER-REV-03",
+        "ship_converter_id": "SYNTH-SHIP-CONVERTER-01",
+        "ship_converter_revision": "SHIP-CONV-REV-02",
+        "cable_id": "SYNTH-CABLE-01",
+        "cable_class": "SYNTH-CABLE-CLASS-A",
+        "connector_family": "SYNTH-CONNECTOR-A",
+        "equipment_state": "commissioned_synthetic",
+        "commissioning_ref": "SYNTH-EQUIP-COMMISSION-01",
+        "calibration_state": "current_synthetic"
+      },
+      "protection": {
+        "earthing_arrangement": "SYNTH-EARTH-SYSTEM-A",
+        "earthing_evidence_status": "present_synthetic",
+        "earth_fault_protection_state": "commissioned_synthetic",
+        "protection_revision": "PROTECTION-REV-02",
+        "interlock_state": "closed_ready_synthetic",
+        "safety_loop_state": "healthy_synthetic",
+        "commissioning_ref": "SYNTH-PROTECTION-COMMISSION-01"
+      },
+      "communication": {
+        "profile": "SYNTH-IEC80005-COMMS-01",
+        "endpoint_id": "SYNTH-PORT-ENDPOINT-01",
+        "state": "available_synthetic",
+        "observed_at_utc": "2026-11-10T05:40:00Z",
+        "valid_until_utc": "2026-11-10T06:30:00Z",
+        "issuer": "SYNTH-PORT-CONTROL"
+      },
+      "reservation": {
+        "reservation_id": "SYNTH-RESERVATION-001",
+        "provider_id": "SYNTH-PORT-ENERGY-PROVIDER",
+        "status": "committed_synthetic",
+        "vessel_id": "SYNTH-VESSEL-01",
+        "berth_id": "SYNTH-BERTH-07",
+        "connection_point_id": "SYNTH-CONNECT-07A",
+        "capacity_class": "SYNTH-POWER-CLASS-01",
+        "start_utc": "2026-11-10T07:00:00Z",
+        "end_utc": "2026-11-10T10:00:00Z",
+        "expires_at_utc": "2026-11-10T06:30:00Z",
+        "revocation_ref": null,
+        "issuer": "SYNTH-PROVIDER-A",
+        "authority_scope": "shore_energy_reservation:SYNTH-VESSEL-01"
+      },
+      "state": {
+        "reported_connection_state": "disconnected",
+        "reported_by": "SYNTH-PORT-ELECTRICAL-OWNER",
+        "source_state": "physical_owner_report_synthetic",
+        "ship_breaker_state": "open",
+        "shore_breaker_state": "open",
+        "connection_sensor_state": "disconnected",
+        "event_ids": [
+          "SYNTH-EVENT-01",
+          "SYNTH-EVENT-02"
+        ],
+        "last_event_time_utc": "2026-11-10T05:45:00Z"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_interface_contract",
+      "base": "valid_interface",
+      "mutations": [],
+      "expected_code": "INTERFACE_CONTRACT_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "s131_facility_without_live_capacity",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "LIVE_SHORE_CAPACITY_UNKNOWN"
+    },
+    {
+      "id": "reservation_not_committed",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "reservation.status",
+          "op": "set",
+          "value": "pending"
+        }
+      ],
+      "expected_code": "RESERVATION_NOT_COMMITTED"
+    },
+    {
+      "id": "wrong_berth_connection_point",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "facility.connection_point_id",
+          "op": "set",
+          "value": "SYNTH-CONNECT-OTHER"
+        }
+      ],
+      "expected_code": "CONNECTION_POINT_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_vessel_configuration",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "vessel.configuration_revision",
+          "op": "set",
+          "value": "VESSEL-CFG-OLD"
+        }
+      ],
+      "expected_code": "VESSEL_CONFIGURATION_MISMATCH"
+    },
+    {
+      "id": "lvsc_hvsc_incompatible",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.connection_class",
+          "op": "set",
+          "value": "HVSC"
+        }
+      ],
+      "expected_code": "CONNECTION_CLASS_MISMATCH"
+    },
+    {
+      "id": "voltage_band_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.voltage_band",
+          "op": "set",
+          "value": "SYNTH-VOLTAGE-CLASS-B"
+        }
+      ],
+      "expected_code": "VOLTAGE_INCOMPATIBLE"
+    },
+    {
+      "id": "frequency_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.frequency_class",
+          "op": "set",
+          "value": "SYNTH-FREQ-60HZ"
+        }
+      ],
+      "expected_code": "FREQUENCY_INCOMPATIBLE"
+    },
+    {
+      "id": "phase_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.phase_class",
+          "op": "set",
+          "value": "SYNTH-SINGLE-PHASE"
+        }
+      ],
+      "expected_code": "PHASE_INCOMPATIBLE"
+    },
+    {
+      "id": "current_class_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.current_class",
+          "op": "set",
+          "value": "SYNTH-CURRENT-LOW"
+        }
+      ],
+      "expected_code": "CURRENT_CAPACITY_INSUFFICIENT"
+    },
+    {
+      "id": "power_class_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.power_class",
+          "op": "set",
+          "value": "SYNTH-POWER-LOW"
+        }
+      ],
+      "expected_code": "POWER_CAPACITY_INSUFFICIENT"
+    },
+    {
+      "id": "connector_family_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "equipment.connector_family",
+          "op": "set",
+          "value": "SYNTH-CONNECTOR-B"
+        }
+      ],
+      "expected_code": "CONNECTOR_INCOMPATIBLE"
+    },
+    {
+      "id": "converter_revision_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "equipment.shore_converter_revision",
+          "op": "set",
+          "value": "CONVERTER-REV-OLD"
+        }
+      ],
+      "expected_code": "CONVERTER_REVISION_MISMATCH"
+    },
+    {
+      "id": "earthing_unknown",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "protection.earthing_evidence_status",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "EARTHING_EVIDENCE_MISSING"
+    },
+    {
+      "id": "protection_not_commissioned",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "protection.earth_fault_protection_state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "PROTECTION_NOT_COMMISSIONED"
+    },
+    {
+      "id": "interlock_unknown",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "protection.interlock_state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "INTERLOCK_STATE_UNKNOWN"
+    },
+    {
+      "id": "interlock_bypassed",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "protection.interlock_state",
+          "op": "set",
+          "value": "bypassed"
+        }
+      ],
+      "expected_code": "INTERLOCK_BYPASS_FORBIDDEN"
+    },
+    {
+      "id": "safety_loop_unhealthy",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "protection.safety_loop_state",
+          "op": "set",
+          "value": "open"
+        }
+      ],
+      "expected_code": "SAFETY_LOOP_NOT_HEALTHY"
+    },
+    {
+      "id": "communications_stale",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "communication.valid_until_utc",
+          "op": "set",
+          "value": "2026-11-10T05:00:00Z"
+        }
+      ],
+      "expected_code": "COMMUNICATION_PROFILE_STALE"
+    },
+    {
+      "id": "duplicate_replayed_event_id",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "state.event_ids",
+          "op": "set",
+          "value": [
+            "SYNTH-EVENT-01",
+            "SYNTH-EVENT-01"
+          ]
+        }
+      ],
+      "expected_code": "DUPLICATE_STATE_EVENT"
+    },
+    {
+      "id": "connection_sensor_conflicts_with_report",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "state.connection_sensor_state",
+          "op": "set",
+          "value": "connected"
+        }
+      ],
+      "expected_code": "CONNECTION_STATE_CONFLICT"
+    },
+    {
+      "id": "breaker_state_conflict",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "state.ship_breaker_state",
+          "op": "set",
+          "value": "closed"
+        }
+      ],
+      "expected_code": "BREAKER_STATE_CONFLICT"
+    },
+    {
+      "id": "supply_derating_below_reserved_capacity",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.power_class",
+          "op": "set",
+          "value": "SYNTH-POWER-CLASS-LOW"
+        }
+      ],
+      "expected_code": "RESERVED_CAPACITY_NOT_AVAILABLE"
+    },
+    {
+      "id": "vessel_transient_envelope_out_of_scope",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "vessel.transient_envelope_status",
+          "op": "set",
+          "value": "out_of_scope"
+        }
+      ],
+      "expected_code": "VESSEL_TRANSIENT_ENVELOPE_UNQUALIFIED"
+    },
+    {
+      "id": "reservation_expired",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "reservation.expires_at_utc",
+          "op": "set",
+          "value": "2026-11-10T05:00:00Z"
+        }
+      ],
+      "expected_code": "RESERVATION_EXPIRED"
+    },
+    {
+      "id": "reservation_revoked",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "reservation.revocation_ref",
+          "op": "set",
+          "value": "SYNTH-REVOKE-01"
+        }
+      ],
+      "expected_code": "RESERVATION_REVOKED"
+    },
+    {
+      "id": "reservation_wrong_vessel",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "reservation.vessel_id",
+          "op": "set",
+          "value": "SYNTH-VESSEL-OTHER"
+        }
+      ],
+      "expected_code": "RESERVATION_SCOPE_MISMATCH"
+    },
+    {
+      "id": "reservation_wrong_connection_point",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "reservation.connection_point_id",
+          "op": "set",
+          "value": "SYNTH-CONNECT-OTHER"
+        }
+      ],
+      "expected_code": "RESERVATION_SCOPE_MISMATCH"
+    },
+    {
+      "id": "invalid_event_time_order",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "state.last_event_time_utc",
+          "op": "set",
+          "value": "2026-11-10T04:00:00Z"
+        }
+      ],
+      "expected_code": "STATE_EVENT_TIME_INVALID"
+    },
+    {
+      "id": "metering_boundary_mismatch",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.meter_boundary",
+          "op": "set",
+          "value": "SYNTH-METER-OTHER"
+        }
+      ],
+      "expected_code": "METERING_BOUNDARY_MISMATCH"
+    },
+    {
+      "id": "recent_retrieval_masks_stale_observation",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "shore_supply.observed_at_utc",
+          "op": "set",
+          "value": "2026-11-09T00:00:00Z"
+        }
+      ],
+      "expected_code": "SHORE_SUPPLY_OBSERVATION_STALE"
+    },
+    {
+      "id": "simulation_promoted_to_physical_state",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "state.source_state",
+          "op": "set",
+          "value": "simulation"
+        }
+      ],
+      "expected_code": "SIMULATED_STATE_PROMOTION_FORBIDDEN"
+    },
+    {
+      "id": "draft_hvsc_edition_claimed_published",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "standard.system_class",
+          "op": "set",
+          "value": "HVSC"
+        },
+        {
+          "path": "standard.edition",
+          "op": "set",
+          "value": "3"
+        },
+        {
+          "path": "standard.maturity",
+          "op": "set",
+          "value": "published"
+        }
+      ],
+      "expected_code": "DRAFT_STANDARD_CLAIMED_AS_CURRENT"
+    },
+    {
+      "id": "stale_s131_feature_revision",
+      "base": "valid_interface",
+      "mutations": [
+        {
+          "path": "facility.feature_revision",
+          "op": "set",
+          "value": "S131-1.0.0"
+        }
+      ],
+      "expected_code": "FACILITY_FEATURE_REVISION_STALE"
+    }
+  ]
+}

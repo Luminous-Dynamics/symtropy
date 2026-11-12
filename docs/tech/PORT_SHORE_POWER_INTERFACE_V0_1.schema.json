@@ -1,0 +1,631 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/port-shore-power-interface-v0.1.schema.json",
+  "title": "Port Shore-to-Ship Electrical Interface Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_cases",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.port-shore-power-interface"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_interface"
+      ],
+      "properties": {
+        "valid_interface": {
+          "$ref": "#/$defs/interface"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nullableString": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_kind",
+        "evaluation_cutoff_utc",
+        "facility",
+        "vessel",
+        "shore_supply",
+        "standard",
+        "equipment",
+        "protection",
+        "communication",
+        "reservation",
+        "state"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "evaluation_cutoff_utc": {
+          "$ref": "#/$defs/date"
+        },
+        "facility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "port_id",
+            "facility_feature_id",
+            "feature_revision",
+            "berth_id",
+            "connection_point_id",
+            "source_state",
+            "source_observed_at_utc"
+          ],
+          "properties": {
+            "port_id": {
+              "type": "string"
+            },
+            "facility_feature_id": {
+              "type": "string"
+            },
+            "feature_revision": {
+              "type": "string"
+            },
+            "berth_id": {
+              "type": "string"
+            },
+            "connection_point_id": {
+              "type": "string"
+            },
+            "source_state": {
+              "enum": [
+                "described",
+                "unknown",
+                "withdrawn"
+              ]
+            },
+            "source_observed_at_utc": {
+              "$ref": "#/$defs/date"
+            }
+          }
+        },
+        "vessel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vessel_id",
+            "configuration_revision",
+            "electrical_installation_revision",
+            "capability_ref",
+            "connection_class",
+            "voltage_band",
+            "frequency_class",
+            "phase_class",
+            "current_class",
+            "power_class",
+            "connector_family",
+            "earthing_arrangement",
+            "transient_envelope_ref",
+            "transient_envelope_status"
+          ],
+          "properties": {
+            "vessel_id": {
+              "type": "string"
+            },
+            "configuration_revision": {
+              "type": "string"
+            },
+            "electrical_installation_revision": {
+              "type": "string"
+            },
+            "capability_ref": {
+              "type": "string"
+            },
+            "connection_class": {
+              "enum": [
+                "LVSC",
+                "HVSC",
+                "other",
+                "unknown"
+              ]
+            },
+            "voltage_band": {
+              "type": "string"
+            },
+            "frequency_class": {
+              "type": "string"
+            },
+            "phase_class": {
+              "type": "string"
+            },
+            "current_class": {
+              "type": "string"
+            },
+            "power_class": {
+              "type": "string"
+            },
+            "connector_family": {
+              "type": "string"
+            },
+            "earthing_arrangement": {
+              "type": "string"
+            },
+            "transient_envelope_ref": {
+              "type": "string"
+            },
+            "transient_envelope_status": {
+              "enum": [
+                "within_declared_envelope",
+                "out_of_scope",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "shore_supply": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "supply_point_id",
+            "state",
+            "connection_class",
+            "voltage_band",
+            "frequency_class",
+            "phase_class",
+            "current_class",
+            "power_class",
+            "observed_at_utc",
+            "valid_until_utc",
+            "meter_boundary",
+            "capacity_receipt"
+          ],
+          "properties": {
+            "supply_point_id": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "available_synthetic",
+                "unknown",
+                "unavailable",
+                "derated_synthetic"
+              ]
+            },
+            "connection_class": {
+              "enum": [
+                "LVSC",
+                "HVSC",
+                "other",
+                "unknown"
+              ]
+            },
+            "voltage_band": {
+              "type": "string"
+            },
+            "frequency_class": {
+              "type": "string"
+            },
+            "phase_class": {
+              "type": "string"
+            },
+            "current_class": {
+              "type": "string"
+            },
+            "power_class": {
+              "type": "string"
+            },
+            "observed_at_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "valid_until_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "meter_boundary": {
+              "type": "string"
+            },
+            "capacity_receipt": {
+              "type": "string"
+            }
+          }
+        },
+        "standard": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "system_class",
+            "standard_id",
+            "edition",
+            "amendments",
+            "maturity",
+            "scope"
+          ],
+          "properties": {
+            "system_class": {
+              "enum": [
+                "LVSC",
+                "HVSC",
+                "other"
+              ]
+            },
+            "standard_id": {
+              "type": "string"
+            },
+            "edition": {
+              "type": "string"
+            },
+            "amendments": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "maturity": {
+              "enum": [
+                "published",
+                "committee_draft",
+                "implementation_testing_only",
+                "unknown"
+              ]
+            },
+            "scope": {
+              "type": "string"
+            }
+          }
+        },
+        "equipment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "shore_converter_id",
+            "shore_converter_revision",
+            "ship_converter_id",
+            "ship_converter_revision",
+            "cable_id",
+            "cable_class",
+            "connector_family",
+            "equipment_state",
+            "commissioning_ref",
+            "calibration_state"
+          ],
+          "properties": {
+            "shore_converter_id": {
+              "type": "string"
+            },
+            "shore_converter_revision": {
+              "type": "string"
+            },
+            "ship_converter_id": {
+              "type": "string"
+            },
+            "ship_converter_revision": {
+              "type": "string"
+            },
+            "cable_id": {
+              "type": "string"
+            },
+            "cable_class": {
+              "type": "string"
+            },
+            "connector_family": {
+              "type": "string"
+            },
+            "equipment_state": {
+              "enum": [
+                "commissioned_synthetic",
+                "unknown",
+                "not_commissioned"
+              ]
+            },
+            "commissioning_ref": {
+              "type": "string"
+            },
+            "calibration_state": {
+              "enum": [
+                "current_synthetic",
+                "stale",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "protection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "earthing_arrangement",
+            "earthing_evidence_status",
+            "earth_fault_protection_state",
+            "protection_revision",
+            "interlock_state",
+            "safety_loop_state",
+            "commissioning_ref"
+          ],
+          "properties": {
+            "earthing_arrangement": {
+              "type": "string"
+            },
+            "earthing_evidence_status": {
+              "enum": [
+                "present_synthetic",
+                "unknown",
+                "missing"
+              ]
+            },
+            "earth_fault_protection_state": {
+              "enum": [
+                "commissioned_synthetic",
+                "unknown",
+                "not_commissioned"
+              ]
+            },
+            "protection_revision": {
+              "type": "string"
+            },
+            "interlock_state": {
+              "enum": [
+                "closed_ready_synthetic",
+                "unknown",
+                "bypassed",
+                "open"
+              ]
+            },
+            "safety_loop_state": {
+              "enum": [
+                "healthy_synthetic",
+                "open",
+                "unknown"
+              ]
+            },
+            "commissioning_ref": {
+              "type": "string"
+            }
+          }
+        },
+        "communication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile",
+            "endpoint_id",
+            "state",
+            "observed_at_utc",
+            "valid_until_utc",
+            "issuer"
+          ],
+          "properties": {
+            "profile": {
+              "type": "string"
+            },
+            "endpoint_id": {
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "available_synthetic",
+                "stale",
+                "unknown",
+                "unavailable"
+              ]
+            },
+            "observed_at_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "valid_until_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "issuer": {
+              "type": "string"
+            }
+          }
+        },
+        "reservation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reservation_id",
+            "provider_id",
+            "status",
+            "vessel_id",
+            "berth_id",
+            "connection_point_id",
+            "capacity_class",
+            "start_utc",
+            "end_utc",
+            "expires_at_utc",
+            "revocation_ref",
+            "issuer",
+            "authority_scope"
+          ],
+          "properties": {
+            "reservation_id": {
+              "type": "string"
+            },
+            "provider_id": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "committed_synthetic",
+                "pending",
+                "expired",
+                "revoked",
+                "unknown"
+              ]
+            },
+            "vessel_id": {
+              "type": "string"
+            },
+            "berth_id": {
+              "type": "string"
+            },
+            "connection_point_id": {
+              "type": "string"
+            },
+            "capacity_class": {
+              "type": "string"
+            },
+            "start_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "end_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "expires_at_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "revocation_ref": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "issuer": {
+              "type": "string"
+            },
+            "authority_scope": {
+              "type": "string"
+            }
+          }
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reported_connection_state",
+            "reported_by",
+            "source_state",
+            "ship_breaker_state",
+            "shore_breaker_state",
+            "connection_sensor_state",
+            "event_ids",
+            "last_event_time_utc"
+          ],
+          "properties": {
+            "reported_connection_state": {
+              "enum": [
+                "disconnected",
+                "ready_synthetic",
+                "energized_synthetic",
+                "unknown"
+              ]
+            },
+            "reported_by": {
+              "type": "string"
+            },
+            "source_state": {
+              "enum": [
+                "physical_owner_report_synthetic",
+                "simulation",
+                "unknown"
+              ]
+            },
+            "ship_breaker_state": {
+              "enum": [
+                "open",
+                "closed",
+                "unknown"
+              ]
+            },
+            "shore_breaker_state": {
+              "enum": [
+                "open",
+                "closed",
+                "unknown"
+              ]
+            },
+            "connection_sensor_state": {
+              "enum": [
+                "connected",
+                "disconnected",
+                "unknown"
+              ]
+            },
+            "event_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "last_event_time_utc": {
+              "$ref": "#/$defs/date"
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "set"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "base": {
+          "const": "valid_interface"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
