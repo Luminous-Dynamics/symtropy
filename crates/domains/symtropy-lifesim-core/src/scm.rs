@@ -857,14 +857,6 @@ fn communication_consensus_state(
     }
 }
 
-fn l2_norm(values: &[f64]) -> f64 {ances,
-        maximum_pairwise_distance,
-        consensus,
-        lambdas,
-        spread_degenerate,
-    )
-}
-
 fn l2_norm(values: &[f64]) -> f64 {
     values.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
