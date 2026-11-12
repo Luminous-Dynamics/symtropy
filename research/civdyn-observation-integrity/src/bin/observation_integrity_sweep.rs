@@ -133,12 +133,18 @@ fn cases() -> Vec<EvaluatorCase> {
         EvaluatorCase {
             scenario_id: "independent_physical_corroboration",
             hidden_cause: "physical_degradation_confirmed",
-            evidence: vec![physical("primary", 50), independent_measurement("field-gauge", 51)],
+            evidence: vec![
+                physical("primary", 50),
+                independent_measurement("field-gauge", 51),
+            ],
         },
         EvaluatorCase {
             scenario_id: "independent_measurement_conflict",
             hidden_cause: "unresolved_sensor_or_physical_conflict",
-            evidence: vec![physical("primary", 50), independent_measurement("field-gauge", 100)],
+            evidence: vec![
+                physical("primary", 50),
+                independent_measurement("field-gauge", 100),
+            ],
         },
         EvaluatorCase {
             scenario_id: "instrument_self_test_failure",
@@ -202,7 +208,9 @@ fn main() -> Result<(), String> {
     for case in &cases {
         let decision = triage_observation_integrity(&policy(case.scenario_id), &case.evidence)
             .map_err(|error| format!("{error:?}"))?;
-        let value = decision.primary_value.map_or_else(String::new, |v| v.to_string());
+        let value = decision
+            .primary_value
+            .map_or_else(String::new, |v| v.to_string());
         println!(
             "{},{},{},{},{},{},{},{},{}",
             csv(case.scenario_id),
