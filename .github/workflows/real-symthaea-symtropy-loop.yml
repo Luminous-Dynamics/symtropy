@@ -86,6 +86,10 @@ jobs:
           STFR_HDC_OUTPUT_PATH: ${{ runner.temp }}/symtropy-hdc-ltc-residual-reservoir-heldout.json
           STFR_HDC_EVAL_EPISODES: 18
           STFR_HDC_EVAL_STEPS: 64
+          STFR_MLP_OUTPUT_PATH: ${{ runner.temp }}/symtropy-compact-mlp-residual-heldout.json
+          STFR_MLP_EVAL_EPISODES: 18
+          STFR_MLP_EVAL_STEPS: 64
+          STFR_COMPARISON_OUTPUT_PATH: ${{ runner.temp }}/symtropy-residual-model-paired-comparison.json
         run: bash symtropy/scripts/test-real-symthaea-in-symtropy.sh
 
       - name: Upload paired flight-transfer evidence
@@ -98,4 +102,6 @@ jobs:
             ${{ runner.temp }}/symtropy-causal-transition-residual-dataset.json
             ${{ runner.temp }}/symtropy-causal-residual-ridge-conformal-heldout.json
             ${{ runner.temp }}/symtropy-hdc-ltc-residual-reservoir-heldout.json
+            ${{ runner.temp }}/symtropy-compact-mlp-residual-heldout.json
+            ${{ runner.temp }}/symtropy-residual-model-paired-comparison.json
           if-no-files-found: error
