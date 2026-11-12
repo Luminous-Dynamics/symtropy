@@ -142,11 +142,7 @@ pub struct ValidationReport {
     pub findings: Vec<Finding>,
 }
 
-fn add(
-    findings: &mut Vec<Finding>,
-    code: &'static str,
-    message: impl Into<String>,
-) {
+fn add(findings: &mut Vec<Finding>, code: &'static str, message: impl Into<String>) {
     findings.push(Finding {
         code,
         message: message.into(),
@@ -178,9 +174,7 @@ fn evidence_ceiling(record: &AttemptRecord) -> EvidenceCeiling {
         ) if record.mass_balance.is_some() && record.damage.is_some() => {
             EvidenceCeiling::PhysicalRemovalIndependentlyInspected
         }
-        (Some(EvidenceTier::PhysicalObserved), _, _) => {
-            EvidenceCeiling::PhysicalExecutionObserved
-        }
+        (Some(EvidenceTier::PhysicalObserved), _, _) => EvidenceCeiling::PhysicalExecutionObserved,
         (Some(EvidenceTier::Simulation), _, _) => EvidenceCeiling::SimulationOnly,
         _ => EvidenceCeiling::ContractOnly,
     }
@@ -229,14 +223,21 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
             add(
                 &mut findings,
                 "INVALID_EVIDENCE_DIGEST",
-                format!("evidence {} must carry a 64-character SHA-256 digest", evidence.evidence_id),
+                format!(
+                    "evidence {} must carry a 64-character SHA-256 digest",
+                    evidence.evidence_id
+                ),
             );
         }
         if evidence.tier == EvidenceTier::PhysicalObserved
-            && evidence.calibration_id.as_deref().is_none_or(|id| !nonempty(id))
-            && record.action_evidence.as_ref().is_some_and(|action| {
-                action.evidence_id == evidence.evidence_id
-            })
+            && evidence
+                .calibration_id
+                .as_deref()
+                .is_none_or(|id| !nonempty(id))
+            && record
+                .action_evidence
+                .as_ref()
+                .is_some_and(|action| action.evidence_id == evidence.evidence_id)
         {
             add(
                 &mut findings,
@@ -301,9 +302,7 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
         ExecutionState::Executed => {
             if !matches!(
                 record.outcome,
-                RemovalOutcome::Removed
-                    | RemovalOutcome::Partial
-                    | RemovalOutcome::NotRemoved
+                RemovalOutcome::Removed | RemovalOutcome::Partial | RemovalOutcome::NotRemoved
             ) {
                 add(
                     &mut findings,
@@ -456,13 +455,9 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
                 }
             }
             EvidenceTier::Simulation => {
-                if record
-                    .post_inspection
-                    .as_ref()
-                    .is_some_and(|inspection| {
-                        inspection.tier == EvidenceTier::IndependentlyInspected
-                    })
-                {
+                if record.post_inspection.as_ref().is_some_and(|inspection| {
+                    inspection.tier == EvidenceTier::IndependentlyInspected
+                }) {
                     add(
                         &mut findings,
                         "SIMULATION_PROMOTED_TO_PHYSICAL_INSPECTION",
@@ -486,16 +481,12 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
             add(
                 &mut findings,
                 "FORCE_LIMIT_EXCEEDED",
-                format!(
-                    "peak force {peak} mN exceeds declared maximum {maximum} mN"
-                ),
+                format!("peak force {peak} mN exceeds declared maximum {maximum} mN"),
             );
         }
     }
 
-    findings.sort_by(|left, right| {
-        (&left.code, &left.message).cmp(&(&right.code, &right.message))
-    });
+    findings.sort_by(|left, right| (&left.code, &left.message).cmp(&(&right.code, &right.message)));
 
     let valid = findings.is_empty();
     let ceiling = if valid {
@@ -569,11 +560,7 @@ mod tests {
 
     fn simulated_removed() -> AttemptRecord {
         let mut record = physical_removed();
-        record.action_evidence = Some(evidence(
-            "sim-action-001",
-            EvidenceTier::Simulation,
-            None,
-        ));
+        record.action_evidence = Some(evidence("sim-action-001", EvidenceTier::Simulation, None));
         record.post_inspection = Some(evidence(
             "sim-inspection-001",
             EvidenceTier::Simulation,
@@ -608,9 +595,12 @@ mod tests {
         record.task.join_method = JoinMethod::Unknown;
         let report = validate(&record);
         assert!(!report.valid);
-        assert!(report.findings.iter().any(|item| {
-            item.code == "UNKNOWN_JOIN_METHOD_MUST_ABSTAIN"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "UNKNOWN_JOIN_METHOD_MUST_ABSTAIN" })
+        );
     }
 
     #[test]
@@ -635,9 +625,12 @@ mod tests {
         let mut record = physical_removed();
         record.mass_balance.as_mut().unwrap().unexplained_mass_mg = 0;
         let report = validate(&record);
-        assert!(report.findings.iter().any(|item| {
-            item.code == "MASS_BALANCE_NOT_CLOSED"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "MASS_BALANCE_NOT_CLOSED" })
+        );
     }
 
     #[test]
@@ -650,12 +643,18 @@ mod tests {
         ));
         record.damage = None;
         let report = validate(&record);
-        assert!(report.findings.iter().any(|item| {
-            item.code == "PHYSICAL_REMOVAL_NEEDS_INDEPENDENT_INSPECTION"
-        }));
-        assert!(report.findings.iter().any(|item| {
-            item.code == "MISSING_TEXTILE_DAMAGE_OBSERVATION"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "PHYSICAL_REMOVAL_NEEDS_INDEPENDENT_INSPECTION" })
+        );
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "MISSING_TEXTILE_DAMAGE_OBSERVATION" })
+        );
     }
 
     #[test]
@@ -667,9 +666,12 @@ mod tests {
             None,
         ));
         let report = validate(&record);
-        assert!(report.findings.iter().any(|item| {
-            item.code == "SYNTHETIC_EVIDENCE_CANNOT_PROVE_EXECUTION"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "SYNTHETIC_EVIDENCE_CANNOT_PROVE_EXECUTION" })
+        );
     }
 
     #[test]
@@ -677,9 +679,12 @@ mod tests {
         let mut record = physical_removed();
         record.peak_force_mn = Some(12_001);
         let report = validate(&record);
-        assert!(report.findings.iter().any(|item| {
-            item.code == "FORCE_LIMIT_EXCEEDED"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "FORCE_LIMIT_EXCEEDED" })
+        );
     }
 
     #[test]
@@ -690,12 +695,18 @@ mod tests {
         record.action_evidence = None;
         record.post_inspection = None;
         let report = validate(&record);
-        assert!(!report.findings.iter().any(|item| {
-            item.code == "PLANNED_OUTCOME_MISMATCH"
-        }));
-        assert!(report.findings.iter().any(|item| {
-            item.code == "UNEXECUTED_POSITIVE_OUTPUT"
-        }));
+        assert!(
+            !report
+                .findings
+                .iter()
+                .any(|item| { item.code == "PLANNED_OUTCOME_MISMATCH" })
+        );
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "UNEXECUTED_POSITIVE_OUTPUT" })
+        );
     }
 
     #[test]
@@ -707,8 +718,11 @@ mod tests {
             None,
         ));
         let report = validate(&record);
-        assert!(report.findings.iter().any(|item| {
-            item.code == "SIMULATION_PROMOTED_TO_PHYSICAL_INSPECTION"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| { item.code == "SIMULATION_PROMOTED_TO_PHYSICAL_INSPECTION" })
+        );
     }
 }
