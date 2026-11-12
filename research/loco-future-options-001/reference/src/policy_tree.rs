@@ -964,9 +964,12 @@ mod tests {
     fn unreachable_terminal_safe_stop_removes_the_policy() {
         let mut tree = root_two_step_tree();
         tree.nodes[3].terminal_recovery = Some(TerminalRecoveryEvidence::Qualified {
-            reserve_state_digest: "reserve".to_owned(),
-            topology_digest: "topology".to_owned(),
-            terminal_safe_stop_reachable: false,
+            state_receipts: vec![TerminalRecoveryReceipt {
+                state_id: "s1-safe".to_owned(),
+                reserve_state_digest: reserve_digest("s1-safe"),
+                topology_digest: "topology".to_owned(),
+                terminal_safe_stop_reachable: false,
+            }],
         });
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(
@@ -999,6 +1002,12 @@ mod tests {
             from_state_id: "s1".to_owned(),
             action_id: "probe".to_owned(),
             to_state_id: "impossible".to_owned(),
+            from_state_digest: String::new(),
+            to_state_digest: String::new(),
+            predecessor_reserve_state_digest: String::new(),
+            resulting_reserve_state_digest: String::new(),
+            predecessor_thermal_state_digest: String::new(),
+            resulting_thermal_state_digest: String::new(),
             next_belief_node_id: "not-a-node".to_owned(),
             physically_possible: false,
             evidence_complete: false,
@@ -1008,6 +1017,68 @@ mod tests {
         assert_eq!(report.disposition, PolicyTreeDisposition::WinningPolicyFound);
     }
 
+
+
+    #[test]
+    fn transition_predecessor_reserve_and_thermal_digests_must_match_parent_state() {
+        let mut reserve = root_two_step_tree();
+        reserve.nodes[0].transitions[0].predecessor_reserve_state_digest =
+            "reserve:other".to_owned();
+        assert_eq!(
+            evaluate_bounded_policy_tree(&reserve, 2).unwrap().disposition,
+            PolicyTreeDisposition::Invalid
+        );
+
+        let mut thermal = root_two_step_tree();
+        thermal.nodes[0].transitions[0].predecessor_thermal_state_digest =
+            "thermal:other".to_owned();
+        assert_eq!(
+            evaluate_bounded_policy_tree(&thermal, 2).unwrap().disposition,
+            PolicyTreeDisposition::Invalid
+        );
+    }
+
+    #[test]
+    fn transition_result_digests_must_match_child_belief_state() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[0].transitions[0].resulting_thermal_state_digest =
+            "thermal:wrong-successor".to_owned();
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
+        assert!(report
+            .invalid_reasons
+            .iter()
+            .any(|reason| reason.contains("successor-state-binding-mismatch")));
+    }
+
+    #[test]
+    fn terminal_recovery_must_cover_every_hidden_state_at_the_leaf() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[3].state_ids = vec!["s1-safe".to_owned(), "s1-safe-alt".to_owned()];
+        tree.nodes[3].state_evidence.push(state_receipt("s1-safe-alt"));
+        // The terminal receipt still covers only s1-safe.
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
+    }
+
+    #[test]
+    fn terminal_reserve_digest_must_match_each_leaf_state() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[3].terminal_recovery = Some(TerminalRecoveryEvidence::Qualified {
+            state_receipts: vec![TerminalRecoveryReceipt {
+                state_id: "s1-safe".to_owned(),
+                reserve_state_digest: "reserve:stale".to_owned(),
+                topology_digest: "topology:s1-safe".to_owned(),
+                terminal_safe_stop_reachable: true,
+            }],
+        });
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
+        assert!(report
+            .invalid_reasons
+            .iter()
+            .any(|reason| reason.contains("terminal-reserve-state-mismatch")));
+    }
 
     #[test]
     fn unknown_or_stale_observation_receipt_cannot_split_a_belief() {
