@@ -503,6 +503,41 @@ mod tests {
     }
 
     #[test]
+    fn analytic_jacobian_lipschitz_bound_covers_deterministic_pairs() {
+        let parameters = parameters(2.0, 0.5);
+        let first = MidpointKktStateV1 {
+            q1: 2.1,
+            v1: 7.9,
+            multiplier: 3.8,
+        };
+        let witness = JacobianLipschitzWitnessV1::for_quadratic_midpoint_fixture();
+        for delta in [
+            [0.1, -0.2, 0.3],
+            [-0.5, 0.0, 0.25],
+            [0.0, 1.0, -0.75],
+            [2.0, -1.0, 0.125],
+        ] {
+            let second = MidpointKktStateV1 {
+                q1: first.q1 + delta[0],
+                v1: first.v1 + delta[1],
+                multiplier: first.multiplier + delta[2],
+            };
+            let first_jacobian = midpoint_kkt_jacobian_v1(parameters, first).unwrap();
+            let second_jacobian = midpoint_kkt_jacobian_v1(parameters, second).unwrap();
+            let difference: Matrix3 = std::array::from_fn(|row| {
+                std::array::from_fn(|column| {
+                    first_jacobian[row][column] - second_jacobian[row][column]
+                })
+            });
+            let distance = vector_norm(&delta);
+            assert!(
+                matrix_frobenius(&difference)
+                    <= witness.upper_bound * distance + 1.0e-13
+            );
+        }
+    }
+
+    #[test]
     fn understated_jacobian_lipschitz_claim_is_rejected() {
         assert_eq!(
             JacobianLipschitzWitnessV1::from_claimed_upper_bound(1.0),
@@ -575,7 +610,7 @@ mod tests {
     }
 
     #[test]
-    fn changing_the_constraint_equation_sign_changes_the_receipt() {
+    fn negative_mass_is_rejected_before_newton_estimation() {
         let problem = parameters(1.0, 1.0);
         let state = approximate_state(1.0, 1.0);
         let correct = qualify_midpoint_state_v1(
