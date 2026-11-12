@@ -617,6 +617,7 @@ pub fn audit_transition(
     }
 
     let disposition = aggregate_disposition(statuses);
+    let result_is_qualified = disposition == AuditDisposition::Qualified;
     Ok(LedgerReport {
         disposition,
         predecessor_sequence: previous.event_sequence,
@@ -626,7 +627,7 @@ pub fn audit_transition(
         result_option_ids: if next.disposition == EvidenceDisposition::Qualified
             && next.branch_manifest_complete
             && next.action_domain_complete
-            && disposition == AuditDisposition::Qualified
+            && result_is_qualified
         {
             let mut ids = next.available_option_ids.clone();
             ids.sort();
