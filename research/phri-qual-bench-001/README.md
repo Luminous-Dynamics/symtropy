@@ -81,3 +81,8 @@ Target performance reporting:
 - false rejection, abstention, and infeasibility remain visible rather than being optimized away.
 
 These are software/protocol targets only. Hardware timing, physical stop latency, calibration uncertainty, local contact metrology, and user-agency outcomes require their own instrumented evidence and must not be inferred from host unit tests.
+
+
+## Related work and baselines
+
+See [RELATED-WORK-AND-BASELINES.md](RELATED-WORK-AND-BASELINES.md) for the current comparator map, evidence boundaries, proposed targets and explicit anti-overclaim rules. The comparison includes recent variable-impedance, matrix-stiffness, tactile-transfer, contact-aware benchmark and agency-aware autonomy work, along with NIST measurement-science context.
