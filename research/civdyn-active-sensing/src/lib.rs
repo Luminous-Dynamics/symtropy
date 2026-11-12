@@ -207,7 +207,10 @@ fn validate_worlds(worlds: &[DecisionWorld]) -> Result<Vec<WorldOracle>, String>
             || !world.service_floor.is_finite()
             || world.policies.is_empty()
         {
-            return Err(format!("invalid identity, service floor or empty policies in {}", world.world_id));
+            return Err(format!(
+                "invalid identity, service floor or empty policies in {}",
+                world.world_id
+            ));
         }
         if !world_ids.insert(world.world_id.as_str()) {
             return Err(format!("duplicate decision world {}", world.world_id));
@@ -219,7 +222,10 @@ fn validate_worlds(worlds: &[DecisionWorld]) -> Result<Vec<WorldOracle>, String>
                 return Err(format!("invalid policy outcome in {}", world.world_id));
             }
             if !policy_ids.insert(policy.policy_id.clone()) {
-                return Err(format!("duplicate policy {} in {}", policy.policy_id, world.world_id));
+                return Err(format!(
+                    "duplicate policy {} in {}",
+                    policy.policy_id, world.world_id
+                ));
             }
         }
         if let Some(expected) = &common_policy_ids {
@@ -230,13 +236,21 @@ fn validate_worlds(worlds: &[DecisionWorld]) -> Result<Vec<WorldOracle>, String>
             common_policy_ids = Some(policy_ids);
         }
 
-        let best = world.policies.iter()
+        let best = world
+            .policies
+            .iter()
             .filter(|policy| policy.service_units + TOLERANCE >= world.service_floor)
             .max_by(|left, right| {
-                left.service_units.total_cmp(&right.service_units)
+                left.service_units
+                    .total_cmp(&right.service_units)
                     .then_with(|| right.policy_id.cmp(&left.policy_id))
             })
-            .ok_or_else(|| format!("no physical policy meets service floor in {}", world.world_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "no physical policy meets service floor in {}",
+                    world.world_id
+                )
+            })?;
 
         oracle.push(WorldOracle {
             world_id: world.world_id.clone(),
@@ -250,22 +264,24 @@ fn validate_worlds(worlds: &[DecisionWorld]) -> Result<Vec<WorldOracle>, String>
 }
 
 fn find_policy<'a>(world: &'a DecisionWorld, policy_id: &str) -> Result<&'a PolicyOutcome, String> {
-    world.policies.iter()
+    world
+        .policies
+        .iter()
         .find(|policy| policy.policy_id == policy_id)
         .ok_or_else(|| format!("policy {policy_id} absent from {}", world.world_id))
 }
 
 fn oracle_for<'a>(oracle: &'a [WorldOracle], world_id: &str) -> Result<&'a WorldOracle, String> {
-    oracle.iter()
+    oracle
+        .iter()
         .find(|item| item.world_id == world_id)
         .ok_or_else(|| format!("missing oracle receipt for {world_id}"))
 }
 
-fn baseline_no_sensing(
-    worlds: &[DecisionWorld],
-    oracle: &[WorldOracle],
-) -> NoSensingAssessment {
-    let mut policy_ids: Vec<String> = worlds[0].policies.iter()
+fn baseline_no_sensing(worlds: &[DecisionWorld], oracle: &[WorldOracle]) -> NoSensingAssessment {
+    let mut policy_ids: Vec<String> = worlds[0]
+        .policies
+        .iter()
         .map(|policy| policy.policy_id.clone())
         .collect();
     policy_ids.sort();
@@ -280,7 +296,9 @@ fn baseline_no_sensing(
                 feasible = false;
                 break;
             }
-            let truth = oracle_for(oracle, &world.world_id).expect("complete oracle").oracle_service_units;
+            let truth = oracle_for(oracle, &world.world_id)
+                .expect("complete oracle")
+                .oracle_service_units;
             worst_regret = worst_regret.max((truth - policy.service_units).max(0.0));
         }
         if feasible {
@@ -288,7 +306,9 @@ fn baseline_no_sensing(
         }
     }
     candidates.sort_by(|left, right| {
-        left.1.total_cmp(&right.1).then_with(|| left.0.cmp(&right.0))
+        left.1
+            .total_cmp(&right.1)
+            .then_with(|| left.0.cmp(&right.0))
     });
 
     NoSensingAssessment {
@@ -309,17 +329,24 @@ fn validate_sensor<'a>(
     if !finite_nonnegative(sensor.energy_cost_kwh)
         || !finite_nonnegative(sensor.service_units_per_kwh)
     {
-        return Err(format!("invalid energy cost/conversion in {}", sensor.sensor_id));
+        return Err(format!(
+            "invalid energy cost/conversion in {}",
+            sensor.sensor_id
+        ));
     }
     if sensor.predictions.len() != worlds.len() {
         return Err(format!(
             "{} contains {} predictions for {} worlds",
-            sensor.sensor_id, sensor.predictions.len(), worlds.len()
+            sensor.sensor_id,
+            sensor.predictions.len(),
+            worlds.len()
         ));
     }
 
-    let world_map: BTreeMap<&str, &DecisionWorld> =
-        worlds.iter().map(|world| (world.world_id.as_str(), world)).collect();
+    let world_map: BTreeMap<&str, &DecisionWorld> = worlds
+        .iter()
+        .map(|world| (world.world_id.as_str(), world))
+        .collect();
     let mut predictions = BTreeMap::new();
 
     for prediction in &sensor.predictions {
@@ -329,18 +356,31 @@ fn validate_sensor<'a>(
             || prediction.prediction_receipt_digest.trim().is_empty()
             || !finite_nonnegative(prediction.latency_service_loss_per_tick)
         {
-            return Err(format!("invalid prediction metadata for {}", sensor.sensor_id));
+            return Err(format!(
+                "invalid prediction metadata for {}",
+                sensor.sensor_id
+            ));
         }
-        let world = world_map.get(prediction.world_id.as_str())
+        let world = world_map
+            .get(prediction.world_id.as_str())
             .ok_or_else(|| format!("unknown world {}", prediction.world_id))?;
         if prediction.world_digest != world.world_digest {
             return Err(format!("world digest mismatch for {}", prediction.world_id));
         }
         if (prediction.observation_id == MISSING_OUTCOME) != prediction.missing_cause.is_some() {
-            return Err(format!("missingness cause must be present iff result is missing in {}", prediction.world_id));
+            return Err(format!(
+                "missingness cause must be present iff result is missing in {}",
+                prediction.world_id
+            ));
         }
-        if predictions.insert(prediction.world_id.clone(), prediction).is_some() {
-            return Err(format!("duplicate sensor prediction for {}", prediction.world_id));
+        if predictions
+            .insert(prediction.world_id.clone(), prediction)
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate sensor prediction for {}",
+                prediction.world_id
+            ));
         }
     }
     Ok(predictions)
@@ -354,7 +394,9 @@ fn assess_partition(
     energy_cost_service_units: f64,
     latency_ticks: u32,
 ) -> ObservationPartition {
-    let mut policy_ids: Vec<String> = worlds[0].policies.iter()
+    let mut policy_ids: Vec<String> = worlds[0]
+        .policies
+        .iter()
         .map(|policy| policy.policy_id.clone())
         .collect();
     policy_ids.sort();
@@ -366,7 +408,9 @@ fn assess_partition(
         let mut rows = Vec::with_capacity(worlds.len());
 
         for world in worlds {
-            let prediction = predictions.get(&world.world_id).expect("complete predictions");
+            let prediction = predictions
+                .get(&world.world_id)
+                .expect("complete predictions");
             let policy = find_policy(world, &policy_id).expect("common policy set");
             let energy_penalty = energy_cost_service_units;
             let latency_penalty =
@@ -380,7 +424,8 @@ fn assess_partition(
             }
 
             let oracle_value = oracle_for(oracle, &world.world_id)
-                .expect("oracle covers all worlds").oracle_service_units;
+                .expect("oracle covers all worlds")
+                .oracle_service_units;
             let regret = (oracle_value - net_service).max(0.0);
             worst_regret = worst_regret.max(regret);
             rows.push(PartitionWorldRegret {
@@ -400,7 +445,9 @@ fn assess_partition(
     }
 
     candidates.sort_by(|left, right| {
-        left.1.total_cmp(&right.1).then_with(|| left.0.cmp(&right.0))
+        left.1
+            .total_cmp(&right.1)
+            .then_with(|| left.0.cmp(&right.0))
     });
 
     let selected = candidates.first();
@@ -435,20 +482,24 @@ pub fn assess_active_sensing(
             return Err(format!("duplicate sensor action {}", sensor.sensor_id));
         }
         let predictions = validate_sensor(sensor, worlds)?;
-        let energy_cost_service_units =
-            sensor.energy_cost_kwh * sensor.service_units_per_kwh;
-        let maximum_latency_service_loss = sensor.predictions.iter()
+        let energy_cost_service_units = sensor.energy_cost_kwh * sensor.service_units_per_kwh;
+        let maximum_latency_service_loss = sensor
+            .predictions
+            .iter()
             .map(|prediction| prediction.latency_service_loss_per_tick)
-            .fold(0.0_f64, f64::max) * f64::from(sensor.latency_ticks);
+            .fold(0.0_f64, f64::max)
+            * f64::from(sensor.latency_ticks);
         let maximum_total_penalty_service_units =
             energy_cost_service_units + maximum_latency_service_loss;
 
         if !maximum_total_penalty_service_units.is_finite() {
-            return Err(format!("non-finite sensing penalty in {}", sensor.sensor_id));
+            return Err(format!(
+                "non-finite sensing penalty in {}",
+                sensor.sensor_id
+            ));
         }
 
-        let affordable =
-            sensor.energy_cost_kwh <= config.maximum_energy_kwh + config.tie_tolerance
+        let affordable = sensor.energy_cost_kwh <= config.maximum_energy_kwh + config.tie_tolerance
             && sensor.latency_ticks <= config.maximum_latency_ticks
             && maximum_total_penalty_service_units
                 <= config.maximum_penalty_service_units + config.tie_tolerance;
@@ -456,11 +507,17 @@ pub fn assess_active_sensing(
         let mut grouped: BTreeMap<String, Vec<&DecisionWorld>> = BTreeMap::new();
 
         for world in worlds {
-            let prediction = predictions.get(&world.world_id).expect("complete prediction map");
-            grouped.entry(prediction.observation_id.clone()).or_default().push(world);
+            let prediction = predictions
+                .get(&world.world_id)
+                .expect("complete prediction map");
+            grouped
+                .entry(prediction.observation_id.clone())
+                .or_default()
+                .push(world);
         }
 
-        let partitions: Vec<ObservationPartition> = grouped.iter()
+        let partitions: Vec<ObservationPartition> = grouped
+            .iter()
             .map(|(outcome, members)| {
                 assess_partition(
                     outcome,
@@ -473,16 +530,22 @@ pub fn assess_active_sensing(
             })
             .collect();
 
-        let unresolved = partitions.iter().any(|partition| partition.worst_case_regret.is_none());
+        let unresolved = partitions
+            .iter()
+            .any(|partition| partition.worst_case_regret.is_none());
         let worst_case_post_sensing_regret = if unresolved {
             None
         } else {
-            partitions.iter().filter_map(|partition| partition.worst_case_regret).reduce(f64::max)
+            partitions
+                .iter()
+                .filter_map(|partition| partition.worst_case_regret)
+                .reduce(f64::max)
         };
-        let worst_case_regret_reduction = match (baseline.worst_case_regret, worst_case_post_sensing_regret) {
-            (Some(before), Some(after)) => Some(before - after),
-            _ => None,
-        };
+        let worst_case_regret_reduction =
+            match (baseline.worst_case_regret, worst_case_post_sensing_regret) {
+                (Some(before), Some(after)) => Some(before - after),
+                _ => None,
+            };
 
         let status = if !affordable {
             SensorStatus::OverBudget
@@ -513,20 +576,31 @@ pub fn assess_active_sensing(
     }
 
     assessments.sort_by(|left, right| left.sensor_id.cmp(&right.sensor_id));
-    let mut eligible: Vec<&SensorAssessment> = assessments.iter()
+    let mut eligible: Vec<&SensorAssessment> = assessments
+        .iter()
         .filter(|item| {
             item.status == SensorStatus::Evaluated
                 && item.affordable
                 && (item.resolves_no_sensing_infeasibility
-                    || item.worst_case_regret_reduction
+                    || item
+                        .worst_case_regret_reduction
                         .is_some_and(|reduction| reduction > config.tie_tolerance))
         })
         .collect();
 
     eligible.sort_by(|left, right| {
-        right.worst_case_regret_reduction.unwrap_or(f64::NEG_INFINITY)
-            .total_cmp(&left.worst_case_regret_reduction.unwrap_or(f64::NEG_INFINITY))
-            .then_with(|| left.maximum_total_penalty_service_units.total_cmp(&right.maximum_total_penalty_service_units))
+        right
+            .worst_case_regret_reduction
+            .unwrap_or(f64::NEG_INFINITY)
+            .total_cmp(
+                &left
+                    .worst_case_regret_reduction
+                    .unwrap_or(f64::NEG_INFINITY),
+            )
+            .then_with(|| {
+                left.maximum_total_penalty_service_units
+                    .total_cmp(&right.maximum_total_penalty_service_units)
+            })
             .then_with(|| left.energy_cost_kwh.total_cmp(&right.energy_cost_kwh))
             .then_with(|| left.sensor_id.cmp(&right.sensor_id))
     });
@@ -561,14 +635,19 @@ pub fn candidate_policy_map(report: &ActiveSensingReport) -> Vec<CandidatePolicy
         return Vec::new();
     };
 
-    let mut decisions: Vec<CandidatePolicyDecision> = assessment.partitions.iter()
+    let mut decisions: Vec<CandidatePolicyDecision> = assessment
+        .partitions
+        .iter()
         .filter_map(|partition| {
-            partition.selected_policy_id.as_ref().map(|policy_id| CandidatePolicyDecision {
-                scenario_id: report.scenario_id.clone(),
-                sensor_id: assessment.sensor_id.clone(),
-                observation_id: partition.observation_id.clone(),
-                action_id: policy_id.clone(),
-            })
+            partition
+                .selected_policy_id
+                .as_ref()
+                .map(|policy_id| CandidatePolicyDecision {
+                    scenario_id: report.scenario_id.clone(),
+                    sensor_id: assessment.sensor_id.clone(),
+                    observation_id: partition.observation_id.clone(),
+                    action_id: policy_id.clone(),
+                })
         })
         .collect();
     decisions.sort_by(|left, right| left.observation_id.cmp(&right.observation_id));
@@ -593,7 +672,10 @@ pub fn evaluator_prediction_audit(
                 || prediction.observation_id.trim().is_empty()
                 || prediction.prediction_receipt_digest.trim().is_empty()
             {
-                return Err(format!("invalid evaluator prediction receipt in {}", sensor.sensor_id));
+                return Err(format!(
+                    "invalid evaluator prediction receipt in {}",
+                    sensor.sensor_id
+                ));
             }
             receipts.push(PredictionAuditReceipt {
                 sensor_id: sensor.sensor_id.clone(),
@@ -606,7 +688,9 @@ pub fn evaluator_prediction_audit(
         }
     }
     receipts.sort_by(|left, right| {
-        left.sensor_id.cmp(&right.sensor_id).then_with(|| left.world_id.cmp(&right.world_id))
+        left.sensor_id
+            .cmp(&right.sensor_id)
+            .then_with(|| left.world_id.cmp(&right.world_id))
     });
     Ok(receipts)
 }
@@ -634,8 +718,14 @@ mod tests {
             world_digest: format!("sha256-{id}"),
             service_floor: 70.0,
             policies: vec![
-                PolicyOutcome { policy_id: "defer".to_owned(), service_units: defer },
-                PolicyOutcome { policy_id: "repair".to_owned(), service_units: repair },
+                PolicyOutcome {
+                    policy_id: "defer".to_owned(),
+                    service_units: defer,
+                },
+                PolicyOutcome {
+                    policy_id: "repair".to_owned(),
+                    service_units: repair,
+                },
             ],
         }
     }
@@ -661,31 +751,50 @@ mod tests {
             energy_cost_kwh: energy,
             service_units_per_kwh: conversion,
             latency_ticks: latency,
-            predictions: predictions.into_iter().map(
-                |(world_id, observation_id, missing_cause, loss)| SensorPrediction {
-                    world_id: world_id.to_owned(),
-                    world_digest: format!("sha256-{world_id}"),
-                    observation_id: observation_id.to_owned(),
-                    missing_cause,
-                    latency_service_loss_per_tick: loss,
-                    prediction_receipt_digest: format!("sha256-{id}-{world_id}-prediction"),
-                }
-            ).collect(),
+            predictions: predictions
+                .into_iter()
+                .map(
+                    |(world_id, observation_id, missing_cause, loss)| SensorPrediction {
+                        world_id: world_id.to_owned(),
+                        world_digest: format!("sha256-{world_id}"),
+                        observation_id: observation_id.to_owned(),
+                        missing_cause,
+                        latency_service_loss_per_tick: loss,
+                        prediction_receipt_digest: format!("sha256-{id}-{world_id}-prediction"),
+                    },
+                )
+                .collect(),
         }
     }
 
     fn sensors() -> Vec<SensorAction> {
         vec![
             sensor(
-                "remote_telemetry", 0.5, 2.0, 2,
+                "remote_telemetry",
+                0.5,
+                2.0,
+                2,
                 vec![
                     ("healthy", "healthy", None, 1.0),
-                    ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 3.0),
-                    ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 2.0),
+                    (
+                        "degraded",
+                        "missing",
+                        Some(MissingCause::CommonCausePowerLoss),
+                        3.0,
+                    ),
+                    (
+                        "healthy_sensor_fault",
+                        "missing",
+                        Some(MissingCause::TelemetryNetworkFault),
+                        2.0,
+                    ),
                 ],
             ),
             sensor(
-                "independent_field_inspection", 0.5, 2.0, 1,
+                "independent_field_inspection",
+                0.5,
+                2.0,
+                1,
                 vec![
                     ("healthy", "healthy", None, 1.0),
                     ("degraded", "degraded", None, 3.0),
@@ -693,7 +802,10 @@ mod tests {
                 ],
             ),
             sensor(
-                "uninformative_status_check", 0.0, 2.0, 0,
+                "uninformative_status_check",
+                0.0,
+                2.0,
+                0,
                 vec![
                     ("healthy", "status_unknown", None, 0.0),
                     ("degraded", "status_unknown", None, 0.0),
@@ -701,7 +813,10 @@ mod tests {
                 ],
             ),
             sensor(
-                "over_budget_lab_test", 2.0, 2.0, 1,
+                "over_budget_lab_test",
+                2.0,
+                2.0,
+                1,
                 vec![
                     ("healthy", "healthy", None, 1.0),
                     ("degraded", "degraded", None, 3.0),
@@ -726,7 +841,10 @@ mod tests {
         let report = assess_active_sensing(&config, &worlds, &sensors).unwrap();
         let decisions = candidate_policy_map(&report);
         assert_eq!(decisions.len(), 2);
-        assert_eq!(decisions[0].scenario_id, "three-world-sensor-dual-control-v1");
+        assert_eq!(
+            decisions[0].scenario_id,
+            "three-world-sensor-dual-control-v1"
+        );
         assert_eq!(decisions[0].sensor_id, "independent_field_inspection");
         assert_eq!(decisions[0].observation_id, "degraded");
         assert_eq!(decisions[0].action_id, "repair");
@@ -747,37 +865,58 @@ mod tests {
     #[test]
     fn no_sensing_baseline_is_repair_with_fifteen_units_worst_case_regret() {
         let report = assess_active_sensing(&config(), &worlds(), &sensors()).unwrap();
-        assert_eq!(report.baseline.selected_policy_id.as_deref(), Some("repair"));
+        assert_eq!(
+            report.baseline.selected_policy_id.as_deref(),
+            Some("repair")
+        );
         close(report.baseline.worst_case_regret.unwrap(), 15.0);
     }
 
     #[test]
     fn independent_inspection_charges_energy_and_latency_and_reduces_regret() {
         let report = assess_active_sensing(&config(), &worlds(), &sensors()).unwrap();
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "independent_field_inspection").unwrap();
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "independent_field_inspection")
+            .unwrap();
         assert_eq!(item.status, SensorStatus::Evaluated);
         close(item.energy_cost_service_units, 1.0);
         close(item.maximum_latency_service_loss, 3.0);
         close(item.maximum_total_penalty_service_units, 4.0);
         close(item.worst_case_post_sensing_regret.unwrap(), 4.0);
         close(item.worst_case_regret_reduction.unwrap(), 11.0);
-        assert_eq!(report.recommended_sensor_id.as_deref(), Some("independent_field_inspection"));
+        assert_eq!(
+            report.recommended_sensor_id.as_deref(),
+            Some("independent_field_inspection")
+        );
     }
 
     #[test]
     fn remote_missingness_merges_degraded_and_healthy_sensor_fault_worlds() {
         let report = assess_active_sensing(&config(), &worlds(), &sensors()).unwrap();
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "remote_telemetry").unwrap();
-        let missing = item.partitions.iter()
-            .find(|partition| partition.observation_id == MISSING_OUTCOME).unwrap();
-        assert_eq!(missing.world_ids, vec!["degraded".to_owned(), "healthy_sensor_fault".to_owned()]);
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "remote_telemetry")
+            .unwrap();
+        let missing = item
+            .partitions
+            .iter()
+            .find(|partition| partition.observation_id == MISSING_OUTCOME)
+            .unwrap();
+        assert_eq!(
+            missing.world_ids,
+            vec!["degraded".to_owned(), "healthy_sensor_fault".to_owned()]
+        );
         close(item.worst_case_post_sensing_regret.unwrap(), 20.0);
         close(item.worst_case_regret_reduction.unwrap(), -5.0);
         let audit = evaluator_prediction_audit(&sensors()).unwrap();
-        let causes: BTreeSet<&str> = audit.iter()
-            .filter(|receipt| receipt.sensor_id == "remote_telemetry" && receipt.observation_id == MISSING_OUTCOME)
+        let causes: BTreeSet<&str> = audit
+            .iter()
+            .filter(|receipt| {
+                receipt.sensor_id == "remote_telemetry" && receipt.observation_id == MISSING_OUTCOME
+            })
             .filter_map(|receipt| receipt.missing_cause.as_ref().map(MissingCause::id))
             .collect();
         assert_eq!(causes.len(), 2);
@@ -786,37 +925,58 @@ mod tests {
     #[test]
     fn uninformative_sensor_has_no_decision_value() {
         let report = assess_active_sensing(&config(), &worlds(), &sensors()).unwrap();
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "uninformative_status_check").unwrap();
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "uninformative_status_check")
+            .unwrap();
         close(item.worst_case_post_sensing_regret.unwrap(), 15.0);
         close(item.worst_case_regret_reduction.unwrap(), 0.0);
-        assert_ne!(report.recommended_sensor_id.as_deref(), Some("uninformative_status_check"));
+        assert_ne!(
+            report.recommended_sensor_id.as_deref(),
+            Some("uninformative_status_check")
+        );
     }
 
     #[test]
     fn over_budget_sensor_is_not_recommended_even_if_informative() {
         let report = assess_active_sensing(&config(), &worlds(), &sensors()).unwrap();
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "over_budget_lab_test").unwrap();
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "over_budget_lab_test")
+            .unwrap();
         assert_eq!(item.status, SensorStatus::OverBudget);
         assert!(!item.affordable);
-        assert_ne!(report.recommended_sensor_id.as_deref(), Some("over_budget_lab_test"));
+        assert_ne!(
+            report.recommended_sensor_id.as_deref(),
+            Some("over_budget_lab_test")
+        );
     }
 
     #[test]
     fn hidden_missingness_cause_never_changes_candidate_partition() {
         let report = assess_active_sensing(&config(), &worlds(), &sensors()).unwrap();
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "remote_telemetry").unwrap();
-        let missing = item.partitions.iter()
-            .find(|partition| partition.observation_id == "missing").unwrap();
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "remote_telemetry")
+            .unwrap();
+        let missing = item
+            .partitions
+            .iter()
+            .find(|partition| partition.observation_id == "missing")
+            .unwrap();
         assert_eq!(missing.world_ids.len(), 2);
         assert_eq!(missing.observation_id, "missing");
 
         // Hidden cause is available only from the explicitly evaluator-only audit API.
         let audit = evaluator_prediction_audit(&sensors()).unwrap();
-        let causes: BTreeSet<&str> = audit.iter()
-            .filter(|receipt| receipt.sensor_id == "remote_telemetry" && receipt.observation_id == "missing")
+        let causes: BTreeSet<&str> = audit
+            .iter()
+            .filter(|receipt| {
+                receipt.sensor_id == "remote_telemetry" && receipt.observation_id == "missing"
+            })
             .filter_map(|receipt| receipt.missing_cause.as_ref().map(MissingCause::id))
             .collect();
         assert_eq!(causes.len(), 2);
@@ -837,10 +997,7 @@ mod tests {
             0.0,
             0.0,
             0,
-            vec![
-                ("world_a", "a", None, 0.0),
-                ("world_b", "b", None, 0.0),
-            ],
+            vec![("world_a", "a", None, 0.0), ("world_b", "b", None, 0.0)],
         );
 
         let report = assess_active_sensing(&config(), &worlds, &[sensor]).unwrap();
@@ -848,13 +1005,19 @@ mod tests {
         assert!(report.baseline.selected_policy_id.is_none());
         assert!(report.baseline.worst_case_regret.is_none());
 
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "discriminating_sensor").unwrap();
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "discriminating_sensor")
+            .unwrap();
         assert_eq!(item.status, SensorStatus::Evaluated);
         assert!(item.resolves_no_sensing_infeasibility);
         assert_eq!(item.worst_case_post_sensing_regret, Some(0.0));
         assert!(item.worst_case_regret_reduction.is_none());
-        assert_eq!(report.recommended_sensor_id.as_deref(), Some("discriminating_sensor"));
+        assert_eq!(
+            report.recommended_sensor_id.as_deref(),
+            Some("discriminating_sensor")
+        );
     }
 
     #[test]
@@ -915,10 +1078,16 @@ mod tests {
         limits.maximum_latency_ticks = 20;
         limits.maximum_penalty_service_units = 100.0;
         let report = assess_active_sensing(&limits, &worlds(), &items).unwrap();
-        let item = report.sensors.iter()
-            .find(|item| item.sensor_id == "independent_field_inspection").unwrap();
+        let item = report
+            .sensors
+            .iter()
+            .find(|item| item.sensor_id == "independent_field_inspection")
+            .unwrap();
         assert_eq!(item.status, SensorStatus::NoFeasiblePolicy);
         assert!(item.worst_case_post_sensing_regret.is_none());
-        assert_ne!(report.recommended_sensor_id.as_deref(), Some("independent_field_inspection"));
+        assert_ne!(
+            report.recommended_sensor_id.as_deref(),
+            Some("independent_field_inspection")
+        );
     }
 }
