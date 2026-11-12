@@ -171,6 +171,7 @@ pub enum LedgerError {
     MissingAcceptanceEvidence,
     DuplicateCostEntry(String),
     CurrencyMismatch { expected: String, received: String },
+    ScenarioMismatch { early: String, deferred: String },
     UnknownTask(String),
     DuplicateLabourSlice(String),
     InvalidLabourInterval,
@@ -551,6 +552,7 @@ pub fn reserve_for_floor(
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ObservationArmOutcome {
     pub policy_id: String,
+    pub scenario_id: String,
     pub currency_code: String,
     pub observation_cost_minor_units: u64,
     pub rework_cost_minor_units: u64,
@@ -599,6 +601,14 @@ pub fn compare_observation_arms(
     }
     require_non_empty("early_policy_id", &early.policy_id)?;
     require_non_empty("deferred_policy_id", &deferred.policy_id)?;
+    require_non_empty("early_scenario_id", &early.scenario_id)?;
+    require_non_empty("deferred_scenario_id", &deferred.scenario_id)?;
+    if early.scenario_id != deferred.scenario_id {
+        return Err(LedgerError::ScenarioMismatch {
+            early: early.scenario_id.clone(),
+            deferred: deferred.scenario_id.clone(),
+        });
+    }
     let early_cost = early.total_cost_minor_units()?;
     let deferred_cost = deferred.total_cost_minor_units()?;
 
@@ -1060,6 +1070,7 @@ mod tests {
     fn observation_can_have_positive_or_negative_value_in_paired_synthetic_cases() {
         let early = ObservationArmOutcome {
             policy_id: "early-survey".to_owned(),
+            scenario_id: "hidden-fault-A".to_owned(),
             currency_code: "USD".to_owned(),
             observation_cost_minor_units: 100,
             rework_cost_minor_units: 50,
@@ -1069,6 +1080,7 @@ mod tests {
         };
         let deferred = ObservationArmOutcome {
             policy_id: "deferred-detection".to_owned(),
+            scenario_id: "hidden-fault-A".to_owned(),
             currency_code: "USD".to_owned(),
             observation_cost_minor_units: 0,
             rework_cost_minor_units: 300,
@@ -1090,6 +1102,7 @@ mod tests {
         };
         let no_observation = ObservationArmOutcome {
             policy_id: "no-observation".to_owned(),
+            scenario_id: "hidden-fault-A".to_owned(),
             currency_code: "USD".to_owned(),
             observation_cost_minor_units: 0,
             rework_cost_minor_units: 0,
