@@ -1,0 +1,85 @@
+name: Scan-to-BIM Chain Composition
+
+on:
+  pull_request:
+    branches: ["research/scan-bim-representation-continuity-v0-1-review-2"]
+    paths:
+      - "tools/scan-bim-replay-contract/src/continuity.rs"
+      - "research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json"
+      - "research/scan-bim-representation-continuity-001/schema/representation-continuity-receipt.schema.json"
+      - "research/scan-bim-representation-continuity-001/README.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_CHAIN_COMPOSITION_V0_1.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-bim-chain-composition-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chain-composition:
+    name: Chain composition (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR merge source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
+      - name: Run continuity and chain composition tests
+        run: cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+      - name: Check single-hop and multi-hop receipt contracts
+        run: |
+          jq -e '
+            (.$schema == "https://json-schema.org/draft/2020-12/schema") and
+            (.$defs.transition.required | index("parent_transition_ids") != null)
+          ' research/scan-bim-representation-continuity-001/schema/representation-continuity-receipt.schema.json
+          jq -e '
+            (.fixture_version == "0.1") and
+            (.canonical_receipt.transitions[0].parent_transition_ids == []) and
+            ((.canonical_receipt.transitions | length) == 1) and
+            ((.multi_hop_receipt.transitions | length) == 2) and
+            (.multi_hop_receipt.transitions[0].parent_transition_ids == []) and
+            (.multi_hop_receipt.transitions[1].parent_transition_ids == ["RAW-TO-SURFACE-001"]) and
+            (.multi_hop_receipt.transitions[1].from_representation == .multi_hop_receipt.transitions[0].to_representation) and
+            (.multi_hop_receipt.transitions[1].uncertainty.before == .multi_hop_receipt.transitions[0].uncertainty.after)
+          ' research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json
+      - name: Execute single-hop continuity audit
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_continuity_audit -- \
+            research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json \
+            > /tmp/continuity-single-hop.json
+          jq -e '
+            (.transition_count == 1) and
+            (.root_transition_id == "RAW-TO-SURFACE-001") and
+            (.terminal_transition_id == "RAW-TO-SURFACE-001") and
+            (.continuity_state == "continuity_preserved")
+          ' /tmp/continuity-single-hop.json
+      - name: Execute multi-hop continuity audit
+        run: |
+          jq -c '.multi_hop_receipt' \
+            research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json \
+            > /tmp/continuity-multi-hop-input.json
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_continuity_audit -- /tmp/continuity-multi-hop-input.json \
+            > /tmp/continuity-multi-hop.json
+          jq -e '
+            (.receipt_id == "SCAN-BIM-CONTINUITY-ROOM-A-MULTIHOP-001") and
+            (.root_transition_id == "RAW-TO-SURFACE-001") and
+            (.terminal_transition_id == "SURFACE-TO-GRAPH-001") and
+            (.transition_count == 2) and
+            (.claim_count == 2) and
+            (.measured_claim_count == 1) and
+            (.inferred_claim_count == 1) and
+            (.source_relation_count == 2) and
+            (.preserved_relation_count == 2) and
+            (.continuity_state == "continuity_preserved")
+          ' /tmp/continuity-multi-hop.json
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings

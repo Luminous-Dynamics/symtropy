@@ -1,0 +1,1462 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+//! Fail-closed audit of evidence continuity across Scan-to-BIM representation changes.
+//!
+//! This module audits declared lineage and uncertainty-transfer semantics. It
+//! does not authenticate external evidence, recompute survey covariance, parse
+//! IFC, validate geometry, or prove that a declared checkpoint is independent.
+
+use crate::delivery::{ReplayBinding, SceneBinding};
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum RepresentationKind {
+    RawObservations,
+    RegisteredPointCloud,
+    SurfaceMesh,
+    SpatialGraph,
+    ParametricModel,
+    IfcModel,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceRole {
+    RawMeasurement,
+    SurveySolution,
+    IndependentCheckpoint,
+    Transform,
+    RegisteredObservation,
+    GeometryOutput,
+    RepresentationOutput,
+    PriorState,
+    Calibration,
+    RelationInventory,
+    Other,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum ClaimOrigin {
+    Measured,
+    Inferred,
+    Assumed,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CorrespondenceKind {
+    OneToOne,
+    Split,
+    Merge,
+    Replacement,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RelationInventoryCompleteness {
+    Complete,
+    Partial,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum RelationDisposition {
+    Preserved,
+    Modified,
+    Lost,
+    Unsupported,
+    Unresolved,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UncertaintyStatus {
+    Known,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum UncertaintyUpdateBasis {
+    RepresentationOnly,
+    EvidenceConditioned,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RepresentationContinuityReceipt {
+    pub schema_version: String,
+    pub receipt_id: String,
+    pub replay: ReplayBinding,
+    pub scene: SceneBinding,
+    pub transitions: Vec<RepresentationTransition>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RepresentationTransition {
+    pub transition_id: String,
+    pub from_representation: RepresentationKind,
+    pub to_representation: RepresentationKind,
+    pub source_artifacts: Vec<ArtifactReference>,
+    pub output_artifacts: Vec<ArtifactReference>,
+    pub tool: ToolBinding,
+    pub correspondences: Vec<EntityCorrespondence>,
+    pub relation_audit: RelationAudit,
+    pub claims: Vec<ClaimLineage>,
+    pub uncertainty: UncertaintyTransition,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArtifactReference {
+    pub artifact_id: String,
+    pub sha256: String,
+    pub role: EvidenceRole,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToolBinding {
+    pub name: String,
+    pub version: String,
+    pub configuration_sha256: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EntityCorrespondence {
+    pub event_id: String,
+    pub kind: CorrespondenceKind,
+    pub source_entity_ids: Vec<String>,
+    pub target_entity_ids: Vec<String>,
+    /// Reference to the authoritative identity/correspondence receipt (e.g. #3331).
+    pub identity_receipt_sha256: String,
+}
+
+/// Bounded relation crosswalk for the source representation. The source
+/// inventory artifact is declared, not opened or authenticated by this audit.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationAudit {
+    pub inventory_artifact_id: String,
+    pub completeness: RelationInventoryCompleteness,
+    pub relations: Vec<RelationLineage>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RelationLineage {
+    pub source_relation_id: String,
+    /// Canonical semantic relation name, independent of source/target syntax.
+    pub relation_kind: String,
+    pub source_relation_type: String,
+    pub source_subject_entity_id: String,
+    pub source_object_entity_id: String,
+    pub directed: bool,
+    pub disposition: RelationDisposition,
+    pub target_relations: Vec<TargetRelation>,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TargetRelation {
+    pub relation_id: String,
+    pub relation_kind: String,
+    pub relation_type: String,
+    pub subject_entity_id: String,
+    pub object_entity_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClaimLineage {
+    pub claim_id: String,
+    pub target_entity_id: String,
+    /// Exact transition output artifact containing this target entity.
+    pub target_artifact_id: String,
+    pub property_id: String,
+    pub origin: ClaimOrigin,
+    pub source_evidence: Vec<ArtifactReference>,
+    pub value_sha256: Option<String>,
+    pub derivation_method: Option<String>,
+    pub assumptions: Vec<String>,
+    pub unknown_reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UncertaintyBound {
+    pub status: UncertaintyStatus,
+    /// P0 intentionally supports only a conservative absolute geometric bound.
+    /// Other uncertainty representations must remain unknown until an adapter
+    /// with the appropriate mathematical semantics is implemented.
+    pub metric_id: Option<String>,
+    pub absolute_bound_m: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UncertaintyTransition {
+    pub before: UncertaintyBound,
+    pub after: UncertaintyBound,
+    /// Deterministic representation/approximation error bound in metres.
+    pub approximation_error_bound_m: f64,
+    pub update_basis: UncertaintyUpdateBasis,
+    /// New evidence used to condition/update the uncertainty estimate.
+    pub conditioning_evidence: Vec<ArtifactReference>,
+    pub estimator_id: Option<String>,
+    pub calibration_profile_id: Option<String>,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct RepresentationContinuityReport {
+    pub schema_version: String,
+    pub receipt_id: String,
+    pub scene_id: String,
+    pub transition_count: usize,
+    pub claim_count: usize,
+    pub measured_claim_count: usize,
+    pub inferred_claim_count: usize,
+    pub assumed_claim_count: usize,
+    pub unknown_claim_count: usize,
+    pub correspondence_event_count: usize,
+    pub unresolved_correspondence_count: usize,
+    pub source_relation_count: usize,
+    pub preserved_relation_count: usize,
+    pub modified_relation_count: usize,
+    pub lost_relation_count: usize,
+    pub unsupported_relation_count: usize,
+    pub unresolved_relation_count: usize,
+    pub incomplete_relation_inventory_count: usize,
+    pub continuity_state: String,
+}
+
+/// Parse and audit the exact receipt bytes. This checks declared receipt
+/// semantics only; it does not open or authenticate referenced artifact files.
+pub fn audit_representation_continuity_bytes(
+    bytes: &[u8],
+) -> Result<RepresentationContinuityReport, String> {
+    let receipt: RepresentationContinuityReceipt = serde_json::from_slice(bytes)
+        .map_err(|error| format!("invalid representation continuity receipt: {error}"))?;
+    audit_representation_continuity(receipt)
+}
+
+pub fn audit_representation_continuity(
+    receipt: RepresentationContinuityReceipt,
+) -> Result<RepresentationContinuityReport, String> {
+    if receipt.schema_version != "0.1" {
+        return Err("unsupported representation continuity schema_version".to_owned());
+    }
+    for (field, value) in [
+        ("receipt_id", receipt.receipt_id.as_str()),
+        ("replay.run_id", receipt.replay.run_id.as_str()),
+        (
+            "scene.building_group_id",
+            receipt.scene.building_group_id.as_str(),
+        ),
+        ("scene.scene_id", receipt.scene.scene_id.as_str()),
+        (
+            "scene.source_model_revision",
+            receipt.scene.source_model_revision.as_str(),
+        ),
+    ] {
+        if value.trim().is_empty() {
+            return Err(format!("{field} must not be empty"));
+        }
+    }
+    validate_sha256("replay.receipt_sha256", &receipt.replay.receipt_sha256)?;
+    if receipt.replay.candidate_source_commit.len() != 40
+        || !receipt
+            .replay
+            .candidate_source_commit
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(
+            "replay.candidate_source_commit must be a 40-character lowercase SHA".to_owned(),
+        );
+    }
+    if receipt.transitions.is_empty() {
+        return Err("continuity receipt must contain at least one transition".to_owned());
+    }
+
+    let mut transition_ids = BTreeSet::new();
+    let mut produced_artifacts = BTreeMap::<&str, (&str, EvidenceRole)>::new();
+    let mut totals = BTreeMap::<ClaimOrigin, usize>::new();
+    let mut transition_count = 0usize;
+    let mut claim_count = 0usize;
+    let mut correspondence_event_count = 0usize;
+    let mut unresolved_correspondence_count = 0usize;
+    let mut source_relation_count = 0usize;
+    let mut relation_disposition_counts = BTreeMap::<RelationDisposition, usize>::new();
+    let mut incomplete_relation_inventory_count = 0usize;
+
+    for transition in &receipt.transitions {
+        transition_count += 1;
+        if transition.transition_id.trim().is_empty()
+            || !transition_ids.insert(transition.transition_id.as_str())
+        {
+            return Err("transition IDs must be non-empty and unique".to_owned());
+        }
+        if transition.from_representation == transition.to_representation {
+            return Err(format!(
+                "transition {} must change representation kind",
+                transition.transition_id
+            ));
+        }
+        validate_tool(&transition.tool)?;
+        validate_artifact_set(
+            &format!("transition {} source", transition.transition_id),
+            &transition.source_artifacts,
+        )?;
+        validate_artifact_set(
+            &format!("transition {} output", transition.transition_id),
+            &transition.output_artifacts,
+        )?;
+        if transition.source_artifacts.is_empty() || transition.output_artifacts.is_empty() {
+            return Err(format!(
+                "transition {} requires source and output artifacts",
+                transition.transition_id
+            ));
+        }
+
+        // If a later transition reuses a prior output identity, the exact bytes
+        // and evidence role must remain bound to that identity.
+        for source in &transition.source_artifacts {
+            if let Some((previous_sha256, previous_role)) =
+                produced_artifacts.get(source.artifact_id.as_str())
+            {
+                if *previous_sha256 != source.sha256 || *previous_role != source.role {
+                    return Err(format!(
+                        "transition {} source artifact {} does not match its prior output binding",
+                        transition.transition_id, source.artifact_id
+                    ));
+                }
+            }
+        }
+        for output in &transition.output_artifacts {
+            if let Some((previous_sha256, previous_role)) =
+                produced_artifacts.get(output.artifact_id.as_str())
+            {
+                if *previous_sha256 != output.sha256 || *previous_role != output.role {
+                    return Err(format!(
+                        "transition {} reuses output artifact ID {} with changed content or role",
+                        transition.transition_id, output.artifact_id
+                    ));
+                }
+            }
+            let _ = produced_artifacts.insert(
+                output.artifact_id.as_str(),
+                (output.sha256.as_str(), output.role),
+            );
+        }
+
+        let output_artifacts: BTreeMap<&str, EvidenceRole> = transition
+            .output_artifacts
+            .iter()
+            .map(|artifact| (artifact.artifact_id.as_str(), artifact.role))
+            .collect();
+        let source_artifacts: BTreeMap<&str, (&str, EvidenceRole)> = transition
+            .source_artifacts
+            .iter()
+            .map(|artifact| {
+                (
+                    artifact.artifact_id.as_str(),
+                    (artifact.sha256.as_str(), artifact.role),
+                )
+            })
+            .collect();
+        validate_uncertainty(&transition.uncertainty, &source_artifacts)?;
+
+        let mut source_entity_ids = BTreeSet::new();
+        let mut target_entity_ids = BTreeSet::new();
+        let mut entity_target_map = BTreeMap::<&str, BTreeSet<&str>>::new();
+        let mut event_ids = BTreeSet::new();
+        for correspondence in &transition.correspondences {
+            correspondence_event_count += 1;
+            if correspondence.event_id.trim().is_empty()
+                || !event_ids.insert(correspondence.event_id.as_str())
+            {
+                return Err(format!(
+                    "transition {} correspondence event IDs must be non-empty and unique",
+                    transition.transition_id
+                ));
+            }
+            validate_sha256(
+                "correspondence.identity_receipt_sha256",
+                &correspondence.identity_receipt_sha256,
+            )?;
+            validate_entity_ids(
+                "correspondence.source_entity_ids",
+                &correspondence.source_entity_ids,
+            )?;
+            validate_entity_ids(
+                "correspondence.target_entity_ids",
+                &correspondence.target_entity_ids,
+            )?;
+            if correspondence.source_entity_ids.is_empty()
+                || correspondence.target_entity_ids.is_empty()
+            {
+                return Err(format!(
+                    "correspondence {} must retain both source and target entity identities",
+                    correspondence.event_id
+                ));
+            }
+            validate_correspondence_shape(correspondence)?;
+            if correspondence.kind == CorrespondenceKind::Unresolved {
+                unresolved_correspondence_count += 1;
+            }
+            for source_id in &correspondence.source_entity_ids {
+                if !source_entity_ids.insert(source_id.as_str()) {
+                    return Err(format!(
+                        "source entity {source_id} appears in multiple correspondence events"
+                    ));
+                }
+            }
+            for target_id in &correspondence.target_entity_ids {
+                if !target_entity_ids.insert(target_id.as_str()) {
+                    return Err(format!(
+                        "target entity {target_id} appears in multiple correspondence events"
+                    ));
+                }
+            }
+            for source_id in &correspondence.source_entity_ids {
+                entity_target_map
+                    .entry(source_id.as_str())
+                    .or_default()
+                    .extend(correspondence.target_entity_ids.iter().map(String::as_str));
+            }
+        }
+        if transition.correspondences.is_empty() {
+            return Err(format!(
+                "transition {} must declare entity correspondence or an explicit unresolved mapping",
+                transition.transition_id
+            ));
+        }
+        let relation_counts = validate_relation_audit(
+            &transition.relation_audit,
+            &source_artifacts,
+            &source_entity_ids,
+            &target_entity_ids,
+            &entity_target_map,
+        )?;
+        source_relation_count += relation_counts.total;
+        if !relation_counts.inventory_complete {
+            incomplete_relation_inventory_count += 1;
+        }
+        for (disposition, count) in relation_counts.by_disposition {
+            *relation_disposition_counts.entry(disposition).or_insert(0) += count;
+        }
+
+        let mut claim_ids = BTreeSet::new();
+        for claim in &transition.claims {
+            claim_count += 1;
+            if claim.claim_id.trim().is_empty()
+                || !claim_ids.insert(claim.claim_id.as_str())
+                || claim.target_entity_id.trim().is_empty()
+                || claim.property_id.trim().is_empty()
+            {
+                return Err(format!(
+                    "transition {} contains an empty or duplicate claim identity/property",
+                    transition.transition_id
+                ));
+            }
+            if !target_entity_ids.contains(claim.target_entity_id.as_str()) {
+                return Err(format!(
+                    "claim {} target entity is absent from the transition correspondence",
+                    claim.claim_id
+                ));
+            }
+            let target_artifact_role = output_artifacts
+                .get(claim.target_artifact_id.as_str())
+                .copied();
+            if claim.target_artifact_id.trim().is_empty()
+                || !matches!(
+                    target_artifact_role,
+                    Some(EvidenceRole::GeometryOutput | EvidenceRole::RepresentationOutput)
+                )
+            {
+                return Err(format!(
+                    "claim {} target artifact must be a declared geometry/representation output",
+                    claim.claim_id
+                ));
+            }
+            validate_claim(claim, &source_artifacts)?;
+            *totals.entry(claim.origin).or_insert(0) += 1;
+        }
+    }
+
+    if claim_count == 0 {
+        return Err("continuity receipt must contain at least one claim lineage row".to_owned());
+    }
+
+    Ok(RepresentationContinuityReport {
+        schema_version: "0.1".to_owned(),
+        receipt_id: receipt.receipt_id,
+        scene_id: receipt.scene.scene_id,
+        transition_count,
+        claim_count,
+        measured_claim_count: totals.get(&ClaimOrigin::Measured).copied().unwrap_or(0),
+        inferred_claim_count: totals.get(&ClaimOrigin::Inferred).copied().unwrap_or(0),
+        assumed_claim_count: totals.get(&ClaimOrigin::Assumed).copied().unwrap_or(0),
+        unknown_claim_count: totals.get(&ClaimOrigin::Unknown).copied().unwrap_or(0),
+        correspondence_event_count,
+        unresolved_correspondence_count,
+        source_relation_count,
+        preserved_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Preserved)
+            .copied()
+            .unwrap_or(0),
+        modified_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Modified)
+            .copied()
+            .unwrap_or(0),
+        lost_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Lost)
+            .copied()
+            .unwrap_or(0),
+        unsupported_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Unsupported)
+            .copied()
+            .unwrap_or(0),
+        unresolved_relation_count: relation_disposition_counts
+            .get(&RelationDisposition::Unresolved)
+            .copied()
+            .unwrap_or(0),
+        incomplete_relation_inventory_count,
+        continuity_state: if unresolved_correspondence_count > 0
+            || incomplete_relation_inventory_count > 0
+            || relation_disposition_counts
+                .get(&RelationDisposition::Unsupported)
+                .copied()
+                .unwrap_or(0)
+                > 0
+            || relation_disposition_counts
+                .get(&RelationDisposition::Unresolved)
+                .copied()
+                .unwrap_or(0)
+                > 0
+        {
+            "continuity_unresolved".to_owned()
+        } else if relation_disposition_counts
+            .get(&RelationDisposition::Modified)
+            .copied()
+            .unwrap_or(0)
+            > 0
+            || relation_disposition_counts
+                .get(&RelationDisposition::Lost)
+                .copied()
+                .unwrap_or(0)
+                > 0
+        {
+            "continuity_degraded".to_owned()
+        } else {
+            "continuity_preserved".to_owned()
+        },
+    })
+}
+
+#[derive(Debug, Default)]
+struct RelationAuditCounts {
+    total: usize,
+    inventory_complete: bool,
+    by_disposition: BTreeMap<RelationDisposition, usize>,
+}
+
+fn validate_relation_audit(
+    audit: &RelationAudit,
+    source_artifacts: &BTreeMap<&str, (&str, EvidenceRole)>,
+    source_entity_ids: &BTreeSet<&str>,
+    target_entity_ids: &BTreeSet<&str>,
+    entity_target_map: &BTreeMap<&str, BTreeSet<&str>>,
+) -> Result<RelationAuditCounts, String> {
+    if audit.inventory_artifact_id.trim().is_empty() {
+        return Err("relation audit inventory_artifact_id must not be empty".to_owned());
+    }
+    match source_artifacts.get(audit.inventory_artifact_id.as_str()) {
+        Some((_, EvidenceRole::RelationInventory)) => {}
+        Some(_) => {
+            return Err(
+                "relation inventory artifact must have the relation_inventory evidence role"
+                    .to_owned(),
+            );
+        }
+        None => {
+            return Err("relation inventory artifact is absent from transition sources".to_owned());
+        }
+    }
+
+    let mut source_relation_ids = BTreeSet::new();
+    let mut target_relation_ids = BTreeSet::new();
+    let mut counts = RelationAuditCounts {
+        total: audit.relations.len(),
+        inventory_complete: audit.completeness == RelationInventoryCompleteness::Complete,
+        by_disposition: BTreeMap::new(),
+    };
+
+    for relation in &audit.relations {
+        if relation.source_relation_id.trim().is_empty()
+            || relation.relation_kind.trim().is_empty()
+            || relation.source_relation_type.trim().is_empty()
+            || relation.source_subject_entity_id.trim().is_empty()
+            || relation.source_object_entity_id.trim().is_empty()
+        {
+            return Err("relation lineage contains an empty source identity or type".to_owned());
+        }
+        if !source_relation_ids.insert(relation.source_relation_id.as_str()) {
+            return Err(format!(
+                "source relation {} appears more than once in the relation inventory",
+                relation.source_relation_id
+            ));
+        }
+        if !source_entity_ids.contains(relation.source_subject_entity_id.as_str())
+            || !source_entity_ids.contains(relation.source_object_entity_id.as_str())
+        {
+            return Err(format!(
+                "source relation {} refers to an entity outside correspondence inventory",
+                relation.source_relation_id
+            ));
+        }
+
+        let reason = relation.reason.as_deref().unwrap_or("").trim();
+        match relation.disposition {
+            RelationDisposition::Preserved | RelationDisposition::Modified => {
+                if relation.target_relations.is_empty() {
+                    return Err(format!(
+                        "relation {} disposition requires at least one target relation",
+                        relation.source_relation_id
+                    ));
+                }
+                if relation.disposition == RelationDisposition::Preserved && !reason.is_empty() {
+                    return Err(format!(
+                        "preserved relation {} must not declare a loss/modification reason",
+                        relation.source_relation_id
+                    ));
+                }
+                if relation.disposition == RelationDisposition::Modified && reason.is_empty() {
+                    return Err(format!(
+                        "modified relation {} requires an explicit reason",
+                        relation.source_relation_id
+                    ));
+                }
+            }
+            RelationDisposition::Lost
+            | RelationDisposition::Unsupported
+            | RelationDisposition::Unresolved => {
+                if !relation.target_relations.is_empty() || reason.is_empty() {
+                    return Err(format!(
+                        "relation {} loss/unsupported/unresolved disposition requires no target and a reason",
+                        relation.source_relation_id
+                    ));
+                }
+            }
+        }
+
+        let expected_subjects = entity_target_map
+            .get(relation.source_subject_entity_id.as_str())
+            .ok_or("source relation subject has no entity correspondence")?;
+        let expected_objects = entity_target_map
+            .get(relation.source_object_entity_id.as_str())
+            .ok_or("source relation object has no entity correspondence")?;
+
+        for target in &relation.target_relations {
+            if target.relation_id.trim().is_empty()
+                || target.relation_kind.trim().is_empty()
+                || target.relation_type.trim().is_empty()
+                || target.subject_entity_id.trim().is_empty()
+                || target.object_entity_id.trim().is_empty()
+            {
+                return Err(format!(
+                    "target relation for {} contains an empty identity or type",
+                    relation.source_relation_id
+                ));
+            }
+            if !target_relation_ids.insert(target.relation_id.as_str()) {
+                return Err(format!(
+                    "target relation {} is mapped more than once",
+                    target.relation_id
+                ));
+            }
+            if !target_entity_ids.contains(target.subject_entity_id.as_str())
+                || !target_entity_ids.contains(target.object_entity_id.as_str())
+            {
+                return Err(format!(
+                    "target relation {} refers to an entity outside correspondence inventory",
+                    target.relation_id
+                ));
+            }
+            let endpoints_match = if relation.directed {
+                expected_subjects.contains(target.subject_entity_id.as_str())
+                    && expected_objects.contains(target.object_entity_id.as_str())
+            } else {
+                (expected_subjects.contains(target.subject_entity_id.as_str())
+                    && expected_objects.contains(target.object_entity_id.as_str()))
+                    || (expected_subjects.contains(target.object_entity_id.as_str())
+                        && expected_objects.contains(target.subject_entity_id.as_str()))
+            };
+            if !endpoints_match {
+                return Err(format!(
+                    "target relation {} does not follow the declared source-entity correspondence",
+                    target.relation_id
+                ));
+            }
+            if relation.disposition == RelationDisposition::Preserved
+                && target.relation_kind != relation.relation_kind
+            {
+                return Err(format!(
+                    "preserved relation {} changes canonical relation kind",
+                    relation.source_relation_id
+                ));
+            }
+        }
+        *counts
+            .by_disposition
+            .entry(relation.disposition)
+            .or_insert(0) += 1;
+    }
+
+    Ok(counts)
+}
+
+fn validate_sha256(field: &str, value: &str) -> Result<(), String> {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(format!("{field} must be 64-character lowercase SHA-256"));
+    }
+    Ok(())
+}
+
+fn validate_artifact_set(label: &str, artifacts: &[ArtifactReference]) -> Result<(), String> {
+    let mut ids = BTreeSet::new();
+    for artifact in artifacts {
+        if artifact.artifact_id.trim().is_empty() || !ids.insert(artifact.artifact_id.as_str()) {
+            return Err(format!("{label} artifact IDs must be non-empty and unique"));
+        }
+        validate_sha256(&format!("{label}.sha256"), &artifact.sha256)?;
+    }
+    Ok(())
+}
+
+fn validate_entity_ids(label: &str, ids: &[String]) -> Result<(), String> {
+    let mut unique = BTreeSet::new();
+    for id in ids {
+        if id.trim().is_empty() || !unique.insert(id.as_str()) {
+            return Err(format!("{label} must contain unique non-empty IDs"));
+        }
+    }
+    Ok(())
+}
+
+fn validate_tool(tool: &ToolBinding) -> Result<(), String> {
+    if tool.name.trim().is_empty() || tool.version.trim().is_empty() {
+        return Err("transition tool name and version must not be empty".to_owned());
+    }
+    validate_sha256("tool.configuration_sha256", &tool.configuration_sha256)
+}
+
+fn validate_correspondence_shape(event: &EntityCorrespondence) -> Result<(), String> {
+    let source_count = event.source_entity_ids.len();
+    let target_count = event.target_entity_ids.len();
+    let valid = match event.kind {
+        CorrespondenceKind::OneToOne => source_count == 1 && target_count == 1,
+        CorrespondenceKind::Split => source_count == 1 && target_count >= 2,
+        CorrespondenceKind::Merge => source_count >= 2 && target_count == 1,
+        CorrespondenceKind::Replacement => {
+            source_count == 1
+                && target_count == 1
+                && event.source_entity_ids[0] != event.target_entity_ids[0]
+        }
+        CorrespondenceKind::Unresolved => source_count >= 1 && target_count >= 1,
+    };
+    if !valid {
+        return Err(format!(
+            "correspondence event {} has invalid cardinality for {:?}",
+            event.event_id, event.kind
+        ));
+    }
+    Ok(())
+}
+
+fn validate_claim(
+    claim: &ClaimLineage,
+    source_artifacts: &BTreeMap<&str, (&str, EvidenceRole)>,
+) -> Result<(), String> {
+    let mut evidence_ids = BTreeSet::new();
+    for evidence in &claim.source_evidence {
+        if !evidence_ids.insert(evidence.artifact_id.as_str()) {
+            return Err(format!(
+                "claim {} contains duplicate source evidence IDs",
+                claim.claim_id
+            ));
+        }
+        validate_sha256("claim.source_evidence.sha256", &evidence.sha256)?;
+        let (expected_sha, expected_role) = source_artifacts
+            .get(evidence.artifact_id.as_str())
+            .copied()
+            .ok_or_else(|| {
+                format!(
+                    "claim {} references source evidence absent from the transition source artifacts",
+                    claim.claim_id
+                )
+            })?;
+        if expected_sha != evidence.sha256 || expected_role != evidence.role {
+            return Err(format!(
+                "claim {} source evidence does not match the transition source artifact binding",
+                claim.claim_id
+            ));
+        }
+    }
+
+    match claim.origin {
+        ClaimOrigin::Measured => {
+            let has_direct_measurement = claim.source_evidence.iter().any(|evidence| {
+                matches!(
+                    evidence.role,
+                    EvidenceRole::RawMeasurement
+                        | EvidenceRole::SurveySolution
+                        | EvidenceRole::IndependentCheckpoint
+                )
+            });
+            if !has_direct_measurement {
+                return Err(format!(
+                    "measured claim {} requires directly traceable measurement or qualified survey evidence",
+                    claim.claim_id
+                ));
+            }
+            if claim.value_sha256.is_none() {
+                return Err(format!(
+                    "measured claim {} requires value_sha256",
+                    claim.claim_id
+                ));
+            }
+            if claim.unknown_reason.is_some() {
+                return Err(format!(
+                    "measured claim {} cannot also declare unknown_reason",
+                    claim.claim_id
+                ));
+            }
+        }
+        ClaimOrigin::Inferred => {
+            if claim.derivation_method.as_deref().is_none_or(str::is_empty)
+                || claim.source_evidence.is_empty()
+                || claim.value_sha256.is_none()
+            {
+                return Err(format!(
+                    "inferred claim {} requires a derivation method and value digest",
+                    claim.claim_id
+                ));
+            }
+        }
+        ClaimOrigin::Assumed => {
+            if claim.assumptions.is_empty()
+                || claim
+                    .assumptions
+                    .iter()
+                    .any(|value| value.trim().is_empty())
+                || claim.value_sha256.is_none()
+            {
+                return Err(format!(
+                    "assumed claim {} requires explicit assumptions and a value digest",
+                    claim.claim_id
+                ));
+            }
+        }
+        ClaimOrigin::Unknown => {
+            if claim.unknown_reason.as_deref().is_none_or(str::is_empty)
+                || claim.value_sha256.is_some()
+            {
+                return Err(format!(
+                    "unknown claim {} requires a reason and must not declare a value digest",
+                    claim.claim_id
+                ));
+            }
+        }
+    }
+    if let Some(value_sha256) = &claim.value_sha256 {
+        validate_sha256("claim.value_sha256", value_sha256)?;
+    }
+    if let Some(method) = &claim.derivation_method {
+        if method.trim().is_empty() {
+            return Err(format!(
+                "claim {} derivation_method must not be empty",
+                claim.claim_id
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_uncertainty(
+    transition: &UncertaintyTransition,
+    source_artifacts: &BTreeMap<&str, (&str, EvidenceRole)>,
+) -> Result<(), String> {
+    if !transition.approximation_error_bound_m.is_finite()
+        || transition.approximation_error_bound_m < 0.0
+    {
+        return Err("approximation_error_bound_m must be finite and non-negative".to_owned());
+    }
+    validate_uncertainty_state("before", &transition.before)?;
+    validate_uncertainty_state("after", &transition.after)?;
+
+    match transition.update_basis {
+        UncertaintyUpdateBasis::RepresentationOnly => {
+            if !transition.conditioning_evidence.is_empty()
+                || transition.estimator_id.is_some()
+                || transition.calibration_profile_id.is_some()
+            {
+                return Err(
+                    "representation_only uncertainty update cannot declare conditioning evidence, estimator or calibration profile"
+                        .to_owned(),
+                );
+            }
+            match (transition.before.status, transition.after.status) {
+                (UncertaintyStatus::Unknown, UncertaintyStatus::Known) => {
+                    return Err(
+                        "representation-only transition cannot turn unknown uncertainty into known"
+                            .to_owned(),
+                    );
+                }
+                (UncertaintyStatus::Known, UncertaintyStatus::Known) => {
+                    if transition.before.metric_id != transition.after.metric_id {
+                        return Err(
+                            "representation-only transition cannot change uncertainty metric"
+                                .to_owned(),
+                        );
+                    }
+                    let before = transition.before.absolute_bound_m.unwrap_or(0.0);
+                    let after = transition.after.absolute_bound_m.unwrap_or(0.0);
+                    let required = before + transition.approximation_error_bound_m;
+                    let tolerance = required.abs().max(1.0) * 1.0e-12;
+                    if !required.is_finite() || after + tolerance < required {
+                        return Err(
+                            "representation-only transition unjustifiably shrinks the conservative uncertainty bound"
+                                .to_owned(),
+                        );
+                    }
+                }
+                _ => {}
+            }
+        }
+        UncertaintyUpdateBasis::EvidenceConditioned => {
+            if transition.conditioning_evidence.is_empty()
+                || transition.estimator_id.as_deref().is_none_or(str::is_empty)
+                || transition
+                    .calibration_profile_id
+                    .as_deref()
+                    .is_none_or(str::is_empty)
+            {
+                return Err(
+                    "evidence-conditioned update requires new evidence, estimator_id and calibration_profile_id"
+                        .to_owned(),
+                );
+            }
+            let mut ids = BTreeSet::new();
+            let mut digests = BTreeSet::new();
+            for evidence in &transition.conditioning_evidence {
+                if evidence.role != EvidenceRole::IndependentCheckpoint {
+                    return Err(
+                        "conditioning evidence must be declared as independent_checkpoint"
+                            .to_owned(),
+                    );
+                }
+                if evidence.artifact_id.trim().is_empty()
+                    || !ids.insert(evidence.artifact_id.as_str())
+                    || !digests.insert(evidence.sha256.as_str())
+                {
+                    return Err(
+                        "conditioning evidence IDs and digests must be unique and non-empty"
+                            .to_owned(),
+                    );
+                }
+                validate_sha256("conditioning_evidence.sha256", &evidence.sha256)?;
+                if source_artifacts.contains_key(evidence.artifact_id.as_str())
+                    || source_artifacts
+                        .values()
+                        .any(|(source_sha256, _)| *source_sha256 == evidence.sha256)
+                {
+                    return Err(
+                        "conditioning evidence must be additional to the source representation artifacts"
+                            .to_owned(),
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_uncertainty_state(label: &str, state: &UncertaintyBound) -> Result<(), String> {
+    match state.status {
+        UncertaintyStatus::Known => {
+            if state.metric_id.as_deref() != Some("conservative_absolute_bound_m") {
+                return Err(format!(
+                    "uncertainty.{label} known state must use conservative_absolute_bound_m"
+                ));
+            }
+            let bound = state.absolute_bound_m.ok_or_else(|| {
+                format!("uncertainty.{label} known state requires absolute_bound_m")
+            })?;
+            if !bound.is_finite() || bound < 0.0 {
+                return Err(format!(
+                    "uncertainty.{label}.absolute_bound_m must be finite and non-negative"
+                ));
+            }
+        }
+        UncertaintyStatus::Unknown => {
+            if state.metric_id.is_some() || state.absolute_bound_m.is_some() {
+                return Err(format!(
+                    "uncertainty.{label} unknown state must not declare a metric or numeric bound"
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RepresentationContinuityReport, audit_representation_continuity_bytes};
+    use serde_json::{Value, json};
+
+    fn fixture_value() -> Value {
+        serde_json::from_str(include_str!(
+            "../../../research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json"
+        ))
+        .expect("continuity fixture JSON")
+    }
+
+    fn valid_receipt() -> Value {
+        fixture_value()["canonical_receipt"].clone()
+    }
+
+    fn audit(value: &Value) -> Result<RepresentationContinuityReport, String> {
+        let bytes = serde_json::to_vec(value).expect("serialize continuity test receipt");
+        audit_representation_continuity_bytes(&bytes)
+    }
+
+    #[test]
+    fn accepts_lossless_measured_claim_with_complete_source_lineage() {
+        let report = audit(&valid_receipt()).expect("valid measured lineage");
+        assert_eq!(report.transition_count, 1);
+        assert_eq!(report.claim_count, 1);
+        assert_eq!(report.measured_claim_count, 1);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn rejects_measured_claim_supported_only_by_derived_geometry() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["source_evidence"] = json!([{
+            "artifact_id": "TRANSFORM-001",
+            "sha256": "b".repeat(64),
+            "role": "transform"
+        }]);
+        let error = audit(&value).expect_err("a transform is not a direct measurement");
+        assert!(error.contains("requires directly traceable measurement"));
+    }
+
+    #[test]
+    fn rejects_unjustified_uncertainty_shrink_during_representation_change() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["after"]["absolute_bound_m"] = json!(0.001);
+        let error = audit(&value).expect_err("representation-only export cannot improve certainty");
+        assert!(error.contains("unjustifiably shrinks"));
+    }
+
+    #[test]
+    fn accepts_conservative_uncertainty_growth_from_approximation_error() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["after"]["absolute_bound_m"] = json!(0.003);
+        let report = audit(&value).expect("conservative output bound");
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn rejects_unknown_to_known_uncertainty_without_new_evidence() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["before"] = json!({
+            "status": "unknown",
+            "metric_id": null,
+            "absolute_bound_m": null
+        });
+        let error = audit(&value).expect_err("representation change cannot create certainty");
+        assert!(error.contains("cannot turn unknown uncertainty into known"));
+    }
+
+    #[test]
+    fn accepts_explicit_evidence_conditioned_uncertainty_update() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["after"]["absolute_bound_m"] = json!(0.001);
+        value["transitions"][0]["uncertainty"]["update_basis"] = json!("evidence_conditioned");
+        value["transitions"][0]["uncertainty"]["conditioning_evidence"] = json!([{
+            "artifact_id": "CHECKPOINT-001",
+            "sha256": "f".repeat(64),
+            "role": "independent_checkpoint"
+        }]);
+        value["transitions"][0]["uncertainty"]["estimator_id"] = json!("weighted-plane-update-v1");
+        value["transitions"][0]["uncertainty"]["calibration_profile_id"] =
+            json!("held-out-metrology-v1");
+        let report = audit(&value).expect("evidence-conditioned update is structurally declared");
+        assert_eq!(report.measured_claim_count, 1);
+    }
+
+    #[test]
+    fn rejects_conditioning_evidence_reused_from_source_representation() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["update_basis"] = json!("evidence_conditioned");
+        value["transitions"][0]["uncertainty"]["conditioning_evidence"] = json!([{
+            "artifact_id": "SCAN-001",
+            "sha256": "a".repeat(64),
+            "role": "independent_checkpoint"
+        }]);
+        value["transitions"][0]["uncertainty"]["estimator_id"] = json!("update-v1");
+        value["transitions"][0]["uncertainty"]["calibration_profile_id"] = json!("cal-v1");
+        let error = audit(&value)
+            .expect_err("source evidence cannot be reused as new independent evidence");
+        assert!(error.contains("must be additional to the source representation"));
+    }
+
+    #[test]
+    fn rejects_inferred_claim_without_evidence_or_derivation_assumptions() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["origin"] = json!("inferred");
+        value["transitions"][0]["claims"][0]["source_evidence"] = json!([]);
+        value["transitions"][0]["claims"][0]["derivation_method"] = json!("plane-fit-v1");
+        let error = audit(&value).expect_err("inference must retain source support");
+        assert!(error.contains("requires a derivation method and value digest"));
+    }
+
+    #[test]
+    fn rejects_conditioned_update_without_independent_checkpoint() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["update_basis"] = json!("evidence_conditioned");
+        value["transitions"][0]["uncertainty"]["conditioning_evidence"] = json!([{
+            "artifact_id": "REGISTERED-MESH-001",
+            "sha256": "f".repeat(64),
+            "role": "geometry_output"
+        }]);
+        value["transitions"][0]["uncertainty"]["estimator_id"] = json!("update-v1");
+        value["transitions"][0]["uncertainty"]["calibration_profile_id"] = json!("cal-v1");
+        let error = audit(&value).expect_err("derived geometry cannot be new independent evidence");
+        assert!(error.contains("independent_checkpoint"));
+    }
+
+    #[test]
+    fn rejects_inferred_to_measured_promotion_without_direct_measurement() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["source_artifacts"][0]["role"] = json!("geometry_output");
+        value["transitions"][0]["claims"][0]["source_evidence"][0]["role"] =
+            json!("geometry_output");
+        let error = audit(&value).expect_err("fitted geometry is not a raw measured observation");
+        assert!(error.contains("requires directly traceable measurement"));
+    }
+
+    #[test]
+    fn rejects_split_correspondence_with_only_one_target() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["correspondences"][0]["kind"] = json!("split");
+        let error = audit(&value).expect_err("split must produce at least two target entities");
+        assert!(error.contains("invalid cardinality"));
+    }
+
+    #[test]
+    fn reports_unresolved_correspondence_without_promoting_it_to_preserved() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["correspondences"][0]["kind"] = json!("unresolved");
+        let report = audit(&value).expect("unresolved identity is reported, not guessed");
+        assert_eq!(report.unresolved_correspondence_count, 1);
+        assert_eq!(report.continuity_state, "continuity_unresolved");
+    }
+
+    #[test]
+    fn rejects_orphaned_claim_evidence() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["source_evidence"][0]["sha256"] =
+            json!("9".repeat(64));
+        let error = audit(&value).expect_err("claim evidence must bind exact source bytes");
+        assert!(error.contains("does not match the transition source artifact"));
+    }
+
+    #[test]
+    fn rejects_duplicate_target_identity_across_correspondence_events() {
+        let mut value = valid_receipt();
+        let mut second = value["transitions"][0]["correspondences"][0].clone();
+        second["event_id"] = json!("CORR-002");
+        second["source_entity_ids"] = json!(["WALL-RAW-002"]);
+        value["transitions"][0]["correspondences"]
+            .as_array_mut()
+            .expect("correspondence array")
+            .push(second);
+        let error = audit(&value).expect_err("target identity must not be duplicated");
+        assert!(error.contains("target entity"));
+    }
+
+    #[test]
+    fn rejects_unknown_claim_that_contains_numeric_value() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["origin"] = json!("unknown");
+        value["transitions"][0]["claims"][0]["unknown_reason"] = json!("no direct support");
+        let error = audit(&value).expect_err("unknown claims cannot carry a value digest");
+        assert!(error.contains("must not declare a value digest"));
+    }
+
+    #[test]
+    fn rejects_claim_not_bound_to_a_transition_output_artifact() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["target_artifact_id"] = json!("UNLISTED-OUTPUT");
+        let error = audit(&value).expect_err("claim must bind the exact output artifact");
+        assert!(
+            error.contains("target artifact must be a declared geometry/representation output")
+        );
+    }
+
+    #[test]
+    fn rejects_claim_bound_to_non_representation_output_role() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["output_artifacts"][0]["role"] = json!("transform");
+        let error = audit(&value)
+            .expect_err("claim must bind to geometry or representation output artifact");
+        assert!(error.contains("geometry/representation output"));
+    }
+
+    #[test]
+    fn rejects_changed_bytes_when_a_later_transition_reuses_an_output_artifact_id() {
+        let mut value = valid_receipt();
+        let mut next = value["transitions"][0].clone();
+        next["transition_id"] = json!("SURFACE-TO-GRAPH-001");
+        next["from_representation"] = json!("surface_mesh");
+        next["to_representation"] = json!("spatial_graph");
+        next["source_artifacts"] = json!([
+            {
+                "artifact_id": "MESH-001",
+                "sha256": "c".repeat(64),
+                "role": "geometry_output"
+            },
+            {
+                "artifact_id": "RELATION-INVENTORY-GRAPH-001",
+                "sha256": "1".repeat(64),
+                "role": "relation_inventory"
+            }
+        ]);
+        next["output_artifacts"] = json!([{
+            "artifact_id": "GRAPH-001",
+            "sha256": "8".repeat(64),
+            "role": "geometry_output"
+        }]);
+        next["correspondences"] = json!([
+            {
+                "event_id": "CORR-GRAPH-WALL-001",
+                "kind": "one_to_one",
+                "source_entity_ids": ["WALL-SURFACE-001"],
+                "target_entity_ids": ["WALL-GRAPH-001"],
+                "identity_receipt_sha256": "e".repeat(64)
+            },
+            {
+                "event_id": "CORR-GRAPH-OPENING-001",
+                "kind": "one_to_one",
+                "source_entity_ids": ["OPENING-SURFACE-001"],
+                "target_entity_ids": ["OPENING-GRAPH-001"],
+                "identity_receipt_sha256": "f".repeat(64)
+            }
+        ]);
+        next["relation_audit"] = json!({
+            "inventory_artifact_id": "RELATION-INVENTORY-GRAPH-001",
+            "completeness": "complete",
+            "relations": [{
+                "source_relation_id": "REL-MESH-WALL-OPENING-001",
+                "relation_kind": "host_opening",
+                "source_relation_type": "SurfaceGraph.hosts_opening",
+                "source_subject_entity_id": "WALL-SURFACE-001",
+                "source_object_entity_id": "OPENING-SURFACE-001",
+                "directed": true,
+                "disposition": "preserved",
+                "target_relations": [{
+                    "relation_id": "REL-GRAPH-WALL-OPENING-001",
+                    "relation_kind": "host_opening",
+                    "relation_type": "SpatialGraph.hosts_opening",
+                    "subject_entity_id": "WALL-GRAPH-001",
+                    "object_entity_id": "OPENING-GRAPH-001"
+                }],
+                "reason": null
+            }]
+        });
+        next["claims"] = json!([]);
+        next["uncertainty"]["approximation_error_bound_m"] = json!(0.0);
+        next["uncertainty"]["before"]["absolute_bound_m"] = json!(0.0025);
+        next["uncertainty"]["after"]["absolute_bound_m"] = json!(0.0025);
+        value["transitions"]
+            .as_array_mut()
+            .expect("transition array")
+            .push(next.clone());
+
+        let report = audit(&value).expect("exact prior output may feed the next transition");
+        assert_eq!(report.transition_count, 2);
+
+        value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("9".repeat(64));
+        let error =
+            audit(&value).expect_err("the same artifact ID cannot silently point at new bytes");
+        assert!(error.contains("does not match its prior output binding"));
+    }
+
+    #[test]
+    fn reports_preserved_host_opening_relation() {
+        let report = audit(&valid_receipt()).expect("complete relation inventory");
+        assert_eq!(report.source_relation_count, 1);
+        assert_eq!(report.preserved_relation_count, 1);
+        assert_eq!(report.modified_relation_count, 0);
+        assert_eq!(report.lost_relation_count, 0);
+        assert_eq!(report.unsupported_relation_count, 0);
+        assert_eq!(report.unresolved_relation_count, 0);
+        assert_eq!(report.incomplete_relation_inventory_count, 0);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn reports_lost_relation_as_degraded_not_preserved() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] = json!("lost");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
+            json!("opening relation was dropped during mesh export");
+        let report = audit(&value).expect("explicit relation loss is auditable");
+        assert_eq!(report.source_relation_count, 1);
+        assert_eq!(report.lost_relation_count, 1);
+        assert_eq!(report.preserved_relation_count, 0);
+        assert_eq!(report.continuity_state, "continuity_degraded");
+    }
+
+    #[test]
+    fn reports_modified_relation_as_degraded_with_reason() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
+            json!("modified");
+        value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
+            json!("opening host relation was re-authored with a changed semantic constraint");
+        let report = audit(&value).expect("explicit relation modification is auditable");
+        assert_eq!(report.modified_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_degraded");
+    }
+
+    #[test]
+    fn reports_unsupported_relation_as_unresolved() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
+            json!("unsupported");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
+            json!("target representation cannot encode host-opening relations");
+        let report = audit(&value).expect("unsupported relation is not silently passed");
+        assert_eq!(report.unsupported_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_unresolved");
+    }
+
+    #[test]
+    fn incomplete_relation_inventory_prevents_preserved_continuity_claim() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["completeness"] = json!("partial");
+        let report = audit(&value).expect("partial inventory remains explicitly qualified");
+        assert_eq!(report.incomplete_relation_inventory_count, 1);
+        assert_eq!(report.preserved_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_unresolved");
+    }
+
+    #[test]
+    fn rejects_relation_endpoint_that_does_not_follow_entity_correspondence() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["object_entity_id"] =
+            json!("WALL-SURFACE-001");
+        let error = audit(&value).expect_err("relation endpoints must follow the entity map");
+        assert!(error.contains("does not follow the declared source-entity correspondence"));
+    }
+
+    #[test]
+    fn rejects_preserved_relation_with_changed_canonical_kind() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["relation_kind"] =
+            json!("adjacent_to");
+        let error = audit(&value).expect_err("preserved relation cannot change semantic kind");
+        assert!(error.contains("changes canonical relation kind"));
+    }
+
+    #[test]
+    fn rejects_duplicate_source_relation_identity() {
+        let mut value = valid_receipt();
+        let duplicate = value["transitions"][0]["relation_audit"]["relations"][0].clone();
+        value["transitions"][0]["relation_audit"]["relations"]
+            .as_array_mut()
+            .expect("relation rows")
+            .push(duplicate);
+        let error = audit(&value).expect_err("source relation IDs must be unique");
+        assert!(error.contains("appears more than once in the relation inventory"));
+    }
+
+    #[test]
+    fn rejects_target_relation_mapped_from_two_source_relations() {
+        let mut value = valid_receipt();
+        let mut duplicate = value["transitions"][0]["relation_audit"]["relations"][0].clone();
+        duplicate["source_relation_id"] = json!("REL-RAW-OPENING-WALL-002");
+        duplicate["source_subject_entity_id"] = json!("OPENING-RAW-001");
+        duplicate["source_object_entity_id"] = json!("WALL-RAW-001");
+        duplicate["directed"] = json!(false);
+        duplicate["relation_kind"] = json!("host_opening");
+        value["transitions"][0]["relation_audit"]["relations"]
+            .as_array_mut()
+            .expect("relation rows")
+            .push(duplicate);
+        let error = audit(&value).expect_err("target relation identity must be unique");
+        assert!(error.contains("is mapped more than once"));
+    }
+
+    #[test]
+    fn rejects_relation_inventory_artifact_with_wrong_role() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["source_artifacts"][2]["role"] = json!("raw_measurement");
+        let error = audit(&value).expect_err("relation inventory must have typed role");
+        assert!(error.contains("relation inventory artifact must have the relation_inventory"));
+    }
+
+    #[test]
+    fn relation_audit_is_required_even_when_no_relationships_are_known() {
+        let mut value = valid_receipt();
+        value["transitions"][0]
+            .as_object_mut()
+            .expect("transition object")
+            .remove("relation_audit");
+        let error =
+            audit(&value).expect_err("missing relation inventory is not an empty inventory");
+        assert!(error.contains("relation_audit"));
+    }
+
+    #[test]
+    fn undirected_relation_allows_reversed_target_endpoints() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["directed"] = json!(false);
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["subject_entity_id"] =
+            json!("OPENING-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["object_entity_id"] =
+            json!("WALL-SURFACE-001");
+        let report = audit(&value).expect("undirected target endpoint order can reverse");
+        assert_eq!(report.preserved_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn rejects_unknown_fields() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["unverified_confidence"] = json!(0.99);
+        let error = audit(&value).expect_err("unknown continuity fields must fail closed");
+        assert!(error.contains("unknown field"));
+    }
+}

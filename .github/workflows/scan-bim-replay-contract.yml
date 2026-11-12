@@ -2,11 +2,12 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1-review"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1", "research/scan-bim-representation-continuity-v0-1-review-2", "research/scan-bim-critical-attribute-retention-v0-1", "research/scan-bim-compositional-continuity-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "research/scan-bim-ifc-delivery-001/**"
       - "research/scan-bim-representation-continuity-001/**"
+      - "research/scan-bim-critical-attribute-retention-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -16,11 +17,12 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_EXECUTION_RECEIPT_AND_BENCHMARK_TARGETS_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
   push:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1", "research/scan-bim-representation-continuity-v0-1-review-2", "research/scan-bim-critical-attribute-retention-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "research/scan-bim-ifc-delivery-001/**"
       - "research/scan-bim-representation-continuity-001/**"
+      - "research/scan-bim-critical-attribute-retention-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -69,6 +71,77 @@ jobs:
             (([.cases[] | select(.case_id != "missing_required_gate" and (.report.gates | length) != 9)] | length) == 0) and
             ((.cases[] | select(.case_id == "missing_required_gate") | .report.gates | length) == 8)
           ' research/scan-bim-ifc-delivery-001/fixtures/known_answers_v0_1.json
+      - name: Check representation-continuity fixture contract
+        run: |
+          jq -e '
+            (.fixture_version == "0.1") and
+            (.fixture_id == "SCAN-BIM-CONTINUITY-KA-001") and
+            (.canonical_receipt.schema_version == "0.1") and
+            ((.canonical_receipt.transitions | length) == 1) and
+            (.canonical_receipt.transitions[0].from_representation == "raw_observations") and
+            (.canonical_receipt.transitions[0].to_representation == "surface_mesh") and
+            (.canonical_receipt.transitions[0].claims[0].origin == "measured") and
+            (.canonical_receipt.transitions[0].correspondences | length == 2) and
+            (.canonical_receipt.transitions[0].relation_audit.completeness == "complete") and
+            (.canonical_receipt.transitions[0].relation_audit.relations | length == 1) and
+            (.canonical_receipt.transitions[0].relation_audit.relations[0].relation_kind == "host_opening") and
+            (.canonical_receipt.transitions[0].relation_audit.relations[0].disposition == "preserved") and
+            (.canonical_receipt.transitions[0].uncertainty.update_basis == "representation_only") and
+            (.canonical_receipt.transitions[0].uncertainty.before.absolute_bound_m == 0.002) and
+            (.canonical_receipt.transitions[0].uncertainty.after.absolute_bound_m == 0.0025) and
+            (.canonical_receipt.transitions[0].uncertainty.approximation_error_bound_m == 0.0005)
+          ' research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json
+      - name: Execute representation continuity audit
+        run: |
+          jq -c '.canonical_receipt' \
+            research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json \
+            > /tmp/scan-bim-continuity-receipt.json
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_continuity_audit -- \
+            /tmp/scan-bim-continuity-receipt.json \
+            > /tmp/scan-bim-continuity-report.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.receipt_id == "SCAN-BIM-CONTINUITY-ROOM-A-001") and
+            (.scene_id == "ROOM-A") and
+            (.transition_count == 1) and
+            (.claim_count == 1) and
+            (.measured_claim_count == 1) and
+            (.correspondence_event_count == 2) and
+            (.unresolved_correspondence_count == 0) and
+            (.source_relation_count == 1) and
+            (.preserved_relation_count == 1) and
+            (.modified_relation_count == 0) and
+            (.lost_relation_count == 0) and
+            (.unsupported_relation_count == 0) and
+            (.unresolved_relation_count == 0) and
+            (.incomplete_relation_inventory_count == 0) and
+            (.continuity_state == "continuity_preserved")
+          ' /tmp/scan-bim-continuity-report.json
+      - name: Execute compositional representation chain audit
+        run: |
+          jq -c '.canonical_receipt' \
+            research/scan-bim-representation-continuity-001/fixtures/compositional_known_answers_v0_1.json \
+            > /tmp/scan-bim-continuity-chain-receipt.json
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_continuity_chain_audit -- \
+            /tmp/scan-bim-continuity-chain-receipt.json \
+            > /tmp/scan-bim-continuity-chain-report.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.receipt_id == "SCAN-BIM-CONTINUITY-ROOM-A-001") and
+            (.transition_count == 2) and
+            (.dependency_edge_count == 1) and
+            (.artifact_handoff_count == 1) and
+            (.root_transition_count == 1) and
+            (.terminal_transition_count == 1) and
+            (.root_to_terminal_path_count == 1) and
+            (.connected_component_count == 1) and
+            (.uncertainty_handoff_count == 1) and
+            (.unknown_uncertainty_handoff_count == 0) and
+            (.evidence_conditioned_uncertainty_handoff_count == 0) and
+            (.composition_state == "composed")
+          ' /tmp/scan-bim-continuity-chain-report.json
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
