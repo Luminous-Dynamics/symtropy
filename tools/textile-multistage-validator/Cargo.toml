@@ -1,0 +1,15 @@
+[package]
+name = "textile-multistage-validator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "textile-multistage-validator"
+path = "src/main.rs"
+
+[workspace]
