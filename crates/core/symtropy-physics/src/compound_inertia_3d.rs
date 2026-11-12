@@ -1,0 +1,745 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+//! Checked 3D compound mass-property composition using a full body-frame
+//! inertia tensor and the parallel-axis theorem.
+//!
+//! This module is a reference/evidence layer. `RigidBody<3>` still stores only
+//! three diagonal inertia values in its body frame, so a general non-diagonal
+//! compound tensor cannot yet be represented losslessly by production state.
+
+use nalgebra::{SMatrix, SVector};
+use symtropy_math::Transform;
+
+use crate::bivector_inertia::{BivectorInertia, RotationalInertiaError};
+use crate::mass_properties_3d::MassProperties3;
+
+const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
+
+/// Average symmetric entries without overflowing or erasing a nonzero
+/// average that lies below the smallest representable `f64`.
+#[inline]
+fn symmetric_average(left: f64, right: f64) -> Result<f64, CompoundInertia3Error> {
+    if !left.is_finite() || !right.is_finite() {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    if left == right {
+        return Ok(left);
+    }
+    let scale = left.abs().max(right.abs());
+    if scale == 0.0 {
+        return Ok(0.0);
+    }
+    let normalized = 0.5 * (left / scale) + 0.5 * (right / scale);
+    if normalized == 0.0 {
+        if left == -right {
+            return Ok(0.0);
+        }
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    let average = normalized * scale;
+    if !average.is_finite() || average == 0.0 {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    Ok(average)
+}
+
+/// One child contribution to a compound body.
+///
+/// `local_transform.rotation` maps the child's principal-inertia frame into the
+/// compound body frame. `local_transform.translation` locates the child's local
+/// origin in the compound body frame.
+#[derive(Clone, Debug)]
+pub struct CompoundMassPart3 {
+    /// Stable identity used to canonicalize floating-point accumulation order.
+    pub part_id: u64,
+    pub local_transform: Transform<3>,
+    pub properties: MassProperties3,
+}
+
+/// Checked compound mass properties expressed in the chosen compound body frame.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CompoundMassProperties3 {
+    pub total_mass: f64,
+    pub center_of_mass: SVector<f64, 3>,
+    /// Full symmetric inertia tensor about `center_of_mass`, expressed in the
+    /// compound body frame.
+    pub inertia_tensor_body: SMatrix<f64, 3, 3>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum CompoundInertia3Error {
+    EmptyCompound,
+    DuplicatePartId(u64),
+    InvalidPartMass { part_id: u64 },
+    NonFinitePartCenterOfMass { part_id: u64 },
+    NonFinitePartTranslation { part_id: u64 },
+    InvalidPartRotation { part_id: u64 },
+    InvalidPartInertia { part_id: u64 },
+    UnrepresentableTotalMass,
+    UnrepresentableCenterOfMass,
+    UnrepresentableTensor,
+    NonSymmetricTensor,
+    NonPositiveDefiniteTensor,
+    InvalidTolerance,
+    InvalidBivectorOperator(RotationalInertiaError),
+}
+
+/// Compute the 3D parallel-axis tensor in mass-weighted coordinates.
+/// This avoids squaring a tiny geometric offset before multiplying by a
+/// large mass, and rejects any nonzero contribution that underflows.
+fn checked_parallel_axis_tensor(
+    mass: f64,
+    offset: &SVector<f64, 3>,
+) -> Result<SMatrix<f64, 3, 3>, CompoundInertia3Error> {
+    if !mass.is_finite() || mass < 0.0 || !vector_is_finite(offset) {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    if mass == 0.0 {
+        return Ok(SMatrix::<f64, 3, 3>::zeros());
+    }
+    let weighted_offset = offset * mass.sqrt();
+    if !vector_is_finite(&weighted_offset) {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    for axis in 0..3 {
+        if offset[axis] != 0.0 && weighted_offset[axis] == 0.0 {
+            return Err(CompoundInertia3Error::UnrepresentableTensor);
+        }
+    }
+
+    // In 3D, the diagonal term for axis i is the sum of the two
+    // mass-weighted squared offsets on the other axes. Evaluate these
+    // directly instead of subtracting two nearly equal norm/outer terms.
+    let mut parallel_axis = SMatrix::<f64, 3, 3>::zeros();
+    for row in 0..3 {
+        for axis in 0..3 {
+            if axis == row {
+                continue;
+            }
+            let term = weighted_offset[axis] * weighted_offset[axis];
+            if !term.is_finite() || (weighted_offset[axis] != 0.0 && term == 0.0) {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+            parallel_axis[(row, row)] += term;
+            if !parallel_axis[(row, row)].is_finite() {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+        }
+        for column in (row + 1)..3 {
+            let term = weighted_offset[row] * weighted_offset[column];
+            if !term.is_finite()
+                || (weighted_offset[row] != 0.0 && weighted_offset[column] != 0.0 && term == 0.0)
+            {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+            parallel_axis[(row, column)] = -term;
+            parallel_axis[(column, row)] = -term;
+        }
+    }
+    Ok(parallel_axis)
+}
+
+impl CompoundMassProperties3 {
+    /// Compose a set of child mass properties in a deterministic `part_id` order.
+    pub fn compose(parts: &[CompoundMassPart3]) -> Result<Self, CompoundInertia3Error> {
+        if parts.is_empty() {
+            return Err(CompoundInertia3Error::EmptyCompound);
+        }
+
+        let mut ordered: Vec<&CompoundMassPart3> = parts.iter().collect();
+        ordered.sort_by_key(|part| part.part_id);
+        for pair in ordered.windows(2) {
+            if pair[0].part_id == pair[1].part_id {
+                return Err(CompoundInertia3Error::DuplicatePartId(pair[0].part_id));
+            }
+        }
+
+        for part in &ordered {
+            validate_part(part)?;
+        }
+
+        // Incremental center-of-mass accumulation avoids forming m*r directly,
+        // which can overflow even when the final weighted mean is representable.
+        let mut total_mass = 0.0_f64;
+        let mut center_of_mass = SVector::<f64, 3>::zeros();
+        let mut child_centers = Vec::with_capacity(ordered.len());
+
+        for part in &ordered {
+            let child_center = child_center_in_compound(part)?;
+            child_centers.push(child_center);
+
+            let next_total = total_mass + part.properties.mass;
+            if !next_total.is_finite() || next_total <= 0.0 {
+                return Err(CompoundInertia3Error::UnrepresentableTotalMass);
+            }
+
+            if total_mass == 0.0 {
+                center_of_mass = child_center;
+            } else {
+                let delta = child_center - center_of_mass;
+                if !vector_is_finite(&delta) {
+                    return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
+                }
+                let ratio = part.properties.mass / next_total;
+                if !ratio.is_finite() || ratio <= 0.0 || ratio > 1.0 {
+                    return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
+                }
+                let increment = delta * ratio;
+                let next_center = center_of_mass + increment;
+                if !vector_is_finite(&increment) || !vector_is_finite(&next_center) {
+                    return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
+                }
+                center_of_mass = next_center;
+            }
+            total_mass = next_total;
+        }
+
+        let mut tensor = SMatrix::<f64, 3, 3>::zeros();
+
+        for (part, child_center) in ordered.iter().zip(child_centers.iter()) {
+            let moments = part.properties.principal_inertia.moments();
+            let local_tensor = SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from(moments));
+            let rotation = part.local_transform.rotation.to_matrix();
+            let rotated_tensor = rotation * local_tensor * rotation.transpose();
+            if !matrix_is_finite(&rotated_tensor) {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+
+            let d = child_center - center_of_mass;
+            if !vector_is_finite(&d) {
+                return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
+            }
+            let parallel_axis = checked_parallel_axis_tensor(part.properties.mass, &d)?;
+
+            let contribution = rotated_tensor + parallel_axis;
+            let next_tensor = tensor + contribution;
+            if !matrix_is_finite(&contribution) || !matrix_is_finite(&next_tensor) {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+            tensor = next_tensor;
+        }
+
+        // Remove only roundoff-scale antisymmetry introduced by matrix products.
+        for row in 0..3 {
+            for col in (row + 1)..3 {
+                let average = symmetric_average(tensor[(row, col)], tensor[(col, row)])?;
+                if !average.is_finite() {
+                    return Err(CompoundInertia3Error::UnrepresentableTensor);
+                }
+                tensor[(row, col)] = average;
+                tensor[(col, row)] = average;
+            }
+        }
+
+        let result = Self {
+            total_mass,
+            center_of_mass,
+            inertia_tensor_body: tensor,
+        };
+        result.validate()?;
+        Ok(result)
+    }
+
+    /// Revalidate a compound evidence object after serialization or public-field
+    /// mutation.
+    pub fn validate(&self) -> Result<(), CompoundInertia3Error> {
+        if !self.total_mass.is_finite() || self.total_mass <= 0.0 {
+            return Err(CompoundInertia3Error::UnrepresentableTotalMass);
+        }
+        if !vector_is_finite(&self.center_of_mass) {
+            return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
+        }
+        validate_symmetric_positive_definite(&self.inertia_tensor_body)
+    }
+
+    /// Checked rotational kinetic energy in the compound body frame.
+    pub fn rotational_energy_body_checked(
+        &self,
+        omega_body: &SVector<f64, 3>,
+    ) -> Result<f64, CompoundInertia3Error> {
+        self.validate()?;
+        if !vector_is_finite(omega_body) {
+            return Err(CompoundInertia3Error::UnrepresentableTensor);
+        }
+        let inertia_omega = self.inertia_tensor_body * omega_body;
+        if !vector_is_finite(&inertia_omega) {
+            return Err(CompoundInertia3Error::UnrepresentableTensor);
+        }
+        let energy = 0.5 * omega_body.dot(&inertia_omega);
+        if !energy.is_finite() || energy < 0.0 {
+            return Err(CompoundInertia3Error::UnrepresentableTensor);
+        }
+        Ok(energy)
+    }
+
+    /// Convert this checked full compound inertia tensor into the N-dimensional
+    /// bivector-inertia reference. This is the bridge between the compound
+    /// parallel-axis representation and the operator used by angular dynamics.
+    /// The compound evidence and the tensor-to-second-moment triangle-inequality
+    /// checks are both revalidated before returning the operator.
+    pub fn to_bivector_inertia_reference(
+        &self,
+    ) -> Result<BivectorInertia<3>, CompoundInertia3Error> {
+        self.validate()?;
+        BivectorInertia::from_inertia_tensor_3d(self.inertia_tensor_body)
+            .map_err(CompoundInertia3Error::InvalidBivectorOperator)
+    }
+
+    /// Whether the selected compound body frame is already a principal-inertia
+    /// frame within an absolute inertia tolerance.
+    pub fn body_frame_is_principal_within(
+        &self,
+        tolerance: f64,
+    ) -> Result<bool, CompoundInertia3Error> {
+        if !tolerance.is_finite() || tolerance < 0.0 {
+            return Err(CompoundInertia3Error::InvalidTolerance);
+        }
+        self.validate()?;
+        let max_off_diagonal = [
+            self.inertia_tensor_body[(0, 1)].abs(),
+            self.inertia_tensor_body[(0, 2)].abs(),
+            self.inertia_tensor_body[(1, 2)].abs(),
+        ]
+        .into_iter()
+        .fold(0.0_f64, f64::max);
+        Ok(max_off_diagonal <= tolerance)
+    }
+}
+
+fn validate_part(part: &CompoundMassPart3) -> Result<(), CompoundInertia3Error> {
+    if !part.properties.mass.is_finite() || part.properties.mass <= 0.0 {
+        return Err(CompoundInertia3Error::InvalidPartMass {
+            part_id: part.part_id,
+        });
+    }
+    if !vector_is_finite(&part.properties.center_of_mass) {
+        return Err(CompoundInertia3Error::NonFinitePartCenterOfMass {
+            part_id: part.part_id,
+        });
+    }
+    if !vector_is_finite(&part.local_transform.translation.0) {
+        return Err(CompoundInertia3Error::NonFinitePartTranslation {
+            part_id: part.part_id,
+        });
+    }
+
+    let rotation_matrix = part.local_transform.rotation.to_matrix();
+    if !matrix_is_finite(rotation_matrix)
+        || !part
+            .local_transform
+            .rotation
+            .is_proper_rotation(ROTATION_VALIDITY_TOLERANCE)
+    {
+        return Err(CompoundInertia3Error::InvalidPartRotation {
+            part_id: part.part_id,
+        });
+    }
+
+    if part
+        .properties
+        .principal_inertia
+        .moments()
+        .iter()
+        .any(|moment| !moment.is_finite() || *moment <= 0.0)
+    {
+        return Err(CompoundInertia3Error::InvalidPartInertia {
+            part_id: part.part_id,
+        });
+    }
+
+    Ok(())
+}
+
+fn child_center_in_compound(
+    part: &CompoundMassPart3,
+) -> Result<SVector<f64, 3>, CompoundInertia3Error> {
+    let rotated_local_com = part
+        .local_transform
+        .rotation
+        .rotate_vector(&part.properties.center_of_mass);
+    let center = rotated_local_com + part.local_transform.translation.0;
+    if vector_is_finite(&rotated_local_com) && vector_is_finite(&center) {
+        Ok(center)
+    } else {
+        Err(CompoundInertia3Error::UnrepresentableCenterOfMass)
+    }
+}
+
+fn vector_is_finite(vector: &SVector<f64, 3>) -> bool {
+    vector.iter().all(|value| value.is_finite())
+}
+
+fn matrix_is_finite(matrix: &SMatrix<f64, 3, 3>) -> bool {
+    matrix.iter().all(|value| value.is_finite())
+}
+
+/// Validate exact symmetry and positive definiteness using Sylvester's criterion
+/// on a scale-normalized matrix.
+fn validate_symmetric_positive_definite(
+    tensor: &SMatrix<f64, 3, 3>,
+) -> Result<(), CompoundInertia3Error> {
+    if !matrix_is_finite(tensor) {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    for row in 0..3 {
+        for col in (row + 1)..3 {
+            if tensor[(row, col)] != tensor[(col, row)] {
+                return Err(CompoundInertia3Error::NonSymmetricTensor);
+            }
+        }
+    }
+
+    let scale = tensor
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
+    if !scale.is_finite() || scale <= 0.0 {
+        return Err(CompoundInertia3Error::NonPositiveDefiniteTensor);
+    }
+    let a = *tensor / scale;
+
+    let minor1 = a[(0, 0)];
+    let minor2 = a[(0, 0)] * a[(1, 1)] - a[(0, 1)] * a[(1, 0)];
+    let determinant = a.determinant();
+    if !minor1.is_finite()
+        || !minor2.is_finite()
+        || !determinant.is_finite()
+        || minor1 <= 0.0
+        || minor2 <= 0.0
+        || determinant <= 0.0
+    {
+        return Err(CompoundInertia3Error::NonPositiveDefiniteTensor);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use symtropy_math::{Bivector, Point, Rotor};
+
+    fn part(
+        part_id: u64,
+        translation: [f64; 3],
+        rotation: Rotor<3>,
+        properties: MassProperties3,
+    ) -> CompoundMassPart3 {
+        CompoundMassPart3 {
+            part_id,
+            local_transform: Transform {
+                translation: Point::new(translation),
+                rotation,
+            },
+            properties,
+        }
+    }
+
+    #[test]
+    fn symmetric_average_preserves_equal_extreme_and_subnormal_values() {
+        let maximum = f64::MAX;
+        let minimum = f64::from_bits(1);
+        assert_eq!(symmetric_average(maximum, maximum).unwrap(), maximum);
+        assert_eq!(symmetric_average(minimum, minimum).unwrap(), minimum);
+        assert_eq!(symmetric_average(-minimum, -minimum).unwrap(), -minimum);
+        assert_eq!(symmetric_average(maximum, -maximum).unwrap(), 0.0);
+        assert_eq!(
+            symmetric_average(minimum, 0.0).unwrap_err(),
+            CompoundInertia3Error::UnrepresentableTensor
+        );
+    }
+
+    #[test]
+    fn scale_safe_parallel_axis_rejects_lost_or_overflowed_products() {
+        assert!(matches!(
+            checked_parallel_axis_tensor(1.0, &SVector::<f64, 3>::new(1.0e-200, 0.0, 0.0)),
+            Err(CompoundInertia3Error::UnrepresentableTensor)
+        ));
+        assert!(matches!(
+            checked_parallel_axis_tensor(1.0e300, &SVector::<f64, 3>::new(1.0e100, 0.0, 0.0)),
+            Err(CompoundInertia3Error::UnrepresentableTensor)
+        ));
+    }
+
+    #[test]
+    fn symmetric_sphere_dumbbell_matches_parallel_axis_theorem() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let parts = vec![
+            part(10, [-2.0, 0.0, 0.0], Rotor::identity(), sphere),
+            part(20, [2.0, 0.0, 0.0], Rotor::identity(), sphere),
+        ];
+        let compound = CompoundMassProperties3::compose(&parts).unwrap();
+
+        assert_eq!(compound.total_mass, 2.0);
+        assert_eq!(compound.center_of_mass, SVector::<f64, 3>::zeros());
+        assert!((compound.inertia_tensor_body[(0, 0)] - 0.8).abs() < 1.0e-12);
+        assert!((compound.inertia_tensor_body[(1, 1)] - 8.8).abs() < 1.0e-12);
+        assert!((compound.inertia_tensor_body[(2, 2)] - 8.8).abs() < 1.0e-12);
+        assert!(compound.body_frame_is_principal_within(1.0e-12).unwrap());
+    }
+
+    #[test]
+    fn part_order_does_not_define_evidence() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let a = part(1, [-2.0, 0.0, 0.0], Rotor::identity(), sphere);
+        let b = part(2, [2.0, 0.0, 0.0], Rotor::identity(), sphere);
+        let forward = CompoundMassProperties3::compose(&[a.clone(), b.clone()]).unwrap();
+        let reverse = CompoundMassProperties3::compose(&[b, a]).unwrap();
+        assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn scale_safe_parallel_axis_matches_direct_tensor_identity_on_32_offsets() {
+        let identity = SMatrix::<f64, 3, 3>::identity();
+        for sample in 1..=32 {
+            let k = sample as f64;
+            let mass = 0.25 + 0.75 * k;
+            let offset =
+                SVector::<f64, 3>::new((0.17 * k).sin(), (0.31 * k).cos(), (0.23 * k).sin() + 0.4);
+            let observed = checked_parallel_axis_tensor(mass, &offset).unwrap();
+            let expected = (identity * offset.norm_squared() - offset * offset.transpose()) * mass;
+            let error = (observed - expected).norm();
+            let scale = expected.norm().max(f64::MIN_POSITIVE);
+            assert!(
+                error / scale < 2.0e-14,
+                "parallel-axis mismatch at sample {sample}: relative={:e}",
+                error / scale
+            );
+        }
+    }
+
+    #[test]
+    fn compound_parallel_axis_term_is_scale_safe_before_squaring_offsets() {
+        let properties = MassProperties3 {
+            mass: 1.0e300,
+            center_of_mass: SVector::zeros(),
+            principal_inertia: crate::angular_dynamics::PrincipalInertia3::new([1.0e-50; 3])
+                .unwrap(),
+        };
+        let parts = [
+            part(1, [-1.0e-170, 0.0, 0.0], Rotor::identity(), properties),
+            part(2, [1.0e-170, 0.0, 0.0], Rotor::identity(), properties),
+        ];
+        let compound = CompoundMassProperties3::compose(&parts).unwrap();
+        let expected_transverse = 2.0e-40;
+        assert!(
+            (compound.inertia_tensor_body[(1, 1)] / expected_transverse - 1.0).abs() < 1.0e-12,
+            "scale-safe parallel-axis term was lost: Iyy={:e}",
+            compound.inertia_tensor_body[(1, 1)]
+        );
+        assert!(
+            (compound.inertia_tensor_body[(2, 2)] / expected_transverse - 1.0).abs() < 1.0e-12,
+            "scale-safe parallel-axis term was lost: Izz={:e}",
+            compound.inertia_tensor_body[(2, 2)]
+        );
+    }
+
+    #[test]
+    fn rotated_anisotropic_child_produces_products_of_inertia() {
+        let cuboid = MassProperties3::solid_cuboid(12.0, [1.0, 2.0, 3.0]).unwrap();
+        let rotation = Rotor::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            std::f64::consts::FRAC_PI_4,
+        );
+        let compound =
+            CompoundMassProperties3::compose(&[part(1, [0.0, 0.0, 0.0], rotation, cuboid)])
+                .unwrap();
+
+        assert!((compound.inertia_tensor_body[(0, 0)] - 46.0).abs() < 1.0e-10);
+        assert!((compound.inertia_tensor_body[(1, 1)] - 46.0).abs() < 1.0e-10);
+        assert!((compound.inertia_tensor_body[(2, 2)] - 20.0).abs() < 1.0e-10);
+        assert!((compound.inertia_tensor_body[(0, 1)].abs() - 6.0).abs() < 1.0e-10);
+        assert!(!compound.body_frame_is_principal_within(1.0e-12).unwrap());
+    }
+
+    #[test]
+    fn compound_center_and_tensor_are_covariant_under_global_rotation() {
+        let cuboid = MassProperties3::solid_cuboid(12.0, [1.0, 2.0, 3.0]).unwrap();
+        let sphere = MassProperties3::solid_sphere(2.0, 0.35).unwrap();
+        let mut first_generator = Bivector::<3>::zero();
+        first_generator.set(0, 1, 0.27);
+        first_generator.set(1, 2, -0.18);
+        let mut second_generator = Bivector::<3>::zero();
+        second_generator.set(0, 2, -0.41);
+        let parts = vec![
+            part(
+                10,
+                [0.8, -0.3, 0.5],
+                Rotor::from_bivector(&first_generator),
+                cuboid,
+            ),
+            part(
+                20,
+                [-0.6, 1.1, -0.2],
+                Rotor::from_bivector(&second_generator),
+                sphere,
+            ),
+        ];
+        let reference = CompoundMassProperties3::compose(&parts).unwrap();
+
+        let mut global_generator = Bivector::<3>::zero();
+        global_generator.set(0, 1, -0.33);
+        global_generator.set(0, 2, 0.24);
+        global_generator.set(1, 2, 0.19);
+        let global = Rotor::from_bivector(&global_generator);
+        let rotated_parts = parts
+            .iter()
+            .map(|part| {
+                let mut transformed = part.clone();
+                transformed.local_transform.translation =
+                    Point(global.rotate_vector(&part.local_transform.translation.0));
+                transformed.local_transform.rotation =
+                    global.compose(&part.local_transform.rotation);
+                transformed
+            })
+            .collect::<Vec<_>>();
+        let rotated = CompoundMassProperties3::compose(&rotated_parts).unwrap();
+
+        let expected_center = global.rotate_vector(&reference.center_of_mass);
+        assert!((rotated.center_of_mass - expected_center).norm() < 2.0e-11);
+        let expected_tensor =
+            global.to_matrix() * reference.inertia_tensor_body * global.to_matrix().transpose();
+        assert!(
+            (rotated.inertia_tensor_body - expected_tensor).norm() < 2.0e-10,
+            "global-frame tensor covariance failed"
+        );
+    }
+
+    #[test]
+    fn duplicate_part_identity_is_rejected() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let parts = vec![
+            part(7, [-1.0, 0.0, 0.0], Rotor::identity(), sphere),
+            part(7, [1.0, 0.0, 0.0], Rotor::identity(), sphere),
+        ];
+        assert!(matches!(
+            CompoundMassProperties3::compose(&parts),
+            Err(CompoundInertia3Error::DuplicatePartId(7))
+        ));
+    }
+
+    #[test]
+    fn improper_child_rotation_is_rejected() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let mut reflection = SMatrix::<f64, 3, 3>::identity();
+        reflection[(0, 0)] = -1.0;
+        let bad_rotation = Rotor::from_matrix(reflection);
+        let parts = [part(3, [0.0, 0.0, 0.0], bad_rotation, sphere)];
+        assert!(matches!(
+            CompoundMassProperties3::compose(&parts),
+            Err(CompoundInertia3Error::InvalidPartRotation { part_id: 3 })
+        ));
+    }
+
+    #[test]
+    fn corrupted_public_child_state_is_revalidated() {
+        let mut properties = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        properties.mass = f64::NAN;
+        let parts = [part(4, [0.0, 0.0, 0.0], Rotor::identity(), properties)];
+        assert!(matches!(
+            CompoundMassProperties3::compose(&parts),
+            Err(CompoundInertia3Error::InvalidPartMass { part_id: 4 })
+        ));
+    }
+
+    #[test]
+    fn finite_total_mass_overflow_is_rejected() {
+        let mut a_properties = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let mut b_properties = a_properties;
+        a_properties.mass = f64::MAX;
+        b_properties.mass = f64::MAX;
+        let parts = [
+            part(1, [0.0, 0.0, 0.0], Rotor::identity(), a_properties),
+            part(2, [0.0, 0.0, 0.0], Rotor::identity(), b_properties),
+        ];
+        assert!(matches!(
+            CompoundMassProperties3::compose(&parts),
+            Err(CompoundInertia3Error::UnrepresentableTotalMass)
+        ));
+    }
+
+    #[test]
+    fn opposite_extreme_centers_fail_before_partial_commit() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let parts = [
+            part(1, [f64::MAX, 0.0, 0.0], Rotor::identity(), sphere),
+            part(2, [-f64::MAX, 0.0, 0.0], Rotor::identity(), sphere),
+        ];
+        assert!(matches!(
+            CompoundMassProperties3::compose(&parts),
+            Err(CompoundInertia3Error::UnrepresentableCenterOfMass)
+        ));
+    }
+
+    #[test]
+    fn full_tensor_energy_includes_cross_terms() {
+        let cuboid = MassProperties3::solid_cuboid(12.0, [1.0, 2.0, 3.0]).unwrap();
+        let rotation = Rotor::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            std::f64::consts::FRAC_PI_4,
+        );
+        let compound =
+            CompoundMassProperties3::compose(&[part(1, [0.0, 0.0, 0.0], rotation, cuboid)])
+                .unwrap();
+        let omega = SVector::from([1.0, 1.0, 0.0]);
+        let energy = compound.rotational_energy_body_checked(&omega).unwrap();
+        let diagonal_only =
+            0.5 * (compound.inertia_tensor_body[(0, 0)] + compound.inertia_tensor_body[(1, 1)]);
+        assert!((energy - diagonal_only).abs() > 1.0);
+    }
+
+    #[test]
+    fn compound_tensor_and_bivector_operator_agree_on_energy() {
+        let cuboid = MassProperties3::solid_cuboid(12.0, [1.0, 2.0, 3.0]).unwrap();
+        let rotation = Rotor::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            std::f64::consts::FRAC_PI_4,
+        );
+        let compound =
+            CompoundMassProperties3::compose(&[part(1, [0.0, 0.0, 0.0], rotation, cuboid)])
+                .unwrap();
+        let operator = compound.to_bivector_inertia_reference().unwrap();
+
+        for omega in [
+            SVector::from([1.0, 1.0, 0.0]),
+            SVector::from([0.3, -0.8, 1.2]),
+            SVector::from([-1.1, 0.2, 0.4]),
+        ] {
+            let mut angular_state = Bivector::<3>::zero();
+            angular_state.set(1, 2, omega[0]);
+            angular_state.set(0, 2, -omega[1]);
+            angular_state.set(0, 1, omega[2]);
+            let tensor_energy = compound.rotational_energy_body_checked(&omega).unwrap();
+            let operator_energy = operator.kinetic_energy(&angular_state).unwrap();
+            assert!(
+                (tensor_energy - operator_energy).abs() < 1.0e-11,
+                "tensor energy={tensor_energy}, bivector energy={operator_energy}"
+            );
+        }
+        assert!(
+            (operator.inertia_tensor_3d().unwrap() - compound.inertia_tensor_body).norm() < 1.0e-11
+        );
+    }
+
+    #[test]
+    fn mutated_tensor_must_revalidate_before_evidence_use() {
+        let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
+        let mut compound = CompoundMassProperties3::compose(&[part(
+            1,
+            [0.0, 0.0, 0.0],
+            Rotor::identity(),
+            sphere,
+        )])
+        .unwrap();
+        compound.inertia_tensor_body[(0, 1)] = 1.0;
+        assert_eq!(
+            compound.validate(),
+            Err(CompoundInertia3Error::NonSymmetricTensor)
+        );
+        assert!(
+            compound
+                .rotational_energy_body_checked(&SVector::from([1.0, 0.0, 0.0]))
+                .is_err()
+        );
+    }
+}
