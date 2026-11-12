@@ -929,7 +929,9 @@ mod tests{
         let r=eval(&c).expect("unreviewed sensor is preserved but excluded");
         let pair=r["pair_assessments"].as_array().unwrap().iter()
             .find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
-        assert_eq!(pair["state"],"not_evaluated");
+        // The fuel-pressure evidence is withdrawn, but the other qualified
+        // independent principles still make this particular pair isolable.
+        assert_eq!(pair["state"],"isolable");
         assert!(!pair["evidence_refs"].as_array().unwrap().iter()
             .any(|e|e["channel_ids"].as_array().unwrap().contains(&json!("fuel-rail-pressure"))));
         assert_eq!(r["metrics"].as_array().unwrap().iter()
