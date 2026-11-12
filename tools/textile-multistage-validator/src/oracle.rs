@@ -112,7 +112,10 @@ impl Search<'_> {
             operators.sort_by_key(|operator| operator.id.clone());
 
             for machine in machines {
-                if !machine.capabilities.contains(&operation.required_capability) {
+                if !machine
+                    .capabilities
+                    .contains(&operation.required_capability)
+                {
                     continue;
                 }
                 for operator in &operators {
@@ -146,15 +149,9 @@ impl Search<'_> {
                         {
                             continue;
                         }
-                        if !interval_available(
-                            &machine.availability,
-                            start_tick,
-                            finish_tick,
-                        ) || !interval_available(
-                            &operator.availability,
-                            start_tick,
-                            finish_tick,
-                        ) {
+                        if !interval_available(&machine.availability, start_tick, finish_tick)
+                            || !interval_available(&operator.availability, start_tick, finish_tick)
+                        {
                             continue;
                         }
                         if self.resource_conflict(
@@ -207,11 +204,8 @@ impl Search<'_> {
         finish_tick: u64,
     ) -> bool {
         self.assignments.iter().any(|existing| {
-            let overlaps = start_tick < existing.finish_tick
-                && existing.start_tick < finish_tick;
-            overlaps
-                && (existing.machine_id == machine_id
-                    || existing.operator_id == operator_id)
+            let overlaps = start_tick < existing.finish_tick && existing.start_tick < finish_tick;
+            overlaps && (existing.machine_id == machine_id || existing.operator_id == operator_id)
         })
     }
 
@@ -270,9 +264,7 @@ fn zero_setup_transitions_valid(
         return false;
     };
     on_machine.push((candidate_start, candidate_finish, candidate));
-    on_machine.sort_by_key(|(start, finish, operation)| {
-        (*start, *finish, operation.id.as_str())
-    });
+    on_machine.sort_by_key(|(start, finish, operation)| (*start, *finish, operation.id.as_str()));
 
     let mut previous_family = machine.initial_family.as_str();
     let mut previous_finish = 0_u64;
@@ -322,15 +314,14 @@ fn check_unique<'a>(
 /// machine/operator pairs and integer start ticks for each candidate horizon.
 /// v0.1 supports only explicitly declared zero-duration setup transitions;
 /// nonzero setup is rejected before search.
-pub fn solve(
-    problem: &Problem,
-    config: OracleConfig,
-) -> Result<OracleResult, OracleError> {
+pub fn solve(problem: &Problem, config: OracleConfig) -> Result<OracleResult, OracleError> {
     if config.max_nodes == 0 {
         return Err(OracleError::InvalidConfig("max_nodes must be positive"));
     }
     if config.max_operations == 0 {
-        return Err(OracleError::InvalidConfig("max_operations must be positive"));
+        return Err(OracleError::InvalidConfig(
+            "max_operations must be positive",
+        ));
     }
     if problem.operations.len() > config.max_operations {
         return Err(OracleError::TooManyOperations {
@@ -339,9 +330,18 @@ pub fn solve(
         });
     }
 
-    check_unique("operation", problem.operations.iter().map(|item| item.id.as_str()))?;
-    check_unique("machine", problem.machines.iter().map(|item| item.id.as_str()))?;
-    check_unique("operator", problem.operators.iter().map(|item| item.id.as_str()))?;
+    check_unique(
+        "operation",
+        problem.operations.iter().map(|item| item.id.as_str()),
+    )?;
+    check_unique(
+        "machine",
+        problem.machines.iter().map(|item| item.id.as_str()),
+    )?;
+    check_unique(
+        "operator",
+        problem.operators.iter().map(|item| item.id.as_str()),
+    )?;
 
     for operation in &problem.operations {
         if operation.duration_ticks == 0 {
@@ -351,7 +351,11 @@ pub fn solve(
         }
     }
     for machine in &problem.machines {
-        if machine.setup_rules.iter().any(|rule| rule.duration_ticks > 0) {
+        if machine
+            .setup_rules
+            .iter()
+            .any(|rule| rule.duration_ticks > 0)
+        {
             return Err(OracleError::NonZeroSetupUnsupported {
                 machine_id: machine.id.clone(),
             });
@@ -408,9 +412,9 @@ mod tests {
     #[test]
     fn exact_oracle_finds_minimum_for_two_competing_cut_operations() {
         let (mut problem, _) = two_job_four_stage_case();
-        problem.operations.retain(|operation| {
-            operation.id == "cut-a" || operation.id == "cut-b"
-        });
+        problem
+            .operations
+            .retain(|operation| operation.id == "cut-a" || operation.id == "cut-b");
         problem.precedences.clear();
 
         let result = solve(
@@ -453,9 +457,9 @@ mod tests {
     #[test]
     fn exhausted_search_budget_does_not_return_an_unproven_result() {
         let (mut problem, _) = two_job_four_stage_case();
-        problem.operations.retain(|operation| {
-            operation.id == "cut-a" || operation.id == "cut-b"
-        });
+        problem
+            .operations
+            .retain(|operation| operation.id == "cut-a" || operation.id == "cut-b");
         problem.precedences.clear();
 
         assert!(matches!(
