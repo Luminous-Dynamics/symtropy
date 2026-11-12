@@ -202,6 +202,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     }
     let mut ids = BTreeSet::new();
     let mut seeds = BTreeSet::new();
+    let mut seed_counts: BTreeMap<u64, usize> = BTreeMap::new();
     let mut means = Vec::with_capacity(runs.len());
     let mut stds = Vec::with_capacity(runs.len());
     let mut frames = BTreeSet::new();
@@ -218,7 +219,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         {
             return Err(format!("PPO group identity mismatch in {}", group.id));
         }
-        if run.id == 0 || run.id > group.expected_runs as u64 || !ids.insert(run.id) {
+        if run.id == 0 || !ids.insert(run.id) {
             return Err(format!("invalid or duplicate PPO run id in {}", group.id));
         }
         if run.seed == 0 {
@@ -236,6 +237,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         means.push(run.return_mean);
         stds.push(run.return_std);
         seeds.insert(run.seed);
+        *seed_counts.entry(run.seed).or_default() += 1;
         frames.insert(run.frames);
         layers.insert(run.layers);
         hidden.insert(run.hidden);
@@ -250,9 +252,22 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     let min_return = means.iter().copied().fold(f64::INFINITY, f64::min);
     let max_return = means.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let seed_coverage = seeds.len();
+    let maximum_run_id = ids.iter().copied().max().unwrap_or(0);
+    let observed_run_ids = ids.iter().map(u64::to_string).collect::<Vec<_>>().join(";");
+    let missing_run_ids = (1..=maximum_run_id)
+        .filter(|id| !ids.contains(id))
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>()
+        .join(";");
+    let duplicate_seed_values = seed_counts
+        .iter()
+        .filter(|(_, count)| **count > 1)
+        .map(|(seed, count)| format!("{seed}x{count}"))
+        .collect::<Vec<_>>()
+        .join(";");
 
     Ok(format!(
-        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{},{},{},{},{}",
+        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{},{},{},{},{},{},{}",
         group.id,
         group.stacked,
         group.model,
@@ -275,6 +290,9 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         *layers.iter().next_back().unwrap_or(&0),
         *hidden.iter().next_back().unwrap_or(&0),
         observed_models.into_iter().collect::<Vec<_>>().join(";"),
+        observed_run_ids,
+        missing_run_ids,
+        duplicate_seed_values,
     ))
 }
 
@@ -309,7 +327,7 @@ fn run_audit(input: &str) -> Result<String, String> {
     }
 
     let mut output = String::from(
-        "group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden,observed_model_values\n",
+        "group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden,observed_model_values,observed_run_ids,missing_run_ids,duplicate_seed_values\n",
     );
     for group in EXPECTED_GROUPS {
         let runs = grouped
@@ -379,6 +397,31 @@ mod tests {
                 .expected_runs,
             23
         );
+    }
+
+    #[test]
+    fn non_contiguous_artifact_ids_are_preserved_as_gaps_not_renumbered() {
+        let ids = [1_u64, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        let gaps = (1..=ids.iter().copied().max().unwrap())
+            .filter(|id| !ids.contains(id))
+            .collect::<Vec<_>>();
+        assert_eq!(gaps, vec![7]);
+    }
+
+    #[test]
+    fn duplicate_seed_receipts_are_reported_without_dropping_runs() {
+        let mut counts = BTreeMap::new();
+        for seed in [520_u64, 421, 422, 420, 421, 422] {
+            *counts.entry(seed).or_insert(0_usize) += 1;
+        }
+        let duplicates = counts.iter()
+            .filter(|(_, count)| **count > 1)
+            .map(|(seed, count)| format!("{seed}x{count}"))
+            .collect::<Vec<_>>()
+            .join(";");
+        assert_eq!(duplicates, "421x2;422x2");
     }
 
     #[test]
