@@ -2661,7 +2661,7 @@ mod tests {
             serde_json::from_str(include_str!("../active-evidence-selection-v0.1.json")).unwrap();
         assert_eq!(
             protocol["schema_version"],
-            "liu-ice-active-evidence-selection-v0.5"
+            "liu-ice-active-evidence-selection-v0.6"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert!(
@@ -2692,15 +2692,27 @@ mod tests {
             protocol["method"]["observation_update"]["posterior"]
                 .as_str()
                 .unwrap()
-                .contains("blocked until a joint hypothesis")
+                .contains("joint_scenario_posterior")
         );
         assert_eq!(
             protocol["method"]["sequential_update_policy"]["status"],
-            "single_point_model_updates_supported_multiscenario_updates_blocked"
+            "joint_hypothesis_scenario_ledger_supported"
         );
         assert_eq!(
             protocol["method"]["sequential_update_policy"]["no_silent_fallback"],
             true
+        );
+        assert_eq!(
+            protocol["method"]["joint_scenario_ledger"]["rust_module"],
+            "src/joint_scenario_posterior.rs"
+        );
+        assert_eq!(
+            protocol["method"]["joint_scenario_ledger"]["genesis"],
+            "p(H,S)=p(H)*p(S)"
+        );
+        assert_eq!(
+            protocol["method"]["joint_scenario_ledger"]["status"],
+            "source_authored_ci_pending"
         );
         assert!(
             protocol["method"]["sequential_update_policy"]["required_future_joint_ledger"]
