@@ -110,3 +110,27 @@ The colony now provides `new_with_information_mode_and_seed(..., seed)` and reco
 
 The statistical unit is one independently seeded world run. Individual ants and time frames are nested observations, not independent replicates. Report paired per-seed differences and scenario-specific intervals. Do not pool map orientations until heterogeneity is shown. This is an implementation and protocol increment; no ensemble performance result is claimed yet.
 
+
+
+## Environmental memory transfer across cohort replacement (12 November 2026)
+
+The colony now has explicit APIs to separate social environmental memory from current agents and ongoing environmental broadcasts:
+
+- `copy_social_memory_from(source)` copies only `FoodPheromone` and `HomePheromone` fields into a recipient world of the same dimensions.
+- It does **not** copy agents, food inventory, danger fields, obstacles or other environmental channels.
+- `clear_social_memory()` erases only the two social field layers.
+- `set_source_emission_enabled(false)` disables ongoing source/nest pheromone reinforcement while leaving agent trail emission and sensing mode unchanged.
+- Grid-size mismatches fail explicitly with `ColonyMemoryTransferError`.
+
+Four tests now cover:
+1. copying only the two social channels and preserving danger/nutrient channels;
+2. a replacement cohort changing its next action in response to a transferred field, even with ongoing source broadcast disabled;
+3. an externally authored identical field producing the same action as the transferred field (common-input/provenance control);
+4. fail-closed rejection of transfer across incompatible grid dimensions.
+
+### Interpretation boundary
+
+A replacement cohort responding to a persistent field is evidence of environmental information persistence and field-mediated behavior under this synthetic model. It does not prove the donor's history is encoded in the field, because a common external source can create the same signal. That is why the identical externally authored field is a mandatory negative control.
+
+The next benchmark experiment must compare preserved, erased and randomized traces, paired across seeds, while keeping source emission disabled during the recipient phase. It must then compare task competence against independent and fixed-rule baselines. No collective-intelligence advantage is claimed by the unit tests.
+
