@@ -494,4 +494,3 @@ fn production_two_body_contact_response_matches_shared_impulse_oracle_across_fra
         qualify_two_dynamic_body_case(frame);
     }
 }
-
