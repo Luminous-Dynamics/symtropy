@@ -45,6 +45,15 @@
       "claim_scope": "synthetic fixture only",
       "authority_or_lab_ref": "SYNTHETIC-REF-E-COMPARISON",
       "metrology_ref": "MET-COMP"
+    },
+    {
+      "evidence_id": "E-CRITERIA",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "literature",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic fixture acceptance-criteria reference",
+      "authority_or_lab_ref": "SYNTHETIC-CRITERIA-REFERENCE",
+      "metrology_ref": null
     }
   ],
   "tests": [
@@ -81,7 +90,9 @@
       "smoke_into_occupant_boundary": false,
       "warning_time_seconds": 15,
       "result": "no_propagation_within_window",
-      "evidence_id": "E-REESS"
+      "evidence_id": "E-REESS",
+      "acceptance_criteria_id": "CRITERIA-REPORTED-TEST-001",
+      "acceptance_criteria_evidence_id": "E-CRITERIA"
     },
     {
       "test_id": "EV-CELL-001",
@@ -116,7 +127,9 @@
       "smoke_into_occupant_boundary": null,
       "warning_time_seconds": 15,
       "result": "pass",
-      "evidence_id": "E-CELL"
+      "evidence_id": "E-CELL",
+      "acceptance_criteria_id": "CRITERIA-REPORTED-TEST-001",
+      "acceptance_criteria_evidence_id": "E-CRITERIA"
     },
     {
       "test_id": "BESS-INSTALL-001",
@@ -151,7 +164,9 @@
       "smoke_into_occupant_boundary": null,
       "warning_time_seconds": 15,
       "result": "pass",
-      "evidence_id": "E-BESS"
+      "evidence_id": "E-BESS",
+      "acceptance_criteria_id": "CRITERIA-REPORTED-TEST-001",
+      "acceptance_criteria_evidence_id": "E-CRITERIA"
     },
     {
       "test_id": "RISK-001",
@@ -186,7 +201,9 @@
       "smoke_into_occupant_boundary": null,
       "warning_time_seconds": 15,
       "result": "risk_analysis_submitted",
-      "evidence_id": "E-RISK"
+      "evidence_id": "E-RISK",
+      "acceptance_criteria_id": null,
+      "acceptance_criteria_evidence_id": null
     }
   ],
   "claims": [
