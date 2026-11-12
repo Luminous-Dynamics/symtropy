@@ -1,0 +1,11 @@
+[package]
+name = "material-damage-reference"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Bounded, dependency-free analytical references for fatigue accumulation and constant-Delta-K crack growth"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
