@@ -2661,7 +2661,7 @@ mod tests {
             serde_json::from_str(include_str!("../active-evidence-selection-v0.1.json")).unwrap();
         assert_eq!(
             protocol["schema_version"],
-            "liu-ice-active-evidence-selection-v0.4"
+            "liu-ice-active-evidence-selection-v0.5"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert!(
