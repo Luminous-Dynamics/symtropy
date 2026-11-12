@@ -230,7 +230,7 @@ fn max_identity_assignment(matrix: &[Vec<usize>]) -> Result<usize, String> {
                 for (column, overlap_count) in row.iter().enumerate() {
                     let bit = 1usize << column;
                     if mask & bit == 0 {
-                        let candidate = score + overlap_count;
+                        let candidate = score + *overlap_count;
                         let slot = &mut next[mask | bit];
                         let previous = (*slot).unwrap_or(0);
                         *slot = Some(previous.max(candidate));
