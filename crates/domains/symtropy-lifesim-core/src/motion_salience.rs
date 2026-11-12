@@ -419,7 +419,7 @@ fn median(mut values: Vec<f64>) -> Option<f64> {
     }
     values.sort_by(f64::total_cmp);
     let middle = values.len() / 2;
-    if values.len() % 2 == 0 {
+    if values.len().is_multiple_of(2) {
         Some(0.5 * (values[middle - 1] + values[middle]))
     } else {
         Some(values[middle])
