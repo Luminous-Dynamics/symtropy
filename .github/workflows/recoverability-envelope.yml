@@ -1,0 +1,43 @@
+name: recoverability-envelope
+
+on:
+  pull_request:
+    paths:
+      - "research/recoverability-envelope-001/**"
+      - ".github/workflows/recoverability-envelope.yml"
+  push:
+    paths:
+      - "research/recoverability-envelope-001/**"
+      - ".github/workflows/recoverability-envelope.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/recoverability-envelope-001/Cargo.toml -- --check
+
+      - name: Run sequence and recovery evaluator tests
+        run: cargo test --locked --manifest-path research/recoverability-envelope-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/recoverability-envelope-001/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Evaluate the compound fault fixture
+        run: |
+          cargo run --locked --manifest-path research/recoverability-envelope-001/Cargo.toml -- \
+            research/recoverability-envelope-001/fixtures/compound-merge-recovery-v1.json \
+            /tmp/recoverability-report.json

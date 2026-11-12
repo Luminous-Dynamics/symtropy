@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "run_id": "run-hdc-ltc-seq-001",
+  "model_arm_id": "E",
+  "benchmark_id": "recoverability-envelope-v0.1",
+  "scenario_family": "merge-with-compound-fault",
+  "policy_revision": "policy-rev-001",
+  "pairing": {
+    "pair_id": "paired-merge-seed-001",
+    "baseline_run_id": "baseline-run-001",
+    "world_seed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "simulator_revision": "snapshot-backend-v1",
+    "evaluator_revision": "recovery-evaluator-v0.1",
+    "baseline_checkpoint_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "candidate_checkpoint_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "expected_ticks": 10,
+  "contract": {
+    "max_detection_delay_ticks": 1,
+    "max_fallback_delay_ticks": 1,
+    "max_recovery_after_end_ticks": 3,
+    "min_stable_nominal_ticks": 2,
+    "max_camera_age_us": 5000,
+    "max_vehicle_state_age_us": 5000,
+    "max_fault_concurrency": 2,
+    "max_deadline_miss_ticks_during_fault": 1
+  },
+  "fault_events": [
+    {
+      "fault_id": "camera-drop",
+      "kind": "camera_frame_drop",
+      "channel": "front-camera",
+      "onset_tick": 2,
+      "end_tick_exclusive": 4,
+      "severity_ppm": 600000,
+      "correlation_group": "compound-sensor-compute-burst",
+      "critical_phase": "merge"
+    },
+    {
+      "fault_id": "inference-delay",
+      "kind": "inference_delay",
+      "channel": "policy-compute",
+      "onset_tick": 3,
+      "end_tick_exclusive": 6,
+      "severity_ppm": 450000,
+      "correlation_group": "compound-sensor-compute-burst",
+      "critical_phase": "merge"
+    }
+  ],
+  "trace": [
+    {
+      "tick": 1,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "nominal",
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "approach",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 2,
+      "camera_age_us": null,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [
+        "camera-drop"
+      ],
+      "mode": "degraded",
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 3,
+      "camera_age_us": null,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 15000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [
+        "inference-delay"
+      ],
+      "mode": "fallback",
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [
+        "camera-drop",
+        "inference-delay"
+      ],
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [
+        "inference-delay"
+      ],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 4,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "fallback",
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [
+        "inference-delay"
+      ],
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 5,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "fallback",
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [
+        "inference-delay"
+      ],
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 6,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "nominal",
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "exit-merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 7,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "nominal",
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 8,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "nominal",
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 9,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "nominal",
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    },
+    {
+      "tick": 10,
+      "camera_age_us": 1000,
+      "vehicle_state_age_us": 1000,
+      "inference_duration_us": 4000,
+      "control_deadline_us": 10000,
+      "detected_fault_ids": [],
+      "mode": "nominal",
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": [],
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
+    }
+  ]
+}

@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/recoverability-envelope-episode-v1.schema.json",
+  "title": "Recoverability envelope episode v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "model_arm_id",
+    "benchmark_id",
+    "scenario_family",
+    "policy_revision",
+    "pairing",
+    "expected_ticks",
+    "contract",
+    "fault_events",
+    "trace"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "model_arm_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "scenario_family": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "policy_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "pairing": {
+      "$ref": "#/$defs/pairing"
+    },
+    "expected_ticks": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "contract": {
+      "$ref": "#/$defs/contract"
+    },
+    "fault_events": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "$ref": "#/$defs/fault_event"
+      }
+    },
+    "trace": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/tick_trace"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "pairing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "baseline_run_id",
+        "world_seed_sha256",
+        "simulator_revision",
+        "evaluator_revision",
+        "baseline_checkpoint_sha256",
+        "candidate_checkpoint_sha256"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "world_seed_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "simulator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_checkpoint_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_checkpoint_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_detection_delay_ticks",
+        "max_fallback_delay_ticks",
+        "max_recovery_after_end_ticks",
+        "min_stable_nominal_ticks",
+        "max_camera_age_us",
+        "max_vehicle_state_age_us",
+        "max_fault_concurrency",
+        "max_deadline_miss_ticks_during_fault"
+      ],
+      "properties": {
+        "max_detection_delay_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_fallback_delay_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_recovery_after_end_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "min_stable_nominal_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_camera_age_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_vehicle_state_age_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_fault_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "max_deadline_miss_ticks_during_fault": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fault_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_id",
+        "kind",
+        "channel",
+        "onset_tick",
+        "end_tick_exclusive",
+        "severity_ppm",
+        "correlation_group",
+        "critical_phase"
+      ],
+      "properties": {
+        "fault_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "camera_frame_drop",
+            "camera_partial_observation",
+            "camera_staleness",
+            "camera_calibration_shift",
+            "gps_noise",
+            "speed_bias",
+            "odometry_drift",
+            "inference_delay",
+            "deadline_overrun",
+            "communication_drop"
+          ]
+        },
+        "channel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "onset_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_tick_exclusive": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "severity_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "correlation_group": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "critical_phase": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "tick_trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "maneuver_phase",
+        "camera_age_us",
+        "vehicle_state_age_us",
+        "inference_duration_us",
+        "control_deadline_us",
+        "detected_fault_ids",
+        "mode",
+        "oracle_outcome",
+        "fallback_reason_fault_ids",
+        "deadline_miss_fault_ids",
+        "constraint_violation_fault_ids"
+      ],
+      "properties": {
+        "tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "camera_age_us": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_state_age_us": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_duration_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "control_deadline_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "detected_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mode": {
+          "enum": [
+            "nominal",
+            "degraded",
+            "fallback"
+          ]
+        },
+        "oracle_outcome": {
+          "enum": [
+            "within_envelope",
+            "degraded_within_envelope",
+            "constraint_violation",
+            "unscored"
+          ]
+        },
+        "fallback_reason_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "maneuver_phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "deadline_miss_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "constraint_violation_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "expected_ticks must equal trace length and trace ticks must be exactly 1..expected_ticks.",
+    "Fault event intervals are half-open [onset_tick, end_tick_exclusive) and must be inside the episode.",
+    "Detected fault IDs must refer to scheduled events and must fall inside the onset/detection window.",
+    "Maximum simultaneous scheduled faults must not exceed contract.max_fault_concurrency.",
+    "Stable recovery requires min_stable_nominal_ticks consecutive post-fault ticks with no scheduled fault active, nominal mode, fresh camera and vehicle-state observations, inference within deadline and oracle outcome within_envelope.",
+    "SHA-256 fields establish identity syntax only; this evaluator does not authenticate upstream artifacts or injected faults.",
+    "A contract_met result is a declared trace-level criterion, not a vehicle safety certification.",
+    "Fallback mode must identify the scheduled fault IDs that caused the fallback; non-fallback modes cannot declare fallback reasons.",
+    "Each tick declares the frozen manoeuvre phase used for phase-conditioned fault analysis.",
+    "If a fault declares critical_phase, its event interval must overlap at least one tick with that maneuver_phase.",
+    "Fault reports preserve onset-in-phase, overlap, fallback, deadline-miss and constraint-violation counts within the declared critical phase as separate values.",
+    "Each deadline_miss_fault_id identifies a scheduled fault active at that tick and requires inference_duration_us > control_deadline_us.",
+    "Each constraint_violation_fault_id identifies a scheduled fault active at that tick and requires oracle_outcome=constraint_violation.",
+    "Per-fault deadline misses and constraint violations are attributed only through these event-specific identifiers; temporal overlap alone does not assign causality."
+  ]
+}
