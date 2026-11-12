@@ -65,7 +65,7 @@ run_mutation() {
       ;;
   esac
 
-  if cargo test --locked --manifest-path "$mutant_dir/Cargo.toml" "$test_target" "$test_name" -- --exact >"$log" 2>&1; then
+  if cargo test --locked --manifest-path "$mutant_dir/Cargo.toml" --test "$test_target" "$test_name" -- --exact >"$log" 2>&1; then
     printf 'ERROR: mutation survived: %s (expected %s to fail)\n' "$label" "$test_name" >&2
     cat "$log" >&2
     return 1
@@ -83,22 +83,22 @@ run_mutation() {
 run_mutation \
   "sn-interpolation-direction" \
   sn_interpolation_direction \
-  --test oracle \
+  oracle \
   sn_curve_returns_frozen_endpoints_and_log_log_midpoint
 run_mutation \
   "miner-product-instead-of-quotient" \
   miner_uses_product \
-  --test oracle \
+  oracle \
   miner_rule_matches_independent_block_damage_known_answer
 run_mutation \
   "paris-omits-exponent" \
   paris_omits_exponent \
-  --test oracle \
+  oracle \
   paris_law_constant_delta_k_matches_closed_form_increment
 run_mutation \
   "paris-divides-by-cycle-count" \
   paris_cycle_division \
-  --test metamorphic \
+  metamorphic \
   paris_growth_is_linear_in_cycles_and_coefficient_at_fixed_delta_k
 
 test "$fatigue_sha256" = "$(sha256sum "$crate_dir/src/fatigue.rs" | awk '{print $1}')"
