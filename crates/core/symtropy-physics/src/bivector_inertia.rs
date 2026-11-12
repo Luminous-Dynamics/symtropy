@@ -174,8 +174,7 @@ impl BivectorInertia<3> {
             if diagonal_scale > 0.0 {
                 let normalized_value = 0.5
                     * (symmetric_inertia[(other_axes[0], other_axes[0])] / diagonal_scale)
-                    + 0.5
-                        * (symmetric_inertia[(other_axes[1], other_axes[1])] / diagonal_scale)
+                    + 0.5 * (symmetric_inertia[(other_axes[1], other_axes[1])] / diagonal_scale)
                     - 0.5 * (symmetric_inertia[(row, row)] / diagonal_scale);
                 let value = normalized_value * diagonal_scale;
                 if !value.is_finite() || (normalized_value != 0.0 && value == 0.0) {
@@ -253,10 +252,8 @@ impl<const D: usize> BivectorInertia<D> {
         let mut symmetric = SMatrix::<f64, D, D>::zeros();
         for row in 0..D {
             for column in 0..D {
-                symmetric[(row, column)] = symmetric_average(
-                    second_moment[(row, column)],
-                    second_moment[(column, row)],
-                )?;
+                symmetric[(row, column)] =
+                    symmetric_average(second_moment[(row, column)], second_moment[(column, row)])?;
             }
         }
         if !symmetric.iter().all(|value| value.is_finite()) {
@@ -268,8 +265,14 @@ impl<const D: usize> BivectorInertia<D> {
         // dynamic matrix, then copy the eigenpairs back into fixed-size storage.
         let symmetric_dynamic = nalgebra::DMatrix::<f64>::from_fn(D, D, |i, j| symmetric[(i, j)]);
         let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric_dynamic);
-        if !eigensystem.eigenvalues.iter().all(|value| value.is_finite())
-            || !eigensystem.eigenvectors.iter().all(|value| value.is_finite())
+        if !eigensystem
+            .eigenvalues
+            .iter()
+            .all(|value| value.is_finite())
+            || !eigensystem
+                .eigenvectors
+                .iter()
+                .all(|value| value.is_finite())
         {
             return Err(RotationalInertiaError::NonFinite);
         }
@@ -292,7 +295,10 @@ impl<const D: usize> BivectorInertia<D> {
             * SMatrix::<f64, D, D>::from_diagonal(&principal_second_moments)
             * principal_axes.transpose();
 
-        if !projected_second_moment.iter().all(|value| value.is_finite()) {
+        if !projected_second_moment
+            .iter()
+            .all(|value| value.is_finite())
+        {
             return Err(RotationalInertiaError::NonFinite);
         }
         Ok(Self {
@@ -351,10 +357,11 @@ impl<const D: usize> BivectorInertia<D> {
             .chain(offset_b.iter())
             .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
         if offset_scale > 0.0 {
-            let normalized_center_residual =
-                (offset_a / offset_scale) * normalized_mass_a
-                    + (offset_b / offset_scale) * normalized_mass_b;
-            if !normalized_center_residual.iter().all(|value| value.is_finite())
+            let normalized_center_residual = (offset_a / offset_scale) * normalized_mass_a
+                + (offset_b / offset_scale) * normalized_mass_b;
+            if !normalized_center_residual
+                .iter()
+                .all(|value| value.is_finite())
                 || normalized_center_residual.norm() > 1e-10 * normalized_total_mass
             {
                 return Err(RotationalInertiaError::OffsetsNotCentered);
@@ -427,7 +434,10 @@ impl<const D: usize> BivectorInertia<D> {
         if !total_mass.is_finite() || total_mass <= 0.0 {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
-        if !weighted_relative_position.iter().all(|value| value.is_finite()) {
+        if !weighted_relative_position
+            .iter()
+            .all(|value| value.is_finite())
+        {
             return Err(RotationalInertiaError::NonFinite);
         }
 
@@ -553,9 +563,7 @@ impl<const D: usize> BivectorInertia<D> {
         angular_momentum: &Bivector<D>,
         relative_tolerance: f64,
     ) -> Result<Bivector<D>, RotationalInertiaError> {
-        if !relative_tolerance.is_finite()
-            || relative_tolerance <= 0.0
-            || relative_tolerance >= 1.0
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 || relative_tolerance >= 1.0
         {
             return Err(RotationalInertiaError::InvalidTolerance);
         }
@@ -717,7 +725,9 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::InvalidRotation);
         }
         if !offset_world.iter().all(|value| value.is_finite())
-            || !impulse_direction_world.iter().all(|value| value.is_finite())
+            || !impulse_direction_world
+                .iter()
+                .all(|value| value.is_finite())
         {
             return Err(RotationalInertiaError::NonFinite);
         }
@@ -831,24 +841,19 @@ mod tests {
         let offset_a = SVector::new(1.0e155, 0.0, 0.0);
         let offset_b = SVector::new(-1.0e155, 0.0, 0.0);
         let combined = BivectorInertia::<3>::combine_at_common_center(
-            mass,
-            &inertia,
-            &offset_a,
-            mass,
-            &inertia,
-            &offset_b,
+            mass, &inertia, &offset_a, mass, &inertia, &offset_b,
         )
         .unwrap();
         assert!((combined.second_moment()[(0, 0)] - 2.0).abs() < 1.0e-10);
-        assert!(combined.second_moment().iter().all(|value| value.is_finite()));
+        assert!(
+            combined
+                .second_moment()
+                .iter()
+                .all(|value| value.is_finite())
+        );
 
         let bad = BivectorInertia::<3>::combine_at_common_center(
-            mass,
-            &inertia,
-            &offset_a,
-            mass,
-            &inertia,
-            &offset_a,
+            mass, &inertia, &offset_a, mass, &inertia, &offset_a,
         );
         assert_eq!(bad.unwrap_err(), RotationalInertiaError::OffsetsNotCentered);
     }
@@ -860,12 +865,7 @@ mod tests {
         let offset_a = SVector::new(1.0e-100, 0.0, 0.0);
         let offset_b = SVector::new(-1.0e-100, 0.0, 0.0);
         let result = BivectorInertia::<3>::combine_at_common_center(
-            mass,
-            &inertia,
-            &offset_a,
-            mass,
-            &inertia,
-            &offset_b,
+            mass, &inertia, &offset_a, mass, &inertia, &offset_b,
         );
         assert_eq!(result.unwrap_err(), RotationalInertiaError::NonFinite);
     }
@@ -950,7 +950,12 @@ mod tests {
         ];
         let inertia = BivectorInertia::<3>::from_point_masses(samples).unwrap();
         assert!((inertia.second_moment()[(0, 0)] - 2.0).abs() < 1.0e-10);
-        assert!(inertia.second_moment().iter().all(|value| value.is_finite()));
+        assert!(
+            inertia
+                .second_moment()
+                .iter()
+                .all(|value| value.is_finite())
+        );
     }
 
     #[test]
@@ -1092,7 +1097,7 @@ mod tests {
         assert!(
             (body_inertia.kinetic_energy(&omega_body).unwrap()
                 - world_inertia.kinetic_energy(&omega_world).unwrap())
-                .abs()
+            .abs()
                 < 1e-11
         );
     }
@@ -1169,11 +1174,9 @@ mod tests {
 
     #[test]
     fn off_center_angular_impulse_matches_contact_velocity_and_energy_identity() {
-        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            2.0,
-            SVector::new(1.4, 0.9, 0.5),
-        )
-        .unwrap();
+        let inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+                .unwrap();
         let offset = SVector::new(0.7, -0.25, 0.4);
         let impulse = SVector::new(-0.2, 0.9, 0.35).normalize();
         let angular_impulse = Bivector::from_wedge(&offset, &impulse);
@@ -1194,8 +1197,7 @@ mod tests {
             "contact-point response disagrees with effective mass"
         );
         assert!(
-            (rotational_energy - impulse_work).abs()
-                <= 2.0e-11 * rotational_energy.abs().max(1.0),
+            (rotational_energy - impulse_work).abs() <= 2.0e-11 * rotational_energy.abs().max(1.0),
             "energy/half-work mismatch: energy={rotational_energy:e}, work={impulse_work:e}"
         );
     }
@@ -1204,11 +1206,8 @@ mod tests {
     fn contact_impulse_matches_independent_three_dimensional_tensor_solve() {
         // Independent route: form the conventional spatial tensor
         // I = tr(S) 1 - S, solve I*omega = r x n, then evaluate omega x r.
-        let second_moment = SMatrix::<f64, 3, 3>::new(
-            2.0, 0.25, -0.1,
-            0.25, 1.5, 0.15,
-            -0.1, 0.15, 0.9,
-        );
+        let second_moment =
+            SMatrix::<f64, 3, 3>::new(2.0, 0.25, -0.1, 0.25, 1.5, 0.15, -0.1, 0.15, 0.9);
         let operator = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let tensor = SMatrix::<f64, 3, 3>::identity() * second_moment.trace() - second_moment;
         let spatial_inertia = tensor.lu();
@@ -1287,11 +1286,9 @@ mod tests {
 
     #[test]
     fn body_frame_contact_effective_mass_matches_world_rotated_operator() {
-        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            2.0,
-            SVector::new(1.4, 0.9, 0.5),
-        )
-        .unwrap();
+        let body_inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+                .unwrap();
         let mut generator = Bivector::<3>::zero();
         generator.set(0, 1, 0.31);
         generator.set(0, 2, -0.22);
@@ -1324,11 +1321,9 @@ mod tests {
 
     #[test]
     fn rotational_inverse_effective_mass_normalizes_extreme_finite_direction() {
-        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            2.0,
-            SVector::new(1.4, 0.9, 0.5),
-        )
-        .unwrap();
+        let inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+                .unwrap();
         let offset = SVector::new(0.7, -0.25, 0.4);
         let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
         let expected = inertia
@@ -1401,9 +1396,7 @@ mod tests {
     #[test]
     fn angular_acceleration_reproduces_instantaneous_applied_world_torque() {
         let inertia = BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::new(
-            1.4, 0.12, -0.08,
-            0.12, 2.2, 0.17,
-            -0.08, 0.17, 3.1,
+            1.4, 0.12, -0.08, 0.12, 2.2, 0.17, -0.08, 0.17, 3.1,
         ))
         .unwrap();
         let mut b = Bivector::<3>::zero();
@@ -1433,9 +1426,7 @@ mod tests {
     #[test]
     fn angular_momentum_derivative_matches_rotor_finite_difference() {
         let inertia = BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::new(
-            1.4, 0.12, -0.08,
-            0.12, 2.2, 0.17,
-            -0.08, 0.17, 3.1,
+            1.4, 0.12, -0.08, 0.12, 2.2, 0.17, -0.08, 0.17, 3.1,
         ))
         .unwrap();
         let mut angular_state = Bivector::<3>::zero();
@@ -1456,9 +1447,14 @@ mod tests {
         let next_inertia = inertia.rotated_by(&delta).unwrap();
         let next_angular_state = angular_state.add(&angular_acceleration.scale(dt));
         let next_momentum = next_inertia.angular_momentum(&next_angular_state).unwrap();
-        let observed_rate = next_momentum.add(&initial_momentum.scale(-1.0)).scale(1.0 / dt);
+        let observed_rate = next_momentum
+            .add(&initial_momentum.scale(-1.0))
+            .scale(1.0 / dt);
         let error = observed_rate.add(&torque.scale(-1.0)).norm();
-        assert!(error < 2.0e-6, "Rotor finite-difference torque error={error:e}");
+        assert!(
+            error < 2.0e-6,
+            "Rotor finite-difference torque error={error:e}"
+        );
     }
 
     #[test]
@@ -1525,10 +1521,7 @@ mod tests {
     #[test]
     fn four_dimensional_inertia_is_covariant_under_global_so4_rotation() {
         let second_moment = SMatrix::<f64, 4, 4>::new(
-            2.0, 0.2, 0.0, 0.1,
-            0.2, 3.0, 0.15, 0.0,
-            0.0, 0.15, 4.0, 0.25,
-            0.1, 0.0, 0.25, 5.0,
+            2.0, 0.2, 0.0, 0.1, 0.2, 3.0, 0.15, 0.0, 0.0, 0.15, 4.0, 0.25, 0.1, 0.0, 0.25, 5.0,
         );
         let body_inertia = BivectorInertia::<4>::from_second_moment(second_moment).unwrap();
         let mut generator = Bivector::<4>::zero();
@@ -1554,18 +1547,23 @@ mod tests {
         );
 
         let body_momentum = body_inertia.angular_momentum(&body_angular_state).unwrap();
-        let world_momentum = world_inertia.angular_momentum(&world_angular_state).unwrap();
+        let world_momentum = world_inertia
+            .angular_momentum(&world_angular_state)
+            .unwrap();
         let expected_world_momentum = Bivector::from_matrix(
             &(rotation_matrix * body_momentum.to_matrix() * rotation_matrix.transpose()),
         );
         assert!(
-            world_momentum.add(&expected_world_momentum.scale(-1.0)).norm() < 2.0e-10,
+            world_momentum
+                .add(&expected_world_momentum.scale(-1.0))
+                .norm()
+                < 2.0e-10,
             "SO(4) angular-momentum covariance failed"
         );
         assert!(
             (world_inertia.kinetic_energy(&world_angular_state).unwrap()
                 - body_inertia.kinetic_energy(&body_angular_state).unwrap())
-                .abs()
+            .abs()
                 < 2.0e-10,
             "SO(4) kinetic-energy covariance failed"
         );
@@ -1617,20 +1615,24 @@ mod tests {
         );
 
         let body_momentum = body_inertia.angular_momentum(&body_angular_state).unwrap();
-        let world_momentum = world_inertia.angular_momentum(&world_angular_state).unwrap();
+        let world_momentum = world_inertia
+            .angular_momentum(&world_angular_state)
+            .unwrap();
         let expected_world_momentum = Bivector::from_matrix(
             &(rotation_matrix * body_momentum.to_matrix() * rotation_matrix.transpose()),
         );
         assert!(
-            world_momentum.add(&expected_world_momentum.scale(-1.0)).norm() < 2.0e-9,
+            world_momentum
+                .add(&expected_world_momentum.scale(-1.0))
+                .norm()
+                < 2.0e-9,
             "SO(9) angular-momentum covariance failed"
         );
 
         let body_energy = body_inertia.kinetic_energy(&body_angular_state).unwrap();
         let world_energy = world_inertia.kinetic_energy(&world_angular_state).unwrap();
         assert!(
-            (world_energy - body_energy).abs() / body_energy.abs().max(f64::MIN_POSITIVE)
-                < 2.0e-10,
+            (world_energy - body_energy).abs() / body_energy.abs().max(f64::MIN_POSITIVE) < 2.0e-10,
             "SO(9) kinetic-energy covariance failed: body={body_energy:e}, world={world_energy:e}"
         );
 
@@ -1667,9 +1669,7 @@ mod tests {
     #[test]
     fn inverse_operator_is_scale_relative_for_subnormal_mass_moments() {
         let tiny = 1.0e-320;
-        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from([
-            tiny, tiny, tiny,
-        ]));
+        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from([tiny, tiny, tiny]));
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let mut angular_state = Bivector::<3>::zero();
         angular_state.set(0, 1, 0.5);
@@ -1745,30 +1745,21 @@ mod tests {
     #[test]
     fn zero_mass_and_degenerate_ellipsoid_fail_closed() {
         assert_eq!(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                0.0,
-                SVector::new(1.0, 2.0, 3.0),
-            )
-            .unwrap_err(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(0.0, SVector::new(1.0, 2.0, 3.0),)
+                .unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
         );
         assert_eq!(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(
-                1.0,
-                SVector::new(1.0, 0.0, 3.0),
-            )
-            .unwrap_err(),
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.0, 0.0, 3.0),)
+                .unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
         );
     }
 
     #[test]
     fn inertia_tensor_3d_adapter_roundtrips_products_of_inertia_and_energy() {
-        let inertia_tensor = SMatrix::<f64, 3, 3>::new(
-            46.0, -6.0, 0.0,
-            -6.0, 46.0, 0.0,
-            0.0, 0.0, 20.0,
-        );
+        let inertia_tensor =
+            SMatrix::<f64, 3, 3>::new(46.0, -6.0, 0.0, -6.0, 46.0, 0.0, 0.0, 0.0, 20.0);
         let operator = BivectorInertia::<3>::from_inertia_tensor_3d(inertia_tensor).unwrap();
         let recovered = operator.inertia_tensor_3d().unwrap();
         assert!((recovered - inertia_tensor).norm() < 1.0e-12);
@@ -1834,11 +1825,8 @@ mod tests {
 
     #[test]
     fn uniform_mass_scaling_preserves_angular_state_and_scales_energy() {
-        let base_second_moment = SMatrix::<f64, 3, 3>::new(
-            1.4, 0.12, -0.08,
-            0.12, 2.2, 0.17,
-            -0.08, 0.17, 3.1,
-        );
+        let base_second_moment =
+            SMatrix::<f64, 3, 3>::new(1.4, 0.12, -0.08, 0.12, 2.2, 0.17, -0.08, 0.17, 3.1);
         let base = BivectorInertia::<3>::from_second_moment(base_second_moment).unwrap();
         let mut angular_state = Bivector::<3>::zero();
         angular_state.set(0, 1, 0.3);
@@ -1848,8 +1836,8 @@ mod tests {
         let base_energy = base.kinetic_energy(&angular_state).unwrap();
 
         for scale in [1.0e-12, 1.0, 1.0e12] {
-            let scaled = BivectorInertia::<3>::from_second_moment(base_second_moment * scale)
-                .unwrap();
+            let scaled =
+                BivectorInertia::<3>::from_second_moment(base_second_moment * scale).unwrap();
             let scaled_momentum = scaled.angular_momentum(&angular_state).unwrap();
             assert!(
                 (scaled_momentum.add(&base_momentum.scale(-scale))).norm()
@@ -1874,11 +1862,8 @@ mod tests {
 
     #[test]
     fn rotational_inverse_effective_mass_scales_inversely_with_mass() {
-        let base = BivectorInertia::<3>::uniform_solid_ellipsoid(
-            2.0,
-            SVector::new(1.4, 0.9, 0.5),
-        )
-        .unwrap();
+        let base = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+            .unwrap();
         let offset = SVector::new(0.7, -0.25, 0.4);
         let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
         let base_value = base
@@ -1907,8 +1892,7 @@ mod tests {
     #[test]
     fn dimensions_five_to_nine_require_research_feature() {
         assert_eq!(
-            BivectorInertia::<5>::from_second_moment(SMatrix::<f64, 5, 5>::identity())
-                .unwrap_err(),
+            BivectorInertia::<5>::from_second_moment(SMatrix::<f64, 5, 5>::identity()).unwrap_err(),
             RotationalInertiaError::InvalidDimension,
         );
         assert_eq!(
@@ -1921,8 +1905,7 @@ mod tests {
     #[test]
     fn operator_rejects_dimensions_outside_bivector_capacity() {
         assert_eq!(
-            BivectorInertia::<1>::from_second_moment(SMatrix::<f64, 1, 1>::identity())
-                .unwrap_err(),
+            BivectorInertia::<1>::from_second_moment(SMatrix::<f64, 1, 1>::identity()).unwrap_err(),
             RotationalInertiaError::InvalidDimension
         );
         assert_eq!(
