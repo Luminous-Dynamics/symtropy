@@ -36,3 +36,17 @@ cargo test --locked --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml
 cargo run --locked --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml -- \
   --input tools/scan-bim-tls-health-monitor/fixtures/no-change.json
 ```
+
+
+## Method identity: not the NIST/OSAC IPA Part II reproduction
+
+This crate implements a **lightweight session-level sentinel**, not the published Gregg–Muralikrishnan–Shilling / NIST–OSAC IPA Part II statistical procedure. It compares per-target median within-session standard deviations with a max-statistic session-label permutation test.
+
+The 2026 IPA Part II method instead:
+- estimates a full 3×3 covariance matrix for spherical residuals `(azimuth, elevation, range)`;
+- retains all six unique variance/covariance components;
+- applies O'Brien's robust covariance-equality transformation to median-centred residual products;
+- tests the resulting six-dimensional transformed vectors with one-way MANOVA, which for two timepoints reduces to Hotelling's T²;
+- pairs the test with covariance/data-ellipse interpretation.
+
+Use this sentinel for a cheap, explicit health trigger. Use the separate IPA statistical consumer in `tools/scan-bim-tls-ipa-statistic/` for the published robust multivariate method. Neither should be called an absolute-accuracy or task-fitness test, and the IPA consumer still depends on independently qualified centralized-frame residual production.
