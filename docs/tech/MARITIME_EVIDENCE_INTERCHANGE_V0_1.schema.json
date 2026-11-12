@@ -1,0 +1,817 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime-evidence-interchange-v0.1.json",
+  "title": "Maritime Evidence Interchange Profile v0.1",
+  "description": "Strict interchange for machinery observations and diagnostic assertions. Schema validation does not verify payload hashes, signatures, time consistency or claim truth; these require semantic validation.",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "asset_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vessel_id",
+        "asset_path",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "vessel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "serial_number": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manufacturer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "source_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inline_base64": {
+          "type": "string",
+          "contentEncoding": "base64"
+        },
+        "content_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "signature_state": {
+          "enum": [
+            "verified",
+            "unverified",
+            "invalid",
+            "not_present"
+          ]
+        },
+        "signature_key_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "inline_base64"
+          ]
+        },
+        {
+          "required": [
+            "content_ref"
+          ]
+        }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_class",
+        "native_record_id",
+        "adapter_id",
+        "adapter_version",
+        "mapping_catalogue_version",
+        "received_at",
+        "source_payload"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_class": {
+          "enum": [
+            "sensor",
+            "shipboard_gateway",
+            "oem_platform",
+            "diagnostic_service",
+            "operator",
+            "maintenance_system",
+            "simulator",
+            "research_pipeline",
+            "other"
+          ]
+        },
+        "native_record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_message_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_catalogue_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_payload": {
+          "$ref": "#/$defs/source_payload"
+        },
+        "upstream_record_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "time_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_time",
+        "time_basis",
+        "clock_id",
+        "clock_quality",
+        "synchronization_uncertainty_ms"
+      ],
+      "properties": {
+        "event_time": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "time_basis": {
+          "enum": [
+            "synchronized_utc",
+            "source_wall_clock",
+            "relative_monotonic",
+            "unknown"
+          ]
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_quality": {
+          "enum": [
+            "locked",
+            "holdover",
+            "unsynchronized",
+            "unknown"
+          ]
+        },
+        "synchronization_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "monotonic_counter_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sequence_number": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "native_channel_id",
+        "native_channel_name"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "exact",
+            "reviewed",
+            "ambiguous",
+            "unmapped"
+          ]
+        },
+        "native_channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_channel_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normalized_concept_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "candidate_concept_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reviewer_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "exact",
+                  "reviewed"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "normalized_concept_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "ambiguous",
+                  "unmapped"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "normalized_concept_id"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "lineage_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transform_id",
+        "implementation",
+        "version",
+        "input_record_refs",
+        "output_state"
+      ],
+      "properties": {
+        "transform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_record_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "output_state": {
+          "enum": [
+            "derived",
+            "reconstructed",
+            "imputed"
+          ]
+        },
+        "parameters_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "title": "Observation",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "record_id",
+        "asset_ref",
+        "provenance",
+        "time",
+        "mapping",
+        "quantity_kind",
+        "value_state",
+        "quality",
+        "lineage"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0"
+        },
+        "record_type": {
+          "const": "observation"
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_ref": {
+          "$ref": "#/$defs/asset_ref"
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        },
+        "time": {
+          "$ref": "#/$defs/time_context"
+        },
+        "mapping": {
+          "$ref": "#/$defs/mapping"
+        },
+        "quantity_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_ucum": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_state": {
+          "enum": [
+            "measured",
+            "derived",
+            "reconstructed",
+            "imputed",
+            "missing",
+            "rejected",
+            "stale",
+            "invalid",
+            "conflicted"
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "string",
+            "boolean"
+          ]
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "standard_deviation",
+                "expanded",
+                "interval",
+                "qualitative",
+                "unknown"
+              ]
+            },
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "standard_deviation": {
+              "type": "number",
+              "minimum": 0
+            },
+            "coverage_probability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "calibration_state",
+            "freshness_state",
+            "measurement_quality"
+          ],
+          "properties": {
+            "calibration_state": {
+              "enum": [
+                "valid",
+                "expired",
+                "not_calibrated",
+                "unknown",
+                "not_applicable"
+              ]
+            },
+            "calibration_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "freshness_state": {
+              "enum": [
+                "current",
+                "stale",
+                "unknown"
+              ]
+            },
+            "measurement_quality": {
+              "enum": [
+                "valid",
+                "degraded",
+                "suspect",
+                "invalid",
+                "missing",
+                "unknown"
+              ]
+            },
+            "quality_flags": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "dependency_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lineage_item"
+          }
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "value_state": {
+                "enum": [
+                  "missing",
+                  "rejected",
+                  "invalid"
+                ]
+              }
+            },
+            "required": [
+              "value_state"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "value"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_state": {
+                "enum": [
+                  "measured",
+                  "derived",
+                  "reconstructed",
+                  "imputed",
+                  "stale",
+                  "conflicted"
+                ]
+              }
+            },
+            "required": [
+              "value_state"
+            ]
+          },
+          "then": {
+            "required": [
+              "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_state": {
+                "const": "measured"
+              }
+            },
+            "required": [
+              "value_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lineage": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "value_state": {
+                "enum": [
+                  "derived",
+                  "reconstructed",
+                  "imputed"
+                ]
+              }
+            },
+            "required": [
+              "value_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lineage": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Diagnostic assertion",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "record_id",
+        "asset_ref",
+        "provenance",
+        "time",
+        "assertion",
+        "method",
+        "evidence_links",
+        "authority_granted",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0"
+        },
+        "record_type": {
+          "const": "diagnostic_assertion"
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_ref": {
+          "$ref": "#/$defs/asset_ref"
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        },
+        "time": {
+          "$ref": "#/$defs/time_context"
+        },
+        "assertion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "statement",
+            "status"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "anomaly",
+                "fault_hypothesis",
+                "diagnosis",
+                "prognosis",
+                "maintenance_recommendation",
+                "other"
+              ]
+            },
+            "code": {
+              "type": "string",
+              "minLength": 1
+            },
+            "statement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "enum": [
+                "source_reported",
+                "reviewed",
+                "disputed",
+                "withdrawn"
+              ]
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "severity": {
+              "enum": [
+                "informational",
+                "low",
+                "moderate",
+                "high",
+                "critical",
+                "unknown"
+              ]
+            },
+            "claim_scope": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "name",
+            "version"
+          ],
+          "properties": {
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "algorithm_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        "operating_context": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "evidence_links": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "supports",
+            "contradicts",
+            "derived_from"
+          ],
+          "properties": {
+            "supports": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "contradicts": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "derived_from": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "calibrated_probability",
+                "uncalibrated_score",
+                "interval",
+                "qualitative",
+                "unknown"
+              ]
+            },
+            "calibration_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string"
+            }
+          }
+        },
+        "authority_granted": {
+          "const": false
+        },
+        "claim_ceiling": {
+          "const": "not_ground_truth"
+        }
+      }
+    }
+  ]
+}
