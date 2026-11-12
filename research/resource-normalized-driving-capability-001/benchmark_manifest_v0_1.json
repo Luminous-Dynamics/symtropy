@@ -111,6 +111,45 @@
   ],
   "comparator_register": [
     {
+      "id": "bench2drive_v004_lead_current",
+      "class": "closed_loop_benchmark_result",
+      "name": "Bench2Drive v0.0.4 current release — LEAD",
+      "metric_values": {
+        "driving_score": 95.59,
+        "success_rate_percent": 87.28,
+        "efficiency": 201.55,
+        "comfort": 20.56
+      },
+      "capabilities": [
+        "maintainer README identifies v0.0.4 as currently in use",
+        "uniform Think2Drive training set: 44 scenarios × 25 routes = 1,100 routes",
+        "separate validation set: 44 scenarios × 5 routes = 220 routes",
+        "adds 3D occupancy as a supported modality"
+      ],
+      "protocol": "Bench2Drive v0.0.4, released 2026-08-06. The maintainer README's close-loop table reports LEAD 95.59 DS, 87.28 SR, 201.55 efficiency and 20.56 comfort. Dataset distribution and modality differ from v0.0.3; pin v0.0.4 evaluator, exact training/validation routes and sensor permissions for comparison.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v004_data_distribution",
+      "class": "benchmark_protocol_revision",
+      "name": "Bench2Drive v0.0.4 data and modality revision",
+      "metric_values": {
+        "training_scenarios": 44,
+        "training_routes": 1100,
+        "validation_scenarios": 44,
+        "validation_routes": 220
+      },
+      "capabilities": [
+        "strictly uniform training distribution over 44 scenarios × 25 routes",
+        "separate validation set of 44 scenarios × 5 routes",
+        "3D occupancy modality"
+      ],
+      "protocol": "Protocol resource for designing matched v0.0.4 experiments. This is a dataset distribution specification, not a driving-performance score.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md",
+      "independent_symtropy_reproduction": false
+    },
+    {
       "id": "bench2drive_v003_bridgedrive_lead",
       "class": "self_reported_closed_loop_benchmark_leaderboard",
       "name": "Bench2Drive v0.0.3 leaderboard — BridgeDrive (LEAD)",
