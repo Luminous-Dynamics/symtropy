@@ -333,6 +333,56 @@ jobs:
             "common_cause_power_loss", "telemetry_network_fault"
         }
 
+        false_rows = [
+            row for row in contingent_rows
+            if row["scenario_id"] == "contingent-false-reassurance-corroboration-v1"
+        ]
+        false_summary = [row for row in false_rows if row["record_type"] == "summary"]
+        assert len(false_summary) == 1
+        false_case = false_summary[0]
+        assert false_case["recommended"] == "true"
+        assert false_case["baseline_worst_regret"] == "15.000000"
+        assert false_case["worst_case_post_sensing_regret"] == "0.600000"
+        assert false_case["regret_reduction"] == "14.400000"
+        assert false_case["maximum_path_energy_kwh"] == "0.200000"
+        assert false_case["maximum_path_latency_ticks"] == "2"
+        assert false_case["maximum_path_penalty_service_units"] == "0.600000"
+
+        false_nodes = [row for row in false_rows if row["record_type"] == "node"]
+        assert len(false_nodes) == 7
+        false_root = next(row for row in false_nodes if row["node_kind"] == "request_sensor" and row["observation_history"] == "")
+        assert false_root["sensor_id"] == "screen"
+        assert false_root["active_world_count"] == "4"
+        followups = {
+            row["observation_history"]: row["sensor_id"]
+            for row in false_nodes if row["node_kind"] == "request_sensor" and row["observation_history"]
+        }
+        assert followups == {
+            "healthy": "stuck_high_confirmation",
+            "missing": "independent_missing_branch_inspection",
+        }
+        false_predictions = [
+            row for row in false_rows
+            if row["record_type"] == "prediction"
+            and row["sensor_id"] == "screen"
+        ]
+        assert len(false_predictions) == 4
+        assert {row["world_id"]: row["observation_id"] for row in false_predictions} == {
+            "healthy": "healthy",
+            "degraded": "missing",
+            "healthy_sensor_fault": "missing",
+            "degraded_stuck_high": "healthy",
+        }
+        false_leaves = [row for row in false_rows if row["record_type"] == "leaf"]
+        assert len(false_leaves) == 4
+        assert {row["world_id"]: row["selected_action_id"] for row in false_leaves} == {
+            "healthy": "defer",
+            "degraded": "repair",
+            "healthy_sensor_fault": "defer",
+            "degraded_stuck_high": "repair",
+        }
+        assert {row["sensing_penalty_service_units"] for row in false_leaves} == {"0.600000"}
+
         with Path("/tmp/civdyn-contingent-candidate.csv").open(newline="", encoding="utf-8") as handle:
             tree_reader = csv.DictReader(handle)
             assert tree_reader.fieldnames == [
@@ -341,7 +391,7 @@ jobs:
             ]
             tree_rows = list(tree_reader)
 
-        assert len(tree_rows) == 9
+        assert len(tree_rows) == 22
         assert all(set(row) == set(tree_reader.fieldnames) for row in tree_rows)
         assert not any(
             any(secret in field for secret in ("world", "missing_cause", "regret", "energy", "penalty", "oracle"))
@@ -359,6 +409,27 @@ jobs:
         }
         missing_branches = [row for row in tree_rows if row["node_type"] == "observation_branch" and row["sensor_id"] == "screen" and row["observation_id"] == "missing"]
         assert len(missing_branches) == 1
+        false_tree = [row for row in tree_rows if row["scenario_id"] == "contingent-false-reassurance-corroboration-v1"]
+        assert len(false_tree) == 13
+        false_requests = {
+            row["observation_history"]: row["sensor_id"]
+            for row in false_tree if row["node_type"] == "request_sensor"
+        }
+        assert false_requests == {
+            "": "screen",
+            "healthy": "stuck_high_confirmation",
+            "missing": "independent_missing_branch_inspection",
+        }
+        false_stops = {
+            (row["observation_history"], row["action_id"])
+            for row in false_tree if row["node_type"] == "stop_and_act"
+        }
+        assert false_stops == {
+            ("healthy>verified_healthy", "defer"),
+            ("healthy>verified_degraded", "repair"),
+            ("missing>verified_healthy", "defer"),
+            ("missing>verified_degraded", "repair"),
+        }
 
         print("CIVDYN active-sensing contract passed: energy/latency costs, common-cause missingness, feasibility lift, budget gate and byte-identical replay.")
         PY
