@@ -207,7 +207,8 @@
         "data_license_status": "VERIFY_PER_SUPPLEMENTARY_DATASET_AND_FILE",
         "materialized": false,
         "file_inventory": "NOT_DOWNLOADED",
-        "per_file_sha256": null
+        "per_file_sha256": null,
+        "social_kernel_status": "PUBLISHED_EQUATION_AND_PINNED_MATLAB_SOURCE_AGREE"
       },
       "task_protocol": {
         "static_landscape_suite": {
@@ -288,12 +289,6 @@
         "source_update": "Euler-Maruyama",
         "key_limitation": "SCM agents do not retain a global best-so-far position; the article identifies this as a disadvantage on static landscapes and a potential advantage on evolving landscapes.",
         "communication_assumption": "The article describes all-to-all exchange of agent position, perceived fitness and gradient. A practical bandwidth/latency/dropout budget must be tested separately.",
-        "source_formula_discrepancy": {
-          "paper_equation": "The HTML-rendered paper Eq. (2) uses sin((2/pi) * position_difference).",
-          "inspected_matlab_source": "SCM/tstep.m computes sin((pi/2) * position_difference).",
-          "disposition": "UNRESOLVED_DO_NOT_CLAIM_EXACT_REPRODUCTION",
-          "required_action": "Compare the authoritative PDF equation and supplementary pseudocode against the release-tag source; obtain author clarification if the discrepancy persists. Implement the formula as an explicit selectable reference variant until resolved."
-        },
         "numerical_edge_cases_to_test": [
           "zero or near-zero mean gradient in xi = 1 / mean(norm(gradient))",
           "coincident agents causing max pairwise distance Dmax = 0 in lambda_k = d_k/(Dmax*C)",
@@ -301,7 +296,14 @@
           "out-of-domain agent recovery and conical barrier continuation",
           "noise adaptation division when the consensus-window difference I approaches zero",
           "synchronous update ordering and floating-point summation"
-        ]
+        ],
+        "social_kernel": {
+          "published_discrete_equation": "sin((pi/2) * position_difference)",
+          "inspected_matlab_source": "SCM/tstep.m computes sin(dx_ij.*pi/2)",
+          "source_blob_sha": "d7970b76fc23e5f562df0acbfabdc46424643053",
+          "disposition": "RECONCILED_PUBLISHED_AND_PINNED_SOURCE_AGREE",
+          "implementation": "Single ScmInteractionKernel::PublishedEquationAndMatlabSource variant; no unsupported alternative retained."
+        }
       },
       "comparison_rules": {
         "must_reproduce_original_static_task_before_comparison": true,
@@ -454,7 +456,7 @@
     "GDP": "Pin GitHub commit, datasets and environment, then reproduce under-sampling cases.",
     "PR_GNN": "Inspect supplementary PDF and contact authors for code/data where not stated; respect CC BY-NC-ND article licence and third-party data rights.",
     "VISUAL_FIELD_OFFSET_RAMLALL_2026": "Acquire dataset DOI 10.17632/y8fx3shsvx.1, enumerate files, pin MATLAB versions/scripts and per-file hashes, verify data rights and reproduce exact source offset/aperture/noise/density/seed conditions before any SOTA claim.",
-    "SCM_NITTI_2025": "Source commit, key file blob SHAs and Zenodo v1.0 archive digest pinned. No code copied. MATLAB software licence not visible in GitHub or inspected Zenodo rights; permission must be resolved before redistribution. Paper HTML and repository sine-kernel scaling differ, and MATLAB consensus-window indexing differs from the continuous paper definition. Independent Rust reference exposes both variants; no source-faithful reproduction is complete."
+    "SCM_NITTI_2025": "Source commit, key file blob SHAs and Zenodo v1.0 archive digest pinned. The published discrete equation and pinned MATLAB tstep.m both use sin((pi/2)*delta_x); the earlier apparent 2/pi alternative was a misreading and has been removed from the Rust reference. MATLAB consensus-window indexing remains a genuine discrete sensitivity: inclusive source endpoints create tau_steps+1 samples and first update at tau_steps+1, unlike the publication's equal disjoint half-windows. Software licence remains unverified; no MATLAB code copied."
   },
   "results": {
     "baseline_reproductions_completed": [],
