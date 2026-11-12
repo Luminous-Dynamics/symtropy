@@ -1124,6 +1124,30 @@ mod tests {
     }
 
     #[test]
+    fn command_event_must_precede_actuator_application() {
+        let mut trace = reference_trace();
+        trace.identity.command_event_sequence = trace.identity.actuator_application_event_sequence;
+        assert!(matches!(
+            adapt_joint_trace(&trace),
+            Err(TraceValidationError::EventSequenceNotIncreasing {
+                preceding: "command",
+                following: "application",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn command_event_identity_must_be_unique() {
+        let mut trace = reference_trace();
+        trace.identity.command_id = trace.identity.assurance_event_id.clone();
+        assert!(matches!(
+            adapt_joint_trace(&trace),
+            Err(TraceValidationError::DuplicateEventIdentity(_))
+        ));
+    }
+
+    #[test]
     fn timestamps_must_belong_to_the_declared_boot_epoch() {
         let mut trace = reference_trace();
         trace.motion_onset.boot_epoch = 8;
