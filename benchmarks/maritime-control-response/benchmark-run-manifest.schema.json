@@ -1781,6 +1781,28 @@
         },
         "global_unique_physical_cause_claim_allowed": {
           "const": false
+        },
+        "hypothesis_space_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prior_distribution_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
