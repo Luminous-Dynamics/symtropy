@@ -222,7 +222,9 @@ pub enum RejectReason {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecisionDisposition {
-    Sufficient { regret_upper_units: u64 },
+    Sufficient {
+        regret_upper_units: u64,
+    },
     Insufficient {
         regret_upper_units: u64,
         epsilon_task_loss_units: u64,
@@ -235,7 +237,10 @@ pub enum DecisionDisposition {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ThermalDisposition {
-    Continuous { node_count: usize, result_digest: String },
+    Continuous {
+        node_count: usize,
+        result_digest: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -259,7 +264,9 @@ pub struct CausalEdge {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MissionClosure {
     Closed,
-    Open { unqualified_domains: Vec<&'static str> },
+    Open {
+        unqualified_domains: Vec<&'static str>,
+    },
 }
 
 /// Output for Symthaea's offline causal mission replay adapter.
@@ -327,47 +334,113 @@ fn validate_identity(
     require_nonempty(&[
         ("mission_id", &identity.mission_id),
         ("robot_id", &identity.robot_id),
-        ("scenario_manifest_digest", &identity.scenario_manifest_digest),
+        (
+            "scenario_manifest_digest",
+            &identity.scenario_manifest_digest,
+        ),
         ("source_observation_id", &identity.source_observation_id),
         ("decision_id", &identity.decision_id),
         ("proposal_id", &identity.proposal_id),
         ("assurance_event_id", &identity.assurance_event_id),
         ("command_id", &identity.command_id),
-        ("actuator_application_event_id", &identity.actuator_application_event_id),
+        (
+            "actuator_application_event_id",
+            &identity.actuator_application_event_id,
+        ),
         ("physical_transition_id", &identity.physical_transition_id),
         ("terminal_event_id", &identity.terminal_event_id),
         ("actuator_id", &identity.actuator_id),
     ])?;
     require_nonempty(&[
-        ("actuator_configuration_digest", &configuration.actuator_configuration_digest),
-        ("controller_configuration_digest", &configuration.controller_configuration_digest),
+        (
+            "actuator_configuration_digest",
+            &configuration.actuator_configuration_digest,
+        ),
+        (
+            "controller_configuration_digest",
+            &configuration.controller_configuration_digest,
+        ),
         ("policy_digest", &configuration.policy_digest),
         ("model_digest", &configuration.model_digest),
         ("action_domain_digest", &configuration.action_domain_digest),
-        ("sensor_calibration_digest", &configuration.sensor_calibration_digest),
-        ("torque_transducer_calibration_digest", &configuration.torque_transducer_calibration_digest),
-        ("power_analyzer_calibration_digest", &configuration.power_analyzer_calibration_digest),
-        ("thermal_sensor_calibration_digest", &configuration.thermal_sensor_calibration_digest),
+        (
+            "sensor_calibration_digest",
+            &configuration.sensor_calibration_digest,
+        ),
+        (
+            "torque_transducer_calibration_digest",
+            &configuration.torque_transducer_calibration_digest,
+        ),
+        (
+            "power_analyzer_calibration_digest",
+            &configuration.power_analyzer_calibration_digest,
+        ),
+        (
+            "thermal_sensor_calibration_digest",
+            &configuration.thermal_sensor_calibration_digest,
+        ),
         ("sampling_spec_digest", &configuration.sampling_spec_digest),
-        ("energy_boundary_manifest_digest", &configuration.energy_boundary_manifest_digest),
-        ("actuator_application_receipt_digest", &configuration.actuator_application_receipt_digest),
-        ("executed_prefix_expected_digest", &configuration.executed_prefix_expected_digest),
-        ("executed_prefix_observed_digest", &configuration.executed_prefix_observed_digest),
+        (
+            "energy_boundary_manifest_digest",
+            &configuration.energy_boundary_manifest_digest,
+        ),
+        (
+            "actuator_application_receipt_digest",
+            &configuration.actuator_application_receipt_digest,
+        ),
+        (
+            "executed_prefix_expected_digest",
+            &configuration.executed_prefix_expected_digest,
+        ),
+        (
+            "executed_prefix_observed_digest",
+            &configuration.executed_prefix_observed_digest,
+        ),
     ])?;
 
     let events = [
-        ("source", identity.source_observation_id.as_str(), identity.source_event_sequence),
-        ("decision", identity.decision_id.as_str(), identity.decision_event_sequence),
-        ("proposal", identity.proposal_id.as_str(), identity.proposal_event_sequence),
-        ("assurance", identity.assurance_event_id.as_str(), identity.assurance_event_sequence),
-        ("application", identity.actuator_application_event_id.as_str(), identity.actuator_application_event_sequence),
-        ("physical", identity.physical_transition_id.as_str(), identity.physical_transition_event_sequence),
-        ("terminal", identity.terminal_event_id.as_str(), identity.terminal_event_sequence),
+        (
+            "source",
+            identity.source_observation_id.as_str(),
+            identity.source_event_sequence,
+        ),
+        (
+            "decision",
+            identity.decision_id.as_str(),
+            identity.decision_event_sequence,
+        ),
+        (
+            "proposal",
+            identity.proposal_id.as_str(),
+            identity.proposal_event_sequence,
+        ),
+        (
+            "assurance",
+            identity.assurance_event_id.as_str(),
+            identity.assurance_event_sequence,
+        ),
+        (
+            "application",
+            identity.actuator_application_event_id.as_str(),
+            identity.actuator_application_event_sequence,
+        ),
+        (
+            "physical",
+            identity.physical_transition_id.as_str(),
+            identity.physical_transition_event_sequence,
+        ),
+        (
+            "terminal",
+            identity.terminal_event_id.as_str(),
+            identity.terminal_event_sequence,
+        ),
     ];
     let mut unique_ids = BTreeSet::new();
     for (_, event_id, _) in events {
         if !unique_ids.insert(event_id) {
-            return Err(TraceValidationError::DuplicateEventIdentity(event_id.to_owned()));
+            return Err(TraceValidationError::DuplicateEventIdentity(
+                event_id.to_owned(),
+            ));
         }
     }
     for pair in events.windows(2) {
@@ -382,7 +455,9 @@ fn validate_identity(
             });
         }
         if from_id == to_id {
-            return Err(TraceValidationError::DuplicateEventIdentity(from_id.to_owned()));
+            return Err(TraceValidationError::DuplicateEventIdentity(
+                from_id.to_owned(),
+            ));
         }
     }
     Ok(events
@@ -481,7 +556,12 @@ fn command_to_motion(trace: &JointTrace) -> Evidence<DurationBounds> {
 }
 
 fn decision_status(trace: &JointTrace) -> Evidence<DecisionDisposition> {
-    if trace.configuration.decision_calibration_receipt_digest.trim().is_empty() {
+    if trace
+        .configuration
+        .decision_calibration_receipt_digest
+        .trim()
+        .is_empty()
+    {
         return Evidence::Unknown(UnknownReason::DecisionCalibrationUnavailable);
     }
     if trace.configuration.executed_prefix_expected_digest
@@ -523,8 +603,16 @@ fn thermal_status(trace: &JointTrace) -> Evidence<ThermalDisposition> {
     if thermal.required_node_ids.is_empty() {
         return Evidence::Unknown(UnknownReason::ThermalNodeCoverageIncomplete);
     }
-    let required: BTreeSet<&str> = thermal.required_node_ids.iter().map(String::as_str).collect();
-    let observed: BTreeSet<&str> = thermal.observed_node_ids.iter().map(String::as_str).collect();
+    let required: BTreeSet<&str> = thermal
+        .required_node_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let observed: BTreeSet<&str> = thermal
+        .observed_node_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     if required.len() != thermal.required_node_ids.len()
         || observed.len() != thermal.observed_node_ids.len()
         || required != observed
@@ -555,11 +643,9 @@ fn energy_status(trace: &JointTrace) -> Evidence<EnergyDisposition> {
                 })
             }
         }
-        UpstreamEnergyClosure::Inconclusive { reason } => {
-            Evidence::Inconclusive(InconclusiveReason::UpstreamEnergyClosureInconclusive(
-                reason.clone(),
-            ))
-        }
+        UpstreamEnergyClosure::Inconclusive { reason } => Evidence::Inconclusive(
+            InconclusiveReason::UpstreamEnergyClosureInconclusive(reason.clone()),
+        ),
         UpstreamEnergyClosure::Invalid { reason } => {
             Evidence::Rejected(RejectReason::UpstreamEnergyClosureInvalid(reason.clone()))
         }
@@ -592,17 +678,23 @@ fn sampling_status(trace: &JointTrace) -> Evidence<SamplingDisposition> {
 ///
 /// Structural identity contradictions return an error. Incomplete measurements
 /// remain Unknown or Inconclusive. This function never grants actuation authority.
-pub fn adapt_joint_trace(
-    trace: &JointTrace,
-) -> Result<AdapterReport, TraceValidationError> {
+pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValidationError> {
     let causal_edges = validate_identity(&trace.identity, &trace.configuration)?;
-    validate_timestamp("source_capture", trace.source_capture, trace.identity.boot_epoch)?;
+    validate_timestamp(
+        "source_capture",
+        trace.source_capture,
+        trace.identity.boot_epoch,
+    )?;
     validate_timestamp(
         "actuator_application",
         trace.actuator_application,
         trace.identity.boot_epoch,
     )?;
-    validate_timestamp("motion_onset", trace.motion_onset, trace.identity.boot_epoch)?;
+    validate_timestamp(
+        "motion_onset",
+        trace.motion_onset,
+        trace.identity.boot_epoch,
+    )?;
 
     let aoi = source_to_application_aoi(trace);
     let response = command_to_motion(trace);
@@ -617,13 +709,31 @@ pub fn adapt_joint_trace(
     };
 
     let domains = [
-        ("source-to-actuator AoI", matches!(aoi, Evidence::Qualified(_))),
-        ("command-to-motion response", matches!(response, Evidence::Qualified(_))),
-        ("decision sufficiency", matches!(decision, Evidence::Qualified(DecisionDisposition::Sufficient { .. }))),
-        ("thermal continuity", matches!(thermal, Evidence::Qualified(_))),
+        (
+            "source-to-actuator AoI",
+            matches!(aoi, Evidence::Qualified(_)),
+        ),
+        (
+            "command-to-motion response",
+            matches!(response, Evidence::Qualified(_)),
+        ),
+        (
+            "decision sufficiency",
+            matches!(
+                decision,
+                Evidence::Qualified(DecisionDisposition::Sufficient { .. })
+            ),
+        ),
+        (
+            "thermal continuity",
+            matches!(thermal, Evidence::Qualified(_)),
+        ),
         ("energy closure", matches!(energy, Evidence::Qualified(_))),
         ("sampling", matches!(sampling, Evidence::Qualified(_))),
-        ("terminal safe-stop", matches!(terminal, Evidence::Qualified(_))),
+        (
+            "terminal safe-stop",
+            matches!(terminal, Evidence::Qualified(_)),
+        ),
     ];
     let unqualified_domains: Vec<&'static str> = domains
         .into_iter()
@@ -632,7 +742,9 @@ pub fn adapt_joint_trace(
     let mission_closure = if unqualified_domains.is_empty() && causal_edges.len() == 6 {
         MissionClosure::Closed
     } else {
-        MissionClosure::Open { unqualified_domains }
+        MissionClosure::Open {
+            unqualified_domains,
+        }
     };
 
     Ok(AdapterReport {
@@ -953,7 +1065,10 @@ mod tests {
     #[test]
     fn incomplete_decision_calibration_is_unknown() {
         let mut trace = reference_trace();
-        trace.configuration.decision_calibration_receipt_digest.clear();
+        trace
+            .configuration
+            .decision_calibration_receipt_digest
+            .clear();
         assert_eq!(
             adapt_joint_trace(&trace).unwrap().decision,
             Evidence::Unknown(UnknownReason::DecisionCalibrationUnavailable)
