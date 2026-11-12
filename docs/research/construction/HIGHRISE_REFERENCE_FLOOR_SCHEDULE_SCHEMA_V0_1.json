@@ -621,6 +621,10 @@
         },
         "disturbance": {
           "$ref": "#/$defs/disturbance"
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
