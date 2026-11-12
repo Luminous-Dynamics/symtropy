@@ -1,0 +1,49 @@
+name: Maritime source-mix negative-transfer evaluator
+on:
+  push:
+    branches: ["research/maritime-source-mix-bench-v0-1"]
+    paths: ["crates/domains/symtropy-maritime-source-mix-bench/**", "benchmarks/maritime-source-mix/**", "docs/tech/MARITIME_SOURCE_MIX_BENCHMARK_V0_1.md", ".github/workflows/maritime-source-mix-bench.yml"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["crates/domains/symtropy-maritime-source-mix-bench/**", "benchmarks/maritime-source-mix/**", "docs/tech/MARITIME_SOURCE_MIX_BENCHMARK_V0_1.md", ".github/workflows/maritime-source-mix-bench.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: maritime-source-mix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - name: Test source-mix evaluator
+        run: cargo test --manifest-path crates/domains/symtropy-maritime-source-mix-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path crates/domains/symtropy-maritime-source-mix-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Execute frozen source-mix case and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          case_file="benchmarks/maritime-source-mix/source-mix-case-v0.1.json"
+          case_sha="$(sha256sum "$case_file" | awk '{print $1}')"
+          cargo run --quiet --manifest-path crates/domains/symtropy-maritime-source-mix-bench/Cargo.toml -- "$case_file" --source-commit "$source_commit" --case-sha256 "$case_sha" > maritime-source-mix-report.json
+          jq -e --arg source "$source_commit" --arg digest "$case_sha" '.result == "PASS" and .source_commit == $source and .case_sha256 == $digest and .method_count == 4 and .negative_transfer_source_ids == ["src-simulated-adversarial"] and (.source_contributions | length == 3) and (.hard_gates.target_test_labels_sealed == true) and (.hard_gates.duplicate_sources_not_counted_independently == true)' maritime-source-mix-report.json
+      - name: Upload deterministic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-source-mix-report
+          path: maritime-source-mix-report.json
+          if-no-files-found: error
+          retention-days: 90

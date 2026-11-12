@@ -1,0 +1,292 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MARITIME-SOURCE-MIX-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "claim_scope": "WITHIN_ENGINE_CROSS_LOAD",
+  "target": {
+    "asset_id": "SYNTHETIC-8V396",
+    "engine_id": "ENGINE-A",
+    "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "target_domain_id": "LOAD-75",
+    "fault_taxonomy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "target_split_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "test_labels_sealed": true,
+    "weight_selection_target_labels_allowed": false
+  },
+  "contract": {
+    "group_key": "ENGINE_CAMPAIGN_RUN",
+    "preprocessing_fit_scope": "SOURCE_TRAIN_ONLY",
+    "weight_selection_scope": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET",
+    "overlapping_windows_across_splits": false,
+    "matched_compute_budget_required": true,
+    "matched_seed_required": true,
+    "metrics": [
+      "macro_recall",
+      "worst_fault_recall",
+      "false_alarms_per_engine_hour",
+      "ece",
+      "unknown_false_known_rate"
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "src-load25",
+      "logical_source_id": "ENGINE-A-CAMPAIGN-01-LOAD25",
+      "source_data_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "engine_id": "ENGINE-A",
+      "domain_id": "LOAD-25",
+      "source_role": "MEASURED",
+      "evidence_state": "SYNTHETIC_ONLY",
+      "label_state": "SYNTHETIC_KNOWN_TRUTH",
+      "fault_taxonomy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "taxonomy_compatibility": "EXACT",
+      "taxonomy_mapping_sha256": null,
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "duplicate_of": null
+    },
+    {
+      "source_id": "src-load50",
+      "logical_source_id": "ENGINE-A-CAMPAIGN-01-LOAD50",
+      "source_data_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "engine_id": "ENGINE-A",
+      "domain_id": "LOAD-50",
+      "source_role": "MEASURED",
+      "evidence_state": "SYNTHETIC_ONLY",
+      "label_state": "SYNTHETIC_KNOWN_TRUTH",
+      "fault_taxonomy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "taxonomy_compatibility": "EXACT",
+      "taxonomy_mapping_sha256": null,
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "duplicate_of": null
+    },
+    {
+      "source_id": "src-simulated-adversarial",
+      "logical_source_id": "ENGINE-A-SIMULATION-V1",
+      "source_data_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "engine_id": "ENGINE-A",
+      "domain_id": "SIMULATED-LOAD-25-75",
+      "source_role": "SIMULATED",
+      "evidence_state": "SYNTHETIC_ONLY",
+      "label_state": "SYNTHETIC_KNOWN_TRUTH",
+      "fault_taxonomy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "taxonomy_compatibility": "EXACT",
+      "taxonomy_mapping_sha256": null,
+      "quality_state": "CURRENT",
+      "calibration_state": "NOT_APPLICABLE",
+      "duplicate_of": null
+    },
+    {
+      "source_id": "src-load25-copy",
+      "logical_source_id": "ENGINE-A-CAMPAIGN-01-LOAD25",
+      "source_data_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "engine_id": "ENGINE-A",
+      "domain_id": "LOAD-25-COPY",
+      "source_role": "MEASURED",
+      "evidence_state": "SYNTHETIC_ONLY",
+      "label_state": "SYNTHETIC_KNOWN_TRUTH",
+      "fault_taxonomy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "taxonomy_compatibility": "EXACT",
+      "taxonomy_mapping_sha256": null,
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "duplicate_of": "src-load25"
+    },
+    {
+      "source_id": "src-near-wrong-taxonomy",
+      "logical_source_id": "ENGINE-A-NEAR-TARGET-WRONG-TAXONOMY",
+      "source_data_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "engine_id": "ENGINE-A",
+      "domain_id": "LOAD-70-NEAR",
+      "source_role": "MEASURED",
+      "evidence_state": "SYNTHETIC_ONLY",
+      "label_state": "SYNTHETIC_KNOWN_TRUTH",
+      "fault_taxonomy_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "taxonomy_compatibility": "INCOMPATIBLE",
+      "taxonomy_mapping_sha256": null,
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "duplicate_of": null
+    },
+    {
+      "source_id": "src-weak-labels",
+      "logical_source_id": "ENGINE-A-WEAK-LABEL-SOURCE",
+      "source_data_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "engine_id": "ENGINE-A",
+      "domain_id": "LOAD-50-WEAK",
+      "source_role": "MEASURED",
+      "evidence_state": "SYNTHETIC_ONLY",
+      "label_state": "WEAK",
+      "fault_taxonomy_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "taxonomy_compatibility": "EXACT",
+      "taxonomy_mapping_sha256": null,
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "duplicate_of": null
+    }
+  ],
+  "method_runs": [
+    {
+      "run_id": "run-no-transfer",
+      "method_id": "NO_TRANSFER",
+      "source_ids": [],
+      "source_weights": [],
+      "target_split_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "seed": 13,
+      "label_budget": 0,
+      "compute_budget_id": "MATCHED-GPU-HOURS-001",
+      "target_test_labels_used": false,
+      "preprocessing_fit_scope": "SOURCE_TRAIN_ONLY",
+      "weight_selection_scope": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET",
+      "weighting_rule_id": null,
+      "metrics": {
+        "macro_recall": 0.65,
+        "worst_fault_recall": 0.52,
+        "false_alarms_per_engine_hour": 1.2,
+        "ece": 0.16,
+        "unknown_false_known_rate": 0.2
+      },
+      "source_ablations": []
+    },
+    {
+      "run_id": "run-best-single",
+      "method_id": "BEST_SINGLE_SOURCE",
+      "source_ids": [
+        "src-load25"
+      ],
+      "source_weights": [
+        {
+          "source_id": "src-load25",
+          "weight": 1
+        }
+      ],
+      "target_split_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "seed": 13,
+      "label_budget": 0,
+      "compute_budget_id": "MATCHED-GPU-HOURS-001",
+      "target_test_labels_used": false,
+      "preprocessing_fit_scope": "SOURCE_TRAIN_ONLY",
+      "weight_selection_scope": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET",
+      "weighting_rule_id": null,
+      "metrics": {
+        "macro_recall": 0.78,
+        "worst_fault_recall": 0.69,
+        "false_alarms_per_engine_hour": 0.6,
+        "ece": 0.08,
+        "unknown_false_known_rate": 0.08
+      },
+      "source_ablations": []
+    },
+    {
+      "run_id": "run-uniform",
+      "method_id": "UNIFORM_MULTI_SOURCE",
+      "source_ids": [
+        "src-load25",
+        "src-load50",
+        "src-simulated-adversarial"
+      ],
+      "source_weights": [
+        {
+          "source_id": "src-load25",
+          "weight": 0.3333333333333333
+        },
+        {
+          "source_id": "src-load50",
+          "weight": 0.3333333333333333
+        },
+        {
+          "source_id": "src-simulated-adversarial",
+          "weight": 0.3333333333333333
+        }
+      ],
+      "target_split_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "seed": 13,
+      "label_budget": 0,
+      "compute_budget_id": "MATCHED-GPU-HOURS-001",
+      "target_test_labels_used": false,
+      "preprocessing_fit_scope": "SOURCE_TRAIN_ONLY",
+      "weight_selection_scope": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET",
+      "weighting_rule_id": null,
+      "metrics": {
+        "macro_recall": 0.76,
+        "worst_fault_recall": 0.67,
+        "false_alarms_per_engine_hour": 0.64,
+        "ece": 0.09,
+        "unknown_false_known_rate": 0.1
+      },
+      "source_ablations": []
+    },
+    {
+      "run_id": "run-entropy-weighted",
+      "method_id": "ENTROPY_WEIGHTED_MULTI_SOURCE",
+      "source_ids": [
+        "src-load25",
+        "src-load50",
+        "src-simulated-adversarial"
+      ],
+      "source_weights": [
+        {
+          "source_id": "src-load25",
+          "weight": 0.5
+        },
+        {
+          "source_id": "src-load50",
+          "weight": 0.3
+        },
+        {
+          "source_id": "src-simulated-adversarial",
+          "weight": 0.2
+        }
+      ],
+      "target_split_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "seed": 13,
+      "label_budget": 0,
+      "compute_budget_id": "MATCHED-GPU-HOURS-001",
+      "target_test_labels_used": false,
+      "preprocessing_fit_scope": "SOURCE_TRAIN_ONLY",
+      "weight_selection_scope": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET",
+      "weighting_rule_id": "EW_MDAN_REPRODUCTION_CONTRACT_V0_1",
+      "metrics": {
+        "macro_recall": 0.8,
+        "worst_fault_recall": 0.71,
+        "false_alarms_per_engine_hour": 0.5,
+        "ece": 0.06,
+        "unknown_false_known_rate": 0.07
+      },
+      "source_ablations": [
+        {
+          "removed_source_id": "src-load25",
+          "metrics": {
+            "macro_recall": 0.72,
+            "worst_fault_recall": 0.63,
+            "false_alarms_per_engine_hour": 0.75,
+            "ece": 0.09,
+            "unknown_false_known_rate": 0.11
+          }
+        },
+        {
+          "removed_source_id": "src-load50",
+          "metrics": {
+            "macro_recall": 0.78,
+            "worst_fault_recall": 0.69,
+            "false_alarms_per_engine_hour": 0.55,
+            "ece": 0.065,
+            "unknown_false_known_rate": 0.075
+          }
+        },
+        {
+          "removed_source_id": "src-simulated-adversarial",
+          "metrics": {
+            "macro_recall": 0.83,
+            "worst_fault_recall": 0.74,
+            "false_alarms_per_engine_hour": 0.45,
+            "ece": 0.04,
+            "unknown_false_known_rate": 0.04
+          }
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic known-truth source-mix contract only. Scores and source deltas are fabricated to exercise the validator. No marine-engine accuracy, source utility, cross-engine transfer, safety or operating qualification is established."
+}

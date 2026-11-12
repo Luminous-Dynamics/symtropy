@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/maritime-source-mix/source-mix-case-v0.1.schema.json",
+  "title": "Maritime source-mix and negative-transfer benchmark case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_scope",
+    "target",
+    "contract",
+    "sources",
+    "method_runs",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_KNOWN_TRUTH",
+        "MEASURED_BENCHMARK"
+      ]
+    },
+    "claim_scope": {
+      "enum": [
+        "WITHIN_ENGINE_CROSS_LOAD",
+        "CROSS_ENGINE",
+        "REAL_SIMULATION_HYBRID"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "engine_id",
+        "configuration_sha256",
+        "target_domain_id",
+        "fault_taxonomy_sha256",
+        "target_split_sha256",
+        "test_labels_sealed",
+        "weight_selection_target_labels_allowed"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "target_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_taxonomy_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "target_split_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "test_labels_sealed": {
+          "const": true
+        },
+        "weight_selection_target_labels_allowed": {
+          "const": false
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_key",
+        "preprocessing_fit_scope",
+        "weight_selection_scope",
+        "overlapping_windows_across_splits",
+        "matched_compute_budget_required",
+        "matched_seed_required",
+        "metrics"
+      ],
+      "properties": {
+        "group_key": {
+          "enum": [
+            "ENGINE_CAMPAIGN_RUN",
+            "PHYSICAL_ENGINE",
+            "VESSEL"
+          ]
+        },
+        "preprocessing_fit_scope": {
+          "const": "SOURCE_TRAIN_ONLY"
+        },
+        "weight_selection_scope": {
+          "const": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET"
+        },
+        "overlapping_windows_across_splits": {
+          "const": false
+        },
+        "matched_compute_budget_required": {
+          "const": true
+        },
+        "matched_seed_required": {
+          "const": true
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "macro_recall",
+              "worst_fault_recall",
+              "false_alarms_per_engine_hour",
+              "ece",
+              "unknown_false_known_rate"
+            ]
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "logical_source_id",
+          "source_data_sha256",
+          "engine_id",
+          "domain_id",
+          "source_role",
+          "evidence_state",
+          "label_state",
+          "fault_taxonomy_sha256",
+          "taxonomy_compatibility",
+          "taxonomy_mapping_sha256",
+          "quality_state",
+          "calibration_state",
+          "duplicate_of"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "logical_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_data_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "engine_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_role": {
+            "enum": [
+              "MEASURED",
+              "SIMULATED",
+              "DERIVED",
+              "RECONSTRUCTED"
+            ]
+          },
+          "evidence_state": {
+            "enum": [
+              "QUALIFIED",
+              "SYNTHETIC_ONLY",
+              "NOT_EVALUATED",
+              "REJECTED"
+            ]
+          },
+          "label_state": {
+            "enum": [
+              "INDEPENDENTLY_ADJUDICATED",
+              "SYNTHETIC_KNOWN_TRUTH",
+              "WEAK",
+              "UNVERIFIED"
+            ]
+          },
+          "fault_taxonomy_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "taxonomy_compatibility": {
+            "enum": [
+              "EXACT",
+              "APPROVED_MAPPING",
+              "INCOMPATIBLE"
+            ]
+          },
+          "taxonomy_mapping_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality_state": {
+            "enum": [
+              "CURRENT",
+              "STALE",
+              "REJECTED",
+              "UNKNOWN"
+            ]
+          },
+          "calibration_state": {
+            "enum": [
+              "CURRENT",
+              "NOT_APPLICABLE",
+              "EXPIRED",
+              "UNKNOWN"
+            ]
+          },
+          "duplicate_of": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "method_runs": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "method_id",
+          "source_ids",
+          "source_weights",
+          "target_split_sha256",
+          "seed",
+          "label_budget",
+          "compute_budget_id",
+          "target_test_labels_used",
+          "preprocessing_fit_scope",
+          "weight_selection_scope",
+          "weighting_rule_id",
+          "metrics",
+          "source_ablations"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method_id": {
+            "enum": [
+              "NO_TRANSFER",
+              "BEST_SINGLE_SOURCE",
+              "UNIFORM_MULTI_SOURCE",
+              "ENTROPY_WEIGHTED_MULTI_SOURCE"
+            ]
+          },
+          "source_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source_weights": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_id",
+                "weight"
+              ],
+              "properties": {
+                "source_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "weight": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "target_split_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "label_budget": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "compute_budget_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_test_labels_used": {
+            "const": false
+          },
+          "preprocessing_fit_scope": {
+            "const": "SOURCE_TRAIN_ONLY"
+          },
+          "weight_selection_scope": {
+            "const": "SOURCE_TRAIN_PLUS_UNLABELED_TARGET"
+          },
+          "weighting_rule_id": {
+            "oneOf": [
+              {
+                "const": "EW_MDAN_REPRODUCTION_CONTRACT_V0_1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "macro_recall",
+              "worst_fault_recall",
+              "false_alarms_per_engine_hour",
+              "ece",
+              "unknown_false_known_rate"
+            ],
+            "properties": {
+              "macro_recall": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "worst_fault_recall": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "false_alarms_per_engine_hour": {
+                "type": "number",
+                "minimum": 0
+              },
+              "ece": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "unknown_false_known_rate": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "source_ablations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "removed_source_id",
+                "metrics"
+              ],
+              "properties": {
+                "removed_source_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "metrics": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "macro_recall",
+                    "worst_fault_recall",
+                    "false_alarms_per_engine_hour",
+                    "ece",
+                    "unknown_false_known_rate"
+                  ],
+                  "properties": {
+                    "macro_recall": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "worst_fault_recall": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "false_alarms_per_engine_hour": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "ece": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "unknown_false_known_rate": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    }
+  }
+}
