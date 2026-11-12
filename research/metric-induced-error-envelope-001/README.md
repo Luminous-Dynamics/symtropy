@@ -40,6 +40,17 @@ These are floating-point numerical checks, not formally verified bounds. The Cho
 
 The dependency-free Rust test suite covers dense non-orthogonal rebasing invariance for tangent and cotangent norms; dual pairing and coordinate-map round trips; equality of tangent mass norm and the dual norm of its Riesz-lowered covector; a deterministic shear family with 17 parameter values; explicit changes in raw Euclidean/infinity component norms while the metric norm stays invariant; wrong tensor-variance and metric-congruence negative controls; singular transforms and invalid metrics; and explicit recording of admitted roundoff asymmetry.
 
+## Operator conditioning extension
+
+The stacked operator track in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https://github.com/Luminous-Dynamics/symtropy/issues/4818) adds separate frame-typed maps:
+
+- `TangentToTangentOperator`: whitened matrix (B=L_Y^T A L_X^{-T});
+- `TangentToCotangentOperator`: whitened matrix (B=L_Y^{-1} A L_X^{-T}).
+
+A one-sided Jacobi SVD estimates the singular spectrum without forming (B^T B). Rank-deficient maps receive no finite condition estimate; maps beyond the declared condition envelope are marked separately. The mass Riesz map (M:T\to T^*), paired with the same metric on both sides, should whiten to identity and have condition 1. This is a check of the Riesz isomorphism, not a claim that arbitrary physical operators are well-conditioned.
+
+The initial extension covers square dense operators only. It is not a formal interval enclosure and does not yet qualify rectangular constraint maps or nonlinear residual-to-state error.
+
 ## Scope and next step
 
 v0.1 is a small dense linear-algebra reference. It does not yet implement a backward/forward error envelope for a general operator, the constrained Delassus solve, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, contact/friction, sparse articulated systems or production solver claims.
