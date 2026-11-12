@@ -475,9 +475,6 @@ fn prepare_request(
                 json!(too_late.max(render_completed));
             recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
         }
-        FaultCase::CameraIdentityMismatch => {
-            observations[0]["upstream"]["camera_id"] = json!("fault-injected-wrong-camera");
-        }
         FaultCase::MissingActionReceipt => {
             observations[0]["upstream"]["applied_action_receipt_id"] = Value::Null;
             observations[0]["upstream"]["applied_action_receipt_sha256"] = Value::Null;
@@ -773,13 +770,26 @@ mod tests {
                 "pixels_file": format!("frames/frame_{sequence:04}.rgb"),
                 "vehicle_state": { "timestamp": tick as f64 * 0.01 },
                 "upstream": {
-                    "sequence": sequence,
+                    "schema_version": 1,
+                    "observation_id": format!("{:064x}", sequence + 1),
+                    "pixel_format": "rgb8_srgb",
+                    "frame_byte_len": 768,
+                    "receipt_sha256": "e".repeat(64),
+                    "frame_sha256": format!("{:064x}", sequence + 10),
+                    "episode_id": "episode-test",
+                    "agent_id": "ego",
+                    "clock_id": "clock-test",
                     "tick": tick,
+                    "sequence": sequence,
+                    "camera_id": "front-rgb",
+                    "camera_calibration_sha256": "c".repeat(64),
+                    "renderer_revision": "renderer-fixture-v1",
                     "capture_timestamp_us": tick * 10_000,
                     "render_completed_timestamp_us": tick * 10_000 + 800,
                     "delivered_timestamp_us": tick * 10_000 + 1_000,
-                    "camera_calibration_sha256": "c".repeat(64),
-                    "camera_id": "front-rgb",
+                    "frame_width": 16,
+                    "frame_height": 16,
+                    "channels": 3,
                     "applied_action_receipt_id": format!("action-{tick}"),
                     "applied_action_receipt_sha256": "a".repeat(64),
                     "applied_action_command_id": format!("command-{tick}"),
@@ -787,7 +797,7 @@ mod tests {
                 }
             })
         };
-        json!({
+        let mut request = json!({
             "schema_version": 1,
             "bridge_config": {
                 "maximum_observation_delivery_age_us": 5000,
@@ -795,7 +805,23 @@ mod tests {
                 "expected_camera_calibration_sha256": null
             },
             "observations": [observation(1, 1), observation(2, 2)]
-        })
+        });
+        for observation in request["observations"].as_array_mut().unwrap() {
+            recompute_upstream_policy_receipt(&mut observation["upstream"]).unwrap();
+        }
+        request
+    }
+
+    #[test]
+    fn receipt_sha256_implementation_matches_known_answers() {
+        assert_eq!(
+            sha256_hex(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
     }
 
     #[test]
@@ -945,6 +971,24 @@ mod tests {
         assert_eq!(
             FaultCase::StaleSequenceReplay.expected_error(),
             Some("SequenceRegression")
+        );
+    }
+
+    #[test]
+    fn capture_clock_regression_has_a_valid_recomputed_upstream_receipt() {
+        let base = base_request();
+        let (request, _, _, _, _) =
+            prepare_request(&base, FaultCase::CaptureClockRegression).unwrap();
+        let first_capture = request["observations"][0]["timestamp_us"].as_u64().unwrap();
+        let second_capture = request["observations"][1]["timestamp_us"].as_u64().unwrap();
+        assert_eq!(second_capture, first_capture - 1);
+        assert_eq!(
+            request["observations"][1]["upstream"]["capture_timestamp_us"],
+            json!(second_capture)
+        );
+        assert_ne!(
+            request["observations"][1]["upstream"]["receipt_sha256"],
+            base["observations"][1]["upstream"]["receipt_sha256"]
         );
     }
 
