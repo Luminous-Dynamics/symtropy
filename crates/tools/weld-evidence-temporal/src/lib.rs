@@ -1209,7 +1209,7 @@ mod tests {
         );
 
         let mut changed = lifecycle;
-        changed.event_id = "L2".to_owned();
+        changed.effective_at_tick = 8;
         let other = snapshot(
             &EvidenceLedger {
                 clock_mappings: vec![clock()],
