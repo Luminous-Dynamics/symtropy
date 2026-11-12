@@ -30,7 +30,7 @@ The research thesis is that test reports must be linked through physical identit
 
 ### Test record
 
-Each test result that reports PASS, FAIL or NO_PROPAGATION_WITHIN_WINDOW also binds a separate acceptance-criteria identity and an admitted normative/literature or competent-authority evidence reference. Test method and acceptance criteria are not interchangeable; for example SAE J2464 describes abuse-test methods but does not itself supply pass/fail criteria.\n\nEach record binds:
+Each test result that reports PASS, FAIL or NO_PROPAGATION_WITHIN_WINDOW also binds a separate acceptance-criteria identity and an admitted normative/literature or competent-authority evidence reference whose scope matches the exact standard and revision. Test method and acceptance criteria are not interchangeable; for example SAE J2464 describes abuse-test methods but does not itself supply pass/fail criteria.\n\nEach record binds:
 - application domain: EV traction, stationary storage or industrial;
 - test level: cell, module/RPU, REESS/pack, vehicle or stationary installation;
 - exact tested article, revision, chemistry, format, capacity, SOC and relevant condition;
