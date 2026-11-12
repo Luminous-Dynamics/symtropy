@@ -702,6 +702,66 @@
                 }
               }
             }
+          },
+          "unit_transformations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "signal_id",
+                "source_unit",
+                "target_unit",
+                "scale",
+                "offset"
+              ],
+              "properties": {
+                "signal_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "target_unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "scale": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "offset": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "measurement_perturbations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "signal_id",
+                "value_delta",
+                "declared_measurement_uncertainty"
+              ],
+              "properties": {
+                "signal_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value_delta": {
+                  "type": "number"
+                },
+                "declared_measurement_uncertainty": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
           }
         }
       }
