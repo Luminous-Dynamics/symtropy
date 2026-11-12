@@ -1222,10 +1222,18 @@ mod tests {
     #[test]
     fn task_fitness_metrics_are_reported_separately_from_consensus() {
         let positions = vec![
-            ScmAgent { position: vec![0.1, 0.1] },
-            ScmAgent { position: vec![0.9, 0.1] },
-            ScmAgent { position: vec![0.1, 0.9] },
-            ScmAgent { position: vec![0.9, 0.9] },
+            ScmAgent {
+                position: vec![0.1, 0.1],
+            },
+            ScmAgent {
+                position: vec![0.9, 0.1],
+            },
+            ScmAgent {
+                position: vec![0.1, 0.9],
+            },
+            ScmAgent {
+                position: vec![0.9, 0.9],
+            },
         ];
         let landscape = Quadratic;
         let mut model = ScmModel::new(
@@ -1250,9 +1258,7 @@ mod tests {
         let expected_best_index = observations
             .iter()
             .enumerate()
-            .max_by(|(li, left), (ri, right)| {
-                left.total_cmp(right).then_with(|| ri.cmp(li))
-            })
+            .max_by(|(li, left), (ri, right)| left.total_cmp(right).then_with(|| ri.cmp(li)))
             .map(|(index, _)| index)
             .unwrap();
         let expected_best = observations[expected_best_index];
@@ -1281,8 +1287,12 @@ mod tests {
     fn best_fitness_seen_is_monotonic_and_includes_initial_observations() {
         let mut model = ScmModel::new(
             vec![
-                ScmAgent { position: vec![0.2, 0.2] },
-                ScmAgent { position: vec![0.8, 0.8] },
+                ScmAgent {
+                    position: vec![0.2, 0.2],
+                },
+                ScmAgent {
+                    position: vec![0.8, 0.8],
+                },
             ],
             ScmConfig {
                 sigma_initial: 0.0,
@@ -1351,9 +1361,11 @@ mod tests {
                     && report.agent_fitness_variance.is_finite()
                     && report.agent_fitness_variance >= 0.0
             }));
-            assert!(reports.windows(2).all(|pair| {
-                pair[1].best_fitness_seen >= pair[0].best_fitness_seen
-            }));
+            assert!(
+                reports
+                    .windows(2)
+                    .all(|pair| { pair[1].best_fitness_seen >= pair[0].best_fitness_seen })
+            );
             final_best_values.push(reports.last().unwrap().best_fitness_seen);
         }
 
