@@ -250,6 +250,12 @@ impl DamageReceipt {
         if self.material_grade_id != self.calibration.material_grade_id {
             return Err(DamageReceiptError::MaterialGradeMismatch);
         }
+        if self.calibration.environment_profile_id.trim().is_empty() {
+            return Err(DamageReceiptError::EmptyEnvironmentProfile);
+        }
+        if self.calibration.stress_ratio_profile_id.trim().is_empty() {
+            return Err(DamageReceiptError::EmptyStressRatioProfile);
+        }
         if self.cycle_count.environment_profile_id.trim().is_empty()
             || self.cycle_count.stress_ratio_profile_id.trim().is_empty()
         {
@@ -259,12 +265,6 @@ impl DamageReceipt {
             || self.cycle_count.stress_ratio_profile_id != self.calibration.stress_ratio_profile_id
         {
             return Err(DamageReceiptError::ConditionProfileMismatch);
-        }
-        if self.calibration.environment_profile_id.trim().is_empty() {
-            return Err(DamageReceiptError::EmptyEnvironmentProfile);
-        }
-        if self.calibration.stress_ratio_profile_id.trim().is_empty() {
-            return Err(DamageReceiptError::EmptyStressRatioProfile);
         }
         if self
             .calibration
@@ -696,6 +696,50 @@ mod tests {
     }
 
     #[test]
+    fn cycle_count_must_bind_the_exact_load_history_id_and_digest() {
+        let mut receipt = base_receipt();
+        receipt.cycle_count.source_load_history_evidence_id = "other-history".into();
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::LoadHistoryBindingMismatch)
+        );
+
+        let mut receipt = base_receipt();
+        receipt.cycle_count.source_load_history_sha256 = digest('9');
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::LoadHistoryBindingMismatch)
+        );
+    }
+
+    #[test]
+    fn material_grade_must_match_calibration_scope() {
+        let mut receipt = base_receipt();
+        receipt.material_grade_id = "S460".into();
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::MaterialGradeMismatch)
+        );
+    }
+
+    #[test]
+    fn environment_and_stress_ratio_profiles_must_match_cycle_record() {
+        let mut receipt = base_receipt();
+        receipt.cycle_count.environment_profile_id = "salt-spray".into();
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::ConditionProfileMismatch)
+        );
+
+        let mut receipt = base_receipt();
+        receipt.cycle_count.stress_ratio_profile_id = "r-0.5".into();
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::ConditionProfileMismatch)
+        );
+    }
+
+    #[test]
     fn profile_applicability_rejects_stress_range_extrapolation() {
         let mut receipt = base_receipt();
         receipt.cycle_count.maximum_stress_amplitude_mpa = Some(240.0);
@@ -712,6 +756,38 @@ mod tests {
         assert_eq!(
             receipt.into_condition_event("event-1", 0, time()),
             Err(DamageReceiptError::MissingDeltaKInput)
+        );
+    }
+
+    #[test]
+    fn paris_delta_k_receipt_must_bind_exact_subject_and_load_history() {
+        let mut receipt = paris_receipt();
+        let delta = receipt.delta_k_input.as_mut().unwrap();
+        delta.subject.component_instance_id = "wrong-component".into();
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::DeltaKBindingMismatch)
+        );
+
+        let mut receipt = paris_receipt();
+        receipt
+            .delta_k_input
+            .as_mut()
+            .unwrap()
+            .source_load_history_sha256 = digest('9');
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::DeltaKBindingMismatch)
+        );
+    }
+
+    #[test]
+    fn paris_delta_k_value_must_match_the_bound_input_artifact() {
+        let mut receipt = paris_receipt();
+        receipt.delta_k_input.as_mut().unwrap().delta_k_mpa_sqrt_m = 11.0;
+        assert_eq!(
+            receipt.into_condition_event("event-1", 0, time()),
+            Err(DamageReceiptError::DeltaKValueMismatch)
         );
     }
 
