@@ -17,10 +17,8 @@
 
 use core::marker::PhantomData;
 
-use super::operator::{
-    OperatorConditionErrorV1, OperatorConditionProfileV1, OperatorConditionStatusV1,
-};
-use super::{CoordinateFrame, Matrix, Metric, MetricErrorV1};
+use super::operator::{OperatorConditionErrorV1, OperatorConditionProfileV1};
+use super::{CoordinateFrame, Matrix, Metric};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RectangularOperatorStatusV1 {
@@ -247,6 +245,19 @@ fn singular_values_one_sided_jacobi<const K: usize, const N: usize>(
     profile: OperatorConditionProfileV1,
 ) -> Result<(Vec<f64>, f64, usize), OperatorConditionErrorV1> {
     let mut work = *matrix;
+    let initial_scale = (0..N).fold(0.0_f64, |maximum, column| {
+        maximum.max(column_norm(&work, column))
+    });
+    if !initial_scale.is_finite() {
+        return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
+    }
+    // Columns below the already-declared numerical-rank threshold represent
+    // unresolved null directions. Their normalized correlation is dominated
+    // by roundoff and must not prevent convergence of the resolved range.
+    let numerical_zero_floor = initial_scale * profile.relative_rank_tolerance;
+    if !numerical_zero_floor.is_finite() {
+        return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
+    }
     let mut sweeps = 0;
     let mut converged = false;
 
@@ -259,7 +270,7 @@ fn singular_values_one_sided_jacobi<const K: usize, const N: usize>(
                 if !left_norm.is_finite() || !right_norm.is_finite() {
                     return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
                 }
-                if left_norm == 0.0 || right_norm == 0.0 {
+                if left_norm <= numerical_zero_floor || right_norm <= numerical_zero_floor {
                     continue;
                 }
 
@@ -316,6 +327,11 @@ fn singular_values_one_sided_jacobi<const K: usize, const N: usize>(
     let mut maximum_correlation = 0.0_f64;
     for left in 0..N {
         for right in (left + 1)..N {
+            if column_norm(&work, left) <= numerical_zero_floor
+                || column_norm(&work, right) <= numerical_zero_floor
+            {
+                continue;
+            }
             maximum_correlation =
                 maximum_correlation.max(normalized_column_correlation(&work, left, right)?.abs());
         }
