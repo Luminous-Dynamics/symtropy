@@ -1,0 +1,92 @@
+name: Textile Attachment Removal Contract
+
+on:
+  pull_request:
+    paths:
+      - "tools/textile-attachment-removal-contract/**"
+      - ".github/workflows/textile-attachment-removal-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/textile-attachment-removal-contract/**"
+      - ".github/workflows/textile-attachment-removal-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: textile-attachment-removal-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Attachment removal evidence contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact subject head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact subject checkout
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SUBJECT_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SUBJECT_SHA" = "$EXPECTED_SUBJECT_SHA"
+          printf 'Validated subject SHA: %s\n' "$ACTUAL_SUBJECT_SHA"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Test semantic and negative-control cases
+        run: cargo test --manifest-path tools/textile-attachment-removal-contract/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/textile-attachment-removal-contract/Cargo.toml --all -- --check
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/textile-attachment-removal-contract/Cargo.toml --all-targets -- -D warnings
+
+      - name: Emit exact-subject qualification receipt
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SUBJECT_SHA="$(git rev-parse HEAD)"
+          test "$ACTUAL_SUBJECT_SHA" = "$EXPECTED_SUBJECT_SHA"
+          mkdir -p artifacts/textile-attachment-removal
+          cat > artifacts/textile-attachment-removal/receipt.json <<EOF
+          {
+            "receipt_version": "textile-attachment-removal-ci-v0.1",
+            "repository": "$REPOSITORY",
+            "subject_sha": "$EXPECTED_SUBJECT_SHA",
+            "checked_out_sha": "$ACTUAL_SUBJECT_SHA",
+            "run_id": $RUN_ID,
+            "run_attempt": $RUN_ATTEMPT,
+            "rust_toolchain": "1.96.0",
+            "checks": [
+              "cargo test --manifest-path tools/textile-attachment-removal-contract/Cargo.toml",
+              "cargo fmt --manifest-path tools/textile-attachment-removal-contract/Cargo.toml --all -- --check",
+              "cargo clippy --manifest-path tools/textile-attachment-removal-contract/Cargo.toml --all-targets -- -D warnings"
+            ],
+            "claim_ceiling": "typed_attempt_contract_only"
+          }
+          EOF
+          sha256sum artifacts/textile-attachment-removal/receipt.json \
+            > artifacts/textile-attachment-removal/receipt.sha256
+
+      - name: Upload exact-subject qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: textile-attachment-removal-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/textile-attachment-removal/
+          if-no-files-found: error
+          retention-days: 30
