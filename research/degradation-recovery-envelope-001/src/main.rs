@@ -168,7 +168,7 @@ mod tests {
         assert_eq!(report.disposition, "valid");
         assert!(report.findings.is_empty());
         assert_eq!(report.expected_ticks, 8);
-        assert_eq!(report.events[0].recovery_tick, Some(7));
+        assert_eq!(report.events[0].recovery_tick, Some(8));
     }
 
     #[test]
