@@ -1378,10 +1378,12 @@ impl KerrCanonicalHamiltonian {
         let inverse = metric.inverse()?;
 
         let mut velocity = [0.0; 4];
-        for mu in 0..4 {
-            for nu in 0..4 {
-                velocity[mu] += inverse[mu][nu] * state.momenta[nu];
-            }
+        for (velocity_component, inverse_row) in velocity.iter_mut().zip(inverse.iter()) {
+            *velocity_component = inverse_row
+                .iter()
+                .zip(state.momenta.iter())
+                .map(|(inverse_component, momentum)| inverse_component * momentum)
+                .sum();
         }
 
         let mut momentum_derivative = [0.0; 4];
@@ -1389,19 +1391,23 @@ impl KerrCanonicalHamiltonian {
         for (coordinate, derivative) in [(1usize, &radial_derivative), (2usize, &polar_derivative)]
         {
             let mut value = 0.0;
-            for mu in 0..4 {
-                for nu in 0..4 {
-                    value += velocity[mu] * derivative[mu][nu] * velocity[nu];
+            for (velocity_mu, derivative_row) in velocity.iter().zip(derivative.iter()) {
+                for (derivative_component, velocity_nu) in
+                    derivative_row.iter().zip(velocity.iter())
+                {
+                    value += velocity_mu * derivative_component * velocity_nu;
                 }
             }
             momentum_derivative[coordinate] = 0.5 * value;
         }
 
-        let mut hamiltonian = 0.0;
-        for mu in 0..4 {
-            hamiltonian += state.momenta[mu] * velocity[mu];
-        }
-        hamiltonian *= 0.5;
+        let hamiltonian = 0.5
+            * state
+                .momenta
+                .iter()
+                .zip(velocity.iter())
+                .map(|(momentum, velocity_component)| momentum * velocity_component)
+                .sum::<f64>();
 
         let energy = -state.momenta[0];
         let angular_momentum = state.momenta[3];
@@ -1461,8 +1467,8 @@ fn canonical_symplectic_lie_residual(a: &[[f64; 8]; 8]) -> f64 {
     for row in 0..8 {
         for column in 0..8 {
             let mut value = 0.0;
-            for k in 0..8 {
-                value += a[k][row] * canonical_symplectic_omega(k, column)
+            for (k, a_row) in a.iter().enumerate() {
+                value += a_row[row] * canonical_symplectic_omega(k, column)
                     + canonical_symplectic_omega(row, k) * a[k][column];
             }
             maximum = maximum.max(value.abs());
@@ -3175,9 +3181,13 @@ mod tests {
 
             let n = [direction.radial, direction.polar, direction.azimuthal];
             let basis = seed.local_screen_basis;
-            for i in 0..2 {
-                close(basis[i].iter().zip(n).map(|(a, b)| a * b).sum(), 0.0, 2e-14);
-                close(basis[i].iter().map(|x| x * x).sum(), 1.0, 2e-14);
+            for basis_vector in &basis {
+                close(
+                    basis_vector.iter().zip(n).map(|(a, b)| a * b).sum(),
+                    0.0,
+                    2e-14,
+                );
+                close(basis_vector.iter().map(|x| x * x).sum(), 1.0, 2e-14);
             }
             close(
                 basis[0].iter().zip(basis[1]).map(|(a, b)| a * b).sum(),
@@ -3204,8 +3214,11 @@ mod tests {
 
             // Central finite difference of the exact local-tetrad seed map.
             let epsilon = 1e-6;
-            for index in 0..2 {
-                let tangent = basis[index];
+            let analytic_variations = [
+                seed.first_phase_space_variation,
+                seed.second_phase_space_variation,
+            ];
+            for (tangent, analytic) in basis.iter().zip(analytic_variations.iter()) {
                 let plus = normalize_sky([
                     n[0] + epsilon * tangent[0],
                     n[1] + epsilon * tangent[1],
@@ -3224,16 +3237,16 @@ mod tests {
                         KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap(),
                     )
                     .unwrap();
-                let analytic = if index == 0 {
-                    seed.first_phase_space_variation
-                } else {
-                    seed.second_phase_space_variation
-                };
-                for slot in 4..8 {
-                    let numerical = (plus_seed.state.momenta[slot - 4]
-                        - minus_seed.state.momenta[slot - 4])
-                        / (2.0 * epsilon);
-                    close(analytic[slot], numerical, 2e-7);
+                for ((plus_momentum, minus_momentum), analytic_component) in plus_seed
+                    .state
+                    .momenta
+                    .iter()
+                    .zip(minus_seed.state.momenta.iter())
+                    .zip(analytic.iter().skip(4))
+                {
+                    let numerical =
+                        (plus_momentum - minus_momentum) / (2.0 * epsilon);
+                    close(*analytic_component, numerical, 2e-7);
                 }
             }
         }
