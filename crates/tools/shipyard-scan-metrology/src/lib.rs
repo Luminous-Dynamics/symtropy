@@ -588,22 +588,34 @@ mod tests {
 
     #[test]
     fn receipt_rejects_malformed_source_digest() {
-        assert_receipt_error(|r| r.source_scan_sha256 = "abc".to_owned(), ReceiptError::SourceDigestMalformed);
+        assert_receipt_error(
+            |r| r.source_scan_sha256 = "abc".to_owned(),
+            ReceiptError::SourceDigestMalformed,
+        );
     }
 
     #[test]
     fn receipt_rejects_source_digest_mismatch() {
-        assert_receipt_error(|r| r.source_scan_sha256 = seed_hex('3'), ReceiptError::SourceDigestMismatch);
+        assert_receipt_error(
+            |r| r.source_scan_sha256 = seed_hex('3'),
+            ReceiptError::SourceDigestMismatch,
+        );
     }
 
     #[test]
     fn receipt_rejects_transform_digest_mismatch() {
-        assert_receipt_error(|r| r.registration_receipt_sha256 = seed_hex('4'), ReceiptError::TransformDigestMismatch);
+        assert_receipt_error(
+            |r| r.registration_receipt_sha256 = seed_hex('4'),
+            ReceiptError::TransformDigestMismatch,
+        );
     }
 
     #[test]
     fn receipt_rejects_frame_mismatch() {
-        assert_receipt_error(|r| r.source_frame_id = "OTHER-FRAME".to_owned(), ReceiptError::SourceFrameMismatch);
+        assert_receipt_error(
+            |r| r.source_frame_id = "OTHER-FRAME".to_owned(),
+            ReceiptError::SourceFrameMismatch,
+        );
     }
 
     #[test]
@@ -633,32 +645,50 @@ mod tests {
 
     #[test]
     fn receipt_rejects_excessive_rms_residual() {
-        assert_receipt_error(|r| r.residual_rms_microunits = 101, ReceiptError::ResidualRmsAboveLimit);
+        assert_receipt_error(
+            |r| r.residual_rms_microunits = 101,
+            ReceiptError::ResidualRmsAboveLimit,
+        );
     }
 
     #[test]
     fn receipt_rejects_excessive_p95_residual() {
-        assert_receipt_error(|r| r.residual_p95_microunits = 201, ReceiptError::ResidualP95AboveLimit);
+        assert_receipt_error(
+            |r| r.residual_p95_microunits = 201,
+            ReceiptError::ResidualP95AboveLimit,
+        );
     }
 
     #[test]
     fn receipt_rejects_excessive_max_residual() {
-        assert_receipt_error(|r| r.residual_max_microunits = 301, ReceiptError::ResidualMaximumAboveLimit);
+        assert_receipt_error(
+            |r| r.residual_max_microunits = 301,
+            ReceiptError::ResidualMaximumAboveLimit,
+        );
     }
 
     #[test]
     fn receipt_rejects_zero_uncertainty() {
-        assert_receipt_error(|r| r.uncertainty_95_microunits = 0, ReceiptError::UncertaintyMissing);
+        assert_receipt_error(
+            |r| r.uncertainty_95_microunits = 0,
+            ReceiptError::UncertaintyMissing,
+        );
     }
 
     #[test]
     fn receipt_rejects_uncertainty_above_policy() {
-        assert_receipt_error(|r| r.uncertainty_95_microunits = 501, ReceiptError::UncertaintyAboveLimit);
+        assert_receipt_error(
+            |r| r.uncertainty_95_microunits = 501,
+            ReceiptError::UncertaintyAboveLimit,
+        );
     }
 
     #[test]
     fn receipt_rejects_confidence_below_policy() {
-        assert_receipt_error(|r| r.confidence_permille = 949, ReceiptError::ConfidenceBelowMinimum);
+        assert_receipt_error(
+            |r| r.confidence_permille = 949,
+            ReceiptError::ConfidenceBelowMinimum,
+        );
     }
 
     #[test]
@@ -697,7 +727,10 @@ mod tests {
     fn receipt_rejects_wrong_predecessor_identity() {
         let mut receipt = valid_receipt();
         receipt.predecessor_pass_id = "PASS-OLD".to_owned();
-        assert_eq!(validate_receipt(&receipt, &context(), policy()), Err(ReceiptError::IdentityMismatch));
+        assert_eq!(
+            validate_receipt(&receipt, &context(), policy()),
+            Err(ReceiptError::IdentityMismatch)
+        );
     }
 
     #[test]
@@ -712,12 +745,18 @@ mod tests {
 
     #[test]
     fn receipt_rejects_target_frame_mismatch() {
-        assert_receipt_error(|r| r.target_frame_id = "OTHER-TARGET".to_owned(), ReceiptError::TargetFrameMismatch);
+        assert_receipt_error(
+            |r| r.target_frame_id = "OTHER-TARGET".to_owned(),
+            ReceiptError::TargetFrameMismatch,
+        );
     }
 
     #[test]
     fn receipt_rejects_malformed_transform_digest() {
-        assert_receipt_error(|r| r.registration_receipt_sha256 = "xyz".to_owned(), ReceiptError::TransformDigestMalformed);
+        assert_receipt_error(
+            |r| r.registration_receipt_sha256 = "xyz".to_owned(),
+            ReceiptError::TransformDigestMalformed,
+        );
     }
 
     #[test]
