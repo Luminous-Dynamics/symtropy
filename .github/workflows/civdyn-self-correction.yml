@@ -327,6 +327,70 @@ jobs:
           assert correct["draw_set_digest"] != wrong["draw_set_digest"]
           print("Network-adequacy CSV valid: identical degree sequences, distinct held-out topology, positive multivariate penalty, exact provenance and deterministic replay.")
           PY
+      - name: Verify ordered temporal network adequacy and snapshot-permutation control
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin temporal-network-adequacy-sweep > /tmp/civdyn-temporal-network-adequacy.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin temporal-network-adequacy-sweep > /tmp/civdyn-temporal-network-adequacy-replay.csv
+          cmp /tmp/civdyn-temporal-network-adequacy.csv /tmp/civdyn-temporal-network-adequacy-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-temporal-network-adequacy.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 26
+          assert len(rows) == 2
+          candidates = {row["candidate"]: row for row in rows}
+          forward = candidates["temporal_order_correct"]
+          reverse = candidates["same_snapshots_reversed_order"]
+
+          assert forward["graph_semantics"] == reverse["graph_semantics"] == "undirected_unweighted_simple_stable_node_universe"
+          assert forward["snapshot_count"] == reverse["snapshot_count"] == "3"
+          assert forward["start_tick"] == reverse["start_tick"] == "10"
+          assert forward["end_tick"] == reverse["end_tick"] == "30"
+
+          assert math.isclose(float(forward["mean_component_count"]), 2.0, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_component_count"]), 2.0, abs_tol=1e-8)
+          assert math.isclose(float(forward["component_count_trend_per_tick"]), 0.1, abs_tol=1e-8)
+          assert math.isclose(float(reverse["component_count_trend_per_tick"]), -0.1, abs_tol=1e-8)
+
+          assert math.isclose(float(forward["mean_degree"]), 5.0 / 3.0, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_degree"]), 5.0 / 3.0, abs_tol=1e-8)
+          assert math.isclose(float(forward["mean_degree_trend_per_tick"]), -0.05, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_degree_trend_per_tick"]), 0.05, abs_tol=1e-8)
+
+          assert math.isclose(float(forward["mean_transitivity"]), 1.0 / 3.0, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_transitivity"]), 1.0 / 3.0, abs_tol=1e-8)
+          assert math.isclose(float(forward["transitivity_trend_per_tick"]), 0.0, abs_tol=1e-8)
+          assert math.isclose(float(reverse["transitivity_trend_per_tick"]), 0.0, abs_tol=1e-8)
+
+          assert math.isclose(float(forward["mean_edge_jaccard"]), 11.0 / 28.0, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_edge_jaccard"]), 11.0 / 28.0, abs_tol=1e-8)
+          assert math.isclose(float(forward["mean_edge_turnover"]), 17.0 / 28.0, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_edge_turnover"]), 17.0 / 28.0, abs_tol=1e-8)
+          assert math.isclose(float(forward["mean_edge_addition_rate"]), 0.1, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_edge_addition_rate"]), 0.2, abs_tol=1e-8)
+          assert math.isclose(float(forward["mean_edge_removal_rate"]), 0.2, abs_tol=1e-8)
+          assert math.isclose(float(reverse["mean_edge_removal_rate"]), 0.1, abs_tol=1e-8)
+
+          assert forward["energy_score"] == "0.0000000000000000"
+          assert forward["variogram_score"] == "0.0000000000000000"
+          assert float(reverse["energy_score"]) > 0.0
+          assert float(reverse["variogram_score"]) > 0.0
+          assert forward["draw_count"] == reverse["draw_count"] == "20"
+          assert forward["source_digest"] == reverse["source_digest"]
+          assert forward["observation_digest"] == reverse["observation_digest"]
+          assert forward["calibration_digest"] == reverse["calibration_digest"]
+          assert forward["split_manifest_digest"] == reverse["split_manifest_digest"]
+          assert forward["model_digest"] != reverse["model_digest"]
+          assert forward["draw_set_digest"] != reverse["draw_set_digest"]
+          print("Temporal-network CSV valid: same snapshot multiset and marginal moments, reversed trends/order distinguished by joint energy/variogram scores; exact provenance and deterministic replay.")
+          PY
 
 
       - name: Verify same-marginal joint and trajectory adequacy controls
