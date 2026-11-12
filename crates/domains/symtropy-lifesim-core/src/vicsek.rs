@@ -1862,6 +1862,7 @@ impl XorShift64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::motion_salience::wrapped_angular_difference;
 
     fn particles_from_headings(headings: &[f64], box_size: f64) -> Vec<VicsekParticle> {
         headings
