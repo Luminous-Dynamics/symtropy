@@ -102,3 +102,14 @@ An independent oracle defines expected dispositions. The estimator/policy cannot
 ## 9. Claim ceiling
 
 The JSON manifest is a deterministic policy-level campaign plan. It is not acoustic waveform physics, a published-paper reproduction, a localization implementation, an acoustic array qualification, or a cable-duct safety case. All numeric research targets are hypotheses until matched experiments and independent verification exist.
+
+
+## 10. Reference action oracle added to the machine-readable campaign
+
+Each of the 14 scenarios now specifies both:
+- an expected disposition (Accepted / Rejected / Indeterminate / Unsupported); and
+- an independently prescribed expected action (CONTINUE_MOVING / SLOW_AND_SAMPLE / PAUSE_AND_CHIRP / CHANGE_EXCITATION / REVERSE_VIEW / DEFER_OR_ABSTAIN), with a rationale.
+
+This prevents the benchmark from checking abstention alone while failing to test whether the sensing policy chooses a useful action. The oracle is a declared policy reference for the synthetic cases, not a universally optimal real-world policy. A later experimental study must preregister its utility/cost model, thresholds and action feasibility before scoring candidate policies.
+
+The policy must never call an unavailable action or action outside the declared robot/tool envelope. Proposed actions remain offline recommendations and cannot command physical hardware.
