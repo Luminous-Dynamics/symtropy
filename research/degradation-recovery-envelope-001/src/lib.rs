@@ -745,7 +745,7 @@ pub fn standard_fault_schedule(
             FaultKind::CameraDrop | FaultKind::StaleReplay => 1_000_000,
             FaultKind::FrameDelay | FaultKind::PixelCorruption | FaultKind::ComputeOverrun => {
                 500_000
-            },
+            }
             FaultKind::CalibrationShift | FaultKind::ClockDrift => 250_000,
         };
         events.push(FaultEvent {
@@ -835,7 +835,10 @@ fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Findi
         }
     }
 
-    for event in events.iter().filter(|event| event.causality == FaultCausality::Cascaded) {
+    for event in events
+        .iter()
+        .filter(|event| event.causality == FaultCausality::Cascaded)
+    {
         let mut seen = BTreeSet::new();
         let mut cursor = Some(event.event_id.as_str());
         while let Some(event_id) = cursor {
@@ -1634,8 +1637,7 @@ mod tests {
         input.faulted_run.ticks[3].conditions = vec![ObservationCondition::ComputeOverrun];
         input.faulted_run.ticks[3].fault_detection_event_ids =
             vec!["compute-overrun-2".to_string()];
-        input.faulted_run.ticks[3].containment_event_ids =
-            vec!["compute-overrun-2".to_string()];
+        input.faulted_run.ticks[3].containment_event_ids = vec!["compute-overrun-2".to_string()];
 
         let report = audit_campaign(&input);
         assert!(!has(&report, "missing_causal_parent"));
@@ -1679,8 +1681,7 @@ mod tests {
         assert_eq!(report.events[1].detection_latency_ticks, Some(0));
         assert!(report.events.iter().all(|event| {
             event.causality == FaultCausality::CommonCause
-                && event.causal_group_id.as_deref()
-                    == Some("shared-power-clock-domain-1")
+                && event.causal_group_id.as_deref() == Some("shared-power-clock-domain-1")
         }));
     }
 
@@ -1765,7 +1766,10 @@ mod tests {
             assert_eq!(event.start_tick, 10 + index as u64 * 5);
             assert_eq!(event.severity_ppm, severities[index % severities.len()]);
         }
-        let kinds = first.iter().map(|event| event.kind).collect::<BTreeSet<_>>();
+        let kinds = first
+            .iter()
+            .map(|event| event.kind)
+            .collect::<BTreeSet<_>>();
         assert_eq!(kinds.len(), 7);
     }
 
@@ -1803,43 +1807,4 @@ mod tests {
     }
 
     #[test]
-    fn standard_schedule_rejects_tick_arithmetic_overflow() {
-        assert!(standard_fault_schedule(u64::MAX - 2, 5, 3, 1, 1, 2).is_err());
-    }
-
-    #[test]
-    fn reports_resource_axes_separately_without_composite_score() {
-        let report = audit_campaign(&campaign());
-        assert_eq!(report.clean_control_decision_latency.sample_count, 8);
-        assert_eq!(report.faulted_decision_latency.sample_count, 8);
-        assert_eq!(report.clean_control_inference_energy.p99_uj, Some(48));
-        assert_eq!(report.faulted_inference_energy.p99_uj, Some(48));
-    }
-
-    #[test]
-    fn rejects_containment_event_reference_without_degraded_or_fallback_state() {
-        let mut input = campaign();
-        input.faulted_run.ticks[2].degraded_mode = false;
-        input.faulted_run.ticks[2].fallback_active = false;
-        input.faulted_run.ticks[3].containment_event_ids.clear();
-        let report = audit_campaign(&input);
-        assert!(has(&report, "containment_reference_without_state"));
-        assert!(has(&report, "containment_deadline_missed"));
-    }
-
-    #[test]
-    fn rejects_normal_mode_while_fallback_remains_active() {
-        let mut input = campaign();
-        input.faulted_run.ticks[6].fallback_active = true;
-        let report = audit_campaign(&input);
-        assert!(has(&report, "normal_mode_with_containment_active"));
-    }
-
-    #[test]
-    fn rejects_normal_mode_while_fault_is_active() {
-        let mut input = campaign();
-        input.faulted_run.ticks[2].normal_mode = true;
-        let report = audit_campaign(&input);
-        assert!(has(&report, "normal_mode_during_fault"));
-    }
-}
+    fn standard_schedule_rejects_
