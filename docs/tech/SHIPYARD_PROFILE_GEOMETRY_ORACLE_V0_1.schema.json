@@ -177,7 +177,7 @@
         "source_scan_sha256",
         "reference_profile_sha256",
         "transform_revision",
-        "registration_error_bound_units"
+        "registration_vertical_error_bound_units"
       ],
       "properties": {
         "sha256": {
@@ -193,7 +193,7 @@
           "type": "string",
           "minLength": 1
         },
-        "registration_error_bound_units": {
+        "registration_vertical_error_bound_units": {
           "type": "integer",
           "minimum": 0
         }
