@@ -992,7 +992,13 @@ mod tests {
     #[test]
     fn changed_target_lineage_is_indeterminate() {
         let mut input = parse_fixture(NO_CHANGE);
+        let original_target = input.testing.target_ids[0].clone();
         input.testing.target_ids[0] = "different-target".to_owned();
+        for row in &mut input.testing.rows {
+            if row.target_id == original_target {
+                row.target_id = "different-target".to_owned();
+            }
+        }
         let report = evaluate_input(&input, "b".repeat(64));
         assert_eq!(report.disposition, "INDETERMINATE");
         assert_eq!(
@@ -1135,10 +1141,10 @@ mod tests {
     #[test]
     fn signed_square_root_preserves_product_sign() {
         let rows = [
-            [-2.0, 1.0, 3.0],
-            [-1.0, 2.0, 4.0],
-            [0.0, 3.0, 5.0],
-            [1.0, 4.0, 6.0],
+            [-2.0, 4.0, 3.0],
+            [-1.0, 3.0, 4.0],
+            [0.0, 2.0, 5.0],
+            [1.0, 1.0, 6.0],
         ];
         let transformed = obrien_transform(&rows).unwrap();
         assert_eq!(transformed[0][3].signum(), -1.0);
