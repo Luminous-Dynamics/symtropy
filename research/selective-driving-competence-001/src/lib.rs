@@ -64,6 +64,8 @@ pub struct EvaluationInput {
     pub calibration_bin_count: usize,
     pub fixed_coverage_target: f64,
     pub fixed_risk_limit: f64,
+    pub bootstrap_replicates: usize,
+    pub bootstrap_seed: u64,
     pub decisions: Vec<DecisionRecord>,
 }
 
@@ -152,6 +154,22 @@ pub struct ResourceMetrics {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct BootstrapInterval {
+    pub lower_95_percent: f64,
+    pub upper_95_percent: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BootstrapMetrics {
+    pub episode_cluster_count: usize,
+    pub replicates: usize,
+    pub seed: u64,
+    pub risk_coverage_area_failure_rate: Option<BootstrapInterval>,
+    pub actual_autonomy_coverage: Option<BootstrapInterval>,
+    pub actual_accepted_failure_rate: Option<BootstrapInterval>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct EvaluationReport {
     pub schema_version: u32,
     pub protocol_id: String,
@@ -174,6 +192,7 @@ pub struct EvaluationReport {
     pub families: Vec<FamilyMetrics>,
     pub fallback: FallbackMetrics,
     pub resources: ResourceMetrics,
+    pub bootstrap: BootstrapMetrics,
     pub claim_ceiling: String,
 }
 
@@ -220,6 +239,9 @@ impl EvaluationInput {
         }
         if self.decisions.is_empty() {
             findings.push("decisions must be non-empty".to_string());
+        }
+        if !(100..=10_000).contains(&self.bootstrap_replicates) {
+            findings.push("bootstrap_replicates must be in 100..=10000".to_string());
         }
         if self.expected_episode_ids.len() > 1_000_000
             || self.expected_decision_ids.len() > 10_000_000
@@ -469,6 +491,7 @@ fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
     let families = family_metrics(&input.decisions);
     let fallback = fallback_metrics(&input.decisions);
     let resources = resource_metrics(&input.decisions);
+    let bootstrap = bootstrap_metrics(input);
     let accepted_records = input.decisions.iter().filter(|decision| !decision.abstained).collect::<Vec<_>>();
     let actual_autonomy_coverage = accepted_records.len() as f64 / total as f64;
     let actual_accepted_failure_rate = if accepted_records.is_empty() {
@@ -507,7 +530,160 @@ fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
         families,
         fallback,
         resources,
+        bootstrap,
         claim_ceiling: "Offline statistics for the exact declared frozen records only. Risk-coverage and calibration metrics are not a safe-action certificate, a distribution-free safety guarantee, a runtime controller or evidence of roadworthiness.".to_string(),
+    }
+}
+
+
+#[derive(Debug, Clone, Copy)]
+struct SelectiveSummary {
+    risk_coverage_area_failure_rate: f64,
+    actual_autonomy_coverage: f64,
+    actual_accepted_failure_rate: Option<f64>,
+}
+
+fn selective_summary(decisions: &[&DecisionRecord]) -> SelectiveSummary {
+    let total = decisions.len();
+    if total == 0 {
+        return SelectiveSummary {
+            risk_coverage_area_failure_rate: 0.0,
+            actual_autonomy_coverage: 0.0,
+            actual_accepted_failure_rate: None,
+        };
+    }
+    let mut ranked = decisions.to_vec();
+    ranked.sort_by(|left, right| {
+        left.predicted_failure_probability
+            .total_cmp(&right.predicted_failure_probability)
+            .then_with(|| left.decision_id.cmp(&right.decision_id))
+    });
+    let mut accepted = 0_usize;
+    let mut failures = 0_usize;
+    let mut area = 0.0_f64;
+    let mut previous_coverage = 0.0_f64;
+    let mut index = 0_usize;
+    while index < ranked.len() {
+        let score = ranked[index].predicted_failure_probability;
+        let mut end = index;
+        while end < ranked.len() && ranked[end].predicted_failure_probability == score {
+            accepted += 1;
+            failures += if ranked[end].observed_failure { 1 } else { 0 };
+            end += 1;
+        }
+        let coverage = accepted as f64 / total as f64;
+        let risk = failures as f64 / accepted as f64;
+        area += (coverage - previous_coverage) * risk;
+        previous_coverage = coverage;
+        index = end;
+    }
+    let accepted_records = decisions
+        .iter()
+        .filter(|decision| !decision.abstained)
+        .collect::<Vec<_>>();
+    let actual_autonomy_coverage = accepted_records.len() as f64 / total as f64;
+    let actual_accepted_failure_rate = if accepted_records.is_empty() {
+        None
+    } else {
+        Some(
+            accepted_records
+                .iter()
+                .filter(|decision| decision.observed_failure)
+                .count() as f64
+                / accepted_records.len() as f64,
+        )
+    };
+    SelectiveSummary {
+        risk_coverage_area_failure_rate: area,
+        actual_autonomy_coverage,
+        actual_accepted_failure_rate,
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^ (value >> 31)
+    }
+
+    fn index(&mut self, upper_exclusive: usize) -> usize {
+        (self.next_u64() % upper_exclusive as u64) as usize
+    }
+}
+
+fn percentile_interval(mut values: Vec<f64>) -> BootstrapInterval {
+    values.sort_by(f64::total_cmp);
+    let lower = ((values.len() - 1) as f64 * 0.025).floor() as usize;
+    let upper = ((values.len() - 1) as f64 * 0.975).ceil() as usize;
+    BootstrapInterval {
+        lower_95_percent: values[lower],
+        upper_95_percent: values[upper],
+    }
+}
+
+fn bootstrap_metrics(input: &EvaluationInput) -> BootstrapMetrics {
+    let mut episodes: BTreeMap<&str, Vec<&DecisionRecord>> = BTreeMap::new();
+    for decision in &input.decisions {
+        episodes
+            .entry(decision.episode_id.as_str())
+            .or_default()
+            .push(decision);
+    }
+    let episode_ids = episodes.keys().copied().collect::<Vec<_>>();
+    if episode_ids.len() < 2 {
+        return BootstrapMetrics {
+            episode_cluster_count: episode_ids.len(),
+            replicates: input.bootstrap_replicates,
+            seed: input.bootstrap_seed,
+            risk_coverage_area_failure_rate: None,
+            actual_autonomy_coverage: None,
+            actual_accepted_failure_rate: None,
+        };
+    }
+
+    let mut rng = SplitMix64::new(input.bootstrap_seed);
+    let mut aurc_samples = Vec::with_capacity(input.bootstrap_replicates);
+    let mut coverage_samples = Vec::with_capacity(input.bootstrap_replicates);
+    let mut accepted_risk_samples = Vec::with_capacity(input.bootstrap_replicates);
+    for _ in 0..input.bootstrap_replicates {
+        let mut sample = Vec::new();
+        for _ in 0..episode_ids.len() {
+            let selected_episode = episode_ids[rng.index(episode_ids.len())];
+            if let Some(records) = episodes.get(selected_episode) {
+                sample.extend(records.iter().copied());
+            }
+        }
+        let summary = selective_summary(&sample);
+        aurc_samples.push(summary.risk_coverage_area_failure_rate);
+        coverage_samples.push(summary.actual_autonomy_coverage);
+        if let Some(rate) = summary.actual_accepted_failure_rate {
+            accepted_risk_samples.push(rate);
+        }
+    }
+
+    BootstrapMetrics {
+        episode_cluster_count: episode_ids.len(),
+        replicates: input.bootstrap_replicates,
+        seed: input.bootstrap_seed,
+        risk_coverage_area_failure_rate: Some(percentile_interval(aurc_samples)),
+        actual_autonomy_coverage: Some(percentile_interval(coverage_samples)),
+        actual_accepted_failure_rate: if accepted_risk_samples.is_empty() {
+            None
+        } else {
+            Some(percentile_interval(accepted_risk_samples))
+        },
     }
 }
 
@@ -729,6 +905,8 @@ mod tests {
             calibration_bin_count: 5,
             fixed_coverage_target: 0.5,
             fixed_risk_limit: 0.25,
+            bootstrap_replicates: 200,
+            bootstrap_seed: 7,
             decisions: records,
         }
     }
@@ -930,6 +1108,33 @@ mod tests {
             serde_json::to_string(&left).unwrap(),
             serde_json::to_string(&right).unwrap()
         );
+    }
+
+    #[test]
+    fn episode_cluster_bootstrap_is_deterministic_and_reports_coverage_intervals() {
+        let value = input(vec![
+            record("a", "urban", 0.01, false, 0.0),
+            record("b", "urban", 0.1, false, 0.0),
+            record("c", "night", 0.8, true, 1.0),
+            record("d", "night", 0.9, true, 1.0),
+        ]);
+        let first = value.evaluate().unwrap().bootstrap;
+        let second = value.evaluate().unwrap().bootstrap;
+        assert_eq!(first.episode_cluster_count, 4);
+        assert_eq!(first.replicates, 200);
+        assert_eq!(first.risk_coverage_area_failure_rate.as_ref().unwrap().lower_95_percent,
+                   second.risk_coverage_area_failure_rate.as_ref().unwrap().lower_95_percent);
+        let coverage = first.actual_autonomy_coverage.unwrap();
+        assert!(coverage.lower_95_percent <= coverage.upper_95_percent);
+        assert!((0.0..=1.0).contains(&coverage.lower_95_percent));
+    }
+
+    #[test]
+    fn single_episode_bootstrap_is_reported_unavailable_not_as_false_precision() {
+        let report = input(vec![record("a", "urban", 0.1, false, 0.0)]).evaluate().unwrap();
+        assert_eq!(report.bootstrap.episode_cluster_count, 1);
+        assert_eq!(report.bootstrap.actual_autonomy_coverage, None);
+        assert_eq!(report.bootstrap.risk_coverage_area_failure_rate, None);
     }
 
     #[test]
