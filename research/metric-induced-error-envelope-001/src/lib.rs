@@ -40,7 +40,7 @@ pub struct Tangent<F: CoordinateFrame, const N: usize> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cotangent<F: CoordinateFrame, const N: usize> {
     components: Vector<N>,
-    frame: PhantomData<F>,
+    _frame: PhantomData<F>,
 }
 
 impl<F: CoordinateFrame, const N: usize> Tangent<F, N> {
@@ -57,7 +57,7 @@ impl<F: CoordinateFrame, const N: usize> Tangent<F, N> {
 impl<F: CoordinateFrame, const N: usize> Cotangent<F, N> {
     pub fn new(components: Vector<N>) -> Result<Self, MetricErrorV1> {
         validate_vector(&components)?;
-        Ok(Self { components, frame: PhantomData })
+        Ok(Self { components, _frame: PhantomData })
     }
 
     pub fn components(&self) -> &Vector<N> {
@@ -115,7 +115,7 @@ pub struct Metric<F: CoordinateFrame, const N: usize> {
     matrix: Matrix<N>,
     cholesky: Matrix<N>,
     receipt: MetricAdmissionReceiptV1,
-    frame: PhantomData<F>,
+    _frame: PhantomData<F>,
 }
 
 #[derive(Debug, Clone, Copy)]
