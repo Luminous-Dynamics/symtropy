@@ -2662,6 +2662,25 @@ mod tests {
     }
 
     #[test]
+    fn h0_filtration_rejects_nonfinite_and_negative_max_radius() {
+        let model = VicsekModel::random_uniform(2, VicsekConfig::default(), 91).unwrap();
+        assert!(matches!(
+            model.h0_persistence(f64::NAN),
+            Err(VicsekError::InvalidParameter {
+                name: "h0_max_radius",
+                ..
+            })
+        ));
+        assert!(matches!(
+            model.h0_persistence(-0.1),
+            Err(VicsekError::InvalidParameter {
+                name: "h0_max_radius",
+                ..
+            })
+        ));
+    }
+
+    #[test]
     fn h0_filtration_records_merge_radii_and_right_censored_components() {
         let model = VicsekModel::new(
             vec![
