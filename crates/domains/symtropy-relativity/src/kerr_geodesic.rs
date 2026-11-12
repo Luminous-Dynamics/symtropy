@@ -396,6 +396,22 @@ pub struct KerrObserverRaySeed {
     pub local_direction: KerrLocalSkyDirection,
 }
 
+/// Finite-observer canonical initial data plus two angular screen derivatives.
+///
+/// The two tangent directions are orthonormal in the observer's local sky
+/// tangent plane. Their angular parameters are measured in radians. Each
+/// phase-space variation uses canonical ordering (q^0..q^3,p_0..p_3) and is
+/// tangent to the null Hamiltonian shell at the initial event.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrObserverCanonicalSeed {
+    pub state: KerrCanonicalState,
+    pub coordinate_chart: KerrMinoCoordinateChart,
+    pub local_screen_basis: [[f64; 3]; 2],
+    pub first_phase_space_variation: [f64; 8],
+    pub second_phase_space_variation: [f64; 8],
+    pub infinity_energy_per_unit_local_energy: f64,
+}
+
 
 /// Second-order state for turning-point-regular Mino evolution.
 ///
@@ -2001,6 +2017,120 @@ impl KerrFiniteRadiusObserver {
     /// energy at infinity is then used to normalize the constants to E=1.
     /// Negative-Killing-energy rays inside the ergoregion are rejected by
     /// this API because KerrNullConstants currently represents E>0 rays.
+    /// Construct a canonical Kerr state and two local-sky tangent vectors.
+    ///
+    /// The screen basis is defined deterministically from the local ZAMO
+    /// orthonormal frame [radial, polar, azimuthal]: a reference polar axis is
+    /// used unless the ray is within a cone about that axis, in which case the
+    /// azimuthal axis is used. The resulting pair is orthonormal and tangent
+    /// to the unit direction. A basis seam exists where the reference axis
+    /// switches; callers should preserve the returned basis as part of any
+    /// image/branch identity.
+    ///
+    /// The local photon energy is one. Inward rays are transformed from
+    /// Boyer-Lindquist covector components to the regular ingoing Kerr chart.
+    pub fn canonical_seed(
+        self,
+        direction: KerrLocalSkyDirection,
+    ) -> Result<KerrObserverCanonicalSeed, KerrGeodesicError> {
+        // Reuse the existing observer-domain and null-potential qualification.
+        let ray = self.ray_seed(direction)?;
+        let r = self.radius_over_m;
+        let theta = self.theta_rad;
+        let a = self.hole.spin().get();
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_squared = sin_theta * sin_theta;
+        let sigma = r * r + a * a * cos_theta * cos_theta;
+        let delta = r * r - 2.0 * r + a * a;
+        let g_tt = -(1.0 - 2.0 * r / sigma);
+        let g_t_phi = -2.0 * a * r * sin_squared / sigma;
+        let g_phi_phi = self.tetrad.sqrt_g_phi_phi.powi(2);
+
+        let screen_basis = local_sky_tangent_basis(direction);
+        let covariant_momentum = |local_direction: [f64; 3]| -> [f64; 4] {
+            let p_r_contravariant = local_direction[0] * self.tetrad.radial[1];
+            let p_theta_contravariant = local_direction[1] * self.tetrad.polar[2];
+            let p_phi_contravariant = local_direction[2] * self.tetrad.azimuthal[3];
+            [
+                g_t_phi * p_phi_contravariant,
+                (sigma / delta) * p_r_contravariant,
+                sigma * p_theta_contravariant,
+                g_phi_phi * p_phi_contravariant,
+            ]
+        };
+
+        let tetrad = self.tetrad;
+        let p_contravariant: [f64; 4] = core::array::from_fn(|mu| {
+            tetrad.timelike[mu]
+                + direction.radial * tetrad.radial[mu]
+                + direction.polar * tetrad.polar[mu]
+                + direction.azimuthal * tetrad.azimuthal[mu]
+        });
+        let p_t = g_tt * p_contravariant[0] + g_t_phi * p_contravariant[3];
+        let p_phi = g_t_phi * p_contravariant[0] + g_phi_phi * p_contravariant[3];
+        let p_r = (sigma / delta) * p_contravariant[1];
+        let p_theta = sigma * p_contravariant[2];
+        let momenta_bl = [p_t, p_r, p_theta, p_phi];
+
+        let coordinate_chart = ray.coordinate_chart;
+        let transform_covector = |mut momenta: [f64; 4]| -> [f64; 4] {
+            if coordinate_chart == KerrMinoCoordinateChart::IngoingKerr {
+                // p_r^(in) = p_r^(BL) - p_t (r^2+a^2)/Delta - p_phi a/Delta.
+                momenta[1] -= (momenta[0] * (r * r + a * a) + momenta[3] * a) / delta;
+            }
+            momenta
+        };
+        let momenta = transform_covector(momenta_bl);
+        let coordinates = KerrMinoState::new(0.0, r, theta, 0.0);
+        let state = KerrCanonicalState { coordinates, momenta };
+
+        let mut variations = [[0.0; 8]; 2];
+        for screen_index in 0..2 {
+            let local_delta = screen_basis[screen_index];
+            let delta_contravariant = [
+                local_delta[0] * tetrad.radial[0]
+                    + local_delta[1] * tetrad.polar[0]
+                    + local_delta[2] * tetrad.azimuthal[0],
+                local_delta[0] * tetrad.radial[1]
+                    + local_delta[1] * tetrad.polar[1]
+                    + local_delta[2] * tetrad.azimuthal[1],
+                local_delta[0] * tetrad.radial[2]
+                    + local_delta[1] * tetrad.polar[2]
+                    + local_delta[2] * tetrad.azimuthal[2],
+                local_delta[0] * tetrad.radial[3]
+                    + local_delta[1] * tetrad.polar[3]
+                    + local_delta[2] * tetrad.azimuthal[3],
+            ];
+            let delta_momenta_bl = [
+                g_t_phi * delta_contravariant[3],
+                (sigma / delta) * delta_contravariant[1],
+                sigma * delta_contravariant[2],
+                g_phi_phi * delta_contravariant[3],
+            ];
+            let delta_momenta = transform_covector(delta_momenta_bl);
+            variations[screen_index][4..].copy_from_slice(&delta_momenta);
+        }
+
+        let values = [
+            ray.infinity_energy_per_unit_local_energy,
+            state.momenta[0], state.momenta[1], state.momenta[2], state.momenta[3],
+            variations[0][4], variations[0][5], variations[0][6], variations[0][7],
+            variations[1][4], variations[1][5], variations[1][6], variations[1][7],
+        ];
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("finite_observer_canonical_seed"));
+        }
+        Ok(KerrObserverCanonicalSeed {
+            state,
+            coordinate_chart,
+            local_screen_basis: screen_basis,
+            first_phase_space_variation: variations[0],
+            second_phase_space_variation: variations[1],
+            infinity_energy_per_unit_local_energy: ray.infinity_energy_per_unit_local_energy,
+        })
+    }
+
     pub fn ray_seed(
         self,
         direction: KerrLocalSkyDirection,
@@ -2085,6 +2215,38 @@ impl KerrFiniteRadiusObserver {
             local_direction: direction,
         })
     }
+}
+
+fn local_sky_cross(left: [f64; 3], right: [f64; 3]) -> [f64; 3] {
+    [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    ]
+}
+
+fn local_sky_normalize(vector: [f64; 3]) -> Option<[f64; 3]> {
+    let norm = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]).sqrt();
+    if !norm.is_finite() || norm <= 64.0 * f64::EPSILON {
+        None
+    } else {
+        Some([vector[0] / norm, vector[1] / norm, vector[2] / norm])
+    }
+}
+
+/// Deterministic orthonormal tangent frame on the observer's local unit sky.
+fn local_sky_tangent_basis(direction: KerrLocalSkyDirection) -> [[f64; 3]; 2] {
+    let n = [direction.radial, direction.polar, direction.azimuthal];
+    let reference = if direction.azimuthal.abs() < 0.9 {
+        [0.0, 0.0, 1.0]
+    } else {
+        [0.0, 1.0, 0.0]
+    };
+    let first = local_sky_normalize(local_sky_cross(reference, n))
+        .expect("reference axis is selected away from parallel sky direction");
+    let second = local_sky_normalize(local_sky_cross(n, first))
+        .expect("unit sky direction and first tangent define a nondegenerate screen");
+    [first, second]
 }
 
 fn normalized_constraint_residual(first_term: f64, second_term: f64, residual: f64) -> f64 {
