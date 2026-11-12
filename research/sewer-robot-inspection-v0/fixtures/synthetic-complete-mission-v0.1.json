@@ -77,5 +77,9 @@
   "notes": [
     "Synthetic positive control for mission-evidence completeness only.",
     "Accepted means the planned observation envelope is complete under this synthetic contract; it does not mean the pipe is defect-free, safe, serviceable or compliant."
-  ]
+  ],
+  "acceptance_profile": {
+    "minimum_surface_coverage_percent": 90,
+    "maximum_localization_p95_error_m": 0.1
+  }
 }
