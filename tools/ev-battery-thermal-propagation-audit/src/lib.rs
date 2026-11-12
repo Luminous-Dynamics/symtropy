@@ -413,6 +413,18 @@ fn validate_test<'e>(
                     test.test_id
                 )));
             }
+            if test.post_trigger_observation_minutes == 0
+                || test.propagation_observed.is_none()
+                || test.fire_observed.is_none()
+                || test.explosion_observed.is_none()
+                || (test.article.application == ApplicationDomain::EvTraction
+                    && test.smoke_into_occupant_boundary.is_none())
+            {
+                return Err(AuditError(format!(
+                    "test {} cannot report PASS/FAIL with an absent post-trigger observation window or missing propagation/consequence observations",
+                    test.test_id
+                )));
+            }
         }
         TestResult::NoPropagationWithinWindow => {
             if !evidence.evidence_class.is_physical() {
@@ -424,9 +436,13 @@ fn validate_test<'e>(
             if !test.trigger_achieved
                 || test.propagation_observed != Some(false)
                 || test.post_trigger_observation_minutes == 0
+                || test.fire_observed.is_none()
+                || test.explosion_observed.is_none()
+                || (test.article.application == ApplicationDomain::EvTraction
+                    && test.smoke_into_occupant_boundary.is_none())
             {
                 return Err(AuditError(format!(
-                    "no-propagation result for {} requires achieved trigger, observed window and explicit no-propagation outcome",
+                    "no-propagation result for {} requires achieved trigger, observed window and explicit propagation/consequence observations",
                     test.test_id
                 )));
             }
@@ -1119,6 +1135,23 @@ mod tests {
         let report = audit_manifest(&value).expect("risk analysis should be preserved");
         assert_eq!(report.risk_analysis_count, 1);
         assert_eq!(report.physical_test_count, 3);
+    }
+
+    #[test]
+    fn pass_result_requires_complete_post_trigger_observation() {
+        let mut value = fixture();
+        value.tests[0].fire_observed = None;
+        assert!(audit_manifest(&value).is_err());
+        let mut value = fixture();
+        value.tests[0].smoke_into_occupant_boundary = None;
+        assert!(audit_manifest(&value).is_err());
+    }
+
+    #[test]
+    fn no_propagation_result_requires_consequence_observations() {
+        let mut value = fixture();
+        value.tests[0].explosion_observed = None;
+        assert!(audit_manifest(&value).is_err());
     }
 
     #[test]
