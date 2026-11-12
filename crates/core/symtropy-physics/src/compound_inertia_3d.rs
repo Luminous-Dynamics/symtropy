@@ -325,7 +325,7 @@ fn validate_part(part: &CompoundMassPart3) -> Result<(), CompoundInertia3Error> 
     }
 
     let rotation_matrix = part.local_transform.rotation.to_matrix();
-    if !matrix_is_finite(&rotation_matrix)
+    if !matrix_is_finite(rotation_matrix)
         || !part
             .local_transform
             .rotation
@@ -397,7 +397,7 @@ fn validate_symmetric_positive_definite(
     if !scale.is_finite() || scale <= 0.0 {
         return Err(CompoundInertia3Error::NonPositiveDefiniteTensor);
     }
-    let a = tensor.clone() / scale;
+    let a = *tensor / scale;
 
     let minor1 = a[(0, 0)];
     let minor2 = a[(0, 0)] * a[(1, 1)] - a[(0, 1)] * a[(1, 0)];
