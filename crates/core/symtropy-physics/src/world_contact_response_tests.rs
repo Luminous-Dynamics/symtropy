@@ -227,9 +227,43 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
     // The production world uses sequential impulses across solver_iterations.
     // Repeat the exact resolver kernel to isolate its manifold convergence.
     let mut callback = NoOpCallback;
-    for _ in 0..12 {
+    let default_iterations = world.solver_iterations;
+    let mut default_iteration_impulses = None;
+    let mut default_iteration_speeds = None;
+    for iteration in 0..12 {
         contact = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+        if iteration + 1 == default_iterations {
+            let body = &world.bodies[1];
+            default_iteration_impulses =
+                Some([contact.points[0].lambda, contact.points[1].lambda]);
+            default_iteration_speeds = Some(offsets.map(|offset| {
+                (body.linear_velocity
+                    + integrator::angular_point_velocity(&body.angular_velocity, &offset))
+                .dot(&normal)
+            }));
+        }
     }
+
+    let default_iteration_impulses =
+        default_iteration_impulses.expect("default solver iteration snapshot captured");
+    let default_iteration_speeds =
+        default_iteration_speeds.expect("default solver iteration velocities captured");
+    let default_iteration_residual = default_iteration_speeds
+        .iter()
+        .map(|speed| speed.abs())
+        .fold(0.0_f64, f64::max);
+    let default_impulse_error = default_iteration_impulses
+        .iter()
+        .zip(expected_impulses)
+        .map(|(observed, expected)| {
+            (observed - expected).abs() / expected.abs().max(f64::MIN_POSITIVE)
+        })
+        .fold(0.0_f64, f64::max);
+    assert!(
+        default_iteration_residual < 2.0e-5 && default_impulse_error < 2.0e-5,
+        "default {}-iteration PGS profile failed its declared residual envelope: velocity={default_iteration_residual:e}, impulse={default_impulse_error:e}",
+        default_iterations
+    );
 
     let after = &world.bodies[1];
     let observed_impulses = [contact.points[0].lambda, contact.points[1].lambda];
