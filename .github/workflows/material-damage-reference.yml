@@ -46,3 +46,15 @@ jobs:
 
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path research/material-damage-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify mutation sensitivity
+        shell: bash
+        run: bash research/material-damage-reference/scripts/verify_material_damage_mutations.sh
+
+      - name: Upload mutation sensitivity receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: material-damage-mutation-receipt
+          path: material-damage-mutation-receipt.json
+          if-no-files-found: error
+          retention-days: 90
