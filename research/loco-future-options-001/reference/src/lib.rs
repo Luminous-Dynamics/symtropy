@@ -16,6 +16,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod policy_tree;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const PROTOCOL_ID: &str = "LOCO-FUTURE-OPTIONS-001";
