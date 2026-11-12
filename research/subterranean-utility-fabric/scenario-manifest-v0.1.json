@@ -553,6 +553,48 @@
       "title": "Cable-duct robot inspection and draw-tool qualification",
       "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4913",
       "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "IEC_63439_1_1_2025",
+      "title": "IEC 63439-1-1:2025 power robot terminology",
+      "url": "https://webstore.iec.ch/en/publication/72749",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "IEC_TR_63439_1_2_2026",
+      "title": "IEC TR 63439-1-2:2026 state of the art and standardization roadmap for power-system robots",
+      "url": "https://webstore.iec.ch/en/publication/109098",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "IEC_63439_3_31_WORK_ITEM",
+      "title": "IEC 63439-3-31 land cable tunnel inspection robot general requirements work item (in development)",
+      "url": "https://standardsdevelopment.bsigroup.com/projects/9025-12660",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "CABLE_TRENCH_ROBOT_2022",
+      "title": "Condition Assessment of the Cable Trench Based on an Intelligent Inspection Robot",
+      "url": "https://www.frontiersin.org/journals/energy-research/articles/10.3389/fenrg.2022.860461/full",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "REDZONE_SOLO_PIPE_ROBOT",
+      "title": "RedZone SOLO autonomous sewer pipe inspection robot product profile",
+      "url": "https://redzone.com/our-technology/solo/",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "FOA_MICRODUCT_INSTALLATION",
+      "title": "FOA outside plant fibre underground installation and air-assisted microcable jetting",
+      "url": "https://www.thefoa.org/tech/ref/OSP_Construction/Underground_Installation.html",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "OFS_IP055_MICROCABLE",
+      "title": "OFS IP-055 microcable installation practice and pre-installation slip test",
+      "url": "https://www.ofsoptics.com/wp-content/uploads/IP055-MicroCable-Installation-Oct-2019.pdf",
+      "source_role": "industry_practice"
     }
   ],
   "jurisdictional_profiles": [
