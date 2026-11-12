@@ -4,7 +4,7 @@
   "evidence": [
     {
       "evidence_id": "E-GATE-0",
-      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source_digest": "0000000000000000000000000000000000000000000000000000000000000000",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -13,7 +13,7 @@
     },
     {
       "evidence_id": "E-GATE-1",
-      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_digest": "1111111111111111111111111111111111111111111111111111111111111111",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -22,7 +22,7 @@
     },
     {
       "evidence_id": "E-GATE-2",
-      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "source_digest": "2222222222222222222222222222222222222222222222222222222222222222",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -31,7 +31,7 @@
     },
     {
       "evidence_id": "E-GATE-3",
-      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "source_digest": "3333333333333333333333333333333333333333333333333333333333333333",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -40,7 +40,7 @@
     },
     {
       "evidence_id": "E-GATE-4",
-      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_digest": "4444444444444444444444444444444444444444444444444444444444444444",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -49,7 +49,7 @@
     },
     {
       "evidence_id": "E-GATE-5",
-      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "source_digest": "5555555555555555555555555555555555555555555555555555555555555555",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -58,7 +58,7 @@
     },
     {
       "evidence_id": "E-GATE-6",
-      "source_digest": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "source_digest": "6666666666666666666666666666666666666666666666666666666666666666",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -67,7 +67,7 @@
     },
     {
       "evidence_id": "E-GATE-7",
-      "source_digest": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+      "source_digest": "7777777777777777777777777777777777777777777777777777777777777777",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -76,7 +76,7 @@
     },
     {
       "evidence_id": "E-GATE-8",
-      "source_digest": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+      "source_digest": "8888888888888888888888888888888888888888888888888888888888888888",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -85,7 +85,7 @@
     },
     {
       "evidence_id": "E-GATE-9",
-      "source_digest": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+      "source_digest": "9999999999999999999999999999999999999999999999999999999999999999",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -94,7 +94,7 @@
     },
     {
       "evidence_id": "E-CAP-SECOND",
-      "source_digest": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -103,7 +103,7 @@
     },
     {
       "evidence_id": "E-CAP-THIRD",
-      "source_digest": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -112,7 +112,7 @@
     },
     {
       "evidence_id": "E-CAP-UNKNOWN",
-      "source_digest": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic known-answer fixture",
@@ -121,7 +121,7 @@
     },
     {
       "evidence_id": "BMS-VERIFY-SECOND-LIFE",
-      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic BMS verification fixture",
@@ -130,7 +130,7 @@
     },
     {
       "evidence_id": "AUTH-THERMAL-SECOND-LIFE",
-      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic thermal-authority decision fixture",
@@ -139,7 +139,7 @@
     },
     {
       "evidence_id": "BMS-VERIFY-THIRD-LIFE",
-      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic BMS verification fixture",
@@ -148,7 +148,7 @@
     },
     {
       "evidence_id": "AUTH-THERMAL-THIRD-LIFE",
-      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic thermal-authority decision fixture",
@@ -157,7 +157,7 @@
     },
     {
       "evidence_id": "BMS-VERIFY-UNKNOWN-HISTORY",
-      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic BMS verification fixture",
@@ -166,7 +166,7 @@
     },
     {
       "evidence_id": "AUTH-THERMAL-UNKNOWN-HISTORY",
-      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "evidence_class": "synthetic",
       "admission": "admitted_for_evaluation",
       "claim_scope": "synthetic thermal-authority decision fixture",
