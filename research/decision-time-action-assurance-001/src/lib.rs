@@ -862,9 +862,25 @@ pub fn revalidate_at_execution(
             .filter(|profile| profile.profile_id == envelope.profile_id)
             .ok_or(ExecutionRejection::ProfileUnavailable)?,
     };
-    let (violations, _) = profile_violations(bundle, proposal, profile, now_us);
+    let (violations, evidence_expiry_us) =
+        profile_violations(bundle, proposal, profile, now_us);
     if !violations.is_empty() {
         return Err(ExecutionRejection::EvidenceNoLongerSatisfies(violations));
+    }
+    let evidence_expiry_us = evidence_expiry_us
+        .ok_or(ExecutionRejection::ProfileUnavailable)?;
+    let policy_expiry_us = envelope
+        .authorized_at_us
+        .checked_add(profile.max_authorization_lifetime_us)
+        .ok_or(ExecutionRejection::EnvelopeCommitmentMismatch)?;
+    let maximum_validity = proposal
+        .expires_at_us
+        .min(policy_expiry_us)
+        .min(evidence_expiry_us);
+    if envelope.not_after_us <= envelope.authorized_at_us
+        || envelope.not_after_us > maximum_validity
+    {
+        return Err(ExecutionRejection::EnvelopeCommitmentMismatch);
     }
     Ok(())
 }
