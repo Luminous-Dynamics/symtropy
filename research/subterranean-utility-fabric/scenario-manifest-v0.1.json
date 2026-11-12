@@ -457,6 +457,48 @@
       "title": "Subterranean Utility Fabric programme issue",
       "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4910",
       "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "COTO_SA_ROAD_AUTHORITY",
+      "title": "Department of Transport COTO Standard Specifications (October 2020 DS)",
+      "url": "https://www.transport.gov.za/?page_id=1155",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "SANRAL_COTO_DOWNLOADS",
+      "title": "SANRAL COTO Standard Specification downloads",
+      "url": "https://www.nra.co.za/sanral-downloads/detail/coto-standard-specifications",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "TSHWANE_WAYLEAVECENTRAL",
+      "title": "City of Tshwane WayleaveCentral process and service coordination",
+      "url": "https://wayleave.tshwane.gov.za/",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "CAPE_TOWN_RIM_WAYLEAVE",
+      "title": "City of Cape Town Road Reserves Wayleave Process and Standards",
+      "url": "https://resource.capetown.gov.za/documentcentre/Documents/Procedures%2C%20guidelines%20and%20regulations/Road_reserves_Wayleave_Process_and_Standards.pdf",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "CITY_POWER_CP_TSSTAN_144",
+      "title": "City Power Standard for New Service Connections and Metering Labour Contracts CP_TSSTAN_144 Rev 0",
+      "url": "https://www.etenders.gov.za/home/Download/?blobName=5457f91a-bbf2-4d68-b392-c92165f72887.pdf%26downloadedFileName=CP_TSSTAN_144_New+Service+Connections+and+Metering+Labour+Contract_REV+0_Upload.pdf",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "JOHANNESBURG_DRAFT_WAYLEAVE",
+      "title": "City of Johannesburg Draft Wayleave By-law (2022; draft status)",
+      "url": "https://joburg.org.za/documents_/Documents/By-Laws/2022/CoJ_Draft%20Wayleave%20bylaw.pdf",
+      "source_role": "government_source"
+    },
+    {
+      "id": "SANS_10198_DISCOVERY",
+      "title": "SANS 10198 electric power cable standard family; confirm current part editions with SABS",
+      "url": "https://store.sabs.co.za/",
+      "source_role": "industry_standard"
     }
   ]
 }
