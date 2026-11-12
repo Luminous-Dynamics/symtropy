@@ -1,0 +1,50 @@
+name: Production Contact Response Qualification
+
+on:
+  pull_request:
+    branches: [ "fix/angular-point-velocity-rotor-sign-v1" ]
+    paths:
+      - ".github/workflows/production-contact-response.yml"
+      - "crates/core/symtropy-physics/src/world.rs"
+      - "crates/core/symtropy-physics/src/world_contact_response_tests.rs"
+      - "Cargo.lock"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-contact-response-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: contact response (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --all -- --check
+
+      - name: Qualify production contact response
+        run: cargo +1.96.0 test --locked -p symtropy-physics --lib production_
+
+      - name: Strict Clippy (physics crate)
+        run: cargo +1.96.0 clippy --locked -p symtropy-physics --all-targets -- -D warnings

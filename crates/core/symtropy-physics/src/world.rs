@@ -2567,3 +2567,7 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+#[path = "world_contact_response_tests.rs"]
+mod production_contact_response_tests;
