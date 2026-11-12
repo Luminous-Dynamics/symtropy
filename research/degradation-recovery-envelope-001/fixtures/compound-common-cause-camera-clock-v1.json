@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "campaign_id": "compound-common-cause-camera-clock-v1",
+  "benchmark_revision": "degradation-recovery-envelope-v0.1",
+  "evaluator_revision": "auditor-v1",
+  "clock_id": "monotonic-driving-fixture",
+  "policy_deadline_us": 100000,
+  "clean_control": {
+    "run_id": "camera-drop-control",
+    "disposition": "complete",
+    "scenario_seed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment_randomness_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "expected_tick_count": 8,
+    "ticks": [
+      {
+        "tick": 1,
+        "capture_timestamp_us": 1033333,
+        "delivered_timestamp_us": 1033433,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10100,
+        "inference_energy_uj": 41,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 2,
+        "capture_timestamp_us": 1066666,
+        "delivered_timestamp_us": 1066766,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10200,
+        "inference_energy_uj": 42,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 3,
+        "capture_timestamp_us": 1099999,
+        "delivered_timestamp_us": 1100099,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10300,
+        "inference_energy_uj": 43,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 4,
+        "capture_timestamp_us": 1133332,
+        "delivered_timestamp_us": 1133432,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10400,
+        "inference_energy_uj": 44,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 5,
+        "capture_timestamp_us": 1166665,
+        "delivered_timestamp_us": 1166765,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10500,
+        "inference_energy_uj": 45,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 6,
+        "capture_timestamp_us": 1199998,
+        "delivered_timestamp_us": 1200098,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10600,
+        "inference_energy_uj": 46,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 7,
+        "capture_timestamp_us": 1233331,
+        "delivered_timestamp_us": 1233431,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10700,
+        "inference_energy_uj": 47,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 8,
+        "capture_timestamp_us": 1266664,
+        "delivered_timestamp_us": 1266764,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10800,
+        "inference_energy_uj": 48,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      }
+    ]
+  },
+  "faulted_run": {
+    "run_id": "camera-drop-faulted",
+    "disposition": "complete",
+    "scenario_seed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment_randomness_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "expected_tick_count": 8,
+    "ticks": [
+      {
+        "tick": 1,
+        "capture_timestamp_us": 1033333,
+        "delivered_timestamp_us": 1033433,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10100,
+        "inference_energy_uj": 41,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 2,
+        "capture_timestamp_us": 1066666,
+        "delivered_timestamp_us": 1066766,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10200,
+        "inference_energy_uj": 42,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 3,
+        "capture_timestamp_us": 1099999,
+        "delivered_timestamp_us": 1100099,
+        "conditions": [
+          "missing",
+          "clock_violation"
+        ],
+        "policy_input_accepted": false,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10300,
+        "inference_energy_uj": 43,
+        "fault_detection_event_ids": [
+          "camera-drop-001",
+          "clock-drift-001"
+        ],
+        "containment_event_ids": [
+          "camera-drop-001",
+          "clock-drift-001"
+        ]
+      },
+      {
+        "tick": 4,
+        "capture_timestamp_us": 1133332,
+        "delivered_timestamp_us": 1133432,
+        "conditions": [
+          "missing",
+          "clock_violation"
+        ],
+        "policy_input_accepted": false,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10400,
+        "inference_energy_uj": 44,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": [
+          "camera-drop-001",
+          "clock-drift-001"
+        ]
+      },
+      {
+        "tick": 5,
+        "capture_timestamp_us": 1166665,
+        "delivered_timestamp_us": 1166765,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10500,
+        "inference_energy_uj": 45,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": [
+          "camera-drop-001"
+        ]
+      },
+      {
+        "tick": 6,
+        "capture_timestamp_us": 1199998,
+        "delivered_timestamp_us": 1200098,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10600,
+        "inference_energy_uj": 46,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": [
+          "camera-drop-001"
+        ]
+      },
+      {
+        "tick": 7,
+        "capture_timestamp_us": 1233331,
+        "delivered_timestamp_us": 1233431,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10700,
+        "inference_energy_uj": 47,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      },
+      {
+        "tick": 8,
+        "capture_timestamp_us": 1266664,
+        "delivered_timestamp_us": 1266764,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10800,
+        "inference_energy_uj": 48,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
+      }
+    ]
+  },
+  "events": [
+    {
+      "event_id": "camera-drop-001",
+      "kind": "camera_drop",
+      "start_tick": 3,
+      "end_tick": 4,
+      "severity_ppm": 1000000,
+      "detection_deadline_ticks": 1,
+      "containment_deadline_ticks": 1,
+      "max_accepted_frame_age_us": 0,
+      "recovery_healthy_quorum_ticks": 2,
+      "causality": "common_cause",
+      "causal_group_id": "shared-power-clock-domain-001",
+      "parent_event_id": null
+    },
+    {
+      "event_id": "clock-drift-001",
+      "kind": "clock_drift",
+      "start_tick": 3,
+      "end_tick": 4,
+      "severity_ppm": 400000,
+      "detection_deadline_ticks": 1,
+      "containment_deadline_ticks": 1,
+      "max_accepted_frame_age_us": 0,
+      "recovery_healthy_quorum_ticks": 2,
+      "causality": "common_cause",
+      "causal_group_id": "shared-power-clock-domain-001",
+      "parent_event_id": null
+    }
+  ],
+  "fault_schedule_visible_to_policy": false,
+  "model_id": "untrained-camera-driving-input-fixture",
+  "model_status": "untrained_input_bridge",
+  "model_revision": "symthaea-camera-driving-bridge-v0.1",
+  "checkpoint_sha256": null,
+  "hardware_id": "synthetic-fixture-host-not-measured",
+  "inference_precision": "fp32-fixture",
+  "power_profile": "not-measured-fixture",
+  "energy_measurement_method": "synthetic-fixture-values-not-hardware-measurement",
+  "policy_visible_inputs": [
+    "front-camera-rgb8",
+    "vehicle-state-vector"
+  ]
+}

@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/degradation-recovery-report-v1.schema.json",
+  "title": "Degradation and recovery audit report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "model_id",
+    "model_status",
+    "model_revision",
+    "checkpoint_sha256",
+    "hardware_id",
+    "inference_precision",
+    "power_profile",
+    "energy_measurement_method",
+    "policy_visible_inputs",
+    "disposition",
+    "claim_ceiling",
+    "expected_ticks",
+    "clean_control_observed_ticks",
+    "faulted_observed_ticks",
+    "fault_event_count",
+    "clean_control_false_positive_ticks",
+    "clean_control_deadline_miss_ticks",
+    "faulted_stale_or_corrupt_acceptances",
+    "faulted_deadline_miss_ticks",
+    "clean_control_decision_latency",
+    "faulted_decision_latency",
+    "clean_control_inference_energy",
+    "faulted_inference_energy",
+    "events",
+    "findings",
+    "clean_control_disposition",
+    "faulted_run_disposition"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "campaign_id": {
+      "type": "string"
+    },
+    "disposition": {
+      "enum": [
+        "valid",
+        "rejected"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "expected_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clean_control_observed_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "faulted_observed_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fault_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clean_control_false_positive_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "faulted_stale_or_corrupt_acceptances": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "faulted_deadline_miss_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clean_control_decision_latency": {
+      "$ref": "#/$defs/latency"
+    },
+    "faulted_decision_latency": {
+      "$ref": "#/$defs/latency"
+    },
+    "clean_control_inference_energy": {
+      "$ref": "#/$defs/energy"
+    },
+    "faulted_inference_energy": {
+      "$ref": "#/$defs/energy"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event_metrics"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "clean_control_deadline_miss_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "model_status": {
+      "enum": [
+        "trained_policy",
+        "untrained_input_bridge",
+        "synthetic_reference"
+      ]
+    },
+    "model_revision": {
+      "type": "string"
+    },
+    "checkpoint_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hardware_id": {
+      "type": "string"
+    },
+    "inference_precision": {
+      "type": "string"
+    },
+    "power_profile": {
+      "type": "string"
+    },
+    "energy_measurement_method": {
+      "type": "string"
+    },
+    "policy_visible_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "clean_control_disposition": {
+      "enum": [
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
+    },
+    "faulted_run_disposition": {
+      "enum": [
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
+    }
+  },
+  "$defs": {
+    "nullable_integer": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "latency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_count",
+        "p50_us",
+        "p95_us",
+        "p99_us",
+        "max_us"
+      ],
+      "properties": {
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p50_us": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "p95_us": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "p99_us": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "max_us": {
+          "$ref": "#/$defs/nullable_integer"
+        }
+      }
+    },
+    "energy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_count",
+        "p50_uj",
+        "p95_uj",
+        "p99_uj",
+        "max_uj"
+      ],
+      "properties": {
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "p50_uj": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "p95_uj": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "p99_uj": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "max_uj": {
+          "$ref": "#/$defs/nullable_integer"
+        }
+      }
+    },
+    "event_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "start_tick",
+        "end_tick",
+        "severity_ppm",
+        "detection_deadline_ticks",
+        "containment_deadline_ticks",
+        "max_accepted_frame_age_us",
+        "exposure_ticks",
+        "detection_latency_ticks",
+        "containment_latency_ticks",
+        "recovery_tick",
+        "recovery_latency_after_clearance_ticks",
+        "healthy_quorum_ticks_required",
+        "stale_or_corrupt_acceptances",
+        "missed_detection_deadline",
+        "missed_containment_deadline",
+        "recovery_observed",
+        "causality",
+        "causal_group_id",
+        "parent_event_id"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "camera_drop",
+            "frame_delay",
+            "stale_replay",
+            "pixel_corruption",
+            "calibration_shift",
+            "clock_drift",
+            "compute_overrun"
+          ]
+        },
+        "exposure_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "detection_latency_ticks": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "containment_latency_ticks": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "recovery_tick": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "recovery_latency_after_clearance_ticks": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "healthy_quorum_ticks_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_or_corrupt_acceptances": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missed_detection_deadline": {
+          "type": "boolean"
+        },
+        "missed_containment_deadline": {
+          "type": "boolean"
+        },
+        "recovery_observed": {
+          "type": "boolean"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "severity_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "detection_deadline_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "containment_deadline_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_accepted_frame_age_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "causality": {
+          "enum": [
+            "independent",
+            "common_cause",
+            "cascaded"
+          ]
+        },
+        "causal_group_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parent_event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "No aggregate composite score is produced.",
+    "Per-event detection, containment, recovery, stale/corrupt acceptance, clean-control false-positive, latency and energy axes remain separate.",
+    "valid means only structural/declared trace conformance under this software auditor, not physical fault handling or vehicle safety.",
+    "The clean control must remain in normal mode, accept clean observations, and have complete latency/energy telemetry for every tick.",
+    "Detection and containment evidence references are event-specific; containment requires an actual degraded, fallback or safe-stop state.",
+    "The report preserves the candidate revision, checkpoint identity, hardware, precision, power profile, measurement method and policy-visible inputs.",
+    "Per-event severity and deadline thresholds remain available in the report for stratified comparison."
+  ]
+}

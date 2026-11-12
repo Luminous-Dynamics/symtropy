@@ -1,0 +1,49 @@
+name: degradation-recovery-envelope
+
+on:
+  pull_request:
+    paths:
+      - "research/degradation-recovery-envelope-001/**"
+      - ".github/workflows/degradation-recovery-envelope.yml"
+  push:
+    paths:
+      - "research/degradation-recovery-envelope-001/**"
+      - ".github/workflows/degradation-recovery-envelope.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  auditor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- --check
+
+      - name: Run auditor and schedule-generator tests
+        run: cargo test --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Audit positive paired fixture (normal mode resumes after tick-8 quorum)
+        run: |
+          cargo run --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- \
+            research/degradation-recovery-envelope-001/fixtures/camera-drop-paired-v1.json \
+            /tmp/camera-drop-report.json
+
+      - name: Audit compound common-cause fixture
+        run: |
+          cargo run --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- \
+            research/degradation-recovery-envelope-001/fixtures/compound-common-cause-camera-clock-v1.json \
+            /tmp/compound-camera-clock-report.json
