@@ -302,12 +302,16 @@ impl KerrOpticalScreenMap {
             ],
         ];
         let mut orthogonality_residual: f64 = 0.0;
-        for row in 0..2 {
-            for column in 0..2 {
-                let product = transition[row][0] * transition[column][0]
-                    + transition[row][1] * transition[column][1];
-                let expected = if row == column { 1.0 } else { 0.0 };
-                orthogonality_residual = orthogonality_residual.max((product - expected).abs());
+        for (row_index, row_values) in transition.iter().enumerate() {
+            for (column_index, column_values) in transition.iter().enumerate() {
+                let product = row_values
+                    .iter()
+                    .zip(column_values.iter())
+                    .map(|(left, right)| left * right)
+                    .sum::<f64>();
+                let expected = if row_index == column_index { 1.0 } else { 0.0 };
+                orthogonality_residual =
+                    orthogonality_residual.max((product - expected).abs());
             }
         }
         let orientation_determinant =
@@ -324,10 +328,15 @@ impl KerrOpticalScreenMap {
         }
 
         let mut transformed = self;
-        for row in 0..2 {
-            for column in 0..2 {
-                transformed.jacobian[row][column] = transition[row][0] * self.jacobian[0][column]
-                    + transition[row][1] * self.jacobian[1][column];
+        for (output_row, transition_row) in
+            transformed.jacobian.iter_mut().zip(transition.iter())
+        {
+            for (output, (source_row_0, source_row_1)) in output_row.iter_mut().zip(
+                self.jacobian[0]
+                    .iter()
+                    .zip(self.jacobian[1].iter()),
+            ) {
+                *output = transition_row[0] * source_row_0 + transition_row[1] * source_row_1;
             }
         }
         let (determinant, small, large) = optical_matrix_invariants(transformed.jacobian)?;
@@ -704,8 +713,8 @@ impl KerrNullTrajectoryIntegrator {
         let initial_evaluation = initial_linearization.evaluation;
         let initial_diagnostics = self.constraint_diagnostics(initial_state, initial_evaluation)?;
         let mut identity = [[0.0; 8]; 8];
-        for index in 0..8 {
-            identity[index][index] = 1.0;
+        for (index, row) in identity.iter_mut().enumerate() {
+            row[index] = 1.0;
         }
 
         let initial_trajectory = KerrTrajectorySample {
@@ -856,13 +865,25 @@ impl KerrNullTrajectoryIntegrator {
         let mut result = [0.0; 72];
         let field = flatten_derivative(linearization.evaluation.derivative);
         result[..8].copy_from_slice(&field);
-        for row in 0..8 {
-            for column in 0..8 {
-                let mut value = 0.0;
-                for inner in 0..8 {
-                    value += linearization.jacobian[row][inner] * fundamental[inner][column];
-                }
-                result[8 + row * 8 + column] = value;
+        let fundamental_columns: [[f64; 8]; 8] =
+            core::array::from_fn(|column| core::array::from_fn(|row| fundamental[row][column]));
+        for (row_index, (jacobian_row, output_row)) in linearization
+            .jacobian
+            .iter()
+            .zip(result[8..].chunks_exact_mut(8))
+            .enumerate()
+        {
+            let _ = row_index;
+            for (output, fundamental_column) in
+                output_row.iter_mut().zip(fundamental_columns.iter())
+            {
+                *output = jacobian_row
+                    .iter()
+                    .zip(fundamental_column.iter())
+                    .map(|(jacobian_component, fundamental_component)| {
+                        jacobian_component * fundamental_component
+                    })
+                    .sum();
             }
         }
         if result.iter().any(|value| !value.is_finite()) {
