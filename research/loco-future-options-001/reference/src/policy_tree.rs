@@ -132,8 +132,14 @@ pub enum PolicyTreeError {
     EmptyField(&'static str),
     DuplicateActionId(String),
     DuplicateNodeId(String),
-    DuplicateStateId { node_id: String, state_id: String },
-    DuplicateStateEvidence { node_id: String, state_id: String },
+    DuplicateStateId {
+        node_id: String,
+        state_id: String,
+    },
+    DuplicateStateEvidence {
+        node_id: String,
+        state_id: String,
+    },
     DuplicateTerminalRecoveryState(String),
     UnknownActionId(String),
     MissingRootNode(String),
@@ -478,10 +484,8 @@ fn solve_node(
             // Index physically possible transitions once. Without this index,
             // the inner action/state loop rescans the entire edge list and
             // scales as O(actions × states × edges).
-            let mut edges_by_state_action: BTreeMap<
-                (String, String),
-                Vec<&PolicyTransition>,
-            > = BTreeMap::new();
+            let mut edges_by_state_action: BTreeMap<(String, String), Vec<&PolicyTransition>> =
+                BTreeMap::new();
             for edge in node
                 .transitions
                 .iter()
@@ -1159,11 +1163,12 @@ mod tests {
         );
     }
 
-
     #[test]
     fn missing_mission_sequence_digest_blocks_policy_synthesis() {
         let mut tree = root_two_step_tree();
-        tree.nodes[0].state_evidence[0].mission_sequence_digest.clear();
+        tree.nodes[0].state_evidence[0]
+            .mission_sequence_digest
+            .clear();
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
         assert!(report.policy_witness.is_empty());
@@ -1176,10 +1181,12 @@ mod tests {
             "mission-history:slip-then-heat".to_owned();
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
-        assert!(report
-            .invalid_reasons
-            .iter()
-            .any(|reason| reason.contains("successor-state-binding-mismatch")));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| reason.contains("successor-state-binding-mismatch"))
+        );
     }
 
     #[test]
@@ -1316,8 +1323,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn oversized_state_receipt_vectors_are_rejected_before_search() {
         let mut tree = root_two_step_tree();
@@ -1371,8 +1376,7 @@ mod tests {
 
         let mut transitions = root_two_step_tree();
         let edge = transitions.nodes[0].transitions[0].clone();
-        transitions.nodes[0].transitions =
-            vec![edge; MAX_POLICY_TREE_TRANSITIONS + 1];
+        transitions.nodes[0].transitions = vec![edge; MAX_POLICY_TREE_TRANSITIONS + 1];
         assert!(matches!(
             evaluate_bounded_policy_tree(&transitions, 2),
             Err(PolicyTreeError::InputLimitExceeded {
