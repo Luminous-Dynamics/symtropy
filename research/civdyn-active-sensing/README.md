@@ -29,6 +29,26 @@ Four sensing actions are evaluated:
 
 The reported regret is measured against the best feasible physical policy in each world **without** paying to sense. The sensor's energy cost and world-specific latency service loss are then charged against the chosen policy. Therefore the regret calculation captures both what was learned and what was lost while acquiring the information.
 
+## Non-myopic two-stage sensing trap
+
+The sequential reference is a separate binary and API, not a pooled score with the single-sensor fixture. It tests a deliberately non-myopic sequence:
+
+1. **Inspection-rig setup** costs 0.1 kWh (0.2 service units) and one tick (0.3 service units of delay loss per world). It returns the same candidate-visible `ready` observation in both worlds. By itself it does not resolve the absence of a common feasible physical action, so the myopic stage-one evaluator rejects it.
+2. **Fine inspection** is admissible only after the first stage returns `ready`. It costs 0.15 kWh (0.3 service units) and one tick (0.4 service units of delay loss per world). It returns distinct sensor traces, `trace_alpha` and `trace_beta`, which permit the controller to choose `repair_a` or `repair_b` safely.
+
+The full sequence costs 0.25 kWh, 2 ticks, 0.5 service units in energy and 0.7 service units in service loss during acquisition. The combined 1.2-service-unit penalty is charged against the original world oracle, leaving worst-case regret 1.2 while restoring a feasible action in each final observation-history partition. Because no common blind action existed, the evaluator reports **feasibility lift** and leaves regret reduction undefined; it does not invent a baseline regret.
+
+This is a direct non-myopic value-of-information control: the first observation has no immediate decision value, but is necessary to unlock the second measurement. An uninformative second measurement still leaves the action set infeasible; a cost-over-budget sequence is not recommended. The second stage declares and checks its exact first-stage prerequisite.
+
+Run the evaluator and the four-field candidate-only policy map:
+
+```bash
+cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential-active-sensing-sweep
+cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential-active-sensing-sweep -- --candidate-policy-map
+```
+
+The evaluator emits per-partition/per-world costs and regret. The candidate-only export contains only `scenario_id, plan_id, observation_history, action_id`; it has no true-world identity or evaluator regret fields.
+
 ## Core contract
 
 - No prior probabilities and no model-count weighting.
