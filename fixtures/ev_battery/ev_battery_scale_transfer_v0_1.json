@@ -1,0 +1,148 @@
+{
+  "manifest_id": "SYNTH-SCALE-TRANSFER-001",
+  "stages": [
+    {
+      "stage_id": "MATERIAL",
+      "stage_kind": "material",
+      "design_id": "LFP-CANDIDATE-01",
+      "design_revision": "rev-MATERIAL",
+      "artifact_config_ref": "CONFIG-MATERIAL",
+      "parent_stage_ids": [],
+      "scale_value": 10.0,
+      "scale_unit": "g_active_material",
+      "stage_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "evidence_id": "STAGE-SYNTH"
+    },
+    {
+      "stage_id": "ELECTRODE",
+      "stage_kind": "electrode",
+      "design_id": "LFP-CANDIDATE-01",
+      "design_revision": "rev-ELECTRODE",
+      "artifact_config_ref": "CONFIG-ELECTRODE",
+      "parent_stage_ids": ["MATERIAL"],
+      "scale_value": 100.0,
+      "scale_unit": "cm2_coated_area",
+      "stage_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "evidence_id": "STAGE-SYNTH"
+    },
+    {
+      "stage_id": "COIN",
+      "stage_kind": "coin_cell",
+      "design_id": "LFP-CANDIDATE-01",
+      "design_revision": "rev-COIN",
+      "artifact_config_ref": "CONFIG-COIN",
+      "parent_stage_ids": ["ELECTRODE"],
+      "scale_value": 5.0,
+      "scale_unit": "mAh_nominal",
+      "stage_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "evidence_id": "STAGE-SYNTH"
+    },
+    {
+      "stage_id": "SMALL-POUCH",
+      "stage_kind": "small_pouch",
+      "design_id": "LFP-CANDIDATE-01",
+      "design_revision": "rev-SMALL-POUCH",
+      "artifact_config_ref": "CONFIG-SMALL-POUCH",
+      "parent_stage_ids": ["COIN"],
+      "scale_value": 1.0,
+      "scale_unit": "Ah_nominal",
+      "stage_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "evidence_id": "STAGE-SYNTH"
+    }
+  ],
+  "bridges": [
+    {
+      "bridge_id": "MATERIAL-TO-ELECTRODE",
+      "source_stage_id": "MATERIAL",
+      "target_stage_id": "ELECTRODE",
+      "mapping_profile_ref": "MAP-PRECUSOR-COATING-R1",
+      "variables": [
+        { "variable_id": "chemistry_family", "mapping_kind": "invariant", "rationale": "candidate chemistry is unchanged in this synthetic bridge", "evidence_id": "BRIDGE-SYNTH" },
+        { "variable_id": "areal_loading", "mapping_kind": "reoptimized", "rationale": "coating loading is re-optimized at electrode stage", "evidence_id": "BRIDGE-SYNTH" }
+      ],
+      "evidence_id": "BRIDGE-SYNTH"
+    },
+    {
+      "bridge_id": "ELECTRODE-TO-COIN",
+      "source_stage_id": "ELECTRODE",
+      "target_stage_id": "COIN",
+      "mapping_profile_ref": "MAP-ELECTRODE-COIN-R1",
+      "variables": [
+        { "variable_id": "electrode_thickness", "mapping_kind": "invariant", "rationale": "nominal thickness is held constant in the synthetic case", "evidence_id": "BRIDGE-SYNTH" },
+        { "variable_id": "stack_pressure", "mapping_kind": "unknown", "rationale": "fixture leaves pressure mapping unresolved", "evidence_id": "BRIDGE-SYNTH" }
+      ],
+      "evidence_id": "BRIDGE-SYNTH"
+    },
+    {
+      "bridge_id": "COIN-TO-POUCH",
+      "source_stage_id": "COIN",
+      "target_stage_id": "SMALL-POUCH",
+      "mapping_profile_ref": "MAP-COIN-POUCH-R1",
+      "variables": [
+        { "variable_id": "electrode_area", "mapping_kind": "rescaled", "rationale": "format area changes", "evidence_id": "BRIDGE-SYNTH" }
+      ],
+      "evidence_id": "BRIDGE-SYNTH"
+    }
+  ],
+  "comparisons": [
+    {
+      "comparison_id": "COIN-TO-POUCH-PREDICTION",
+      "bridge_id": "COIN-TO-POUCH",
+      "quantity_id": "capacity_retention",
+      "unit": "percent",
+      "boundary": "complete_cell",
+      "predicted_value": 96.0,
+      "prediction_lower_bound": 90.0,
+      "prediction_upper_bound": 99.0,
+      "observed_value": null,
+      "prediction_evidence_id": "PREDICTION-SYNTH",
+      "observation_evidence_id": null,
+      "disposition": "predicted_only",
+      "comparison_digest": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "comparison_id": "ELECTRODE-TO-COIN-UNKNOWN",
+      "bridge_id": "ELECTRODE-TO-COIN",
+      "quantity_id": "rate_capability",
+      "unit": "C_rate",
+      "boundary": "complete_cell",
+      "predicted_value": 1.0,
+      "prediction_lower_bound": 0.5,
+      "prediction_upper_bound": 2.0,
+      "observed_value": null,
+      "prediction_evidence_id": "PREDICTION-SYNTH",
+      "observation_evidence_id": null,
+      "disposition": "unknown",
+      "comparison_digest": "6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "STAGE-SYNTH",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic scale-stage references",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "BRIDGE-SYNTH",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic scale-mapping declarations",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "PREDICTION-SYNTH",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "calculation",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic prediction and interval",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    }
+  ]
+}
