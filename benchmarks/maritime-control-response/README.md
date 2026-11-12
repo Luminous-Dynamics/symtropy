@@ -50,7 +50,7 @@ The source metadata lists CC BY 4.0, but the archive bytes, embedded notices, fi
 
 ## Read-only value of information: choose the next evidence, not the next action
 
-The exposed `active_probe` module ranks additional candidate evidence by expected information gain over an explicit competing-hypothesis prior. For each candidate, it computes the entropy before acquisition, expected entropy after each possible observation, and expected information gain. A deterministic utility adjusts that gain by declared cost, delay and risk scales after hard eligibility checks. The candidate manifest binds its outcome likelihood table, model/calibration references, hypothesis prior, cost, delay, risk-assessment digest and authority-evidence reference.
+The exposed `active_probe` module ranks additional candidate evidence by expected information gain over an explicit competing-hypothesis prior. For each candidate, it computes the entropy before acquisition, expected entropy after each possible observation, and expected information gain. A deterministic utility adjusts that gain by declared cost, delay and risk scales after hard eligibility checks. The candidate manifest binds its outcome likelihood table, model/calibration references, stable hypothesis-space digest, cost, delay, risk-assessment digest and authority-evidence reference. Each selection portfolio separately binds the exact prior-distribution digest used in that decision.
 
 Three candidate classes are explicit:
 
@@ -60,7 +60,18 @@ Three candidate classes are explicit:
 
 The selector records rejected candidates and reasons, rejects zero-information probes by default, uses deterministic tie-breaking and returns `execution_performed=false` and `actuation_authorized=false`. The authority digest is only a content reference: signer identity, permission scope, expiry, revocation and issuer authority must be verified upstream. The risk score is a caller-supplied policy input, not a calibrated probability; its assessment method, reviewer, scope, expiry and revocation must be independently verified upstream. Likelihood-model, calibration and risk-assessment digests bind evidence but do not prove statistical calibration or safety.
 
-The active evidence comparator protocol is frozen in [active-evidence-selection-v0.1.json](active-evidence-selection-v0.1.json), schema version v0.3. It compares no additional evidence, cheapest eligible, maximum information gain, information gain per cost, seeded-random eligible, and the risk-adjusted worst-case information-gain selector over the *same* eligible candidate set.
+The active evidence comparator protocol is frozen in [active-evidence-selection-v0.1.json](active-evidence-selection-v0.1.json), schema version v0.4. It compares no additional evidence, cheapest eligible, maximum information gain, information gain per cost, seeded-random eligible, and the risk-adjusted worst-case information-gain selector over the *same* eligible candidate set.
+
+### Sequential identity: fixed model, changing belief
+
+The selector separates two identities that must not be conflated:
+
+- **Hypothesis-space digest:** sorted, unique hypothesis IDs only. Candidate likelihood models bind this immutable label-space identity, so the same candidate can be reused across later evidence rounds.
+- **Prior-distribution digest:** sorted hypothesis IDs plus exact current probabilities. Every decision portfolio binds this changing digest; it must change when an observation changes the posterior.
+
+After an authorized external acquisition, `realize_probe_observation` verifies that the candidate was selected from the exact replayed portfolio, validates the current posterior ledger, applies the receipt once, and returns a new posterior plus a chained ledger. A subsequent round recomputes its portfolio using the updated posterior and the same stable hypothesis-space digest. The two-observation synthetic test specifically checks this reuse and a surprising observation whose realized entropy reduction is negative.
+
+This closes the coupling between model identity and belief state: learning which hypothesis is more likely must not invalidate a likelihood model defined over the same hypothesis set. It does not prove that the likelihood model remains calibrated after regime or distribution shift; calibration review and scenario coverage remain separate mandatory gates.
 
 A single point estimate of probe likelihood can be dangerously optimistic. The selector accepts multiple likelihood scenarios over the same hypothesis and outcome spaces, computes scenario-weighted expected information gain, and uses the **minimum scenario-specific information gain** for eligibility and utility. A candidate that is informative only under the nominal model but uninformative under a plausible degraded/noisy scenario is rejected. The result reports `multi_scenario_assessed`; that is deliberately separate from calibration review and is not, by itself, an epistemic qualification.
 
