@@ -11,7 +11,7 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use metric_induced_error_envelope_reference::{
-    Cotangent, CartesianQ, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent,
+    CartesianQ, Cotangent, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent,
     vector_euclidean, vector_inf,
 };
 
@@ -109,22 +109,12 @@ fn fixture() -> (
     let rebasis = Rebasis::<CartesianQ, DenseY, N>::new(basis, profile).unwrap();
     let metric_y = rebasis.metric_to_to(&metric_q, profile).unwrap();
 
-    let vector_q =
-        Tangent::<CartesianQ, N>::new([0.5, -1.25, 2.0, 0.75, -0.2, 1.5]).unwrap();
-    let covector_q =
-        Cotangent::<CartesianQ, N>::new([2.0, -3.0, 0.75, -1.5, 0.25, 4.0]).unwrap();
+    let vector_q = Tangent::<CartesianQ, N>::new([0.5, -1.25, 2.0, 0.75, -0.2, 1.5]).unwrap();
+    let covector_q = Cotangent::<CartesianQ, N>::new([2.0, -3.0, 0.75, -1.5, 0.25, 4.0]).unwrap();
     let vector_y = rebasis.tangent_to_to(&vector_q).unwrap();
     let covector_y = rebasis.cotangent_to_to(&covector_q).unwrap();
 
-    (
-        metric_q,
-        rebasis,
-        vector_q,
-        covector_q,
-        vector_y,
-        covector_y,
-        metric_y,
-    )
+    (metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y)
 }
 
 fn json_number(value: f64) -> String {
@@ -223,7 +213,9 @@ fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> Strin
         json_escape(&rustc_version()),
         json_escape(&std::env::var("GITHUB_SHA").unwrap_or_else(|_| "local".to_owned())),
         json_escape(&std::env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned())),
-        std::thread::available_parallelism().map(|v| v.get()).unwrap_or(1),
+        std::thread::available_parallelism()
+            .map(|v| v.get())
+            .unwrap_or(1),
         ITERATIONS,
         SAMPLES,
         total_elapsed.as_secs_f64() * 1000.0,
@@ -268,12 +260,19 @@ fn main() {
                 .unwrap();
             metric.tangent_norm(&vector_y).unwrap()
         }),
-        measure("metric_admission_cholesky_q", ITERATIONS / 10, SAMPLES, || {
-            let admitted =
-                Metric::<CartesianQ, N>::admit(*black_box(metric_q.matrix()), MetricProfileV1::default())
-                    .unwrap();
-            admitted.admission_receipt().minimum_cholesky_pivot
-        }),
+        measure(
+            "metric_admission_cholesky_q",
+            ITERATIONS / 10,
+            SAMPLES,
+            || {
+                let admitted = Metric::<CartesianQ, N>::admit(
+                    *black_box(metric_q.matrix()),
+                    MetricProfileV1::default(),
+                )
+                .unwrap();
+                admitted.admission_receipt().minimum_cholesky_pivot
+            },
+        ),
         measure("metric_and_dual_norms_y_pair", ITERATIONS, SAMPLES, || {
             metric_y.tangent_norm(black_box(&vector_y)).unwrap()
                 + metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
