@@ -217,37 +217,49 @@
           "domain": "cell_source_terms",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+          "target_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111"
         },
         {
           "domain": "topology",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222",
+          "target_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222"
         },
         {
           "domain": "thermal_pathways",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+          "target_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "domain": "protection",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+          "target_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444"
         },
         {
           "domain": "enclosure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+          "target_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "domain": "exposure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+          "target_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666"
         }
       ]
     },
@@ -278,37 +290,49 @@
           "domain": "cell_source_terms",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+          "target_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111"
         },
         {
           "domain": "topology",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222",
+          "target_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222"
         },
         {
           "domain": "thermal_pathways",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+          "target_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "domain": "protection",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+          "target_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444"
         },
         {
           "domain": "enclosure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+          "target_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "domain": "exposure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+          "target_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666"
         }
       ]
     },
@@ -339,37 +363,49 @@
           "domain": "cell_source_terms",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "7777777777777777777777777777777777777777777777777777777777777777",
+          "target_fingerprint": "7777777777777777777777777777777777777777777777777777777777777777"
         },
         {
           "domain": "topology",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "8888888888888888888888888888888888888888888888888888888888888888",
+          "target_fingerprint": "8888888888888888888888888888888888888888888888888888888888888888"
         },
         {
           "domain": "thermal_pathways",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "9999999999999999999999999999999999999999999999999999999999999999",
+          "target_fingerprint": "9999999999999999999999999999999999999999999999999999999999999999"
         },
         {
           "domain": "protection",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         {
           "domain": "enclosure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
           "domain": "exposure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "target_fingerprint": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
       ]
     },
@@ -400,37 +436,49 @@
           "domain": "cell_source_terms",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+          "target_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111"
         },
         {
           "domain": "topology",
           "status": "different",
           "evidence_id": null,
-          "rationale": "synthetic negative control: candidate fingerprint differs"
+          "rationale": "synthetic negative control: candidate fingerprint differs",
+          "source_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222",
+          "target_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222"
         },
         {
           "domain": "thermal_pathways",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+          "target_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "domain": "protection",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+          "target_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444"
         },
         {
           "domain": "enclosure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+          "target_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "domain": "exposure",
           "status": "same_with_evidence",
           "evidence_id": "E-COMPARISON",
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+          "target_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666"
         }
       ]
     },
@@ -461,37 +509,49 @@
           "domain": "cell_source_terms",
           "status": "unknown",
           "evidence_id": null,
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+          "target_fingerprint": "1111111111111111111111111111111111111111111111111111111111111111"
         },
         {
           "domain": "topology",
           "status": "unknown",
           "evidence_id": null,
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222",
+          "target_fingerprint": "2222222222222222222222222222222222222222222222222222222222222222"
         },
         {
           "domain": "thermal_pathways",
           "status": "unknown",
           "evidence_id": null,
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+          "target_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "domain": "protection",
           "status": "unknown",
           "evidence_id": null,
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+          "target_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444"
         },
         {
           "domain": "enclosure",
           "status": "unknown",
           "evidence_id": null,
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+          "target_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         {
           "domain": "exposure",
           "status": "unknown",
           "evidence_id": null,
-          "rationale": "synthetic known-answer equivalence receipt"
+          "rationale": "synthetic known-answer equivalence receipt",
+          "source_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+          "target_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666"
         }
       ]
     }
