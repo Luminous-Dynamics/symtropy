@@ -106,7 +106,8 @@
       "parent_artifact_ids": [],
       "metadata": {
         "case_id": "OLI-ABIOTIC-GRAY-SCOTT-PATTERN-001"
-      }
+      },
+      "sha256_status": "pending"
     }
   ],
   "outputs": [],
