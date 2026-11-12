@@ -1,5 +1,5 @@
 use metric_induced_error_envelope_reference::{
-    vector_inf, CartesianQ, Cotangent, DenseY, Metric, MetricProfileV1, Rebasis, Tangent,
+    CartesianQ, Cotangent, DenseY, Metric, MetricProfileV1, Rebasis, Tangent, vector_inf,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
