@@ -86,7 +86,6 @@ impl SubAssign for Rational {
     }
 }
 
-
 impl Div for Rational {
     type Output = Self;
 
