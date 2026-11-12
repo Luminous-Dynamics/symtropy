@@ -125,6 +125,7 @@ exclude = [
     "crates/tools/shipyard-distortion-co-design",
     "crates/tools/shipyard-tandem-gmaw-admission",
     "crates/tools/shipyard-interpass-adaptive",
+    "crates/tools/shipyard-profile-geometry-oracle",
 ]
 members = [
     ".",
