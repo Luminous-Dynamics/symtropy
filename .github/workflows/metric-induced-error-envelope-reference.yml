@@ -64,7 +64,7 @@ jobs:
           assert report["schema_version"] == "luminous.metric_induced_microbenchmark.v0.1"
           assert report["source_commit"] and report["source_commit"] != "local"
           rows = report["measurements"]
-          assert len(rows) == 11, f"expected 11 measurements, got {len(rows)}"
+          assert len(rows) == 15, f"expected 15 measurements, got {len(rows)}"
           names = {row["name"] for row in rows}
           required = {
               "raw_euclidean_tangent_q",
@@ -78,6 +78,10 @@ jobs:
               "metric_rebasis_q_to_y",
               "metric_admission_cholesky_q",
               "metric_and_dual_norms_y_pair",
+              "delassus_whitened_gram_construct",
+              "delassus_direct_mass_solve_construct",
+              "delassus_multiplier_metric_norm",
+              "delassus_residual_dual_norm",
           }
           assert names == required, f"measurement set mismatch: {names ^ required}"
           for row in rows:
