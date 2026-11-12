@@ -990,7 +990,7 @@ impl<const D: usize> PhysicsWorld<D> {
         let inv_mass_a = self.bodies[a].inv_mass;
         let inv_mass_b = self.bodies[b].inv_mass;
         let total_inv_mass = inv_mass_a + inv_mass_b;
-        if total_inv_mass < 1e-15 {
+        if !total_inv_mass.is_finite() || total_inv_mass <= 0.0 {
             return contact;
         }
 
@@ -2559,5 +2559,50 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+    #[test]
+    fn contact_solver_preserves_response_for_finite_large_mass() {
+        let mut world = PhysicsWorld::<3> {
+            compliance: 0.0,
+            baumgarte: 0.0,
+            slop: 0.0,
+            ..Default::default()
+        };
+
+        let static_body = RigidBody::new(
+            BodyHandle(0),
+            crate::body::BodyType::Static,
+            Transform::identity(),
+            Box::new(Sphere::<3>::unit()),
+            0.0,
+            SVector::zeros(),
+        );
+        let mut dynamic_body =
+            RigidBody::dynamic_sphere(BodyHandle(1), Point::new([0.0, 2.0, 0.0]), 1.0, 1.0e16);
+        dynamic_body.linear_velocity = SVector::from([0.0, -1.0, 0.0]);
+
+        let static_handle = world.add_body(static_body);
+        let dynamic_handle = world.add_body(dynamic_body);
+
+        let manifold = ContactManifold::<3>::single(
+            static_handle,
+            dynamic_handle,
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            0.0,
+        );
+        let mut callback = NoOpCallback;
+        let resolved = world.resolve_contact(manifold, 1.0 / 60.0, &mut callback);
+
+        assert!(
+            world.bodies[1].linear_velocity[1].abs() < 1.0e-12,
+            "finite-mass body should receive the contact impulse; velocity={:?}",
+            world.bodies[1].linear_velocity
+        );
+        assert!(
+            resolved.points[0].lambda > 1.0e15,
+            "expected a finite impulse matching the 1e16 kg body, got {}",
+            resolved.points[0].lambda
+        );
     }
 }
