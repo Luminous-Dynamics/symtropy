@@ -137,5 +137,259 @@
         }
       }
     ]
+  },
+  "multi_hop_receipt": {
+    "schema_version": "0.1",
+    "receipt_id": "SCAN-BIM-CONTINUITY-ROOM-A-MULTIHOP-001",
+    "replay": {
+      "run_id": "SYNTHETIC-REPLAY-001",
+      "receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "candidate_source_commit": "1111111111111111111111111111111111111111"
+    },
+    "scene": {
+      "building_group_id": "BUILDING-A",
+      "scene_id": "ROOM-A",
+      "source_model_revision": "MODEL-REV-001"
+    },
+    "transitions": [
+      {
+        "transition_id": "RAW-TO-SURFACE-001",
+        "from_representation": "raw_observations",
+        "to_representation": "surface_mesh",
+        "source_artifacts": [
+          {
+            "artifact_id": "SCAN-001",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "role": "raw_measurement"
+          },
+          {
+            "artifact_id": "TRANSFORM-001",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "role": "transform"
+          },
+          {
+            "artifact_id": "RELATION-INVENTORY-ROOM-A-001",
+            "sha256": "1212121212121212121212121212121212121212121212121212121212121212",
+            "role": "relation_inventory"
+          }
+        ],
+        "output_artifacts": [
+          {
+            "artifact_id": "MESH-001",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "role": "geometry_output"
+          }
+        ],
+        "tool": {
+          "name": "synthetic-plane-fitter",
+          "version": "0.1.0",
+          "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "correspondences": [
+          {
+            "event_id": "CORR-001",
+            "kind": "one_to_one",
+            "source_entity_ids": [
+              "WALL-RAW-001"
+            ],
+            "target_entity_ids": [
+              "WALL-SURFACE-001"
+            ],
+            "identity_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "event_id": "CORR-OPENING-001",
+            "kind": "one_to_one",
+            "source_entity_ids": [
+              "OPENING-RAW-001"
+            ],
+            "target_entity_ids": [
+              "OPENING-SURFACE-001"
+            ],
+            "identity_receipt_sha256": "1313131313131313131313131313131313131313131313131313131313131313"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "CLAIM-WALL-AXIS-001",
+            "target_entity_id": "WALL-SURFACE-001",
+            "property_id": "wall.axis",
+            "origin": "measured",
+            "source_evidence": [
+              {
+                "artifact_id": "SCAN-001",
+                "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "role": "raw_measurement"
+              }
+            ],
+            "value_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+            "derivation_method": null,
+            "assumptions": [],
+            "unknown_reason": null,
+            "target_artifact_id": "MESH-001"
+          }
+        ],
+        "uncertainty": {
+          "before": {
+            "status": "known",
+            "metric_id": "conservative_absolute_bound_m",
+            "absolute_bound_m": 0.002
+          },
+          "after": {
+            "status": "known",
+            "metric_id": "conservative_absolute_bound_m",
+            "absolute_bound_m": 0.0025
+          },
+          "approximation_error_bound_m": 0.0005,
+          "update_basis": "representation_only",
+          "conditioning_evidence": [],
+          "estimator_id": null,
+          "calibration_profile_id": null
+        },
+        "relation_audit": {
+          "inventory_artifact_id": "RELATION-INVENTORY-ROOM-A-001",
+          "completeness": "complete",
+          "relations": [
+            {
+              "source_relation_id": "REL-RAW-WALL-OPENING-001",
+              "relation_kind": "host_opening",
+              "source_relation_type": "RawRoomGraph.hosts_opening",
+              "source_subject_entity_id": "WALL-RAW-001",
+              "source_object_entity_id": "OPENING-RAW-001",
+              "directed": true,
+              "disposition": "preserved",
+              "target_relations": [
+                {
+                  "relation_id": "REL-MESH-WALL-OPENING-001",
+                  "relation_type": "IfcRelVoidsElement",
+                  "subject_entity_id": "WALL-SURFACE-001",
+                  "object_entity_id": "OPENING-SURFACE-001",
+                  "relation_kind": "host_opening"
+                }
+              ],
+              "reason": null
+            }
+          ]
+        }
+      },
+      {
+        "transition_id": "SURFACE-TO-GRAPH-001",
+        "from_representation": "surface_mesh",
+        "to_representation": "spatial_graph",
+        "source_artifacts": [
+          {
+            "artifact_id": "MESH-001",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "role": "geometry_output"
+          },
+          {
+            "artifact_id": "RELATION-INVENTORY-MESH-001",
+            "sha256": "1414141414141414141414141414141414141414141414141414141414141414",
+            "role": "relation_inventory"
+          }
+        ],
+        "output_artifacts": [
+          {
+            "artifact_id": "GRAPH-001",
+            "sha256": "1515151515151515151515151515151515151515151515151515151515151515",
+            "role": "representation_output"
+          }
+        ],
+        "tool": {
+          "name": "synthetic-plane-fitter",
+          "version": "0.1.0",
+          "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "correspondences": [
+          {
+            "event_id": "CORR-GRAPH-WALL-001",
+            "kind": "one_to_one",
+            "source_entity_ids": [
+              "WALL-SURFACE-001"
+            ],
+            "target_entity_ids": [
+              "WALL-GRAPH-001"
+            ],
+            "identity_receipt_sha256": "1616161616161616161616161616161616161616161616161616161616161616"
+          },
+          {
+            "event_id": "CORR-GRAPH-OPENING-001",
+            "kind": "one_to_one",
+            "source_entity_ids": [
+              "OPENING-SURFACE-001"
+            ],
+            "target_entity_ids": [
+              "OPENING-GRAPH-001"
+            ],
+            "identity_receipt_sha256": "1717171717171717171717171717171717171717171717171717171717171717"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "CLAIM-WALL-AXIS-GRAPH-001",
+            "target_entity_id": "WALL-GRAPH-001",
+            "target_artifact_id": "GRAPH-001",
+            "property_id": "wall.axis",
+            "origin": "inferred",
+            "source_evidence": [
+              {
+                "artifact_id": "MESH-001",
+                "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "role": "geometry_output"
+              }
+            ],
+            "value_sha256": "1818181818181818181818181818181818181818181818181818181818181818",
+            "derivation_method": "mesh_to_spatial_graph_v0_1",
+            "assumptions": [],
+            "unknown_reason": null
+          }
+        ],
+        "uncertainty": {
+          "before": {
+            "status": "known",
+            "metric_id": "conservative_absolute_bound_m",
+            "absolute_bound_m": 0.0025
+          },
+          "after": {
+            "status": "known",
+            "metric_id": "conservative_absolute_bound_m",
+            "absolute_bound_m": 0.003
+          },
+          "approximation_error_bound_m": 0.0005,
+          "update_basis": "representation_only",
+          "conditioning_evidence": [],
+          "estimator_id": null,
+          "calibration_profile_id": null
+        },
+        "relation_audit": {
+          "inventory_artifact_id": "RELATION-INVENTORY-MESH-001",
+          "completeness": "complete",
+          "relations": [
+            {
+              "source_relation_id": "REL-MESH-WALL-OPENING-001",
+              "relation_kind": "host_opening",
+              "source_relation_type": "SurfaceGraph.hosts_opening",
+              "source_subject_entity_id": "WALL-SURFACE-001",
+              "source_object_entity_id": "OPENING-SURFACE-001",
+              "directed": true,
+              "disposition": "preserved",
+              "target_relations": [
+                {
+                  "relation_id": "REL-GRAPH-WALL-OPENING-001",
+                  "relation_kind": "host_opening",
+                  "relation_type": "SpatialGraph.hosts_opening",
+                  "subject_entity_id": "WALL-GRAPH-001",
+                  "object_entity_id": "OPENING-GRAPH-001"
+                }
+              ],
+              "reason": null
+            }
+          ]
+        },
+        "parent_transition_ids": [
+          "RAW-TO-SURFACE-001"
+        ]
+      }
+    ]
   }
 }
