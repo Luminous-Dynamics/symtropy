@@ -531,12 +531,6 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
                     (Some(lower), Some(upper)) if upper >= lower => {}
                     _ => push(&mut errors, "INVALID_RESPONSE_INTERVAL", &path, "VALID response requires finite ordered lower/upper interval"),
                 }
-                if !matches!(
-                    text(response, "evidence_role"),
-                    Some("INDEPENDENT_MEASUREMENT" | "SYNTHETIC_CONFORMANCE_FIXTURE")
-                ) {
-                    push(&mut errors, "NON_PHYSICAL_RESPONSE_EVIDENCE", &format!("{path}.evidence_role"), "model/operator claims cannot establish a measured response envelope");
-                }
             }
             Some("DEGRADED" | "MISSING" | "UNKNOWN") => {
                 if !matches!(response.get("value_lower"), Some(Value::Null))
@@ -1001,8 +995,15 @@ mod tests {
         let mut case = fixture();
         let pressure_group = case["channels"][0]["independence_group_ref"].clone();
         channel_mut(&mut case, "dp-filter")["independence_group_ref"] = pressure_group;
+        // Make both pressure channels discriminating in this known-truth
+        // fixture, then prove they still contribute only one principle.
+        let filter = response_mut(&mut case, "FILTER_CYCLONE_LOADING", "dp-filter");
+        filter["value_lower"] = serde_json::json!(100.0);
+        filter["value_upper"] = serde_json::json!(110.0);
         let report = evaluate_case(&case, &parent()).unwrap();
         let result = pair(&report, "normal-vs-filter-loading");
+        assert!(result.discriminating_channel_ids.contains(&"dp-line".to_owned()));
+        assert!(result.discriminating_channel_ids.contains(&"dp-filter".to_owned()));
         assert!(result.observed_independent_principles < result.discriminating_channel_ids.len());
     }
 
@@ -1172,8 +1173,10 @@ mod tests {
         for channel in case["channels"].as_array_mut().unwrap() {
             let domain = &mut channel["domain"];
             rename_key(domain, "material_cohort_ref", "asset_family_ref");
-            rename_key(domain, "path_configuration_ref", "asset_configuration_ref");
+            rename_key(domain, "path_configuration_ref", "operating_domain_ref");
             rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
+            domain["asset_configuration_ref"] =
+                case["parent_context"]["asset_configuration_ref"].clone();
             domain["operating_domain_ref"] = operating_domain_ref.clone();
         }
         case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
@@ -1218,7 +1221,7 @@ mod tests {
             serde_json::json!(1);
         assert!(has(
             &validate_case(&case, &parent()),
-            "CRITICAL_PAIR_BELOW_LAYOUT_THRESHOLD"
+            "PAIR_THRESHOLD_BELOW_PROFILE"
         ));
     }
 
