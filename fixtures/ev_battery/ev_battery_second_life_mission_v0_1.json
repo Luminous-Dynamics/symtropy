@@ -349,6 +349,6 @@
     "unknown_hard_gate_blocks_eligibility": true,
     "hard_gates_not_compensable": true,
     "read_only": true,
-    "minimum_independent_physical_specimens_per_pack": 2
+    "minimum_cell_count_per_pack": 2
   }
 }
