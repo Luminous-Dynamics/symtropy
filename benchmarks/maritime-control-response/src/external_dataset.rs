@@ -599,10 +599,18 @@ mod tests {
         );
         assert_eq!(
             protocol["status"],
-            "archive_downloaded_publisher_md5_verified_payload_audit_pending"
+            "archive_payload_audited_no_model_evaluation"
         );
         assert_eq!(protocol["dataset"]["doi"], MARINE_DATASET_DOI);
         assert_eq!(protocol["dataset"]["license"], "CC-BY-4.0");
+        assert_eq!(
+            protocol["dataset"]["zenodo_record"]["file"]["sha256"],
+            "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b"
+        );
+        assert_eq!(
+            protocol["archive_audit_receipt"]["artifact_id"],
+            13986307496
+        );
         assert_eq!(protocol["dataset"]["files"]["csv_count"], 16);
         assert_eq!(protocol["dataset"]["files"]["baseline_reference_files"], 1);
         assert_eq!(protocol["dataset"]["files"]["fault_scenario_files"], 15);
