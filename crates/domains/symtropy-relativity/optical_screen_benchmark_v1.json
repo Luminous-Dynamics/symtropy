@@ -222,15 +222,17 @@
           "ingoing Kerr Sachs transport RHS preserves screen orthonormality and transversality rates"
         ],
         "remaining": [
-          "transport the Sachs basis continuously along the geodesic",
-          "integrate D'' = -T D with vertex conditions D(0)=0 and D'(0)=I",
-          "compare the resulting 2x2 Jacobi matrix against the canonical 8x8 variational flow",
+          "execute and record the 17-point radial Schwarzschild known-answer tests in Rust",
+          "run fixed-step refinements at N, 2N, 4N and report matrix and invariant convergence",
+          "compare the Sachs Jacobi matrix against the canonical 8x8 variation projected into the same transported frame",
+          "add nonradial Schwarzschild and generic Kerr trajectory cross-formulation receipts",
           "benchmark convergence through a caustic without determinant-only classification"
         ],
         "apis": [
           "KerrCanonicalHamiltonian::optical_tidal_matrix",
           "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
-          "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates"
+          "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
+          "integrate_kerr_sachs_jacobi_fixed_step"
         ],
         "transport_rhs": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
         "additional_diagnostics": [
@@ -286,10 +288,11 @@
       "remaining": [
         "execute and record the 17-point radial Schwarzschild known-answer tests in Rust",
         "run fixed-step refinements at N, 2N, 4N and report matrix and invariant convergence",
-        "compare the curvature-based Sachs Jacobi matrix against the canonical 8x8 variation projected into the same transported frame",
+        "compare the Sachs Jacobi matrix against the canonical 8x8 variation projected into the same transported frame",
         "add nonradial Schwarzschild and generic Kerr trajectory cross-formulation receipts",
         "benchmark convergence through a caustic without determinant-only classification"
-      ]
+      ],
+      "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json"
     },
     {
       "id": "OS-5C",
@@ -565,13 +568,14 @@
       "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
     ],
     "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
-    "sachs_transport_status": "fixed-step RK4 source implemented; step-refinement and canonical-vs-Sachs comparison unexecuted",
+    "sachs_transport_status": "fixed-step coupled frame/Jacobi RK4 source implemented; Rust endpoint tests, N/2N/4N refinement and canonical-vs-Sachs comparison pending",
     "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
     "sachs_transport_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
     "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
     "sachs_jacobi_api": "integrate_kerr_sachs_jacobi_fixed_step",
     "sachs_jacobi_initial_data": "D(0)=0; D'(0)=I; two initial chart-coordinate Sachs basis vectors must be null-transverse and orthonormal",
-    "sachs_jacobi_integration": "24-component fixed-step RK4 jointly evolves canonical ray, transported frame, D and D'"
+    "sachs_jacobi_integration": "24-component fixed-step RK4 jointly evolves canonical ray, transported frame, D and D'",
+    "sachs_jacobi_fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json"
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
