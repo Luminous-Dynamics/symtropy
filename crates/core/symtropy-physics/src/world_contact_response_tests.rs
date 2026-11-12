@@ -102,7 +102,8 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
     assert!(
         (observed_impulse_magnitude - expected_impulse_magnitude).abs() / impulse_scale
             < 2.0e-12,
-        "solver impulse disagrees with independent effective-mass oracle: observed={observed_impulse_magnitude:e}, expected={expected_impulse_magnitude:e}"
+        "solver impulse disagrees with independent effective-mass oracle: \\
+         observed={observed_impulse_magnitude:e}, expected={expected_impulse_magnitude:e}"
     );
 
     let velocity_scale = before_normal_speed.abs().max(f64::MIN_POSITIVE);
