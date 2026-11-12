@@ -65,10 +65,10 @@ jobs:
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.status == "protocol_only_not_executed") and
             (.shift_matrix.axes | length == 6) and
-            ([.shift_matrix.axes[].id] | unique | length == 6) and
-            ([.shift_matrix.axes[].id] | index("C_SHIFT_DRIVING_CYCLE") != null) and
-            ([.shift_matrix.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
-            ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
+            ([.shift_matrix.axes[]] | unique | length == 6) and
+            ([.shift_matrix.axes[]] | index("C_SHIFT_DRIVING_CYCLE") != null) and
+            ([.shift_matrix.axes[]] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
+            ([.shift_matrix.axes[]] | index("C_PLUS_F_SHIFT") != null) and
             (.shift_matrix.cross_engine_fleet | contains("unsupported")) and
             (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.5") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
