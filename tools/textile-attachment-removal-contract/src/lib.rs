@@ -318,6 +318,13 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
                     "executed work requires an action evidence reference",
                 );
             }
+            if record.post_inspection.is_none() {
+                add(
+                    &mut findings,
+                    "MISSING_POST_INSPECTION",
+                    "executed work requires a post-attempt inspection, including NotRemoved outcomes",
+                );
+            }
             if record
                 .action_evidence
                 .as_ref()
@@ -367,13 +374,15 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
                 "input mass must equal textile output + attachment output + residual + unexplained mass",
             );
         }
-        if record.outcome == RemovalOutcome::Removed
-            && mass.attachment_recovered_mass_mg == 0
+        if matches!(
+            record.outcome,
+            RemovalOutcome::Removed | RemovalOutcome::Partial
+        ) && mass.attachment_recovered_mass_mg == 0
         {
             add(
                 &mut findings,
-                "REMOVED_WITHOUT_ATTACHMENT_MASS",
-                "Removed outcome requires positive recovered attachment mass",
+                "REMOVAL_OUTCOME_WITHOUT_ATTACHMENT_MASS",
+                "Removed or Partial outcome requires positive recovered attachment mass",
             );
         }
         if matches!(
@@ -488,9 +497,16 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
         (&left.code, &left.message).cmp(&(&right.code, &right.message))
     });
 
+    let valid = findings.is_empty();
+    let ceiling = if valid {
+        evidence_ceiling(record)
+    } else {
+        EvidenceCeiling::ContractOnly
+    };
+
     ValidationReport {
-        valid: findings.is_empty(),
-        evidence_ceiling: evidence_ceiling(record),
+        valid,
+        evidence_ceiling: ceiling,
         findings,
     }
 }
@@ -674,9 +690,9 @@ mod tests {
         record.action_evidence = None;
         record.post_inspection = None;
         let report = validate(&record);
-        assert!(report.findings.iter().any(|item| {
+        assert!(!report.findings.iter().any(|item| {
             item.code == "PLANNED_OUTCOME_MISMATCH"
-        }) == false);
+        }));
         assert!(report.findings.iter().any(|item| {
             item.code == "UNEXECUTED_POSITIVE_OUTPUT"
         }));
