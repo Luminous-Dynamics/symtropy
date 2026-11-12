@@ -12,6 +12,7 @@ use std::ops::Range;
 
 pub mod scm;
 pub mod vicsek;
+pub mod nonreciprocal_vicsek;
 
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
