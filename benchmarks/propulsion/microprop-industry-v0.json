@@ -460,6 +460,276 @@
       "lab_result": true,
       "flight_qualified": false,
       "source_url": "https://doi.org/10.1063/5.0293389"
+    },
+    {
+      "id": "NASA-2026-AIS-VAT1-PQ",
+      "name": "AIS-VAT1-PQ",
+      "manufacturer": "Applied Ion Systems (AIS)",
+      "technology_class": "vacuum_arc_thruster",
+      "propellant": "bismuth",
+      "thrust": {
+        "manufacturer_reported_max_BOL": {
+          "value": 26,
+          "unit": "uN",
+          "at_power_W": 5
+        },
+        "manufacturer_reported_intermediate": {
+          "value": 13,
+          "unit": "uN",
+          "at_power_W": 2.5
+        },
+        "manufacturer_reported_min": {
+          "value": 4.2,
+          "unit": "uN",
+          "qualifier": "at below 1 W"
+        },
+        "manufacturer_reported_EOL": {
+          "value": 1,
+          "unit": "uN",
+          "qualifier": "less_than",
+          "definition": "manufacturer main product index does not define EOL test condition"
+        },
+        "nasa_html_table": {
+          "value": 26,
+          "unit": "mN",
+          "status": "HTML column header conflicts with manufacturer exact-model page"
+        },
+        "nasa_pdf_text_layer": {
+          "value": 26,
+          "unit": "uN",
+          "status": "text extraction says micro-newtons; PDF screenshot fetch failed due source file size"
+        },
+        "numeric_unit_resolution": "The manufacturer exact-model page states the same maximum thrust in µN at the specified maximum power. Use µN for source-reported comparison, while preserving NASA HTML mN header discrepancy."
+      },
+      "impulse_bit": null,
+      "specific_impulse": {
+        "value": 87,
+        "unit": "s"
+      },
+      "total_impulse": {
+        "value": 0.13,
+        "unit": "N_s"
+      },
+      "mass": {
+        "value": 0.056,
+        "unit": "kg",
+        "basis": "wet, NASA table / manufacturer exact-model page"
+      },
+      "envelope": {
+        "value": 37,
+        "unit": "cm3",
+        "dimensions_mm": [
+          42,
+          42,
+          21
+        ]
+      },
+      "power_options": [
+        2.5,
+        5
+      ],
+      "power_table_nominal": {
+        "value": 5,
+        "unit": "W",
+        "basis": "NASA table maximum power option"
+      },
+      "shot_lifetime": {
+        "value": 40000,
+        "unit": "shots",
+        "basis": "manufacturer-reported"
+      },
+      "pmi": "D",
+      "independent_verification_assumed": false,
+      "source_url": "https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/",
+      "manufacturer_source_url": "https://appliedionsystems.com/portfolio/ais-vat1-pq-micro-vacuum-arc-thruster/",
+      "manufacturer_index_url": "https://appliedionsystems.com/products/",
+      "notes": [
+        "Manufacturer product pages report Bismuth propellant, 87 s Isp, 40,000 shots, model-specific total impulse and thrust/power points.",
+        "The main manufacturer product index reports end-of-life thrust below 1 µN; its EOL test definition/conditions are not supplied.",
+        "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
+        "Manufacturer-published total impulse only; per-shot impulse distribution not supplied.",
+        "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking."
+      ]
+    },
+    {
+      "id": "NASA-2026-AIS-VAT1-DUO",
+      "name": "AIS-VAT1-DUO",
+      "manufacturer": "Applied Ion Systems (AIS)",
+      "technology_class": "vacuum_arc_thruster_cluster_duo",
+      "propellant": "bismuth",
+      "thrust": {
+        "manufacturer_reported_max_BOL": {
+          "value": 52,
+          "unit": "uN",
+          "at_power_W": 10
+        },
+        "manufacturer_reported_intermediate": {
+          "value": 26,
+          "unit": "uN",
+          "at_power_W": 5
+        },
+        "manufacturer_reported_min": {
+          "value": 8.4,
+          "unit": "uN",
+          "qualifier": "at 1 W"
+        },
+        "manufacturer_reported_EOL": {
+          "value": 1,
+          "unit": "uN",
+          "qualifier": "less_than",
+          "definition": "manufacturer main product index does not define EOL test condition"
+        },
+        "nasa_html_table": {
+          "value": 52,
+          "unit": "mN",
+          "status": "HTML column header conflicts with manufacturer exact-model page"
+        },
+        "nasa_pdf_text_layer": {
+          "value": 52,
+          "unit": "uN",
+          "status": "text extraction says micro-newtons; PDF screenshot fetch failed due source file size"
+        },
+        "numeric_unit_resolution": "The manufacturer exact-model page states the same maximum thrust in µN at the specified maximum power. Use µN for source-reported comparison, while preserving NASA HTML mN header discrepancy."
+      },
+      "impulse_bit": null,
+      "specific_impulse": {
+        "value": 87,
+        "unit": "s"
+      },
+      "total_impulse": {
+        "value": 0.26,
+        "unit": "N_s"
+      },
+      "mass": {
+        "value": 0.084,
+        "unit": "kg",
+        "basis": "wet, NASA table / manufacturer exact-model page"
+      },
+      "envelope": {
+        "value": 74,
+        "unit": "cm3",
+        "dimensions_mm": [
+          84,
+          42,
+          21
+        ]
+      },
+      "power_options": [
+        5,
+        10
+      ],
+      "power_table_nominal": {
+        "value": 10,
+        "unit": "W",
+        "basis": "NASA table maximum power option"
+      },
+      "shot_lifetime": {
+        "value": 40000,
+        "unit": "shots",
+        "basis": "manufacturer-reported"
+      },
+      "pmi": "D",
+      "independent_verification_assumed": false,
+      "source_url": "https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/",
+      "manufacturer_source_url": "https://appliedionsystems.com/portfolio/ais-vat1-dual-micro-vacuum-arc-thruster/",
+      "manufacturer_index_url": "https://appliedionsystems.com/products/",
+      "notes": [
+        "Manufacturer product pages report Bismuth propellant, 87 s Isp, 40,000 shots, model-specific total impulse and thrust/power points.",
+        "The main manufacturer product index reports end-of-life thrust below 1 µN; its EOL test definition/conditions are not supplied.",
+        "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
+        "Two parallel AIS-VAT1-PQ modules; manufacturer-published total impulse only.",
+        "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking."
+      ]
+    },
+    {
+      "id": "NASA-2026-AIS-VAT1-QUAD",
+      "name": "AIS-VAT1-QUAD",
+      "manufacturer": "Applied Ion Systems (AIS)",
+      "technology_class": "vacuum_arc_thruster_cluster_quad",
+      "propellant": "bismuth",
+      "thrust": {
+        "manufacturer_reported_max_BOL": {
+          "value": 104,
+          "unit": "uN",
+          "at_power_W": 20
+        },
+        "manufacturer_reported_intermediate": {
+          "value": 52,
+          "unit": "uN",
+          "at_power_W": 10
+        },
+        "manufacturer_reported_min": {
+          "value": 16.8,
+          "unit": "uN",
+          "qualifier": "at 2 W"
+        },
+        "manufacturer_reported_EOL": {
+          "value": 1,
+          "unit": "uN",
+          "qualifier": "less_than",
+          "definition": "manufacturer main product index does not define EOL test condition"
+        },
+        "nasa_html_table": {
+          "value": 104,
+          "unit": "mN",
+          "status": "HTML column header conflicts with manufacturer exact-model page"
+        },
+        "nasa_pdf_text_layer": {
+          "value": 104,
+          "unit": "uN",
+          "status": "text extraction says micro-newtons; PDF screenshot fetch failed due source file size"
+        },
+        "numeric_unit_resolution": "The manufacturer exact-model page states the same maximum thrust in µN at the specified maximum power. Use µN for source-reported comparison, while preserving NASA HTML mN header discrepancy."
+      },
+      "impulse_bit": null,
+      "specific_impulse": {
+        "value": 87,
+        "unit": "s"
+      },
+      "total_impulse": {
+        "value": 0.52,
+        "unit": "N_s"
+      },
+      "mass": {
+        "value": 0.177,
+        "unit": "kg",
+        "basis": "wet, NASA table / manufacturer exact-model page"
+      },
+      "envelope": {
+        "value": 148,
+        "unit": "cm3",
+        "dimensions_mm": [
+          84,
+          84,
+          21
+        ]
+      },
+      "power_options": [
+        10,
+        20
+      ],
+      "power_table_nominal": {
+        "value": 20,
+        "unit": "W",
+        "basis": "NASA table maximum power option"
+      },
+      "shot_lifetime": {
+        "value": 40000,
+        "unit": "shots",
+        "basis": "manufacturer-reported"
+      },
+      "pmi": "D",
+      "independent_verification_assumed": false,
+      "source_url": "https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/",
+      "manufacturer_source_url": "https://appliedionsystems.com/portfolio/ais-vat1-quad-quad-micro-vacuum-arc-thruster/",
+      "manufacturer_index_url": "https://appliedionsystems.com/products/",
+      "notes": [
+        "Manufacturer product pages report Bismuth propellant, 87 s Isp, 40,000 shots, model-specific total impulse and thrust/power points.",
+        "The main manufacturer product index reports end-of-life thrust below 1 µN; its EOL test definition/conditions are not supplied.",
+        "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
+        "Four parallel AIS-VAT1-PQ modules; manufacturer-published total impulse only.",
+        "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking."
+      ]
     }
   ],
   "warnings": [
@@ -469,6 +739,10 @@
     "The Ou et al. efficiency claims differ between abstract and highlights and remain separate.",
     "The two 2026 micro Z-pinch papers are distinct device configurations and must not be pooled.",
     "Lab evidence, flight opportunity, flight demonstrated and operational qualification are separate evidence tiers.",
-    "No device ranking is valid until installed mass, DC-bus power, mission service, lifetime and uncertainty boundaries are matched."
-  ]
+    "No device ranking is valid until installed mass, DC-bus power, mission service, lifetime and uncertainty boundaries are matched.",
+    "NASA Table 4-11 HTML has a [mN] thrust column header for AIS VAT rows while the official PDF text layer has [µN]; manufacturer exact-model pages specify µN values at defined power points. Use manufacturer-reported µN values for source attribution, preserve the NASA HTML unit transcription discrepancy.",
+    "AIS manufacturer pages report 40,000 shots, 87 s Isp and 0.13/0.26/0.52 N·s total impulse; main product index additionally reports EOL thrust below 1 µN but does not define EOL test condition. Lifetime, thrust drift, per-shot distribution and failure denominator require independent per-unit validation.",
+    "AIS manufacturer product index and detailed product pages disagree on current list prices and lead times; exclude web prices from lifecycle ranking until a dated formal quote and supply configuration are frozen."
+  ],
+  "record_count": 15
 }
