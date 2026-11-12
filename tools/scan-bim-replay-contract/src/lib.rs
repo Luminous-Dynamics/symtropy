@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 pub mod continuity;
+pub mod continuity_chain;
 pub mod delivery;
 
 use serde::{Deserialize, Serialize};
