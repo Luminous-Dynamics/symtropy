@@ -87,6 +87,16 @@ jobs:
             --bin degradation-recovery-envelope
           test -x research/degradation-recovery-envelope-001/target/debug/degradation-recovery-envelope
 
+      - name: Export canonical Rust formatter output from temporary copy
+        if: always()
+        run: |
+          mkdir -p /tmp/fresh-replay-format-export
+          cp research/fresh-process-driving-observation-replay-001/src/main.rs /tmp/fresh-replay-format-export/main.rs
+          rustfmt --edition 2024 /tmp/fresh-replay-format-export/main.rs
+          echo "__FORMAT_EXPORT_BEGIN_FRESH_REPLAY_MAIN__"
+          base64 -w0 /tmp/fresh-replay-format-export/main.rs | fold -w 4000
+          echo "__FORMAT_EXPORT_END_FRESH_REPLAY_MAIN__"
+
       - name: Check harness formatting, tests and strict Clippy
         run: |
           cargo fmt --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml -- --check
