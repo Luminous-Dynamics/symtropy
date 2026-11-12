@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/matched-physics-benchmark-001/schemas/benchmark-case-v0.1.schema.json",
+  "title": "Luminous matched physics benchmark case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "benchmark_tier",
+    "fixture_mode",
+    "payload_sha256",
+    "payload",
+    "source_fixture_refs",
+    "comparator_targets",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "luminous.matched_physics_benchmark_case.v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "benchmark_tier": {
+      "enum": [
+        "DENSE_METRIC_KERNEL",
+        "CONSTRAINED_MECHANICS",
+        "ARTICULATED_DYNAMICS"
+      ]
+    },
+    "fixture_mode": {
+      "enum": [
+        "synthetic_algebra_fixture",
+        "frozen_physical_fixture"
+      ]
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension",
+        "units_profile_id",
+        "source_frame_id",
+        "target_frame_id",
+        "coordinate_relation",
+        "metric_source",
+        "rebasis_source_from_target",
+        "tangent_source",
+        "cotangent_source",
+        "expected"
+      ],
+      "properties": {
+        "dimension": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 128
+        },
+        "units_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_relation": {
+          "const": "q = S y"
+        },
+        "metric_source": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "rebasis_source_from_target": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "tangent_source": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "cotangent_source": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tangent_target",
+            "cotangent_target",
+            "metric_target",
+            "tangent_metric_norm_squared",
+            "cotangent_dual_norm_squared_numerator",
+            "cotangent_dual_norm_squared_denominator",
+            "canonical_pairing",
+            "component_infinity_norm_source_tangent",
+            "component_infinity_norm_target_tangent"
+          ],
+          "properties": {
+            "tangent_target": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "number"
+              }
+            },
+            "cotangent_target": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "number"
+              }
+            },
+            "metric_target": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "tangent_metric_norm_squared": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "cotangent_dual_norm_squared_numerator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "cotangent_dual_norm_squared_denominator": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "canonical_pairing": {
+              "type": "number"
+            },
+            "component_infinity_norm_source_tangent": {
+              "type": "number",
+              "minimum": 0
+            },
+            "component_infinity_norm_target_tangent": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "source_fixture_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repository",
+          "commit_sha",
+          "path",
+          "git_blob_sha1",
+          "role"
+        ],
+        "properties": {
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit_sha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "git_blob_sha1": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "role": {
+            "enum": [
+              "physical_follow_on_fixture",
+              "independent_oracle_fixture",
+              "adapter_reference"
+            ]
+          }
+        }
+      }
+    },
+    "comparator_targets": {
+      "type": "array",
+      "uniqueItems": true,
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "symtropy-reference",
+          "independent-high-precision-oracle",
+          "drake",
+          "mujoco",
+          "pinocchio"
+        ]
+      }
+    },
+    "claim_ceiling": {
+      "const": "FIXTURE_CONFORMANCE_ONLY_NO_SOTA_CLAIM"
+    }
+  }
+}
