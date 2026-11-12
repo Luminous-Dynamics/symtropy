@@ -84,16 +84,9 @@ impl Symmetric3 {
         let [xx, yy, zz, xy, xz, yz] = a;
 
         let one_by_one = [xx, yy, zz];
-        let two_by_two = [
-            xx * yy - xy * xy,
-            xx * zz - xz * xz,
-            yy * zz - yz * yz,
-        ];
-        let determinant = xx * yy * zz
-            + 2.0 * xy * xz * yz
-            - xx * yz * yz
-            - yy * xz * xz
-            - zz * xy * xy;
+        let two_by_two = [xx * yy - xy * xy, xx * zz - xz * xz, yy * zz - yz * yz];
+        let determinant =
+            xx * yy * zz + 2.0 * xy * xz * yz - xx * yz * yz - yy * xz * xz - zz * xy * xy;
 
         if !one_by_one.iter().all(|value| value.is_finite())
             || !two_by_two.iter().all(|value| value.is_finite())
@@ -116,11 +109,8 @@ impl Symmetric3 {
         };
         let [xx, yy, zz, xy, xz, yz] = a;
         let leading_two = xx * yy - xy * xy;
-        let determinant = xx * yy * zz
-            + 2.0 * xy * xz * yz
-            - xx * yz * yz
-            - yy * xz * xz
-            - zz * xy * xy;
+        let determinant =
+            xx * yy * zz + 2.0 * xy * xz * yz - xx * yz * yz - yy * xz * xz - zz * xy * xy;
         if !leading_two.is_finite() || !determinant.is_finite() {
             return Err(MatrixError::ArithmeticOverflow);
         }
@@ -136,11 +126,9 @@ impl Symmetric3 {
     }
 
     fn validate_finite(self) -> Result<(), MatrixError> {
-        if [
-            self.xx, self.yy, self.zz, self.xy, self.xz, self.yz,
-        ]
-        .iter()
-        .all(|value| value.is_finite())
+        if [self.xx, self.yy, self.zz, self.xy, self.xz, self.yz]
+            .iter()
+            .all(|value| value.is_finite())
         {
             Ok(())
         } else {
@@ -297,14 +285,10 @@ pub fn evaluate_basis_free_compliance_rate(
     {
         return Err(ComplianceEvaluationError::InvalidInertiaScale);
     }
-    if !request.stiffness_decay_rate.is_finite()
-        || request.stiffness_decay_rate <= 0.0
-    {
+    if !request.stiffness_decay_rate.is_finite() || request.stiffness_decay_rate <= 0.0 {
         return Err(ComplianceEvaluationError::InvalidStiffnessDecayRate);
     }
-    if !request.passivity_tolerance_w.is_finite()
-        || request.passivity_tolerance_w < 0.0
-    {
+    if !request.passivity_tolerance_w.is_finite() || request.passivity_tolerance_w < 0.0 {
         return Err(ComplianceEvaluationError::InvalidPassivityTolerance);
     }
 
@@ -333,11 +317,12 @@ pub fn evaluate_basis_free_compliance_rate(
             .iter()
             .all(|value| value.is_finite())
     {
-        return Err(ComplianceEvaluationError::Matrix(MatrixError::NonFiniteVector));
+        return Err(ComplianceEvaluationError::Matrix(
+            MatrixError::NonFiniteVector,
+        ));
     }
 
-    let epsilon_barrier_lhs =
-        request.epsilon_rate + request.epsilon_decay_rate * request.epsilon;
+    let epsilon_barrier_lhs = request.epsilon_rate + request.epsilon_decay_rate * request.epsilon;
     let epsilon_barrier_rhs = request.epsilon_decay_rate * request.epsilon_min;
     let epsilon_barrier_satisfied = epsilon_barrier_lhs >= epsilon_barrier_rhs;
 
@@ -350,9 +335,7 @@ pub fn evaluate_basis_free_compliance_rate(
     let inertia_quadratic = request
         .task_inertia
         .quadratic_form(request.task_error_velocity)?;
-    let stiffness_rate_quadratic = request
-        .stiffness_rate
-        .quadratic_form(request.task_error)?;
+    let stiffness_rate_quadratic = request.stiffness_rate.quadratic_form(request.task_error)?;
     let damping_dissipation_w = request
         .damping
         .quadratic_form(request.task_error_velocity)?;
@@ -365,14 +348,15 @@ pub fn evaluate_basis_free_compliance_rate(
         || !damping_dissipation_w.is_finite()
         || !passivity_lhs_w.is_finite()
     {
-        return Err(ComplianceEvaluationError::Matrix(MatrixError::ArithmeticOverflow));
+        return Err(ComplianceEvaluationError::Matrix(
+            MatrixError::ArithmeticOverflow,
+        ));
     }
 
     let passivity_slack_w = -passivity_lhs_w;
     let passivity_satisfied = passivity_lhs_w <= request.passivity_tolerance_w;
-    let candidate_admissible = epsilon_barrier_satisfied
-        && stiffness_barrier_positive_semidefinite
-        && passivity_satisfied;
+    let candidate_admissible =
+        epsilon_barrier_satisfied && stiffness_barrier_positive_semidefinite && passivity_satisfied;
 
     Ok(BasisFreeComplianceReceipt {
         epsilon_barrier_lhs,
@@ -387,7 +371,6 @@ pub fn evaluate_basis_free_compliance_rate(
         candidate_admissible,
     })
 }
-
 
 /// Request for the fixed-size basis-free compliance-rate optimizer.
 ///
@@ -598,15 +581,16 @@ fn quadratic_dense3(matrix: Dense3, vector: [f64; 3]) -> f64 {
 /// differentiated across samples. Repeated eigenspaces therefore reconstruct
 /// the same matrix-valued spectral projection.
 #[allow(clippy::needless_range_loop)]
-fn symmetric_eigen_3(
-    input: Dense3,
-) -> Result<([f64; 3], Dense3), BasisFreeOptimizerError> {
+fn symmetric_eigen_3(input: Dense3) -> Result<([f64; 3], Dense3), BasisFreeOptimizerError> {
     let scale = dense_max_abs(input);
     if !scale.is_finite() {
         return Err(BasisFreeOptimizerError::SpectralDecompositionFailure);
     }
     if scale == 0.0 {
-        return Ok(([0.0; 3], [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]));
+        return Ok((
+            [0.0; 3],
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+        ));
     }
 
     let mut matrix = input;
@@ -654,12 +638,8 @@ fn symmetric_eigen_3(
             matrix[q][index] = new_iq;
         }
 
-        matrix[p][p] = cosine * cosine * app
-            - 2.0 * cosine * sine * apq
-            + sine * sine * aqq;
-        matrix[q][q] = sine * sine * app
-            + 2.0 * cosine * sine * apq
-            + cosine * cosine * aqq;
+        matrix[p][p] = cosine * cosine * app - 2.0 * cosine * sine * apq + sine * sine * aqq;
+        matrix[q][q] = sine * sine * app + 2.0 * cosine * sine * apq + cosine * cosine * aqq;
         matrix[p][q] = 0.0;
         matrix[q][p] = 0.0;
 
@@ -672,7 +652,10 @@ fn symmetric_eigen_3(
     }
 
     if !converged
-        && matrix[0][1].abs().max(matrix[0][2].abs()).max(matrix[1][2].abs())
+        && matrix[0][1]
+            .abs()
+            .max(matrix[0][2].abs())
+            .max(matrix[1][2].abs())
             > 128.0 * f64::EPSILON
     {
         return Err(BasisFreeOptimizerError::SpectralDecompositionFailure);
@@ -709,8 +692,7 @@ fn project_symmetric_floor_3(
     for row in 0..3 {
         for column in 0..3 {
             for axis in 0..3 {
-                result[row][column] +=
-                    vectors[row][axis] * projected[axis] * vectors[column][axis];
+                result[row][column] += vectors[row][axis] * projected[axis] * vectors[column][axis];
             }
         }
     }
@@ -756,11 +738,9 @@ fn evaluate_dual_candidate(
     if !shifted.iter().flatten().all(|value| value.is_finite()) {
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
-    let whitened_stiffness_rate =
-        project_symmetric_floor_3(shifted, stiffness_lower_eigenvalue)?;
-    let passivity_residual_w = a * epsilon_rate
-        + 0.5 * quadratic_dense3(whitened_stiffness_rate, z)
-        - dissipation;
+    let whitened_stiffness_rate = project_symmetric_floor_3(shifted, stiffness_lower_eigenvalue)?;
+    let passivity_residual_w =
+        a * epsilon_rate + 0.5 * quadratic_dense3(whitened_stiffness_rate, z) - dissipation;
     if !passivity_residual_w.is_finite() {
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
@@ -808,8 +788,7 @@ pub fn optimize_basis_free_compliance_rate(
         return Err(BasisFreeOptimizerError::InvalidReferenceRate);
     }
 
-    let epsilon_lower =
-        -request.epsilon_decay_rate * (request.epsilon - request.epsilon_min);
+    let epsilon_lower = -request.epsilon_decay_rate * (request.epsilon - request.epsilon_min);
     // Reuse the evaluator at the exact lower-rate boundary to validate all
     // physical matrices, scalar state, vectors, and tolerances before solving.
     let validation = evaluate_basis_free_compliance_rate(BasisFreeComplianceRequest {
@@ -859,12 +838,18 @@ pub fn optimize_basis_free_compliance_rate(
     let inverse_lower = inverse_lower_3(lower)?;
     let inverse_lower_transpose = transpose_dense3(inverse_lower);
     let stiffness_reference_raw = multiply_dense3(
-        multiply_dense3(inverse_lower, dense_from_symmetric(request.stiffness_rate_reference)),
+        multiply_dense3(
+            inverse_lower,
+            dense_from_symmetric(request.stiffness_rate_reference),
+        ),
         inverse_lower_transpose,
     );
-    let stiffness_reference =
-        dense_from_symmetric(symmetric_from_dense(stiffness_reference_raw)?);
-    if !stiffness_reference.iter().flatten().all(|value| value.is_finite()) {
+    let stiffness_reference = dense_from_symmetric(symmetric_from_dense(stiffness_reference_raw)?);
+    if !stiffness_reference
+        .iter()
+        .flatten()
+        .all(|value| value.is_finite())
+    {
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
 
@@ -891,9 +876,8 @@ pub fn optimize_basis_free_compliance_rate(
 
     if candidate.passivity_residual_w > 0.0 {
         let z_norm_squared = z[0] * z[0] + z[1] * z[1] + z[2] * z[2];
-        let minimum_residual = a * epsilon_lower
-            - 0.5 * request.stiffness_decay_rate * z_norm_squared
-            - dissipation;
+        let minimum_residual =
+            a * epsilon_lower - 0.5 * request.stiffness_decay_rate * z_norm_squared - dissipation;
         if !minimum_residual.is_finite() {
             return Err(BasisFreeOptimizerError::ArithmeticOverflow);
         }
@@ -1002,13 +986,10 @@ pub fn optimize_basis_free_compliance_rate(
         .into_iter()
         .fold(f64::INFINITY, f64::min);
     let barrier_scale = dense_max_abs(dense_from_symmetric(independent.stiffness_barrier_matrix));
-    if minimum_stiffness_barrier_eigenvalue
-        < -request.matrix_tolerance * barrier_scale
-    {
+    if minimum_stiffness_barrier_eigenvalue < -request.matrix_tolerance * barrier_scale {
         return Err(BasisFreeOptimizerError::IndependentPostCheckFailed);
     }
-    let passivity_complementarity_residual =
-        (multiplier * independent.passivity_lhs_w).abs();
+    let passivity_complementarity_residual = (multiplier * independent.passivity_lhs_w).abs();
 
     // Reconstruct the cone KKT multiplier in whitened coordinates:
     // Y = w_K * (X - ProjInput), with Y >= 0 and
@@ -1023,10 +1004,8 @@ pub fn optimize_basis_free_compliance_rate(
     let mut cone_dual = candidate.whitened_stiffness_rate;
     for row in 0..3 {
         for column in 0..3 {
-            cone_dual[row][column] =
-                request.stiffness_rate_weight
-                    * (candidate.whitened_stiffness_rate[row][column]
-                        - projection_input[row][column]);
+            cone_dual[row][column] = request.stiffness_rate_weight
+                * (candidate.whitened_stiffness_rate[row][column] - projection_input[row][column]);
         }
     }
     let (cone_dual_eigenvalues, _) = symmetric_eigen_3(cone_dual)?;
@@ -1068,12 +1047,11 @@ pub fn optimize_basis_free_compliance_rate(
     let mut matrix_stationarity = [[0.0; 3]; 3];
     for row in 0..3 {
         for column in 0..3 {
-            matrix_stationarity[row][column] =
-                request.stiffness_rate_weight
-                    * (candidate.whitened_stiffness_rate[row][column]
-                        - stiffness_reference[row][column])
-                    + 0.5 * multiplier * z[row] * z[column]
-                    - cone_dual[row][column];
+            matrix_stationarity[row][column] = request.stiffness_rate_weight
+                * (candidate.whitened_stiffness_rate[row][column]
+                    - stiffness_reference[row][column])
+                + 0.5 * multiplier * z[row] * z[column]
+                - cone_dual[row][column];
         }
     }
     let matrix_stationarity_residual = matrix_stationarity
@@ -1139,28 +1117,40 @@ mod tests {
 
     #[test]
     fn symmetric_matrix_psd_checker_accepts_zero_and_positive_semidefinite_cases() {
-        assert!(Symmetric3::diagonal(0.0, 0.0, 0.0)
-            .is_positive_semidefinite(1.0e-12)
-            .unwrap());
-        assert!(Symmetric3::diagonal(1.0, 0.0, 2.0)
-            .is_positive_semidefinite(1.0e-12)
-            .unwrap());
-        assert!(!Symmetric3::diagonal(1.0, -1.0, 2.0)
-            .is_positive_semidefinite(1.0e-12)
-            .unwrap());
+        assert!(
+            Symmetric3::diagonal(0.0, 0.0, 0.0)
+                .is_positive_semidefinite(1.0e-12)
+                .unwrap()
+        );
+        assert!(
+            Symmetric3::diagonal(1.0, 0.0, 2.0)
+                .is_positive_semidefinite(1.0e-12)
+                .unwrap()
+        );
+        assert!(
+            !Symmetric3::diagonal(1.0, -1.0, 2.0)
+                .is_positive_semidefinite(1.0e-12)
+                .unwrap()
+        );
     }
 
     #[test]
     fn symmetric_matrix_spd_checker_uses_sylvester_leading_minors() {
-        assert!(Symmetric3::diagonal(1.0, 2.0, 3.0)
-            .is_positive_definite(1.0e-12)
-            .unwrap());
-        assert!(!Symmetric3::diagonal(1.0, 0.0, 3.0)
-            .is_positive_definite(1.0e-12)
-            .unwrap());
-        assert!(!Symmetric3::diagonal(-1.0, 2.0, 3.0)
-            .is_positive_definite(1.0e-12)
-            .unwrap());
+        assert!(
+            Symmetric3::diagonal(1.0, 2.0, 3.0)
+                .is_positive_definite(1.0e-12)
+                .unwrap()
+        );
+        assert!(
+            !Symmetric3::diagonal(1.0, 0.0, 3.0)
+                .is_positive_definite(1.0e-12)
+                .unwrap()
+        );
+        assert!(
+            !Symmetric3::diagonal(-1.0, 2.0, 3.0)
+                .is_positive_definite(1.0e-12)
+                .unwrap()
+        );
     }
 
     #[test]
@@ -1193,10 +1183,10 @@ mod tests {
         let expected = -10.0 * 0.04 - 20.0 * 0.09 - 30.0 * 0.16
             + 2.0 * 5.0 * 0.2 * 0.3
             + 2.0 * 2.0 * 0.3 * 0.4;
-        assert!((receipt.passivity_lhs_w
-            - (0.5 * -0.25 * 50.0 + 0.5 * expected - 360.0))
-            .abs()
-            < 1.0e-10);
+        assert!(
+            (receipt.passivity_lhs_w - (0.5 * -0.25 * 50.0 + 0.5 * expected - 360.0)).abs()
+                < 1.0e-10
+        );
     }
 
     #[test]
@@ -1259,14 +1249,18 @@ mod tests {
         request.task_error[0] = f64::NAN;
         assert_eq!(
             evaluate_basis_free_compliance_rate(request),
-            Err(ComplianceEvaluationError::Matrix(MatrixError::NonFiniteVector))
+            Err(ComplianceEvaluationError::Matrix(
+                MatrixError::NonFiniteVector
+            ))
         );
 
         request = diagonal_request();
         request.matrix_tolerance = -1.0;
         assert_eq!(
             evaluate_basis_free_compliance_rate(request),
-            Err(ComplianceEvaluationError::Matrix(MatrixError::InvalidTolerance))
+            Err(ComplianceEvaluationError::Matrix(
+                MatrixError::InvalidTolerance
+            ))
         );
     }
 
@@ -1365,18 +1359,32 @@ mod tests {
     fn optimizer_preserves_full_off_diagonal_matrix_structure() {
         let mut request = optimizer_request();
         request.stiffness = Symmetric3 {
-            xx: 4.0, yy: 3.0, zz: 2.0, xy: 0.5, xz: 0.2, yz: -0.1,
+            xx: 4.0,
+            yy: 3.0,
+            zz: 2.0,
+            xy: 0.5,
+            xz: 0.2,
+            yz: -0.1,
         };
         request.stiffness_rate_reference = Symmetric3 {
-            xx: 1.0, yy: -0.2, zz: 0.4, xy: 0.7, xz: -0.3, yz: 0.25,
+            xx: 1.0,
+            yy: -0.2,
+            zz: 0.4,
+            xy: 0.7,
+            xz: -0.3,
+            yz: 0.25,
         };
         request.task_error = [0.5, -0.25, 0.75];
         request.task_error_velocity = [0.2, 0.6, -0.1];
         let result = optimize_basis_free_compliance_rate(request).unwrap();
         assert!(result.candidate_admissible);
         assert!(result.passivity_residual_w <= request.passivity_tolerance_w);
-        assert!(result.stiffness_barrier_matrix
-            .is_positive_semidefinite(request.matrix_tolerance).unwrap());
+        assert!(
+            result
+                .stiffness_barrier_matrix
+                .is_positive_semidefinite(request.matrix_tolerance)
+                .unwrap()
+        );
         assert!(result.matrix_stationarity_residual < 1.0e-8);
         assert!(result.cone_complementarity_residual < 1.0e-7);
         assert!(result.cone_dual_minimum_eigenvalue >= -1.0e-8);
@@ -1384,7 +1392,6 @@ mod tests {
         assert!(result.stiffness_rate.xz.is_finite());
         assert!(result.stiffness_rate.yz.is_finite());
     }
-
 
     #[test]
     fn optimizer_is_equivariant_under_orthogonal_task_coordinate_rotation() {
@@ -1418,7 +1425,6 @@ mod tests {
         assert!(rotated.passivity_residual_w <= rotated_request.passivity_tolerance_w);
     }
 
-
     #[test]
     fn optimizer_deterministic_randomized_spd_psd_sweep_has_no_false_feasible_output() {
         fn next_unit(state: &mut u64) -> f64 {
@@ -1437,7 +1443,11 @@ mod tests {
             let lower = [
                 [0.8 + next_unit(state), 0.0, 0.0],
                 [0.3 * next_signed(state), 0.8 + next_unit(state), 0.0],
-                [0.3 * next_signed(state), 0.3 * next_signed(state), 0.8 + next_unit(state)],
+                [
+                    0.3 * next_signed(state),
+                    0.3 * next_signed(state),
+                    0.8 + next_unit(state),
+                ],
             ];
             let matrix = multiply_dense3(lower, transpose_dense3(lower));
             symmetric_from_dense(matrix).unwrap()
@@ -1462,15 +1472,32 @@ mod tests {
             let task_inertia = random_spd(&mut seed);
             let damping = random_psd(&mut seed);
             let reference_dense = [
-                [next_signed(&mut seed), next_signed(&mut seed), next_signed(&mut seed)],
+                [
+                    next_signed(&mut seed),
+                    next_signed(&mut seed),
+                    next_signed(&mut seed),
+                ],
                 [0.0, next_signed(&mut seed), next_signed(&mut seed)],
                 [0.0, 0.0, next_signed(&mut seed)],
             ];
             let stiffness_rate_reference = symmetric_from_dense([
-                [reference_dense[0][0], reference_dense[0][1], reference_dense[0][2]],
-                [reference_dense[0][1], reference_dense[1][1], reference_dense[1][2]],
-                [reference_dense[0][2], reference_dense[1][2], reference_dense[2][2]],
-            ]).unwrap();
+                [
+                    reference_dense[0][0],
+                    reference_dense[0][1],
+                    reference_dense[0][2],
+                ],
+                [
+                    reference_dense[0][1],
+                    reference_dense[1][1],
+                    reference_dense[1][2],
+                ],
+                [
+                    reference_dense[0][2],
+                    reference_dense[1][2],
+                    reference_dense[2][2],
+                ],
+            ])
+            .unwrap();
             let mut request = optimizer_request();
             request.epsilon = 0.8 + next_unit(&mut seed);
             request.epsilon_min = 0.2 + 0.2 * next_unit(&mut seed);
@@ -1508,10 +1535,22 @@ mod tests {
                 "case {case_index}: {}",
                 result.minimum_stiffness_barrier_eigenvalue
             );
-            assert!(result.scalar_stationarity_residual < 1.0e-6, "case {case_index}");
-            assert!(result.matrix_stationarity_residual < 1.0e-6, "case {case_index}");
-            assert!(result.cone_dual_minimum_eigenvalue >= -1.0e-7, "case {case_index}");
-            assert!(result.cone_complementarity_residual < 1.0e-5, "case {case_index}");
+            assert!(
+                result.scalar_stationarity_residual < 1.0e-6,
+                "case {case_index}"
+            );
+            assert!(
+                result.matrix_stationarity_residual < 1.0e-6,
+                "case {case_index}"
+            );
+            assert!(
+                result.cone_dual_minimum_eigenvalue >= -1.0e-7,
+                "case {case_index}"
+            );
+            assert!(
+                result.cone_complementarity_residual < 1.0e-5,
+                "case {case_index}"
+            );
         }
     }
 
@@ -1530,6 +1569,4 @@ mod tests {
             Err(BasisFreeOptimizerError::InvalidReferenceRate)
         );
     }
-
-
 }
