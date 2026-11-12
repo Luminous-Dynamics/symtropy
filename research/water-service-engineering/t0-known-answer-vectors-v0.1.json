@@ -1,0 +1,194 @@
+{
+  "schema_version": "0.1.0",
+  "evidence_class": "synthetic_only",
+  "evidence_ceiling": "arithmetic_and_contract_semantics_only_no_physical_or_health_claim",
+  "profile": {
+    "profile_id": "LUMINOUS-WATER-SERVICE-T0-SYNTHETIC",
+    "profile_revision": "0.1",
+    "all_values_are_fictional": true
+  },
+  "pump_cases": [
+    {
+      "case_id": "PS-T0-001-single-pump-known-answer",
+      "inputs": {
+        "water_density_kg_m3": 1000.0,
+        "gravity_m_s2": 9.81,
+        "flow_m3_s": 0.01,
+        "total_dynamic_head_m": 25.0,
+        "electrical_input_power_w": 3503.5714285714284
+      },
+      "expected": {
+        "hydraulic_power_w": 2452.5,
+        "wire_to_water_efficiency": 0.7,
+        "electrical_specific_energy_kwh_m3": 0.09732142857142857
+      },
+      "oracle": "P_hydraulic = rho * g * Q * H; eta = P_hydraulic / P_electrical; kWh/m3 = rho*g*H/(3.6e6*eta)"
+    },
+    {
+      "case_id": "PS-T0-002-system-curve-intersection",
+      "inputs": {
+        "pump_curve": "H_p(Q) = 20 - 80000 * Q^2",
+        "system_curve": "H_s(Q) = 10 + 20000 * Q^2",
+        "flow_unit": "m3/s",
+        "head_unit": "m"
+      },
+      "expected": {
+        "flow_m3_s": 0.01,
+        "head_m": 12.0,
+        "residual_m": 0.0
+      },
+      "oracle": "Solve H_p(Q) = H_s(Q); both curves must return the same duty head"
+    },
+    {
+      "case_id": "PS-T0-003-two-identical-pumps-in-parallel",
+      "inputs": {
+        "single_pump_curve": "H(q) = 20 - 80000 * q^2",
+        "system_curve": "H(Q) = 10 + 20000 * Q^2",
+        "flow_unit": "m3/s",
+        "head_unit": "m",
+        "assumption": "identical pumps, equal flow split, same manifold head"
+      },
+      "expected": {
+        "total_flow_m3_s": 0.0158113883008419,
+        "flow_per_pump_m3_s": 0.00790569415042095,
+        "common_head_m": 15.0,
+        "flow_split_residual_m3_s": 0.0
+      },
+      "oracle": "H_parallel(Q) = H_single(Q/2); intersect with system curve"
+    },
+    {
+      "case_id": "PS-T0-004-minimum-service-pressure-not-met",
+      "inputs": {
+        "measured_head_m": 12.0,
+        "minimum_service_head_m": 15.0,
+        "measured_flow_m3_s": 0.01,
+        "minimum_service_flow_m3_s": 0.009
+      },
+      "expected": {
+        "service_disposition": "INFEASIBLE",
+        "reason": "MINIMUM_SERVICE_HEAD_NOT_MET",
+        "energy_credit_eligible": false
+      },
+      "oracle": "A feasible energy or cost objective cannot compensate for a hard service-floor violation"
+    },
+    {
+      "case_id": "PS-T0-005-commanded-on-but-no-measured-flow",
+      "inputs": {
+        "pump_command": "ON",
+        "measured_flow_m3_s": 0.0,
+        "electrical_input_power_w": 300.0
+      },
+      "expected": {
+        "delivery_disposition": "NO_DELIVERY",
+        "command_is_not_flow_evidence": true
+      },
+      "oracle": "Commanded state and measured hydraulic delivery are distinct observations"
+    },
+    {
+      "case_id": "PS-T0-006-critical-pressure-observation-missing",
+      "inputs": {
+        "measured_flow_m3_s": 0.01,
+        "measured_delivery_pressure": null,
+        "minimum_service_pressure": 150000.0
+      },
+      "expected": {
+        "service_disposition": "INDETERMINATE",
+        "schedule_feasible": false
+      },
+      "oracle": "Missing critical service evidence never becomes zero, a pass, or a feasible schedule"
+    }
+  ],
+  "potable_treatment_cases": [
+    {
+      "case_id": "PW-T0-001-complete-water-and-marker-mass-boundary",
+      "synthetic_marker": "marker_alpha",
+      "inputs": {
+        "feed_water_l": 1000.0,
+        "feed_marker_concentration_mg_l": 2.0,
+        "product_water_l": 850.0,
+        "product_marker_concentration_mg_l": 0.2,
+        "reject_water_l": 120.0,
+        "reject_marker_concentration_mg_l": 14.0,
+        "backwash_water_l": 20.0,
+        "backwash_marker_concentration_mg_l": 2.0,
+        "sludge_liquor_water_l": 5.0,
+        "sludge_liquor_marker_concentration_mg_l": 12.0,
+        "evaporation_or_other_water_loss_l": 5.0,
+        "captured_dry_residual_marker_mg": 50.0
+      },
+      "expected": {
+        "water_in_l": 1000.0,
+        "water_out_l": 1000.0,
+        "water_balance_residual_l": 0.0,
+        "marker_in_mg": 2000.0,
+        "marker_accounted_mg": 2000.0,
+        "marker_balance_residual_mg": 0.0,
+        "evidence_disposition": "SYNTHETIC_ARITHMETIC_ONLY"
+      },
+      "oracle": "sum(output water streams) = feed water; sum(marker mass in output liquid and captured residual solids) = feed marker mass"
+    },
+    {
+      "case_id": "PW-T0-002-missing-required-analyte",
+      "inputs": {
+        "profile_required_analytes": ["marker_alpha", "marker_beta"],
+        "observed_analytes": ["marker_alpha"]
+      },
+      "expected": {
+        "assessment_disposition": "INDETERMINATE",
+        "release_allowed": false
+      },
+      "oracle": "Incomplete required analyte coverage cannot produce a compliant assessment"
+    },
+    {
+      "case_id": "PW-T0-003-treatment-bypass",
+      "inputs": {
+        "declared_train_has_stage_bypass": true,
+        "bypass_observed": true,
+        "profile_requires_stage": true
+      },
+      "expected": {
+        "assessment_disposition": "INDETERMINATE",
+        "release_allowed": false
+      },
+      "oracle": "Required process barrier bypass is a no-release condition until reassessed under the applicable profile"
+    },
+    {
+      "case_id": "PW-T0-004-breakthrough-at-end-of-life",
+      "inputs": {
+        "profile_is_synthetic": true,
+        "synthetic_upper_limit_mg_l": 1.0,
+        "measured_marker_alpha_mg_l": 1.2,
+        "absolute_uncertainty_mg_l": 0.05
+      },
+      "expected": {
+        "assessment_disposition": "SYNTHETIC_NONCOMPLIANT",
+        "release_allowed": false
+      },
+      "oracle": "Synthetic challenge only: the complete measurement uncertainty interval exceeds the synthetic upper bound"
+    },
+    {
+      "case_id": "PW-T0-005-source-water-out-of-envelope",
+      "inputs": {
+        "source_water_profile_admitted": false,
+        "raw_water_observation_current": true
+      },
+      "expected": {
+        "assessment_disposition": "UNSUPPORTED",
+        "release_allowed": false
+      },
+      "oracle": "A current observation outside the treatment train's admitted raw-water envelope does not make the train suitable"
+    },
+    {
+      "case_id": "PW-T0-006-stale-method-or-calibration",
+      "inputs": {
+        "critical_method_current": false,
+        "critical_instrument_calibration_current": false
+      },
+      "expected": {
+        "assessment_disposition": "INDETERMINATE",
+        "release_allowed": false
+      },
+      "oracle": "Stale method/calibration on decisive measurements prevents a current positive assessment"
+    }
+  ]
+}
