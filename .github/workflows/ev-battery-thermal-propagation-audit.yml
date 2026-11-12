@@ -1,0 +1,60 @@
+name: EV battery thermal-propagation evidence audit v0.1
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/transport/EV_BATTERY_THERMAL_PROPAGATION_EVIDENCE_V0_1.md"
+      - "schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json"
+      - "tools/ev-battery-thermal-propagation-audit/**"
+      - ".github/workflows/ev-battery-thermal-propagation-audit.yml"
+  push:
+    branches: [research/ev-battery-thermal-propagation-evidence-v0.1]
+    paths:
+      - "docs/transport/EV_BATTERY_THERMAL_PROPAGATION_EVIDENCE_V0_1.md"
+      - "schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json"
+      - "tools/ev-battery-thermal-propagation-audit/**"
+      - ".github/workflows/ev-battery-thermal-propagation-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Validate Draft 2020-12 schema and synthetic fixture
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          schema = json.loads(Path("schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json").read_text(encoding="utf-8"))
+          fixture = json.loads(Path("fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json").read_text(encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema).validate(fixture)
+          assert len(fixture["tests"]) == 4
+          assert len(fixture["claims"]) == 5
+          assert all(len(claim["equivalence"]) == 6 for claim in fixture["claims"])
+          print("schema=VALID fixture=VALID tests=4 claims=5")
+          PY
+      - name: Check locked package metadata
+        run: cargo metadata --manifest-path tools/ev-battery-thermal-propagation-audit/Cargo.toml --locked --no-deps
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-battery-thermal-propagation-audit/Cargo.toml -- --check
+      - name: Run evidence-transfer known-answer tests
+        run: cargo test --manifest-path tools/ev-battery-thermal-propagation-audit/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/ev-battery-thermal-propagation-audit/Cargo.toml --all-targets --locked -- -D warnings
