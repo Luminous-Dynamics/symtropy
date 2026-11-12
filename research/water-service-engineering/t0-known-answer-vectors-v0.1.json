@@ -127,6 +127,31 @@
         "schedule_feasible": false
       },
       "oracle": "Do not extrapolate a pump curve outside its declared test/map domain"
+    },
+    {
+      "case_id": "PS-T0-009-vfd-versus-fixed-speed-throttling",
+      "inputs": {
+        "flow_m3_s": 0.005,
+        "water_density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "static_head_m": 10,
+        "system_loss_coefficient_m_per_m6": 20000,
+        "fixed_speed_pump_curve": "H(Q) = 20 - 80000 * Q^2",
+        "fixed_speed_ratio": 1,
+        "assumed_total_wire_to_water_efficiency_both_modes": 0.7,
+        "vfd_pump_curve_at_speed_ratio_r": "H(Q,r) = 20 * r^2 - 80000 * Q^2"
+      },
+      "expected": {
+        "system_head_m": 10.5,
+        "fixed_speed_pump_head_m": 18,
+        "fixed_speed_throttle_loss_m": 7.5,
+        "vfd_speed_ratio": 0.7905694150420949,
+        "vfd_pump_head_m": 10.5,
+        "fixed_speed_specific_energy_kwh_m3": 0.07007142857142858,
+        "vfd_specific_energy_kwh_m3": 0.040875,
+        "idealized_energy_reduction_fraction": 0.4166666666666667
+      },
+      "oracle": "At matched flow, fixed-speed pump head equals system head plus throttle loss; choose r so 20*r^2 - 80000*Q^2 equals the system head. Hold total efficiency fixed only to isolate hydraulic head reduction; real drive and pump efficiency maps must be measured"
     }
   ],
   "potable_treatment_cases": [
