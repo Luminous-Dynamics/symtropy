@@ -52,21 +52,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let multiplier_new = equation_rebasis.multiplier_to_new(&multiplier_old, profile)?;
         let residual_new = equation_rebasis.residual_to_new(&residual_old)?;
 
+        let transform = equation_rebasis.matrix();
+        let old_metric = delassus_old.matrix();
+        let new_metric = delassus_new.matrix();
         let mut delassus_relative_defect = 0.0_f64;
-        for row in 0..2 {
-            for column in 0..2 {
-                let mut expected = 0.0;
-                for left in 0..2 {
-                    for right in 0..2 {
-                        expected += equation_rebasis.matrix()[row][left]
-                            * delassus_old.matrix()[left][right]
-                            * equation_rebasis.matrix()[column][right];
-                    }
-                }
+        for (new_row, transform_row) in new_metric.iter().zip(transform.iter()) {
+            for (actual, transform_column) in new_row.iter().zip(transform.iter()) {
+                let expected = transform_row
+                    .iter()
+                    .zip(old_metric.iter())
+                    .map(|(left, old_row)| {
+                        old_row
+                            .iter()
+                            .zip(transform_column.iter())
+                            .map(|(metric_value, right)| left * metric_value * right)
+                            .sum::<f64>()
+                    })
+                    .sum::<f64>();
                 let scale = expected.abs().max(1.0);
-                delassus_relative_defect = delassus_relative_defect.max(
-                    (delassus_new.matrix()[row][column] - expected).abs() / scale,
-                );
+                delassus_relative_defect =
+                    delassus_relative_defect.max((*actual - expected).abs() / scale);
             }
         }
 
