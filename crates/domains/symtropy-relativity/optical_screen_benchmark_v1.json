@@ -159,7 +159,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "pointwise Sachs optical-tidal source authored; curvature-based Rust tests pending execution",
+      "status": "pointwise Sachs optical tide and local parallel-transport RHS authored; full frame/Jacobi integration pending",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -173,7 +173,11 @@
         "vacuum_optical_tidal_trace",
         "optical_tidal_matrix_symmetry",
         "screen_null_orthonormality_transversality",
-        "optical_tidal_symmetry"
+        "optical_tidal_symmetry",
+        "parallel_transport_screen_basis_rhs",
+        "screen_orthonormality_rate_residual",
+        "screen_transversality_rate_residual",
+        "metric_compatibility_residual"
       ],
       "target": {
         "screen_basis_parallel_transport_residual": 1e-10,
@@ -206,15 +210,34 @@
         "tests_authored": [
           "radial Schwarzschild principal-null direction has zero optical tidal matrix",
           "nonradial Schwarzschild optical tide is nonzero, symmetric, and trace-free",
-          "non-transverse Sachs screen is rejected with a typed error"
+          "non-transverse Sachs screen is rejected with a typed error",
+          "Boyer-Lindquist Sachs transport RHS preserves screen orthonormality and transversality rates",
+          "ingoing Kerr Sachs transport RHS preserves screen orthonormality and transversality rates"
         ],
         "remaining": [
           "transport the Sachs basis continuously along the geodesic",
           "integrate D'' = -T D with vertex conditions D(0)=0 and D'(0)=I",
           "compare the resulting 2x2 Jacobi matrix against the canonical 8x8 variational flow",
           "benchmark convergence through a caustic without determinant-only classification"
+        ],
+        "apis": [
+          "KerrCanonicalHamiltonian::optical_tidal_matrix",
+          "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
+          "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates"
+        ],
+        "transport_rhs": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
+        "additional_diagnostics": [
+          "orthonormality-rate residual derived from partial_lambda g + connection terms",
+          "transversality-rate residual derived from metric variation, screen derivative and geodesic acceleration",
+          "metric-compatibility residual from LeviCivitaConnection4"
         ]
-      }
+      },
+      "remaining": [
+        "integrate the two Sachs screen vectors along the accepted canonical ray",
+        "integrate D'' = -T D with vertex conditions D(0)=0 and D'(0)=I",
+        "compare the curvature-based 2x2 Jacobi matrix against canonical 8x8 variation projected into the same transported frame",
+        "benchmark convergence through a caustic without determinant-only classification"
+      ]
     },
     {
       "id": "OS-5C",
@@ -429,7 +452,7 @@
     "https://www.nature.com/articles/s41550-026-02874-x"
   ],
   "screen_frame_policy": {
-    "status": "same-event SO(2) screen re-expression and pointwise Sachs optical tidal evaluation implemented at source level; parallel-transported Sachs screen not yet implemented",
+    "status": "same-event SO(2) screen re-expression, pointwise Sachs optical tide and local parallel-transport RHS implemented at source level; screen/Jacobi integration pending",
     "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
     "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
     "risks": [
@@ -466,7 +489,9 @@
     ],
     "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
     "sachs_transport_status": "not implemented",
-    "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates"
+    "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
+    "sachs_transport_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
+    "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta"
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
