@@ -83,4 +83,7 @@ fn main() {
         Ok(code) => std::process::exit(code),
         Err(error) => {
             eprintln!("recoverability-envelope: {error}");
-           
+            std::process::exit(2);
+        }
+    }
+}
