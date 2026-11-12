@@ -1185,7 +1185,10 @@ impl<const D: usize> PhysicsWorld<D> {
                     let t_dot_rb = r_b.dot(&tangent);
                     let ang_term_a_t = inv_i_avg_a * (r_a.norm_squared() - t_dot_ra * t_dot_ra);
                     let ang_term_b_t = inv_i_avg_b * (r_b.norm_squared() - t_dot_rb * t_dot_rb);
-                    let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
+                    let denom_t = total_inv_mass + ang_term_a_t + ang_term_b_t;
+                    if !denom_t.is_finite() || denom_t <= 0.0 {
+                        continue;
+                    }
 
                     let j_t_desired = -v_t_mag / denom_t;
                     let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
@@ -2603,4 +2606,56 @@ mod transformed_halfspace_tests {
             resolved.points[0].lambda
         );
     }
+    #[test]
+    fn tangential_contact_response_is_not_limited_by_absolute_inverse_mass_floor() {
+        let mut world = PhysicsWorld::<3>::default();
+        world.compliance = 0.0;
+        world.baumgarte = 0.0;
+        world.slop = 0.0;
+
+        // Synthetic zero-lever-arm row isolates translational friction mass;
+        // it deliberately avoids testing the separate Rotor angular convention.
+        let mut fixed = RigidBody::static_body(
+            BodyHandle(0),
+            Point::new([0.0, -1.0, 0.0]),
+            Box::new(Sphere::<3>::unit()),
+        );
+        fixed.friction = 1.0;
+        let mut moving = RigidBody::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0e16,
+        );
+        moving.friction = 1.0;
+        moving.linear_velocity = SVector::from([1.0, -1.0, 0.0]);
+
+        let fixed_handle = world.add_body(fixed);
+        let moving_handle = world.add_body(moving);
+        let manifold = ContactManifold::<3>::single(
+            fixed_handle,
+            moving_handle,
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::zeros(),
+            0.0,
+        );
+
+        let mut callback = NoOpCallback;
+        let resolved = world.resolve_contact(manifold, 1.0 / 60.0, &mut callback);
+
+        assert!(
+            resolved.points[0].lambda > 1.0e15,
+            "normal impulse must first admit the finite-mass body"
+        );
+        assert!(
+            world.bodies[1].linear_velocity[1].abs() < 1.0e-12,
+            "normal contact velocity should be resolved"
+        );
+        assert!(
+            world.bodies[1].linear_velocity[0].abs() < 1.0e-12,
+            "friction should use the true positive effective inverse mass; velocity={:?}",
+            world.bodies[1].linear_velocity
+        );
+    }
+
 }
