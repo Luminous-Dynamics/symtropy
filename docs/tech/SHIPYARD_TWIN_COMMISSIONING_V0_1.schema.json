@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard digital-twin composition and commissioning corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-TWIN-COMMISSIONING-001"
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_COMPOSITION_COMMISSIONING_CONTRACT_ONLY"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "role",
+        "owner_system",
+        "source_system",
+        "schema_id",
+        "schema_revision",
+        "source_revision",
+        "digital_thread_uri",
+        "digital_thread_revision",
+        "authority_mode",
+        "source_identity_sha256"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "structural_asset",
+            "welding_process",
+            "robot_cell"
+          ]
+        },
+        "owner_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digital_thread_uri": {
+          "type": "string",
+          "minLength": 8
+        },
+        "digital_thread_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_mode": {
+          "enum": [
+            "source_verified",
+            "peer_verified"
+          ]
+        },
+        "source_identity_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interface_id",
+        "from_component",
+        "to_component",
+        "mapping_mode",
+        "required",
+        "source_event_id",
+        "source_revision",
+        "source_sha256",
+        "mapping_sha256",
+        "clock_receipt_sha256",
+        "peer_identity_sha256",
+        "authority_mode",
+        "update_interval_ms",
+        "max_update_interval_ms",
+        "jitter_p95_ms",
+        "max_jitter_p95_ms",
+        "latency_p95_ms",
+        "max_latency_p95_ms",
+        "data_age_ms",
+        "max_data_age_ms",
+        "semantic_fidelity_permille",
+        "minimum_semantic_fidelity_permille",
+        "clock_offset_abs_us",
+        "maximum_clock_offset_us",
+        "uncertainty_permille",
+        "maximum_uncertainty_permille"
+      ],
+      "properties": {
+        "interface_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_component": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_component": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_mode": {
+          "enum": [
+            "integrated",
+            "unified",
+            "federated"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "mapping_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "clock_receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "peer_identity_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "authority_mode": {
+          "enum": [
+            "source_verified",
+            "peer_verified",
+            "unverified"
+          ]
+        },
+        "update_interval_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_update_interval_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "jitter_p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_jitter_p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latency_p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_latency_p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data_age_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_data_age_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "semantic_fidelity_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "minimum_semantic_fidelity_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "clock_offset_abs_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_clock_offset_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uncertainty_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maximum_uncertainty_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "purpose_id",
+        "operational_purpose",
+        "composition_mode",
+        "components",
+        "interfaces",
+        "expected_readiness",
+        "expected_failures"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^DTC-[0-9]{3}$"
+        },
+        "purpose_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operational_purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "composition_mode": {
+          "enum": [
+            "integrated",
+            "unified",
+            "federated",
+            "mixed"
+          ]
+        },
+        "components": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        },
+        "interfaces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/interface"
+          }
+        },
+        "expected_readiness": {
+          "enum": [
+            "READY",
+            "READY_LIMITED",
+            "NOT_READY"
+          ]
+        },
+        "expected_failures": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "UPDATE_FREQUENCY",
+              "UPDATE_JITTER",
+              "LATENCY_P95",
+              "SOURCE_STALE",
+              "SEMANTIC_FIDELITY",
+              "PROVENANCE",
+              "CLOCK_SYNC",
+              "UNCERTAINTY_LIMIT",
+              "COMPOSITION_MODE"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
