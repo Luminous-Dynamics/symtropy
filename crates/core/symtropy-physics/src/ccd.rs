@@ -29,9 +29,29 @@ pub struct CcdHit<const D: usize> {
     pub normal: SVector<f64, D>,
 }
 
-/// Speed threshold below which CCD is not applied (optimization).
-/// Bodies moving slower than this per step won't tunnel through typical geometry.
+/// Legacy absolute-speed threshold retained for downstream compatibility.
+///
+/// World-level CCD activation now uses a dimensionless swept-displacement
+/// criterion; this constant is no longer the sole activation gate.
 pub const CCD_SPEED_THRESHOLD: f64 = 5.0;
+
+/// Fraction of a collider's characteristic radius that activates a CCD sweep.
+///
+/// This is a conservative work-selection heuristic, not an accuracy guarantee.
+/// Scenario-specific TOI and no-tunnelling tests remain the correctness gates.
+pub const CCD_SWEEP_FRACTION: f64 = 0.5;
+
+/// Whether a swept displacement is large enough relative to a collider feature.
+///
+/// The threshold is dimensionless: swept distance / characteristic feature
+/// size >= CCD_SWEEP_FRACTION. Invalid or degenerate measurements fail closed.
+pub fn sweep_exceeds_feature_fraction(swept_distance: f64, feature_size: f64) -> bool {
+    swept_distance.is_finite()
+        && swept_distance >= 0.0
+        && feature_size.is_finite()
+        && feature_size > 0.0
+        && swept_distance >= CCD_SWEEP_FRACTION * feature_size
+}
 
 /// Swept sphere vs sphere: find the earliest time of impact.
 ///
@@ -175,6 +195,18 @@ pub fn sphere_halfspace<const D: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn swept_displacement_activation_is_dimensionless_and_fail_closed() {
+        assert!(!sweep_exceeds_feature_fraction(0.49, 1.0));
+        assert!(sweep_exceeds_feature_fraction(0.5, 1.0));
+        assert!(sweep_exceeds_feature_fraction(1.0, 2.0));
+        assert!(sweep_exceeds_feature_fraction(0.05, 0.1));
+        assert!(!sweep_exceeds_feature_fraction(f64::NAN, 1.0));
+        assert!(!sweep_exceeds_feature_fraction(1.0, f64::INFINITY));
+        assert!(!sweep_exceeds_feature_fraction(1.0, 0.0));
+        assert!(!sweep_exceeds_feature_fraction(-1.0, 1.0));
+    }
 
     #[test]
     fn sphere_sphere_head_on() {

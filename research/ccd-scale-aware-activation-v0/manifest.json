@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-ccd-scale-aware-activation-v0",
+  "status": "activation_heuristic_and_two_world_regressions",
+  "source_module": "crates/core/symtropy-physics/src/world.rs",
+  "activation": {
+    "constant": "CCD_SWEEP_FRACTION",
+    "fraction": 0.5,
+    "decision": "swept_distance >= fraction * characteristic_feature_size",
+    "dimensionless": true,
+    "sphere_halfspace": {
+      "swept_distance": "|velocity_i| * dt",
+      "feature_size": "radius_i"
+    },
+    "sphere_sphere": {
+      "swept_distance": "|velocity_i - velocity_j| * dt",
+      "feature_size": "min(radius_i, radius_j)"
+    },
+    "legacy_speed_threshold": {
+      "name": "CCD_SPEED_THRESHOLD",
+      "value_m_per_s": 5.0,
+      "status": "retained_for_api_compatibility_not_used_as_sole_world_gate"
+    }
+  },
+  "protected_pairs": [
+    "dynamic_sphere_vs_stationary_halfspace",
+    "dynamic_sphere_vs_dynamic_sphere"
+  ],
+  "unsupported_motion_or_geometry": [
+    "rotational_sweep",
+    "box_capsule_convex_mesh_and_deformable_shapes",
+    "moving_kinematic_barrier",
+    "multiple_impacts_in_one_step",
+    "dense_contact_island_coupling"
+  ],
+  "tests": [
+    {
+      "id": "activation-ratio-threshold",
+      "type": "unit",
+      "acceptance": "dimensionless_ratio_selects_at_or_above_fraction"
+    },
+    {
+      "id": "sub-5mps-moving-target-crossing",
+      "type": "world_step",
+      "moving_sphere_radius_m": 0.1,
+      "moving_sphere_velocity_m_per_s": 4.0,
+      "step_seconds": 1.0,
+      "initial_center_separation_m": 2.0,
+      "expected": "moving_sphere_does_not_finish_beyond_stationary_sphere"
+    },
+    {
+      "id": "small-slow-sphere-crossing",
+      "type": "world_step",
+      "moving_sphere_radius_m": 0.025,
+      "moving_sphere_velocity_m_per_s": 0.8,
+      "step_seconds": 1.0,
+      "initial_center_separation_m": 0.5,
+      "expected": "sphere_does_not_tunnel_through_stationary_sphere"
+    }
+  ],
+  "acceptance": {
+    "no_missed_tunnel_on_declared_world_fixtures": true,
+    "unsupported_shapes_claimed_protected": false,
+    "physical_validation_claimed": false,
+    "industry_superiority_claimed": false
+  },
+  "metrics_to_collect": [
+    "ccd_activation_rate",
+    "ccd_query_count",
+    "false_positive_activation_rate",
+    "missed_tunnelling_count",
+    "post_step_penetration_depth",
+    "ccd_overhead_microseconds",
+    "simulation_step_latency_p50_ms",
+    "simulation_step_latency_p95_ms"
+  ]
+}
