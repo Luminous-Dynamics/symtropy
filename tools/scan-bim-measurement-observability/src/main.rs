@@ -557,7 +557,7 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
         Some(_) => {
             let method_id = measurement.systematic_bound_method_id.as_deref();
             let evidence_digest = measurement.systematic_bound_evidence_sha256.as_deref();
-            if !method_id.is_some_and(|value| !value.trim().is_empty())
+            if method_id.is_none_or(|value| value.trim().is_empty())
                 || !evidence_digest.is_some_and(is_sha256)
             {
                 reasons.insert("SYSTEMATIC_ERROR_BOUND_EVIDENCE_MISSING_OR_INVALID");
