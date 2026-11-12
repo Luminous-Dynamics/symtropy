@@ -126,7 +126,8 @@
         "clock_offset_abs_us",
         "maximum_clock_offset_us",
         "uncertainty_permille",
-        "maximum_uncertainty_permille"
+        "maximum_uncertainty_permille",
+        "composition_schema_id"
       ],
       "properties": {
         "interface_id": {
@@ -253,6 +254,13 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "composition_schema_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
         }
       }
     },
