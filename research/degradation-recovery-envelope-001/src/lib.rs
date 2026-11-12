@@ -792,7 +792,9 @@ fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Findi
                     Some(group_id) if !group_id.trim().is_empty() => {
                         common_groups.entry(group_id).or_default().push(event);
                     }
-                    _ => findings.insert(Finding::EmptyCausalGroupId),
+                    _ => {
+                        findings.insert(Finding::EmptyCausalGroupId);
+                    }
                 }
             }
             FaultCausality::Cascaded => {
@@ -809,7 +811,9 @@ fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Findi
                         }
                         Some(_) => {}
                     },
-                    _ => findings.insert(Finding::MissingCausalParent),
+                    _ => {
+                        findings.insert(Finding::MissingCausalParent);
+                    }
                 }
             }
         }
