@@ -163,6 +163,29 @@ fn available(windows: &[Interval], start: u64, end: u64) -> bool {
         .any(|window| window.is_valid() && window.contains(start, end))
 }
 
+fn setup_available(
+    windows: &[Interval],
+    earliest_start: u64,
+    latest_finish: u64,
+    duration: u64,
+) -> bool {
+    if duration == 0 {
+        return true;
+    }
+    if earliest_start >= latest_finish {
+        return false;
+    }
+
+    windows.iter().any(|window| {
+        if !window.is_valid() {
+            return false;
+        }
+        let start = window.start_tick.max(earliest_start);
+        let end = window.end_tick.min(latest_finish);
+        start.checked_add(duration).is_some_and(|finish| finish <= end)
+    })
+}
+
 /// Validate a complete proposed schedule without invoking an optimizer.
 ///
 /// Intervals are half-open: start is included and finish is excluded. All
@@ -495,7 +518,23 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     ),
                 ),
                 [rule] => match previous_finish.checked_add(rule.duration_ticks) {
-                    Some(ready) if ready <= assignment.start_tick => {}
+                    Some(ready) if ready <= assignment.start_tick => {
+                        if !setup_available(
+                            &machine.availability,
+                            previous_finish,
+                            assignment.start_tick,
+                            rule.duration_ticks,
+                        ) {
+                            finding(
+                                &mut findings,
+                                "SETUP_AVAILABILITY_VIOLATION",
+                                &assignment.operation_id,
+                                format!(
+                                    "machine {machine_id} has no available window for the required setup"
+                                ),
+                            );
+                        }
+                    }
                     Some(ready) => finding(
                         &mut findings,
                         "SETUP_TIME_VIOLATION",
@@ -726,6 +765,49 @@ mod tests {
             duration_ticks: 2,
         });
         assert!(has(&validate(&problem, &schedule), "SETUP_TIME_VIOLATION"));
+    }
+
+    #[test]
+    fn setup_must_fit_inside_machine_availability() {
+        let (mut problem, mut schedule) = two_job_four_stage_case();
+        let cutting_machine = problem
+            .machines
+            .iter_mut()
+            .find(|machine| machine.id == "cut-line")
+            .unwrap();
+        cutting_machine.availability = vec![
+            Interval {
+                start_tick: 0,
+                end_tick: 3,
+            },
+            Interval {
+                start_tick: 6,
+                end_tick: 30,
+            },
+        ];
+        cutting_machine.setup_rules.push(SetupRule {
+            from_family: "woven".to_owned(),
+            to_family: "cotton".to_owned(),
+            duration_ticks: 2,
+        });
+        problem
+            .operations
+            .iter_mut()
+            .find(|operation| operation.id == "cut-b")
+            .unwrap()
+            .product_family = "cotton".to_owned();
+        let cut_b = schedule
+            .assignments
+            .iter_mut()
+            .find(|assignment| assignment.operation_id == "cut-b")
+            .unwrap();
+        cut_b.start_tick = 6;
+        cut_b.finish_tick = 8;
+
+        assert!(has(
+            &validate(&problem, &schedule),
+            "SETUP_AVAILABILITY_VIOLATION"
+        ));
     }
 
     #[test]
