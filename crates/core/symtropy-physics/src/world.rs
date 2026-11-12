@@ -4,6 +4,7 @@
 //! Physics world: owns bodies, steps simulation, resolves collisions.
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::sync::Arc;
 
