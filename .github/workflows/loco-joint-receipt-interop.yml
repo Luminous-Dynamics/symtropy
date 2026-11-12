@@ -1,0 +1,237 @@
+name: LOCO Joint Receipt Interop Fixture Qualification
+
+on:
+  push:
+    branches:
+      - research/loco-joint-receipt-interop-001
+    paths:
+      - "research/loco-joint-receipt-interop-001/**"
+      - ".github/workflows/loco-joint-receipt-interop.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/loco-joint-receipt-interop-001/**"
+      - ".github/workflows/loco-joint-receipt-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-contract:
+    name: Draft 2020-12 schema and causal golden-packet preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate schemas, golden packet, mutation corpus and integrity digest
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/loco-joint-receipt-interop-001/fixtures")
+          packet_path = root / "joint_receipt_v0_1_complete.json"
+          packet_schema_path = root / "joint_receipt_v0_1.schema.json"
+          mutations_path = root / "mutations_v0_1.json"
+          mutations_schema_path = root / "mutations_v0_1.schema.json"
+
+          def reject_duplicate_keys(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      raise ValueError(f"duplicate JSON object key: {key}")
+                  result[key] = value
+              return result
+
+          def load_unique(path):
+              return json.loads(path.read_text(), object_pairs_hook=reject_duplicate_keys)
+
+          packet = load_unique(packet_path)
+          packet_schema = load_unique(packet_schema_path)
+          mutations = load_unique(mutations_path)
+          mutations_schema = load_unique(mutations_schema_path)
+
+          for label, schema in (
+              ("packet", packet_schema),
+              ("mutations", mutations_schema),
+          ):
+              Draft202012Validator.check_schema(schema)
+              print(f"{label} schema meta-validation: PASS")
+
+          for label, value, schema in (
+              ("golden packet", packet, packet_schema),
+              ("mutation corpus", mutations, mutations_schema),
+          ):
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(value),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{label} schema error at {list(error.absolute_path)}: {error.message}")
+                  raise SystemExit(1)
+              print(f"{label} schema validation: PASS")
+
+          # The v0.1 profile forbids floats. Wide integers must be decimal strings.
+          def reject_floats(value, path="$"):
+              if isinstance(value, float):
+                  raise SystemExit(f"floating-point value forbidden in v0.1 packet: {path}")
+              if isinstance(value, dict):
+                  for key, child in value.items():
+                      reject_floats(child, f"{path}/{key}")
+              elif isinstance(value, list):
+                  for index, child in enumerate(value):
+                      reject_floats(child, f"{path}/{index}")
+
+          reject_floats(packet)
+
+          # RFC 8785 JCS for this v0.1 fixture: ASCII property names and no
+          # floating-point numbers. All wide integers are decimal strings.
+          integrity = packet["integrity"]
+          if integrity["canonicalization"] != "RFC8785-JCS-UTF8":
+              raise SystemExit("unexpected canonicalization profile")
+          if integrity["digest_scope"] != "top_level_without_integrity":
+              raise SystemExit("unexpected digest scope")
+          payload = dict(packet)
+          del payload["integrity"]
+          canonical = json.dumps(
+              payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+          ).encode("utf-8")
+          observed_digest = hashlib.sha256(canonical).hexdigest()
+          expected_digest = integrity["payload_sha256"]
+          if observed_digest != expected_digest:
+              raise SystemExit(
+                  f"payload digest mismatch: expected={expected_digest} observed={observed_digest}"
+              )
+          print(f"payload SHA-256: PASS ({observed_digest})")
+
+          # Verify sequence ordering and exact event-edge correspondence.
+          events = packet["events"]
+          ordered = [
+              "source_observation", "decision", "proposal", "assurance",
+              "command", "actuator_application", "physical_transition", "terminal",
+          ]
+          sequences = [int(events[name]["sequence"]) for name in ordered]
+          if any(left >= right for left, right in zip(sequences, sequences[1:])):
+              raise SystemExit("causal event sequences are not strictly increasing")
+          expected_edges = []
+          for left, right in zip(ordered, ordered[1:]):
+              expected_edges.append({
+                  "from_event_id": events[left]["event_id"],
+                  "to_event_id": events[right]["event_id"],
+                  "from_sequence": events[left]["sequence"],
+                  "to_sequence": events[right]["sequence"],
+              })
+          if packet["causal_edges"] != expected_edges:
+              raise SystemExit("causal edge list does not exactly match event identities/sequences")
+
+          # Same-clock golden case: every timestamp must bind to one boot epoch.
+          relation = packet["clock_relation"]
+          if relation["kind"] != "same_monotonic_clock_verified":
+              raise SystemExit("golden packet must be the same-monotonic-clock known answer")
+          expected_clock = relation["clock_id"]
+          expected_boot = relation["boot_epoch"]
+          stamps = [
+              events["source_observation"]["capture"],
+              events["actuator_application"]["stamp"],
+              events["motion_onset"]["stamp"],
+              events["physical_transition"]["stamp"],
+              events["terminal"]["stamp"],
+          ]
+          for stamp in stamps:
+              if stamp["clock_id"] != expected_clock or stamp["boot_epoch"] != expected_boot:
+                  raise SystemExit("timestamp clock/boot identity mismatch")
+              if int(stamp["lower_ns"]) > int(stamp["upper_ns"]):
+                  raise SystemExit("invalid timestamp interval")
+
+          source = events["source_observation"]["capture"]
+          application = events["actuator_application"]["stamp"]
+          motion = events["motion_onset"]["stamp"]
+          aoi = packet["measurements"]["source_to_actuator_aoi"]["value"]
+          response = packet["measurements"]["command_to_motion"]["value"]
+          expected_aoi = (
+              int(application["lower_ns"]) - int(source["upper_ns"]),
+              int(application["upper_ns"]) - int(source["lower_ns"]),
+          )
+          expected_response = (
+              int(motion["lower_ns"]) - int(application["upper_ns"]),
+              int(motion["upper_ns"]) - int(application["lower_ns"]),
+          )
+          if (int(aoi["lower_ns"]), int(aoi["upper_ns"])) != expected_aoi:
+              raise SystemExit("source-to-actuator AoI interval arithmetic mismatch")
+          if (int(response["lower_ns"]), int(response["upper_ns"])) != expected_response:
+              raise SystemExit("command-to-motion interval arithmetic mismatch")
+
+          decision = packet["decision"]
+          if decision["disposition"] != "Sufficient":
+              raise SystemExit("golden decision must be sufficient")
+          if int(decision["regret_upper_units"]) > int(decision["epsilon_task_loss_units"]):
+              raise SystemExit("golden decision regret exceeds epsilon")
+          if int(decision["application_tick"]) > int(decision["valid_through_tick"]):
+              raise SystemExit("golden decision expired before application")
+          if events["proposal"]["executed_prefix_expected_digest"] != events["proposal"]["executed_prefix_observed_digest"]:
+              raise SystemExit("golden executed-prefix identity mismatch")
+          if packet["configuration"]["executed_prefix_expected_digest"] != packet["configuration"]["executed_prefix_observed_digest"]:
+              raise SystemExit("configuration prefix identity mismatch")
+
+          thermal = packet["thermal"]
+          if thermal["required_node_ids"] != thermal["observed_node_ids"]:
+              raise SystemExit("golden thermal node coverage incomplete")
+          if thermal["expected_predecessor_digest"] != thermal["observed_predecessor_digest"]:
+              raise SystemExit("golden thermal predecessor mismatch")
+          if thermal["sequence_reset"] is not False:
+              raise SystemExit("golden packet contains a thermal sequence reset")
+
+          energy = packet["energy"]
+          if energy["boundary_complete"] is not True or energy["upstream_disposition"] != "Balanced":
+              raise SystemExit("golden packet must carry a complete upstream balanced energy receipt")
+          if not energy["closure_receipt_digest"]:
+              raise SystemExit("balanced energy receipt digest missing")
+
+          terminal = events["terminal"]
+          physical = events["physical_transition"]
+          if terminal["reserve_digest"] != physical["reserve_result_digest"]:
+              raise SystemExit("terminal reserve digest does not match final physical transition")
+          if terminal["safe_stop_qualified"] is not True:
+              raise SystemExit("golden packet lacks a qualified terminal safe-stop")
+          if packet["actuation_authorized"] is not False:
+              raise SystemExit("retrospective packet must never authorize actuation")
+          if packet["replay"]["causal_chain_complete"] is not True:
+              raise SystemExit("golden packet causal chain is not complete")
+          if packet["replay"]["mission_closure"]["disposition"] != "Closed":
+              raise SystemExit("golden packet mission is not closed")
+
+          future = packet["future_options"]
+          if future["disposition"] != "NotEvaluated" or future["observation_classes"]:
+              raise SystemExit("joint-only golden packet must not invent future-option evidence")
+          if future["clairvoyant_upper_bound"] is not None:
+              raise SystemExit("unevaluated future-option slot must not contain a clairvoyant result")
+
+          # Mutation corpus shape and unique case identities.
+          cases = mutations["cases"]
+          ids = [case["case_id"] for case in cases]
+          expected_ids = [f"M{index:02d}_" for index in range(1, 14)]
+          if len(cases) != 13 or len(set(ids)) != 13:
+              raise SystemExit("expected exactly 13 unique mutation cases")
+          if any(not case_id.startswith(prefix) for case_id, prefix in zip(ids, expected_ids)):
+              raise SystemExit("mutation case IDs or their declared order changed")
+          for case in cases:
+              if case["expected_disposition"] not in {"Qualified", "Unknown", "Inconclusive", "Rejected"}:
+                  raise SystemExit(f"invalid expected disposition for {case['case_id']}")
+              for mutation in case["mutations"]:
+                  if mutation["operation"] not in {"replace", "remove"}:
+                      raise SystemExit(f"invalid mutation operation in {case['case_id']}")
+                  if not mutation["path"].startswith("/"):
+                      raise SystemExit(f"mutation path is not a JSON pointer in {case['case_id']}")
+
+          print("golden packet causal/physical-semantic preflight: PASS")
+          print(f"mutation oracle inventory: PASS ({len(cases)} cases; not executed against Rust adapters)")
+          PY
