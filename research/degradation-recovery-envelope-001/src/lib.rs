@@ -1282,7 +1282,7 @@ mod tests {
                 false,
                 false,
                 false,
-                true,
+                false,
             ),
             tick(
                 8,
@@ -1359,10 +1359,10 @@ mod tests {
         assert!(report.findings.is_empty());
         assert_eq!(report.events[0].detection_latency_ticks, Some(0));
         assert_eq!(report.events[0].containment_latency_ticks, Some(0));
-        assert_eq!(report.events[0].recovery_tick, Some(7));
+        assert_eq!(report.events[0].recovery_tick, Some(8));
         assert_eq!(
             report.events[0].recovery_latency_after_clearance_ticks,
-            Some(3)
+            Some(4)
         );
     }
 
