@@ -433,8 +433,7 @@ mod compound_com_tests {
             rotation: Rotor::from_bivector(&tool_generator),
         };
         let world_tool_transform_before = body.transform.compose(&tool_transform);
-        let tool_shape: Box<dyn Shape<3>> =
-            Box::new(HyperBox::<3>::new([0.23, 0.11, 0.07]));
+        let tool_shape: Box<dyn Shape<3>> = Box::new(HyperBox::<3>::new([0.23, 0.11, 0.07]));
         let tool_before = directions
             .iter()
             .map(|direction| {
