@@ -104,12 +104,12 @@ impl Search<'_> {
             if self.result.is_some() || self.budget_exceeded {
                 return;
             }
-            let operation = &self.problem.operations[operation_index];
+            let operation = self.problem.operations[operation_index].clone();
 
-            let mut machines: Vec<&Machine> = self.problem.machines.iter().collect();
-            machines.sort_by_key(|machine| machine.id.as_str());
-            let mut operators = self.problem.operators.iter().collect::<Vec<_>>();
-            operators.sort_by_key(|operator| operator.id.as_str());
+            let mut machines = self.problem.machines.clone();
+            machines.sort_by_key(|machine| machine.id.clone());
+            let mut operators = self.problem.operators.clone();
+            operators.sort_by_key(|operator| operator.id.clone());
 
             for machine in machines {
                 if !machine.capabilities.contains(&operation.required_capability) {
@@ -170,7 +170,7 @@ impl Search<'_> {
                         }
                         if !zero_setup_transitions_valid(
                             machine,
-                            operation,
+                            &operation,
                             &self.assignments,
                             &self.problem.operations,
                             start_tick,
