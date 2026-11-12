@@ -57,11 +57,20 @@
     },
     {
       "evidence_id": "E-CRITERIA-UL9540A",
-      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "source_digest": "8888888888888888888888888888888888888888888888888888888888888888",
       "evidence_class": "literature",
       "admission": "admitted_for_evaluation",
       "claim_scope": "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition",
       "authority_or_lab_ref": "SYNTHETIC-UL-9540A-REFERENCE",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-CRITERIA-IEC62660",
+      "source_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+      "evidence_class": "literature",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "IEC-62660-3 IEC-62660-3-2022-cell-block-safety-criteria 2022 edition",
+      "authority_or_lab_ref": "SYNTHETIC-IEC-62660-3-REFERENCE",
       "metrology_ref": null
     }
   ],
@@ -124,8 +133,8 @@
           "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
         }
       },
-      "standard_id": "UN-R100-2026",
-      "standard_revision": "05-series",
+      "standard_id": "IEC-62660-3",
+      "standard_revision": "2022 edition",
       "protocol_revision": "protocol-r1",
       "trigger_method": "localized_external_heating",
       "trigger_achieved": true,
@@ -137,8 +146,8 @@
       "warning_time_seconds": 15,
       "result": "pass",
       "evidence_id": "E-CELL",
-      "acceptance_criteria_id": "CRITERIA-REPORTED-TEST-001",
-      "acceptance_criteria_evidence_id": "E-CRITERIA"
+      "acceptance_criteria_id": "IEC-62660-3-2022-cell-block-safety-criteria",
+      "acceptance_criteria_evidence_id": "E-CRITERIA-IEC62660"
     },
     {
       "test_id": "BESS-INSTALL-001",
