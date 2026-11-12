@@ -207,6 +207,9 @@ jobs:
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.sequential_update_status.enum | index("multi_scenario_blocked_joint_posterior_missing") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.joint_scenario_posterior_ledger_sha256.oneOf | length == 2) and
+            (.properties.protocol.properties.active_evidence_selection.allOf | length == 2) and
+            (.properties.protocol.properties.active_evidence_selection.allOf[0].then.properties.joint_scenario_posterior_ledger_sha256.pattern == "^[a-f0-9]{64}$") and
+            (.properties.protocol.properties.active_evidence_selection.allOf[1].then.properties.joint_scenario_posterior_ledger_sha256.type == "null") and
             (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation_count.const == 0) and
             (.properties.protocol.properties.external_dataset_track.properties.cross_engine_or_fleet_claim_allowed.const == false) and
             (.properties.protocol.properties.deployability_assessment.properties.overall_deployability_claim_allowed.const == false) and
