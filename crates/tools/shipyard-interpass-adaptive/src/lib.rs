@@ -624,7 +624,7 @@ mod tests {
         second_input.observed_state.scan_id = "SCAN-AFTER-PASS-03".to_owned();
         second_input.observed_state.scan_sha256 = [0x33; 32];
         second_input.observed_state.registration_receipt_sha256 = [0x44; 32];
-        second_input.observed_state.residual_fill_area_units = 55;
+        second_input.observed_state.residual_fill_area_units = 75;
         second_input.observed_state.uncertainty_bound_units = 5;
         second_input.observed_state.observed_at_tick = 110;
         second_input.expected_predecessor_pass_id = "PASS-03".to_owned();
@@ -658,7 +658,7 @@ mod tests {
                     .cmp(&right.objectives.robust_geometry_error_units)
             })
             .expect("second geometry baseline");
-        assert_eq!(second_geometry_best.candidate_id, "FILL-55");
+        assert_eq!(second_geometry_best.candidate_id, "FILL-75");
         assert_ne!(
             first_geometry_best.candidate_id,
             second_geometry_best.candidate_id
