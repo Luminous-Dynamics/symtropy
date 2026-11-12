@@ -175,7 +175,8 @@ fn parse_recovery(inputs: &Value) -> Result<RecoveryEvidence, String> {
 
 fn parse_case(case: &Value) -> Result<(String, FutureOptionScenario, Value), String> {
     let case_id = required_string(case, "case_id")?;
-    let inputs = required(case, "inputs")?;
+    // The v0.1 corpus stores input fields directly on each case object.
+    let inputs = case;
 
     let branch_manifest_raw = required(inputs, "branch_manifest")?;
     let branch_manifest = EvidenceManifest {
