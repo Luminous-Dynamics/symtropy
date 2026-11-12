@@ -127,13 +127,13 @@ jobs:
             ([.comparators[].id] | unique | length == 7) and
             ([.comparators[].id] | index("risk_adjusted_worst_case_eig") != null) and
             ([.comparators[].id] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
-            (.candidate_classes.controlled_perturbation.eligible == false) and
+            (.candidate_classes.controlled_perturbation.eligible_when == false) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
             (.method.sequential_update_policy.status == "single_point_model_updates_supported_multiscenario_updates_blocked") and
             (.method.sequential_update_policy.no_silent_fallback == true) and
             (.hard_gates | length >= 50) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
-            (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
+            (.evidence_boundaries.authority_status | contains("external mandatory checks"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
       - name: Validate streaming and behavioral contracts
