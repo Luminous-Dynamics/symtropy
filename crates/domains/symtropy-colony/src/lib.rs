@@ -16,6 +16,24 @@ pub enum AntRole {
     Forager,
 }
 
+/// Declares what information is available to colony agents.
+///
+/// The legacy constructor retains the oracle-assisted mode for compatibility. New
+/// collective-competence comparisons should construct all worlds with an explicit mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColonyInformationMode {
+    /// Legacy upper bound: agents receive hidden shortest-path hints to actual food sources
+    /// and the nest, in addition to environmental pheromone fields.
+    OraclePathAssisted,
+    /// Decentralized stigmergic mode: agents use only locally sampled pheromone/danger
+    /// gradients and direct contact with food; no path search over hidden food locations.
+    StigmergicFieldOnly,
+    /// Independent local-search control: no shared food/home trail emission or sensing;
+    /// agents use deterministic local exploration, direct food contact, local obstacle/
+    /// danger perception, and a declared nest landmark when returning.
+    IndependentLocalSearch,
+}
+
 #[derive(Debug, Clone)]
 pub struct AntCohort {
     pub x: usize,
@@ -51,11 +69,43 @@ impl Default for ColonyMind {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ColonyDebugMetrics {
     pub tick: u64,
+    /// Explicit counter-based exploration seed. Zero preserves legacy deterministic jitter.
+    pub seed: u64,
+    pub information_mode: ColonyInformationMode,
     pub food_reserve: u32,
     pub trail_entropy: f32,
     pub pheromone_coherence: f32,
     pub stress: f32,
 }
+
+/// Failure to transfer only the colony's shared food/home environmental memory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColonyMemoryTransferError {
+    DimensionsMismatch {
+        source_width: usize,
+        source_height: usize,
+        target_width: usize,
+        target_height: usize,
+    },
+}
+
+impl std::fmt::Display for ColonyMemoryTransferError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DimensionsMismatch {
+                source_width,
+                source_height,
+                target_width,
+                target_height,
+            } => write!(
+                f,
+                "social-memory field dimensions differ: source {source_width}x{source_height}, target {target_width}x{target_height}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ColonyMemoryTransferError {}
 
 #[derive(Debug, Clone)]
 pub struct ColonyWorld {
@@ -64,11 +114,62 @@ pub struct ColonyWorld {
     pub nest: (usize, usize),
     food_sources: HashMap<(usize, usize), u32>,
     ants: Vec<AntCohort>,
+    information_mode: ColonyInformationMode,
+    seed: u64,
+    /// Whether food sources/nest emit exogenous pheromone fields each tick.
+    /// Disable this when testing persistence of agent-generated environmental traces.
+    source_emission_enabled: bool,
     tick: u64,
 }
 
 impl ColonyWorld {
+    /// Construct the legacy oracle-assisted colony for backwards compatibility.
+    ///
+    /// This mode uses shortest-path information over the complete food-source map. It is
+    /// an omniscient upper bound, not a decentralized stigmergic collective. Use
+    /// new_with_information_mode for controlled comparisons.
     pub fn new(width: usize, height: usize, nest: (usize, usize), ant_count: usize) -> Self {
+        Self::new_with_information_mode(
+            width,
+            height,
+            nest,
+            ant_count,
+            ColonyInformationMode::OraclePathAssisted,
+        )
+    }
+
+    /// Construct a colony with an explicit information/communication boundary.
+    pub fn new_with_information_mode(
+        width: usize,
+        height: usize,
+        nest: (usize, usize),
+        ant_count: usize,
+        information_mode: ColonyInformationMode,
+    ) -> Self {
+        Self::new_with_information_mode_and_seed(
+            width,
+            height,
+            nest,
+            ant_count,
+            information_mode,
+            0,
+        )
+    }
+
+    /// Construct a colony with an explicit information boundary and exploration seed.
+    ///
+    /// Seed zero preserves the original deterministic jitter for backwards compatibility.
+    /// Non-zero seeds select a counter-based SplitMix64 jitter field keyed by
+    /// (seed, tick, ant_index, x, y). This provides paired, replayable runs with distinct
+    /// exploration sequences without mutable RNG state in candidate scoring.
+    pub fn new_with_information_mode_and_seed(
+        width: usize,
+        height: usize,
+        nest: (usize, usize),
+        ant_count: usize,
+        information_mode: ColonyInformationMode,
+        seed: u64,
+    ) -> Self {
         let mut fields = FieldGrid::new(width, height);
         fields.set(FieldLayer::HomePheromone, nest.0, nest.1, 500.0);
         let mut ants = Vec::with_capacity(ant_count);
@@ -94,8 +195,115 @@ impl ColonyWorld {
             nest,
             food_sources: HashMap::new(),
             ants,
+            information_mode,
+            seed,
+            source_emission_enabled: true,
             tick: 0,
         }
+    }
+
+    pub const fn information_mode(&self) -> ColonyInformationMode {
+        self.information_mode
+    }
+
+    pub const fn seed(&self) -> u64 {
+        self.seed
+    }
+
+    pub const fn source_emission_enabled(&self) -> bool {
+        self.source_emission_enabled
+    }
+
+    /// Enable/disable exogenous food-source and nest pheromone emission.
+    ///
+    /// This is distinct from ant-generated trail deposition and is required to
+    /// separate source broadcasting from environmental memory created by agents.
+    pub fn set_source_emission_enabled(&mut self, enabled: bool) {
+        self.source_emission_enabled = enabled;
+    }
+
+    /// Remove only the shared food/home pheromone channels, leaving danger, obstacles,
+    /// nutrients, geometry and all other environmental layers unchanged.
+    pub fn clear_social_memory(&mut self) {
+        for y in 0..self.fields.height() {
+            for x in 0..self.fields.width() {
+                self.fields.set(FieldLayer::FoodPheromone, x, y, 0.0);
+                self.fields.set(FieldLayer::HomePheromone, x, y, 0.0);
+            }
+        }
+    }
+
+    /// Randomize the spatial arrangement of both social-memory fields while preserving
+    /// each channel's exact value multiset.
+    ///
+    /// This is a structure-destruction control: field magnitudes and histogram are
+    /// preserved, but spatial correlations and trail geometry are destroyed. Each
+    /// channel is shuffled independently using a deterministic seed. Non-social
+    /// environmental channels, agents and food inventory remain unchanged.
+    pub fn randomize_social_memory(&mut self, seed: u64) {
+        let width = self.fields.width();
+        let height = self.fields.height();
+        let mut food: Vec<f32> = (0..height)
+            .flat_map(|y| {
+                (0..width).map(move |x| self.fields.get(FieldLayer::FoodPheromone, x, y))
+            })
+            .collect();
+        let mut home: Vec<f32> = (0..height)
+            .flat_map(|y| {
+                (0..width).map(move |x| self.fields.get(FieldLayer::HomePheromone, x, y))
+            })
+            .collect();
+
+        shuffle_preserving_values(&mut food, seed ^ 0xF00D_F00D_F00D_F00D);
+        shuffle_preserving_values(&mut home, seed ^ 0xA11C_E5E5_A11C_E5E5);
+
+        for y in 0..height {
+            for x in 0..width {
+                let index = y * width + x;
+                self.fields
+                    .set(FieldLayer::FoodPheromone, x, y, food[index]);
+                self.fields
+                    .set(FieldLayer::HomePheromone, x, y, home[index]);
+            }
+        }
+    }
+
+    /// Copy only the food/home pheromone fields from another world.
+    ///
+    /// This models transfer of environmental traces to a replacement cohort. Agent
+    /// state, food inventory, danger fields, obstacles and other channels are not copied.
+    pub fn copy_social_memory_from(
+        &mut self,
+        source: &Self,
+    ) -> Result<(), ColonyMemoryTransferError> {
+        if self.fields.width() != source.fields.width()
+            || self.fields.height() != source.fields.height()
+        {
+            return Err(ColonyMemoryTransferError::DimensionsMismatch {
+                source_width: source.fields.width(),
+                source_height: source.fields.height(),
+                target_width: self.fields.width(),
+                target_height: self.fields.height(),
+            });
+        }
+
+        for y in 0..self.fields.height() {
+            for x in 0..self.fields.width() {
+                self.fields.set(
+                    FieldLayer::FoodPheromone,
+                    x,
+                    y,
+                    source.fields.get(FieldLayer::FoodPheromone, x, y),
+                );
+                self.fields.set(
+                    FieldLayer::HomePheromone,
+                    x,
+                    y,
+                    source.fields.get(FieldLayer::HomePheromone, x, y),
+                );
+            }
+        }
+        Ok(())
     }
 
     pub fn ants(&self) -> &[AntCohort] {
@@ -109,6 +317,8 @@ impl ColonyWorld {
     pub fn debug_metrics(&self) -> ColonyDebugMetrics {
         ColonyDebugMetrics {
             tick: self.tick,
+            seed: self.seed,
+            information_mode: self.information_mode,
             food_reserve: self.mind.food_reserve,
             trail_entropy: self.mind.trail_entropy,
             pheromone_coherence: self.mind.pheromone_coherence,
@@ -161,8 +371,13 @@ impl ColonyWorld {
 
     pub fn step(&mut self) {
         self.tick += 1;
-        self.reinforce_sources();
+        if self.source_emission_enabled
+            && self.information_mode != ColonyInformationMode::IndependentLocalSearch
+        {
+            self.reinforce_sources();
+        }
 
+        let information_mode = self.information_mode;
         let params = DiffusionParams {
             diffusion: 0.08,
             decay: 0.035,
@@ -194,13 +409,17 @@ impl ColonyWorld {
                 if (ant.x, ant.y) == self.nest {
                     ant.carrying_food = false;
                     delivered += 1;
-                } else {
+                } else if information_mode != ColonyInformationMode::IndependentLocalSearch {
                     self.fields
                         .add(FieldLayer::FoodPheromone, ant.x, ant.y, 4.0);
                 }
             } else {
-                self.fields
-                    .add(FieldLayer::HomePheromone, ant.x, ant.y, 1.5);
+                if information_mode != ColonyInformationMode::IndependentLocalSearch {
+                    self.fields
+                        .add(FieldLayer::HomePheromone, ant.x, ant.y, 1.5);
+                }
+                // Food is only collected on direct cell contact. The source map is not
+                // queried for guidance outside OraclePathAssisted food_score().
                 if let Some(food) = self.food_sources.get_mut(&(ant.x, ant.y))
                     && *food > 0
                 {
@@ -315,27 +534,59 @@ impl ColonyWorld {
     }
 
     fn food_score(&self, x: usize, y: usize, role: AntRole, ant_index: usize) -> f32 {
-        let field = self.fields.get(FieldLayer::FoodPheromone, x, y);
+        let field = match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted
+            | ColonyInformationMode::StigmergicFieldOnly => {
+                self.fields.get(FieldLayer::FoodPheromone, x, y)
+            }
+            ColonyInformationMode::IndependentLocalSearch => 0.0,
+        };
+
         let mut score = field;
-        if let Some(path) = self.shortest_path_distance((x, y), |p| {
-            self.food_sources.get(&p).copied().unwrap_or(0) > 0
-        }) {
-            score += 160.0 / (path as f32 + 1.0);
+        if self.information_mode == ColonyInformationMode::OraclePathAssisted {
+            if let Some(path) = self.shortest_path_distance((x, y), |p| {
+                self.food_sources.get(&p).copied().unwrap_or(0) > 0
+            }) {
+                score += 160.0 / (path as f32 + 1.0);
+            }
         }
-        if role == AntRole::Scout {
-            score += self.deterministic_jitter(x, y, ant_index) * 0.1;
+
+        let explore = match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted
+            | ColonyInformationMode::StigmergicFieldOnly => role == AntRole::Scout,
+            ColonyInformationMode::IndependentLocalSearch => true,
+        };
+        if explore {
+            let scale = if self.information_mode == ColonyInformationMode::IndependentLocalSearch {
+                1.0
+            } else {
+                0.1
+            };
+            score += self.deterministic_jitter(x, y, ant_index) * scale;
         }
         score
     }
 
     fn home_score(&self, x: usize, y: usize) -> f32 {
-        let home_field = self.fields.get(FieldLayer::HomePheromone, x, y);
+        let home_field = match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted
+            | ColonyInformationMode::StigmergicFieldOnly => {
+                self.fields.get(FieldLayer::HomePheromone, x, y)
+            }
+            ColonyInformationMode::IndependentLocalSearch => 0.0,
+        };
         let distance = x.abs_diff(self.nest.0) + y.abs_diff(self.nest.1);
-        let path_bonus = self
-            .shortest_path_distance((x, y), |p| p == self.nest)
-            .map(|path| 180.0 / (path as f32 + 1.0))
-            .unwrap_or(0.0);
-        home_field + path_bonus + 20.0 / (distance as f32 + 1.0)
+        match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted => {
+                let path_bonus = self
+                    .shortest_path_distance((x, y), |p| p == self.nest)
+                    .map(|path| 180.0 / (path as f32 + 1.0))
+                    .unwrap_or(0.0);
+                home_field + path_bonus + 20.0 / (distance as f32 + 1.0)
+            }
+            ColonyInformationMode::StigmergicFieldOnly => home_field,
+            ColonyInformationMode::IndependentLocalSearch => -(distance as f32),
+        }
     }
 
     fn update_mind(&mut self) {
@@ -459,12 +710,44 @@ impl ColonyWorld {
     }
 
     fn deterministic_jitter(&self, x: usize, y: usize, ant_index: usize) -> f32 {
-        let n = (x as u64 * 73_856_093)
+        let key = (x as u64 * 73_856_093)
             ^ (y as u64 * 19_349_663)
             ^ (ant_index as u64 * 83_492_791)
             ^ self.tick;
-        (n % 1_000) as f32 / 1_000.0
+        if self.seed == 0 {
+            // Preserve the historical deterministic jitter for existing callers.
+            return (key % 1_000) as f32 / 1_000.0;
+        }
+
+        // Counter-based SplitMix64: no mutable RNG state is consumed while scoring
+        // candidate cells, so candidate enumeration order cannot perturb future draws.
+        let mixed = splitmix64(key ^ self.seed);
+        (mixed >> 40) as f32 / 16_777_216.0
     }
+}
+
+/// Deterministic Fisher–Yates shuffle using SplitMix64 output and rejection sampling.
+fn shuffle_preserving_values<T>(values: &mut [T], seed: u64) {
+    let mut counter = 0u64;
+    for upper in (1..values.len()).rev() {
+        let range = (upper + 1) as u64;
+        let zone = u64::MAX - (u64::MAX % range);
+        let selected = loop {
+            let value = splitmix64(seed.wrapping_add(counter));
+            counter = counter.wrapping_add(1);
+            if value < zone {
+                break (value % range) as usize;
+            }
+        };
+        values.swap(upper, selected);
+    }
+}
+
+fn splitmix64(mut value: u64) -> u64 {
+    value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
 }
 
 #[cfg(test)]
@@ -531,6 +814,388 @@ mod tests {
         assert!(ppm.contains("70 130 255"));
         assert!(ppm.contains("40 220 80"));
         assert!(ppm.contains("12 12 12"));
+    }
+
+    #[test]
+    fn social_memory_transfer_copies_only_food_and_home_fields() {
+        let mut donor = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            7,
+        );
+        donor.fields.set(FieldLayer::FoodPheromone, 3, 4, 17.0);
+        donor.fields.set(FieldLayer::HomePheromone, 2, 4, 9.0);
+        donor.fields.set(FieldLayer::DangerPheromone, 3, 4, 5.0);
+        donor.fields.set(FieldLayer::Nutrient, 3, 4, 11.0);
+
+        let mut recipient = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            8,
+        );
+        recipient.fields.set(FieldLayer::DangerPheromone, 3, 4, 2.0);
+        recipient.copy_social_memory_from(&donor).unwrap();
+
+        assert_eq!(recipient.fields.get(FieldLayer::FoodPheromone, 3, 4), 17.0);
+        assert_eq!(recipient.fields.get(FieldLayer::HomePheromone, 2, 4), 9.0);
+        assert_eq!(recipient.fields.get(FieldLayer::DangerPheromone, 3, 4), 2.0);
+        assert_eq!(recipient.fields.get(FieldLayer::Nutrient, 3, 4), 0.0);
+        assert_eq!(recipient.ants().len(), 4);
+        assert_eq!(recipient.mind.food_reserve, 0);
+    }
+
+    #[test]
+    fn replacement_cohort_uses_transferred_trace_without_source_broadcast() {
+        let mut donor = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            7,
+        );
+        donor.fields.set(FieldLayer::FoodPheromone, 2, 4, 1.0);
+        donor.fields.set(FieldLayer::FoodPheromone, 3, 4, 30.0);
+        donor.fields.set(FieldLayer::HomePheromone, 1, 4, 30.0);
+
+        let mut replacement = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            19,
+        );
+        replacement.set_source_emission_enabled(false);
+        replacement.copy_social_memory_from(&donor).unwrap();
+        let target_with_memory = replacement.next_target(1, 12, 8);
+
+        let mut erased = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            19,
+        );
+        erased.set_source_emission_enabled(false);
+        erased.clear_social_memory();
+        let target_without_memory = erased.next_target(1, 12, 8);
+
+        assert_eq!(target_with_memory, (2, 4));
+        assert_ne!(target_with_memory, target_without_memory);
+        assert!(!replacement.source_emission_enabled());
+        assert_eq!(replacement.tick(), 0);
+    }
+
+    #[test]
+    fn exogenous_common_field_control_can_reproduce_a_transferred_field_decision() {
+        let mut donor = ColonyWorld::new_with_information_mode(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        donor.fields.set(FieldLayer::FoodPheromone, 2, 4, 1.0);
+        donor.fields.set(FieldLayer::FoodPheromone, 3, 4, 30.0);
+
+        let mut transferred = ColonyWorld::new_with_information_mode(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        transferred.set_source_emission_enabled(false);
+        transferred.copy_social_memory_from(&donor).unwrap();
+
+        let mut externally_signaled = ColonyWorld::new_with_information_mode(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        externally_signaled.set_source_emission_enabled(false);
+        externally_signaled.fields.set(FieldLayer::FoodPheromone, 2, 4, 1.0);
+        externally_signaled.fields.set(FieldLayer::FoodPheromone, 3, 4, 30.0);
+
+        assert_eq!(
+            transferred.next_target(1, 12, 8),
+            externally_signaled.next_target(1, 12, 8)
+        );
+    }
+
+    #[test]
+    fn randomized_social_memory_preserves_channel_histograms_and_other_fields() {
+        let mut original = ColonyWorld::new_with_information_mode(
+            4,
+            3,
+            (0, 0),
+            2,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        for y in 0..3 {
+            for x in 0..4 {
+                let index = y * 4 + x;
+                original.fields.set(FieldLayer::FoodPheromone, x, y, (index % 4) as f32);
+                original.fields.set(FieldLayer::HomePheromone, x, y, (index / 4) as f32);
+            }
+        }
+        original.fields.set(FieldLayer::DangerPheromone, 1, 1, 9.0);
+        original.fields.set(FieldLayer::Nutrient, 2, 1, 7.0);
+
+        let mut shuffled = original.clone();
+        shuffled.randomize_social_memory(1234);
+
+        let collect = |world: &ColonyWorld, layer| {
+            (0..world.fields.height())
+                .flat_map(|y| {
+                    (0..world.fields.width())
+                        .map(move |x| world.fields.get(layer, x, y))
+                })
+                .collect::<Vec<_>>()
+        };
+        let mut original_food = collect(&original, FieldLayer::FoodPheromone);
+        let mut shuffled_food = collect(&shuffled, FieldLayer::FoodPheromone);
+        let mut original_home = collect(&original, FieldLayer::HomePheromone);
+        let mut shuffled_home = collect(&shuffled, FieldLayer::HomePheromone);
+        original_food.sort_by(f32::total_cmp);
+        shuffled_food.sort_by(f32::total_cmp);
+        original_home.sort_by(f32::total_cmp);
+        shuffled_home.sort_by(f32::total_cmp);
+
+        assert_eq!(original_food, shuffled_food);
+        assert_eq!(original_home, shuffled_home);
+        assert_eq!(
+            shuffled.fields.get(FieldLayer::DangerPheromone, 1, 1),
+            9.0
+        );
+        assert_eq!(shuffled.fields.get(FieldLayer::Nutrient, 2, 1), 7.0);
+        assert_eq!(shuffled.ants().len(), original.ants().len());
+        assert_eq!(shuffled.mind.food_reserve, original.mind.food_reserve);
+
+        assert_ne!(
+            collect(&original, FieldLayer::FoodPheromone),
+            collect(&shuffled, FieldLayer::FoodPheromone)
+        );
+    }
+
+    #[test]
+    fn randomized_social_memory_is_seed_replayable_and_seed_sensitive() {
+        let mut first = ColonyWorld::new_with_information_mode(
+            5,
+            4,
+            (0, 0),
+            1,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        for y in 0..4 {
+            for x in 0..5 {
+                let index = (y * 5 + x) as f32;
+                first.fields.set(FieldLayer::FoodPheromone, x, y, index);
+                first.fields.set(FieldLayer::HomePheromone, x, y, 19.0 - index);
+            }
+        }
+        let mut replay = first.clone();
+        let mut other = first.clone();
+
+        first.randomize_social_memory(10);
+        replay.randomize_social_memory(10);
+        other.randomize_social_memory(11);
+
+        let collect = |world: &ColonyWorld, layer| {
+            (0..world.fields.height())
+                .flat_map(|y| {
+                    (0..world.fields.width())
+                        .map(move |x| world.fields.get(layer, x, y))
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            collect(&first, FieldLayer::FoodPheromone),
+            collect(&replay, FieldLayer::FoodPheromone)
+        );
+        assert_eq!(
+            collect(&first, FieldLayer::HomePheromone),
+            collect(&replay, FieldLayer::HomePheromone)
+        );
+        assert_ne!(
+            collect(&first, FieldLayer::FoodPheromone),
+            collect(&other, FieldLayer::FoodPheromone)
+        );
+    }
+
+    #[test]
+    fn social_memory_transfer_rejects_different_grid_dimensions() {
+        let donor = ColonyWorld::new(12, 8, (1, 4), 4);
+        let mut recipient = ColonyWorld::new(10, 8, (1, 4), 4);
+
+        assert_eq!(
+            recipient.copy_social_memory_from(&donor),
+            Err(ColonyMemoryTransferError::DimensionsMismatch {
+                source_width: 12,
+                source_height: 8,
+                target_width: 10,
+                target_height: 8,
+            })
+        );
+    }
+
+    #[test]
+    fn seeded_exploration_is_replayable_and_varies_across_seeds() {
+        let make = |seed| {
+            ColonyWorld::new_with_information_mode_and_seed(
+                16,
+                12,
+                (2, 6),
+                8,
+                ColonyInformationMode::IndependentLocalSearch,
+                seed,
+            )
+        };
+        let left = make(101);
+        let replay = make(101);
+        let other = make(202);
+
+        assert_eq!(left.seed(), 101);
+        assert_eq!(left.debug_metrics().seed, 101);
+        assert_eq!(
+            left.deterministic_jitter(4, 5, 3),
+            replay.deterministic_jitter(4, 5, 3)
+        );
+        assert_ne!(
+            left.deterministic_jitter(4, 5, 3),
+            other.deterministic_jitter(4, 5, 3)
+        );
+    }
+
+    #[test]
+    fn seed_zero_preserves_legacy_jitter_formula() {
+        let world = ColonyWorld::new_with_information_mode(
+            16,
+            12,
+            (2, 6),
+            8,
+            ColonyInformationMode::IndependentLocalSearch,
+        );
+        let x = 4usize;
+        let y = 5usize;
+        let ant_index = 3usize;
+        let expected_key = (x as u64 * 73_856_093)
+            ^ (y as u64 * 19_349_663)
+            ^ (ant_index as u64 * 83_492_791)
+            ^ world.tick();
+        let expected = (expected_key % 1_000) as f32 / 1_000.0;
+        assert_eq!(world.seed(), 0);
+        assert_eq!(world.deterministic_jitter(x, y, ant_index), expected);
+    }
+
+    #[test]
+    fn legacy_constructor_is_explicitly_tagged_as_oracle_assisted() {
+        let world = ColonyWorld::new(12, 8, (1, 4), 8);
+        assert_eq!(
+            world.information_mode(),
+            ColonyInformationMode::OraclePathAssisted
+        );
+        assert_eq!(
+            world.debug_metrics().information_mode,
+            ColonyInformationMode::OraclePathAssisted
+        );
+    }
+
+    #[test]
+    fn stigmergic_food_score_does_not_depend_on_hidden_food_coordinates() {
+        let mut left = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        let mut right = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        left.add_food_source(14, 4, 100);
+        right.add_food_source(8, 1, 100);
+        left.fields.set(FieldLayer::FoodPheromone, 3, 4, 0.0);
+        right.fields.set(FieldLayer::FoodPheromone, 3, 4, 0.0);
+
+        let left_score = left.food_score(3, 4, AntRole::Forager, 1);
+        let right_score = right.food_score(3, 4, AntRole::Forager, 1);
+
+        assert_eq!(left_score, right_score);
+        assert_eq!(left_score, 0.0);
+    }
+
+    #[test]
+    fn stigmergic_home_score_does_not_depend_on_hidden_nest_coordinates() {
+        let mut left = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        let mut right = ColonyWorld::new_with_information_mode(
+            16, 8, (14, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        left.fields.set(FieldLayer::HomePheromone, 5, 4, 12.0);
+        right.fields.set(FieldLayer::HomePheromone, 5, 4, 12.0);
+
+        assert_eq!(left.home_score(5, 4), right.home_score(5, 4));
+        assert_eq!(left.home_score(5, 4), 12.0);
+    }
+
+    #[test]
+    fn oracle_mode_retains_global_path_hint_as_an_upper_bound() {
+        let mut world = ColonyWorld::new(16, 8, (1, 4), 8);
+        world.add_food_source(14, 4, 100);
+        world.fields.set(FieldLayer::FoodPheromone, 3, 4, 0.0);
+
+        let score = world.food_score(3, 4, AntRole::Forager, 1);
+        assert!(score > 0.0);
+    }
+
+    #[test]
+    fn independent_local_search_ignores_pheromone_fields() {
+        let mut left = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::IndependentLocalSearch,
+        );
+        let mut right = left.clone();
+        left.fields.set(FieldLayer::FoodPheromone, 2, 4, 100.0);
+        left.fields.set(FieldLayer::HomePheromone, 2, 4, 100.0);
+        right.fields.set(FieldLayer::FoodPheromone, 2, 4, 0.0);
+        right.fields.set(FieldLayer::HomePheromone, 2, 4, 0.0);
+
+        assert_eq!(
+            left.food_score(2, 4, AntRole::Forager, 3),
+            right.food_score(2, 4, AntRole::Forager, 3)
+        );
+        assert_eq!(left.home_score(2, 4), right.home_score(2, 4));
+    }
+
+    #[test]
+    fn independent_local_search_does_not_emit_shared_pheromones() {
+        let mut with_agents = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::IndependentLocalSearch,
+        );
+        let mut no_agents = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 0, ColonyInformationMode::IndependentLocalSearch,
+        );
+        with_agents.add_food_source(14, 4, 100);
+        no_agents.add_food_source(14, 4, 100);
+
+        with_agents.run_steps(10);
+        no_agents.run_steps(10);
+
+        assert_eq!(
+            with_agents.fields.max_abs_diff(&no_agents.fields, FieldLayer::FoodPheromone),
+            0.0
+        );
+        assert_eq!(
+            with_agents.fields.max_abs_diff(&no_agents.fields, FieldLayer::HomePheromone),
+            0.0
+        );
     }
 
     #[test]

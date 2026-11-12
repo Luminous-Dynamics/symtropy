@@ -1,0 +1,311 @@
+{
+  "schema_version": "oli-collective-information-boundary-v0.3",
+  "case_id": "OLI-COLONY-FOOD-DISCOVERY-INFORMATION-BOUNDARY-001",
+  "status": "INFORMATION_MODES_IMPLEMENTED_FIXTURE_SPECIFIED_RUST_VALIDATION_PENDING",
+  "evidence_class": "SYNTHETIC_SIMULATION",
+  "claim_ceiling": "Controlled comparison of an oracle-assisted foraging model, local stigmergic field use, and independent local exploration; no general collective-intelligence or biological-life claim",
+  "source_implementation": {
+    "repository": "https://github.com/Luminous-Dynamics/symtropy",
+    "crate": "symtropy-colony",
+    "source_file": "crates/domains/symtropy-colony/src/lib.rs",
+    "baseline_revision": "main@26ac25651bb2ac9e54c321b845df54673429f3f8",
+    "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4578",
+    "source_audit_finding": "The existing food_score performed a shortest-path search over the complete hidden food_sources map for every candidate move. home_score also used global shortest-path and Manhattan hints. The legacy mode is retained and explicitly tagged as an oracle-assisted upper bound."
+  },
+  "information_modes": [
+    {
+      "id": "ORACLE_PATH_ASSISTED",
+      "implementation": "ColonyInformationMode::OraclePathAssisted",
+      "semantics": "Preserves the legacy behavior. Each agent's candidate-cell food score includes a shortest-path hint to any actual food source in the complete world map. Return scoring includes shortest path to the nest plus its global Manhattan coordinate. Agents also read locally sampled pheromone/danger fields.",
+      "information_access": "Global food coordinates and global obstacle-map path search, plus local field values.",
+      "interpretation": "Omniscient upper-bound/debug baseline, not a decentralized collective.",
+      "legacy_default": true
+    },
+    {
+      "id": "STIGMERGIC_FIELD_ONLY",
+      "implementation": "ColonyInformationMode::StigmergicFieldOnly",
+      "semantics": "Agents score candidate neighbour cells using food/home pheromone values at those cells and locally sampled danger. Food sources emit a food field; returning agents deposit food trails; outbound agents deposit home trails. Food is acquired only through direct cell contact. No path search over hidden food coordinates or global shortest-path hint to the nest is used in agent movement. Source/nest pheromone emission is now independently switchable; disabling it allows agent-generated trail memory to be tested without ongoing source broadcasting.",
+      "information_access": "Local neighbouring field cells, obstacle/danger sensing, and direct contact. The global world/telemetry still records state but is not consulted by food/home movement scoring.",
+      "interpretation": "Decentralized stigmergic/environmental-memory comparison."
+    },
+    {
+      "id": "INDEPENDENT_LOCAL_SEARCH",
+      "implementation": "ColonyInformationMode::IndependentLocalSearch",
+      "semantics": "Agents do not read or write shared food/home trails and do not receive food-source path hints. Each uses deterministic local exploration, local obstacle/danger perception, direct food contact, and a declared nest landmark (Manhattan distance) for return navigation. Shared environment fields continue to be updated for observational parity, but food/home fields do not affect agent choices.",
+      "information_access": "Local obstacle/danger sensing, direct cell contact, deterministic local exploration, and known nest landmark; no food/home pheromone channel.",
+      "interpretation": "Matched independent-agent baseline without inter-agent environmental memory."
+    }
+  ],
+  "source_audit": {
+    "confirmed_global_food_hint": "food_score called shortest_path_distance((x,y), goal) where goal inspected self.food_sources at arbitrary coordinates.",
+    "confirmed_global_home_hint": "home_score combined shortest_path_distance to the nest with global Manhattan distance.",
+    "consequence": "The legacy default was not a pure local stigmergic model despite pheromone fields. It was an oracle-assisted planner with environmental fields as additional inputs.",
+    "correction": "The legacy mode remains available but is now named and tagged. StigmergicFieldOnly and IndependentLocalSearch explicitly suppress the hidden food-map hint. Tests verify the score invariance under changed hidden food coordinates when field observations are held fixed."
+  },
+  "frozen_scenario": {
+    "width": 32,
+    "height": 16,
+    "nest": [
+      2,
+      8
+    ],
+    "ants": 64,
+    "food_sources": [
+      {
+        "position": [
+          28,
+          8
+        ],
+        "initial_amount": 5000
+      }
+    ],
+    "steps": 180,
+    "obstacles": [],
+    "external_danger_fields": [],
+    "neighbourhood": "four orthogonal adjacent cells plus stay; grid boundaries are non-periodic",
+    "movement": "one cell per ant per tick, maximum",
+    "food_collection": "one food unit per ant on direct contact with a nonempty source cell",
+    "delivery": "one food unit per ant reaching nest while carrying"
+  },
+  "matched_comparison_contract": {
+    "identical_world": true,
+    "same_initial_ant_positions_roles_and_attributes": true,
+    "same_number_of_agents": true,
+    "same_food_inventory": true,
+    "same_obstacles_and_external_hazards": true,
+    "same_tick_and_move_budget": true,
+    "same_direct_contact_rule": true,
+    "same_danger_and_obstacle_sensing": true,
+    "information_budget_is_intentionally_varied": true,
+    "random_seed_policy": "The current colony reference uses deterministic jitter from (x,y,ant_index,tick), not a seeded stochastic PRNG. Do not report seed ensembles until independent initial-condition/scenario generation is added.",
+    "telemetry_note": "ColonyMind metrics are global evaluator telemetry. scout_ratio is currently diagnostic and does not dynamically change the AntRole composition. It must not be treated as an agent-level local observation.",
+    "seeded_exploration": {
+      "legacy_seed": 0,
+      "legacy_seed_semantics": "Preserves original deterministic jitter exactly for backwards compatibility; do not count as an independent stochastic trial.",
+      "nonzero_seed_semantics": "Counter-based SplitMix64 jitter keyed by seed, tick, ant index, x and y; no mutable RNG consumption inside candidate scoring.",
+      "seed_recorded_in_metrics": true,
+      "preregistered_seed_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "pairing": "Use the same seed ID for OraclePathAssisted, StigmergicFieldOnly and IndependentLocalSearch within a scenario. This creates paired common-random-number comparisons.",
+      "independent_statistical_unit": "One independent (map geometry, information mode, seed) world run. Frames and ant-level observations within a run are nested, not independent samples.",
+      "scenarios": [
+        {
+          "id": "EAST_WEST",
+          "nest": [
+            2,
+            8
+          ],
+          "food_sources": [
+            {
+              "position": [
+                28,
+                8
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        },
+        {
+          "id": "WEST_EAST",
+          "nest": [
+            29,
+            8
+          ],
+          "food_sources": [
+            {
+              "position": [
+                3,
+                8
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        },
+        {
+          "id": "NORTH_SOUTH",
+          "nest": [
+            16,
+            1
+          ],
+          "food_sources": [
+            {
+              "position": [
+                16,
+                14
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        },
+        {
+          "id": "SOUTH_NORTH",
+          "nest": [
+            16,
+            14
+          ],
+          "food_sources": [
+            {
+              "position": [
+                16,
+                1
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        }
+      ],
+      "obstacle_ablations": [
+        "none",
+        "single_barrier_with_gap",
+        "two_route_corridor",
+        "localized_danger_strip"
+      ],
+      "minimum_paired_runs_per_mode_per_scenario": 30,
+      "report": "Per-scenario paired differences, bootstrap confidence intervals over independent seed IDs, and pooled results only after showing heterogeneity by map orientation and obstacle regime."
+    },
+    "environmental_memory_transfer": {
+      "api": "ColonyWorld::copy_social_memory_from",
+      "copied_channels": [
+        "FoodPheromone",
+        "HomePheromone"
+      ],
+      "excluded_channels": [
+        "DangerPheromone",
+        "Obstacle",
+        "Nutrient",
+        "Toxin",
+        "Moisture",
+        "Heat",
+        "Light",
+        "Oxygen",
+        "Disease",
+        "SignalNoise"
+      ],
+      "agent_state_copied": false,
+      "food_inventory_copied": false,
+      "source_emission_toggle": "set_source_emission_enabled(false)",
+      "clearing": "clear_social_memory",
+      "tasks": [
+        "donor cohort constructs a field trace, is removed, and a replacement cohort receives only the social field channels",
+        "preserved trace compared with erased trace",
+        "preserved trace compared with randomized trace preserving marginal values",
+        "preserved trace compared with an identical externally authored field (common-input control)",
+        "recipient performance measured with ongoing source/nest pheromone broadcast disabled",
+        "randomized trace preserves exact food/home value histograms but destroys spatial arrangement, compared with intact transferred trace"
+      ],
+      "interpretation": "A replacement cohort responding to transferred fields demonstrates environmental information persistence and field-mediated behavior. It does not by itself prove cognition, collective intelligence, agent-generated memory, or a causal historical link. The externally authored identical-field control isolates current field state from its provenance.",
+      "statistical_unit": "A paired donor/recipient world run under one independent seed and one scenario configuration.",
+      "randomization": {
+        "api": "ColonyWorld::randomize_social_memory(seed)",
+        "algorithm": "independent deterministic Fisher-Yates shuffle for FoodPheromone and HomePheromone using SplitMix64 and rejection sampling",
+        "preserves": [
+          "exact value multiset of FoodPheromone",
+          "exact value multiset of HomePheromone"
+        ],
+        "destroys": [
+          "spatial adjacency",
+          "trail geometry",
+          "spatial correlation structure"
+        ],
+        "excluded_from_mutation": [
+          "agents",
+          "food inventory",
+          "DangerPheromone",
+          "Obstacle",
+          "Nutrient",
+          "Toxin",
+          "Moisture",
+          "Heat",
+          "Light",
+          "Oxygen",
+          "Disease",
+          "SignalNoise"
+        ],
+        "purpose": "structure-destruction control that preserves per-channel histograms while removing the original spatial arrangement",
+        "pairing": "apply the same shuffle seed to both channels within the same registered recipient replicate; use distinct independent run seeds across replicates"
+      }
+    }
+  },
+  "required_metrics": [
+    "food_reserve_at_tick_180",
+    "first_delivery_tick",
+    "deliveries_per_1000_ant_ticks",
+    "fraction_of_agents_that_delivered",
+    "remaining_food_at_source",
+    "food_trail_total",
+    "home_trail_total",
+    "danger_exposure_by_agent",
+    "mean_path_length_per_delivered_unit",
+    "information_mode"
+  ],
+  "qualification_rules": [
+    "Do not label OraclePathAssisted as a decentralized collective.",
+    "Do not claim a collective advantage unless StigmergicFieldOnly exceeds the matched IndependentLocalSearch baseline on a pre-registered task metric with repeated independent scenarios.",
+    "Report OraclePathAssisted only as an omniscient upper-bound baseline.",
+    "Pheromone coherence, trail entropy and food reserve are separate observations, not universal intelligence scores.",
+    "The deterministic jitter and all trajectory frames from one scenario are not independent samples.",
+    "Add mirrored/rotated source placements, obstacle layouts, hazard fields and multiple map geometries before a broad claim.",
+    "Seed ensembles must use non-zero preregistered seeds; seed 0 is compatibility mode and is not counted as an independent random trial.",
+    "All information modes receive paired identical seed IDs and identical map configurations; report paired differences, not unpaired pooled means.",
+    "Map rotations/reflections and obstacle layouts are separate scenario families. Do not treat 30 seeds on one layout as evidence of transfer to unseen layouts.",
+    "Ants and time frames within one world are nested observations; the independent statistical unit is the seeded world run.",
+    "Environmental-memory transfer must use a new recipient world with fresh agents; copying the donor agents is not a memory-transfer test.",
+    "The recipient phase must disable exogenous food-source/nest pheromone emission so ongoing broadcasting is not mistaken for stored environmental memory.",
+    "Only FoodPheromone and HomePheromone are transferred; danger/obstacle/resource fields and food inventory remain matched but are not silently copied.",
+    "Preserved, erased, randomized and externally authored identical-field conditions must be compared using paired recipient seeds.",
+    "An identical externally authored field that produces the same response is a common-input control: it shows field-mediated behavior, not proof of who created the trace.",
+    "A transfer result is an environmental-memory effect; collective intelligence requires a separate task-competence advantage over matched individual and fixed-rule baselines.",
+    "Randomized-memory controls must preserve each social field's exact value multiset while changing spatial arrangement; report both histogram and spatial autocorrelation differences.",
+    "Do not infer memory content from the histogram alone. A recipient benefit that survives randomization may be attributable to marginal field intensity rather than spatially organized historical information."
+  ],
+  "ablations": [
+    "food pheromone source reinforcement disabled",
+    "ant food-trail deposition disabled",
+    "ant home-trail deposition disabled",
+    "food/home fields randomized while preserving marginal distributions",
+    "obstacle/hazard perception held constant across modes",
+    "food source coordinate moved while all local field observations are held fixed",
+    "oracle path hints enabled versus suppressed"
+  ],
+  "reproducibility": {
+    "exact_rust_test_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
+    "cargo_fmt_status": "NOT_RUN",
+    "cargo_test_status": "NOT_RUN",
+    "data_digest_sha256": null,
+    "output_digest_status": "PENDING_EXACT_HEAD_EXECUTION",
+    "claim_status": "IMPLEMENTATION_AND_STRUCTURAL_TESTS_ONLY_UNTIL_CI",
+    "seeded_ensemble_status": "IMPLEMENTED_SEED_API; ENSEMBLE_NOT_RUN",
+    "environmental_memory_transfer_status": "API_AND_STRUCTURAL_CONTROLS_IMPLEMENTED; TASK_ENSEMBLE_NOT_RUN",
+    "randomized_memory_control_status": "IMPLEMENTED_WITH_HISTOGRAM_AND_SEED_REPLAY_TESTS; BENCHMARK_ENSEMBLE_NOT_RUN"
+  }
+}
