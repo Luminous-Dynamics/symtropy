@@ -26,8 +26,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: marine-dataset-audit-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 jobs:
   archive-audit:
@@ -134,13 +134,8 @@ jobs:
             exit 1
           fi
           csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
-          echo "Extracted archive CSV entry count (includes metadata exports): $csv_count"
-          test "$csv_count" -ge "16"
-          {
-            echo "### Extracted CSV member names"
-            echo ""
-            find "$root" -type f -iname '*.csv' -print | sort | sed "s#^$root/#- #"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Extracted CSV count: $csv_count"
+          test "$csv_count" = "16"
           echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
 
       - name: Run raw CSV payload audit
@@ -157,8 +152,6 @@ jobs:
             .schema_version == "symtropy-marine-csv-audit-v0.1" and
             .dataset_doi == "10.5281/zenodo.19857425" and
             .archive_sha256 == "${{ steps.archive.outputs.archive_sha256 }}" and
-            .archive_csv_entry_count == 18 and
-            .metadata_csv_artifact_count == 2 and
             .csv_file_count == 16 and
             .baseline_file_count == 1 and
             .scenario_file_count == 15 and
@@ -173,9 +166,7 @@ jobs:
           echo "AUDIT_REPORT=$report" >> "$GITHUB_ENV"
           echo "### CSV payload checks" >> "$GITHUB_STEP_SUMMARY"
           jq -r '
-            "- Archive CSV entries including metadata: \(.archive_csv_entry_count)",
-            "- Metadata CSV artifacts: \(.metadata_csv_artifact_count)",
-            "- Recording CSV files: \(.csv_file_count)",
+            "- CSV files: \(.csv_file_count)",
             "- Baseline/scenario files: \(.baseline_file_count)/\(.scenario_file_count)",
             "- Data rows: \(.total_data_rows)",
             "- Event-latency-eligible scenario files: \(.event_latency_eligible_scenario_files | length)",

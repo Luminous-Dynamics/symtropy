@@ -1,14 +1,23 @@
 name: Maritime control-response evaluator
+
 on:
   push:
-    branches: ["research/maritime-control-response-v0-1"]
+    branches:
+      - research/maritime-control-response-v0-1
+      - research/maritime-liu-ice-response-evaluator-v0-1
     paths:
       - "benchmarks/maritime-control-response/**"
+      - "tools/maritime-control-response-evaluator/**"
+      - "docs/tech/MARITIME_CONTROL_AWARE_DIAGNOSIS_BENCHMARK_V0_1.md"
+      - "docs/tech/MARITIME_CONTROL_RESPONSE_CORPUS_V0_1.schema.json"
       - ".github/workflows/maritime-control-response-evaluator.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "benchmarks/maritime-control-response/**"
+      - "tools/maritime-control-response-evaluator/**"
+      - "docs/tech/MARITIME_CONTROL_AWARE_DIAGNOSIS_BENCHMARK_V0_1.md"
+      - "docs/tech/MARITIME_CONTROL_RESPONSE_CORPUS_V0_1.schema.json"
       - ".github/workflows/maritime-control-response-evaluator.yml"
   workflow_dispatch:
 
@@ -16,11 +25,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: maritime-control-response-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 jobs:
-  verify:
+  verify-benchmark-crate:
+    name: Verify benchmark evaluator crate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -34,11 +44,35 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Check formatting
+      - name: Check benchmark crate formatting
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
 
-      - name: Run evaluator and contract tests
+      - name: Run benchmark crate tests
         run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
 
-      - name: Run strict Clippy
+      - name: Run benchmark crate strict Clippy
         run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
+
+  verify-parent-evaluator:
+    name: Verify parent corpus evaluator crate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check parent evaluator formatting
+        run: cargo fmt --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --all -- --check
+
+      - name: Run parent evaluator tests
+        run: cargo test --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --locked --all-targets
+
+      - name: Run parent evaluator strict Clippy
+        run: cargo clippy --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --locked --all-targets -- -D warnings

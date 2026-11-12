@@ -1,0 +1,1053 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_CONTROL_RESPONSE_CORPUS_V0_1.schema.json",
+  "title": "Maritime control-response evaluator corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "temporal_contract_version",
+    "corpus_id",
+    "evidence_class",
+    "max_input_age_ms",
+    "max_response_horizon_ms",
+    "cases",
+    "counterfactual_pairs",
+    "authority_boundary",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "temporal_contract_version": {
+      "const": "bounded-time-interval-v0.1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "max_input_age_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_response_horizon_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "asset_configuration_id",
+          "regime_id",
+          "regime_qualified",
+          "timebase",
+          "prediction_time_ms",
+          "prediction_timestamp_uncertainty_ms",
+          "command",
+          "context",
+          "response",
+          "response_envelope",
+          "actuator_feedback",
+          "expected_disposition",
+          "prediction_timestamp_evidence_id",
+          "prediction_timestamp_evidence_sha256",
+          "prediction_timestamp_capture_point",
+          "prediction_qualified_uncertainty_bound_ms"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_configuration_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "regime_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "regime_qualified": {
+            "type": "boolean"
+          },
+          "timebase": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "timebase_id",
+              "qualification_state",
+              "qualification_id",
+              "qualification_sha256",
+              "time_scale",
+              "synchronization_method",
+              "timing_profile_id",
+              "clock_source_id",
+              "integrity_state",
+              "valid_from_ms",
+              "valid_until_ms",
+              "qualified_at_ms",
+              "qualified_at_uncertainty_ms",
+              "max_offset_bound_ms",
+              "max_drift_bound_ppm",
+              "path_asymmetry_bound_ms",
+              "measurement_evidence_id",
+              "measurement_evidence_sha256"
+            ],
+            "properties": {
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qualification_state": {
+                "type": "string",
+                "enum": [
+                  "QUALIFIED",
+                  "UNQUALIFIED",
+                  "UNKNOWN"
+                ]
+              },
+              "qualification_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qualification_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "time_scale": {
+                "enum": [
+                  "UTC",
+                  "TAI",
+                  "MONOTONIC",
+                  "ENGINE_RELATIVE"
+                ]
+              },
+              "synchronization_method": {
+                "enum": [
+                  "IEEE_1588_PTP",
+                  "IRIG_B",
+                  "GNSS_DISCIPLINED",
+                  "COMMON_DAQ_CLOCK",
+                  "OTHER_QUALIFIED"
+                ]
+              },
+              "timing_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clock_source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "integrity_state": {
+                "enum": [
+                  "ATTESTED",
+                  "NOT_ATTESTED",
+                  "COMPROMISED"
+                ]
+              },
+              "valid_from_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "valid_until_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qualified_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qualified_at_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_offset_bound_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max_drift_bound_ppm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "path_asymmetry_bound_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "measurement_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "measurement_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "prediction_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "prediction_timestamp_uncertainty_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "command": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signal_id",
+              "role",
+              "value",
+              "unit",
+              "observed_at_ms",
+              "timebase_id",
+              "timestamp_uncertainty_ms",
+              "quality",
+              "dependency_groups",
+              "timestamp_evidence_id",
+              "timestamp_evidence_sha256",
+              "timestamp_capture_point",
+              "qualified_uncertainty_bound_ms"
+            ],
+            "properties": {
+              "signal_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "CONTROL_INTENT",
+                  "DISTURBANCE_CONTEXT",
+                  "PHYSICAL_RESPONSE",
+                  "ACTUATOR_FEEDBACK"
+                ]
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "CURRENT",
+                  "MISSING",
+                  "STALE",
+                  "REJECTED",
+                  "CONFLICTED",
+                  "UNKNOWN"
+                ]
+              },
+              "dependency_groups": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "timestamp_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timestamp_capture_point": {
+                "enum": [
+                  "HARDWARE_CAPTURE",
+                  "DAQ_CAPTURE",
+                  "CONTROLLER_SCAN",
+                  "GATEWAY_RECEIVE",
+                  "HOST_RECEIVE",
+                  "RECONSTRUCTED"
+                ]
+              },
+              "qualified_uncertainty_bound_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signal_id",
+              "role",
+              "value",
+              "unit",
+              "observed_at_ms",
+              "timebase_id",
+              "timestamp_uncertainty_ms",
+              "quality",
+              "dependency_groups",
+              "timestamp_evidence_id",
+              "timestamp_evidence_sha256",
+              "timestamp_capture_point",
+              "qualified_uncertainty_bound_ms"
+            ],
+            "properties": {
+              "signal_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "CONTROL_INTENT",
+                  "DISTURBANCE_CONTEXT",
+                  "PHYSICAL_RESPONSE",
+                  "ACTUATOR_FEEDBACK"
+                ]
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "CURRENT",
+                  "MISSING",
+                  "STALE",
+                  "REJECTED",
+                  "CONFLICTED",
+                  "UNKNOWN"
+                ]
+              },
+              "dependency_groups": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "timestamp_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timestamp_capture_point": {
+                "enum": [
+                  "HARDWARE_CAPTURE",
+                  "DAQ_CAPTURE",
+                  "CONTROLLER_SCAN",
+                  "GATEWAY_RECEIVE",
+                  "HOST_RECEIVE",
+                  "RECONSTRUCTED"
+                ]
+              },
+              "qualified_uncertainty_bound_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signal_id",
+              "role",
+              "value",
+              "unit",
+              "observed_at_ms",
+              "timebase_id",
+              "timestamp_uncertainty_ms",
+              "quality",
+              "dependency_groups",
+              "derived_from_signal_ids",
+              "timestamp_evidence_id",
+              "timestamp_evidence_sha256",
+              "timestamp_capture_point",
+              "qualified_uncertainty_bound_ms"
+            ],
+            "properties": {
+              "signal_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "CONTROL_INTENT",
+                  "DISTURBANCE_CONTEXT",
+                  "PHYSICAL_RESPONSE",
+                  "ACTUATOR_FEEDBACK"
+                ]
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "quality": {
+                "type": "string",
+                "enum": [
+                  "CURRENT",
+                  "MISSING",
+                  "STALE",
+                  "REJECTED",
+                  "CONFLICTED",
+                  "UNKNOWN"
+                ]
+              },
+              "dependency_groups": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "derived_from_signal_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "timestamp_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timestamp_capture_point": {
+                "enum": [
+                  "HARDWARE_CAPTURE",
+                  "DAQ_CAPTURE",
+                  "CONTROLLER_SCAN",
+                  "GATEWAY_RECEIVE",
+                  "HOST_RECEIVE",
+                  "RECONSTRUCTED"
+                ]
+              },
+              "qualified_uncertainty_bound_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "response_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "model_id",
+              "configuration_id",
+              "regime_id",
+              "timebase_id",
+              "issued_at_ms",
+              "issued_at_uncertainty_ms",
+              "trained_through_ms",
+              "trained_through_uncertainty_ms",
+              "qualified",
+              "lower",
+              "mean",
+              "upper",
+              "unit",
+              "temporal_provenance_id",
+              "temporal_provenance_sha256"
+            ],
+            "properties": {
+              "model_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "regime_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "issued_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "issued_at_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "trained_through_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "trained_through_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qualified": {
+                "type": "boolean"
+              },
+              "lower": {
+                "type": "number"
+              },
+              "mean": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "temporal_provenance_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "temporal_provenance_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "actuator_feedback": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "signal_id",
+                  "role",
+                  "value",
+                  "unit",
+                  "observed_at_ms",
+                  "timebase_id",
+                  "timestamp_uncertainty_ms",
+                  "quality",
+                  "dependency_groups",
+                  "timestamp_evidence_id",
+                  "timestamp_evidence_sha256",
+                  "timestamp_capture_point",
+                  "qualified_uncertainty_bound_ms"
+                ],
+                "properties": {
+                  "signal_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "CONTROL_INTENT",
+                      "DISTURBANCE_CONTEXT",
+                      "PHYSICAL_RESPONSE",
+                      "ACTUATOR_FEEDBACK"
+                    ]
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "observed_at_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "timebase_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "timestamp_uncertainty_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "quality": {
+                    "type": "string",
+                    "enum": [
+                      "CURRENT",
+                      "MISSING",
+                      "STALE",
+                      "REJECTED",
+                      "CONFLICTED",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "dependency_groups": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "timestamp_evidence_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "timestamp_evidence_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "timestamp_capture_point": {
+                    "enum": [
+                      "HARDWARE_CAPTURE",
+                      "DAQ_CAPTURE",
+                      "CONTROLLER_SCAN",
+                      "GATEWAY_RECEIVE",
+                      "HOST_RECEIVE",
+                      "RECONSTRUCTED"
+                    ]
+                  },
+                  "qualified_uncertainty_bound_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected_disposition": {
+            "type": "string",
+            "enum": [
+              "RESPONSE_CONSISTENT",
+              "RESPONSE_MISMATCH_UNISOLATED",
+              "NOT_EVALUATED",
+              "INVALID_CONTRACT"
+            ]
+          },
+          "prediction_timestamp_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_timestamp_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "prediction_timestamp_capture_point": {
+            "enum": [
+              "HARDWARE_CAPTURE",
+              "DAQ_CAPTURE",
+              "CONTROLLER_SCAN",
+              "GATEWAY_RECEIVE",
+              "HOST_RECEIVE",
+              "RECONSTRUCTED"
+            ]
+          },
+          "prediction_qualified_uncertainty_bound_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "counterfactual_pairs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pair_id",
+              "kind",
+              "case_ids",
+              "minimum_context_delta",
+              "minimum_expected_response_delta",
+              "minimum_observed_response_delta"
+            ],
+            "properties": {
+              "pair_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "const": "SAME_COMMAND_DIFFERENT_CONTEXT"
+              },
+              "case_ids": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "minimum_context_delta": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minimum_expected_response_delta": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minimum_observed_response_delta": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pair_id",
+              "kind",
+              "case_ids",
+              "minimum_command_delta",
+              "maximum_expected_response_delta",
+              "maximum_observed_response_delta"
+            ],
+            "properties": {
+              "pair_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "const": "DIFFERENT_COMMAND_SAME_RESPONSE"
+              },
+              "case_ids": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "minimum_command_delta": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_expected_response_delta": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_observed_response_delta": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        ]
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "controller_write",
+        "actuation",
+        "maintenance_authorization",
+        "mode_transition",
+        "restriction_clearance"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "controller_write": {
+          "const": false
+        },
+        "actuation": {
+          "const": false
+        },
+        "maintenance_authorization": {
+          "const": false
+        },
+        "mode_transition": {
+          "const": false
+        },
+        "restriction_clearance": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    }
+  },
+  "$defs": {
+    "input_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_id",
+        "role",
+        "value",
+        "unit",
+        "observed_at_ms",
+        "timebase_id",
+        "timestamp_uncertainty_ms",
+        "quality",
+        "dependency_groups"
+      ],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "CONTROL_INTENT",
+            "DISTURBANCE_CONTEXT",
+            "PHYSICAL_RESPONSE",
+            "ACTUATOR_FEEDBACK"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timebase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quality": {
+          "type": "string",
+          "enum": [
+            "CURRENT",
+            "MISSING",
+            "STALE",
+            "REJECTED",
+            "CONFLICTED",
+            "UNKNOWN"
+          ]
+        },
+        "dependency_groups": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "response_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_id",
+        "role",
+        "value",
+        "unit",
+        "observed_at_ms",
+        "timebase_id",
+        "timestamp_uncertainty_ms",
+        "quality",
+        "dependency_groups",
+        "derived_from_signal_ids"
+      ],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "CONTROL_INTENT",
+            "DISTURBANCE_CONTEXT",
+            "PHYSICAL_RESPONSE",
+            "ACTUATOR_FEEDBACK"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timebase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quality": {
+          "type": "string",
+          "enum": [
+            "CURRENT",
+            "MISSING",
+            "STALE",
+            "REJECTED",
+            "CONFLICTED",
+            "UNKNOWN"
+          ]
+        },
+        "dependency_groups": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "derived_from_signal_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "response_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "configuration_id",
+        "regime_id",
+        "timebase_id",
+        "issued_at_ms",
+        "issued_at_uncertainty_ms",
+        "trained_through_ms",
+        "trained_through_uncertainty_ms",
+        "qualified",
+        "lower",
+        "mean",
+        "upper",
+        "unit"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timebase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issued_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issued_at_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trained_through_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trained_through_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qualified": {
+          "type": "boolean"
+        },
+        "lower": {
+          "type": "number"
+        },
+        "mean": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -177,3 +177,73 @@ Physical validation requires synchronized and permissioned controller intent, ac
 ---
 
 A passing contract/schema check establishes only signal-role consistency for the declared case. It does not establish control-system correctness, engine diagnostics, real-engine transfer, shipboard effectiveness, seaworthiness, class approval, maintenance authority or permission to operate.
+
+## Executable P0 — command-conditioned response contract
+
+The protocol is paired with a deterministic Rust reference evaluator and a frozen synthetic corpus. P0 qualifies whether a declared command/context/response record may be compared under time, configuration, regime, quality and dependency constraints. It does not train the control-aware neural model.
+
+### P0 dispositions
+
+- RESPONSE_CONSISTENT: the independently measured response falls within the qualified, command/context-conditioned response interval.
+- RESPONSE_MISMATCH_UNISOLATED: the physical response falls outside that interval. This is a mismatch requiring investigation, not an actuator diagnosis.
+- NOT_EVALUATED: the evidence is stale, missing, derived from the command, outside a qualified configuration/regime, or shares a declared common-cause dependency.
+- INVALID_CONTRACT: a role promotion, future input, future-trained model, impossible prediction horizon or malformed record is present.
+
+Every result states fault_isolation=NOT_ATTEMPTED and actuator_delivery_confirmation=NOT_ESTABLISHED. Actuator-position feedback is not proof of fuel delivery, torque production or successful engine response.
+
+### Frozen synthetic corpus
+
+The corpus at benchmarks/maritime-control-response/control-response-corpus-v0.1.json contains 16 synthetic cases and two counterfactual pairs:
+
+1. Same command, different load context: expected response means and measured responses must differ.
+2. Different commands, same physical response: context-conditioned expected means and measured responses must remain equivalent within declared tolerances.
+
+Negative controls cover an out-of-envelope response, stale response, future command leakage, configuration mismatch, unsupported regime, shared gateway dependency, derived response, future-trained model, role promotion, response outside horizon and unqualified model.
+
+These are known-truth software fixtures, not engine recordings or empirical model outputs. No diagnostic accuracy, physical response accuracy or actuator-fault isolation is measured.
+
+### Reproduction and claim ceiling
+
+The standalone workspace package uses the existing serde_json dependency and introduces no new external crate. The focused workflow pins Rust 1.96.0, runs tests and strict Clippy, executes the frozen corpus, binds the receipt to exact source-commit and corpus digests, and uploads the JSON receipt.
+
+P0 validates only software handling of this synthetic contract. It does not validate a trained response model, physical engine dynamics, controller/actuator behaviour, engine diagnosis, shipboard safety, class/statutory compliance, MASS Code compliance, maintenance authority or permission to operate.
+
+
+## Bounded temporal evidence — P0.2
+
+Point timestamps are insufficient to prove causal ordering when sensor/controller clocks have non-zero offset, drift, timestamping latency or synchronization uncertainty. The evaluator uses conservative inclusive event-time intervals:
+
+`[timestamp_ms - uncertainty_ms, timestamp_ms + uncertainty_ms]`
+
+All command, context, response and model timestamps must be mapped to one explicitly identified, independently qualified common timebase. The case binds the timebase qualification ID and SHA-256 receipt. An unqualified clock or unmapped timebase is NOT_EVALUATED.
+
+The evaluator proves, rather than assumes, temporal order:
+
+- latest possible command/context availability must be no later than the earliest possible prediction time;
+- latest possible model training/issue time must be no later than the earliest possible prediction time;
+- earliest possible physical response time must be strictly later than the latest possible prediction time;
+- worst-case input age and response horizon must remain inside declared bounds.
+
+If uncertainty intervals overlap a causal boundary, the result is NOT_EVALUATED. If intervals prove future leakage or impossible ordering, the contract is INVALID_CONTRACT. Timestamp underflow/overflow is invalid and is never clamped. Successful receipts include exact temporal intervals and worst-case freshness/lag calculations.
+
+This software contract does not implement PTP or prove a vessel's clock network. IEEE 1588 defines precise synchronization for heterogeneous networked measurement/control clocks, but installation-specific offset, drift, path asymmetry, timestamp location and end-to-end latency still require measured qualification: https://standards.ieee.org/ieee/1588/6825/. See also the 2026 review of IRIG-B, SNTP and PTP for industrial facilities: https://doi.org/10.1109/MIAS.2026.3682180.
+
+The frozen evaluator corpus now contains 25 synthetic cases, including overlapping command/prediction intervals, overlapping response/prediction intervals, unqualified/unmapped timebases, stale input hidden by timestamp uncertainty, response-horizon ambiguity, definitely future commands, arithmetic overflow and a boundary case where order remains provable. These fixtures are fabricated conformance cases, not clock measurements from a vessel.
+
+
+## Timing provenance and clock-qualification evidence — P0.3
+
+P0.2 proved interval ordering only after accepting a declared timebase qualification and per-signal uncertainty number. P0.3 makes the evidence behind those declarations inspectable.
+
+The timebase qualification binds its time scale (TAI/UTC/monotonic/engine-relative), synchronization method and profile, clock-source identity and integrity disposition, qualification measurement artifact ID/digest, measured offset/drift/path-asymmetry bounds, qualification measurement time and validity interval. It must already exist and remain valid at prediction time.
+
+Every command, context, response and prediction timestamp also binds a timing-path evidence ID/digest, capture point (hardware, DAQ, controller scan, gateway, host or reconstructed), and a qualified path uncertainty bound. The declared timestamp uncertainty may not understate that path bound. The response model's training/issue timestamps bind separate temporal-provenance evidence.
+
+A common timebase identifier alone is not proof that distinct sensor, controller, DAQ and gateway paths have been traceably mapped. The complete path bound must account for clock offset/drift, path asymmetry, timestamp capture location, acquisition latency and timestamp resolution. Compromised, unattested, expired, future or inadequately evidenced clock state cannot establish causal ordering.
+
+IEEE 1588-2019 defines the Precision Time Protocol for networked measurement/control clocks and supports high-accuracy synchronization where properly designed; its amendment portfolio includes IEEE 1588h-2026, approved by the IEEE Standards Association. IEC 61588:2021 has a corrected 2026-01 version. Protocol conformance does not by itself qualify a particular engine's timestamp capture point, path asymmetry, clock integrity or signal-specific end-to-end uncertainty:
+- https://standards.ieee.org/ieee/1588/6825/
+- https://standards.ieee.org/ieee/1588h/11767/
+- https://webstore.iec.ch/en/publication/68542
+
+The frozen corpus now contains 30 synthetic cases. Five added timing-evidence falsification cases cover expired/future clock qualification, compromised clock integrity, understated signal-path uncertainty and invalid timestamp-evidence digests. All artifacts are fabricated conformance fixtures, not measurements of a real clock network or engine.
