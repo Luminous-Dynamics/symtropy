@@ -11,9 +11,15 @@ pub mod paris;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DamageError {
-    InsufficientSnPoints { count: usize },
-    InvalidValue { field: &'static str },
-    NonFinite { field: &'static str },
+    InsufficientSnPoints {
+        count: usize,
+    },
+    InvalidValue {
+        field: &'static str,
+    },
+    NonFinite {
+        field: &'static str,
+    },
     InvalidSnOrdering,
     StressOutsideSnRange {
         stress_amplitude_mpa: f64,
@@ -28,7 +34,9 @@ pub enum DamageError {
         minimum_mpa_sqrt_m: f64,
         maximum_mpa_sqrt_m: f64,
     },
-    ArithmeticOverflow { field: &'static str },
+    ArithmeticOverflow {
+        field: &'static str,
+    },
 }
 
 impl std::fmt::Display for DamageError {
