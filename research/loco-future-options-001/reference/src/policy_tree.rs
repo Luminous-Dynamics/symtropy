@@ -449,6 +449,20 @@ fn solve_node(
                     state_id: evidence.state_id.clone(),
                 });
             }
+            if evidence.admitted_action_ids.len() > MAX_POLICY_TREE_ACTIONS {
+                return Err(PolicyTreeError::InputLimitExceeded {
+                    field: "admitted_actions_per_state",
+                    limit: MAX_POLICY_TREE_ACTIONS,
+                    observed: evidence.admitted_action_ids.len(),
+                });
+            }
+            if evidence.supporting_receipt_digests.len() > MAX_POLICY_TREE_TRANSITIONS {
+                return Err(PolicyTreeError::InputLimitExceeded {
+                    field: "supporting_receipts_per_state",
+                    limit: MAX_POLICY_TREE_TRANSITIONS,
+                    observed: evidence.supporting_receipt_digests.len(),
+                });
+            }
             for action_id in &evidence.admitted_action_ids {
                 if !action_domain.contains(action_id) {
                     return Err(PolicyTreeError::UnknownActionId(action_id.clone()));
@@ -1324,6 +1338,32 @@ mod tests {
                 .iter()
                 .any(|reason| reason.contains("missing-child-node"))
         );
+    }
+
+
+    #[test]
+    fn oversized_per_state_admission_and_support_vectors_are_rejected() {
+        let mut admissions = root_two_step_tree();
+        admissions.nodes[0].state_action_evidence[0].admitted_action_ids =
+            vec!["probe".to_owned(); MAX_POLICY_TREE_ACTIONS + 1];
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&admissions, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "admitted_actions_per_state",
+                ..
+            })
+        ));
+
+        let mut supporting = root_two_step_tree();
+        supporting.nodes[0].state_action_evidence[0].supporting_receipt_digests =
+            vec!["receipt".to_owned(); MAX_POLICY_TREE_TRANSITIONS + 1];
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&supporting, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "supporting_receipts_per_state",
+                ..
+            })
+        ));
     }
 
     #[test]
