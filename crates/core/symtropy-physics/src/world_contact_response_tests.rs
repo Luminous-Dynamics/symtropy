@@ -385,7 +385,7 @@ fn qualify_two_dynamic_body_case(frame_generator: Bivector<3>) {
         BodyType::Dynamic,
         Transform {
             translation: Point(com_a),
-            rotation: frame,
+            rotation: frame.clone(),
         },
         Box::new(HyperBox::<3>::cube(0.5)),
         mass_a,
