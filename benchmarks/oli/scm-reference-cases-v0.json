@@ -1,7 +1,7 @@
 {
   "schema_version": "oli-scm-rust-reference-v0.1",
   "case_id": "OLI-SCM-INDEPENDENT-RUST-REFERENCE-001",
-  "status": "RUST_REFERENCE_ADDED_TESTS_SOURCE_REVIEW_PENDING",
+  "status": "RUST_REFERENCE_TASK_METRICS_ADDED_VALIDATION_PENDING",
   "evidence_class": "SYNTHETIC_KNOWN_TRUTH_SIMULATION",
   "claim_ceiling": "Independent CPU implementation of a consensus-coupled adaptive-noise swarm optimizer with explicit equation variants and numerical safeguards; not a source-faithful MATLAB reproduction, qualified optimizer, or physical swarm controller",
   "source_profile": "benchmarks/oli/scm-collective-optimization-source-profile-v0.json",
@@ -268,5 +268,21 @@
       "semantics": "tau_steps+1 observations; early sum uses tau_steps/2+1 values, late sum uses tau_steps/2 values; first update at tick tau_steps+1.",
       "purpose": "Reproduces the inclusive array-index schedule observed in the inspected MATLAB replication loop; not identical to the paper's equal half-interval definition."
     }
+  ],
+  "task_performance_outputs": {
+    "current_population_metrics": [
+      "best_agent_fitness",
+      "best_agent_index",
+      "mean_agent_fitness",
+      "agent_fitness_variance"
+    ],
+    "historical_progress": "best_fitness_seen is monotonic and includes all successfully acquired initial and successor observations",
+    "separation_rule": "SCM consensus, centroid cohesion, and communication degree are reported separately from task fitness; no consensus value is a substitute for objective performance.",
+    "accounting": "Under the cache contract, N agents over T completed steps require N*(T+1) objective evaluations: N initial evaluations plus N successor evaluations per step."
+  },
+  "new_tests": [
+    "task_fitness_metrics_are_reported_separately_from_consensus",
+    "best_fitness_seen_is_monotonic_and_includes_initial_observations",
+    "communication_topology_baselines_share_exact_objective_evaluation_budgets"
   ]
 }
