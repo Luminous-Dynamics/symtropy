@@ -143,8 +143,8 @@ jobs:
             (.comparators | length == 7) and
             ([.comparators[].id] | unique | length == 7) and
             ([.comparators[].id] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
-            (.method.chernoff_information.grid | contains("100 uniform intervals")) and
-            (.method.chernoff_information.assumptions | contains("not a finite-sample error guarantee")) and
+            (.method.chernoff_information.grid | contains("100 fixed uniform intervals")) and
+            (.method.chernoff_information.assumptions.assumptions | contains("not a finite-sample error guarantee")) and
             (.candidate_classes.controlled_perturbation.eligible_when == false) and
             (.hard_gates | length >= 40) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
