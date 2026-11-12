@@ -140,3 +140,38 @@ The benchmark should publish four separate layers:
 4. **Project delivery:** total workflow labour, elapsed time, p50/p90 floor-cycle, crane/hoist occupancy, cost, material/energy, maintenance and schedule reliability.
 
 Do not sum them into one productivity score. Safety and professional approvals are non-compensatory; output acceptance is a separate decision from executor completion; economic comparison must include utilization, financing, service and rework.
+
+## Construction schedule / 4D planning SOTA refresh — 12 November 2026
+
+The benchmark must also compare with specialist construction planning systems, not only equipment OEMs and AEC data platforms.
+
+| System | Current documented strength | Luminous implication |
+|---|---|---|
+| Oracle Primavera P6 / Primavera Cloud | CPM schedule authoring, multiproject planning, resource leveling, cost/schedule integration, risk management and field production scheduling. Version 26 documentation explicitly describes resource leveling and shared-capacity planning. | Do not claim novelty for CPM, WBS, resource leveling or portfolio schedule management. Integrate with project schedules; add machine/task capability, evidence obligations, resource-calendar reservations and independently accepted output as a physical execution layer. |
+| Bentley SYNCHRO 4D | Links schedules to BIM components, visualizes construction sequencing and what-if scenarios, tracks baseline vs actual, identifies clashes, supports 50+ CAD applications and integrates with P6/Asta Powerproject. | A more attractive 4D viewer is not differentiation. Luminous should bind the 4D state to exact work-package revisions, machine capability, physical observations, inspection outcomes, rework, and evidence-qualified completion. |
+| ALICE Technologies | Generative construction scheduling and optimization. Its May 2026 Targeted Optimization mode focuses on acceleration opportunities and delay recovery; its FAQ describes flexible crews, duration formulas, schedule logic alternatives and active/idle costs. | We must benchmark against optimization products, not only a manual CPM schedule. The differentiator must be explicit hard gates, accepted functional output, evidence freshness, independent validation and transparent recovery outcomes—not generic schedule acceleration. |
+| nPlan | Vendor describes deep-learning activity forecasting using a database of more than 750,000 as-planned/as-built programme files, graph neural networks for task/resource/timeline relationships, and large-programme simulation. | Forecast accuracy alone is not project truth. Compare calibration and out-of-sample performance, but keep actual machine/site observations, hard constraints, inspection status and exact evidence lineage as separate inputs and outputs. |
+
+Official references:
+- Oracle Primavera P6 / EPPM: https://www.oracle.com/construction-engineering/primavera-p6/
+- Oracle P6 Professional Version 26 documentation: https://docs.oracle.com/en/industries/construction-engineering/primavera-p6-professional/26/
+- Oracle Primavera Cloud: https://www.oracle.com/construction-engineering/primavera-cloud-project-management/
+- Bentley SYNCHRO 4D: https://www.bentley.com/products/synchro-4d/
+- ALICE Targeted Optimization (12 May 2026): https://blog.alicetechnologies.com/news/alice-introduces-new-optimization-mode-for-construction-project-teams-targeted-optimization
+- ALICE scheduling FAQ: https://support.alicetechnologies.com/hc/en-us/articles/39316575176087-What-is-ALICE-FAQs
+- nPlan AI and schedule forecasting: https://www.nplan.io/our-ai
+
+### Revised strategic boundary
+
+Luminous should **not** attempt to replace Primavera CPM, ALICE generative optimization, SYNCHRO 4D visualization or nPlan forecasting as a first move.
+
+The proposed competitive surface is the bridge from a proposed schedule into bounded physical execution and accepted work:
+- import or project existing CPM / 4D / optimized schedules rather than force users to abandon them;
+- translate only the approved task scope into capability-bound work packages;
+- reserve shared robots, tools, hoists, cranes, work zones and inspection resources through the existing task/resource contracts;
+- reject stale design/site/configuration context and unavailable hard approvals;
+- reconcile executor state with independently observed physical output;
+- preserve failed inspection, rework, reinspection, safe-abort and uncertainty as explicit states;
+- return verified progress and change impacts to the planning platform without making a robot's self-reported completion authoritative.
+
+This is a narrower and more credible wedge than a new general-purpose scheduling product. It also creates a defensible evidence dataset: task assumptions, resource contention, actual cycle, defects, recovery and accepted functional output, linked to exact asset/configuration revisions.
