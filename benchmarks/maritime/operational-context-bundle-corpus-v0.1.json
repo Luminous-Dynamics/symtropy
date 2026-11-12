@@ -1,0 +1,784 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-operational-context-bundle",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "A valid synthetic context bundle proves only typed composition and non-promotion of claims for this frozen corpus. It does not establish live availability, vessel receipt, physical UKC, transit authorization, provider-side commitment truth, ETA accuracy or operational feasibility.",
+  "base_bundle": {
+    "bundle_id": "SYNTH-MOCB-001",
+    "bundle_version": "mocb-0.1",
+    "fixture_kind": "synthetic_fixture",
+    "evaluation_cutoff_utc": "2026-11-10T12:00:00Z",
+    "subject": {
+      "vessel_id": "SYNTH-VESSEL-001",
+      "voyage_id": "SYNTH-VOYAGE-001",
+      "route_id": "SYNTH-ROUTE-001",
+      "route_version": 3,
+      "port_call_id": "SYNTH-PORT-CALL-001",
+      "task_window_start_utc": "2026-11-10T12:00:00Z",
+      "task_window_end_utc": "2026-11-10T18:00:00Z"
+    },
+    "s131": {
+      "source": {
+        "source_ref": "S131:BERTH-1",
+        "owner": "synthetic_harbour_authority",
+        "revision": "rev-1",
+        "edition": "2.0.0",
+        "s100_edition": "5.2.0",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_time_utc": "2026-11-10T11:30:00Z",
+        "retrieved_at_utc": "2026-11-10T11:40:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "authenticity_state": "synthetic_fixture",
+        "terms_state": "not_applicable_synthetic"
+      },
+      "product_id": "S-131",
+      "product_edition": "2.0.0",
+      "s100_edition": "5.2.0",
+      "context_kind": "berth_and_shore_power_facility_description",
+      "operational_state": "descriptive_only",
+      "berth": {
+        "feature_id": "SYNTH-BERTH-1",
+        "feature_kind": "berth",
+        "availability_state": "unknown",
+        "live_inventory_source_ref": null
+      }
+    },
+    "s127": {
+      "source": {
+        "source_ref": "S127:PILOT-AREA-1",
+        "owner": "synthetic_vts_provider",
+        "revision": "rev-1",
+        "edition": "2.0.0",
+        "s100_edition": "5.2.0",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_time_utc": "2026-11-10T11:30:00Z",
+        "retrieved_at_utc": "2026-11-10T11:40:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "authenticity_state": "synthetic_fixture",
+        "terms_state": "not_applicable_synthetic"
+      },
+      "product_id": "S-127",
+      "product_edition": "2.0.0",
+      "s100_edition": "5.2.0",
+      "context_kind": "pilotage_and_vts_service_area",
+      "operational_state": "descriptive_only",
+      "traffic": {
+        "service_feature_id": "SYNTH-PILOT-AREA-1",
+        "service_kind": "pilot_service",
+        "service_area_state": "descriptive_context",
+        "pilot_assignment_state": "unknown",
+        "clearance_state": "unknown",
+        "pilot_assignment_ref": null,
+        "clearance_ref": null
+      }
+    },
+    "s123": {
+      "source": {
+        "source_ref": "S123:RADIO-AREA-1",
+        "owner": "synthetic_radio_service_owner",
+        "revision": "rev-1",
+        "edition": "2.0.0",
+        "s100_edition": "5.2.0",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_time_utc": "2026-11-10T11:30:00Z",
+        "retrieved_at_utc": "2026-11-10T11:40:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "authenticity_state": "synthetic_fixture",
+        "terms_state": "not_applicable_synthetic"
+      },
+      "product_id": "S-123",
+      "product_edition": "2.0.0",
+      "s100_edition": "5.2.0",
+      "context_kind": "radio_service_coverage",
+      "operational_state": "descriptive_only",
+      "radio": {
+        "service_area_id": "SYNTH-RADIO-AREA-1",
+        "service_kind": "navtex",
+        "coverage_state": "declared_coverage_only",
+        "live_link_state": "not_measured",
+        "vessel_delivery_state": "unknown",
+        "link_measurement_ref": null,
+        "delivery_receipt_ref": null
+      }
+    },
+    "s124": {
+      "source": {
+        "source_ref": "S124:WARNING-SERIES-A:0007",
+        "owner": "synthetic_warning_producer",
+        "revision": "rev-1",
+        "edition": "2.0.0",
+        "s100_edition": "5.2.0",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_time_utc": "2026-11-10T11:30:00Z",
+        "retrieved_at_utc": "2026-11-10T11:40:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "authenticity_state": "synthetic_fixture",
+        "terms_state": "not_applicable_synthetic"
+      },
+      "product_id": "S-124",
+      "product_edition": "2.0.0",
+      "s100_edition": "5.2.0",
+      "context_kind": "navigational_warning_lifecycle",
+      "operational_state": "warning_published_context",
+      "warning": {
+        "warning_key": "PRODUCER-A|SERIES-A|0007",
+        "lifecycle_state": "active",
+        "bulletin_complete": true,
+        "bulletin_retrieved_at_utc": "2026-11-10T11:55:00Z",
+        "vessel_delivery_state": "unknown",
+        "delivery_receipt_ref": null
+      }
+    },
+    "s129": {
+      "source": {
+        "source_ref": "S129:PLAN-001",
+        "owner": "synthetic_ukcm_provider",
+        "revision": "rev-1",
+        "edition": "2.0.0",
+        "s100_edition": "5.2.0",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_time_utc": "2026-11-10T11:30:00Z",
+        "retrieved_at_utc": "2026-11-10T11:40:00Z",
+        "valid_from_utc": null,
+        "valid_until_utc": null,
+        "authenticity_state": "synthetic_fixture",
+        "terms_state": "not_applicable_synthetic"
+      },
+      "product_id": "S-129",
+      "product_edition": "2.0.0",
+      "s100_edition": "5.2.0",
+      "context_kind": "vessel_specific_ukcm_plan",
+      "operational_state": "actual_plan_context",
+      "ukc": {
+        "dataset_id": "SYNTH-S129-001",
+        "purpose": "actual_plan",
+        "vessel_id": "SYNTH-VESSEL-001",
+        "route_id": "SYNTH-ROUTE-001",
+        "route_version": 3,
+        "retrieved_at_utc": "2026-11-10T11:55:00Z",
+        "valid_until_utc": "2026-11-10T18:00:00Z",
+        "replacement_scope": "whole_dataset",
+        "retained_previous_feature_ids": [],
+        "physical_qualification_state": "unknown",
+        "alarm_state": "none",
+        "transit_authority_state": "unknown",
+        "alarm_claim_state": "not_claimed"
+      }
+    },
+    "dcsa": {
+      "standard_version": "2.0.0",
+      "api_direction": "publisher_get",
+      "scenario_type": "timestamp_events",
+      "api_conformance_state": "conformant_to_declared_scenario",
+      "semantic_validation_state": "valid",
+      "event_time_utc": "2026-11-10T11:42:00Z",
+      "retrieved_at_utc": "2026-11-10T11:50:00Z",
+      "eta_accuracy_state": "unknown",
+      "tested_api_direction": "publisher_get"
+    },
+    "provider": {
+      "provider_ref": "MYCELIX:PROVIDER-COMMITMENT-001",
+      "resource_ref": "SYNTH-BERTH-1-SLOT",
+      "status": "committed",
+      "scope": "berth:SYNTH-BERTH-1;window:2026-11-10T12:00:00Z/2026-11-10T18:00:00Z",
+      "valid_until_utc": "2026-11-10T18:00:00Z",
+      "revocation_state": "not_revoked",
+      "booking_authority_state": "not_granted",
+      "booking_authority_evidence_ref": null
+    },
+    "run_evidence": {
+      "run_id": "SYNTH-RUN-001",
+      "scenario_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "engine_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "replay_state": "deterministic_replay_verified",
+      "supported_physics_state": "synthetic_only",
+      "writeback_state": "effects_disabled",
+      "independent_verification_state": "not_verified"
+    },
+    "claims": [
+      {
+        "claim_id": "C-BERTH",
+        "claim_type": "berth_availability",
+        "status": "unknown",
+        "input_refs": [
+          "S131:BERTH-1",
+          "MYCELIX:PROVIDER-COMMITMENT-001"
+        ],
+        "claim_ceiling": "S-131 facility description is not live berth availability; provider commitment remains source-owned."
+      },
+      {
+        "claim_id": "C-PILOT",
+        "claim_type": "pilot_assignment",
+        "status": "unknown",
+        "input_refs": [
+          "S127:PILOT-AREA-1"
+        ],
+        "claim_ceiling": "Pilot service area is not an assigned pilot or VTS clearance."
+      },
+      {
+        "claim_id": "C-RADIO",
+        "claim_type": "radio_connectivity",
+        "status": "unknown",
+        "input_refs": [
+          "S123:RADIO-AREA-1"
+        ],
+        "claim_ceiling": "Declared service coverage is not measured connectivity or message delivery."
+      },
+      {
+        "claim_id": "C-WARNING",
+        "claim_type": "warning_vessel_receipt",
+        "status": "unknown",
+        "input_refs": [
+          "S124:WARNING-SERIES-A:0007"
+        ],
+        "claim_ceiling": "Published warning does not prove on-board receipt, display or acknowledgement."
+      },
+      {
+        "claim_id": "C-UKC",
+        "claim_type": "ukc_physical_clearance",
+        "status": "unknown",
+        "input_refs": [
+          "S129:PLAN-001"
+        ],
+        "claim_ceiling": "S-129 visual plan is not independently validated physical UKC or transit clearance."
+      },
+      {
+        "claim_id": "C-TRANSIT",
+        "claim_type": "transit_authorization",
+        "status": "unknown",
+        "input_refs": [
+          "S129:PLAN-001",
+          "S127:PILOT-AREA-1"
+        ],
+        "claim_ceiling": "Neither S-129 nor a pilotage service depiction grants transit authority."
+      },
+      {
+        "claim_id": "C-ETA",
+        "claim_type": "eta_accuracy",
+        "status": "unknown",
+        "input_refs": [
+          "DCSA:EVENT-001"
+        ],
+        "claim_ceiling": "API conformance and timestamp semantics do not establish ETA calibration."
+      },
+      {
+        "claim_id": "C-COMMIT",
+        "claim_type": "provider_commitment",
+        "status": "supported_context_only",
+        "input_refs": [
+          "MYCELIX:PROVIDER-COMMITMENT-001"
+        ],
+        "claim_ceiling": "A provider-owned commitment is a contextual input; this bundle cannot create or change it."
+      },
+      {
+        "claim_id": "C-FEASIBILITY",
+        "claim_type": "scenario_feasibility",
+        "status": "not_proven",
+        "input_refs": [
+          "SYNTH-RUN-001"
+        ],
+        "claim_ceiling": "Synthetic deterministic replay is not physical qualification or operational permission."
+      }
+    ],
+    "freshness_policy": {
+      "max_warning_bulletin_age_s": 1800,
+      "max_ukc_plan_age_s": 600,
+      "max_dcsa_event_age_s": 3600
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_context_bundle_no_authority_claim",
+      "mutations": [],
+      "expected_code": "CONTEXT_BUNDLE_VALID_NOT_OPERATIONAL_AUTHORITY",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s131_berth_feature_claimed_available",
+      "mutations": [
+        {
+          "path": "claims.0.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "S131_CONTEXT_NOT_AVAILABILITY",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s131_live_inventory_absent_but_claim_proven",
+      "mutations": [
+        {
+          "path": "s131.berth.availability_state",
+          "op": "set",
+          "value": "provider_confirmed_available"
+        }
+      ],
+      "expected_code": "BERTH_AVAILABILITY_SOURCE_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s127_pilot_service_area_claimed_as_assignment",
+      "mutations": [
+        {
+          "path": "s127.traffic.pilot_assignment_state",
+          "op": "set",
+          "value": "assigned_by_provider"
+        },
+        {
+          "path": "claims.1.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "PILOT_ASSIGNMENT_AUTHORITY_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s127_descriptive_area_claimed_as_clearance",
+      "mutations": [
+        {
+          "path": "s127.traffic.clearance_state",
+          "op": "set",
+          "value": "provider_confirmed"
+        }
+      ],
+      "expected_code": "VTS_CLEARANCE_SOURCE_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s123_coverage_claimed_as_live_radio",
+      "mutations": [
+        {
+          "path": "s123.radio.live_link_state",
+          "op": "set",
+          "value": "measured_available"
+        },
+        {
+          "path": "claims.2.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "RADIO_LINK_MEASUREMENT_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s123_service_map_claimed_as_warning_delivery",
+      "mutations": [
+        {
+          "path": "s123.radio.vessel_delivery_state",
+          "op": "set",
+          "value": "received_with_device_receipt"
+        }
+      ],
+      "expected_code": "RADIO_DELIVERY_RECEIPT_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s124_warning_receipt_claim_without_device_record",
+      "mutations": [
+        {
+          "path": "s124.warning.vessel_delivery_state",
+          "op": "set",
+          "value": "acknowledged"
+        },
+        {
+          "path": "claims.3.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "WARNING_RECEIPT_EVIDENCE_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s124_warning_bulletin_stale",
+      "mutations": [
+        {
+          "path": "s124.warning.bulletin_retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:00:00Z"
+        }
+      ],
+      "expected_code": "WARNING_CURRENTNESS_UNKNOWN",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s124_incomplete_bulletin_used_to_prove_absence",
+      "mutations": [
+        {
+          "path": "s124.warning.bulletin_complete",
+          "op": "set",
+          "value": false
+        },
+        {
+          "path": "claims.3.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "WARNING_COMPLETENESS_UNKNOWN",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s124_cancelled_warning_shown_active",
+      "mutations": [
+        {
+          "path": "s124.warning.lifecycle_state",
+          "op": "set",
+          "value": "cancelled"
+        },
+        {
+          "path": "claims.3.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "CANCELLED_WARNING_NOT_CURRENT",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_preplan_claimed_as_actual_plan",
+      "mutations": [
+        {
+          "path": "s129.ukc.purpose",
+          "op": "set",
+          "value": "pre_plan"
+        },
+        {
+          "path": "claims.4.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "PREPLAN_NOT_ACTUAL_PLAN",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_wrong_vessel_plan",
+      "mutations": [
+        {
+          "path": "s129.ukc.vessel_id",
+          "op": "set",
+          "value": "SYNTH-VESSEL-002"
+        },
+        {
+          "path": "claims.4.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "UKC_PLAN_VESSEL_MISMATCH",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_wrong_route_revision",
+      "mutations": [
+        {
+          "path": "s129.ukc.route_version",
+          "op": "set",
+          "value": 2
+        },
+        {
+          "path": "claims.4.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "UKC_PLAN_ROUTE_MISMATCH",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_partial_update_claimed_current",
+      "mutations": [
+        {
+          "path": "s129.ukc.purpose",
+          "op": "set",
+          "value": "actual_update"
+        },
+        {
+          "path": "s129.ukc.replacement_scope",
+          "op": "set",
+          "value": "partial"
+        },
+        {
+          "path": "s129.ukc.retained_previous_feature_ids",
+          "op": "set",
+          "value": [
+            "SYNTH-OLD-CP-001"
+          ]
+        }
+      ],
+      "expected_code": "UKC_PARTIAL_REPLACEMENT_FORBIDDEN",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_plan_expired",
+      "mutations": [
+        {
+          "path": "s129.ukc.valid_until_utc",
+          "op": "set",
+          "value": "2026-11-10T11:59:00Z"
+        },
+        {
+          "path": "claims.4.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "UKC_PLAN_EXPIRED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_visual_plan_claimed_as_alarm",
+      "mutations": [
+        {
+          "path": "s129.ukc.alarm_state",
+          "op": "set",
+          "value": "none"
+        },
+        {
+          "path": "s129.ukc.alarm_claim_state",
+          "op": "set",
+          "value": "unsupported_alarm_claim"
+        }
+      ],
+      "expected_code": "UKC_ALARM_NOT_PROVIDED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "s129_plan_claimed_physical_clearance",
+      "mutations": [
+        {
+          "path": "s129.ukc.physical_qualification_state",
+          "op": "set",
+          "value": "not_qualified"
+        },
+        {
+          "path": "claims.4.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "UKC_PHYSICAL_QUALIFICATION_MISSING",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "dcsa_get_conformance_claimed_as_subscriber_post",
+      "mutations": [
+        {
+          "path": "dcsa.api_direction",
+          "op": "set",
+          "value": "subscriber_post"
+        },
+        {
+          "path": "dcsa.api_conformance_state",
+          "op": "set",
+          "value": "conformant_to_declared_scenario"
+        }
+      ],
+      "expected_code": "DCSA_DIRECTIONAL_CONFORMANCE_UNPROVEN",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "dcsa_api_conformance_claimed_eta_accuracy",
+      "mutations": [
+        {
+          "path": "claims.6.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "ETA_CALIBRATION_NOT_ESTABLISHED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "dcsa_event_time_after_retrieval",
+      "mutations": [
+        {
+          "path": "dcsa.event_time_utc",
+          "op": "set",
+          "value": "2026-11-10T12:05:00Z"
+        }
+      ],
+      "expected_code": "DCSA_TEMPORAL_ORDER_INVALID",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "dcsa_semantic_validation_failed_but_conformant",
+      "mutations": [
+        {
+          "path": "dcsa.semantic_validation_state",
+          "op": "set",
+          "value": "invalid"
+        },
+        {
+          "path": "claims.6.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "DCSA_EVENT_SEMANTICS_INVALID",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "provider_offer_claimed_commitment",
+      "mutations": [
+        {
+          "path": "provider.status",
+          "op": "set",
+          "value": "offer"
+        },
+        {
+          "path": "claims.7.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "PROVIDER_COMMITMENT_NOT_CONFIRMED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "provider_commitment_revoked",
+      "mutations": [
+        {
+          "path": "provider.status",
+          "op": "set",
+          "value": "revoked"
+        },
+        {
+          "path": "provider.revocation_state",
+          "op": "set",
+          "value": "revoked"
+        },
+        {
+          "path": "claims.7.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "PROVIDER_COMMITMENT_REVOKED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "provider_commitment_expired",
+      "mutations": [
+        {
+          "path": "provider.valid_until_utc",
+          "op": "set",
+          "value": "2026-11-10T11:59:00Z"
+        },
+        {
+          "path": "claims.7.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "PROVIDER_COMMITMENT_EXPIRED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "context_bundle_attempts_to_grant_booking_authority",
+      "mutations": [
+        {
+          "path": "provider.booking_authority_state",
+          "op": "set",
+          "value": "granted_by_owner"
+        },
+        {
+          "path": "provider.booking_authority_evidence_ref",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "BOOKING_AUTHORITY_OWNER_BOUNDARY",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "synthetic_run_claimed_physical_feasible",
+      "mutations": [
+        {
+          "path": "run_evidence.supported_physics_state",
+          "op": "set",
+          "value": "synthetic_only"
+        },
+        {
+          "path": "claims.8.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "SYNTHETIC_RUN_NOT_PHYSICAL_QUALIFICATION",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "nondeterministic_run_claimed_verified",
+      "mutations": [
+        {
+          "path": "run_evidence.replay_state",
+          "op": "set",
+          "value": "non_deterministic"
+        },
+        {
+          "path": "claims.8.status",
+          "op": "set",
+          "value": "proven_in_declared_scope"
+        }
+      ],
+      "expected_code": "RUN_REPLAY_NOT_VERIFIED",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "scenario_run_attempts_source_writeback",
+      "mutations": [
+        {
+          "path": "run_evidence.writeback_state",
+          "op": "set",
+          "value": "writeback_attempted"
+        }
+      ],
+      "expected_code": "SOURCE_WRITEBACK_FORBIDDEN",
+      "expected_layer": "semantic"
+    },
+    {
+      "id": "product_dependency_silently_upgraded",
+      "mutations": [
+        {
+          "path": "s124.s100_edition",
+          "op": "set",
+          "value": "5.2.1"
+        }
+      ],
+      "expected_code": "PRODUCT_DEPENDENCY_MISMATCH",
+      "expected_layer": "schema"
+    },
+    {
+      "id": "source_artifact_digest_malformed",
+      "mutations": [
+        {
+          "path": "s129.source.artifact_sha256",
+          "op": "set",
+          "value": "not-a-digest"
+        }
+      ],
+      "expected_code": "SOURCE_ARTIFACT_DIGEST_INVALID",
+      "expected_layer": "schema"
+    },
+    {
+      "id": "s129_actual_plan_stale_at_decision_cutoff",
+      "mutations": [
+        {
+          "path": "s129.ukc.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T11:40:00Z"
+        }
+      ],
+      "expected_code": "UKC_PLAN_STALE_UNKNOWN",
+      "expected_layer": "semantic"
+    }
+  ]
+}
