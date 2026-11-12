@@ -1,10 +1,10 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::PhysicsWorld;
+use symtropy_physics::{PhysicsWorld, WorldSnapshot};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
 
@@ -196,6 +196,86 @@ fn bench_raycast_100_bodies(c: &mut Criterion) {
     });
 }
 
+// ═══ Replay / observation snapshot benchmarks ═══
+
+fn bench_snapshot_runtime_identity(c: &mut Criterion) {
+    for body_count in [1_000_usize, 10_000, 100_000] {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        for index in 0..body_count {
+            let handle = world.add_sphere(
+                Point::new([index as f64 * 2.0, 0.0, 0.0]),
+                0.5,
+                1.0,
+            );
+            world.set_net_id(handle, symtropy_physics::body::NetId(index as u64 + 1));
+        }
+
+        let mut group = c.benchmark_group(format!("snapshot_capture_{body_count}_bodies"));
+        group.throughput(Throughput::Elements(body_count as u64));
+
+        for coverage_percent in [0_u64, 50, 100] {
+            let mut profiled_world = PhysicsWorld::<3>::new(SVector::zeros());
+            for index in 0..body_count {
+                let handle = profiled_world.add_sphere(
+                    Point::new([index as f64 * 2.0, 0.0, 0.0]),
+                    0.5,
+                    1.0,
+                );
+                if (index as u64 % 100) < coverage_percent {
+                    profiled_world.set_net_id(
+                        handle,
+                        symtropy_physics::body::NetId(index as u64 + 1),
+                    );
+                }
+            }
+            let sidecar = WorldSnapshot::capture_with_runtime_ids(&profiled_world);
+
+            group.bench_with_input(
+                BenchmarkId::new("ordinary_capture", format!("netid-{coverage_percent}pct")),
+                &profiled_world,
+                |bencher, source| {
+                    bencher.iter(|| black_box(WorldSnapshot::capture(black_box(source))));
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new("capture_with_runtime_ids", format!("netid-{coverage_percent}pct")),
+                &profiled_world,
+                |bencher, source| {
+                    bencher.iter(|| {
+                        black_box(WorldSnapshot::capture_with_runtime_ids(black_box(source)))
+                    });
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new("sidecar_validation", format!("netid-{coverage_percent}pct")),
+                &sidecar,
+                |bencher, snapshot| {
+                    bencher.iter(|| black_box(snapshot.validate_alignment()));
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new(
+                    "capture_and_validate",
+                    format!("netid-{coverage_percent}pct"),
+                ),
+                &profiled_world,
+                |bencher, source| {
+                    bencher.iter(|| {
+                        let snapshot =
+                            WorldSnapshot::capture_with_runtime_ids(black_box(source));
+                        black_box(snapshot.validate_alignment())
+                    });
+                },
+            );
+        }
+
+        group.finish();
+    }
+}
+
 // ═══ Stress tests ═══
 
 fn bench_physics_step_500_bodies(c: &mut Criterion) {
@@ -237,5 +317,6 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    bench_snapshot_runtime_identity,
 );
 criterion_main!(benches);
