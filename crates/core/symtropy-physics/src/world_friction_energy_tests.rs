@@ -6,7 +6,6 @@
 //! the production contact-friction impulse path.
 
 use super::*;
-use crate::body::BodyType;
 use symtropy_math::{Point, Sphere};
 
 #[derive(Default)]
