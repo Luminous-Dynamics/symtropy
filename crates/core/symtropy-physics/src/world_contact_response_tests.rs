@@ -152,7 +152,7 @@ fn production_contact_response_matches_independent_oracle_across_frames_and_step
 
     for frame in frames {
         for dt in [1.0 / 30.0, 1.0 / 60.0, 1.0 / 240.0] {
-            qualify_case(frame.clone(), dt);
+            qualify_case(frame, dt);
         }
     }
 }
