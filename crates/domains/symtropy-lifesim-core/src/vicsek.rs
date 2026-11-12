@@ -3583,6 +3583,70 @@ mod tests {
     }
 
     #[test]
+    fn adaptive_global_phase_is_polar_order_invariant_only_for_quadrant_correct_mean() {
+        let config = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 0.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let initial = [-2.5, -1.0, 1.0, 2.5]
+            .into_iter()
+            .enumerate()
+            .map(|(index, heading_rad)| VicsekParticle {
+                x: 2.0 + index as f64,
+                y: 5.0,
+                heading_rad,
+            })
+            .collect::<Vec<_>>();
+        let mut quadrant_correct = VicsekModel::new_with_options(
+            initial.clone(),
+            config,
+            17,
+            VicsekPerception::MetricRadius,
+            VicsekHeadingMean::QuadrantCorrectAtan2,
+        )
+        .unwrap();
+        let mut principal_value = VicsekModel::new_with_options(
+            initial,
+            config,
+            17,
+            VicsekPerception::MetricRadius,
+            VicsekHeadingMean::PrincipalValueArctanRatio,
+        )
+        .unwrap();
+
+        let quadrant_before = quadrant_correct.fast_metrics().polar_order;
+        let principal_before = principal_value.fast_metrics().polar_order;
+        quadrant_correct
+            .apply_adaptive_global_phase_shift(std::f64::consts::PI)
+            .unwrap();
+        principal_value
+            .apply_adaptive_global_phase_shift(std::f64::consts::PI)
+            .unwrap();
+
+        // A global phase shift is a common rotation before the update.
+        assert!((quadrant_correct.fast_metrics().polar_order - quadrant_before).abs() < 1.0e-12);
+        assert!((principal_value.fast_metrics().polar_order - principal_before).abs() < 1.0e-12);
+
+        quadrant_correct.step().unwrap();
+        principal_value.step().unwrap();
+
+        // With radius zero, each agent only aligns to itself. The atan2 convention
+        // preserves the common rotation; the principal-value ratio folds headings
+        // separated by pi onto the same principal branch and changes global order.
+        let quadrant_after = quadrant_correct.fast_metrics().polar_order;
+        let principal_after = principal_value.fast_metrics().polar_order;
+        assert!((quadrant_after - quadrant_before).abs() < 1.0e-12);
+        assert!(
+            principal_after > principal_before + 0.3,
+            "expected a branch-cut-induced order change: before={principal_before}, after={principal_after}"
+        );
+    }
+
+    #[test]
     fn global_rotation_equivariance_holds_for_both_update_conventions() {
         let center = (50.0, 50.0);
         let phases = [
