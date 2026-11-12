@@ -1625,9 +1625,14 @@ mod tests {
                 KerrMinoDirection::Increasing,
             )
             .unwrap();
-        let integrator =
-            KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
-                .unwrap();
+        let mut crossing_options = options();
+        crossing_options.minimum_step = 1e-13;
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole,
+            KerrIntegrationChart::Ingoing,
+            crossing_options,
+        )
+        .unwrap();
         let result = integrator.integrate(initial, 1.0).unwrap();
         let final_radius = result
             .samples
@@ -2079,7 +2084,7 @@ mod tests {
             KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
                 .unwrap();
         let bundle = integrator
-            .integrate_observer_tangent_bundle(seed, 2.0)
+            .integrate_observer_tangent_bundle(seed, 10.0)
             .unwrap();
         let interior_index = bundle
             .samples
