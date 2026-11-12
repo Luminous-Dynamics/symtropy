@@ -40,7 +40,8 @@
       "observables": [
         "tetrad_orthonormality_residual",
         "screen_basis_orthonormality_residual",
-        "screen_direction_dot_residual"
+        "screen_direction_dot_residual",
+        "exact_equatorial_plane_polar_potential_and_derivative"
       ],
       "target": {
         "well_conditioned_absolute_residual": 1e-12
@@ -48,7 +49,10 @@
       "negative_controls": [
         "nonunit_local_direction_rejects",
         "basis_switch_seam_recorded"
-      ]
+      ],
+      "qualification": {
+        "exact_equatorial_invariant": "For theta exactly pi/2, Q=0, record Theta(theta)=0 and Theta'(theta)=0 exactly; the plane theta=pi/2 with p_theta=0 is an invariant submanifold, not a forbidden region created by floating-point cos(pi/2)."
+      }
     },
     {
       "id": "OS-1",
@@ -706,5 +710,17 @@
       "latest_confirmed_status": "no passing exact-head result claimed",
       "near_extremal_photon_orbit_tests": "five authored; exact-head execution pending"
     }
-  }
+  },
+  "numerical_stability": {
+    "equatorial_polar_symmetry": {
+      "status": "source_fix_and_regression_authored",
+      "issue": "libm cos(pi/2) is a small nonzero value; for Q=0 the computed polar potential becomes spuriously negative, causing adaptive Mino trials to fail at gamma=0",
+      "fix": "When the input theta is exactly FRAC_PI_2, evaluate sin(theta)=1 and cos(theta)=0 analytically in the polar potential and its derivative",
+      "regression": "Exact equality checks for Theta=0, Theta'=0, and zero polar acceleration on representative prograde/retrograde spin cases",
+      "caveat": "This is exact analytic symmetry handling at one exactly represented coordinate value, not a tolerance-based clamp of negative potentials near generic polar turning points."
+    }
+  },
+  "negative_controls": [
+    "use a tolerance clamp to hide genuinely negative polar potential near non-equatorial turning points"
+  ]
 }
