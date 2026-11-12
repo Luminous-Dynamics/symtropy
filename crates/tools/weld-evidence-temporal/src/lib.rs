@@ -1017,7 +1017,11 @@ mod tests {
     fn input_permutation_preserves_membership_and_transcript() {
         let first = event("B", EvidenceKind::ProcessObservation);
         let second = event("A", EvidenceKind::RobotTrace);
-        let left = snapshot(&ledger(vec![first.clone(), second.clone()]), DecisionPurpose::FastProcess, 10);
+        let left = snapshot(
+            &ledger(vec![first.clone(), second.clone()]),
+            DecisionPurpose::FastProcess,
+            10,
+        );
         let right = snapshot(&ledger(vec![second, first]), DecisionPurpose::FastProcess, 10);
         assert_eq!(left.included, right.included);
         assert_eq!(left.canonical_transcript, right.canonical_transcript);
