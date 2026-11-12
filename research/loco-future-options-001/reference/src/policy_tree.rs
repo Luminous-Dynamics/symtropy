@@ -163,9 +163,9 @@ fn require_nonempty(fields: &[(&'static str, &str)]) -> Result<(), PolicyTreeErr
     Ok(())
 }
 
-fn index_state_receipts<'a>(
-    node: &'a BeliefNode,
-) -> Result<BTreeMap<String, &'a BeliefStateReceipt>, PolicyTreeError> {
+fn index_state_receipts(
+    node: &BeliefNode,
+) -> Result<BTreeMap<String, &BeliefStateReceipt>, PolicyTreeError> {
     let mut indexed = BTreeMap::new();
     for receipt in &node.state_evidence {
         require_nonempty(&[("belief_state_receipt.state_id", &receipt.state_id)])?;
