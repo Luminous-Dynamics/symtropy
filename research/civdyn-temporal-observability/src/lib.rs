@@ -193,7 +193,16 @@ pub enum AuditError {
     IncompletePeriodMatrix,
     InconsistentPolicyMatrix,
     ObservationTruthMismatch,
+    UnexpectedScenarioIdentity,
 }
+
+impl std::fmt::Display for AuditError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+
+impl std::error::Error for AuditError {}
 
 fn mean(values: &[u16]) -> Option<f64> {
     if values.is_empty() {
@@ -282,12 +291,14 @@ fn validate_inputs(
 
     let policies: BTreeSet<&str> = outcomes.iter().map(|row| row.policy_id.as_str()).collect();
     let worlds: BTreeSet<&str> = outcomes.iter().map(|row| row.world_id.as_str()).collect();
-    if policies.len() != 2 || worlds.len() != 2 {
-        return Err(AuditError::InconsistentPolicyMatrix);
+    if policies != BTreeSet::from(["transparent_audit", "defer_suppress"])
+        || worlds != BTreeSet::from(["moderate_decay", "severe_decay"])
+    {
+        return Err(AuditError::UnexpectedScenarioIdentity);
     }
     for policy in &policies {
         for world in &worlds {
-            if !policy_periods.contains_key(&(policy, world)) {
+            if !policy_periods.contains_key(&(*policy, *world)) {
                 return Err(AuditError::InconsistentPolicyMatrix);
             }
         }
