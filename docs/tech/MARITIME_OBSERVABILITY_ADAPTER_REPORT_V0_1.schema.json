@@ -871,7 +871,13 @@
         "no_cut_found_within_bound_critical_pair_count",
         "baseline_not_qualified_critical_pair_count",
         "pair_results",
-        "claim_ceiling"
+        "claim_ceiling",
+        "trajectory_pair_count",
+        "trajectory_baseline_qualified_count",
+        "trajectory_cut_found_count",
+        "trajectory_no_cut_found_within_bound_count",
+        "trajectory_baseline_not_qualified_count",
+        "trajectory_pair_results"
       ],
       "properties": {
         "analysis_method": {
@@ -1040,6 +1046,146 @@
         "claim_ceiling": {
           "type": "string",
           "minLength": 80
+        },
+        "trajectory_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_baseline_qualified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_cut_found_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_no_cut_found_within_bound_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_baseline_not_qualified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_pair_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signature_case_id",
+              "pair_id",
+              "fault_a",
+              "fault_b",
+              "baseline_static_state",
+              "baseline_trajectory_state",
+              "status",
+              "minimum_cut_order",
+              "maximum_tolerated_failure_atoms",
+              "tolerated_failure_atoms_lower_bound",
+              "minimal_cut_sets"
+            ],
+            "properties": {
+              "signature_case_id": {
+                "$ref": "#/$defs/ref"
+              },
+              "pair_id": {
+                "$ref": "#/$defs/ref"
+              },
+              "fault_a": {
+                "$ref": "#/$defs/ref"
+              },
+              "fault_b": {
+                "$ref": "#/$defs/ref"
+              },
+              "baseline_static_state": {
+                "enum": [
+                  "isolable",
+                  "non_isolable",
+                  "not_evaluated"
+                ]
+              },
+              "baseline_trajectory_state": {
+                "enum": [
+                  "isolable",
+                  "non_isolable",
+                  "not_evaluated"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "baseline_not_qualified",
+                  "cut_found_within_bound",
+                  "no_cut_found_within_bound"
+                ]
+              },
+              "minimum_cut_order": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "maximum_tolerated_failure_atoms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "tolerated_failure_atoms_lower_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "minimal_cut_sets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "order",
+                    "failure_atoms"
+                  ],
+                  "properties": {
+                    "order": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2
+                    },
+                    "failure_atoms": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "identity"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "sensor",
+                              "dependency_group"
+                            ]
+                          },
+                          "identity": {
+                            "$ref": "#/$defs/ref"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

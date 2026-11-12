@@ -778,7 +778,7 @@ fn append_failure_combinations(
 /// Exact bounded resilience analysis over individual installed-sensor outages
 /// and shared dependency-group outages. Singleton dependency groups are
 /// represented by their sensor atom to avoid duplicate names for the same cut.
-fn resilience_analysis(input:&Value,base:&EvaluationReport)->Check<Value>{
+fn resilience_analysis(input:&Value,base:&EvaluationReport,base_windows:&[Value],base_trajectory_reports:&[Value])->Check<Value>{
     let profile=&input["layout_profile"];
     let (declared_atom_limit,max_order)=failure_cut_bounds(profile)?;
     let mut atoms=Vec::new();
@@ -819,6 +819,11 @@ fn resilience_analysis(input:&Value,base:&EvaluationReport)->Check<Value>{
     for pair in critical_pairs.iter().filter(|p|p.status=="IDENTIFIABLE"){
         minimal_by_pair.insert(pair_key(&pair.state_a_id,&pair.state_b_id),Vec::new());
     }
+    let mut minimal_by_trajectory:BTreeMap<String,Vec<Vec<usize>>>=BTreeMap::new();
+    for trajectory in base_trajectory_reports.iter().filter(|p|p["trajectory_state"]=="isolable"){
+        let id=txt(trajectory,"signature_case_id","$.trajectory_pair_assessments[]")?.to_owned();
+        minimal_by_trajectory.insert(id,Vec::new());
+    }
 
     // Enumerate by increasing cardinality: a cut is retained only when none
     // of its already-recorded strict subsets is itself a cut.
@@ -833,12 +838,25 @@ fn resilience_analysis(input:&Value,base:&EvaluationReport)->Check<Value>{
                 _=>return Err(err("UNKNOWN_FAILURE_ATOM_KIND","$.layout_profile","invalid internal failure-atom kind")),
             }
         }
-        let (_,unaligned)=measurement_window_assessments(input,&removed_sensors,&removed_dependencies);
+        let (scenario_windows,unaligned)=measurement_window_assessments(input,&removed_sensors,&removed_dependencies);
         let (adapted,parent)=make_parent_and_case(input,&removed_sensors,&removed_dependencies,&unaligned)?;
         let replay=evaluate_case(&adapted,&parent)?;
+        let scenario_trajectories=trajectory_pair_assessments(
+            input,&replay,&scenario_windows,&removed_sensors,&removed_dependencies
+        )?;
         for pair in critical_pairs.iter().filter(|p|p.status=="IDENTIFIABLE"){
             if pair_status(&replay,&pair.state_a_id,&pair.state_b_id)!=Some("IDENTIFIABLE"){
                 let cuts=minimal_by_pair.get_mut(&pair_key(&pair.state_a_id,&pair.state_b_id)).expect("baseline-qualified critical pair");
+                let has_smaller_subset=cuts.iter().any(|existing|existing.iter().all(|i|combination.contains(i)));
+                if !has_smaller_subset{cuts.push(combination.clone());}
+            }
+        }
+        for baseline_trajectory in base_trajectory_reports.iter().filter(|p|p["trajectory_state"]=="isolable"){
+            let trajectory_id=baseline_trajectory["signature_case_id"].as_str().expect("trajectory case ID");
+            let replayed=scenario_trajectories.iter().find(|p|p["signature_case_id"]==trajectory_id)
+                .ok_or_else(||err("MISSING_REPLAYED_TRAJECTORY","$.trajectory_pair_assessments",trajectory_id))?;
+            if replayed["trajectory_state"]!="isolable"{
+                let cuts=minimal_by_trajectory.get_mut(trajectory_id).expect("baseline-qualified temporal pair");
                 let has_smaller_subset=cuts.iter().any(|existing|existing.iter().all(|i|combination.contains(i)));
                 if !has_smaller_subset{cuts.push(combination.clone());}
             }
@@ -897,6 +915,47 @@ fn resilience_analysis(input:&Value,base:&EvaluationReport)->Check<Value>{
             "minimal_cut_sets":minimal_cut_sets
         }));
     }
+    let mut trajectory_pair_results=Vec::new();
+    let mut trajectory_baseline_qualified=0usize;
+    let mut trajectory_cut_found=0usize;
+    let mut trajectory_no_cut=0usize;
+    let mut trajectory_baseline_not_qualified=0usize;
+    for trajectory in base_trajectory_reports{
+        let id=txt(trajectory,"signature_case_id","$.trajectory_pair_assessments[]")?;
+        let cuts=minimal_by_trajectory.get(id).cloned().unwrap_or_default();
+        let minimum_cut_order=cuts.iter().map(Vec::len).min();
+        let (status,maximum_tolerated,tolerated_lower_bound)=if trajectory["trajectory_state"]!="isolable"{
+            trajectory_baseline_not_qualified+=1;
+            ("baseline_not_qualified",Value::Null,Value::Null)
+        }else if let Some(order)=minimum_cut_order{
+            trajectory_baseline_qualified+=1;
+            trajectory_cut_found+=1;
+            ("cut_found_within_bound",json!(order-1),Value::Null)
+        }else{
+            trajectory_baseline_qualified+=1;
+            trajectory_no_cut+=1;
+            ("no_cut_found_within_bound",Value::Null,json!(max_order))
+        };
+        let minimal_cut_sets:Vec<Value>=cuts.iter().map(|cut|{
+            let failure_atoms:Vec<Value>=cut.iter().map(|i|json!({
+                "kind":&atoms[*i].kind,"identity":&atoms[*i].identity
+            })).collect();
+            json!({"order":cut.len(),"failure_atoms":failure_atoms})
+        }).collect();
+        trajectory_pair_results.push(json!({
+            "signature_case_id":id,
+            "pair_id":trajectory["pair_id"],
+            "fault_a":trajectory["fault_a"],
+            "fault_b":trajectory["fault_b"],
+            "baseline_static_state":trajectory["static_pair_state"],
+            "baseline_trajectory_state":trajectory["trajectory_state"],
+            "status":status,
+            "minimum_cut_order":minimum_cut_order,
+            "maximum_tolerated_failure_atoms":maximum_tolerated,
+            "tolerated_failure_atoms_lower_bound":tolerated_lower_bound,
+            "minimal_cut_sets":minimal_cut_sets
+        }));
+    }
     Ok(json!({
         "analysis_method":"EXACT_SENSOR_AND_SHARED_DEPENDENCY_CUT_ENUMERATION_V0_1",
         "failure_atom_count":atoms.len(),
@@ -909,6 +968,12 @@ fn resilience_analysis(input:&Value,base:&EvaluationReport)->Check<Value>{
         "no_cut_found_within_bound_critical_pair_count":no_cut,
         "baseline_not_qualified_critical_pair_count":baseline_not_qualified,
         "pair_results":pair_results,
+        "trajectory_pair_count":base_trajectory_reports.len(),
+        "trajectory_baseline_qualified_count":trajectory_baseline_qualified,
+        "trajectory_cut_found_count":trajectory_cut_found,
+        "trajectory_no_cut_found_within_bound_count":trajectory_no_cut,
+        "trajectory_baseline_not_qualified_count":trajectory_baseline_not_qualified,
+        "trajectory_pair_results":trajectory_pair_results,
         "claim_ceiling":"Exact enumeration of declared single-sensor and shared-dependency failure combinations up to the stated cut order. Failure atoms are modeled outage hypotheses, not probabilistically independent events. No reliability probability, physical failure rate, hardware independence or resilience outside the enumerated configuration and cardinality bound is inferred."
     }))
 }
@@ -1044,7 +1109,13 @@ fn longest_separated_trajectory_span(samples_a:&[Value],samples_b:&[Value],sampl
     }
     longest
 }
-fn trajectory_pair_assessments(input:&Value,base:&EvaluationReport,base_windows:&[Value])->Check<Vec<Value>>{
+fn trajectory_pair_assessments(
+    input:&Value,
+    base:&EvaluationReport,
+    base_windows:&[Value],
+    removed_sensors:&BTreeSet<String>,
+    removed_dependencies:&BTreeSet<String>,
+)->Check<Vec<Value>>{
     let evidence_class=match txt(input,"evidence_class","$")?{
         "SYNTHETIC_CONFORMANCE_FIXTURE"=>PairEvidenceClass::SyntheticConformanceFixture,
         "MEASURED"=>PairEvidenceClass::Measured,
@@ -1090,6 +1161,9 @@ fn trajectory_pair_assessments(input:&Value,base:&EvaluationReport,base_windows:
             let sensor=sensors.iter().find(|s|s["sensor_id"]==sensor_id&&s["channel_id"]==channel_id).expect("validated sensor binding");
             let sensor_uncertainty=sensor["timestamp_uncertainty_ms"].as_f64().unwrap_or(f64::INFINITY);
             let combined_uncertainty=alignment_uncertainty+sensor_uncertainty;
+            let dependencies=set(sensor,"dependency_groups","$.sensors[]")?;
+            let sensor_or_dependency_removed=removed_sensors.contains(sensor_id)
+                ||dependencies.iter().any(|dependency|removed_dependencies.contains(dependency));
             let sensor_timebase_ok=sensor_timebase_qualified(sensor,domain,profile,evidence_class_name);
             let dependency_reviewed=match evidence_class{
                 PairEvidenceClass::SyntheticConformanceFixture=>sensor["dependency_review_state"]=="synthetic_conformance",
@@ -1112,13 +1186,13 @@ fn trajectory_pair_assessments(input:&Value,base:&EvaluationReport,base_windows:
             let window_b=base_windows.iter().find(|w|w["state_id"]==fault_b).is_some_and(|w|w["status"]=="qualified");
             let alignment_ok=alignment_evidence_ok&&timebase_matches&&alignment_uncertainty.is_finite()
                 &&combined_uncertainty<=maximum_uncertainty&&period>2.0*combined_uncertainty;
-            let qualified=role_ok&&sensor_timebase_ok&&window_a&&window_b&&alignment_ok;
+            let qualified=role_ok&&sensor_timebase_ok&&window_a&&window_b&&alignment_ok
+                &&!sensor_or_dependency_removed;
             let samples_a=channel["samples_a"].as_array().expect("validated samples A");
             let samples_b=channel["samples_b"].as_array().expect("validated samples B");
             let separated_span=longest_separated_trajectory_span(samples_a,samples_b,trajectory["sample_period_ms"].as_u64().unwrap());
             let temporal_ok=qualified&&separated_span+1e-9>=minimum_duration;
             let principle=txt(sensor,"measurement_principle_ref","$.sensors[]")?;
-            let dependencies=set(sensor,"dependency_groups","$.sensors[]")?;
             let evidence_role=if !qualified{PairEvidenceRole::Unknown}else{match evidence_class{
                 PairEvidenceClass::SyntheticConformanceFixture=>PairEvidenceRole::SyntheticConformanceFixture,
                 PairEvidenceClass::Measured=>PairEvidenceRole::IndependentMeasurement,
@@ -1279,8 +1353,10 @@ pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Chec
             "lost_isolability_pairs":lost
         }));
     }
-    let resilience=resilience_analysis(input,&base)?;
-    let trajectory_reports=trajectory_pair_assessments(input,&base,&base_windows)?;
+    let trajectory_reports=trajectory_pair_assessments(
+        input,&base,&base_windows,&empty_sensors,&empty_dependencies
+    )?;
+    let resilience=resilience_analysis(input,&base,&base_windows,&trajectory_reports)?;
     Ok(make_report(input,&base,base_windows,scenarios,resilience,trajectory_reports))
 }
 
@@ -1725,6 +1801,49 @@ mod tests{
         }
         let r=eval(&c).unwrap();
         assert_eq!(r["trajectory_pair_assessments"][0]["trajectory_state"],"not_evaluated");
+    }
+
+
+    #[test]
+    fn temporal_resilience_uses_the_same_exact_28_failure_scenarios_and_finds_four_minimal_cuts(){
+        let r=eval(&fixture()).unwrap();
+        let resilience=&r["resilience_analysis"];
+        assert_eq!(resilience["failure_scenario_count"],28);
+        assert_eq!(resilience["trajectory_pair_count"],1);
+        assert_eq!(resilience["trajectory_baseline_qualified_count"],1);
+        assert_eq!(resilience["trajectory_cut_found_count"],1);
+        assert_eq!(resilience["trajectory_no_cut_found_within_bound_count"],0);
+        assert_eq!(resilience["trajectory_baseline_not_qualified_count"],0);
+        let temporal=&resilience["trajectory_pair_results"][0];
+        assert_eq!(temporal["baseline_static_state"],"non_isolable");
+        assert_eq!(temporal["baseline_trajectory_state"],"isolable");
+        assert_eq!(temporal["status"],"cut_found_within_bound");
+        assert_eq!(temporal["minimum_cut_order"],1);
+        assert_eq!(temporal["maximum_tolerated_failure_atoms"],0);
+        let cut_atoms:BTreeSet<String>=temporal["minimal_cut_sets"].as_array().unwrap().iter()
+            .flat_map(|cut|cut["failure_atoms"].as_array().unwrap())
+            .map(|atom|format!("{}:{}",atom["kind"].as_str().unwrap(),atom["identity"].as_str().unwrap()))
+            .collect();
+        assert_eq!(cut_atoms,BTreeSet::from([
+            "sensor:crankshaft-speed-sensor".to_owned(),
+            "sensor:engine-vibration-sensor".to_owned(),
+            "dependency_group:clock:ptp-engine-1".to_owned(),
+            "dependency_group:gateway:engine-io-1".to_owned()
+        ]));
+        assert_eq!(temporal["minimal_cut_sets"].as_array().unwrap().len(),4);
+        assert!(temporal["minimal_cut_sets"].as_array().unwrap().iter().all(|cut|cut["order"]==1));
+    }
+    #[test]
+    fn losing_non_temporal_sensor_does_not_destroy_temporal_pair_isolation(){
+        let r=eval(&fixture()).unwrap();
+        let temporal=&r["resilience_analysis"]["trajectory_pair_results"][0];
+        let cuts:BTreeSet<String>=temporal["minimal_cut_sets"].as_array().unwrap().iter()
+            .flat_map(|cut|cut["failure_atoms"].as_array().unwrap())
+            .map(|atom|atom["identity"].as_str().unwrap().to_owned())
+            .collect();
+        assert!(!cuts.contains("fuel-rail-pressure-sensor"));
+        assert!(!cuts.contains("exhaust-thermocouple"));
+        assert!(!cuts.contains("rack-position-transducer"));
     }
 
     #[test]

@@ -105,3 +105,8 @@ Static response envelopes can be identical even when fault evolution differs. Th
 Temporal evidence is admitted only when the event-alignment reference is bound to the case timebase, event-alignment uncertainty plus per-sensor timestamp uncertainty stays within the declared limit, sample grids match exactly, acquisition windows match the already-qualified static response windows, and evidence/source/calibration/dependency roles are qualified. A sensor contributes one measurement principle regardless of how many samples it contributes. It must show disjoint response intervals over a sustained minimum sample span; one isolated transient point does not count.
 
 The adapter sends qualifying time-slice interval signatures through the same reusable classify_pair_signatures kernel. The static pair result remains unchanged. The supplementary report may state that temporal evidence resolves a static ambiguity, but this synthetic fixture is not physical fault validation.
+
+
+## P0.11 — resilience of temporal diagnosability
+
+The exact P0.9 outage enumerator now replays temporal as well as static diagnosability under the same 28 single- and double-failure combinations. A temporal pair is qualified separately from its static baseline. For each baseline-isolable temporal pair, the report records the inclusion-minimal sensor/dependency cut sets that destroy its time-aligned distinction, using the same fail-closed search bounds. The synthetic turbocharger/cooling temporal pair is cut by loss of either participating sensor, the shared gateway, or the shared clock; loss of the three non-participating sensors does not destroy this particular temporal distinction. These are deterministic fixture properties, not hardware reliability probabilities.

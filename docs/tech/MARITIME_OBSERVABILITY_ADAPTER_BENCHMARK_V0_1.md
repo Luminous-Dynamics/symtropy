@@ -82,3 +82,10 @@ A static interval signature can lose temporal ordering and lag information. P0.1
 Admission rules: same declared timebase and event-alignment reference; independently qualified event alignment for measured cases; sensor timebase/calibration/dependency/source-role qualification; exact A/B event-relative sample grid; binding to the corresponding qualified measurement-window references and artifact identities; and a sustained run of pairwise non-overlapping value intervals. The sustained dwell rule prevents a single transient outlier from becoming a diagnosability claim. All time samples from one physical sensor share one measurement-principle group and count at most once.
 
 The same domain-neutral interval/evidence/dependency-cut kernel is used on the aligned time-slice signatures. Results are supplementary: static non_isolable remains static non_isolable; temporal output is a separately scoped result. A synthetic temporal separation is not a marine-engine measurement or validation claim.
+
+
+## P0.11 — temporal diagnosability resilience
+
+The same exact failure atom catalog and 28 enumerated combinations used for static fault-pair resilience are replayed through the supplementary temporal-signature path. A sensor contributes only while it remains installed, current, calibrated, timebase-qualified, dependency-reviewed and not removed by a sensor/dependency outage. The event-alignment and measurement-window qualification gates are also recomputed for each combination.
+
+For each temporal pair that is isolable in the baseline, the report records every inclusion-minimal loss set that makes its temporal classification non-isolable or not evaluated. Static and temporal cut sets are separate: temporal evidence does not rewrite the static fault-pair matrix. In the synthetic fixture, the shaft-speed sensor, vibration sensor, shared PTP clock and shared gateway are four single-failure cuts; the fuel-pressure, exhaust-temperature and rack-position sensor losses are not cuts for this temporal pair. No probabilities, failure rates or field reliability are inferred.
