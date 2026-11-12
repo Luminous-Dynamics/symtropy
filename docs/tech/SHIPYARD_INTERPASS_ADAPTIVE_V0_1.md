@@ -60,7 +60,7 @@ The synthetic fixture includes two intentionally different single-objective base
 - time-only selects FILL-OVER (duration 10 symbolic units);
 - the multi-objective planner preserves FILL-MID, FILL-OVER and FILL-UNDER as a three-member nondominated set.
 
-A separate two-observation test advances from PASS-02 to PASS-03, supplies a new scan ID plus new scan/registration digests, updates residual geometry from 100±10 to 55±5 units, and verifies that the geometry-only comparator changes from FILL-MID to FILL-55. This demonstrates deterministic replanning on the latest observation, not a physical performance improvement.
+A separate two-observation test advances from PASS-02 to PASS-03, supplies a new scan ID plus new scan/registration digests, updates residual geometry from 100±10 to 75±5 units, and verifies that the geometry-only comparator changes from FILL-MID to FILL-75. This demonstrates deterministic replanning on the latest observation, not a physical performance improvement.
 
 The planner's measurement identity now binds the scan-byte digest and registration/transform receipt digest. These are symbolic identifiers in the synthetic v0.1 fixture; physical adapters must calculate and verify real digests from authorized source bytes and transform artifacts.
 
