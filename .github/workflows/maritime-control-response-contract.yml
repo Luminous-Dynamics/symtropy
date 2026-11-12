@@ -22,27 +22,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  contract:
-    name: Rust evaluator contract
+  protocol-contract:
+    name: Validate frozen evidence and benchmark protocols
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      CARGO_TERM_COLOR: always
-      RUST_BACKTRACE: 1
+    timeout-minutes: 10
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
-      - name: Install pinned Rust toolchain
-        uses: dtolnay/rust-toolchain@1.96.0
-        with:
-          components: rustfmt, clippy
-
-      - name: Validate tournament, literature and protocol catalogue
+      - name: Validate tournament and protocol catalogue
+        shell: bash
         run: |
           set -euo pipefail
           jq -e '
@@ -65,15 +58,14 @@ jobs:
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.status == "protocol_only_not_executed") and
             (.shift_matrix.axes | length == 6) and
-            ([.shift_matrix.axes[]] | unique | length == 6) and
-            ([.shift_matrix.axes[]] | index("C_SHIFT_DRIVING_CYCLE") != null) and
-            ([.shift_matrix.axes[]] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
-            ([.shift_matrix.axes[]] | index("C_PLUS_F_SHIFT") != null) and
+            (.shift_matrix.axes | index("C_SHIFT_DRIVING_CYCLE") != null) and
+            (.shift_matrix.axes | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
+            (.shift_matrix.axes | index("C_PLUS_F_SHIFT") != null) and
             (.shift_matrix.cross_engine_fleet | contains("unsupported")) and
             (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.5") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
             (.active_evidence_selection.comparators | length == 7) and
-            ([.active_evidence_selection.comparators[]] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
+            (.active_evidence_selection.comparators | index("maximum_worst_case_pairwise_chernoff_information") != null) and
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
@@ -108,17 +100,26 @@ jobs:
             (.sequential_evidence.status == "protocol_only_not_executed")
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
+      - name: Validate standalone shift matrix
+        run: |
+          set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-shift-matrix-v0.1" and
             .status == "protocol_only_not_executed" and
             (.axes | length == 6) and
             ([.axes[].id] | unique | length == 6) and
+            ([.axes[].id] | index("C_SHIFT_DRIVING_CYCLE") != null) and
+            ([.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
+            ([.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
             (.framing.no_row_randomization == true) and
-            (.cross_engine_and_fleet.status | contains("unsupported")) and
-            ([.hard_gates[]] | length >= 9) and
-            ([.axes[] | .data_status] | all(. != null))
+            (.cross.status | contains("unsupported")) and
+            (.hard_gates | length >= 9) and
+            ([.axes[].data_status] | all(. != null))
           ' benchmarks/maritime-control-response/shift-matrix-v0.1.json >/dev/null
 
+      - name: Validate active evidence selection
+        run: |
+          set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.5" and
             .status == "protocol_only_not_executed" and
@@ -135,13 +136,16 @@ jobs:
             (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
+      - name: Validate streaming and behavioral contracts
+        run: |
+          set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
             .status == "protocol_only_not_executed" and
             (.interface.historical_output_mutation == false) and
             (.stream_invariants.sample_sequence | contains("contiguous")) and
             (.competition_adapter.adapter_status == "not_implemented") and
-            ([.hard_gates[]] | length >= 10) and
+            (.hard_gates | length >= 10) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/streaming-contract-v0.1.json >/dev/null
 
@@ -149,6 +153,7 @@ jobs:
             .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
             .status == "protocol_only_not_executed" and
             (.hard_gates | length >= 10) and
+            (.global_unique_physical_cause_claim_allowed == false) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
 
@@ -167,6 +172,9 @@ jobs:
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/startup-adaptation-guard-v0.1.json >/dev/null
 
+      - name: Validate published references and deployability matrix
+        run: |
+          set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-dx2026-published-graybox-baseline-v0.1" and
             .status == "published_reference_not_reproduced" and
@@ -191,7 +199,20 @@ jobs:
             (.overall_status | contains("not_deployable"))
           ' benchmarks/maritime-control-response/deployability-matrix-v0.1.json >/dev/null
 
-      - name: Validate run-manifest schema and evidence gates
+          jq -e '
+            .schema_version == "symtropy-marine-external-dataset-track-v0.1" and
+            .status == "archive_payload_audited_no_model_evaluation" and
+            .dataset.doi == "10.5281/zenodo.19857425" and
+            .dataset.license == "CC-BY-4.0" and
+            .dataset.zenodo_record.file.md5_independently_verified == true and
+            .dataset.zenodo_record.file.sha256 == "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b" and
+            .archive_audit_receipt.artifact_id == 13986307496 and
+            .evaluation_tracks[0].status == "completed_archive_and_csv_payload_audit" and
+            (.evaluation_tracks | length >= 5) and
+            (.claim_ceiling | contains("no model accuracy") and contains("cross-engine"))
+          ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
+
+      - name: Validate run manifest and external file manifest schemas
         run: |
           set -euo pipefail
           jq -e '
@@ -229,35 +250,45 @@ jobs:
             (.properties.files.minItems == 16) and
             (.properties.files.maxItems == 16) and
             (.properties.files.items["$ref"] == "#/$defs/file") and
-            (.dataset_license == "CC-BY-4.0")
+            (.properties.archive_sha256.pattern == "^[a-f0-9]{64}$")
           ' benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json >/dev/null
 
-          jq -e '
-            .schema_version == "symtropy-marine-external-dataset-track-v0.1" and
-            .status == "archive_payload_audited_no_model_evaluation" and
-            .dataset.doi == "10.5281/zenodo.19857425" and
-            .dataset.license == "CC-BY-4.0" and
-            .dataset.zenodo_record.file.md5_independently_verified == true and
-            .dataset.zenodo_record.file.sha256 == "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b" and
-            .archive_audit_receipt.artifact_id == 13986307496 and
-            .evaluation_tracks[0].status == "completed_archive_and_csv_payload_audit"
-            (.evaluation_tracks | length >= 5) and
-            (.claim_ceiling | contains("no model accuracy") and contains("unaudited"))
-          ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
-
-      - name: Validate isolated package metadata and lockfile
+      - name: Validate Cargo package identity and locked dependency graph
         run: |
           set -euo pipefail
           test -f benchmarks/maritime-control-response/Cargo.lock
-          test -f benchmarks/maritime-control-response/Cargo.toml
-          grep -q '^name = "liu-ice-control-response-evaluator"$' benchmarks/maritime-control-response/Cargo.toml
+          cargo metadata --format-version 1 --manifest-path benchmarks/maritime-control-response/Cargo.toml --no-deps > "$RUNNER_TEMP/maritime-metadata.json"
+          jq -e '
+            ([.packages[] | select(.name == "liu-ice-control-response-evaluator" and .version == "0.1.0")] | length == 1)
+          ' "$RUNNER_TEMP/maritime-metadata.json" >/dev/null
           grep -q '^version = 4$' benchmarks/maritime-control-response/Cargo.lock
 
-      - name: Validate formatting
+  rust-contract:
+    name: Rust format, tests and strict lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: protocol-contract
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
 
-      - name: Run contract tests
+      - name: Run complete contract suite
         run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
 
-      - name: Run Clippy
+      - name: Run strict Clippy
         run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
