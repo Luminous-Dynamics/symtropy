@@ -73,3 +73,12 @@ The source's float16 trajectory storage should be treated as a file-format/analy
 The Rust reference is not yet a reproduction of the complete paper analysis: transfer entropy, mutual information, kernel/kNN estimators and partial-information decomposition have not been independently implemented or benchmarked here. The current module is the deterministic dynamics and model-defined influence foundation. Statistical estimators remain separate adapters and must not be called causal proof.
 
 CI, formatting, strict Clippy, Rust tests and source aggregate reproduction remain required before qualification.
+
+
+## Source-faithful scalar noise versus OLI heterogeneous-noise extension
+
+The inspected pairwise source driver receives one scalar `eta` and samples an independent draw for every particle from the same interval. The new source-faithful constructors retain that exact noise-profile convention.
+
+An additional constructor, `new_with_noise_profile`, accepts one full-width angular-noise interval per particle. This is an OLI extension—not part of the source-faithful pairwise reproduction—and permits controlled influencer-noise versus follower-noise ablations. Every width must be finite and in [0, 2π]. The seeded RNG stream consumes one draw per receiver per update even when that receiver's noise width is zero, preserving draw-count consistency across profile variants.
+
+The frozen tests cover a zero-noise agent paired with a high-noise agent, plus profile length and invalid-value rejection. Results from this mode must be labelled separately from the paper's shared-scalar-eta grid.
