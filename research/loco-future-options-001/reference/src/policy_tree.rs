@@ -269,7 +269,9 @@ fn solve_node(
         }
     } else if depth == 0 {
         match &node.terminal_recovery {
-            Some(TerminalRecoveryEvidence::Qualified { state_receipts: recovery_state_receipts }) => {
+            Some(TerminalRecoveryEvidence::Qualified {
+                state_receipts: recovery_state_receipts,
+            }) => {
                 let mut by_state = BTreeMap::new();
                 let mut duplicate = None;
                 for receipt in recovery_state_receipts {
