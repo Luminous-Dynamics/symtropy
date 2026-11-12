@@ -156,6 +156,8 @@ pub struct TestRecord {
     pub standard_id: String,
     pub standard_revision: String,
     pub protocol_revision: String,
+    pub acceptance_criteria_id: Option<String>,
+    pub acceptance_criteria_evidence_id: Option<String>,
     pub trigger_method: TriggerMethod,
     pub trigger_achieved: bool,
     pub post_trigger_observation_minutes: u32,
@@ -301,9 +303,9 @@ fn validate_article(article: &ArticleDescriptor) -> Result<(), AuditError> {
     Ok(())
 }
 
-fn evidence_registry(
-    records: &[EvidenceRecord],
-) -> Result<BTreeMap<&str, &EvidenceRecord>, AuditError> {
+fn evidence_registry<'e>(
+    records: &'e [EvidenceRecord],
+) -> Result<BTreeMap<&'e str, &'e EvidenceRecord>, AuditError> {
     validate_unique(
         records.iter().map(|record| record.evidence_id.as_str()),
         "evidence ID",
@@ -330,11 +332,11 @@ fn evidence_registry(
     Ok(map)
 }
 
-fn admitted_evidence<'a>(
-    registry: &'a BTreeMap<&'a str, &'a EvidenceRecord>,
+fn admitted_evidence<'e>(
+    registry: &BTreeMap<&'e str, &'e EvidenceRecord>,
     evidence_id: &str,
     owner: &str,
-) -> Result<&'a EvidenceRecord, AuditError> {
+) -> Result<&'e EvidenceRecord, AuditError> {
     let record = registry.get(evidence_id).copied().ok_or_else(|| {
         AuditError(format!(
             "{owner} references unknown evidence ID {evidence_id}"
@@ -348,16 +350,54 @@ fn admitted_evidence<'a>(
     Ok(record)
 }
 
-fn validate_test<'a>(
+fn validate_test<'e>(
     test: &TestRecord,
-    registry: &'a BTreeMap<&'a str, &'a EvidenceRecord>,
-) -> Result<&'a EvidenceRecord, AuditError> {
+    registry: &BTreeMap<&'e str, &'e EvidenceRecord>,
+) -> Result<&'e EvidenceRecord, AuditError> {
     require_nonempty(&test.test_id, "test ID")?;
     require_nonempty(&test.standard_id, "standard ID")?;
     require_nonempty(&test.standard_revision, "standard revision")?;
     require_nonempty(&test.protocol_revision, "protocol revision")?;
     validate_article(&test.article)?;
     let evidence = admitted_evidence(registry, &test.evidence_id, &format!("test {}", test.test_id))?;
+
+    if matches!(
+        test.result,
+        TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
+    ) {
+        let criteria_id = test
+            .acceptance_criteria_id
+            .as_deref()
+            .ok_or_else(|| {
+                AuditError(format!(
+                    "test {} requires a separate acceptance-criteria identity",
+                    test.test_id
+                ))
+            })?;
+        require_nonempty(criteria_id, "acceptance-criteria ID")?;
+        let criteria_evidence_id = test
+            .acceptance_criteria_evidence_id
+            .as_deref()
+            .ok_or_else(|| {
+                AuditError(format!(
+                    "test {} requires evidence for its acceptance criteria",
+                    test.test_id
+                ))
+            })?;
+        let criteria_evidence = admitted_evidence(
+            registry,
+            criteria_evidence_id,
+            &format!("test {} acceptance criteria", test.test_id),
+        )?;
+        if criteria_evidence.evidence_class != EvidenceClass::Literature
+            && !criteria_evidence.evidence_class.is_physical()
+        {
+            return Err(AuditError(format!(
+                "test {} acceptance criteria must be sourced from a normative/literature record or qualified physical authority evidence",
+                test.test_id
+            )));
+        }
+    }
 
     match test.result {
         TestResult::Pass | TestResult::Fail => {
@@ -421,11 +461,11 @@ fn validate_test<'a>(
     Ok(evidence)
 }
 
-fn validate_equivalence<'c>(
+fn validate_equivalence<'c, 'e>(
     comparisons: &'c [EquivalenceAssessment],
     source: &ArticleDescriptor,
     target: &ArticleDescriptor,
-    registry: &BTreeMap<&str, &EvidenceRecord>,
+    registry: &BTreeMap<&'e str, &'e EvidenceRecord>,
     claim_id: &str,
 ) -> Result<BTreeMap<EquivalenceDomain, &'c EquivalenceAssessment>, AuditError> {
     if comparisons.len() != EquivalenceDomain::ALL.len() {
@@ -809,6 +849,22 @@ mod tests {
             standard_id: "UN-R100-2026".into(),
             standard_revision: "05-series".into(),
             protocol_revision: "protocol-r1".into(),
+            acceptance_criteria_id: if matches!(
+                result,
+                TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
+            ) {
+                Some("CRITERIA-REPORTED-TEST-001".into())
+            } else {
+                None
+            },
+            acceptance_criteria_evidence_id: if matches!(
+                result,
+                TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
+            ) {
+                Some("E-CRITERIA".into())
+            } else {
+                None
+            },
             trigger_method: TriggerMethod::LocalizedExternalHeating,
             trigger_achieved,
             post_trigger_observation_minutes: 120,
@@ -926,6 +982,7 @@ mod tests {
                 evidence("E-BESS", 'f', EvidenceClass::PhysicalTest, Some("MET-BESS")),
                 evidence("E-RISK", 'a', EvidenceClass::RiskAnalysis, None),
                 evidence("E-COMPARISON", 'b', EvidenceClass::IndependentLaboratoryTest, Some("MET-COMP")),
+                evidence("E-CRITERIA", 'c', EvidenceClass::Literature, None),
             ],
             tests,
             claims: vec![
@@ -1072,6 +1129,23 @@ mod tests {
         let mut value = fixture();
         value.tests[0].trigger_achieved = false;
         value.tests[0].result = TestResult::Pass;
+        assert!(audit_manifest(&value).is_err());
+    }
+
+    #[test]
+    fn pass_result_requires_separate_acceptance_criteria() {
+        let mut value = fixture();
+        value.tests[0].acceptance_criteria_id = None;
+        assert!(audit_manifest(&value).is_err());
+        let mut value = fixture();
+        value.tests[0].acceptance_criteria_evidence_id = None;
+        assert!(audit_manifest(&value).is_err());
+    }
+
+    #[test]
+    fn acceptance_criteria_cannot_be_backed_by_a_synthetic_record() {
+        let mut value = fixture();
+        value.evidence[5].evidence_class = EvidenceClass::Synthetic;
         assert!(audit_manifest(&value).is_err());
     }
 
