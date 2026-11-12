@@ -372,6 +372,50 @@ pub struct VicsekH0PersistenceReport {
     pub intervals: Vec<VicsekH0Interval>,
 }
 
+/// Qualification status for a planar geometry measurement of a periodic cluster.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VicsekGeometryStatus {
+    /// Cluster unwraps consistently and has a non-degenerate convex hull.
+    Valid,
+    /// One or two unique points; area is zero and perimeter is a degenerate envelope measure.
+    DegenerateHull,
+    /// A cycle in the interaction graph crosses a periodic winding and has no unique planar unwrap.
+    PeriodicWindingDetected,
+    /// Unwrapped cluster extent is at least half the box in one dimension; planar image choice is ambiguous.
+    PeriodicExtentAmbiguous,
+}
+
+/// Periodic-aware convex-envelope geometry for one connected interaction component.
+///
+/// This is an OLI baseline, not a reproduction of the source MATLAB alpha shape or
+/// rasterized disk-union area. Hull area is an upper envelope and may substantially
+/// overestimate concave cluster area.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VicsekClusterGeometry {
+    pub representative_particle: usize,
+    pub particle_count: usize,
+    pub status: VicsekGeometryStatus,
+    pub hull_vertex_count: usize,
+    pub unwrapped_span_x: f64,
+    pub unwrapped_span_y: f64,
+    /// None when periodic unwrapping is ambiguous.
+    pub convex_hull_area: Option<f64>,
+    /// None when periodic unwrapping is ambiguous.
+    pub convex_hull_perimeter: Option<f64>,
+}
+
+/// Per-component geometry report at one registered simulation snapshot.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VicsekClusterGeometryReport {
+    pub tick: u64,
+    pub update_rule: VicsekUpdateRule,
+    pub perception: VicsekPerception,
+    pub graph_semantics: VicsekGraphSemantics,
+    pub interaction_radius: f64,
+    pub box_size: f64,
+    pub clusters: Vec<VicsekClusterGeometry>,
+}
+
 /// Receipt for a direct heading intervention applied at the current model tick.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HeadingIntervention {
@@ -931,6 +975,142 @@ impl VicsekModel {
         })
     }
 
+    /// Measure each current interaction component using a periodic-aware convex hull.
+    ///
+    /// Connected components use the same weak projection as the current graph metrics.
+    /// Coordinates are unwrapped along a deterministic breadth-first spanning tree using
+    /// minimum-image edge displacements. If a cycle implies a non-zero periodic winding,
+    /// or if the unwrapped extent reaches half the box, the planar hull is withheld.
+    ///
+    /// This is a conservative convex-envelope baseline, not an alpha shape. It is intended
+    /// for registered checkpoints and O(N^2) pair construction, not every trajectory tick.
+    pub fn cluster_geometry(&self) -> VicsekClusterGeometryReport {
+        let count = self.particles.len();
+        let mut adjacency = vec![Vec::<usize>::new(); count];
+        let mut parents: Vec<usize> = (0..count).collect();
+
+        for left in 0..count {
+            for right in (left + 1)..count {
+                let a = self.particles[left];
+                let b = self.particles[right];
+                let left_sees_right =
+                    self.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
+                let right_sees_left =
+                    self.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
+                if left_sees_right || right_sees_left {
+                    adjacency[left].push(right);
+                    adjacency[right].push(left);
+                    union(&mut parents, left, right);
+                }
+            }
+        }
+
+        let mut members_by_root: HashMap<usize, Vec<usize>> = HashMap::new();
+        for index in 0..count {
+            let root = find_root(&mut parents, index);
+            members_by_root.entry(root).or_default().push(index);
+        }
+        let mut components: Vec<Vec<usize>> = members_by_root.into_values().collect();
+        components.sort_by_key(|members| members[0]);
+
+        let tolerance = self.config.box_size * 1.0e-9 + 1.0e-12;
+        let mut clusters = Vec::with_capacity(components.len());
+
+        for members in components {
+            let representative_particle = members[0];
+            let mut unwrapped = vec![(0.0, 0.0); count];
+            let mut visited = vec![false; count];
+            let anchor = self.particles[representative_particle];
+            unwrapped[representative_particle] = (anchor.x, anchor.y);
+            visited[representative_particle] = true;
+            let mut queue = VecDeque::new();
+            queue.push_back(representative_particle);
+            let mut winding_detected = false;
+
+            while let Some(current) = queue.pop_front() {
+                let current_particle = self.particles[current];
+                for &neighbor in &adjacency[current] {
+                    let neighbor_particle = self.particles[neighbor];
+                    let (dx, dy) = periodic_displacement(
+                        current_particle.x,
+                        current_particle.y,
+                        neighbor_particle.x,
+                        neighbor_particle.y,
+                        self.config.box_size,
+                    );
+                    let expected = (
+                        unwrapped[current].0 + dx,
+                        unwrapped[current].1 + dy,
+                    );
+                    if !visited[neighbor] {
+                        visited[neighbor] = true;
+                        unwrapped[neighbor] = expected;
+                        queue.push_back(neighbor);
+                    } else if (unwrapped[neighbor].0 - expected.0).abs() > tolerance
+                        || (unwrapped[neighbor].1 - expected.1).abs() > tolerance
+                    {
+                        winding_detected = true;
+                    }
+                }
+            }
+
+            let points: Vec<(f64, f64)> = members
+                .iter()
+                .map(|&index| unwrapped[index])
+                .collect();
+            let min_x = points.iter().map(|point| point.0).fold(f64::INFINITY, f64::min);
+            let max_x = points.iter().map(|point| point.0).fold(f64::NEG_INFINITY, f64::max);
+            let min_y = points.iter().map(|point| point.1).fold(f64::INFINITY, f64::min);
+            let max_y = points.iter().map(|point| point.1).fold(f64::NEG_INFINITY, f64::max);
+            let span_x = max_x - min_x;
+            let span_y = max_y - min_y;
+
+            let (status, hull_vertex_count, convex_hull_area, convex_hull_perimeter) =
+                if winding_detected {
+                    (VicsekGeometryStatus::PeriodicWindingDetected, 0, None, None)
+                } else if span_x > 0.5 * self.config.box_size + tolerance
+                    || span_y > 0.5 * self.config.box_size + tolerance
+                {
+                    (VicsekGeometryStatus::PeriodicExtentAmbiguous, 0, None, None)
+                } else {
+                    let hull = convex_hull(points);
+                    let (area, perimeter) = convex_hull_measure(&hull);
+                    let status = if hull.len() < 3 {
+                        VicsekGeometryStatus::DegenerateHull
+                    } else {
+                        VicsekGeometryStatus::Valid
+                    };
+                    (status, hull.len(), Some(area), Some(perimeter))
+                };
+
+            clusters.push(VicsekClusterGeometry {
+                representative_particle,
+                particle_count: members.len(),
+                status,
+                hull_vertex_count,
+                unwrapped_span_x: span_x,
+                unwrapped_span_y: span_y,
+                convex_hull_area,
+                convex_hull_perimeter,
+            });
+        }
+
+        VicsekClusterGeometryReport {
+            tick: self.tick,
+            update_rule: self.config.update_rule,
+            perception: self.perception,
+            graph_semantics: match self.perception {
+                VicsekPerception::MetricRadius => VicsekGraphSemantics::UndirectedMetric,
+                VicsekPerception::VisualSector { .. } => {
+                    VicsekGraphSemantics::WeaklyConnectedProjectionOfDirectedVisibility
+                }
+            },
+            interaction_radius: self.config.interaction_radius,
+            box_size: self.config.box_size,
+            clusters,
+        }
+    }
+
     /// Compute the complete metric set, including graph clustering and shortest paths.
     ///
     /// Call at registered checkpoints rather than on every frame for large systems. The
@@ -1425,6 +1605,69 @@ impl PeriodicNeighborIndex {
 
 fn cell_coordinate(position: f64, cell_width: f64, cell_count: usize) -> usize {
     ((position / cell_width).floor() as usize).min(cell_count - 1)
+}
+
+fn convex_hull(mut points: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
+    points.sort_by(|left, right| {
+        left.0
+            .total_cmp(&right.0)
+            .then_with(|| left.1.total_cmp(&right.1))
+    });
+    points.dedup_by(|left, right| left.0 == right.0 && left.1 == right.1);
+    if points.len() <= 1 {
+        return points;
+    }
+
+    let mut lower = Vec::with_capacity(points.len());
+    for &point in &points {
+        while lower.len() >= 2
+            && cross_2d(lower[lower.len() - 2], lower[lower.len() - 1], point) <= 0.0
+        {
+            lower.pop();
+        }
+        lower.push(point);
+    }
+
+    let mut upper = Vec::with_capacity(points.len());
+    for &point in points.iter().rev() {
+        while upper.len() >= 2
+            && cross_2d(upper[upper.len() - 2], upper[upper.len() - 1], point) <= 0.0
+        {
+            upper.pop();
+        }
+        upper.push(point);
+    }
+
+    lower.pop();
+    upper.pop();
+    lower.extend(upper);
+    lower
+}
+
+fn cross_2d(origin: (f64, f64), left: (f64, f64), right: (f64, f64)) -> f64 {
+    (left.0 - origin.0) * (right.1 - origin.1)
+        - (left.1 - origin.1) * (right.0 - origin.0)
+}
+
+fn convex_hull_measure(hull: &[(f64, f64)]) -> (f64, f64) {
+    match hull.len() {
+        0 | 1 => (0.0, 0.0),
+        2 => {
+            let distance = (hull[1].0 - hull[0].0).hypot(hull[1].1 - hull[0].1);
+            (0.0, 2.0 * distance)
+        }
+        _ => {
+            let mut twice_area = 0.0;
+            let mut perimeter = 0.0;
+            for index in 0..hull.len() {
+                let current = hull[index];
+                let next = hull[(index + 1) % hull.len()];
+                twice_area += current.0 * next.1 - next.0 * current.1;
+                perimeter += (next.0 - current.0).hypot(next.1 - current.1);
+            }
+            (0.5 * twice_area.abs(), perimeter)
+        }
+    }
 }
 
 fn periodic_displacement(
@@ -2678,6 +2921,89 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn cluster_geometry_measures_triangle_convex_envelope() {
+        let model = VicsekModel::new(
+            vec![
+                VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+                VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+                VicsekParticle { x: 1.0, y: 2.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 20.0,
+                interaction_radius: 2.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            101,
+        )
+        .unwrap();
+        let report = model.cluster_geometry();
+        assert_eq!(report.clusters.len(), 1);
+        let cluster = &report.clusters[0];
+        assert_eq!(cluster.status, VicsekGeometryStatus::Valid);
+        assert!((cluster.convex_hull_area.unwrap() - 0.5).abs() < 1.0e-12);
+        let expected_perimeter = 2.0 + 2.0_f64.sqrt();
+        assert!((cluster.convex_hull_perimeter.unwrap() - expected_perimeter).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn cluster_geometry_unwraps_compact_component_across_periodic_seam() {
+        let model = VicsekModel::new(
+            vec![
+                VicsekParticle { x: 9.8, y: 1.0, heading_rad: 0.0 },
+                VicsekParticle { x: 0.2, y: 1.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 1.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            102,
+        )
+        .unwrap();
+        let report = model.cluster_geometry();
+        assert_eq!(report.clusters.len(), 1);
+        let cluster = &report.clusters[0];
+        assert_eq!(cluster.status, VicsekGeometryStatus::DegenerateHull);
+        assert!((cluster.unwrapped_span_x - 0.4).abs() < 1.0e-12);
+        assert!((cluster.convex_hull_perimeter.unwrap() - 0.8).abs() < 1.0e-12);
+        assert_eq!(cluster.convex_hull_area, Some(0.0));
+    }
+
+    #[test]
+    fn cluster_geometry_rejects_a_component_that_winds_around_the_torus() {
+        let model = VicsekModel::new(
+            vec![
+                VicsekParticle { x: 0.5, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 3.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 5.5, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 8.0, y: 5.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 2.6,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            103,
+        )
+        .unwrap();
+        let report = model.cluster_geometry();
+        assert_eq!(report.clusters.len(), 1);
+        let cluster = &report.clusters[0];
+        assert_eq!(cluster.status, VicsekGeometryStatus::PeriodicWindingDetected);
+        assert_eq!(cluster.convex_hull_area, None);
+        assert_eq!(cluster.convex_hull_perimeter, None);
     }
 
     #[test]
