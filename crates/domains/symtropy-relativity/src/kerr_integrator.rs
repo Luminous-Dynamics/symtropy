@@ -1491,7 +1491,11 @@ pub struct KerrSachsJacobiAdaptiveResult {
     pub maximum_orthonormality_rate_residual: f64,
     pub maximum_transversality_rate_residual: f64,
     pub maximum_metric_compatibility_residual: f64,
-    pub final_step: f64,
+    /// Step used for the last accepted interval.
+    pub last_accepted_step: f64,
+    /// Controller proposal for the next interval; equals the configured
+    /// maximum-clamped proposal after the final accepted endpoint.
+    pub next_proposed_step: f64,
     pub samples: Vec<KerrSachsJacobiSample>,
 }
 
@@ -1579,6 +1583,7 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
         .min(affine_interval);
     let mut accepted_steps = 0usize;
     let mut rejected_steps = 0usize;
+    let mut last_accepted_step = 0.0;
 
     while affine < affine_interval {
         if accepted_steps + rejected_steps >= options.maximum_steps {
@@ -1631,6 +1636,7 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
 
         if maximum_channel_error <= 1.0 {
             values = two_half;
+            last_accepted_step = step;
             affine = if remaining <= step {
                 affine_interval
             } else {
@@ -1707,7 +1713,8 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
         maximum_orthonormality_rate_residual,
         maximum_transversality_rate_residual,
         maximum_metric_compatibility_residual,
-        final_step: step,
+        last_accepted_step,
+        next_proposed_step: step,
         samples,
     })
 }
