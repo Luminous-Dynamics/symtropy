@@ -1,0 +1,681 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/paired-deployment-fault-campaign-v0.1.schema.json",
+  "title": "Paired deployment fault campaign v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "benchmark_id",
+    "evaluator_revision",
+    "expected_pair_ids",
+    "metric_definitions",
+    "pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluator_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_pair_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "metric_definitions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/metric_definition"
+      }
+    },
+    "pairs": {
+      "type": "array",
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/paired_run"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "metric_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "direction",
+        "unit"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "higher_is_better",
+            "lower_is_better"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "matched_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "evaluator_revision",
+        "scenario_id",
+        "route_id",
+        "map_revision",
+        "environment_revision",
+        "simulator_revision",
+        "model_code_revision",
+        "checkpoint_sha256",
+        "recurrent_state_policy_sha256",
+        "actor_policy_set_sha256",
+        "action_schema_sha256",
+        "observation_schema_sha256",
+        "dataset_split_sha256",
+        "environment_seed_manifest_sha256",
+        "actor_random_stream_manifest_sha256",
+        "exogenous_randomness_manifest_sha256",
+        "action_space_id",
+        "inference_hardware_id",
+        "inference_power_profile",
+        "inference_precision",
+        "runtime_config_sha256",
+        "input_privileges",
+        "teacher_privileges",
+        "trainable_parameters",
+        "training_simulator_transitions",
+        "training_gpu_seconds",
+        "training_energy_milliwatt_hours",
+        "human_intervention_seconds"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "map_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "simulator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_code_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "recurrent_state_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actor_policy_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "action_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observation_schema_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dataset_split_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_seed_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "actor_random_stream_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "exogenous_randomness_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "action_space_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inference_hardware_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inference_power_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inference_precision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "input_privileges": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "teacher_privileges": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "trainable_parameters": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "training_simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "training_gpu_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "training_energy_milliwatt_hours": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_intervention_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fault_spec": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "duration_ticks",
+            "onset_tick",
+            "burst_probability",
+            "schedule_seed_sha256"
+          ],
+          "properties": {
+            "family": {
+              "const": "camera_burst_drop"
+            },
+            "duration_ticks": {
+              "enum": [
+                20,
+                60
+              ]
+            },
+            "onset_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "burst_probability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "schedule_seed_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "occlusion_fraction",
+            "mask_mode",
+            "onset_tick",
+            "duration_ticks",
+            "schedule_seed_sha256"
+          ],
+          "properties": {
+            "family": {
+              "const": "camera_partial_occlusion"
+            },
+            "occlusion_fraction": {
+              "enum": [
+                0.5,
+                0.8
+              ]
+            },
+            "mask_mode": {
+              "enum": [
+                "fixed_per_episode",
+                "resampled_per_frame"
+              ]
+            },
+            "onset_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "duration_ticks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "schedule_seed_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "sigma_m",
+            "onset_tick",
+            "duration_ticks",
+            "noise_seed_sha256"
+          ],
+          "properties": {
+            "family": {
+              "const": "gps_localization_noise"
+            },
+            "sigma_m": {
+              "enum": [
+                5,
+                15
+              ]
+            },
+            "onset_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "duration_ticks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "noise_seed_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "multiplier_mean",
+            "multiplier_std_dev",
+            "onset_tick",
+            "duration_ticks",
+            "noise_seed_sha256"
+          ],
+          "properties": {
+            "family": {
+              "const": "speed_estimate_multiplicative_noise"
+            },
+            "multiplier_mean": {
+              "enum": [
+                0.2,
+                0.5
+              ]
+            },
+            "multiplier_std_dev": {
+              "const": 0.2
+            },
+            "onset_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "duration_ticks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "noise_seed_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "delay_ms",
+            "onset_tick",
+            "duration_ticks",
+            "queue_mode",
+            "schedule_seed_sha256"
+          ],
+          "properties": {
+            "family": {
+              "const": "inference_control_delay"
+            },
+            "delay_ms": {
+              "enum": [
+                100,
+                200,
+                500
+              ]
+            },
+            "onset_tick": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "duration_ticks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "queue_mode": {
+              "const": "fifo"
+            },
+            "schedule_seed_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      ]
+    },
+    "fault_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "fault_family",
+        "kind",
+        "tick",
+        "affected_channel",
+        "sampled_value_sha256",
+        "evidence_sha256"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_family": {
+          "enum": [
+            "camera_burst_drop",
+            "camera_partial_occlusion",
+            "gps_localization_noise",
+            "speed_estimate_multiplicative_noise",
+            "inference_control_delay"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "injected",
+            "observed_missing_frame",
+            "action_delayed",
+            "fault_restored"
+          ]
+        },
+        "tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "affected_channel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sampled_value_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "fault_onset_tick",
+        "fault_restored_tick",
+        "stable_from_tick",
+        "stability_window_ticks",
+        "stability_envelope_sha256"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "recovered",
+            "not_recovered",
+            "not_applicable"
+          ]
+        },
+        "fault_onset_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fault_restored_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "stable_from_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "stability_window_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stability_envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "metric_estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "lower_95",
+        "upper_95",
+        "samples"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lower_95": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper_95": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "samples": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "run_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "context",
+        "disposition",
+        "expected_episodes",
+        "completed_episodes",
+        "failed_episodes",
+        "incomplete_episodes",
+        "censored_episodes",
+        "timed_out_episodes",
+        "observation_trace_sha256",
+        "metrics",
+        "fault_events",
+        "recovery",
+        "fault"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context": {
+          "$ref": "#/$defs/matched_context"
+        },
+        "disposition": {
+          "enum": [
+            "completed",
+            "failed",
+            "incomplete",
+            "censored",
+            "timed_out"
+          ]
+        },
+        "expected_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "censored_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timed_out_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observation_trace_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/metric_estimate"
+          }
+        },
+        "fault_events": {
+          "type": "array",
+          "maxItems": 1000000,
+          "items": {
+            "$ref": "#/$defs/fault_event"
+          }
+        },
+        "recovery": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/recovery"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fault": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fault_spec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "paired_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "clean",
+        "perturbed"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clean": {
+          "$ref": "#/$defs/run_record"
+        },
+        "perturbed": {
+          "$ref": "#/$defs/run_record"
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Clean and perturbed MatchedContext objects must be exactly equal; only the declared fault specification and resulting observation/control traces may differ.",
+    "Clean runs must have fault=null and no fault events. Perturbed runs must have one typed fault and matching event evidence.",
+    "Every run's episode dispositions must sum exactly to expected_episodes.",
+    "Every camera_burst_drop run must preserve at least duration_ticks distinct observed_missing_frame ticks.",
+    "Relative degradation is computed per metric only. If the clean baseline value is zero or a metric is missing, relative_degradation is null with an explicit reason.",
+    "No weighted aggregate robustness score is defined by this schema."
+  ]
+}

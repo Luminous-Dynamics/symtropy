@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/paired-deployment-fault-audit-report-v1.schema.json",
+  "title": "Paired deployment fault campaign audit report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "campaign_id",
+    "disposition",
+    "expected_pair_count",
+    "observed_pair_count",
+    "metric_count",
+    "findings",
+    "pair_results",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "enum": [
+        "valid",
+        "rejected"
+      ]
+    },
+    "expected_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observed_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metric_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "unsupported_schema_version",
+              "empty_campaign_identity",
+              "invalid_metric_definition_count",
+              "invalid_expected_pair_manifest",
+              "duplicate_pair",
+              "pair_denominator_mismatch",
+              "invalid_metric_definition",
+              "duplicate_metric_definition",
+              "invalid_pair_identity",
+              "matched_context_mismatch",
+              "campaign_context_mismatch",
+              "invalid_context_identity",
+              "invalid_context_digest",
+              "invalid_privilege_manifest",
+              "clean_run_contains_fault",
+              "perturbed_run_missing_fault_spec",
+              "invalid_fault_window",
+              "invalid_fault_schedule_digest",
+              "invalid_fault_parameter",
+              "unsupported_fault_severity",
+              "invalid_run_identity",
+              "episode_denominator_mismatch",
+              "zero_episode_denominator",
+              "completed_run_has_no_completed_episodes",
+              "run_disposition_mismatch",
+              "metric_set_mismatch",
+              "invalid_metric_value",
+              "invalid_metric_interval",
+              "incomplete_metric_interval",
+              "completed_run_metric_missing",
+              "invalid_fault_event_identity",
+              "fault_event_outside_declared_schedule",
+              "duplicate_fault_event",
+              "missing_fault_event",
+              "camera_drop_denominator_mismatch",
+              "missing_recovery_assessment",
+              "invalid_recovery_assessment"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "bound_exceeded"
+            ],
+            "properties": {
+              "bound_exceeded": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "pair_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pair_report"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "fault_onset_tick",
+        "fault_restored_tick",
+        "stable_from_tick",
+        "stability_window_ticks",
+        "stability_envelope_sha256"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "recovered",
+            "not_recovered",
+            "not_applicable"
+          ]
+        },
+        "fault_onset_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fault_restored_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "stable_from_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "stability_window_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stability_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "metric_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "direction",
+        "unit",
+        "clean_value",
+        "perturbed_value",
+        "relative_degradation",
+        "relative_degradation_unavailable_reason"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "higher_is_better",
+            "lower_is_better"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clean_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "perturbed_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "relative_degradation": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "relative_degradation_unavailable_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "pair_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "fault_family",
+        "clean_disposition",
+        "perturbed_disposition",
+        "metric_results",
+        "recovery"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clean_disposition": {
+          "enum": [
+            "completed",
+            "failed",
+            "incomplete",
+            "censored",
+            "timed_out"
+          ]
+        },
+        "perturbed_disposition": {
+          "enum": [
+            "completed",
+            "failed",
+            "incomplete",
+            "censored",
+            "timed_out"
+          ]
+        },
+        "metric_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metric_result"
+          }
+        },
+        "recovery": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/recovery"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Relative degradation is per metric and preserves the metric direction; it is not an aggregate robustness score.",
+    "A null degradation value carries a reason and must not be interpreted as zero.",
+    "Pair report values are derived from the corresponding clean/perturbed run records and do not authenticate those records."
+  ]
+}
