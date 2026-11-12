@@ -1,0 +1,198 @@
+{
+  "manifest_schema": "symtropy.physics.benchmark-manifest.v1",
+  "manifest_id": "PBD-R-ANALYTICAL-RIGID-BODY-2026",
+  "owner_issue": "Luminous-Dynamics/symtropy#460",
+  "status": "REFERENCE_MAPPED_NOT_EXECUTED",
+  "evidence_class": "EXTERNAL_ANALYTICAL_REFERENCE",
+  "source": {
+    "title": "Physically Accurate Rigid-Body Dynamics in Particle-Based Simulation",
+    "arxiv": "2603.14634",
+    "revision": "v1",
+    "published_date": "2026-03-15",
+    "url": "https://arxiv.org/abs/2603.14634",
+    "authors": [
+      "Ava Abderezaei",
+      "Nataliya Nechyporenko",
+      "Joseph Miceli",
+      "Gilberto Briscoe-Martinez",
+      "Alessandro Roncone"
+    ]
+  },
+  "reported_protocol": {
+    "outer_rate_hz": 100,
+    "substeps_per_frame": 10,
+    "frames": 1000,
+    "duration_seconds": 10,
+    "unit_policy": "SI expected; verify each source quantity and frame convention during reproduction",
+    "note": "Paper-reported protocol. Preserve each case's own force, torque, friction, geometry and model assumptions."
+  },
+  "asset_policy": {
+    "vendored": false,
+    "redistribution_rights": "NOT_ASSESSED",
+    "requirement": "Do not copy or redistribute source CAD, meshes, sphere packings or code until licence and permission are established.",
+    "geometry_note": "The paper uses sphere-packed representations for PBD/PBD-R and mesh/primitive representations for MuJoCo. A Symtropy run must identify actual collision geometry and mass properties; mismatches are NON_EQUIVALENT unless bounded."
+  },
+  "cases": [
+    {
+      "id": "PBDR-01",
+      "name": "pushed-box",
+      "object": "box",
+      "excitation": "constant force at center of mass",
+      "contact": "ground with kinetic friction",
+      "analytical_reference": "x(t) = 0.5 * ((F - mu * M * g) / M) * t^2",
+      "observables": [
+        "COM translation",
+        "linear acceleration",
+        "contact friction"
+      ],
+      "assumptions": [
+        "constant force",
+        "declared kinetic friction",
+        "no force-induced torque"
+      ],
+      "status": "REFERENCE_FORMULA_MAPPED"
+    },
+    {
+      "id": "PBDR-02",
+      "name": "box-with-torque",
+      "object": "box with isotropic tested-axis inertia",
+      "excitation": "constant torque at center of mass",
+      "contact": "frictionless rotation test",
+      "analytical_reference": "theta(t) = 0.5 * (tau / lambda) * t^2",
+      "observables": [
+        "angular acceleration",
+        "orientation trajectory",
+        "rotational energy"
+      ],
+      "assumptions": [
+        "constant torque",
+        "declared isotropic moment lambda",
+        "zero friction"
+      ],
+      "status": "REFERENCE_FORMULA_MAPPED"
+    },
+    {
+      "id": "PBDR-03",
+      "name": "box-on-slope",
+      "object": "box",
+      "excitation": "gravity on an inclined plane",
+      "contact": "normal force and kinetic friction",
+      "analytical_reference": "x(t) = 0.5 * (g * sin(theta) - mu * g * cos(theta)) * t^2",
+      "observables": [
+        "down-slope translation",
+        "normal contact response",
+        "friction response"
+      ],
+      "assumptions": [
+        "declared slope angle",
+        "declared kinetic friction",
+        "constant gravity"
+      ],
+      "status": "REFERENCE_FORMULA_MAPPED"
+    },
+    {
+      "id": "PBDR-04",
+      "name": "pushed-asymmetric-mesh",
+      "object": "asymmetric mesh (paper bunny geometry)",
+      "excitation": "constant force at center of mass",
+      "contact": "ground with kinetic friction",
+      "analytical_reference": "x(t) = 0.5 * ((F - mu * M * g) / M) * t^2",
+      "observables": [
+        "COM translation",
+        "linear acceleration",
+        "contact friction"
+      ],
+      "assumptions": [
+        "same translational forcing as PBDR-01",
+        "asymmetric collision geometry",
+        "geometry and COM identity required"
+      ],
+      "status": "REFERENCE_FORMULA_MAPPED_GEOMETRY_UNASSESSED"
+    },
+    {
+      "id": "PBDR-05",
+      "name": "asymmetric-mesh-with-torque",
+      "object": "asymmetric mesh (paper bunny geometry)",
+      "excitation": "constant torque about declared z axis at COM",
+      "contact": "frictionless rotation test",
+      "analytical_reference": "theta_z(t) = 0.5 * (tau_z / I_zz) * t^2",
+      "observables": [
+        "axis-specific angular acceleration",
+        "angular momentum",
+        "rotational energy"
+      ],
+      "assumptions": [
+        "declared I_zz about declared COM/frame",
+        "zero friction",
+        "geometry and inertia identity required"
+      ],
+      "status": "REFERENCE_FORMULA_MAPPED_GEOMETRY_UNASSESSED"
+    },
+    {
+      "id": "PBDR-06",
+      "name": "asymmetric-mesh-on-slope",
+      "object": "asymmetric mesh (paper bunny geometry)",
+      "excitation": "gravity on inclined plane",
+      "contact": "normal force and kinetic friction",
+      "analytical_reference": "x(t) = 0.5 * (g * sin(theta) - mu * g * cos(theta)) * t^2",
+      "observables": [
+        "down-slope translation",
+        "normal contact response",
+        "friction response"
+      ],
+      "assumptions": [
+        "declared slope angle",
+        "declared kinetic friction",
+        "asymmetric contact geometry"
+      ],
+      "status": "REFERENCE_FORMULA_MAPPED_GEOMETRY_UNASSESSED"
+    },
+    {
+      "id": "PBDR-07",
+      "name": "rod-pushing-box",
+      "object": "rod and box",
+      "excitation": "quasi-static rod push",
+      "contact": "coupled translation/rotation",
+      "analytical_reference": "paper-defined quasi-static pushing model integrated forward; transcribe exact source equations before scoring",
+      "observables": [
+        "contact point",
+        "box translation",
+        "box rotation",
+        "sliding/pivoting mode"
+      ],
+      "assumptions": [
+        "quasi-static regime",
+        "paper reports small 1 N applied force",
+        "exact contact geometry and pushing model required"
+      ],
+      "status": "SOURCE_ORACLE_REQUIRES_TRANSCRIPTION"
+    }
+  ],
+  "comparison_contract": {
+    "exact_code_and_solver_profile": true,
+    "exact_geometry_mass_and_COM_identity": true,
+    "units_frames_initial_state_and_load_schedule": true,
+    "timestep_substeps_iterations_and_warm_start": true,
+    "raw_trajectory_and_independent_analytical_observables": true,
+    "momentum_energy_work_and_contact_residuals": true,
+    "runtime_hardware_and_uncertainty": true,
+    "non_equivalent_cases": "UNRESOLVED or NON_EQUIVALENT; never count as PASS"
+  },
+  "symtropy_results": {
+    "execution_status": "NOT_RUN",
+    "exact_commit": null,
+    "receipt": null,
+    "passed": [],
+    "failed": [],
+    "unresolved": [
+      "PBDR-01",
+      "PBDR-02",
+      "PBDR-03",
+      "PBDR-04",
+      "PBDR-05",
+      "PBDR-06",
+      "PBDR-07"
+    ]
+  },
+  "claim_ceiling": "Source mapping only. No Symtropy execution, reproduction, physical validation, benchmark win or SOTA claim."
+}
