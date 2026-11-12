@@ -94,3 +94,19 @@ The information mode is therefore part of the benchmark identity, alongside envi
 ## Claim ceiling
 
 This is an information-budget and implementation-assurance improvement to a synthetic colony simulator. It does not establish animal collective intelligence, biological cognition, or a general stigmergic superiority result.
+
+
+## Seeded, paired ensemble contract (12 November 2026)
+
+The colony now provides `new_with_information_mode_and_seed(..., seed)` and records the seed in `ColonyDebugMetrics`.
+
+- Seed 0 retains the original deterministic jitter exactly for backwards compatibility.
+- Non-zero seeds use a counter-based SplitMix64 jitter field keyed by seed, tick, ant index and candidate cell. It is deterministic and independent of the order in which candidate cells are enumerated.
+- The implementation has no mutable RNG state in `next_target` scoring, so adding/reordering candidates cannot shift later random draws.
+- The same non-zero seed is used across OraclePathAssisted, StigmergicFieldOnly and IndependentLocalSearch for paired comparisons.
+- Frozen seed IDs: 1–30.
+- Frozen map orientations: east→west, west→east, north→south and south→north.
+- Obstacle families: none, barrier with gap, two-route corridor, localized danger strip.
+
+The statistical unit is one independently seeded world run. Individual ants and time frames are nested observations, not independent replicates. Report paired per-seed differences and scenario-specific intervals. Do not pool map orientations until heterogeneity is shown. This is an implementation and protocol increment; no ensemble performance result is claimed yet.
+
