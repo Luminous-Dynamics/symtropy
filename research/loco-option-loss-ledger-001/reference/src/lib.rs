@@ -1128,6 +1128,82 @@ mod tests {
     }
 
     #[test]
+    fn exhaustive_three_action_set_pairs_match_independent_oracle() {
+        let actions = ["retreat", "step-left", "step-right"];
+        for previous_mask in 0_u8..8 {
+            for next_mask in 0_u8..8 {
+                let previous_ids: Vec<&str> = actions
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, action)| {
+                        ((previous_mask & (1 << index)) != 0).then_some(*action)
+                    })
+                    .collect();
+                let next_ids: Vec<&str> = actions
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, action)| {
+                        ((next_mask & (1 << index)) != 0).then_some(*action)
+                    })
+                    .collect();
+                let previous = snapshot(1, "state-0", "state-1", &previous_ids);
+                let next = snapshot(2, "state-1", "state-2", &next_ids);
+                let mut changes = Vec::new();
+
+                for action in &previous_ids {
+                    if !next_ids.contains(action) {
+                        changes.push(remove(
+                            action,
+                            LossCause::EnergyDepletion,
+                            Reversibility::Irreversible,
+                        ));
+                    }
+                }
+                for action in &next_ids {
+                    if !previous_ids.contains(action) {
+                        changes.push(add(action, &previous, &next));
+                    }
+                }
+
+                let report = audit_transition(
+                    &previous,
+                    &next,
+                    &transition(&previous, &next, changes),
+                )
+                .expect("complete finite change evidence");
+                assert_eq!(report.disposition, AuditDisposition::Qualified);
+
+                let mut expected_losses: Vec<String> = previous_ids
+                    .iter()
+                    .filter(|action| !next_ids.contains(action))
+                    .map(|action| (*action).to_owned())
+                    .collect();
+                let mut expected_additions: Vec<String> = next_ids
+                    .iter()
+                    .filter(|action| !previous_ids.contains(action))
+                    .map(|action| (*action).to_owned())
+                    .collect();
+                let mut expected_result: Vec<String> =
+                    next_ids.iter().map(|action| (*action).to_owned()).collect();
+                expected_losses.sort();
+                expected_additions.sort();
+                expected_result.sort();
+
+                assert_eq!(
+                    report.losses.iter().map(|entry| entry.action_id.clone()).collect::<Vec<_>>(),
+                    expected_losses
+                );
+                assert_eq!(
+                    report.additions.iter().map(|entry| entry.action_id.clone()).collect::<Vec<_>>(),
+                    expected_additions
+                );
+                assert_eq!(report.result_option_ids, expected_result);
+                assert!(!report.actuation_authorized);
+            }
+        }
+    }
+
+    #[test]
     fn resource_cost_dimensions_are_not_collapsed() {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "s1", "s2", &["retreat", "step-left"]);
