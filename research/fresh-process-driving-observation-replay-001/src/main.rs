@@ -6,14 +6,13 @@
 //! verifies the complete receipt/artifact chain.
 
 use action_conditioned_offscreen_camera::{
-    sha256_hex, ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration,
-    MissingFrameReason, MissingObservationEvent, MissingObservationInput, ObservationDisposition,
-    ObservationStreamGuard, RenderClocks,
-    RoadMarkingKind, RoadPolyline, SoftwareCameraRenderer, TimingPolicy, WorldRenderSnapshot,
-    Q16_ONE, RENDERER_REVISION,
+    ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration, MissingFrameReason,
+    MissingObservationEvent, MissingObservationInput, ObservationDisposition,
+    ObservationStreamGuard, Q16_ONE, RENDERER_REVISION, RenderClocks, RoadMarkingKind,
+    RoadPolyline, SoftwareCameraRenderer, TimingPolicy, WorldRenderSnapshot, sha256_hex,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -205,12 +204,14 @@ fn road_marking(marking_id: &str, offset_mm: i64, kind: RoadMarkingKind) -> Road
 }
 
 fn action_ref(tick: u64, branch: bool) -> AppliedActionRef {
-    let action_kind = if branch { "counterfactual-brake-and-yield" } else { "recorded-cruise-control" };
+    let action_kind = if branch {
+        "counterfactual-brake-and-yield"
+    } else {
+        "recorded-cruise-control"
+    };
     let command_id = format!("{action_kind}-{tick}");
     let receipt_id = format!("action-receipt-{action_kind}-{tick}");
-    let receipt_material = format!(
-        "{EPISODE_ID}|{tick}|{command_id}|declared-fixture-command-v1"
-    );
+    let receipt_material = format!("{EPISODE_ID}|{tick}|{command_id}|declared-fixture-command-v1");
     AppliedActionRef {
         receipt_sha256: sha256_hex(receipt_material.as_bytes()),
         receipt_id,
@@ -314,11 +315,8 @@ fn vehicle_state(tick: u64) -> Value {
 }
 
 fn render_summary(record: &ReplaySnapshotRecord) -> Result<ReplaySummary, Box<dyn Error>> {
-    let rendered = SoftwareCameraRenderer::render(
-        &record.snapshot,
-        record.sequence,
-        record.clocks,
-    )?;
+    let rendered =
+        SoftwareCameraRenderer::render(&record.snapshot, record.sequence, record.clocks)?;
     let audit = SoftwareCameraRenderer::audit_snapshot(&record.snapshot)?;
     Ok(ReplaySummary {
         sequence: record.sequence,
@@ -339,12 +337,16 @@ fn validate_stream_ledger(input: &ReplayInput) -> Result<(), Box<dyn Error>> {
     let mut seen = std::collections::BTreeSet::new();
     for record in &input.records {
         if record.sequence != record.snapshot.tick || !seen.insert(record.sequence) {
-            return Err("rendered observation sequence/tick identity is invalid or duplicated".into());
+            return Err(
+                "rendered observation sequence/tick identity is invalid or duplicated".into(),
+            );
         }
     }
     for missing in &input.missing_events {
         if missing.sequence != missing.tick || !seen.insert(missing.sequence) {
-            return Err("missing observation sequence/tick identity is invalid or duplicated".into());
+            return Err(
+                "missing observation sequence/tick identity is invalid or duplicated".into(),
+            );
         }
     }
     if seen.len() != EXPECTED_TICKS as usize
@@ -358,16 +360,30 @@ fn validate_stream_ledger(input: &ReplayInput) -> Result<(), Box<dyn Error>> {
         .iter()
         .map(|record| record.sequence)
         .collect::<std::collections::BTreeSet<_>>();
-    let rendered_sequences = input.records.iter().map(|record| record.sequence).collect::<std::collections::BTreeSet<_>>();
+    let rendered_sequences = input
+        .records
+        .iter()
+        .map(|record| record.sequence)
+        .collect::<std::collections::BTreeSet<_>>();
     if disposition_sequences != rendered_sequences
-        || input.missing_events.iter().any(|event| disposition_sequences.contains(&event.sequence))
+        || input
+            .missing_events
+            .iter()
+            .any(|event| disposition_sequences.contains(&event.sequence))
     {
         return Err("missing and delivered observations overlap or lack dispositions".into());
     }
     if input.missing_events.len() != 1
         || input.missing_events[0].sequence != MISSING_TICK
-        || input.dispositions.iter().filter(|item| item.disposition == ObservationDisposition::Delayed).count() != 1
-        || !input.dispositions.iter().any(|item| item.sequence == DELAYED_TICK && item.disposition == ObservationDisposition::Delayed)
+        || input
+            .dispositions
+            .iter()
+            .filter(|item| item.disposition == ObservationDisposition::Delayed)
+            .count()
+            != 1
+        || !input.dispositions.iter().any(|item| {
+            item.sequence == DELAYED_TICK && item.disposition == ObservationDisposition::Delayed
+        })
     {
         return Err("fixture missing/delayed event contract is not satisfied".into());
     }
@@ -384,7 +400,10 @@ fn replay_output(input: &ReplayInput) -> Result<ReplayOutput, Box<dyn Error>> {
 }
 
 fn write_json(path: &Path, value: &impl Serialize) -> Result<(), Box<dyn Error>> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(value)?)?;
@@ -410,10 +429,7 @@ fn validate_bridge_configuration(
         ("simulator_revision", SIMULATOR_REVISION),
     ] {
         if identity.get(field).and_then(Value::as_str) != Some(expected) {
-            return Err(format!(
-                "bridge_config.identity.{field} must equal {expected:?}"
-            )
-            .into());
+            return Err(format!("bridge_config.identity.{field} must equal {expected:?}").into());
         }
     }
     let max_width = bridge_config["max_width"].as_u64().unwrap_or(0);
@@ -456,11 +472,8 @@ fn save_render_artifacts(
 
     let mut bridge_observations = Vec::with_capacity(records.len());
     for record in records {
-        let rendered = SoftwareCameraRenderer::render(
-            &record.snapshot,
-            record.sequence,
-            record.clocks,
-        )?;
+        let rendered =
+            SoftwareCameraRenderer::render(&record.snapshot, record.sequence, record.clocks)?;
         let audit = SoftwareCameraRenderer::audit_snapshot(&record.snapshot)?;
         let frame_name = format!("frame_{:04}.rgb", record.sequence);
         let frame_relative = format!("frames/{frame_name}");
@@ -598,9 +611,18 @@ fn validate_bridge_output(
         let upstream = &observation["upstream"];
 
         for (field, expected) in [
-            ("upstream_observation_id", upstream["observation_id"].as_str().unwrap_or("")),
-            ("upstream_receipt_sha256", upstream["receipt_sha256"].as_str().unwrap_or("")),
-            ("upstream_frame_sha256", upstream["frame_sha256"].as_str().unwrap_or("")),
+            (
+                "upstream_observation_id",
+                upstream["observation_id"].as_str().unwrap_or(""),
+            ),
+            (
+                "upstream_receipt_sha256",
+                upstream["receipt_sha256"].as_str().unwrap_or(""),
+            ),
+            (
+                "upstream_frame_sha256",
+                upstream["frame_sha256"].as_str().unwrap_or(""),
+            ),
         ] {
             if bridge_receipt[field].as_str() != Some(expected) {
                 receipt_chain_valid = false;
@@ -615,8 +637,7 @@ fn validate_bridge_output(
             if !bridge_receipt["previous_receipt_sha256"].is_null() {
                 receipt_chain_valid = false;
             }
-        } else if bridge_receipt["previous_receipt_sha256"]
-            != receipts[index - 1]["receipt_sha256"]
+        } else if bridge_receipt["previous_receipt_sha256"] != receipts[index - 1]["receipt_sha256"]
         {
             receipt_chain_valid = false;
         }
@@ -687,7 +708,9 @@ fn recompute_upstream_policy_receipt(upstream: &mut Value) -> Result<(), Box<dyn
     material.extend_from_slice(&(schema_version as u32).to_le_bytes());
     append_len_prefixed_string(
         &mut material,
-        upstream["observation_id"].as_str().ok_or("observation_id missing")?,
+        upstream["observation_id"]
+            .as_str()
+            .ok_or("observation_id missing")?,
     );
     if upstream["pixel_format"].as_str() != Some("rgb8_srgb") {
         return Err("only the RGB8 sRGB pixel-format enum is supported by this fixture".into());
@@ -753,7 +776,9 @@ fn run_bridge_negative_controls(
 
     let mut corrupt_bytes = fs::read(episode_dir.join("frames/frame_0001.rgb"))?;
     if corrupt_bytes.is_empty() {
-        return Err("cannot construct pixel-corruption negative control from an empty frame".into());
+        return Err(
+            "cannot construct pixel-corruption negative control from an empty frame".into(),
+        );
     }
     corrupt_bytes[0] ^= 0x01;
     fs::write(negative_root.join("pixel-corrupt.rgb"), &corrupt_bytes)?;
@@ -790,9 +815,7 @@ fn run_bridge_negative_controls(
     let mut calibration_mismatch = base_request.clone();
     calibration_mismatch["observations"][0]["upstream"]["camera_calibration_sha256"] =
         json!("f".repeat(64));
-    recompute_upstream_policy_receipt(
-        &mut calibration_mismatch["observations"][0]["upstream"],
-    )?;
+    recompute_upstream_policy_receipt(&mut calibration_mismatch["observations"][0]["upstream"])?;
     controls.push((
         "camera-calibration-mismatch-with-valid-receipt".to_string(),
         "UpstreamCalibrationMismatch".to_string(),
@@ -829,8 +852,7 @@ fn run_bridge_negative_controls(
     // from 2 to 1. Upstream receipt identity remains internally consistent.
     let rollback_snapshot = snapshot(3, false);
     let rollback_clocks = clocks(3);
-    let rollback_render =
-        SoftwareCameraRenderer::render(&rollback_snapshot, 1, rollback_clocks)?;
+    let rollback_render = SoftwareCameraRenderer::render(&rollback_snapshot, 1, rollback_clocks)?;
     fs::write(
         negative_root.join("sequence-rollback.rgb"),
         &rollback_render.pixels_rgb,
@@ -860,8 +882,7 @@ fn run_bridge_negative_controls(
         render_completed_timestamp_us: regressed_capture + 800,
         delivered_timestamp_us: regressed_capture + 1_000,
     };
-    let regressed_render =
-        SoftwareCameraRenderer::render(&regressed_world, 3, regressed_clocks)?;
+    let regressed_render = SoftwareCameraRenderer::render(&regressed_world, 3, regressed_clocks)?;
     fs::write(
         negative_root.join("capture-clock-regression.rgb"),
         &regressed_render.pixels_rgb,
@@ -886,12 +907,9 @@ fn run_bridge_negative_controls(
         clock_regression,
     ));
 
-
     let mut wrong_camera_identity = base_request.clone();
     wrong_camera_identity["observations"][0]["upstream"]["camera_id"] = json!("rear-camera");
-    recompute_upstream_policy_receipt(
-        &mut wrong_camera_identity["observations"][0]["upstream"],
-    )?;
+    recompute_upstream_policy_receipt(&mut wrong_camera_identity["observations"][0]["upstream"])?;
     controls.push((
         "camera-identity-mismatch-with-valid-receipt".to_string(),
         "UpstreamIdentityMismatch".to_string(),
@@ -919,8 +937,7 @@ fn run_bridge_negative_controls(
     let capture = sensor_clock_skew["observations"][0]["timestamp_us"]
         .as_u64()
         .ok_or("capture timestamp missing")?;
-    sensor_clock_skew["observations"][0]["vehicle_state_timestamp_us"] =
-        json!(capture + 10_000);
+    sensor_clock_skew["observations"][0]["vehicle_state_timestamp_us"] = json!(capture + 10_000);
     sensor_clock_skew["observations"][0]["vehicle_state"]["timestamp"] =
         json!((capture + 10_000) as f64 / 1_000_000.0);
     controls.push((
@@ -938,8 +955,7 @@ fn run_bridge_negative_controls(
         render_completed_timestamp_us: delayed_capture + 800,
         delivered_timestamp_us: delayed_capture + MAX_DELIVERY_AGE_US + 1,
     };
-    let over_age_render =
-        SoftwareCameraRenderer::render(&delayed_snapshot, 3, over_age_clocks)?;
+    let over_age_render = SoftwareCameraRenderer::render(&delayed_snapshot, 3, over_age_clocks)?;
     fs::write(
         negative_root.join("over-age-delayed.rgb"),
         &over_age_render.pixels_rgb,
@@ -950,8 +966,7 @@ fn run_bridge_negative_controls(
     over_age_observation["vehicle_state_timestamp_us"] = json!(delayed_capture);
     over_age_observation["vehicle_state"]["timestamp"] =
         json!(delayed_capture as f64 / 1_000_000.0);
-    over_age_observation["pixels_file"] =
-        json!("bridge-negative-controls/over-age-delayed.rgb");
+    over_age_observation["pixels_file"] = json!("bridge-negative-controls/over-age-delayed.rgb");
     over_age_observation["upstream"] = serde_json::to_value(over_age_render.policy_receipt)?;
     let mut over_age_delay = base_request.clone();
     over_age_delay["observations"] = json!([
@@ -1036,8 +1051,7 @@ fn invoke_symthaea_bridge(
         .and_then(|observation| observation["upstream"]["camera_calibration_sha256"].as_str())
         .ok_or("first renderer observation is missing its calibration digest")?;
     if observations.iter().any(|observation| {
-        observation["upstream"]["camera_calibration_sha256"].as_str()
-            != Some(expected_calibration)
+        observation["upstream"]["camera_calibration_sha256"].as_str() != Some(expected_calibration)
     }) {
         return Err("episode contains mixed camera-calibration identities".into());
     }
@@ -1097,15 +1111,21 @@ fn invoke_symthaea_bridge(
 
     let replay_exact = receipt_replay_exact && byte_replay_exact;
     if !replay_exact {
-        return Err("fresh-process Symthaea bridge replay diverged in receipts or HDC artifacts".into());
+        return Err(
+            "fresh-process Symthaea bridge replay diverged in receipts or HDC artifacts".into(),
+        );
     }
 
     let receipts = first_output["receipts"]
         .as_array()
         .ok_or("first bridge output is missing receipts[]")?;
     let frozen = first_output["vision_learning_frozen"].as_bool() == Some(true);
-    let before = first_output["vision_training_steps_before"].as_u64().unwrap_or(u64::MAX);
-    let after = first_output["vision_training_steps_after"].as_u64().unwrap_or(u64::MAX);
+    let before = first_output["vision_training_steps_before"]
+        .as_u64()
+        .unwrap_or(u64::MAX);
+    let after = first_output["vision_training_steps_after"]
+        .as_u64()
+        .unwrap_or(u64::MAX);
     if !frozen || before != after {
         return Err("Symthaea bridge did not preserve frozen-learning evidence".into());
     }
@@ -1135,14 +1155,23 @@ fn invoke_symthaea_bridge(
     ))
 }
 
-fn evidence_branch(branch_id: &str, parent_id: Option<&str>, branch_shift: bool, stale_replay: bool) -> Value {
+fn evidence_branch(
+    branch_id: &str,
+    parent_id: Option<&str>,
+    branch_shift: bool,
+    stale_replay: bool,
+) -> Value {
     let lead_base = "lead-car-policy-input-at-tick-11";
     let lead_input = if branch_shift {
         "lead-car-policy-input-after-alternate-action"
     } else {
         lead_base
     };
-    let lead_origin = if stale_replay { "replayed" } else { "recomputed" };
+    let lead_origin = if stale_replay {
+        "replayed"
+    } else {
+        "recomputed"
+    };
     let child = parent_id.is_some();
     json!({
         "branch_id": branch_id,
@@ -1259,11 +1288,13 @@ fn invoke_branch_evidence_auditor(
         .as_array()
         .ok_or("branch auditor negative-control report lacks findings[]")?;
     let stale_rejected = stale_report["disposition"].as_str() == Some("rejected")
-        && findings.iter().any(|finding| {
-            finding.as_str() == Some("ReplayedActorInputChanged")
-        });
+        && findings
+            .iter()
+            .any(|finding| finding.as_str() == Some("ReplayedActorInputChanged"));
     if !stale_rejected {
-        return Err("branch auditor negative control did not produce ReplayedActorInputChanged".into());
+        return Err(
+            "branch auditor negative control did not produce ReplayedActorInputChanged".into(),
+        );
     }
     let finding_count = valid_report["finding_count"].as_u64().unwrap_or(0) as usize
         + stale_report["finding_count"].as_u64().unwrap_or(0) as usize;
@@ -1315,11 +1346,7 @@ fn degradation_trace_tick(
 
 fn degradation_campaign_value() -> Value {
     let clean_ticks = (1..=EXPECTED_TICKS)
-        .map(|tick| {
-            degradation_trace_tick(
-                tick, "clean", true, None, None, true, false, false,
-            )
-        })
+        .map(|tick| degradation_trace_tick(tick, "clean", true, None, None, true, false, false))
         .collect::<Vec<_>>();
 
     let faulted_ticks = (1..=EXPECTED_TICKS)
@@ -1344,9 +1371,7 @@ fn degradation_campaign_value() -> Value {
                 true,
                 true,
             ),
-            10 => degradation_trace_tick(
-                tick, "clean", true, None, None, true, false, false,
-            ),
+            10 => degradation_trace_tick(tick, "clean", true, None, None, true, false, false),
             MISSING_TICK => degradation_trace_tick(
                 tick,
                 "missing",
@@ -1367,15 +1392,12 @@ fn degradation_campaign_value() -> Value {
                 true,
                 true,
             ),
-            _ => degradation_trace_tick(
-                tick, "clean", true, None, None, true, false, false,
-            ),
+            _ => degradation_trace_tick(tick, "clean", true, None, None, true, false, false),
         })
         .collect::<Vec<_>>();
 
     let scenario_seed = sha256_hex(b"fresh-process-driving-scenario-seed-v1");
-    let environment_randomness =
-        sha256_hex(b"fresh-process-driving-exogenous-randomness-v1");
+    let environment_randomness = sha256_hex(b"fresh-process-driving-exogenous-randomness-v1");
     json!({
         "schema_version": 1,
         "campaign_id": "fresh-process-renderer-bridge-degradation-v1",
@@ -1460,15 +1482,20 @@ fn invoke_degradation_recovery_auditor(
         .arg(&valid_output)
         .status()?;
     if !valid_status.success() {
-        return Err("degradation/recovery auditor rejected the paired renderer/bridge campaign".into());
+        return Err(
+            "degradation/recovery auditor rejected the paired renderer/bridge campaign".into(),
+        );
     }
     let valid_report = read_json(&valid_output)?;
     let audit_valid = valid_report["disposition"].as_str() == Some("valid")
-        && valid_report["findings"].as_array().is_some_and(Vec::is_empty)
+        && valid_report["findings"]
+            .as_array()
+            .is_some_and(Vec::is_empty)
         && valid_report["expected_ticks"].as_u64() == Some(EXPECTED_TICKS)
         && valid_report["faulted_observed_ticks"].as_u64() == Some(EXPECTED_TICKS)
         && valid_report["fault_event_count"].as_u64() == Some(2);
-    let event_reports = valid_report["events"].as_array()
+    let event_reports = valid_report["events"]
+        .as_array()
         .ok_or("degradation auditor report lacks events[]")?;
     if !audit_valid
         || event_reports[0]["detection_latency_ticks"].as_u64() != Some(0)
@@ -1478,12 +1505,15 @@ fn invoke_degradation_recovery_auditor(
         || event_reports[1]["containment_latency_ticks"].as_u64() != Some(0)
         || event_reports[1]["recovery_tick"].as_u64() != Some(14)
     {
-        return Err("degradation/recovery positive campaign did not produce the expected event metrics".into());
+        return Err(
+            "degradation/recovery positive campaign did not produce the expected event metrics"
+                .into(),
+        );
     }
 
     let mut negative_campaign = campaign;
-    negative_campaign["faulted_run"]["ticks"][(MISSING_TICK - 1) as usize]
-        ["policy_input_accepted"] = json!(true);
+    negative_campaign["faulted_run"]["ticks"][(MISSING_TICK - 1) as usize]["policy_input_accepted"] =
+        json!(true);
     write_json(&negative_input, &negative_campaign)?;
     let negative_status = Command::new(auditor_binary)
         .arg(&negative_input)
@@ -1497,15 +1527,16 @@ fn invoke_degradation_recovery_auditor(
         .as_array()
         .ok_or("degradation negative-control report lacks findings[]")?;
     let negative_control_rejected = negative_report["disposition"].as_str() == Some("rejected")
-        && findings.iter().any(|finding| {
-            finding.as_str() == Some("forbidden_policy_input_accepted")
-        });
+        && findings
+            .iter()
+            .any(|finding| finding.as_str() == Some("forbidden_policy_input_accepted"));
     if !negative_control_rejected {
-        return Err("degradation negative control did not produce forbidden_policy_input_accepted".into());
+        return Err(
+            "degradation negative control did not produce forbidden_policy_input_accepted".into(),
+        );
     }
 
-    let finding_count = valid_report["findings"].as_array().map_or(0, Vec::len)
-        + findings.len();
+    let finding_count = valid_report["findings"].as_array().map_or(0, Vec::len) + findings.len();
     write_json(
         &audit_dir.join("audit-summary.json"),
         &json!({
@@ -1515,7 +1546,12 @@ fn invoke_degradation_recovery_auditor(
             "event_count": event_reports.len()
         }),
     )?;
-    Ok((audit_valid, negative_control_rejected, event_reports.len(), finding_count))
+    Ok((
+        audit_valid,
+        negative_control_rejected,
+        event_reports.len(),
+        finding_count,
+    ))
 }
 
 fn run_parent(
@@ -1617,7 +1653,9 @@ fn run_parent(
             ObservationDisposition::Fresh => fresh_count += 1,
             ObservationDisposition::Delayed => delayed_count += 1,
             ObservationDisposition::Stale => {
-                return Err(format!("fixture unexpectedly produced stale frame at tick {tick}").into())
+                return Err(
+                    format!("fixture unexpectedly produced stale frame at tick {tick}").into(),
+                );
             }
         }
         dispositions.push(DispositionRecord {
@@ -1646,7 +1684,10 @@ fn run_parent(
         &dispositions,
     )?;
     write_json(&episode_dir.join("applied-actions.json"), &action_records)?;
-    write_json(&episode_dir.join("world-transition-records.json"), &transition_records)?;
+    write_json(
+        &episode_dir.join("world-transition-records.json"),
+        &transition_records,
+    )?;
 
     let changed_branch = make_changed_action_branch(&episode_dir)?;
     let (branch_audit_valid, stale_actor_rejected, branch_audit_findings) =
@@ -1660,7 +1701,9 @@ fn run_parent(
     if changed_branch.base_frame_sha256 == changed_branch.branch_frame_sha256
         || changed_branch.base_world_snapshot_sha256 == changed_branch.branch_world_snapshot_sha256
     {
-        return Err("alternate action branch did not change the declared observation/world state".into());
+        return Err(
+            "alternate action branch did not change the declared observation/world state".into(),
+        );
     }
     write_json(
         &episode_dir.join("counterfactual-branch-record.json"),
@@ -1689,8 +1732,7 @@ fn run_parent(
     if !status.success() {
         return Err("fresh-process renderer child failed".into());
     }
-    let actual_replay: ReplayOutput =
-        serde_json::from_slice(&fs::read(&replay_output_path)?)?;
+    let actual_replay: ReplayOutput = serde_json::from_slice(&fs::read(&replay_output_path)?)?;
     let replay_exact = actual_replay == expected_replay;
     if !replay_exact {
         return Err("fresh-process renderer replay mismatch".into());
@@ -1717,12 +1759,12 @@ fn run_parent(
         bridge_negative_control_count,
         bridge_negative_controls_fail_closed,
     ) = invoke_symthaea_bridge(
-            &episode_dir,
-            bridge_config,
-            vision_config,
-            bridge_observations,
-            &bridge_binary,
-        )?;
+        &episode_dir,
+        bridge_config,
+        vision_config,
+        bridge_observations,
+        &bridge_binary,
+    )?;
 
     let report = EpisodeReport {
         schema_version: 1,
@@ -1813,7 +1855,6 @@ fn main() {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1838,10 +1879,11 @@ mod tests {
             clocks.delivered_timestamp_us - clocks.capture_timestamp_us,
             3_500
         );
-        assert!(clocks.delivered_timestamp_us - clocks.capture_timestamp_us
-            <= MAX_DELIVERY_AGE_US);
-        assert!(clocks.render_completed_timestamp_us - clocks.capture_timestamp_us
-            > MAX_RENDER_LATENCY_US);
+        assert!(clocks.delivered_timestamp_us - clocks.capture_timestamp_us <= MAX_DELIVERY_AGE_US);
+        assert!(
+            clocks.render_completed_timestamp_us - clocks.capture_timestamp_us
+                > MAX_RENDER_LATENCY_US
+        );
     }
 
     #[test]
@@ -1863,8 +1905,7 @@ mod tests {
             alternative.applied_action.as_ref().unwrap().receipt_id
         );
         let base_render = SoftwareCameraRenderer::render(&base, 12, clocks(12)).unwrap();
-        let branch_render =
-            SoftwareCameraRenderer::render(&alternative, 12, clocks(12)).unwrap();
+        let branch_render = SoftwareCameraRenderer::render(&alternative, 12, clocks(12)).unwrap();
         let base_audit = SoftwareCameraRenderer::audit_snapshot(&base).unwrap();
         let branch_audit = SoftwareCameraRenderer::audit_snapshot(&alternative).unwrap();
         assert_ne!(
@@ -1943,9 +1984,15 @@ mod tests {
         let parent = &base["branches"][0]["actor_responses"][0];
         let recomputed = &base["branches"][1]["actor_responses"][0];
         let stale_replayed = &stale["branches"][1]["actor_responses"][0];
-        assert_ne!(parent["policy_input_digest"], recomputed["policy_input_digest"]);
+        assert_ne!(
+            parent["policy_input_digest"],
+            recomputed["policy_input_digest"]
+        );
         assert_eq!(recomputed["origin"], "recomputed");
-        assert_eq!(stale_replayed["policy_input_digest"], recomputed["policy_input_digest"]);
+        assert_eq!(
+            stale_replayed["policy_input_digest"],
+            recomputed["policy_input_digest"]
+        );
         assert_eq!(stale_replayed["origin"], "replayed");
         assert_eq!(base["expected_branch_ids"].as_array().unwrap().len(), 2);
     }
@@ -1953,7 +2000,10 @@ mod tests {
     #[test]
     fn degradation_campaign_preserves_real_fixture_drop_delay_and_recovery_events() {
         let campaign = degradation_campaign_value();
-        assert_eq!(campaign["faulted_run"]["expected_tick_count"], EXPECTED_TICKS);
+        assert_eq!(
+            campaign["faulted_run"]["expected_tick_count"],
+            EXPECTED_TICKS
+        );
         let ticks = campaign["faulted_run"]["ticks"].as_array().unwrap();
         assert_eq!(ticks.len(), 20);
         let delayed = &ticks[(DELAYED_TICK - 1) as usize];
@@ -1988,12 +2038,7 @@ mod tests {
 
     #[test]
     fn receipt_recommitment_matches_renderer_and_binds_calibration_mutation() {
-        let rendered = SoftwareCameraRenderer::render(
-            &snapshot(1, false),
-            1,
-            clocks(1),
-        )
-        .unwrap();
+        let rendered = SoftwareCameraRenderer::render(&snapshot(1, false), 1, clocks(1)).unwrap();
         let mut receipt = serde_json::to_value(rendered.policy_receipt).unwrap();
         let original = receipt["receipt_sha256"].as_str().unwrap().to_string();
         recompute_upstream_policy_receipt(&mut receipt).unwrap();
@@ -2032,7 +2077,4 @@ mod tests {
         too_stale["maximum_observation_delivery_age_us"] = json!(MAX_DELIVERY_AGE_US - 1);
         assert!(validate_bridge_configuration(&too_stale, &vision_config).is_err());
         let mut invalid = bridge_config;
-        invalid["identity"]["camera_id"] = json!("rear");
-        assert!(validate_bridge_configuration(&invalid, &vision_config).is_err());
-    }
-}
+        invalid["identity"]["camera_id
