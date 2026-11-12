@@ -699,7 +699,7 @@ mod tests {
         assert!(protocol["validity_conditions"]["observations"]
             .as_str()
             .unwrap()
-            .contains("conditional independence"));
+            .contains("conditionally independent"));
         assert!(protocol["validity_conditions"]["optional_stopping"]
             .as_str()
             .unwrap()
