@@ -725,14 +725,14 @@ mod tests {
     }
 
     #[test]
-    fn perfect_risk_ranking_has_zero_failure_area() {
+    fn low_risk_first_ranking_has_lower_area_than_random_order() {
         let result = input(vec![
             record("a", "urban", 0.01, false, 0.0),
             record("b", "urban", 0.02, false, 0.0),
             record("c", "urban", 0.8, true, 1.0),
             record("d", "urban", 0.9, true, 1.0),
         ]).evaluate().unwrap();
-        assert_eq!(result.risk_coverage_area_failure_rate, 0.5);
+        assert!((result.risk_coverage_area_failure_rate - 0.20833333333333331).abs() < 1e-12);
         assert_eq!(result.risk_coverage_curve[0].failure_rate, 0.0);
         assert_eq!(result.risk_coverage_curve.last().unwrap().failure_rate, 0.5);
     }
