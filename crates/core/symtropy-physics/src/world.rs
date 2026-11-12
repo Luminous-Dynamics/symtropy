@@ -1186,9 +1186,9 @@ impl<const D: usize> PhysicsWorld<D> {
                     let ang_term_a_t = inv_i_avg_a * (r_a.norm_squared() - t_dot_ra * t_dot_ra);
                     let ang_term_b_t = inv_i_avg_b * (r_b.norm_squared() - t_dot_rb * t_dot_rb);
                     let denom_t = total_inv_mass + ang_term_a_t + ang_term_b_t;
-                if !denom_t.is_finite() || denom_t <= 0.0 {
-                    continue;
-                }
+                    if !denom_t.is_finite() || denom_t <= 0.0 {
+                        continue;
+                    }
 
                     let j_t_desired = -v_t_mag / denom_t;
                     let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
