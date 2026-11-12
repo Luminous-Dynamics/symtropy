@@ -315,14 +315,90 @@ fn emit_candidate_tree(
     }
 }
 
+fn false_reassurance_config() -> ActiveSensingConfig {
+    ActiveSensingConfig {
+        scenario_id: "contingent-false-reassurance-corroboration-v1".to_owned(),
+        source_digest: "sha256-false-reassurance-corroboration-v1".to_owned(),
+        service_unit: "service_units".to_owned(),
+        energy_unit: "kWh".to_owned(),
+        maximum_energy_kwh: 0.25,
+        maximum_latency_ticks: 2,
+        maximum_penalty_service_units: 1.0,
+        tie_tolerance: 1.0e-9,
+    }
+}
+
+fn false_reassurance_worlds() -> Vec<DecisionWorld> {
+    vec![
+        world("healthy", 100.0, 85.0),
+        world("degraded", 40.0, 80.0),
+        world("healthy_sensor_fault", 100.0, 85.0),
+        world("degraded_stuck_high", 40.0, 80.0),
+    ]
+}
+
+fn false_reassurance_sensors() -> Vec<ContingentSensor> {
+    vec![
+        sensor(
+            "screen",
+            0.1,
+            2.0,
+            1,
+            None,
+            vec![
+                ("healthy", "healthy", None, 0.1),
+                ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 0.1),
+                ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 0.1),
+                ("degraded_stuck_high", "healthy", None, 0.1),
+            ],
+        ),
+        sensor(
+            "stuck_high_confirmation",
+            0.1,
+            2.0,
+            1,
+            Some("healthy"),
+            vec![
+                ("healthy", "verified_healthy", None, 0.1),
+                ("degraded", "not_requested", None, 0.1),
+                ("healthy_sensor_fault", "not_requested", None, 0.1),
+                ("degraded_stuck_high", "verified_degraded", None, 0.1),
+            ],
+        ),
+        sensor(
+            "independent_missing_branch_inspection",
+            0.1,
+            2.0,
+            1,
+            Some("missing"),
+            vec![
+                ("healthy", "not_requested", None, 0.1),
+                ("degraded", "verified_degraded", None, 0.1),
+                ("healthy_sensor_fault", "verified_healthy", None, 0.1),
+                ("degraded_stuck_high", "not_requested", None, 0.1),
+            ],
+        ),
+    ]
+}
+
 fn main() -> Result<(), String> {
-    let report = assess_contingent_sensing(&config(), &limits(), &worlds(), &sensors())?;
+    let reports = vec![
+        assess_contingent_sensing(&config(), &limits(), &worlds(), &sensors())?,
+        assess_contingent_sensing(
+            &false_reassurance_config(),
+            &limits(),
+            &false_reassurance_worlds(),
+            &false_reassurance_sensors(),
+        )?,
+    ];
 
     let candidate_only = std::env::args().nth(1).as_deref() == Some("--candidate-policy-tree");
     if candidate_only {
         println!("scenario_id,observation_history,node_type,sensor_id,observation_id,action_id");
-        if let Some(tree) = &report.candidate_policy_tree {
-            emit_candidate_tree(&report.scenario_id, tree, &[]);
+        for report in &reports {
+            if let Some(tree) = &report.candidate_policy_tree {
+                emit_candidate_tree(&report.scenario_id, tree, &[]);
+            }
         }
         return Ok(());
     }
@@ -331,15 +407,17 @@ fn main() -> Result<(), String> {
         "record_type,scenario_id,source_digest,status,recommended,baseline_common_feasible_policy_count,baseline_policy_id,baseline_worst_regret,worst_case_post_sensing_regret,regret_reduction,resolves_no_sensing_infeasibility,maximum_sensor_depth,search_nodes_evaluated,selected_tree_depth,maximum_path_energy_kwh,maximum_path_latency_ticks,maximum_path_penalty_service_units,observation_history,node_kind,active_world_count,active_world_ids,sensor_id,action_id,protocol_digest,path_energy_kwh,path_latency_ticks,node_maximum_path_penalty_service_units,world_id,observation_id,prediction_receipt_digest,evaluator_missing_cause,gross_policy_service_units,oracle_service_units,sensing_penalty_service_units,net_policy_service_units,regret_service_units"
     );
 
-    emit(base_fields(&report));
-    for receipt in &report.evaluator_node_receipts {
-        emit(node_fields(&report, receipt));
-    }
-    for receipt in &report.evaluator_prediction_receipts {
-        emit(prediction_fields(&report, receipt));
-    }
-    for receipt in &report.evaluator_leaf_receipts {
-        emit(leaf_fields(&report, receipt));
+    for report in &reports {
+        emit(base_fields(report));
+        for receipt in &report.evaluator_node_receipts {
+            emit(node_fields(report, receipt));
+        }
+        for receipt in &report.evaluator_prediction_receipts {
+            emit(prediction_fields(report, receipt));
+        }
+        for receipt in &report.evaluator_leaf_receipts {
+            emit(leaf_fields(report, receipt));
+        }
     }
     Ok(())
 }
