@@ -10,7 +10,7 @@ It does not register point clouds or ingest BAM NetCDF/HDF5 files. It verifies t
 
 ## Metric
 
-At each matched station i, let r_i be the reference height, m_i the measured height, u_i the measured vertical uncertainty bound, and e_r the registration error bound.
+At each matched station i, let r_i be the reference height, m_i the measured height, u_i the measured vertical uncertainty bound, and e_r the vertical registration error bound.
 
 The endpoint error envelope is:
 
@@ -32,7 +32,7 @@ Inputs must bind:
 - measured scan SHA-256;
 - registration receipt SHA-256;
 - registration receipt's source scan and reference digests;
-- transform revision and registration error bound;
+- transform revision and vertical registration error bound;
 - common strictly increasing station grid and maximum sample gap.
 
 The oracle rejects missing/zero digests, mismatched receipt sources, frame/revision mismatches, non-monotonic or mismatched station grids, excessive gaps, too few points, insufficient coverage, no covered intervals and checked arithmetic overflow.
