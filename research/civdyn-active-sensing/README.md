@@ -123,6 +123,20 @@ The independent inspection is charged only on the `missing` branch. Known-answer
 
 A one-step greedy screen is not recommended: its worst regret is 15.5, worse than STOP at 15. An uninformative follow-up is not chosen; an over-budget follow-up is skipped; stopping wins a regret tie to avoid paying for unnecessary sensing. The search has a hard 10,000-node cap (depth at most 3, sensor catalogue at most 8) and fails closed rather than switching to a heuristic.
 
+### Matched fixed-sequence comparator on the same worlds
+
+The sweep also evaluates a **fixed two-sensor sequence** on the identical three-world fixture. It requests both `screen` and `independent_inspection` in every world, then chooses the physical action from the pair of public observations. The policy and evaluator use the same sensor protocols, world outcomes, service floors and energy/latency conversion as the contingent tree.
+
+| Hidden world | Fixed sequence observations | Fixed action | Fixed penalty | Fixed regret | Contingent action | Contingent penalty | Contingent regret |
+|---|---|---|---:|---:|---|---:|---:|
+| Healthy | healthy → healthy | defer | 1.1 | 1.1 | defer after first screen | 0.6 | 0.6 |
+| Degraded | missing → degraded | repair | 1.4 | 1.4 | repair after inspection | 1.4 | 1.4 |
+| Healthy, sensor-network fault | missing → healthy | defer | 0.9 | 0.9 | defer after inspection | 0.9 | 0.9 |
+
+Both policies have worst-case regret **1.4 service units** and the same worst-path acquisition envelope: **0.35 kWh, two ticks, 1.4 service units**. The contingent tree saves the second acquisition only on the clear healthy branch: **0.15 kWh and 0.5 service units** on that path, with no change to the other two paths.
+
+This is deliberately a *pathwise* result, not an expected-value claim. No observation probabilities are assigned, so there is no claim about average savings across worlds. On this fixture the contingent policy does not beat the fixed sequence on worst-case regret; it weakly preserves the worst-case result while avoiding an unnecessary measurement on a branch already sufficiently identified. The CI contract checks the fixed and contingent per-world results against the same frozen outcomes.
+
 ### False-reassurance / stuck-sensor challenge
 
 A second executable four-world challenge prevents the first-stage screen from being treated as infallible:
