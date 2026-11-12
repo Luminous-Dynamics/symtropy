@@ -17,6 +17,7 @@
 #![forbid(unsafe_code)]
 
 pub mod policy_tree;
+pub mod voi_policy_bridge;
 
 use std::collections::{BTreeMap, BTreeSet};
 
