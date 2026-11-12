@@ -33,11 +33,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-twin-commissioning/Cargo.toml --all -- --check
 
-      - name: Bootstrap Cargo-generated nested lockfile (temporary)
-        run: |
-          cargo generate-lockfile --manifest-path crates/tools/shipyard-twin-commissioning/Cargo.toml
-          cat crates/tools/shipyard-twin-commissioning/Cargo.lock
-
       - name: Run commissioning corpus and mutation tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-twin-commissioning/Cargo.toml
 
@@ -48,4 +43,4 @@ jobs:
         run: cargo run --locked --manifest-path crates/tools/shipyard-twin-commissioning/Cargo.toml
 
       - name: Confirm verifier did not modify tracked inputs
-        run: git diff --exit-code -- . ':!crates/tools/shipyard-twin-commissioning/Cargo.lock'
+        run: git diff --exit-code
