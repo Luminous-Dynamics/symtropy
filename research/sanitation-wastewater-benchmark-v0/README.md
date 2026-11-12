@@ -47,6 +47,75 @@ Stormwater and wastewater are related but distinct systems. They need explicit c
 
 No candidate technology is presumed to win. Waterless systems still need a verified emptying and treatment service; membranes still need energy, cleaning and residuals management; nature-based systems need land, seasonal performance, maintenance and pathogen-risk qualification.
 
+## 2A. Reference demonstrator architecture
+
+These are design candidates for engineering study, not finished product specifications or construction drawings.
+
+### Demonstrator A — Building-scale regenerative sanitation cell
+
+Target contexts: a small building, school block, remote facility or demonstrator home.
+
+```text
+rainwater capture + first-flush diversion
+              |
+              v
+       non-potable storage ------------------------+
+                                                   |
+municipal / borehole potable supply -> protected  |
+                                   potable network |
+                                                   v
+toilet candidates -> separate blackwater collection -> treatment candidate train
+greywater fixtures -> greywater collection -> treatment / reuse candidate
+                                                   |
+                         fit-for-purpose testing <-+
+                                                   |
+                  reuse storage -> metered non-potable service
+                                                   |
+                    residuals -> sealed storage / approved removal
+```
+
+Engineering principles:
+- Keep potable, greywater, reclaimed water, blackwater and stormwater physically distinct, clearly identified and protected against cross-connection/backflow.
+- Compare an efficient gravity-flush front end with a urine-diverting/low-water alternative rather than forcing one design onto all buildings.
+- Make the flush mechanism, seal, trapway and service components replaceable; prioritize accessible cleaning and standard fittings.
+- Provide an approved sewer or sealed containment fallback. Unsafe overflow, untreated reuse or uncontrolled discharge is never a fallback.
+- Use rainwater as a variable source, not guaranteed supply; log storage level, quality class and source availability.
+- Reuse only for an explicitly allowed application after the required treatment and laboratory verification. A dashboard reading is not a reuse permit.
+
+First measurements: effective L/use and L/user/day; successful use and blockages; raw/reclaimed water volumes; BOD/COD/TSS/nutrient and microbial lab results appropriate to intended use; gross energy; sludge/residuals volume; downtime; user and operator burden.
+
+### Demonstrator B — Community-scale decentralized sanitation hub
+
+Target contexts: a school, clinic, community facility or settlement-scale service.
+
+Candidate modules: accessible toilet blocks; conventional or non-sewered front-end options; sealed collection/equalization; screened and grit-managed feed; one or more treatment trains selected from SBR, MBBR, MBR, anaerobic-plus-aerobic, and wetland/nature-based configurations; disinfection where the endpoint requires it; metered reclaimed-water storage; sludge receiving, handling and safe haulage.
+
+The comparison must include central sewer connection as a baseline where technically available, as well as the complete emptying/transport chain for on-site options. The best design may be a hybrid. Provide trained operator access, spare-parts strategy, backup power/water profile, emergency service continuity and a maintenance contract before calling the facility service-ready.
+
+First measurements: cost per person-equivalent/year; availability; sample-based effluent compliance; kWh/m³; sludge logistics; maintenance hours; emptying completion; safe restart; worst-served-user coverage.
+
+### Demonstrator C — Urban catchment water and flood resilience cell
+
+Compose, rather than duplicate, existing Sol-Atlas and Symtropy capabilities:
+
+- Sol-Atlas: source-aware terrain, catchment, network geometry, land cover, asset and exposure data.
+- EPA SWMM / matched drainage baseline: rainfall-runoff, sewer, storage, pump, overflow and green-infrastructure comparisons.
+- Symtropy qualified shallow-water/flood solver: surface routing and floodplain interactions after numerical qualification.
+- Green/blue/grey interventions: roof storage, rain gardens, bioswales, wetlands, permeable surfaces, distributed detention, maintained inlets, pipes and safe overland routes.
+- Robotic inspection: stormwater inlet, culvert and sewer observation evidence linked to the exact asset segment and maintenance result.
+
+Do not route stormwater into sanitary treatment as a substitute for catchment design. Measure first-flush pollutant loads, wet-weather infiltration/inflow, overflows, downstream hydrographs, flood depth/arrival and asset downtime. Evaluate climate events and degraded/blocked infrastructure together.
+
+### Candidate toilet product families
+
+**Sewer-connected efficient gravity toilet.** Keep a passive, repairable architecture as the default candidate. Investigate trapway geometry, bowl wash, jet/siphon flow, sealing and flush-volume control with CFD and standardized physical flush/drainline tests. WaterSense's current 1.28 gpf specification (~4.85 L) is a useful comparator. The first competitive goal is lower measured L/user/day with equal-or-better functional performance—not a smaller flush volume at any cost.
+
+**Water-scarce dry or source-separating toilet.** Investigate a user-friendly urine-diverting interface, splash-resistant channels, sealed and replaceable solids container, odor management, vector exclusion and safe lifting/emptying. A viable product includes the emptying, transport and treatment service; a toilet that simply stores waste without a verified downstream chain is not a complete sanitation solution.
+
+**Prefabricated non-sewered sanitation module.** Evaluate a front-end + integrated backend within ISO 30500:2025 scope. Explicitly design the external service chain as well: the standard does not cover downstream transport and external reuse/disposal. A community-scale faecal-sludge unit should be assessed against ISO 31800:2020 where within scope.
+
+For all three families, compare CAD/CFD predictions with standardized component tests, run durability and fault-injection tests, document BOM/material compatibility, service access, local manufacturability and end-of-life. No physical prototype should be connected to a reuse pathway until the required risk assessment, laboratory tests and permissions exist.
+
 ## 3. Benchmark tiers and evidence ceilings
 
 | Tier | Scope | Evidence permitted |
