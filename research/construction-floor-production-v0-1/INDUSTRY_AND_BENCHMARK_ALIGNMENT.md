@@ -3,6 +3,9 @@
 **Research snapshot:** 13 November 2026  
 **Scope:** autonomous construction production, high-rise climbing workcells, construction planning, mixed-fleet interoperability and accepted-output assurance.
 
+- Accepted-floor accounting integration: [#4957](https://github.com/Luminous-Dynamics/symtropy/issues/4957) / draft [#4960](https://github.com/Luminous-Dynamics/symtropy/pull/4960).
+- Vertical-logistics and climbing-workcell co-design: [#4964](https://github.com/Luminous-Dynamics/symtropy/issues/4964).
+
 This note distinguishes publicly advertised industry capabilities, peer-reviewed project-specific results, research targets and Luminous implementation status. Product pages describe vendor-stated features; they do not establish a complete capability inventory or prove that an unlisted capability is absent.
 
 ## 1. Current industry position
@@ -168,7 +171,7 @@ The existing programme target of >=20% crew-hour reduction is a sensible hypothe
 
 1. **Accepted-floor ledger (now in PR #4960):** compose the existing task lifecycle and resource-reservation owners with required work units, attempts, person-time and costs.
 2. **Reference-floor adapter integration:** run #4939's four frozen cases and ten disturbances against #1902 and #1843 without duplicating either owner.
-3. **Vertical-logistics co-design:** compare abstract extra capacity, delivery/kitting windows, temporary buffers, alternative routing, preassembly and sequence changes. Optimize an explicit total-cost function; do not infer that another hoist is the solution.
+3. **Vertical-logistics co-design:** [#4964](https://github.com/Luminous-Dynamics/symtropy/issues/4964) compares abstract extra capacity, delivery/kitting windows, temporary buffers, alternative routing, preassembly and sequence changes. Optimize an explicit total-cost function; do not infer that another hoist is the solution.
 4. **Inspection value-of-information:** pair early and deferred detection on identical hidden-fault cases; later add calibrated probability distributions and decision-regret measurement.
 5. **Benign panel-cell trial:** start with non-load-bearing panel fabrication/installation, metrology, rejection, repair, reinspection and accepted-output economics before any high-rise actuation.
 6. **Lifecycle thread:** keep material identity, approved substitution, custody, inspection, warranty, repair and replacement linked to the accepted component, not merely its installation event.
