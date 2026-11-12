@@ -1202,6 +1202,19 @@ mod tests {
     }
 
     #[test]
+    fn extending_expiry_and_recomputing_unkeyed_digest_still_fails_policy_bound() {
+        let (evidence, action, gate_policy, mut envelope) = authorized();
+        envelope.not_after_us += 1;
+        // Recomputing an unkeyed digest must not bypass the independently
+        // recomputed proposal/policy/evidence upper bound.
+        envelope.envelope_sha256 = envelope_sha256(&envelope).unwrap();
+        assert_eq!(
+            revalidate_at_execution(&envelope, &action, &evidence, &gate_policy, NOW + 1),
+            Err(ExecutionRejection::EnvelopeCommitmentMismatch)
+        );
+    }
+
+    #[test]
     fn future_delivery_timestamp_is_rejected() {
         let mut evidence = bundle();
         evidence.samples[0].delivered_timestamp_us = NOW + 1;
