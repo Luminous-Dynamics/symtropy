@@ -42,3 +42,14 @@ jobs:
         run: cargo clippy --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all-targets -- -D warnings
       - name: Run deterministic coordinate ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example coordinate_ladder
+      - name: Run deterministic metric-layer microbenchmark
+        run: |
+          set -euo pipefail
+          cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --bin metric-induced-microbenchmark -- "$RUNNER_TEMP/metric-induced-microbenchmark.json"
+          test -s "$RUNNER_TEMP/metric-induced-microbenchmark.json"
+      - name: Upload reference-layer microbenchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metric-induced-reference-microbenchmark-${{ github.sha }}
+          path: ${{ runner.temp }}/metric-induced-microbenchmark.json
+          if-no-files-found: error
