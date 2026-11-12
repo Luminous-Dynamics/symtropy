@@ -12,7 +12,9 @@
     "calibration_bin_count",
     "fixed_coverage_target",
     "fixed_risk_limit",
-    "decisions"
+    "decisions",
+    "bootstrap_replicates",
+    "bootstrap_seed"
   ],
   "properties": {
     "schema_version": {
@@ -67,6 +69,15 @@
       "items": {
         "$ref": "#/$defs/decision"
       }
+    },
+    "bootstrap_replicates": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 10000
+    },
+    "bootstrap_seed": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "$defs": {
@@ -239,6 +250,9 @@
     "An abstained decision requires abstention_timestamp_us, decision_deadline_us, fallback_succeeded and fallback_duration_ms.",
     "AURC is computed on complete score-tie groups using a right-continuous step integral. Tied scores are never split.",
     "The evaluator reports actual abstention separately from the hypothetical threshold risk-coverage curve.",
-    "Resource metrics remain null when no measurement exists; missing values are never treated as zero."
+    "Resource metrics remain null when no measurement exists; missing values are never treated as zero.",
+    "Bootstrap resampling samples whole episode clusters with replacement, preserving all decision records belonging to each sampled episode.",
+    "Bootstrap intervals are deterministic for a fixed seed and replicate count; with fewer than two episode clusters they are reported as unavailable.",
+    "Accepted-risk bootstrap intervals are reported only when every bootstrap replicate contains at least one accepted decision; invalid replicates are not silently discarded."
   ]
 }
