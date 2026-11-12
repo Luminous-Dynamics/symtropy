@@ -335,7 +335,8 @@
     "deployability dimensions remain non-compensatory and no aggregate readiness score may convert a failed dimension into a pass",
     "active-evidence comparator tournament includes a worst-case pairwise Chernoff baseline over the identical eligible candidate set",
     "Chernoff results retain the minimum hypothesis-pair and uncertainty-scenario value and disclose the fixed s-grid",
-    "no asymptotic Chernoff error exponent is described as a finite-sample LiU-ICE diagnosis guarantee"
+    "no asymptotic Chernoff error exponent is described as a finite-sample LiU-ICE diagnosis guarantee",
+    "the active evidence baseline tournament includes worst-case pairwise Chernoff separation and reports its asymptotic-independence assumption"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -622,9 +623,9 @@
       "sequential_update": "recompute portfolio with updated posterior and same stable hypothesis-space identity; append the external observation receipt to the ledger"
     },
     "chernoff": {
-      "definition": "Minimum pairwise Chernoff information over every positive-prior hypothesis pair, then minimum over every declared likelihood-uncertainty scenario.",
-      "s_grid_intervals": 100,
-      "claim_ceiling": "Asymptotic repeated-observation separation metric under conditional independence, not a finite-sample error guarantee."
+      "grid_intervals": 100,
+      "metric": "minimum pairwise Chernoff information over positive-prior fault hypotheses, then minimum across all likelihood uncertainty scenarios",
+      "assumption": "asymptotic repeated conditionally independent observations; not a finite-sample diagnostic error guarantee"
     }
   },
   "streaming_contract": {
