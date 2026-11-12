@@ -1,0 +1,364 @@
+{
+  "schema_version": "0.1.0",
+  "monitor_id": "TLS-PRECISION-HEALTH-SYNTHETIC-NO-CHANGE",
+  "sensor": {
+    "manufacturer": "Synthetic Instruments",
+    "model": "TLS-Reference-Unit",
+    "unit_id": "tls-unit-synthetic-001",
+    "firmware_version": "4.2.1-synthetic",
+    "profile_id": "tls-profile-unit-001",
+    "profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "setup": {
+    "artifact_id": "tls-check-field-synthetic-01",
+    "artifact_reference_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "acquisition_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "coordinate_frame_id": "local-control-frame-v1",
+    "range_stratum": "10-to-15-metres",
+    "incidence_stratum": "normal-to-30-degrees",
+    "environment_stratum": "indoor-stable-temperature"
+  },
+  "alpha": 0.05,
+  "permutation_count": 9999,
+  "seed": 2026111207,
+  "baseline_sessions": [
+    {
+      "session_id": "baseline-session-01",
+      "captured_at_utc": "2026-10-01T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.18
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.24
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.3
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-02",
+      "captured_at_utc": "2026-10-02T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.17
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.23
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.29
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-03",
+      "captured_at_utc": "2026-10-03T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.19
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.25
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.31
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-04",
+      "captured_at_utc": "2026-10-04T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.18
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.24
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.3
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-05",
+      "captured_at_utc": "2026-10-05T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.2
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.26
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.32
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-06",
+      "captured_at_utc": "2026-10-06T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.18
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.24
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.3
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-07",
+      "captured_at_utc": "2026-10-07T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.17
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.23
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.29
+        }
+      ]
+    },
+    {
+      "session_id": "baseline-session-08",
+      "captured_at_utc": "2026-10-08T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.19
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.25
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.31
+        }
+      ]
+    }
+  ],
+  "current_sessions": [
+    {
+      "session_id": "current-session-01",
+      "captured_at_utc": "2026-11-01T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.17
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.23
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.31
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-02",
+      "captured_at_utc": "2026-11-02T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.19
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.25
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.29
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-03",
+      "captured_at_utc": "2026-11-03T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.18
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.24
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.3
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-04",
+      "captured_at_utc": "2026-11-04T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.2
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.26
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.32
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-05",
+      "captured_at_utc": "2026-11-05T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.17
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.23
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.29
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-06",
+      "captured_at_utc": "2026-11-06T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.19
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.25
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.31
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-07",
+      "captured_at_utc": "2026-11-07T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.18
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.24
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.3
+        }
+      ]
+    },
+    {
+      "session_id": "current-session-08",
+      "captured_at_utc": "2026-11-08T09:00:00Z",
+      "targets": [
+        {
+          "target_id": "control-A",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.18
+        },
+        {
+          "target_id": "control-B",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.24
+        },
+        {
+          "target_id": "control-C",
+          "repeat_count": 20,
+          "within_session_standard_deviation_mm": 0.3
+        }
+      ]
+    }
+  ]
+}
