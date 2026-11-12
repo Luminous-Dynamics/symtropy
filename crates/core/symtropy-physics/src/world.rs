@@ -2594,3 +2594,7 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+#[path = "world_friction_energy_tests.rs"]
+mod friction_energy_tests;
