@@ -2048,18 +2048,6 @@ impl KerrFiniteRadiusObserver {
         let g_phi_phi = self.tetrad.sqrt_g_phi_phi.powi(2);
 
         let screen_basis = local_sky_tangent_basis(direction);
-        let covariant_momentum = |local_direction: [f64; 3]| -> [f64; 4] {
-            let p_r_contravariant = local_direction[0] * self.tetrad.radial[1];
-            let p_theta_contravariant = local_direction[1] * self.tetrad.polar[2];
-            let p_phi_contravariant = local_direction[2] * self.tetrad.azimuthal[3];
-            [
-                g_t_phi * p_phi_contravariant,
-                (sigma / delta) * p_r_contravariant,
-                sigma * p_theta_contravariant,
-                g_phi_phi * p_phi_contravariant,
-            ]
-        };
-
         let tetrad = self.tetrad;
         let p_contravariant: [f64; 4] = core::array::from_fn(|mu| {
             tetrad.timelike[mu]
