@@ -18,7 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let vector_y = Tangent::<Dense, 3>::new([1.0, -0.5, 0.25]);
 
-    println!("shear,condition_inf,coordinate_inf_q,coordinate_inf_y,metric_norm_q,metric_norm_y,relative_metric_error");
+    println!(
+        "shear,condition_inf,coordinate_inf_q,coordinate_inf_y,metric_norm_q,metric_norm_y,relative_metric_error"
+    );
     for shear in [1.0, 2.0, 4.0, 8.0, 12.0] {
         let change = CoordinateChange::<Cartesian, Dense, 3>::new(
             [
@@ -32,8 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let vector_q = change.pushforward_tangent(&vector_y)?;
         let norm_q = metric_q.tangent_norm(&vector_q)?;
         let norm_y = metric_y.tangent_norm(&vector_y)?;
-        let relative_error =
-            (norm_q - norm_y).abs() / norm_q.abs().max(norm_y.abs()).max(1.0e-300);
+        let relative_error = (norm_q - norm_y).abs() / norm_q.abs().max(norm_y.abs()).max(1.0e-300);
         let q_inf = vector_q
             .components()
             .iter()
