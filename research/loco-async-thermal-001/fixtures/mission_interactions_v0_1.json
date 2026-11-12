@@ -1,0 +1,871 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "LOCO-ASYNC-THERMAL-001",
+  "status": "synthetic_composition_known_answers_only",
+  "units": {
+    "time": "ns",
+    "temperature": "milli_deg_celsius",
+    "energy": "milli_joule"
+  },
+  "assumptions": [
+    "The cases exercise composition and gate ordering only; they do not estimate thermal dynamics.",
+    "Thermal node temperatures and limits are supplied fixture values, not measured hardware values.",
+    "All timestamps use non-negative integer nanoseconds and a declared clock-domain identity.",
+    "A missing or unqualified physical predecessor state is Unknown, never an assumed reset.",
+    "A positive result is eligible for independent projection only; it never authorizes actuation."
+  ],
+  "cases": [
+    {
+      "case_id": "LA01_TEMPORALLY_AND_PHYSICALLY_ELIGIBLE",
+      "description": "The new chunk matches the source model, current observation and actually executed prefix; clock age, expiry, deadline, per-node temperatures, reserve, queue and independent RTA inputs are within the declared envelope.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "eligible_for_independent_projection",
+        "first_failed_gate": null,
+        "projection_eligible": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA02_EXECUTED_PREFIX_MISMATCH",
+      "description": "The planner generated the suffix from an intended prefix that differs from the prefix actually executed.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-11",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "executed_prefix_mismatch",
+        "first_failed_gate": "prefix_identity",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA03_OBSERVATION_STALE_AT_APPLICATION",
+      "description": "The action arrives after the maximum observation-age upper bound has exceeded the qualified horizon.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1200000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1500000000,
+        "action_deadline_ns": 1600000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "observation_stale",
+        "first_failed_gate": "observation_freshness",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA04_CLOCK_MAPPING_UNKNOWN",
+      "description": "The observation and application timestamps use different clock domains with no bounded mapping; age and deadline freshness are Unknown.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "camera-hw-boot-b",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": null,
+        "clock_offset_upper_ns": null,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "clock_mapping_unknown",
+        "first_failed_gate": "clock_relation",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA05_SINGLE_NODE_LIMIT_HIDDEN_BY_MEAN",
+      "description": "A single motor is at 101 C while two other nodes are cool; the mean remains below the motor limit but the per-node hard limit is exceeded.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 101000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 45000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 60333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "per_node_thermal_limit_exceeded",
+        "first_failed_gate": "thermal_envelope",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA06_THERMAL_PREDECESSOR_DIGEST_MISMATCH",
+      "description": "The snapshot is marked fresh but its predecessor digest does not match the state expected by the mission sequence; no thermal state can be assumed.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-9",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-9",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "thermal_predecessor_unknown",
+        "first_failed_gate": "thermal_state_lineage",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA07_CUMULATIVE_HEAT_CARRYOVER_EXCEEDS_LIMIT",
+      "description": "A supplied synthetic sequence carries one motor from 85 C through two consecutive event increments to 102 C; the test must not reset the temperature between events.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 102000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 67333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": true,
+          "initial_temperature_milli_deg_c": 85000,
+          "event1_delta_milli_deg_c": 8000,
+          "event2_delta_milli_deg_c": 9000,
+          "resulting_temperature_milli_deg_c": 102000,
+          "event2_predecessor_digest_matches": true
+        }
+      },
+      "expected": {
+        "disposition": "cumulative_thermal_limit_exceeded",
+        "first_failed_gate": "thermal_envelope",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA08_COMPUTE_COST_CONSUMES_SAFE_STOP_RESERVE",
+      "description": "The compute and sensing interval leaves less energy than the qualified terminal safe-stop reserve; a successful task action would consume protected recovery energy.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 950000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "safe_stop_reserve_insufficient",
+        "first_failed_gate": "mission_reserve",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA09_ACTION_QUEUE_UNDERFLOW",
+      "description": "The asynchronous action queue has underflowed; no stale suffix may be replayed and the local fallback/safe-stop path must be selected.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 0,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "queue_underflow_fallback",
+        "first_failed_gate": "queue_continuity",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA10_INDEPENDENT_RTA_VETO",
+      "description": "Temporal and thermal gates pass, but the independent runtime-assurance authority vetoes the proposal.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": false,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "independent_rta_veto",
+        "first_failed_gate": "independent_runtime_assurance",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA11_THERMAL_MODEL_QUALIFICATION_UNKNOWN",
+      "description": "The thermal transition model is not qualified; plausible temperatures cannot be treated as a validated predictive envelope.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": false,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 2,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "thermal_model_unknown",
+        "first_failed_gate": "thermal_model_qualification",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "LA12_NO_OBSERVATION_CONSTRAINED_RECOVERY_ROUTE",
+      "description": "The candidate action is thermally and temporally admissible but leaves zero observation-constrained recovery routes against a required minimum of one.",
+      "inputs": {
+        "model_digest": "policy-v1",
+        "current_model_digest": "policy-v1",
+        "source_observation_digest": "obs-7",
+        "current_observation_digest": "obs-7",
+        "planned_prefix_digest": "prefix-10",
+        "executed_prefix_digest": "prefix-10",
+        "next_action_index": 10,
+        "source_clock_domain": "robot-mono-boot-a",
+        "application_clock_domain": "robot-mono-boot-a",
+        "source_observation_time_ns": 1000000000,
+        "source_observation_uncertainty_ns": 1000000,
+        "application_time_ns": 1050000000,
+        "application_time_uncertainty_ns": 1000000,
+        "clock_offset_lower_ns": 0,
+        "clock_offset_upper_ns": 0,
+        "maximum_observation_age_ns": 100000000,
+        "action_chunk_expires_at_ns": 1200000000,
+        "action_deadline_ns": 1300000000,
+        "thermal_model_qualified": true,
+        "thermal_snapshot_fresh": true,
+        "thermal_state_digest": "thermal-state-10",
+        "expected_predecessor_state_digest": "thermal-state-10",
+        "provided_predecessor_state_digest": "thermal-state-10",
+        "compute_heat_accounting_qualified": true,
+        "thermal_nodes": [
+          {
+            "node_id": "left-motor",
+            "temperature_milli_deg_c": 72000,
+            "limit_milli_deg_c": 100000
+          },
+          {
+            "node_id": "left-driver",
+            "temperature_milli_deg_c": 65000,
+            "limit_milli_deg_c": 90000
+          },
+          {
+            "node_id": "battery-pack",
+            "temperature_milli_deg_c": 35000,
+            "limit_milli_deg_c": 60000
+          }
+        ],
+        "mean_temperature_milli_deg_c": 57333,
+        "mission_energy_remaining_mj": 5000000,
+        "terminal_safe_stop_reserve_mj": 1000000,
+        "recovery_routes_remaining": 0,
+        "minimum_recovery_routes": 1,
+        "queue_depth": 3,
+        "minimum_queue_depth": 1,
+        "local_fallback_available": true,
+        "independent_rta_admissible": true,
+        "cumulative_thermal_transition": {
+          "enabled": false,
+          "initial_temperature_milli_deg_c": null,
+          "event1_delta_milli_deg_c": null,
+          "event2_delta_milli_deg_c": null,
+          "resulting_temperature_milli_deg_c": null,
+          "event2_predecessor_digest_matches": null
+        }
+      },
+      "expected": {
+        "disposition": "future_recovery_unavailable",
+        "first_failed_gate": "future_option_reserve",
+        "projection_eligible": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    }
+  ]
+}
