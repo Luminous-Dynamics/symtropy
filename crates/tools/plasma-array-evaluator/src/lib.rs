@@ -155,6 +155,7 @@ fn evaluate_scenario(
     scenario: &Scenario,
     manifest: &Manifest,
     reference_scenario_id: &str,
+    reference_service_per_cell: f64,
 ) -> ScenarioResult {
     let mut rejected = Vec::new();
     let mut blocked = Vec::new();
@@ -177,8 +178,11 @@ fn evaluate_scenario(
     if scenario.baseline.scenario_id != reference_scenario_id {
         reject("baseline scenario identity does not match the manifest reference", &mut rejected);
     }
-    if !scenario.baseline.service_per_cell.is_finite() || scenario.baseline.service_per_cell <= 0.0 {
-        reject("one-cell reference service must be finite and positive", &mut rejected);
+    if !scenario.baseline.service_per_cell.is_finite()
+        || scenario.baseline.service_per_cell <= 0.0
+        || !close_enough(scenario.baseline.service_per_cell, reference_service_per_cell)
+    {
+        reject("declared one-cell baseline does not match the frozen reference scenario", &mut rejected);
     }
     if scenario.service.unit.is_empty()
         || scenario.service.unit != scenario.service.reference_unit
@@ -242,7 +246,7 @@ fn evaluate_scenario(
     }
 
     let cell_count = scenario.cells.len() as f64;
-    let scaleout_denominator = cell_count * scenario.baseline.service_per_cell;
+    let scaleout_denominator = cell_count * reference_service_per_cell;
     if scaleout_denominator.is_finite()
         && scaleout_denominator > 0.0
         && scenario.service.accepted_total.is_finite()
@@ -290,7 +294,8 @@ fn evaluate_scenario(
     }
 
     if scenario.attempts.attempted == 0
-        || scenario.attempts.succeeded + scenario.attempts.failed != scenario.attempts.attempted
+        || scenario.attempts.succeeded.checked_add(scenario.attempts.failed)
+            != Some(scenario.attempts.attempted)
         || !scenario.attempts.failed_included_in_denominator
     {
         block("attempt, success and failure denominators do not reconcile", &mut blocked);
@@ -308,6 +313,9 @@ fn evaluate_scenario(
         for edge in &scenario.cross_talk.edges {
             if edge.from.is_empty()
                 || edge.to.is_empty()
+                || !cell_ids.contains(edge.from.as_str())
+                || !cell_ids.contains(edge.to.as_str())
+                || edge.from == edge.to
                 || edge.intervention.is_empty()
                 || !edge.neighbor_output_delta_fraction.is_finite()
                 || edge.neighbor_output_delta_fraction < 0.0
@@ -386,6 +394,33 @@ pub fn audit_manifest_json(input: &str) -> Result<AuditReport, String> {
         return Err("scale-out reference scenario is missing".to_owned());
     }
 
+    if !manifest.research_targets.minimum_scaleout_efficiency.is_finite()
+        || manifest.research_targets.minimum_scaleout_efficiency < 0.0
+        || !manifest.research_targets.maximum_active_cell_cv.is_finite()
+        || manifest.research_targets.maximum_active_cell_cv < 0.0
+        || !manifest.research_targets.maximum_neighbor_cross_talk_fraction.is_finite()
+        || manifest.research_targets.maximum_neighbor_cross_talk_fraction < 0.0
+    {
+        return Err("research target bounds are invalid".to_owned());
+    }
+
+    let reference = manifest
+        .scenarios
+        .iter()
+        .find(|scenario| scenario.id == manifest.scaleout_reference_scenario_id)
+        .expect("reference identity checked above");
+    if reference.cells.len() != 1
+        || reference.cells[0].state != "active"
+        || reference.cells[0].observed_state != "active"
+        || !reference.cells[0].accepted_service.is_finite()
+        || reference.cells[0].accepted_service <= 0.0
+        || reference.service.unit != reference.service.reference_unit
+        || !close_enough(reference.cells[0].accepted_service, reference.service.accepted_total)
+    {
+        return Err("reference scenario must contain one valid active cell with reconciled service".to_owned());
+    }
+    let reference_service_per_cell = reference.cells[0].accepted_service;
+
     let results: Vec<ScenarioResult> = manifest
         .scenarios
         .iter()
@@ -394,6 +429,7 @@ pub fn audit_manifest_json(input: &str) -> Result<AuditReport, String> {
                 scenario,
                 &manifest,
                 &manifest.scaleout_reference_scenario_id,
+                reference_service_per_cell,
             )
         })
         .collect();
@@ -481,11 +517,19 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn candidate_cannot_change_its_one_cell_reference() {
+        let mut value = fixture_value();
+        value["scenarios"][1]["baseline"]["service_per_cell"] = serde_json::json!(0.1);
+        assert_eq!(run(&value).results[1].disposition, "REJECTED");
+    }
+
     #[test]
     fn duplicate_cell_identity_is_rejected() {
         let mut value = fixture_value();
-        value["scenarios"][1]["cells"][1]["id"] =
-            value["scenarios"][1]["cells"][0]["id"].clone();
+        let first_id = value["scenarios"][1]["cells"][0]["id"].clone();
+        value["scenarios"][1]["cells"][1]["id"] = first_id;
         assert_eq!(run(&value).results[1].disposition, "REJECTED");
     }
 
