@@ -2651,7 +2651,9 @@ mod net_id_assignment_tests {
     #[test]
     fn net_id_assignment_rejects_duplicate_without_mutation() {
         let (mut world, first, second) = world_with_two_bodies();
-        world.try_set_net_id(first, NetId(9)).expect("first assignment");
+        world
+            .try_set_net_id(first, NetId(9))
+            .expect("first assignment");
         let result = world.try_set_net_id(second, NetId(9));
 
         assert_eq!(
@@ -2690,12 +2692,13 @@ mod net_id_assignment_tests {
     #[test]
     fn net_id_assignment_releases_old_id_on_reassignment() {
         let (mut world, first, second) = world_with_two_bodies();
-        world.try_set_net_id(first, NetId(7)).expect("initial assignment");
-        assert_eq!(
-            world.try_set_net_id(first, NetId(8)),
-            Ok(Some(NetId(7)))
-        );
-        world.try_set_net_id(second, NetId(7)).expect("old id released");
+        world
+            .try_set_net_id(first, NetId(7))
+            .expect("initial assignment");
+        assert_eq!(world.try_set_net_id(first, NetId(8)), Ok(Some(NetId(7))));
+        world
+            .try_set_net_id(second, NetId(7))
+            .expect("old id released");
         assert_eq!(world.handle_for_net_id(NetId(7)), Some(second));
         assert_eq!(world.handle_for_net_id(NetId(8)), Some(first));
     }
@@ -2718,23 +2721,23 @@ mod net_id_assignment_tests {
         let mut world = PhysicsWorld::<2>::new(SVector::zeros());
         let existing = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
         world.body_mut(existing).expect("existing body").net_id = Some(NetId(21));
-        let candidate = RigidBody::dynamic_sphere(
-            BodyHandle(usize::MAX),
-            Point::new([3.0, 0.0]),
-            1.0,
-            1.0,
-        );
+        let candidate =
+            RigidBody::dynamic_sphere(BodyHandle(usize::MAX), Point::new([3.0, 0.0]), 1.0, 1.0);
 
-        assert!(world
-            .add_bodies_deterministic(vec![(NetId(21), candidate)])
-            .is_err());
+        assert!(
+            world
+                .add_bodies_deterministic(vec![(NetId(21), candidate)])
+                .is_err()
+        );
         assert_eq!(world.bodies.len(), 1);
     }
 
     #[test]
     fn legacy_net_id_setter_fails_closed_on_duplicate() {
         let (mut world, first, second) = world_with_two_bodies();
-        world.try_set_net_id(first, NetId(11)).expect("first assignment");
+        world
+            .try_set_net_id(first, NetId(11))
+            .expect("first assignment");
         world.set_net_id(second, NetId(11));
         assert_eq!(world.net_id_for_handle(first), Some(NetId(11)));
         assert_eq!(world.net_id_for_handle(second), None);
