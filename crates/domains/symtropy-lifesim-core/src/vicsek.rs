@@ -423,6 +423,7 @@ pub struct VicsekClusterGeometry {
 pub struct VicsekClusterGeometryReport {
     pub tick: u64,
     pub update_rule: VicsekUpdateRule,
+    pub heading_mean: VicsekHeadingMean,
     pub perception: VicsekPerception,
     pub graph_semantics: VicsekGraphSemantics,
     pub interaction_radius: f64,
@@ -1442,6 +1443,7 @@ impl VicsekModel {
         VicsekMetrics {
             tick: self.tick,
             update_rule: self.config.update_rule,
+            heading_mean: self.heading_mean,
             perception: self.perception,
             graph_semantics: match self.perception {
                 VicsekPerception::MetricRadius => VicsekGraphSemantics::UndirectedMetric,
