@@ -152,8 +152,8 @@ jobs:
             (.candidate_classes.controlled_perturbation.eligible_when == false) and
             (.hard_gates | length >= 40) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
-            (.method.calibration.requirement | contains("independent calibration-review receipt")) and
-            (.method.calibration.qualification | contains("not self-authenticating")) and
+            (.method.likelihood_calibration_review.requirement | contains("independent calibration-review receipt")) and
+            (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' "$root/active-evidence-selection-v0.1.json" >/dev/null
 
