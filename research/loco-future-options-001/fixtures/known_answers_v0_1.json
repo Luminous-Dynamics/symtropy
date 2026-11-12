@@ -16,7 +16,8 @@
         "digest": "sha256:fo01-branches"
       },
       "thermal_chain": {
-        "status": "not_applicable"
+        "status": "not_applicable",
+        "branch_manifest_digest": "sha256:fo01-branches"
       },
       "branches": [
         {
@@ -122,7 +123,8 @@
         "digest": "sha256:fo02-branches"
       },
       "thermal_chain": {
-        "status": "not_applicable"
+        "status": "not_applicable",
+        "branch_manifest_digest": "sha256:fo02-branches"
       },
       "branches": [
         {
@@ -337,7 +339,8 @@
         "digest": "sha256:fo04-branches"
       },
       "thermal_chain": {
-        "status": "not_applicable"
+        "status": "not_applicable",
+        "branch_manifest_digest": "sha256:fo04-branches"
       },
       "branches": [
         {
@@ -432,7 +435,8 @@
         "digest": "sha256:fo05-partial-branches"
       },
       "thermal_chain": {
-        "status": "not_applicable"
+        "status": "not_applicable",
+        "branch_manifest_digest": "sha256:fo05-partial-branches"
       },
       "branches": [
         {
@@ -496,7 +500,8 @@
         "digest": "sha256:fo06-branches"
       },
       "thermal_chain": {
-        "status": "not_applicable"
+        "status": "not_applicable",
+        "branch_manifest_digest": "sha256:fo06-branches"
       },
       "branches": [
         {
@@ -579,7 +584,8 @@
         "node_manifest_digest": "sha256:thermal-nodes",
         "expected_predecessor_state_digest": "sha256:thermal-current-predecessor",
         "observed_predecessor_state_digest": "sha256:thermal-other-predecessor",
-        "result_state_digest": "sha256:thermal-result"
+        "result_state_digest": "sha256:thermal-result",
+        "branch_manifest_digest": "sha256:fo07-branches"
       },
       "branches": [
         {
