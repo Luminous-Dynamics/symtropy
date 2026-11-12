@@ -266,6 +266,10 @@ pub struct LedgerReport {
 /// Input evidence for one transition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransitionEvidence {
+    /// State digest immediately before this evidence transition.
+    pub predecessor_state_digest: String,
+    /// State digest immediately after this evidence transition.
+    pub result_state_digest: String,
     /// Optional observation-partition refinement receipt.
     pub observation_partition_change: Option<ObservationPartitionReceipt>,
     /// Exactly one evidence item for each removed or added canonical action.
@@ -373,7 +377,7 @@ fn validate_scope(previous: &OptionSnapshot, next: &OptionSnapshot) -> Result<()
     if previous.scope.action_domain_digest != next.scope.action_domain_digest {
         return Err(LedgerError::ScopeMismatch("action_domain_digest"));
     }
-    if previous.action_domain_ids != next.action_domain_ids {
+    if set(&previous.action_domain_ids) != set(&next.action_domain_ids) {
         return Err(LedgerError::ActionDomainMismatch);
     }
     Ok(())
@@ -415,6 +419,13 @@ pub fn audit_transition(
     }
     if next.predecessor_state_digest != previous.result_state_digest {
         return Err(LedgerError::StatePredecessorMismatch);
+    }
+    if evidence.predecessor_state_digest != previous.result_state_digest
+        || evidence.result_state_digest != next.result_state_digest
+    {
+        return Err(LedgerError::TransitionReceiptBindingMismatch(
+            "transition_state".to_owned(),
+        ));
     }
 
     let partition_changed =
@@ -652,8 +663,14 @@ mod tests {
         }
     }
 
-    fn transition(changes: Vec<OptionChangeEvidence>) -> TransitionEvidence {
+    fn transition(
+        previous: &OptionSnapshot,
+        next: &OptionSnapshot,
+        changes: Vec<OptionChangeEvidence>,
+    ) -> TransitionEvidence {
         TransitionEvidence {
+            predecessor_state_digest: previous.result_state_digest.clone(),
+            result_state_digest: next.result_state_digest.clone(),
             observation_partition_change: None,
             changes,
         }
@@ -666,7 +683,7 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(vec![remove(
+            &transition(&previous, &next, vec![remove(
                 "step-left",
                 LossCause::ThermalDerating,
                 Reversibility::Conditional {
@@ -689,7 +706,7 @@ mod tests {
     fn missing_loss_cause_remains_unknown() {
         let previous = snapshot(1, "s0", "s1", &["retreat", "step-left"]);
         let next = snapshot(2, "s1", "s2", &["retreat"]);
-        let report = audit_transition(&previous, &next, &transition(vec![])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -865,6 +882,8 @@ mod tests {
         let mut next = snapshot(2, "s1", "s2", &["retreat"]);
         next.observation_partition_digest = "observation-b".into();
         let evidence = TransitionEvidence {
+            predecessor_state_digest: previous.result_state_digest.clone(),
+            result_state_digest: next.result_state_digest.clone(),
             observation_partition_change: Some(ObservationPartitionReceipt {
                 predecessor_partition_digest: "observation-a".into(),
                 result_partition_digest: "observation-b".into(),
@@ -881,8 +900,10 @@ mod tests {
     fn input_order_does_not_change_canonical_report() {
         let previous_a = snapshot(1, "s0", "s1", &["retreat", "step-left", "step-right"]);
         let next_a = snapshot(2, "s1", "s2", &["retreat"]);
-        let previous_b = snapshot(1, "s0", "s1", &["step-right", "retreat", "step-left"]);
-        let next_b = snapshot(2, "s1", "s2", &["retreat"]);
+        let mut previous_b = snapshot(1, "s0", "s1", &["step-right", "retreat", "step-left"]);
+        let mut next_b = snapshot(2, "s1", "s2", &["retreat"]);
+        previous_b.action_domain_ids.reverse();
+        next_b.action_domain_ids.reverse();
         let changes_a = vec![
             remove("step-left", LossCause::ThermalDerating, Reversibility::Irreversible),
             remove("step-right", LossCause::EnergyDepletion, Reversibility::Irreversible),
@@ -891,8 +912,8 @@ mod tests {
             remove("step-right", LossCause::EnergyDepletion, Reversibility::Irreversible),
             remove("step-left", LossCause::ThermalDerating, Reversibility::Irreversible),
         ];
-        let a = audit_transition(&previous_a, &next_a, &transition(changes_a)).unwrap();
-        let b = audit_transition(&previous_b, &next_b, &transition(changes_b)).unwrap();
+        let a = audit_transition(&previous_a, &next_a, &transition(&previous_a, &next_a, changes_a)).unwrap();
+        let b = audit_transition(&previous_b, &next_b, &transition(&previous_b, &next_b, changes_b)).unwrap();
         assert_eq!(a, b);
     }
 
