@@ -319,6 +319,7 @@ pub enum TransitionError {
     StaleRevision,
     SubjectMismatch,
     InvalidSuccessor,
+    MissingMeasuredPostcondition,
     RevisionOverflow,
 }
 
@@ -496,6 +497,12 @@ fn validate_kind(
             postcondition_claims,
         } => {
             validate_claims(postcondition_claims, evidence)?;
+            if !postcondition_claims
+                .iter()
+                .any(|claim| claim.evidence_class == EvidenceClass::Measured)
+            {
+                return Err(TransitionError::MissingMeasuredPostcondition);
+            }
             let label = match action {
                 MaintenanceAction::Inspect => TransitionKindLabel::Inspect,
                 MaintenanceAction::Repair => TransitionKindLabel::Repair,
@@ -515,6 +522,12 @@ fn validate_kind(
                 return Err(TransitionError::InvalidSuccessor);
             }
             validate_claims(initial_claims, evidence)?;
+            if !initial_claims
+                .iter()
+                .any(|claim| claim.evidence_class == EvidenceClass::Measured)
+            {
+                return Err(TransitionError::MissingMeasuredPostcondition);
+            }
             Ok((
                 successor.clone(),
                 initial_claims.clone(),
@@ -806,6 +819,50 @@ mod tests {
         assert_eq!(ledger.history()[0].claim.claim_id, "before-repair");
         assert_eq!(ledger.history()[1].claim.claim_id, "after-repair");
         assert_eq!(ledger.transitions()[1].kind, TransitionKindLabel::Repair);
+    }
+
+    #[test]
+    fn model_only_repair_cannot_become_an_executed_transition() {
+        let mut ledger = ledger();
+        let before = ledger.clone();
+        let result = ledger.apply(event(
+            "evt-repair",
+            0,
+            subject(),
+            10,
+            TransitionKind::Maintenance {
+                action: MaintenanceAction::Repair,
+                postcondition_claims: vec![model_claim("repair-model-only", "repair-model-output")],
+            },
+            vec![source("repair-model-output", EvidenceClass::ModelEstimate)],
+        ));
+        assert_eq!(result, Err(TransitionError::MissingMeasuredPostcondition));
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn model_only_replacement_cannot_create_a_verified_new_generation() {
+        let mut ledger = ledger();
+        let successor = ComponentIdentity {
+            physical_article_id: "article-001".into(),
+            component_instance_id: "beam-001-generation-2".into(),
+            configuration_revision: 2,
+            material_lot_id: "heat-99".into(),
+        };
+        let before = ledger.clone();
+        let result = ledger.apply(event(
+            "evt-replace",
+            0,
+            subject(),
+            10,
+            TransitionKind::Replacement {
+                successor,
+                initial_claims: vec![model_claim("replacement-model-only", "replacement-model-output")],
+            },
+            vec![source("replacement-model-output", EvidenceClass::ModelEstimate)],
+        ));
+        assert_eq!(result, Err(TransitionError::MissingMeasuredPostcondition));
+        assert_eq!(ledger, before);
     }
 
     #[test]
