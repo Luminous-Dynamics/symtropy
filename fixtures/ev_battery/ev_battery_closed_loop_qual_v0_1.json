@@ -1,0 +1,220 @@
+{
+  "schema_version": "0.1.0",
+  "design": {
+    "design_id": "LFP-4AH-CELL",
+    "revision": "r1",
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "recipe_id": "LFP-COATING-CALENDER-R1",
+    "recipe_revision": "r1",
+    "process_window_id": "LFP-PROCESS-WINDOW-01",
+    "process_window_revision": "r1",
+    "evidence_id": "E-DESIGN"
+  },
+  "process_runs": [
+    {
+      "run_id": "RUN-001",
+      "cell_id": "CELL-001",
+      "lot_id": "LOT-A",
+      "lot_lineage_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "line_id": "LINE-1",
+      "line_identity_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "equipment_id": "CALENDER-1",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "recipe_id": "LFP-COATING-CALENDER-R1",
+      "recipe_revision": "r1",
+      "process_window_id": "LFP-PROCESS-WINDOW-01",
+      "process_window_revision": "r1",
+      "disposition": "in_window",
+      "digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "evidence_id": "E-PROCESS"
+    },
+    {
+      "run_id": "RUN-002",
+      "cell_id": "CELL-002",
+      "lot_id": "LOT-A",
+      "lot_lineage_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "line_id": "LINE-1",
+      "line_identity_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "equipment_id": "CALENDER-1",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "recipe_id": "LFP-COATING-CALENDER-R1",
+      "recipe_revision": "r1",
+      "process_window_id": "LFP-PROCESS-WINDOW-01",
+      "process_window_revision": "r1",
+      "disposition": "in_window",
+      "digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "evidence_id": "E-PROCESS"
+    },
+    {
+      "run_id": "RUN-003",
+      "cell_id": "CELL-003",
+      "lot_id": "LOT-B",
+      "lot_lineage_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "line_id": "LINE-2",
+      "line_identity_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+      "equipment_id": "CALENDER-2",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "recipe_id": "LFP-COATING-CALENDER-R1",
+      "recipe_revision": "r1",
+      "process_window_id": "LFP-PROCESS-WINDOW-01",
+      "process_window_revision": "r1",
+      "disposition": "out_of_window",
+      "digest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "evidence_id": "E-PROCESS"
+    },
+    {
+      "run_id": "RUN-004",
+      "cell_id": "CELL-004",
+      "lot_id": "LOT-C",
+      "lot_lineage_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+      "line_id": "LINE-2",
+      "line_identity_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+      "equipment_id": "CALENDER-2",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "recipe_id": "LFP-COATING-CALENDER-R1",
+      "recipe_revision": "r1",
+      "process_window_id": "LFP-PROCESS-WINDOW-01",
+      "process_window_revision": "r1",
+      "disposition": "in_window",
+      "digest": "9999999999999999999999999999999999999999999999999999999999999999",
+      "evidence_id": "E-PROCESS"
+    }
+  ],
+  "cell_tests": [
+    {
+      "test_id": "TEST-001",
+      "cell_id": "CELL-001",
+      "run_id": "RUN-001",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "boundary": "complete_cell",
+      "disposition": "synthetic_pass",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_id": "E-CELL"
+    },
+    {
+      "test_id": "TEST-002",
+      "cell_id": "CELL-002",
+      "run_id": "RUN-002",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "boundary": "complete_cell",
+      "disposition": "synthetic_pass",
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_id": "E-CELL"
+    },
+    {
+      "test_id": "TEST-003",
+      "cell_id": "CELL-003",
+      "run_id": "RUN-003",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "boundary": "complete_cell",
+      "disposition": "synthetic_fail",
+      "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_id": "E-CELL"
+    },
+    {
+      "test_id": "TEST-004",
+      "cell_id": "CELL-004",
+      "run_id": "RUN-004",
+      "design_id": "LFP-4AH-CELL",
+      "design_revision": "r1",
+      "boundary": "complete_cell",
+      "disposition": "incomplete",
+      "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_id": "E-CELL"
+    }
+  ],
+  "pack": {
+    "pack_id": "PACK-001",
+    "revision": "r1",
+    "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "design_id": "LFP-4AH-CELL",
+    "design_revision": "r1",
+    "members": [
+      { "cell_id": "CELL-001", "design_id": "LFP-4AH-CELL", "design_revision": "r1" },
+      { "cell_id": "CELL-002", "design_id": "LFP-4AH-CELL", "design_revision": "r1" },
+      { "cell_id": "CELL-003", "design_id": "LFP-4AH-CELL", "design_revision": "r1" },
+      { "cell_id": "CELL-004", "design_id": "LFP-4AH-CELL", "design_revision": "r1" }
+    ]
+  },
+  "mission_outcomes": [
+    {
+      "outcome_id": "MISSION-001",
+      "pack_id": "PACK-001",
+      "pack_revision": "r1",
+      "scenario_id": "EV-DELIVERY-DUTY-01",
+      "boundary": "installed_pack",
+      "kind": "simulated",
+      "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_id": "E-MISSION"
+    }
+  ],
+  "decision": {
+    "decision_id": "DECISION-001",
+    "design_id": "LFP-4AH-CELL",
+    "design_revision": "r1",
+    "basis_evidence_ids": ["E-DESIGN", "E-PROCESS", "E-CELL", "E-MISSION"],
+    "dependency_digests": [
+      "1111111111111111111111111111111111111111111111111111111111111111",
+      "2222222222222222222222222222222222222222222222222222222222222222",
+      "3333333333333333333333333333333333333333333333333333333333333333",
+      "4444444444444444444444444444444444444444444444444444444444444444",
+      "5555555555555555555555555555555555555555555555555555555555555555",
+      "6666666666666666666666666666666666666666666666666666666666666666",
+      "7777777777777777777777777777777777777777777777777777777777777777",
+      "8888888888888888888888888888888888888888888888888888888888888888",
+      "9999999999999999999999999999999999999999999999999999999999999999",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    ],
+    "next_experiment_id": "EXP-AGING-002"
+  },
+  "evidence": [
+    {
+      "evidence_id": "E-DESIGN",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic candidate design descriptor",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-PROCESS",
+      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic process run evidence",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-CELL",
+      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "synthetic_fixture",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic cell test outcomes",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-MISSION",
+      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "simulation",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic mission simulation output",
+      "validity_domain": "fixture only",
+      "metrology_ref": null
+    }
+  ]
+}
