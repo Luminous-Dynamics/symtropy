@@ -117,7 +117,6 @@ fn parse_u64(value: &str, field: &str) -> Result<u64, String> {
         .map_err(|_| format!("invalid {field}: {value}"))
 }
 
-
 fn parse_f64(value: &str, field: &str) -> Result<f64, String> {
     let parsed = value
         .parse::<f64>()
