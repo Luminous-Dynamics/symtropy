@@ -71,21 +71,18 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 
 ## Next gates
 
-- Add waveform-metric fixture cross-checks against an independent Python/NumPy reference and validate PSD-weighting / alignment behavior on real SXS test signals.
-- Propagate waveform discrepancy through a simple posterior-recovery fixture before any surrogate posterior-accuracy claim.
-- Kerr further independent curvature-invariant fixtures and full tensor conditioning/error estimates.
-- Cross-check the equatorial Kerr light-ring frequency and Lyapunov references against independent closed-form/eikonal calculations and compare to finite-l QNM spectra without conflating the asymptotic eikonal correspondence with exact QNM values.
-- Differential Bianchi identity and higher-derivative consistency checks.
-- More exhaustive horizon-regular coordinate and cross-chart scalar-invariant comparisons.
-- Propagate independent error budgets through the observer seed, canonical trajectory, variational tangent map and source-screen projection; qualify both exterior and ingoing chart overlap on common events.
-- Localize screen-map determinant roots with adaptive bracketing and refinement; classify fold and cusp catastrophes, parity changes and magnification scaling; return unresolved near-degenerate roots rather than forcing a classification.
-- Add uniform Airy/Pearcey finite-frequency references and compare selected cases with independent Teukolsky / wave-optics solvers.
-- Cross-check source-screen maps against AART / independent Carter-integrable ray tracing and compare image-plane observables, lensing-band structure and long-baseline visibility at matched physical error.
-- Add exact-head compilation, Clippy, deterministic benchmark receipts, and reproducible hardware/compiler/precision metadata before promoting any performance claim.
+- Add the observer/source-screen optical regression to the exact-head Rust test receipt; record compiler, target, options and source SHA.
+- Cross-check exterior and ingoing Kerr screen maps on matched events, using independent Carter-integrable neighbouring rays and chart-overlap transforms.
+- Localize determinant roots with adaptive bracketing and refinement; classify folds/cusps, parity changes and magnification scaling; return unresolved near-degenerate roots.
+- Add Airy-fold and Pearcey-cusp finite-frequency fixtures, then compare selected cases with independent Teukolsky / wave-optics solutions.
+- Compare image-plane observables, lensing bands, long-baseline visibility and polarization against AART at matched physical accuracy—not raw render FPS.
+- Extend independent curvature-invariant and differential-Bianchi checks, and add tensor conditioning/error estimates.
+- Validate waveform-metric fixtures and posterior-recovery behavior against SXS data and independent references.
+- Establish exact-head build, Clippy, determinism and benchmark receipts before promoting performance or physical-accuracy claims.
 
 ## Versioned benchmark registries
 
-Six versioned machine-readable research manifests are maintained beside the crate:
+Seven versioned machine-readable research manifests are maintained beside the crate:
 
 - `benchmarks/direct_wave_sxs_spin_sweep.json` — the earlier ten-case high-spin counteranalysis plus a pinned 168-entry catalogue (125 aligned/precessing/eccentric SXS and 43 anti-aligned), 13 CCE News waveforms, all-QNM ell=2..6 filter analysis, light-ring and BOB predictors, filter-free subset configuration, and Gaussian-vacuum-perturbation filter controls. The earlier ten-case paper's exact fitting-window boundaries remain null until transcribed from its own supplement.
 - `benchmarks/waveform_surrogate_baselines.json` — versioned literature baselines for NRSur7dq4 NN/v2, SEOBNRv5PHM_NNSur7dq10, AESur3dq8, NRSurE_q4NoSpin_22, BOB, SpEC accuracy, SEOBNRv6EPHM, and SEOBNRv6EHM.
@@ -102,7 +99,7 @@ These files are literature / experiment specifications. They are not benchmark e
 
 `cargo test -p symtropy-relativity`
 
-**Validation status:** 90 tests are authored but were not executed in the editing environment because `rustc` and `cargo` are unavailable there. The new Kerr equations were checked against independent algebraic calculations for the Schwarzschild critical double root, observer-screen map and radial null coordinate-time ratio; this does not validate Rust compilation or a numerical Kerr trajectory. No build/test pass, waveform benchmark result, light-ring Rust result, or geodesic accuracy claim is made.
+**Validation status:** the edited Kerr geodesic and integrator modules now contain 30 and 12 authored tests respectively. They were not compiled or executed in the editing environment because `rustc` and `cargo` are unavailable. Independent Python/algebraic checks of the Kerr flow Jacobian, propagated tangent matrix, observer seed and screen projection are equation-level cross-checks only. The exact Schwarzschild radial screen-map regression is authored but not executed. No build/test/CI pass, caustic location, magnification accuracy, waveform result or performance superiority is claimed.
 
 
 ## Separated Kerr null-geodesic reference
@@ -137,7 +134,7 @@ The canonical evaluator also supports the horizon-regular ingoing Kerr chart. `i
 
 The finite-radius observer is specifically a ZAMO. `KerrFiniteRadiusObserver` provides an orthonormal tetrad; `KerrLocalSkyDirection` validates a unit local sky direction; and `ray_seed` returns normalized Carter constants, Mino initial data, observer location and an explicit preferred coordinate chart. Other observer worldlines require their own tetrads. Negative Killing-energy Penrose-process rays remain outside the current (E>0) constant type.
 
-This is an adaptive separated Kerr ray integrator, but not yet a complete ray-bundle solver. The canonical Hamiltonian path now integrates trajectories via the separate adaptive step-doubling module. No variational Jacobi transport, caustic detection, image-branch topology tracking or wave optics is included yet. The ingoing chart integration is restricted to (r>0) and (0<\theta<\pi); it does not claim passage through the ring singularity or polar axis. Tests are authored but not executed in this environment.
+This is now an observer-seeded variational ray-bundle and finite-observer source-screen-map implementation, but not yet a qualified caustic solver. The canonical Hamiltonian flow Jacobian and full fundamental matrix are integrated; two initial angular screen variations are propagated and projected to a 2x2 source screen. Adaptive caustic-root localization, fold/cusp classification, image-branch topology tracking and wave optics remain unimplemented. The ingoing chart integration is restricted to (r>0) and (0<theta<pi); it does not claim passage through the ring singularity or polar axis. Rust tests are authored but not executed in this environment.
 
 ## Schwarzschild geodesic scope
 
