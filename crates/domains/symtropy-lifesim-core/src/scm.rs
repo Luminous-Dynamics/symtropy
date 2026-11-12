@@ -55,13 +55,16 @@ pub enum ScmConsensusWindow {
 
 /// Communication topology for the consensus/search controller.
 ///
-/// `CompleteGraph` is the paper/source baseline. `Ring` and `MetricRadius` are
-/// OLI extensions that constrain social messages and consensus to declared neighbours.
+/// `CompleteGraph` is the paper/source baseline. `Ring`, `MetricRadius`, and
+/// `NoCommunication` are OLI extensions that constrain or disable direct social messages.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ScmCommunicationTopology {
     CompleteGraph,
     Ring,
     MetricRadius { radius: f64 },
+    /// Explicitly empty adjacency. Unlike a zero-radius metric graph, coincident
+    /// agents never become neighbours under this topology.
+    NoCommunication,
 }
 
 impl ScmCommunicationTopology {
@@ -70,6 +73,7 @@ impl ScmCommunicationTopology {
             Self::CompleteGraph => "complete_graph",
             Self::Ring => "ring",
             Self::MetricRadius { .. } => "metric_radius",
+            Self::NoCommunication => "no_communication",
         }
     }
 
@@ -786,6 +790,7 @@ fn build_communication_neighbors(
                 }
             }
         }
+        ScmCommunicationTopology::NoCommunication => {}
         ScmCommunicationTopology::MetricRadius { radius } => {
             for focal in 0..count {
                 for candidate in 0..count {
@@ -1182,6 +1187,30 @@ mod tests {
     }
 
     #[test]
+    fn no_communication_topology_never_connects_coincident_agents() {
+        let agents = vec![
+            ScmAgent { position: vec![0.5, 0.5] },
+            ScmAgent { position: vec![0.5, 0.5] },
+            ScmAgent { position: vec![0.2, 0.2] },
+        ];
+        let mut model = ScmModel::new(
+            agents,
+            ScmConfig {
+                communication_topology: ScmCommunicationTopology::NoCommunication,
+                ..ScmConfig::default()
+            },
+            909,
+        )
+        .unwrap();
+
+        let report = model.step(&Quadratic).unwrap();
+        assert_eq!(report.communication_topology, ScmCommunicationTopology::NoCommunication);
+        assert_eq!(report.mean_communicating_neighbors, 0.0);
+        assert_eq!(report.isolated_agents, 3);
+        assert_eq!(report.best_agent_fitness, report.best_fitness_seen);
+    }
+
+    #[test]
     fn complete_graph_matches_metric_radius_that_connects_every_agent() {
         let agents = small_agents();
         let complete_config = ScmConfig {
@@ -1299,7 +1328,7 @@ mod tests {
                 sigma_limit: 0.0,
                 omega: 0.0,
                 tau_steps: 4,
-                communication_topology: ScmCommunicationTopology::MetricRadius { radius: 0.0 },
+                communication_topology: ScmCommunicationTopology::NoCommunication,
                 ..ScmConfig::default()
             },
             101,
@@ -1321,7 +1350,7 @@ mod tests {
         let topologies = [
             ScmCommunicationTopology::CompleteGraph,
             ScmCommunicationTopology::Ring,
-            ScmCommunicationTopology::MetricRadius { radius: 0.0 },
+            ScmCommunicationTopology::NoCommunication,
         ];
         let expected_total_evaluations = small_agents().len() as u64 * 6;
         let mut final_best_values = Vec::new();
