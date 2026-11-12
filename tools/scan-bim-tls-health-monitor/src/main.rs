@@ -542,7 +542,7 @@ mod tests {
         let mut input: Input =
             serde_json::from_str(PRECISION_CHANGE).expect("precision fixture parses");
         for session in &mut input.current_sessions {
-            session.targets[2].within_session_standard_deviation_mm /= 3.0;
+            session.targets[2].within_session_standard_deviation_mm /= 5.0;
         }
         let bytes = serde_json::to_vec(&input).expect("improvement fixture serializes");
         let report = evaluate_bytes(&bytes).expect("improvement fixture evaluates");
