@@ -812,6 +812,7 @@ mod tests {
             observation_receipt_digest: format!("observation:{node_id}"),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec![state_id.to_owned()],
+            belief_state_set_digest: format!("belief-set:{node_id}"),
             state_evidence: vec![state_receipt(state_id)],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -835,6 +836,7 @@ mod tests {
             state_id: state_id.to_owned(),
             complete: true,
             receipt_digest: format!("admission:{state_id}"),
+            supporting_receipt_digests: vec![format!("admission:{state_id}")],
             admitted_action_ids: actions.iter().map(|a| (*a).to_owned()).collect(),
         }
     }
@@ -863,6 +865,7 @@ mod tests {
             observation_receipt_digest: "observation:root".to_owned(),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s1".to_owned(), "s2".to_owned()],
+            belief_state_set_digest: "belief-set:root".to_owned(),
             state_evidence: vec![state_receipt("s1"), state_receipt("s2")],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -883,6 +886,7 @@ mod tests {
             observation_receipt_digest: "observation:rough".to_owned(),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s1-rough".to_owned()],
+            belief_state_set_digest: "belief-set:rough".to_owned(),
             state_evidence: vec![state_receipt("s1-rough")],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -897,6 +901,7 @@ mod tests {
             observation_receipt_digest: "observation:firm".to_owned(),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s2-firm".to_owned()],
+            belief_state_set_digest: "belief-set:firm".to_owned(),
             state_evidence: vec![state_receipt("s2-firm")],
             transition_manifest: EvidenceManifest {
                 complete: true,
