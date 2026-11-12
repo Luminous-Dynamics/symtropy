@@ -745,8 +745,7 @@ mod tests {
     fn adapter_conformance_reports_first_divergent_tick() {
         let scenario = generate_scenario(8, 8, 3, 17).unwrap();
         let mut observed = run_reference(&scenario).unwrap().trajectory;
-        observed[2].empty -= 1;
-        observed[2].tree += 1;
+        observed[2].tick += 1;
         let error = verify_adapter_trajectory(&scenario, "netlogo-adapter-v0", &observed)
             .expect_err("changed state must be rejected");
         assert!(matches!(
