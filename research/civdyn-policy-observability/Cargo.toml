@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-policy-observability"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Finite-population policy-dependent outcome observability benchmark for CIVDYN"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "policy-observability-sweep"
+path = "src/bin/policy_observability_sweep.rs"
+
+[dependencies]
