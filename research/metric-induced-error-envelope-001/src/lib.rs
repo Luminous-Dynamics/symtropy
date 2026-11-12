@@ -341,8 +341,12 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         for row in 0..N {
             for column in 0..=row {
                 let mut value = symmetric[row][column];
-                for inner in 0..column {
-                    value -= cholesky[row][inner] * cholesky[column][inner];
+                for (left, right) in cholesky[row]
+                    .iter()
+                    .zip(cholesky[column].iter())
+                    .take(column)
+                {
+                    value -= left * right;
                 }
                 if !value.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
@@ -389,7 +393,7 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
     /// ||v||_M = sqrt(v^T M v), evaluated as ||L^T v||_2 for M = L L^T.
     pub fn tangent_norm(&self, vector: &Tangent<F, N>) -> Result<f64, MetricErrorV1> {
         let mut transformed = [0.0; N];
-        for column in 0..N {
+        for (column, output) in transformed.iter_mut().enumerate() {
             let mut value = 0.0;
             for row in column..N {
                 value += self.cholesky[row][column] * vector.components[row];
@@ -397,7 +401,7 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
             if !value.is_finite() {
                 return Err(MetricErrorV1::NonFiniteIntermediate);
             }
-            transformed[column] = value;
+            *output = value;
         }
         let norm = vector_euclidean(&transformed);
         if norm.is_finite() {
@@ -412,8 +416,8 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         let mut whitened = [0.0; N];
         for row in 0..N {
             let mut value = covector.components[row];
-            for column in 0..row {
-                value -= self.cholesky[row][column] * whitened[column];
+            for (column, previous) in whitened.iter().take(row).enumerate() {
+                value -= self.cholesky[row][column] * previous;
             }
             whitened[row] = value / self.cholesky[row][row];
             if !whitened[row].is_finite() {
@@ -439,8 +443,8 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         let mut intermediate = [0.0; N];
         for row in 0..N {
             let mut value = covector.components[row];
-            for column in 0..row {
-                value -= self.cholesky[row][column] * intermediate[column];
+            for (column, previous) in intermediate.iter().take(row).enumerate() {
+                value -= self.cholesky[row][column] * previous;
             }
             intermediate[row] = value / self.cholesky[row][row];
             if !intermediate[row].is_finite() {
@@ -450,8 +454,8 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         let mut components = [0.0; N];
         for row in (0..N).rev() {
             let mut value = intermediate[row];
-            for column in (row + 1)..N {
-                value -= self.cholesky[column][row] * components[column];
+            for (column, component) in components.iter().enumerate().skip(row + 1) {
+                value -= self.cholesky[column][row] * component;
             }
             components[row] = value / self.cholesky[row][row];
             if !components[row].is_finite() {
@@ -520,9 +524,9 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         profile: MetricProfileV1,
     ) -> Result<Metric<To, N>, MetricErrorV1> {
         validate_profile(profile)?;
-        let mut transformed = [[0.0; N]; N];
-        for row in 0..N {
-            for column in row..N {
+        let mut upper = [[0.0; N]; N];
+        for (row, upper_row) in upper.iter_mut().enumerate() {
+            for (column, output) in upper_row.iter_mut().enumerate().skip(row) {
                 let mut value = 0.0;
                 for left in 0..N {
                     for right in 0..N {
@@ -534,10 +538,18 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
                 if !value.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
                 }
-                transformed[row][column] = value;
-                transformed[column][row] = value;
+                *output = value;
             }
         }
+        let transformed = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                if row <= column {
+                    upper[row][column]
+                } else {
+                    upper[column][row]
+                }
+            })
+        });
         Metric::admit(transformed, profile)
     }
 }
