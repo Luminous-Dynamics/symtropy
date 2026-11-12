@@ -57,7 +57,10 @@ impl<Space: CoordinateFrame, const K: usize> ConstraintResidualV1<Space, K> {
         if components.iter().any(|value| !value.is_finite()) {
             return Err(MetricErrorV1::NonFiniteVector);
         }
-        Ok(Self { components, _space: PhantomData })
+        Ok(Self {
+            components,
+            _space: PhantomData,
+        })
     }
 
     pub fn components(&self) -> &[f64; K] {
@@ -346,20 +349,18 @@ mod tests {
         let mass_y = rebasis.metric_to_to(&mass_q, profile()).unwrap();
         let jacobian_q = jacobian_q();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
-        let delassus_q =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q,
-                jacobian_q,
-                profile(),
-            )
-            .unwrap();
-        let delassus_y =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                jacobian_y,
-                profile(),
-            )
-            .unwrap();
+        let delassus_q = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q,
+            jacobian_q,
+            profile(),
+        )
+        .unwrap();
+        let delassus_y = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y,
+            jacobian_y,
+            profile(),
+        )
+        .unwrap();
 
         let multiplier = ConstraintMultiplierV1::new([1.25, -0.75]).unwrap();
         let residual = ConstraintResidualV1::new([-0.3, 0.6]).unwrap();
