@@ -3244,8 +3244,7 @@ mod tests {
                     .zip(minus_seed.state.momenta.iter())
                     .zip(analytic.iter().skip(4))
                 {
-                    let numerical =
-                        (plus_momentum - minus_momentum) / (2.0 * epsilon);
+                    let numerical = (plus_momentum - minus_momentum) / (2.0 * epsilon);
                     close(*analytic_component, numerical, 2e-7);
                 }
             }

@@ -310,8 +310,7 @@ impl KerrOpticalScreenMap {
                     .map(|(left, right)| left * right)
                     .sum::<f64>();
                 let expected = if row_index == column_index { 1.0 } else { 0.0 };
-                orthogonality_residual =
-                    orthogonality_residual.max((product - expected).abs());
+                orthogonality_residual = orthogonality_residual.max((product - expected).abs());
             }
         }
         let orientation_determinant =
@@ -328,14 +327,11 @@ impl KerrOpticalScreenMap {
         }
 
         let mut transformed = self;
-        for (output_row, transition_row) in
-            transformed.jacobian.iter_mut().zip(transition.iter())
-        {
-            for (output, (source_row_0, source_row_1)) in output_row.iter_mut().zip(
-                self.jacobian[0]
-                    .iter()
-                    .zip(self.jacobian[1].iter()),
-            ) {
+        for (output_row, transition_row) in transformed.jacobian.iter_mut().zip(transition.iter()) {
+            for (output, (source_row_0, source_row_1)) in output_row
+                .iter_mut()
+                .zip(self.jacobian[0].iter().zip(self.jacobian[1].iter()))
+            {
                 *output = transition_row[0] * source_row_0 + transition_row[1] * source_row_1;
             }
         }
