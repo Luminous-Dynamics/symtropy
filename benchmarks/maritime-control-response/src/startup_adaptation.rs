@@ -64,6 +64,8 @@ pub struct BaselineShadowObservation {
     pub all_required_signals_current: bool,
     pub command_history_available: bool,
     pub command_response_timing_causally_valid: bool,
+    /// Dependency/common-cause status is verified by an upstream evidence service.
+    pub dependency_health_verified_upstream: bool,
     pub known_fault_alarm_present: bool,
     pub unknown_fault_alarm_present: bool,
     pub ambiguous_hypothesis_set_present: bool,
@@ -190,6 +192,15 @@ pub struct ShadowObservationReceipt {
     pub sample_index: u64,
     pub time_seconds: f64,
     pub input_receipt_sha256: String,
+    pub standardized_absolute_residual: f64,
+    pub regime_supported_by_frozen_reference: bool,
+    pub all_required_signals_current: bool,
+    pub command_history_available: bool,
+    pub command_response_timing_causally_valid: bool,
+    pub dependency_health_verification_sha256: String,
+    pub known_fault_alarm_present: bool,
+    pub unknown_fault_alarm_present: bool,
+    pub ambiguous_hypothesis_set_present: bool,
     pub previous_receipt_sha256: Option<String>,
     pub receipt_sha256: String,
 }
@@ -291,10 +302,11 @@ impl BaselineShadowCandidate {
         &self,
         observation: &BaselineShadowObservation,
     ) -> Option<BaselineQuarantineReason> {
-        if observation.recording_id != self.recording_id
-            || observation.regime_id != self.regime_id
-        {
+        if observation.recording_id != self.recording_id {
             return Some(BaselineQuarantineReason::RecordingIdentityChanged);
+        }
+        if observation.regime_id != self.regime_id {
+            return Some(BaselineQuarantineReason::UnsupportedRegime);
         }
         if !is_sha256_hex(&observation.input_receipt_sha256)
             || !is_sha256_hex(&observation.dependency_health_verification_sha256)
@@ -351,7 +363,7 @@ impl BaselineShadowCandidate {
         if observation.ambiguous_hypothesis_set_present {
             return Some(BaselineQuarantineReason::AmbiguousHypothesisSet);
         }
-        if !is_sha256_hex(&observation.dependency_health_verification_sha256) {
+        if !observation.dependency_health_verified_upstream {
             return Some(BaselineQuarantineReason::DependencyHealthUnverified);
         }
         None
@@ -378,6 +390,15 @@ impl BaselineShadowCandidate {
             sample_index: observation.sample_index,
             time_seconds: observation.time_seconds,
             input_receipt_sha256: observation.input_receipt_sha256.clone(),
+            standardized_absolute_residual: observation.standardized_absolute_residual,
+            regime_supported_by_frozen_reference: observation.regime_supported_by_frozen_reference,
+            all_required_signals_current: observation.all_required_signals_current,
+            command_history_available: observation.command_history_available,
+            command_response_timing_causally_valid: observation.command_response_timing_causally_valid,
+            dependency_health_verification_sha256: observation.dependency_health_verification_sha256.clone(),
+            known_fault_alarm_present: observation.known_fault_alarm_present,
+            unknown_fault_alarm_present: observation.unknown_fault_alarm_present,
+            ambiguous_hypothesis_set_present: observation.ambiguous_hypothesis_set_present,
             previous_receipt_sha256: self.previous_receipt_sha256.clone(),
             receipt_sha256,
         })
@@ -481,6 +502,7 @@ fn validate_attestations(
     }
     let mut issuers = BTreeSet::new();
     let mut domains = BTreeSet::new();
+    let mut receipt_ids = BTreeSet::new();
     for attestation in attestations {
         if attestation.issuer_id.trim().is_empty()
             || attestation.dependency_domain_id.trim().is_empty()
@@ -491,6 +513,9 @@ fn validate_attestations(
             || !is_sha256_hex(&attestation.attestation_receipt_sha256)
             || !is_sha256_hex(&attestation.issuer_authority_verification_sha256)
         {
+            return Err(BaselineAdaptationError::InvalidAttestation);
+        }
+        if !receipt_ids.insert(attestation.attestation_receipt_sha256.as_str()) {
             return Err(BaselineAdaptationError::InvalidAttestation);
         }
         if attestation.candidate_manifest_sha256 != expected_candidate_manifest_sha256 {
@@ -576,6 +601,7 @@ mod tests {
             unknown_fault_alarm_present: false,
             ambiguous_hypothesis_set_present: false,
             dependency_health_verification_sha256: digest('e'),
+            dependency_health_verified_upstream: true,
         }
     }
 
