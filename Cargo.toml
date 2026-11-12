@@ -127,6 +127,7 @@ exclude = [
     "crates/tools/shipyard-interpass-adaptive",
     "crates/tools/shipyard-scan-metrology",
     "crates/tools/shipyard-geometry-metrology-oracle",
+    "crates/tools/weld-evidence-temporal",
 ]
 members = [
     ".",
