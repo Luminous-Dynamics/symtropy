@@ -123,6 +123,30 @@ The independent inspection is charged only on the `missing` branch. Known-answer
 
 A one-step greedy screen is not recommended: its worst regret is 15.5, worse than STOP at 15. An uninformative follow-up is not chosen; an over-budget follow-up is skipped; stopping wins a regret tie to avoid paying for unnecessary sensing. The search has a hard 10,000-node cap (depth at most 3, sensor catalogue at most 8) and fails closed rather than switching to a heuristic.
 
+### False-reassurance / stuck-sensor challenge
+
+A second executable four-world challenge prevents the first-stage screen from being treated as infallible:
+- a degraded system can report `healthy` because the sensor is stuck high;
+- a healthy system can report `missing` because of a telemetry-network fault;
+- a true degraded/common-cause failure also reports `missing`.
+
+The policy must buy different corroborating measurements on the two screen branches:
+- after `healthy`, request `stuck_high_confirmation`;
+- after `missing`, request `independent_missing_branch_inspection`.
+
+Both follow-ups have the same public role—distinguish healthy from degraded—but different protocol identities and branch eligibility. The resulting terminal policy repairs either degraded world and defers in either healthy world.
+
+| Metric | False-reassurance challenge |
+|---|---:|
+| No-sensing minimax regret | 15 service units |
+| Contingent-tree worst leaf regret | 0.6 service units |
+| Worst-case regret reduction | 14.4 service units |
+| Maximum path energy | 0.20 kWh |
+| Maximum path latency | 2 ticks |
+| Maximum path acquisition penalty | 0.6 service units |
+
+This is an adversarial protocol fixture, not a statistical false-negative-rate estimate. It proves only that the policy tree does not treat a nominally healthy screen reading as ground truth when the declared world set includes a stuck-high sensor.
+
 ### Candidate and evaluator exports
 
 The evaluator CLI writes separate records for policy nodes, branch predictions, and terminal-world regrets/costs. The candidate-only mode `--candidate-policy-tree` writes only six public fields:
