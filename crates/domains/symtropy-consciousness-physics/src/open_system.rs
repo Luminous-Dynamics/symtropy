@@ -246,10 +246,10 @@ impl OpenSystemEnergyBalance {
                 self.final_stored_energy_j,
             ),
         ] {
-            if let Some(value) = value {
-                if !value.is_finite() {
-                    return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
-                }
+            if let Some(value) = value
+                && !value.is_finite()
+            {
+                return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
             }
         }
 
@@ -263,13 +263,13 @@ impl OpenSystemEnergyBalance {
                 self.final_stored_energy_uncertainty_bound_j,
             ),
         ] {
-            if let Some(value) = value {
-                if !value.is_finite() || value < 0.0 {
-                    return Err(EnergyBalanceError::InvalidUncertaintyBound {
-                        field,
-                        flow_id: None,
-                    });
-                }
+            if let Some(value) = value
+                && (!value.is_finite() || value < 0.0)
+            {
+                return Err(EnergyBalanceError::InvalidUncertaintyBound {
+                    field,
+                    flow_id: None,
+                });
             }
         }
 
@@ -289,13 +289,13 @@ impl OpenSystemEnergyBalance {
                         flow_id: flow.flow_id.clone(),
                     });
                 }
-                if let Some(uncertainty) = flow.uncertainty_bound_j {
-                    if !uncertainty.is_finite() || uncertainty < 0.0 {
-                        return Err(EnergyBalanceError::InvalidUncertaintyBound {
-                            field: "boundary_flow_uncertainty_bound_j",
-                            flow_id: Some(flow.flow_id.clone()),
-                        });
-                    }
+                if let Some(uncertainty) = flow.uncertainty_bound_j
+                    && (!uncertainty.is_finite() || uncertainty < 0.0)
+                {
+                    return Err(EnergyBalanceError::InvalidUncertaintyBound {
+                        field: "boundary_flow_uncertainty_bound_j",
+                        flow_id: Some(flow.flow_id.clone()),
+                    });
                 }
                 if !flow_ids.insert(flow.flow_id.as_str()) {
                     return Err(EnergyBalanceError::DuplicateFlowId {
