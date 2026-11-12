@@ -4,12 +4,11 @@
 //! reference core. It does not schedule tasks, authenticate authorities, inspect
 //! physical work, grant safety permissions, or authorize machine motion.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use construction_robot_interop_core::{
-    AcceptanceReceipt, ApplyOutcome, ContextBinding, EventEnvelope, ReservationBook,
-    ReservationError, ReservationOutcome, ReservationRequest, TaskMachine, TaskState,
-    TransitionKind,
+    ContextBinding, ReservationBook, ReservationError, ReservationOutcome, ReservationRequest,
+    TaskMachine, TaskState,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -104,6 +103,7 @@ pub struct MoneyPerUnit {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AttemptReport {
     pub work_unit_id: String,
+    pub acceptance_contract_ref: String,
     pub attempt_number: u32,
     pub task_id: String,
     pub state: TaskState,
@@ -450,8 +450,16 @@ impl FloorLedger {
                         not_finally_accepted.push(work_unit_id.clone());
                     }
                     for attempt in history {
+                        let acceptance_contract_ref = self
+                            .required_units
+                            .get(&attempt.work_unit_id)
+                            .cloned()
+                            .ok_or_else(|| LedgerError::UnknownWorkUnit(
+                                attempt.work_unit_id.clone(),
+                            ))?;
                         attempts.push(AttemptReport {
                             work_unit_id: attempt.work_unit_id.clone(),
+                            acceptance_contract_ref,
                             attempt_number: attempt.attempt_number,
                             task_id: attempt.task_id.clone(),
                             state: attempt.state.clone(),
@@ -699,6 +707,9 @@ fn checked_add(left: u64, right: u64) -> Result<u64, LedgerError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use construction_robot_interop_core::{
+        AcceptanceReceipt, ApplyOutcome, EventEnvelope, TransitionKind,
+    };
 
     fn floor_binding() -> FloorBinding {
         FloorBinding {
