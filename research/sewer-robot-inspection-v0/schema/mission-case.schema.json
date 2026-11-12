@@ -13,6 +13,7 @@
     "asset",
     "robot",
     "mission",
+    "acceptance_profile",
     "observation_intervals",
     "expected_disposition",
     "expected_reason_codes",
@@ -301,6 +302,25 @@
       "items": {
         "type": "string",
         "maxLength": 512
+      }
+    },
+    "acceptance_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_surface_coverage_percent",
+        "maximum_localization_p95_error_m"
+      ],
+      "properties": {
+        "minimum_surface_coverage_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maximum_localization_p95_error_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
       }
     }
   }
