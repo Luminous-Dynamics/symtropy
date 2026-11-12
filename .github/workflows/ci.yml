@@ -140,6 +140,14 @@ jobs:
             assert float(row["mean_return"]) <= float(row["maximum_return"])
             assert float(row["mean_reported_return_std"]) >= 0.0
 
+        for group, row in groups.items():
+            observed_models = set(filter(None, row["observed_model_values"].split(";")))
+            if group.startswith("experiments/logs_PPO_stacked/predator/"):
+                assert observed_models
+                assert observed_models <= {"pred", "predator"}
+            else:
+                assert observed_models == {row["model"]}
+
         total = next(row for row in rows if row["group"] == "TOTAL")
         assert total["run_count"] == "242"
         assert total["unique_run_ids"] == "242"
