@@ -14,6 +14,143 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  civdyn-temporal-observability-reference:
+    name: CIVDYN Temporal Observability Reference
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+    - name: Check Formatting
+      run: cargo fmt --manifest-path research/civdyn-temporal-observability/Cargo.toml --all -- --check
+    - name: Run Strict Clippy
+      run: cargo clippy --locked --manifest-path research/civdyn-temporal-observability/Cargo.toml --all-targets -- -D warnings
+    - name: Compile and Test
+      run: |
+        cargo check --locked --manifest-path research/civdyn-temporal-observability/Cargo.toml --all-targets
+        cargo test --locked --manifest-path research/civdyn-temporal-observability/Cargo.toml --all-targets
+    - name: Verify decision-time, retrospective and candidate-only contracts
+      run: |
+        set -euo pipefail
+        manifest="research/civdyn-temporal-observability/Cargo.toml"
+        cargo run --quiet --locked --manifest-path "$manifest" -- --summary > /tmp/civdyn-temporal-summary.csv
+        cargo run --quiet --locked --manifest-path "$manifest" -- --summary > /tmp/civdyn-temporal-summary-replay.csv
+        cmp /tmp/civdyn-temporal-summary.csv /tmp/civdyn-temporal-summary-replay.csv
+        cargo run --quiet --locked --manifest-path "$manifest" -- --candidate > /tmp/civdyn-temporal-candidate.csv
+        cargo run --quiet --locked --manifest-path "$manifest" -- --candidate > /tmp/civdyn-temporal-candidate-replay.csv
+        cmp /tmp/civdyn-temporal-candidate.csv /tmp/civdyn-temporal-candidate-replay.csv
+        cargo run --quiet --locked --manifest-path "$manifest" -- --evaluator-receipts > /tmp/civdyn-temporal-evaluator.csv
+        cargo run --quiet --locked --manifest-path "$manifest" -- --evaluator-receipts > /tmp/civdyn-temporal-evaluator-replay.csv
+        cmp /tmp/civdyn-temporal-evaluator.csv /tmp/civdyn-temporal-evaluator-replay.csv
+        python3 - <<'PY'
+        import csv
+        import math
+        from pathlib import Path
+
+        def read(path, columns):
+            with Path(path).open(newline="", encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                assert reader.fieldnames == columns
+                return list(reader)
+
+        summary_columns = [
+            "scenario_id", "policy_id", "world_id", "evidence_view", "true_mean",
+            "complete_case_mean", "missing_as_zero_mean", "identified_lower",
+            "identified_upper", "truth_contained", "observed_periods", "total_periods",
+            "coverage", "missing_periods", "late_not_yet_available_periods",
+            "observability_debt_service_periods", "robust_comparison",
+        ]
+        summary = read("/tmp/civdyn-temporal-summary.csv", summary_columns)
+        assert len(summary) == 8
+        by_key = {
+            (row["policy_id"], row["world_id"], row["evidence_view"]): row
+            for row in summary
+        }
+        assert len(by_key) == 8
+
+        transparent = by_key[("transparent_audit", "moderate_decay", "decision_time")]
+        assert transparent["true_mean"] == "60.000"
+        assert transparent["complete_case_mean"] == "60.000"
+        assert transparent["identified_lower"] == "60.000"
+        assert transparent["identified_upper"] == "60.000"
+        assert transparent["coverage"] == "1.000"
+        assert transparent["observability_debt_service_periods"] == "0"
+
+        live = by_key[("defer_suppress", "moderate_decay", "decision_time")]
+        assert live["true_mean"] == "47.500"
+        assert live["complete_case_mean"] == "100.000"
+        assert live["missing_as_zero_mean"] == "25.000"
+        assert live["identified_lower"] == "25.000"
+        assert live["identified_upper"] == "100.000"
+        assert live["observed_periods"] == "1"
+        assert live["coverage"] == "0.250"
+        assert live["missing_periods"] == "3"
+        assert live["late_not_yet_available_periods"] == "1"
+        assert live["observability_debt_service_periods"] == "3"
+        assert live["robust_comparison"] == "unresolved"
+
+        retrospective = by_key[("defer_suppress", "moderate_decay", "retrospective")]
+        assert retrospective["true_mean"] == "47.500"
+        assert retrospective["complete_case_mean"] == "75.000"
+        assert retrospective["missing_as_zero_mean"] == "37.500"
+        assert retrospective["identified_lower"] == "37.500"
+        assert retrospective["identified_upper"] == "87.500"
+        assert retrospective["observed_periods"] == "2"
+        assert retrospective["coverage"] == "0.500"
+        assert retrospective["missing_periods"] == "2"
+        assert retrospective["late_not_yet_available_periods"] == "0"
+        assert retrospective["observability_debt_service_periods"] == "2"
+        assert retrospective["robust_comparison"] == "unresolved"
+
+        severe = by_key[("defer_suppress", "severe_decay", "decision_time")]
+        assert severe["true_mean"] == "37.500"
+        assert severe["complete_case_mean"] == "100.000"
+        assert severe["truth_contained"] == "true"
+
+        candidate_columns = [
+            "scenario_id", "policy_id", "event_tick", "decision_status",
+            "observed_service_units", "decision_cutoff_tick",
+        ]
+        candidate = read("/tmp/civdyn-temporal-candidate.csv", candidate_columns)
+        assert len(candidate) == 8
+        assert not any("world" in col or "cause" in col or "ingest" in col or "true" in col for col in candidate_columns)
+        c = {(row["policy_id"], int(row["event_tick"])): row for row in candidate}
+        assert c[("defer_suppress", 0)]["decision_status"] == "observed"
+        assert c[("defer_suppress", 0)]["observed_service_units"] == "100"
+        assert c[("defer_suppress", 3)]["decision_status"] == "missing"
+        assert c[("defer_suppress", 3)]["observed_service_units"] == ""
+        assert c[("transparent_audit", 3)]["observed_service_units"] == "60"
+
+        evaluator_columns = [
+            "policy_id", "world_id", "event_tick", "decision_status",
+            "retrospective_status", "ingest_tick", "missing_cause",
+            "capture_receipt_digest", "delivery_receipt_digest", "scenario_id",
+        ]
+        evaluator = read("/tmp/civdyn-temporal-evaluator.csv", evaluator_columns)
+        assert len(evaluator) == 16
+        late = [
+            row for row in evaluator
+            if row["policy_id"] == "defer_suppress" and row["event_tick"] == "3"
+        ]
+        assert len(late) == 2
+        assert all(row["ingest_tick"] == "5" for row in late)
+        assert all(row["decision_status"] == "missing" for row in late)
+        assert all(row["retrospective_status"] == "observed" for row in late)
+        suppressed = [
+            row for row in evaluator
+            if row["policy_id"] == "defer_suppress" and row["event_tick"] in {"1", "2"}
+        ]
+        assert len(suppressed) == 4
+        assert all(row["missing_cause"] == "policy_suppressed" for row in suppressed)
+        assert all(row["delivery_receipt_digest"] == "" for row in suppressed)
+        assert all(row["capture_receipt_digest"] for row in evaluator)
+
+        print("CIVDYN temporal observability contract passed: decision-time information isolation, late-arrival retrospective correction, policy-induced suppression, partial-identification coverage and deterministic replay.")
+        PY
+
   test:
     # Living World exact-head qualification helpers have their own dedicated,
     # immutable-product workflows. Running the full 3-OS workspace matrix on
