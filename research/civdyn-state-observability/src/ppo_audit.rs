@@ -170,6 +170,14 @@ fn expected_group(id: &str) -> Option<ExpectedGroup> {
     EXPECTED_GROUPS.iter().copied().find(|group| group.id == id)
 }
 
+fn model_matches(group: ExpectedGroup, actual: &str) -> bool {
+    if group.id.starts_with("experiments/logs_PPO_stacked/predator/") {
+        matches!(actual, "pred" | "predator")
+    } else {
+        actual == group.model
+    }
+}
+
 fn median(values: &mut [f64]) -> f64 {
     values.sort_by(f64::total_cmp);
     let middle = values.len() / 2;
@@ -197,11 +205,12 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     let mut layers = BTreeSet::new();
     let mut hidden = BTreeSet::new();
     let mut hparams = BTreeSet::new();
+    let mut observed_models = BTreeSet::new();
 
     for run in runs {
         if run.group != group.id
             || run.stacked != group.stacked
-            || run.model != group.model
+            || !model_matches(group, run.model.as_str())
             || run.pattern != group.pattern
         {
             return Err(format!("PPO group identity mismatch in {}", group.id));
@@ -228,6 +237,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         layers.insert(run.layers);
         hidden.insert(run.hidden);
         hparams.insert(run.hparams.as_str());
+        observed_models.insert(run.model.as_str());
     }
 
     let mut sorted_means = means.clone();
@@ -239,7 +249,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     let seed_coverage = seeds.len();
 
     Ok(format!(
-        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{},{},{},{}",
+        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{},{},{},{},{}",
         group.id,
         group.stacked,
         group.model,
@@ -261,6 +271,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         *frames.iter().next_back().unwrap_or(&0),
         *layers.iter().next_back().unwrap_or(&0),
         *hidden.iter().next_back().unwrap_or(&0),
+        observed_models.into_iter().collect::<Vec<_>>().join(";"),
     ))
 }
 
@@ -295,7 +306,7 @@ fn run_audit(input: &str) -> Result<String, String> {
     }
 
     let mut output = String::from(
-        "group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden\n",
+        "group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden,observed_model_values\n",
     );
     for group in EXPECTED_GROUPS {
         let runs = grouped
@@ -365,6 +376,17 @@ mod tests {
                 .expected_runs,
             23
         );
+    }
+
+    #[test]
+    fn stacked_predator_model_alias_is_preserved_and_scoped() {
+        let stacked_predator = expected_group("experiments/logs_PPO_stacked/predator/mcar_search_big").unwrap();
+        assert!(model_matches(stacked_predator, "pred"));
+        assert!(model_matches(stacked_predator, "predator"));
+        assert!(!model_matches(stacked_predator, "icu"));
+        let unstacked_predator = expected_group("experiments/logs_PPO/predator/mcar_search_big").unwrap();
+        assert!(model_matches(unstacked_predator, "predator"));
+        assert!(!model_matches(unstacked_predator, "pred"));
     }
 
     #[test]
