@@ -1,0 +1,188 @@
+name: fresh-process-driving-observation-e2e
+
+on:
+  pull_request:
+    paths:
+      - "research/fresh-process-driving-observation-replay-001/**"
+      - ".github/workflows/fresh-process-driving-observation-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  end-to-end:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact Symtropy pull request commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check out Symthaea camera bridge source
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symthaea
+          ref: research/camera-conditioned-driving-input-v0-1
+          path: symthaea
+          persist-credentials: false
+
+      - name: Check out recoverable-driving auditor source
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: research/recoverable-driving-evidence-rust-v0-1
+          path: symtropy-auditor
+          persist-credentials: false
+
+      - name: Check out degradation-recovery auditor source
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: research/degradation-recovery-envelope-v0-1
+          path: symtropy-degradation
+          persist-credentials: false
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Resolve and preserve the exact Symthaea workspace lock
+        working-directory: symthaea
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cargo generate-lockfile
+          cp Cargo.lock "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock"
+          sha256sum Cargo.lock | tee "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock.sha256"
+
+      - name: Build Symthaea camera bridge and generate fixture configs
+        working-directory: symthaea
+        run: |
+          cargo build --locked \
+            --manifest-path crates/bridges/symthaea-camera-driving-bridge/Cargo.toml \
+            --bin camera-driving-bridge
+          cargo run --locked \
+            --manifest-path crates/bridges/symthaea-camera-driving-bridge/Cargo.toml \
+            --example write_fixture_configs -- \
+            "$GITHUB_WORKSPACE/bridge-config.json" \
+            "$GITHUB_WORKSPACE/vision-config.json"
+          test -x target/debug/camera-driving-bridge
+
+      - name: Build recoverable-driving evidence auditor
+        working-directory: symtropy-auditor
+        run: |
+          cargo build --locked \
+            --manifest-path research/recoverable-driving-evidence-001/Cargo.toml \
+            --bin recoverable-driving-evidence
+          test -x research/recoverable-driving-evidence-001/target/debug/recoverable-driving-evidence
+
+      - name: Build degradation-recovery envelope auditor
+        working-directory: symtropy-degradation
+        run: |
+          cargo build --locked \
+            --manifest-path research/degradation-recovery-envelope-001/Cargo.toml \
+            --bin degradation-recovery-envelope
+          test -x research/degradation-recovery-envelope-001/target/debug/degradation-recovery-envelope
+
+      - name: Check harness formatting, tests and strict Clippy
+        run: |
+          cargo fmt --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml -- --check
+          cargo test --locked --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml
+          cargo clippy --locked --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Run renderer, bridge, auditor and fault-boundary integration
+        run: |
+          rm -rf "$GITHUB_WORKSPACE/out/fresh-driving-episode"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cargo run --release --locked \
+            --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml -- \
+            "$GITHUB_WORKSPACE/out/fresh-driving-episode" \
+            "$GITHUB_WORKSPACE/bridge-config.json" \
+            "$GITHUB_WORKSPACE/vision-config.json" \
+            "$GITHUB_WORKSPACE/symthaea/target/debug/camera-driving-bridge" \
+            "$GITHUB_WORKSPACE/symtropy-auditor/research/recoverable-driving-evidence-001/target/debug/recoverable-driving-evidence" \
+            "$GITHUB_WORKSPACE/symtropy-degradation/research/degradation-recovery-envelope-001/target/debug/degradation-recovery-envelope"
+
+      - name: Verify exact episode acceptance contract
+        run: |
+          report="$GITHUB_WORKSPACE/out/fresh-driving-episode/episode-report.json"
+          test -s "$report"
+          jq -e '
+            .status == "complete_for_declared_non_learning_fixture" and
+            .expected_ticks == 20 and
+            .applied_actions_recorded == 20 and
+            .world_snapshot_transition_records == 20 and
+            .delivered_observations == 19 and
+            .missing_observations == 1 and
+            .delayed_observations == 1 and
+            .fresh_process_renderer_replay_exact == true and
+            .fresh_process_symthaea_bridge_replay_exact == true and
+            .bridge_negative_control_count == 12 and
+            .bridge_negative_controls_fail_closed == true and
+            .branch_evidence_audit_valid == true and
+            .stale_actor_replay_negative_control_rejected == true and
+            .degradation_recovery_audit_valid == true and
+            .missing_frame_acceptance_negative_control_rejected == true and
+            .symthaea_bridge_processed_observations == 19 and
+            .symthaea_receipt_chain_valid == true and
+            .policy_input_artifacts_valid == true and
+            .policy_input_artifact_count == 19 and
+            .bridge_vision_learning_frozen == true and
+            .bridge_training_steps_before == .bridge_training_steps_after
+          ' "$report"
+
+      - name: Record exact cross-repository source and binary revisions
+        if: always()
+        run: |
+          if [ -d "$GITHUB_WORKSPACE/out/fresh-driving-episode" ]; then
+            mkdir -p "$GITHUB_WORKSPACE/out/fresh-driving-episode/build-provenance"
+            if [ -f "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock" ]; then
+              cp "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock" "$GITHUB_WORKSPACE/out/fresh-driving-episode/build-provenance/symthaea-Cargo.lock"
+            fi
+            symthaea_lock_sha="$(sha256sum "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock" 2>/dev/null | cut -d' ' -f1 || true)"
+            symthaea_sha="$(git -C symthaea rev-parse HEAD 2>/dev/null || true)"
+            branch_auditor_sha="$(git -C symtropy-auditor rev-parse HEAD 2>/dev/null || true)"
+            degradation_auditor_sha="$(git -C symtropy-degradation rev-parse HEAD 2>/dev/null || true)"
+            bridge_sha="$(sha256sum symthaea/target/debug/camera-driving-bridge 2>/dev/null | cut -d' ' -f1 || true)"
+            branch_auditor_bin_sha="$(sha256sum symtropy-auditor/research/recoverable-driving-evidence-001/target/debug/recoverable-driving-evidence 2>/dev/null | cut -d' ' -f1 || true)"
+            degradation_auditor_bin_sha="$(sha256sum symtropy-degradation/research/degradation-recovery-envelope-001/target/debug/degradation-recovery-envelope 2>/dev/null | cut -d' ' -f1 || true)"
+            jq -n \
+              --arg symtropy_commit "$GITHUB_SHA" \
+              --arg symthaea_commit "$symthaea_sha" \
+              --arg symthaea_workspace_lock_sha256 "$symthaea_lock_sha" \
+              --arg recoverable_auditor_commit "$branch_auditor_sha" \
+              --arg degradation_auditor_commit "$degradation_auditor_sha" \
+              --arg renderer_git_revision "8f9320647b40e9649209afa89ce373d475d3f305" \
+              --arg bridge_binary_sha256 "$bridge_sha" \
+              --arg recoverable_auditor_binary_sha256 "$branch_auditor_bin_sha" \
+              --arg degradation_auditor_binary_sha256 "$degradation_auditor_bin_sha" \
+              --arg workflow_run_id "$GITHUB_RUN_ID" \
+              --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
+              '{
+                schema_version: 1,
+                claim_ceiling: "Exact source and binary identity for this finite non-learning fixture only; not a model or road-safety result.",
+                symtropy_harness_commit: $symtropy_commit,
+                symthaea_bridge_commit: $symthaea_commit,
+                symthaea_workspace_lock_sha256: $symthaea_workspace_lock_sha256,
+                recoverable_auditor_commit: $recoverable_auditor_commit,
+                degradation_auditor_commit: $degradation_auditor_commit,
+                renderer_git_revision: $renderer_git_revision,
+                bridge_binary_sha256: $bridge_binary_sha256,
+                recoverable_auditor_binary_sha256: $recoverable_auditor_binary_sha256,
+                degradation_auditor_binary_sha256: $degradation_auditor_binary_sha256,
+                workflow_run_id: $workflow_run_id,
+                workflow_run_attempt: $workflow_run_attempt
+              }' > "$GITHUB_WORKSPACE/out/fresh-driving-episode/build-provenance.json"
+          fi
+
+      - name: Upload complete replay and fault-audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresh-process-driving-observation-e2e-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/fresh-driving-episode/
+          if-no-files-found: warn
+          retention-days: 14
