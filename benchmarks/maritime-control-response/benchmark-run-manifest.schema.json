@@ -768,7 +768,48 @@
                 }
               ]
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "sequential_update_status": {
+                    "const": "joint_hypothesis_scenario_ledger_qualified"
+                  }
+                },
+                "required": [
+                  "sequential_update_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "joint_scenario_posterior_ledger_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "sequential_update_status": {
+                    "const": "multi_scenario_blocked_joint_posterior_missing"
+                  }
+                },
+                "required": [
+                  "sequential_update_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "joint_scenario_posterior_ledger_sha256": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
         },
         "streaming_contract": {
           "type": "object",
