@@ -175,7 +175,10 @@ fn validate_cell(cell: &BatteryCellConfig) -> Result<usize, EvBatteryAuditError>
     let lineage = &cell.material_lineage;
     require_nonempty(&lineage.sample_lineage_id, "MAT-013 sample-lineage ID")?;
     require_nonempty(&lineage.mat013_schema_version, "MAT-013 schema version")?;
-    require_nonempty(&lineage.source_evidence_ref, "MAT-013 source evidence reference")?;
+    require_nonempty(
+        &lineage.source_evidence_ref,
+        "MAT-013 source evidence reference",
+    )?;
     require_digest(&lineage.lineage_digest, "MAT-013 lineage digest")?;
 
     if !matches!(
@@ -192,7 +195,10 @@ fn validate_cell(cell: &BatteryCellConfig) -> Result<usize, EvBatteryAuditError>
     require_nonempty(&projection.pspp_subject_id, "MAT-PSPP subject ID")?;
     require_nonempty(&projection.pspp_schema_version, "MAT-PSPP schema version")?;
     require_nonempty(&projection.sample_lineage_id, "MAT-PSPP process lineage ID")?;
-    require_nonempty(&projection.realized_structure_ref, "realized-structure reference")?;
+    require_nonempty(
+        &projection.realized_structure_ref,
+        "realized-structure reference",
+    )?;
     require_nonempty(&projection.mat_uq_profile_ref, "MAT-UQ profile reference")?;
     require_refs(
         &projection.conditioned_property_evidence_refs,
@@ -233,8 +239,14 @@ fn validate_cell(cell: &BatteryCellConfig) -> Result<usize, EvBatteryAuditError>
             "MAT-INTERFACE schema version",
         )?;
         require_nonempty(&interface.interface_class, "interface class")?;
-        require_nonempty(&interface.condition_state_ref, "interface condition-state reference")?;
-        require_nonempty(&interface.mat_uq_profile_ref, "interface MAT-UQ profile reference")?;
+        require_nonempty(
+            &interface.condition_state_ref,
+            "interface condition-state reference",
+        )?;
+        require_nonempty(
+            &interface.mat_uq_profile_ref,
+            "interface MAT-UQ profile reference",
+        )?;
         require_refs(&interface.evidence_refs, "interface evidence")?;
     }
 
@@ -331,8 +343,7 @@ pub fn audit_ev_battery_manifest(
             )));
         }
 
-        if test.result_evidence_class.is_physical()
-            && test.metrology_evidence_ref.trim().is_empty()
+        if test.result_evidence_class.is_physical() && test.metrology_evidence_ref.trim().is_empty()
         {
             return Err(EvBatteryAuditError(format!(
                 "physical cell test {} lacks metrology evidence",
@@ -405,11 +416,17 @@ pub fn audit_ev_battery_manifest(
 
     for mission in &manifest.mission_outcomes {
         require_nonempty(&mission.duty_cycle_ref, "mission duty-cycle reference")?;
-        require_nonempty(&mission.test_campaign_ref, "mission test-campaign reference")?;
+        require_nonempty(
+            &mission.test_campaign_ref,
+            "mission test-campaign reference",
+        )?;
         require_nonempty(&mission.system_boundary, "mission system boundary")?;
         require_nonempty(&mission.outcome_evidence_ref, "mission outcome evidence")?;
         if mission.evidence_class.is_physical() {
-            require_nonempty(&mission.metrology_evidence_ref, "mission metrology evidence")?;
+            require_nonempty(
+                &mission.metrology_evidence_ref,
+                "mission metrology evidence",
+            )?;
         }
         require_digest(&mission.raw_data_sha256, "mission raw-data digest")?;
 
@@ -431,10 +448,21 @@ pub fn audit_ev_battery_manifest(
         }
     }
 
-    let mut cell_ids: Vec<String> = manifest.cells.iter().map(|item| item.cell_id.clone()).collect();
-    let mut cell_test_ids: Vec<String> =
-        manifest.cell_tests.iter().map(|item| item.test_id.clone()).collect();
-    let mut pack_ids: Vec<String> = manifest.packs.iter().map(|item| item.pack_id.clone()).collect();
+    let mut cell_ids: Vec<String> = manifest
+        .cells
+        .iter()
+        .map(|item| item.cell_id.clone())
+        .collect();
+    let mut cell_test_ids: Vec<String> = manifest
+        .cell_tests
+        .iter()
+        .map(|item| item.test_id.clone())
+        .collect();
+    let mut pack_ids: Vec<String> = manifest
+        .packs
+        .iter()
+        .map(|item| item.pack_id.clone())
+        .collect();
     let mut mission_ids: Vec<String> = manifest
         .mission_outcomes
         .iter()
@@ -616,8 +644,7 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.cell_tests.clear();
 
-        let error =
-            audit_ev_battery_manifest(&manifest).expect_err("untested pack member fails");
+        let error = audit_ev_battery_manifest(&manifest).expect_err("untested pack member fails");
         assert!(error.0.contains("has no linked cell test"));
     }
 
