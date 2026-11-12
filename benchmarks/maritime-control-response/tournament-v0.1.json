@@ -326,7 +326,11 @@
     "any known or unknown alarm, ambiguous hypothesis set, out-of-support regime, missing sensor or invalid command-response timing quarantines the full candidate",
     "a candidate can only produce a review package after its frozen sample window and multiple independently verified attestations from separate dependency domains",
     "the adaptation guard has no baseline commit, activation or authority function",
-    "live baseline replacement requires separate owner approval, rollback evidence and full prior-regime regression"
+    "live baseline replacement requires separate owner approval, rollback evidence and full prior-regime regression",
+    "the exact published DX2026 FTP75 Standard f_pim -10% boundary is retained as an ambiguity falsification case",
+    "the same f_pim -10% magnitude under FTP75 Highway is evaluated using a separate regime-specific catalogue and cannot transfer singleton confidence back to Standard",
+    "the published WLTP f_pic +8% case may trigger detection but must remain unknown/out-of-support if no declared known envelope matches",
+    "published comparator metrics are references only; synthetic envelope tests do not reproduce the underlying waveforms or establish Symtropy superiority"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -477,6 +481,16 @@
     {
       "id": "startup_detection_continuity",
       "target": "Continue reference detection from sample zero while shadow adaptation runs, with p95 supported-event detection/abstention <=0.50 seconds at the matched false-alarm budget.",
+      "status": "aspirational"
+    },
+    {
+      "id": "published_boundary_ambiguity_honesty",
+      "target": "On source-matched boundary cases, zero forced singleton diagnoses where calibrated behavioral sets overlap; the true fault remains in the admissible set.",
+      "status": "aspirational"
+    },
+    {
+      "id": "published_boundary_unknown_rejection",
+      "target": "On the f_pic +8% type boundary, detect the anomaly while refusing unsupported known-cause isolation.",
       "status": "aspirational"
     }
   ],
@@ -731,5 +745,18 @@
     "minimum_independent_health_attestations": 2,
     "failure_policy": "quarantine candidate; do not alter live reference",
     "claim_ceiling": "source contract and synthetic fixtures only"
+  },
+  "dx2026_boundary_falsification": {
+    "path": "dx2026-boundary-falsification-v0.1.json",
+    "schema_version": "liu-ice-dx2026-boundary-falsification-v0.1",
+    "status": "protocol_only_not_executed",
+    "source_baseline": "published-dx2026-graybox-baseline-v0.1.json",
+    "cases": [
+      "FTP75 Standard f_pim -10%: require ambiguity when regime-specific normal/fault envelopes overlap; no forced singleton.",
+      "FTP75 Highway f_pim -10%: allow a singleton only within a separate supported highway catalogue.",
+      "WLTP f_pic +8%: retain anomaly detection but return unknown/out-of-support when no known behavioral envelope matches."
+    ],
+    "principle": "Diagnosis ambiguity and out-of-support are valid outputs; the classifier must not manufacture a known physical cause merely because detection fired.",
+    "claim_ceiling": "synthetic calibrated-envelope counterexamples only; the published DX2026 paper is not reproduced"
   }
 }
