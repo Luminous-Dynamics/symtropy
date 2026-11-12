@@ -60,7 +60,9 @@
           "terminal_event_id": "terminal-01",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-01-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-01-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-01-sha256",
@@ -155,7 +157,9 @@
           "terminal_event_id": "terminal-02",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-02-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-02-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-02-sha256",
@@ -250,7 +254,9 @@
           "terminal_event_id": "terminal-03",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-03-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-03-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-03-sha256",
@@ -345,7 +351,9 @@
           "terminal_event_id": "terminal-04",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-04-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-04-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-04-sha256",
@@ -440,7 +448,9 @@
           "terminal_event_id": "terminal-05",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-05-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-05-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-05-sha256",
@@ -534,7 +544,9 @@
           "terminal_event_id": "terminal-06",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-06-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-06-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-06-sha256",
@@ -629,7 +641,9 @@
           "terminal_event_id": "terminal-07",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-07-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-07-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-07-sha256",
@@ -724,7 +738,9 @@
           "terminal_event_id": "terminal-08",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-08-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-08-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-08-sha256",
@@ -819,7 +835,9 @@
           "terminal_event_id": "terminal-09",
           "terminal_event_sequence": 8,
           "actuator_id": "joint-actuator-01",
-          "command_event_sequence": 5
+          "command_event_sequence": 5,
+          "actuator_application_receipt_digest": "application-receipt-09-sha256",
+          "source_sensor_calibration_digest": "sensor-cal-09-sha256"
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-09-sha256",
