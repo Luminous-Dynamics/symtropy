@@ -316,10 +316,10 @@ fn solve_node(
         if used_sensors.contains(&sensor_index) {
             continue;
         }
-        if let Some(required) = sensor_spec.required_previous_observation.as_deref() {
-            if history.last().map(String::as_str) != Some(required) {
-                continue;
-            }
+        match sensor_spec.required_previous_observation.as_deref() {
+            None if !history.is_empty() => continue,
+            Some(required) if history.last().map(String::as_str) != Some(required) => continue,
+            _ => {}
         }
 
         let sensor = &sensor_spec.sensor;
@@ -595,11 +595,10 @@ pub fn assess_contingent_sensing(
             || worst_case_regret_reduction
                 .is_some_and(|reduction| reduction > config.tie_tolerance));
 
-    let candidate_policy_tree = if recommended {
-        Some(solution.candidate)
-    } else {
-        None
-    };
+    // Keep the selected policy tree even when its root is STOP.
+    // `recommended` describes whether sensing improves on the no-sensing
+    // benchmark, not whether the controller should receive its current action.
+    let candidate_policy_tree = Some(solution.candidate);
     let mut evaluator_node_receipts = solution.node_receipts;
     evaluator_node_receipts.sort_by(|left, right| {
         left.observation_history
@@ -816,7 +815,12 @@ mod tests {
     fn one_step_greedy_screen_is_not_selected_over_no_sensing() {
         let report = assess_contingent_sensing(&config(), &limits(1), &worlds(), &sensors()).unwrap();
         assert!(!report.recommended);
-        assert!(report.candidate_policy_tree.is_none());
+        assert_eq!(
+            report.candidate_policy_tree,
+            Some(CandidatePolicyNode::StopAndAct {
+                action_id: "repair".to_owned()
+            })
+        );
         assert_eq!(report.worst_case_post_sensing_regret, Some(15.0));
         assert_eq!(report.baseline.worst_case_regret, Some(15.0));
     }
