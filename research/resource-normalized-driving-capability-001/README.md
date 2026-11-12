@@ -29,6 +29,13 @@ The aim is not to prove that an HDC model is smaller than a transformer. The aim
 | Waymo Open Dataset challenges | Formal challenges are not hosted in 2026, but public leaderboards remain active | Public evaluator/data route; pin the exact active leaderboard and track |
 | CARLA Leaderboard 2.0 | Separate SENSORS and MAP tracks with route completion and infraction penalties; official challenge is permanently closed | Historical methodology reference only, not an active submission path |
 | Waymo Driver | Company dashboard: 271.3M rider-only miles through June 2026; company-reported 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes against its location-adjusted human benchmark | Operational safety evidence class and eventual safety-case reference, not a simulator leaderboard |
+| NHTSA Part 573 Recall 26E035 (17 Jun 2026) | Official report describes freeway closure-sign nonrecognition, freeway construction-zone entry and cone-channelization events involving 5th-generation ADS | Failure-mode evidence for temporary traffic-control scenarios; not a rate, controlled benchmark or leaderboard result |
+
+### Industry safety evidence needs both exposure metrics and failure-mode counterexamples
+
+Waymo's company-reported safety dashboard and NHTSA Recall 26E035 answer different questions. The former is an aggregate, location-adjusted operational comparison through June 2026. The latter is a regulatory event chronology for a specific freeway-construction-zone failure mode: the report describes ramp-closure sign nonrecognition and entries into pre-planned work zones in Phoenix, plus vehicles entering between cones marking a lane closure in the San Francisco Bay Area. The filing describes 3,871 potentially involved 5th-generation ADS vehicles and a software/operational remedy. It does **not** provide a public-road failure-rate denominator for those individual events. <Link url="https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf" title="NHTSA Recall 26E035"/>.
+
+The benchmark implication is important: aggregate safety performance does not eliminate the need for scenario-specific ODD-boundary tests. Conversely, a recall chronology is not a fair basis for ranking Waymo against a simulator policy. We use it only to motivate independently reproducible temporary-traffic-control scenarios and negative controls.
 
 These results are not pooled into one ranking. Bench2Drive Driving Score, NAVSIM PDMS/EPDMS, AlpaSim kilometres per at-fault incident, minADE, reasoning scores, WOD-E2E dataset coverage and Waymo operational crash rates answer different questions. The Alpamayo model card's 2.45B + 0.2B breakdown differs from NVIDIA's rounded "2B" headline; the manifest preserves the detailed model-card count and labels the source.
 
@@ -232,9 +239,31 @@ The critical comparison is not simply “score under a camera drop.” It is the
 10. Staged HIL and closed-course validation under independent safety authority.
 11. Operational mileage and incident-rate evidence only after a separately governed safety case.
 
+## Temporary traffic controls: a separate operating-condition shift
+
+Construction zones and temporary traffic controls should not be treated as ordinary visual occlusion. They change the *rules and geometry of the road while the vehicle is in motion*. A system can have intact sensors and still fail because it gives generic obstacle avoidance precedence over a temporary closure rule, fails to bind the current closure state to the route, or enters a region that its prior plan assumed was open.
+
+The new `temporary_traffic_control` benchmark stage is motivated by NHTSA 26E035, but is not a reproduction of that incident or an estimate of its prevalence. Build independent synthetic scenarios for:
+
+- ramp-closure signs and mandatory exits;
+- cone/barrier channelization and lane shifts;
+- conflicting obstacle-avoidance and closure constraints;
+- a temporary rule that activates or expires while the vehicle approaches;
+- closed-lane entry, safe rerouting and a blocked-route fallback;
+- false-positive work-zone interpretation on a clean control.
+
+Keep native outcomes distinct: closure-sign compliance, cone/barrier channelization compliance, work-zone boundary entries, reroute completion, false-positive closure responses, detection latency and worst-family performance. Include the exact jurisdiction/profile revision and effective-time window, and make the policy's source-qualified rule bundle available only through the declared operational interface. Evaluator-only event truth must remain hidden.
+
+This is complementary to:
+- [#4774 jurisdictional driving transfer](https://github.com/Luminous-Dynamics/symtropy/issues/4774), which owns sourced jurisdiction/rule profiles and left/right traffic transfer;
+- [#4657 degradation and recovery](https://github.com/Luminous-Dynamics/symtropy/issues/4657), which owns fault-conditioned recovery envelopes;
+- [#4794 camera boundary fault injection](https://github.com/Luminous-Dynamics/symtropy/issues/4794), which tests the camera bridge's integrity boundary.
+
+A rule profile that says a lane is open must not override current policy-visible closure signs and cones. A temporary closure that cannot be reconciled against a source-qualified rule bundle must be treated as unresolved—not silently guessed.
+
 ## Files
 
-- `benchmark_manifest_v0_1.json`: 16 comparator records, nine model/learning arms, 15 benchmark stages, metrics, resource dimensions, negative controls and prospective targets.
+- `benchmark_manifest_v0_1.json`: 17 comparator records, nine model/learning arms, 16 benchmark stages, metrics, resource dimensions, negative controls and prospective targets.
 - `result_card.schema.json`: schema for per-run normalized evidence records.
 - `result_card.template.json`: an explicit not-run template; null values are not measurements.
 
