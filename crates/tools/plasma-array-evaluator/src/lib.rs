@@ -156,6 +156,8 @@ fn evaluate_scenario(
     manifest: &Manifest,
     reference_scenario_id: &str,
     reference_service_per_cell: f64,
+    reference_service_unit: &str,
+    reference_quality_gate_id: &str,
 ) -> ScenarioResult {
     let mut rejected = Vec::new();
     let mut blocked = Vec::new();
@@ -186,7 +188,9 @@ fn evaluate_scenario(
     }
     if scenario.service.unit.is_empty()
         || scenario.service.unit != scenario.service.reference_unit
+        || scenario.service.unit != reference_service_unit
         || scenario.service.quality_gate_id.is_empty()
+        || scenario.service.quality_gate_id != reference_quality_gate_id
     {
         reject("service unit or quality-gate identity is missing or mismatched", &mut rejected);
     }
@@ -231,6 +235,8 @@ fn evaluate_scenario(
     }
     if active_outputs.is_empty() {
         reject("scenario has no active cells", &mut rejected);
+    } else if active_outputs.len() < 2 && scenario.cells.len() > 1 {
+        block("fewer than two active cells remain for an array uniformity estimate", &mut blocked);
     } else {
         let active_mean = active_outputs.iter().sum::<f64>() / active_outputs.len() as f64;
         if !active_mean.is_finite() || active_mean <= 0.0 {
@@ -415,6 +421,7 @@ pub fn audit_manifest_json(input: &str) -> Result<AuditReport, String> {
         || !reference.cells[0].accepted_service.is_finite()
         || reference.cells[0].accepted_service <= 0.0
         || reference.service.unit != reference.service.reference_unit
+        || reference.service.quality_gate_id.is_empty()
         || !close_enough(reference.cells[0].accepted_service, reference.service.accepted_total)
     {
         return Err("reference scenario must contain one valid active cell with reconciled service".to_owned());
@@ -430,6 +437,8 @@ pub fn audit_manifest_json(input: &str) -> Result<AuditReport, String> {
                 &manifest,
                 &manifest.scaleout_reference_scenario_id,
                 reference_service_per_cell,
+                &reference.service.unit,
+                &reference.service.quality_gate_id,
             )
         })
         .collect();
@@ -473,7 +482,7 @@ mod tests {
         let scenarios = value["scenarios"].as_array_mut().expect("scenarios array");
         let scenario = scenarios
             .iter_mut()
-            .find(|scenario| scenario["id"] == scenario_id)
+            .find(|scenario| scenario["id"].as_str() == Some(scenario_id))
             .expect("scenario exists");
         scenario[field] = replacement;
     }
@@ -530,6 +539,15 @@ mod tests {
         let mut value = fixture_value();
         let first_id = value["scenarios"][1]["cells"][0]["id"].clone();
         value["scenarios"][1]["cells"][1]["id"] = first_id;
+        assert_eq!(run(&value).results[1].disposition, "REJECTED");
+    }
+
+
+    #[test]
+    fn candidate_must_match_reference_service_and_quality_gate() {
+        let mut value = fixture_value();
+        value["scenarios"][1]["service"]["quality_gate_id"] =
+            serde_json::json!("different-quality-gate");
         assert_eq!(run(&value).results[1].disposition, "REJECTED");
     }
 
