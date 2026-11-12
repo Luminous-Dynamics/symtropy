@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_policy_observability::{
-    evaluate_policy, known_mar_propensity_mean, robust_comparison, worst_case_regret_upper_bound,
-    CandidateRecord, EvaluatorRecord, MissingReason, MissingnessMechanism,
-    ObservationAssumption, PolicyEvaluation,
+    CandidateRecord, EvaluatorRecord, MissingReason, MissingnessMechanism, ObservationAssumption,
+    PolicyEvaluation, evaluate_policy, known_mar_propensity_mean, robust_comparison,
+    worst_case_regret_upper_bound,
 };
 
 const SUPPORT_LOWER: u64 = 0;
@@ -37,32 +37,176 @@ fn row(
 
 fn selective_adverse() -> (Vec<EvaluatorRecord>, Vec<EvaluatorRecord>) {
     let masked = vec![
-        row("masked_failures", "u1", "high_need", 100, true, None, None, MissingnessMechanism::MnarAdverseOutcomesHidden),
-        row("masked_failures", "u2", "high_need", 0, false, Some(MissingReason::PolicySuppressed), None, MissingnessMechanism::MnarAdverseOutcomesHidden),
-        row("masked_failures", "u3", "general", 0, false, Some(MissingReason::TelemetryUnavailable), None, MissingnessMechanism::MnarAdverseOutcomesHidden),
-        row("masked_failures", "u4", "general", 0, false, Some(MissingReason::PolicySuppressed), None, MissingnessMechanism::MnarAdverseOutcomesHidden),
+        row(
+            "masked_failures",
+            "u1",
+            "high_need",
+            100,
+            true,
+            None,
+            None,
+            MissingnessMechanism::MnarAdverseOutcomesHidden,
+        ),
+        row(
+            "masked_failures",
+            "u2",
+            "high_need",
+            0,
+            false,
+            Some(MissingReason::PolicySuppressed),
+            None,
+            MissingnessMechanism::MnarAdverseOutcomesHidden,
+        ),
+        row(
+            "masked_failures",
+            "u3",
+            "general",
+            0,
+            false,
+            Some(MissingReason::TelemetryUnavailable),
+            None,
+            MissingnessMechanism::MnarAdverseOutcomesHidden,
+        ),
+        row(
+            "masked_failures",
+            "u4",
+            "general",
+            0,
+            false,
+            Some(MissingReason::PolicySuppressed),
+            None,
+            MissingnessMechanism::MnarAdverseOutcomesHidden,
+        ),
     ];
     let transparent = vec![
-        row("transparent_service", "u1", "high_need", 60, true, None, None, MissingnessMechanism::Complete),
-        row("transparent_service", "u2", "high_need", 60, true, None, None, MissingnessMechanism::Complete),
-        row("transparent_service", "u3", "general", 60, true, None, None, MissingnessMechanism::Complete),
-        row("transparent_service", "u4", "general", 60, true, None, None, MissingnessMechanism::Complete),
+        row(
+            "transparent_service",
+            "u1",
+            "high_need",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
+        row(
+            "transparent_service",
+            "u2",
+            "high_need",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
+        row(
+            "transparent_service",
+            "u3",
+            "general",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
+        row(
+            "transparent_service",
+            "u4",
+            "general",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
     ];
     (masked, transparent)
 }
 
 fn selective_benefit() -> (Vec<EvaluatorRecord>, Vec<EvaluatorRecord>) {
     let hidden = vec![
-        row("hidden_successes", "u1", "high_need", 100, true, None, None, MissingnessMechanism::MnarBeneficialOutcomesHidden),
-        row("hidden_successes", "u2", "high_need", 100, false, Some(MissingReason::TelemetryUnavailable), None, MissingnessMechanism::MnarBeneficialOutcomesHidden),
-        row("hidden_successes", "u3", "general", 100, false, Some(MissingReason::PolicySuppressed), None, MissingnessMechanism::MnarBeneficialOutcomesHidden),
-        row("hidden_successes", "u4", "general", 100, false, Some(MissingReason::TelemetryUnavailable), None, MissingnessMechanism::MnarBeneficialOutcomesHidden),
+        row(
+            "hidden_successes",
+            "u1",
+            "high_need",
+            100,
+            true,
+            None,
+            None,
+            MissingnessMechanism::MnarBeneficialOutcomesHidden,
+        ),
+        row(
+            "hidden_successes",
+            "u2",
+            "high_need",
+            100,
+            false,
+            Some(MissingReason::TelemetryUnavailable),
+            None,
+            MissingnessMechanism::MnarBeneficialOutcomesHidden,
+        ),
+        row(
+            "hidden_successes",
+            "u3",
+            "general",
+            100,
+            false,
+            Some(MissingReason::PolicySuppressed),
+            None,
+            MissingnessMechanism::MnarBeneficialOutcomesHidden,
+        ),
+        row(
+            "hidden_successes",
+            "u4",
+            "general",
+            100,
+            false,
+            Some(MissingReason::TelemetryUnavailable),
+            None,
+            MissingnessMechanism::MnarBeneficialOutcomesHidden,
+        ),
     ];
     let steady = vec![
-        row("steady_service", "u1", "high_need", 60, true, None, None, MissingnessMechanism::Complete),
-        row("steady_service", "u2", "high_need", 60, true, None, None, MissingnessMechanism::Complete),
-        row("steady_service", "u3", "general", 60, true, None, None, MissingnessMechanism::Complete),
-        row("steady_service", "u4", "general", 60, true, None, None, MissingnessMechanism::Complete),
+        row(
+            "steady_service",
+            "u1",
+            "high_need",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
+        row(
+            "steady_service",
+            "u2",
+            "high_need",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
+        row(
+            "steady_service",
+            "u3",
+            "general",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
+        row(
+            "steady_service",
+            "u4",
+            "general",
+            60,
+            true,
+            None,
+            None,
+            MissingnessMechanism::Complete,
+        ),
     ];
     (hidden, steady)
 }
@@ -92,10 +236,46 @@ fn mar_positive_control() -> Vec<EvaluatorRecord> {
 
 fn mixed_mechanism() -> Vec<EvaluatorRecord> {
     vec![
-        row("mixed_observation", "u1", "high_need", 90, true, None, Some(5_000), MissingnessMechanism::Mar),
-        row("mixed_observation", "u2", "high_need", 10, false, Some(MissingReason::Nonresponse), Some(5_000), MissingnessMechanism::Mar),
-        row("mixed_observation", "u3", "general", 0, false, Some(MissingReason::PolicySuppressed), None, MissingnessMechanism::MnarAdverseOutcomesHidden),
-        row("mixed_observation", "u4", "general", 80, true, None, None, MissingnessMechanism::MnarAdverseOutcomesHidden),
+        row(
+            "mixed_observation",
+            "u1",
+            "high_need",
+            90,
+            true,
+            None,
+            Some(5_000),
+            MissingnessMechanism::Mar,
+        ),
+        row(
+            "mixed_observation",
+            "u2",
+            "high_need",
+            10,
+            false,
+            Some(MissingReason::Nonresponse),
+            Some(5_000),
+            MissingnessMechanism::Mar,
+        ),
+        row(
+            "mixed_observation",
+            "u3",
+            "general",
+            0,
+            false,
+            Some(MissingReason::PolicySuppressed),
+            None,
+            MissingnessMechanism::MnarAdverseOutcomesHidden,
+        ),
+        row(
+            "mixed_observation",
+            "u4",
+            "general",
+            80,
+            true,
+            None,
+            None,
+            MissingnessMechanism::MnarAdverseOutcomesHidden,
+        ),
     ]
 }
 
@@ -157,8 +337,7 @@ fn emit(
     );
     let interval = &evaluation.estimates.identified_interval;
     let truth_contained = interval.contains(evaluation.true_mean);
-    let (high_lower, high_upper, high_coverage) =
-        find_stratum_interval(evaluation, "high_need");
+    let (high_lower, high_upper, high_coverage) = find_stratum_interval(evaluation, "high_need");
     let (general_lower, general_upper, general_coverage) =
         find_stratum_interval(evaluation, "general");
     println!(
@@ -182,10 +361,30 @@ fn emit(
         general_upper,
         general_coverage,
         evaluation.true_stratum_gap,
-        evaluation.estimates.missing_by_reason.get(&MissingReason::TelemetryUnavailable).copied().unwrap_or(0),
-        evaluation.estimates.missing_by_reason.get(&MissingReason::Nonresponse).copied().unwrap_or(0),
-        evaluation.estimates.missing_by_reason.get(&MissingReason::PolicySuppressed).copied().unwrap_or(0),
-        evaluation.estimates.missing_by_reason.get(&MissingReason::AdministrativeExclusion).copied().unwrap_or(0),
+        evaluation
+            .estimates
+            .missing_by_reason
+            .get(&MissingReason::TelemetryUnavailable)
+            .copied()
+            .unwrap_or(0),
+        evaluation
+            .estimates
+            .missing_by_reason
+            .get(&MissingReason::Nonresponse)
+            .copied()
+            .unwrap_or(0),
+        evaluation
+            .estimates
+            .missing_by_reason
+            .get(&MissingReason::PolicySuppressed)
+            .copied()
+            .unwrap_or(0),
+        evaluation
+            .estimates
+            .missing_by_reason
+            .get(&MissingReason::AdministrativeExclusion)
+            .copied()
+            .unwrap_or(0),
         evaluation.estimates.propensity_units,
         evaluation.estimates.missing_propensity_units,
         fmt_u32_option(evaluation.estimates.minimum_propensity_bps),
@@ -208,8 +407,18 @@ fn main() {
     let masked_eval = evaluate_policy(&masked, support).expect("masked adverse fixture");
     let transparent_eval =
         evaluate_policy(&transparent, support).expect("transparent adverse fixture");
-    emit("selective_adverse", &masked_eval, Some(&transparent_eval), None);
-    emit("selective_adverse", &transparent_eval, Some(&masked_eval), None);
+    emit(
+        "selective_adverse",
+        &masked_eval,
+        Some(&transparent_eval),
+        None,
+    );
+    emit(
+        "selective_adverse",
+        &transparent_eval,
+        Some(&masked_eval),
+        None,
+    );
 
     let (hidden, steady) = selective_benefit();
     let hidden_eval = evaluate_policy(&hidden, support).expect("hidden benefit fixture");
