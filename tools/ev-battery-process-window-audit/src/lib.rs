@@ -150,6 +150,8 @@ pub struct LotSummary {
     pub nonconforming_in_window_count: usize,
     pub incomplete_in_window_count: usize,
     pub first_pass_yield: Option<f64>,
+    pub process_window_adherence_rate: Option<f64>,
+    pub in_window_complete_conformance_rate: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -164,6 +166,8 @@ pub struct LineSummary {
     pub nonconforming_in_window_count: usize,
     pub incomplete_in_window_count: usize,
     pub first_pass_yield: Option<f64>,
+    pub process_window_adherence_rate: Option<f64>,
+    pub in_window_complete_conformance_rate: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -594,6 +598,25 @@ impl GroupCounts {
     }
 
     fn first_pass_yield(&self) -> Option<f64> {
+        if self.run_count == 0 {
+            None
+        } else {
+            // A strict process-conforming first pass must be both in-window
+            // and quality-conforming. Out-of-window and incomplete runs stay
+            // in the denominator and cannot be counted as passes.
+            Some(self.conforming_in_window_count as f64 / self.run_count as f64)
+        }
+    }
+
+    fn process_window_adherence_rate(&self) -> Option<f64> {
+        if self.run_count == 0 {
+            None
+        } else {
+            Some(self.in_window_run_count as f64 / self.run_count as f64)
+        }
+    }
+
+    fn in_window_complete_conformance_rate(&self) -> Option<f64> {
         let denominator =
             self.conforming_in_window_count + self.nonconforming_in_window_count;
         if denominator == 0 {
@@ -606,9 +629,10 @@ impl GroupCounts {
 
 /// Audit one declared battery recipe/process window against cell-level run records.
 ///
-/// First-pass yield is computed only from in-window runs with complete measured
-/// quality results. Incomplete/invalid inspections and out-of-window runs are
-/// counted separately. Reports are stratified by exact lot, line and evidence tier.
+/// Strict process-conforming first-pass yield uses all declared runs as its
+/// denominator: out-of-window and incomplete runs cannot count as passes.
+/// A separate conditional conformance rate is reported only among complete,
+/// measured, in-window outcomes. Reports are stratified by lot, line and evidence tier.
 /// This is descriptive finite-sample accounting, not a process-capability index,
 /// confidence interval, causal model or production qualification.
 pub fn audit_process_window(
@@ -741,6 +765,8 @@ pub fn audit_process_window(
             nonconforming_in_window_count: counts.nonconforming_in_window_count,
             incomplete_in_window_count: counts.incomplete_in_window_count,
             first_pass_yield: counts.first_pass_yield(),
+            process_window_adherence_rate: counts.process_window_adherence_rate(),
+            in_window_complete_conformance_rate: counts.in_window_complete_conformance_rate(),
         })
         .collect();
 
@@ -904,6 +930,30 @@ mod tests {
         assert_eq!(report.physical_evidence_run_count, 0);
         assert_eq!(report.lot_summaries[0].first_pass_yield, Some(0.5));
         assert_eq!(report.line_summaries[0].lot_count, 2);
+    }
+
+    #[test]
+    fn incomplete_and_out_of_window_runs_cannot_inflate_strict_first_pass_yield() {
+        let mut manifest = valid_manifest();
+        let extra = run(
+            "6",
+            "LOT-C",
+            "LINE-2",
+            observed_quality(4.9, 27.0, "QUALITY-SYNTH"),
+        );
+        manifest.production_runs.push(extra);
+
+        let report = audit_process_window(&manifest).expect("mixed run statuses");
+        let lot_c = report
+            .lot_summaries
+            .iter()
+            .find(|item| item.lot_id == "LOT-C")
+            .expect("LOT-C summary");
+
+        assert_eq!(lot_c.run_count, 3);
+        assert_eq!(lot_c.first_pass_yield, Some(1.0 / 3.0));
+        assert_eq!(lot_c.process_window_adherence_rate, Some(2.0 / 3.0));
+        assert_eq!(lot_c.in_window_complete_conformance_rate, Some(1.0));
     }
 
     #[test]
