@@ -162,11 +162,11 @@ Exit codes: 0 structurally valid; 1 rejected campaign (report still written); 2 
 
 ### Authored adversarial tests
 
-The current branch contains **41 library tests and 9 CLI tests**. Coverage includes:
+The current branch contains **42 library tests and 9 CLI tests**. Coverage includes:
 - event-specific detection/containment attribution and the negative control where one fault attempts to claim another fault's detection;
 - missing, stale, corrupt, delayed, calibration, clock and compute-fault condition accounting;
 - clean-control false positives, missing latency/energy evidence and exact tick denominators;
-- deadline misses versus undetected faults, healthy recovery quorum and premature return to normal;
+- deadline misses versus undetected faults, healthy recovery quorum, rejection of degraded/fallback ticks from the quorum, and premature return to normal;
 - independent, cascaded and common-cause fault declarations, including parent-cycle rejection and overlapping exposure requirements for common-cause groups;
 - deterministic seven-family schedules and deterministic multi-severity schedules, including overflow, duplicate severity and overlapping-recovery-window rejection;
 - checked-in camera-drop, compound common-cause and 35-event severity-sweep fixtures;
