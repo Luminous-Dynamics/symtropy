@@ -10,10 +10,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    ActiveSensingConfig, ActiveSensingReport, DecisionWorld, NoSensingAssessment,
-    SensorAction, SensorPrediction, SensorStatus, TOLERANCE, assess_active_sensing,
-    baseline_no_sensing, find_policy,
-    finite_nonnegative, oracle_for, validate_config, validate_sensor, validate_worlds,
+    ActiveSensingConfig, ActiveSensingReport, DecisionWorld, NoSensingAssessment, SensorAction,
+    SensorPrediction, SensorStatus, TOLERANCE, assess_active_sensing, baseline_no_sensing,
+    find_policy, finite_nonnegative, oracle_for, validate_config, validate_sensor, validate_worlds,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -101,7 +100,9 @@ fn validate_plan<'a>(
         .required_previous_observation
         .as_deref()
         .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| "the second sensing stage must declare its prerequisite observation".to_owned())?;
+        .ok_or_else(|| {
+            "the second sensing stage must declare its prerequisite observation".to_owned()
+        })?;
 
     let mut stage_ids = BTreeSet::new();
     let mut stage_predictions = Vec::with_capacity(2);
@@ -160,18 +161,23 @@ pub fn assess_sequential_sensor_plan(
         .first()
         .ok_or_else(|| "first-stage myopic assessment missing".to_owned())?;
 
-    let total_energy_kwh: f64 = plan.stages.iter()
+    let total_energy_kwh: f64 = plan
+        .stages
+        .iter()
         .map(|stage| stage.sensor.energy_cost_kwh)
         .sum();
-    let total_energy_cost_service_units: f64 = plan.stages.iter()
+    let total_energy_cost_service_units: f64 = plan
+        .stages
+        .iter()
         .map(|stage| stage.sensor.energy_cost_kwh * stage.sensor.service_units_per_kwh)
         .sum();
-    let total_latency_ticks: u32 = plan.stages.iter()
+    let total_latency_ticks: u32 = plan
+        .stages
+        .iter()
         .map(|stage| stage.sensor.latency_ticks)
         .sum();
 
-    if !finite_nonnegative(total_energy_kwh)
-        || !finite_nonnegative(total_energy_cost_service_units)
+    if !finite_nonnegative(total_energy_kwh) || !finite_nonnegative(total_energy_cost_service_units)
     {
         return Err("non-finite aggregate sequential sensing cost".to_owned());
     }
@@ -207,15 +213,16 @@ pub fn assess_sequential_sensor_plan(
         return Err("non-finite total sequential sensing penalty".to_owned());
     }
 
-    let affordable =
-        total_energy_kwh <= config.maximum_energy_kwh + config.tie_tolerance
-            && total_latency_ticks <= config.maximum_latency_ticks
-            && maximum_total_penalty_service_units
-                <= config.maximum_penalty_service_units + config.tie_tolerance;
+    let affordable = total_energy_kwh <= config.maximum_energy_kwh + config.tie_tolerance
+        && total_latency_ticks <= config.maximum_latency_ticks
+        && maximum_total_penalty_service_units
+            <= config.maximum_penalty_service_units + config.tie_tolerance;
 
     let mut partitions = Vec::with_capacity(histories.len());
     for (history, members) in histories {
-        let mut policy_ids: Vec<String> = members[0].policies.iter()
+        let mut policy_ids: Vec<String> = members[0]
+            .policies
+            .iter()
             .map(|policy| policy.policy_id.clone())
             .collect();
         policy_ids.sort();
@@ -258,7 +265,9 @@ pub fn assess_sequential_sensor_plan(
         }
 
         candidates.sort_by(|left, right| {
-            left.1.total_cmp(&right.1).then_with(|| left.0.cmp(&right.0))
+            left.1
+                .total_cmp(&right.1)
+                .then_with(|| left.0.cmp(&right.0))
         });
         let selected = candidates.first();
         partitions.push(SequentialObservationPartition {
@@ -270,11 +279,14 @@ pub fn assess_sequential_sensor_plan(
     }
 
     partitions.sort_by(|left, right| left.observation_history.cmp(&right.observation_history));
-    let has_unresolved_partition = partitions.iter().any(|partition| partition.worst_case_regret.is_none());
+    let has_unresolved_partition = partitions
+        .iter()
+        .any(|partition| partition.worst_case_regret.is_none());
     let worst_case_post_sensing_regret = if has_unresolved_partition {
         None
     } else {
-        partitions.iter()
+        partitions
+            .iter()
             .filter_map(|partition| partition.worst_case_regret)
             .reduce(f64::max)
     };
@@ -299,16 +311,18 @@ pub fn assess_sequential_sensor_plan(
                 .is_some_and(|reduction| reduction > config.tie_tolerance));
 
     let candidate_policy = if recommended {
-        partitions.iter()
+        partitions
+            .iter()
             .filter_map(|partition| {
-                partition.selected_policy_id.as_ref().map(|action_id| {
-                    SequentialCandidateDecision {
+                partition
+                    .selected_policy_id
+                    .as_ref()
+                    .map(|action_id| SequentialCandidateDecision {
                         scenario_id: config.scenario_id.clone(),
                         plan_id: plan.plan_id.clone(),
                         observation_history: partition.observation_history.clone(),
                         action_id: action_id.clone(),
-                    }
-                })
+                    })
             })
             .collect()
     } else {
@@ -363,8 +377,14 @@ mod tests {
                 world_digest: "sha256-world_a".to_owned(),
                 service_floor: 70.0,
                 policies: vec![
-                    PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 90.0 },
-                    PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 50.0 },
+                    PolicyOutcome {
+                        policy_id: "repair_a".to_owned(),
+                        service_units: 90.0,
+                    },
+                    PolicyOutcome {
+                        policy_id: "repair_b".to_owned(),
+                        service_units: 50.0,
+                    },
                 ],
             },
             DecisionWorld {
@@ -372,8 +392,14 @@ mod tests {
                 world_digest: "sha256-world_b".to_owned(),
                 service_floor: 70.0,
                 policies: vec![
-                    PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 50.0 },
-                    PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 90.0 },
+                    PolicyOutcome {
+                        policy_id: "repair_a".to_owned(),
+                        service_units: 50.0,
+                    },
+                    PolicyOutcome {
+                        policy_id: "repair_b".to_owned(),
+                        service_units: 90.0,
+                    },
                 ],
             },
         ]
@@ -394,9 +420,14 @@ mod tests {
                 energy_cost_kwh: energy,
                 service_units_per_kwh: 2.0,
                 latency_ticks: latency,
-                predictions: outcomes.into_iter().map(|(world_id, observation_id, loss)| {
-                    let world = worlds.iter().find(|world| world.world_id == world_id).unwrap();
-                    SensorPrediction {
+                predictions: outcomes
+                    .into_iter()
+                    .map(|(world_id, observation_id, loss)| {
+                        let world = worlds
+                            .iter()
+                            .find(|world| world.world_id == world_id)
+                            .unwrap();
+                        SensorPrediction {
                         world_id: world_id.to_owned(),
                         world_digest: world.world_digest.clone(),
                         observation_id: observation_id.to_owned(),
@@ -408,7 +439,8 @@ mod tests {
                         latency_service_loss_per_tick: loss,
                         prediction_receipt_digest: format!("sha256-{id}-{world_id}-receipt"),
                     }
-                }).collect(),
+                    })
+                    .collect(),
             },
             required_previous_observation: required_previous_observation.map(str::to_owned),
         }
@@ -445,7 +477,10 @@ mod tests {
         ]);
         let result = assess_sequential_sensor_plan(&config(), &worlds(), &plan).unwrap();
 
-        assert_eq!(result.myopic_stage_one_status, SensorStatus::NoFeasiblePolicy);
+        assert_eq!(
+            result.myopic_stage_one_status,
+            SensorStatus::NoFeasiblePolicy
+        );
         assert!(result.myopic_stage_one_regret.is_none());
         assert_eq!(result.baseline.common_feasible_policy_count, 0);
         assert_eq!(result.status, SensorStatus::Evaluated);
