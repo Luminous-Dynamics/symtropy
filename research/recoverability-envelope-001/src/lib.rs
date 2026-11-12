@@ -808,12 +808,14 @@ mod tests {
     #[test]
     fn phase_conditioned_violations_are_separated_from_off_phase_violations() {
         let mut episode = valid_episode();
+        episode.trace[1].maneuver_phase = "approach".into();
         episode.trace[1].oracle_outcome = OracleOutcome::ConstraintViolation;
         episode.trace[4].oracle_outcome = OracleOutcome::ConstraintViolation;
         let report = episode.evaluate().unwrap();
         let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
         assert_eq!(camera.constraint_violation_ticks, 1);
-        assert_eq!(camera.critical_phase_constraint_violation_ticks, Some(1));
+        assert_eq!(camera.critical_phase_overlap_ticks, Some(1));
+        assert_eq!(camera.critical_phase_constraint_violation_ticks, Some(0));
         let compute = report.results.iter().find(|result| result.fault_id == "inference-delay").unwrap();
         assert_eq!(compute.critical_phase_constraint_violation_ticks, Some(1));
     }
@@ -846,11 +848,26 @@ mod tests {
     fn checked_in_episode_schema_is_valid_json_and_versioned() {
         let schema: serde_json::Value =
             serde_json::from_str(include_str!("../schemas/episode-v1.schema.json")).unwrap();
+        let report_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/report-v1.schema.json")).unwrap();
         assert_eq!(
             schema["$schema"],
             "https://json-schema.org/draft/2020-12/schema"
         );
         assert_eq!(schema["title"], "Recoverability envelope episode v1");
+        assert_eq!(report_schema["title"], "Recoverability envelope report v1");
+        assert!(schema["$defs"]["tick_trace"]["required"]
+            .as_array().unwrap().iter().any(|field| field == "maneuver_phase"));
+        for field in [
+            "onset_in_critical_phase",
+            "critical_phase_overlap_ticks",
+            "critical_phase_fallback_ticks",
+            "critical_phase_deadline_miss_ticks",
+            "critical_phase_constraint_violation_ticks",
+        ] {
+            assert!(report_schema["$defs"]["fault_result"]["required"]
+                .as_array().unwrap().iter().any(|item| item == field));
+        }
     }
 
     #[test]
