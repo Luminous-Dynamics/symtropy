@@ -1,0 +1,93 @@
+name: CIVDYN SimulacraBench synthetic adapter
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-simulacra/**"
+      - ".github/workflows/civdyn-simulacra.yml"
+  push:
+    branches:
+      - "research/civdyn-simulacra-v0-1"
+    paths:
+      - "research/civdyn-simulacra/**"
+      - ".github/workflows/civdyn-simulacra.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout CIVDYN
+        uses: actions/checkout@v4
+      - name: Checkout pinned public SimulacraBench starter kit
+        uses: actions/checkout@v4
+        with:
+          repository: SituatedEvals/public
+          ref: aa03186f8f083c7785a1a566c802c2077925e265
+          path: _simulacra_upstream
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: _simulacra_upstream/requirements.txt
+      - name: Install public grader and adapter test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r _simulacra_upstream/requirements.txt scikit-learn pytest
+      - name: Validate adapter contract against all three public schemas
+        env:
+          SIMULACRABENCH_DATA_DIR: ${{ github.workspace }}/_simulacra_upstream/data
+        run: |
+          python -m compileall -q research/civdyn-simulacra/submission
+          pytest -q research/civdyn-simulacra/tests
+      - name: Reproduce official crowd baseline and score adapter on synthetic seeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _simulacra_upstream
+          adapter="${GITHUB_WORKSPACE}/research/civdyn-simulacra/submission"
+          for seed in 0 1 2; do
+            out="_sandbox/civdyn-seed-${seed}"
+            mkdir -p _sandbox
+            python make_sandbox.py --schema data/sample.json --seed "${seed}" --out "${out}"
+            python score.py \
+              --submission baseline/marginal_counts \
+              --data "${out}" \
+              --schema data/sample.json \
+              --phase 1 \
+              --seed "${seed}" \
+              --log "/tmp/civdyn-simulacra-marginal-${seed}.json"
+            python score.py \
+              --submission "${adapter}" \
+              --data "${out}" \
+              --schema data/sample.json \
+              --phase 1 \
+              --seed "${seed}" \
+              --log "/tmp/civdyn-simulacra-adapter-${seed}.json"
+          done
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+
+          adapter_scores = []
+          for seed in range(3):
+              marginal = json.loads(Path(f"/tmp/civdyn-simulacra-marginal-{seed}.json").read_text())
+              adapter = json.loads(Path(f"/tmp/civdyn-simulacra-adapter-{seed}.json").read_text())
+              assert marginal["status"] == "PASS"
+              assert adapter["status"] == "PASS"
+              assert abs(float(marginal["skill"])) <= 1e-8, marginal["skill"]
+              score = float(adapter["skill"])
+              assert math.isfinite(score), score
+              adapter_scores.append(score)
+              print(f"seed={seed}: official marginal skill={float(marginal['skill']):.8f}; CIVDYN synthetic skill={score:.8f}")
+
+          mean = sum(adapter_scores) / len(adapter_scores)
+          print(f"three-seed synthetic CIVDYN skill mean={mean:.8f}; min={min(adapter_scores):.8f}; max={max(adapter_scores):.8f}")
+          print("No positive-skill assertion is imposed: the official grader is allowed to show that the experimental adapter loses.")
+          PY
