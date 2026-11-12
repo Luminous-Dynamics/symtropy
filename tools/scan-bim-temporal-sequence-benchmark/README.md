@@ -38,7 +38,7 @@ cargo run --locked --manifest-path tools/scan-bim-temporal-sequence-benchmark/Ca
   --reference tools/scan-bim-temporal-sequence-benchmark/fixtures/evaluator-reference.json
 ```
 
-The frozen corpus contains seven synthetic sequences and seven synthetic building groups. These are known-answer fixtures, not an external generalization sample.
+The frozen corpus contains seven synthetic sequences and seven synthetic building groups. The Rust crate currently has 17 unit tests covering known-answer scoring, candidate/reference ordering, ID switches, spurious detections, missed visible detections, occlusion/replacement semantics, nuisance false-change events, late evidence, NDT label leakage, clock identity/precision, expired calibration, revocation timing and duplicate event identity. These are known-answer fixtures, not an external generalization sample.
 
 ## Claim ceiling
 
