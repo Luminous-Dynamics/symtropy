@@ -204,7 +204,7 @@ jobs:
 
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            (.required | length == 12) and
+            (.required | length == 15) and
             (.properties.protocol.required | index("event_evaluation") != null) and
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
