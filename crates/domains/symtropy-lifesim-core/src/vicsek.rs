@@ -862,30 +862,16 @@ impl VicsekModel {
             for right in (left + 1)..count {
                 let a = self.particles[left];
                 let b = self.particles[right];
-                let (dx, dy) = periodic_displacement(
-                    a.x,
-                    a.y,
-                    b.x,
-                    b.y,
-                    self.config.box_size,
-                );
+                let (dx, dy) = periodic_displacement(a.x, a.y, b.x, b.y, self.config.box_size);
                 let distance = dx.hypot(dy);
                 if distance >= max_radius {
                     continue;
                 }
 
-                let left_sees_right = self.perceives_with_radius(
-                    (a.x, a.y),
-                    a.heading_rad,
-                    (b.x, b.y),
-                    max_radius,
-                );
-                let right_sees_left = self.perceives_with_radius(
-                    (b.x, b.y),
-                    b.heading_rad,
-                    (a.x, a.y),
-                    max_radius,
-                );
+                let left_sees_right =
+                    self.perceives_with_radius((a.x, a.y), a.heading_rad, (b.x, b.y), max_radius);
+                let right_sees_left =
+                    self.perceives_with_radius((b.x, b.y), b.heading_rad, (a.x, a.y), max_radius);
                 if left_sees_right || right_sees_left {
                     edges.push((distance, left, right));
                 }
@@ -947,16 +933,19 @@ impl VicsekModel {
                 right_censored_component_count += 1;
             }
         }
-        intervals.sort_by(|left, right| {
-            match (left.death_radius, right.death_radius) {
-                (Some(a), Some(b)) => a
-                    .total_cmp(&b)
-                    .then_with(|| left.representative_particle.cmp(&right.representative_particle)),
+        intervals.sort_by(
+            |left, right| match (left.death_radius, right.death_radius) {
+                (Some(a), Some(b)) => a.total_cmp(&b).then_with(|| {
+                    left.representative_particle
+                        .cmp(&right.representative_particle)
+                }),
                 (Some(_), None) => std::cmp::Ordering::Less,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => left.representative_particle.cmp(&right.representative_particle),
-            }
-        });
+                (None, None) => left
+                    .representative_particle
+                    .cmp(&right.representative_particle),
+            },
+        );
 
         Ok(VicsekH0PersistenceReport {
             particle_count: count,
@@ -993,10 +982,8 @@ impl VicsekModel {
             for right in (left + 1)..count {
                 let a = self.particles[left];
                 let b = self.particles[right];
-                let left_sees_right =
-                    self.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
-                let right_sees_left =
-                    self.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
+                let left_sees_right = self.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
+                let right_sees_left = self.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
                 if left_sees_right || right_sees_left {
                     adjacency[left].push(right);
                     adjacency[right].push(left);
@@ -1038,10 +1025,7 @@ impl VicsekModel {
                         neighbor_particle.y,
                         self.config.box_size,
                     );
-                    let expected = (
-                        unwrapped[current].0 + dx,
-                        unwrapped[current].1 + dy,
-                    );
+                    let expected = (unwrapped[current].0 + dx, unwrapped[current].1 + dy);
                     if !visited[neighbor] {
                         visited[neighbor] = true;
                         unwrapped[neighbor] = expected;
@@ -1054,14 +1038,23 @@ impl VicsekModel {
                 }
             }
 
-            let points: Vec<(f64, f64)> = members
+            let points: Vec<(f64, f64)> = members.iter().map(|&index| unwrapped[index]).collect();
+            let min_x = points
                 .iter()
-                .map(|&index| unwrapped[index])
-                .collect();
-            let min_x = points.iter().map(|point| point.0).fold(f64::INFINITY, f64::min);
-            let max_x = points.iter().map(|point| point.0).fold(f64::NEG_INFINITY, f64::max);
-            let min_y = points.iter().map(|point| point.1).fold(f64::INFINITY, f64::min);
-            let max_y = points.iter().map(|point| point.1).fold(f64::NEG_INFINITY, f64::max);
+                .map(|point| point.0)
+                .fold(f64::INFINITY, f64::min);
+            let max_x = points
+                .iter()
+                .map(|point| point.0)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let min_y = points
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::INFINITY, f64::min);
+            let max_y = points
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::NEG_INFINITY, f64::max);
             let span_x = max_x - min_x;
             let span_y = max_y - min_y;
 
@@ -1645,8 +1638,7 @@ fn convex_hull(mut points: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
 }
 
 fn cross_2d(origin: (f64, f64), left: (f64, f64), right: (f64, f64)) -> f64 {
-    (left.0 - origin.0) * (right.1 - origin.1)
-        - (left.1 - origin.1) * (right.0 - origin.0)
+    (left.0 - origin.0) * (right.1 - origin.1) - (left.1 - origin.1) * (right.0 - origin.0)
 }
 
 fn convex_hull_measure(hull: &[(f64, f64)]) -> (f64, f64) {
@@ -2927,9 +2919,21 @@ mod tests {
     fn cluster_geometry_measures_triangle_convex_envelope() {
         let model = VicsekModel::new(
             vec![
-                VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-                VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
-                VicsekParticle { x: 1.0, y: 2.0, heading_rad: 0.0 },
+VicsekParticle {
+                    x: 1.0,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 2.0,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 1.0,
+                    y: 2.0,
+                    heading_rad: 0.0,
+                }
             ],
             VicsekConfig {
                 box_size: 20.0,
@@ -2955,8 +2959,16 @@ mod tests {
     fn cluster_geometry_unwraps_compact_component_across_periodic_seam() {
         let model = VicsekModel::new(
             vec![
-                VicsekParticle { x: 9.8, y: 1.0, heading_rad: 0.0 },
-                VicsekParticle { x: 0.2, y: 1.0, heading_rad: 0.0 },
+VicsekParticle {
+                    x: 9.8,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 0.2,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                }
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -2983,8 +2995,16 @@ mod tests {
         let model = VicsekModel::new(
             vec![
                 VicsekParticle { x: 1.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 4.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 7.0, y: 5.0, heading_rad: 0.0 },
+VicsekParticle {
+                    x: 4.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 7.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                }
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -3000,7 +3020,10 @@ mod tests {
         let report = model.cluster_geometry();
         assert_eq!(report.clusters.len(), 1);
         let cluster = &report.clusters[0];
-        assert_eq!(cluster.status, VicsekGeometryStatus::PeriodicExtentAmbiguous);
+        assert_eq!(
+            cluster.status,
+            VicsekGeometryStatus::PeriodicExtentAmbiguous
+        );
         assert!(cluster.unwrapped_span_x > 5.0);
         assert_eq!(cluster.convex_hull_area, None);
         assert_eq!(cluster.convex_hull_perimeter, None);
@@ -3010,10 +3033,26 @@ mod tests {
     fn cluster_geometry_rejects_a_component_that_winds_around_the_torus() {
         let model = VicsekModel::new(
             vec![
-                VicsekParticle { x: 0.5, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 3.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 5.5, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 8.0, y: 5.0, heading_rad: 0.0 },
+VicsekParticle {
+                    x: 0.5,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 3.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 5.5,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 8.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                }
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -3029,7 +3068,10 @@ mod tests {
         let report = model.cluster_geometry();
         assert_eq!(report.clusters.len(), 1);
         let cluster = &report.clusters[0];
-        assert_eq!(cluster.status, VicsekGeometryStatus::PeriodicWindingDetected);
+        assert_eq!(
+            cluster.status,
+            VicsekGeometryStatus::PeriodicWindingDetected
+        );
         assert_eq!(cluster.convex_hull_area, None);
         assert_eq!(cluster.convex_hull_perimeter, None);
     }
@@ -3038,10 +3080,26 @@ mod tests {
     fn h0_filtration_records_merge_radii_and_right_censored_components() {
         let model = VicsekModel::new(
             vec![
-                VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-                VicsekParticle { x: 1.5, y: 1.0, heading_rad: 0.0 },
-                VicsekParticle { x: 5.0, y: 5.0, heading_rad: 1.0 },
-                VicsekParticle { x: 5.4, y: 5.0, heading_rad: 1.0 },
+                VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            }
+VicsekParticle {
+                    x: 1.5,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                }
+VicsekParticle {
+                    x: 5.0,
+                    y: 5.0,
+                    heading_rad: 1.0,
+                }
+VicsekParticle {
+                    x: 5.4,
+                    y: 5.0,
+                    heading_rad: 1.0,
+                }
             ],
             VicsekConfig {
                 box_size: 20.0,
@@ -3077,7 +3135,11 @@ mod tests {
     fn h0_filtration_uses_strict_radius_and_visual_weak_projection() {
         let pair = vec![
             VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle {
+                x: 2.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            }
         ];
         let metric = VicsekModel::new(
             pair.clone(),
@@ -3127,10 +3189,26 @@ mod tests {
     #[test]
     fn h0_filtration_is_invariant_to_periodic_box_translation() {
         let particles = vec![
-            VicsekParticle { x: 9.8, y: 0.2, heading_rad: 0.0 },
-            VicsekParticle { x: 0.2, y: 0.2, heading_rad: 0.0 },
-            VicsekParticle { x: 4.0, y: 4.0, heading_rad: 1.0 },
-            VicsekParticle { x: 4.4, y: 4.0, heading_rad: 1.0 },
+            VicsekParticle {
+                x: 9.8,
+                y: 0.2,
+                heading_rad: 0.0,
+            }
+            VicsekParticle {
+                x: 0.2,
+                y: 0.2,
+                heading_rad: 0.0,
+            }
+            VicsekParticle {
+                x: 4.0,
+                y: 4.0,
+                heading_rad: 1.0,
+            }
+            VicsekParticle {
+                x: 4.4,
+                y: 4.0,
+                heading_rad: 1.0,
+            }
         ];
         let config = VicsekConfig {
             box_size: 10.0,
@@ -3152,9 +3230,20 @@ mod tests {
         let right = translated.h0_persistence(2.0).unwrap();
         assert_eq!(left.candidate_edges, right.candidate_edges);
         assert_eq!(left.merge_count, right.merge_count);
-        assert_eq!(left.right_censored_component_count, right.right_censored_component_count);
-        let left_deaths: Vec<f64> = left.intervals.iter().filter_map(|v| v.death_radius).collect();
-        let right_deaths: Vec<f64> = right.intervals.iter().filter_map(|v| v.death_radius).collect();
+        assert_eq!(
+            left.right_censored_component_count,
+            right.right_censored_component_count
+        );
+        let left_deaths: Vec<f64> = left
+            .intervals
+            .iter()
+            .filter_map(|v| v.death_radius)
+            .collect();
+        let right_deaths: Vec<f64> = right
+            .intervals
+            .iter()
+            .filter_map(|v| v.death_radius)
+            .collect();
         assert_eq!(left_deaths.len(), right_deaths.len());
         for (a, b) in left_deaths.iter().zip(right_deaths.iter()) {
             assert!((a - b).abs() < 1.0e-12);
