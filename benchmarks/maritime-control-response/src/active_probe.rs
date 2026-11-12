@@ -279,6 +279,7 @@ pub enum ProbeError {
     RiskEvidenceNotReviewed,
     LikelihoodCalibrationNotReviewed,
     CandidateCatalogMismatch,
+    MultiScenarioSequentialUpdateRequiresJointPosterior,
     InvalidSeedDigest,
     InvalidChernoffGrid,
     InvalidChernoffInputs,
@@ -347,6 +348,10 @@ impl fmt::Display for ProbeError {
             Self::CandidateCatalogMismatch => write!(
                 formatter,
                 "baseline candidates do not match the scored probe catalogue"
+            ),
+            Self::MultiScenarioSequentialUpdateRequiresJointPosterior => write!(
+                formatter,
+                "sequential posterior updates for persistent multi-scenario likelihood models require a joint hypothesis-scenario posterior ledger"
             ),
             Self::InvalidSeedDigest => write!(
                 formatter,
@@ -1225,6 +1230,14 @@ pub fn realize_probe_observation(
     }
     let (_, _, _, scenario_count, _) =
         assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
+    if scenario_count > 1 {
+        // Likelihood scenarios represent persistent uncertainty in the frozen
+        // model/calibration, not a fresh random draw per sample. Marginalizing
+        // them independently on every update would be statistically wrong.
+        // Until the ledger carries the joint p(hypothesis, scenario) posterior,
+        // only point-model sequential updates are supported.
+        return Err(ProbeError::MultiScenarioSequentialUpdateRequiresJointPosterior);
+    }
 
     let likelihood_by_hypothesis = if candidate.uncertainty_scenarios.is_empty() {
         let outcome = candidate
@@ -2372,7 +2385,7 @@ mod tests {
     }
 
     #[test]
-    fn observed_update_marginalizes_likelihood_scenarios_and_reports_scenario_posterior_spread() {
+    fn sequential_update_rejects_persistent_scenario_models_without_joint_posterior_ledger() {
         let mut item = candidate(
             "noisy_pressure_observation",
             ProbeClass::PassiveMeasurement,
@@ -2389,25 +2402,20 @@ mod tests {
         let candidates = vec![item.clone()];
         let (policy, portfolio, selection, ledger) =
             selected_probe_context(&hypotheses, &candidates);
-        let update = realize_probe_observation(
-            &hypotheses,
-            &candidates,
-            &policy,
-            &portfolio,
-            &selection,
-            &ledger,
-            &item,
-            &item.candidate_manifest_sha256,
-            "bearing_signature",
-            &digest('d'),
-        )
-        .unwrap();
-        assert!((update.posterior[0].probability - 0.925).abs() < 1e-12);
-        assert_eq!(update.likelihood_scenario_count, 2);
-        assert_eq!(update.possible_likelihood_scenario_count, 2);
-        assert_eq!(update.impossible_likelihood_scenario_count, 0);
-        assert!(
-            update.scenario_posterior_entropy_min_nats < update.scenario_posterior_entropy_max_nats
+        assert_eq!(
+            realize_probe_observation(
+                &hypotheses,
+                &candidates,
+                &policy,
+                &portfolio,
+                &selection,
+                &ledger,
+                &item,
+                &item.candidate_manifest_sha256,
+                "bearing_signature",
+                &digest('d'),
+            ),
+            Err(ProbeError::MultiScenarioSequentialUpdateRequiresJointPosterior)
         );
     }
 
