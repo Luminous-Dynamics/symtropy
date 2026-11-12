@@ -383,6 +383,9 @@ fn validate_material(
         (_, MaterialDisposition::Balanced, Some(0)) => Ok(()),
         (_, MaterialDisposition::Imbalanced, Some(value)) if value != 0 => Ok(()),
         (_, MaterialDisposition::Incomplete, None) => Ok(()),
+        (MaterialRequirement::Required, MaterialDisposition::NotApplicable, None) => {
+            Err(CompositionError::MaterialStatusMismatch)
+        }
         (_, MaterialDisposition::NotApplicable, None)
             if event.material_requirement == MaterialRequirement::Optional =>
         {
@@ -406,6 +409,9 @@ fn validate_energy(receipt: &EnergyBalanceReceipt) -> Result<(), CompositionErro
             Ok(())
         }
         (status, Some((lower, upper)), Some(allowed)) => {
+            if status == EnergyBalanceStatus::Incomplete {
+                return Err(CompositionError::InvalidEnergySummary);
+            }
             if !lower.is_finite()
                 || !upper.is_finite()
                 || lower > upper
