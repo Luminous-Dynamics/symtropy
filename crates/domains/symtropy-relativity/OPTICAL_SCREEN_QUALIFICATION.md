@@ -52,3 +52,14 @@ Sign-change bracketing alone is insufficient for even-multiplicity candidates. S
 ## Claim boundary
 
 Current source supports a finite-observer variational optical-screen map plus same-event SO(2) re-expression. It does not yet implement a transported Sachs frame, across-event screen atlas, qualified caustic finder, fold/cusp topology catalogue, finite-frequency diffraction solver or global rigorous error bound. These are explicit open gates, not implied capabilities.
+
+## Compiler-driven corrections
+
+The first pinned Rust 1.96 Clippy/build attempt cleared formatting and exposed source integration errors. The current branch now contains these corrections:
+
+- The observer tangent-bundle result stores `KerrMinoCoordinateChart`; the integrator now converts from its own `KerrIntegrationChart` rather than assigning the incompatible enum directly.
+- The ingoing Mino path uses the declared `KerrMinoCoordinateChart::IngoingKerr` variant.
+- The sky-direction type is imported only in the test module where it is used.
+- The radial Schwarzschild screen regression has its own local relative-tolerance assertion helper.
+
+The compiler has not yet confirmed these corrections. They must be rerun together through formatting, Clippy and the crate tests at the same exact head.
