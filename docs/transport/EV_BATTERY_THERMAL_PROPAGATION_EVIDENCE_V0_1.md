@@ -53,7 +53,7 @@ For reuse across product revisions, the claimant must provide six typed comparis
 5. enclosure and vent boundary;
 6. occupant/personnel exposure.
 
-Each comparison is SAME_WITH_EVIDENCE, DIFFERENT, UNKNOWN or NOT_APPLICABLE_WITH_RATIONALE. Every SAME_WITH_EVIDENCE record references admitted evidence and a rationale. DIFFERENT or UNKNOWN blocks automatic inheritance. NOT_APPLICABLE requires a non-empty rationale.
+Each comparison is SAME_WITH_EVIDENCE, DIFFERENT, UNKNOWN or NOT_APPLICABLE_WITH_RATIONALE and binds both the exact source and candidate fingerprint for that domain. Every SAME_WITH_EVIDENCE record references admitted evidence and a rationale; stale fingerprint pairs are rejected. DIFFERENT or UNKNOWN blocks automatic inheritance. NOT_APPLICABLE requires a non-empty rationale.
 
 The strongest positive disposition is CANDIDATE_FOR_HUMAN_REVIEW. It is never a test PASS, safe/unsafe judgment, compliance decision or approval. Even a source-reported PASS remains scoped to that exact test, article, protocol, result and authority.
 
