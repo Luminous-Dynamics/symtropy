@@ -319,4 +319,12 @@ mod tests {
         );
     }
 
-    #[test
+    #[test]
+    fn cli_requires_model_and_runtime_provenance_fields() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json"))
+                .unwrap();
+        value.as_object_mut().unwrap().remove("model_id");
+        assert!(audit_value(&value.to_string()).is_err());
+    }
+}
