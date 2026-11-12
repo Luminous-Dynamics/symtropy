@@ -49,6 +49,40 @@ for _ in 0..100 {
 - **Zero heap** — GJK simplex uses `ArrayVec`, bivectors use `[f64; 6]`
 - **WASM compatible**
 
+## Stable runtime body IDs
+
+`NetId` is unique within one `PhysicsWorld` lookup domain; it is not a global
+engineering identity or an authority credential. Prefer the typed setter so a
+rejected assignment is observable:
+
+```rust
+use nalgebra::SVector;
+use symtropy_math::Point;
+use symtropy_physics::{NetId, PhysicsWorld};
+
+let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+let handle = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.5, 1.0);
+let result = world.try_set_net_id(handle, NetId(42));
+match result {
+    Ok(previous) => {
+        // The mapping is now established; previous is the former optional ID.
+        let _ = previous;
+    }
+    Err(error) => {
+        // Missing body or NetId already owned by another body; no mutation occurred.
+        eprintln!("NetId assignment rejected: {error}");
+    }
+}
+```
+
+The legacy `set_net_id` method retains its existing signature and fails closed
+without mutation when an assignment is invalid. Call `try_set_net_id` when the
+caller needs the rejection reason. `add_bodies_deterministic` preflights the
+entire batch before inserting any bodies, so duplicate IDs reject atomically.
+If a caller mutates the public `RigidBody::net_id` field directly, prefer the
+setter API; snapshot-sidecar validation can detect duplicates but cannot keep
+the lookup map coherent after arbitrary direct mutation.
+
 ## Benchmarks
 
 | Operation | Time |
