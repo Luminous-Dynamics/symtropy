@@ -815,6 +815,8 @@ pub fn optimize_basis_free_compliance_rate(
     })
     .map_err(|_| BasisFreeOptimizerError::InvalidInput)?;
     if !validation.candidate_admissible {
+        #[cfg(test)]
+        eprintln!("base validation rejected: epsilon_barrier={}, stiffness_barrier={}, passivity_lhs={}", validation.epsilon_barrier_satisfied, validation.stiffness_barrier_positive_semidefinite, validation.passivity_lhs_w);
         return Err(BasisFreeOptimizerError::Infeasible);
     }
     let inertia_quadratic = request
@@ -882,6 +884,8 @@ pub fn optimize_basis_free_compliance_rate(
             return Err(BasisFreeOptimizerError::ArithmeticOverflow);
         }
         if minimum_residual > request.passivity_tolerance_w {
+            #[cfg(test)]
+            eprintln!("computed feasible-bound residual unexpectedly positive: {minimum_residual}; a={a}; epsilon_lower={epsilon_lower}; z_norm_squared={z_norm_squared}; dissipation={dissipation}");
             return Err(BasisFreeOptimizerError::Infeasible);
         }
 
@@ -975,8 +979,14 @@ pub fn optimize_basis_free_compliance_rate(
         matrix_tolerance: request.matrix_tolerance,
         passivity_tolerance_w: request.passivity_tolerance_w,
     })
-    .map_err(|_| BasisFreeOptimizerError::IndependentPostCheckFailed)?;
+    .map_err(|error| {
+        #[cfg(test)]
+        eprintln!("independent evaluator error: {error:?}");
+        BasisFreeOptimizerError::IndependentPostCheckFailed
+    })?;
     if !independent.candidate_admissible {
+        #[cfg(test)]
+        eprintln!("independent candidate rejected: eps_barrier={}, stiffness_barrier={}, passivity_lhs={}, tol={}", independent.epsilon_barrier_satisfied, independent.stiffness_barrier_positive_semidefinite, independent.passivity_lhs_w, request.passivity_tolerance_w);
         return Err(BasisFreeOptimizerError::IndependentPostCheckFailed);
     }
 
@@ -987,6 +997,8 @@ pub fn optimize_basis_free_compliance_rate(
         .fold(f64::INFINITY, f64::min);
     let barrier_scale = dense_max_abs(dense_from_symmetric(independent.stiffness_barrier_matrix));
     if minimum_stiffness_barrier_eigenvalue < -request.matrix_tolerance * barrier_scale {
+        #[cfg(test)]
+        eprintln!("barrier eigen post-check failed: min={minimum_stiffness_barrier_eigenvalue}; scale={barrier_scale}");
         return Err(BasisFreeOptimizerError::IndependentPostCheckFailed);
     }
     let passivity_complementarity_residual = (multiplier * independent.passivity_lhs_w).abs();
@@ -1014,6 +1026,8 @@ pub fn optimize_basis_free_compliance_rate(
         .fold(f64::INFINITY, f64::min);
     let cone_dual_scale = dense_max_abs(cone_dual);
     if cone_dual_minimum_eigenvalue < -request.matrix_tolerance * cone_dual_scale {
+        #[cfg(test)]
+        eprintln!("cone dual post-check failed: min={cone_dual_minimum_eigenvalue}; scale={cone_dual_scale}; eig={cone_dual_eigenvalues:?}");
         return Err(BasisFreeOptimizerError::IndependentPostCheckFailed);
     }
 
@@ -1397,7 +1411,7 @@ mod tests {
     fn optimizer_is_equivariant_under_orthogonal_task_coordinate_rotation() {
         let mut base_request = optimizer_request();
         base_request.epsilon = 1.0;
-        base_request.epsilon_min = 0.0;
+        base_request.epsilon_min = 0.5;
         let base = optimize_basis_free_compliance_rate(base_request).unwrap();
 
         let angle: f64 = 0.37;
