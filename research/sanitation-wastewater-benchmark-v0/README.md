@@ -183,7 +183,7 @@ These clauses become testable requirements and evidence obligations, not merely 
 ## References
 
 1. US EPA, [Residential Toilets / WaterSense specification status](https://www.epa.gov/watersense/residential-toilets). Version 1.2 remains in effect; EPA has paused the effective date of version 2.0.
-2. ISO, [ISO 30500:2025](https://www.iso.org/standard/72523.html), Non-sewered sanitation systems — Prefabricated integrated treatment units — General safety and performance requirements.
+2. ISO, [ISO 30500:2025](https://www.iso.org/standard/87343.html), Non-sewered sanitation systems — Prefabricated integrated treatment units — General safety and performance requirements.
 3. WHO, [Guidelines on Sanitation and Health](https://www.who.int/publications/i/item/9789241514705) and [Sanitation Safety Planning Manual (2nd edition, 2022)](https://www.who.int/publications/i/item/9789240062887).
 4. Republic of South Africa, [Compulsory National Water and Sanitation Services Standards, Government Gazette 52814 (6 June 2025)](https://www.gov.za/sites/default/files/gcis_document/202506/52814gon6292.pdf).
 5. US EPA, [Storm Water Management Model (SWMM)](https://www.epa.gov/water-research/storm-water-management-model-swmm).
