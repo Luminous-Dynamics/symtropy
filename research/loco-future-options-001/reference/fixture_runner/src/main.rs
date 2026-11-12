@@ -8,8 +8,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use loco_future_options_reference::{
-    ActionAlias, ContinuationDomain, EvidenceManifest, FutureOptionScenario,
-    HardConstraintEvidence, ObservationEvidence, RecoveryEvidence, ScenarioDisposition,
+    ActionAlias, BranchRecoveryReceipt, ContinuationDomain, EvidenceManifest,
+    FutureOptionScenario, HardConstraintEvidence, ObservationEvidence, RecoveryEvidence,
+    ScenarioDisposition,
     SuccessorBranch, ThermalEvidence, ThermalNode, ThermalSourceClass, UpstreamDisposition,
     evaluate_future_options,
 };
@@ -167,11 +168,27 @@ fn parse_recovery(inputs: &Value) -> Result<RecoveryEvidence, String> {
         "invalid" => UpstreamDisposition::Invalid,
         other => return Err(format!("unknown recovery status: {other}")),
     };
+    let branch_receipts = array(
+        required(raw, "branch_receipts")?,
+        "recovery_evidence.branch_receipts",
+    )?
+    .iter()
+    .map(|receipt| {
+        Ok(BranchRecoveryReceipt {
+            branch_id: required_string(receipt, "branch_id")?,
+            reserve_state_digest: required_string(receipt, "reserve_state_digest")?,
+            topology_digest: required_string(receipt, "topology_digest")?,
+            terminal_safe_stop_reachable: required_bool(
+                receipt,
+                "terminal_safe_stop_reachable",
+            )?,
+        })
+    })
+    .collect::<Result<Vec<_>, String>>()?;
     Ok(RecoveryEvidence {
         disposition,
-        reserve_state_digest: required_string(raw, "reserve_state_digest")?,
-        topology_digest: required_string(raw, "topology_digest")?,
-        terminal_safe_stop_reachable: required_bool(raw, "terminal_safe_stop_reachable")?,
+        branch_manifest_digest: required_string(raw, "branch_manifest_digest")?,
+        branch_receipts,
     })
 }
 
