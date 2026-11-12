@@ -6,7 +6,9 @@ use std::env;
 use std::fs;
 use std::process;
 
-const SIZES: [u64; 10] = [10, 50, 100, 500, 1_000, 5_000, 10_000, 100_000, 1_000_000, 10_000_000];
+const SIZES: [u64; 10] = [
+    10, 50, 100, 500, 1_000, 5_000, 10_000, 100_000, 1_000_000, 10_000_000,
+];
 const CLASSES: [&str; 3] = ["MCAR", "MAR", "MNAR"];
 
 #[derive(Clone, Copy)]
@@ -19,11 +21,41 @@ struct ExpectedExperiment {
 }
 
 const EXPECTED: [ExpectedExperiment; 5] = [
-    ExpectedExperiment { id: "icu/smar", environment: "icu", mechanism: "simple_mar", states: 800, exceptions: 33 },
-    ExpectedExperiment { id: "icu/mnar-ident", environment: "icu", mechanism: "identifiable_mnar", states: 800, exceptions: 36 },
-    ExpectedExperiment { id: "icu/mnar-unident", environment: "icu", mechanism: "unidentifiable_mnar", states: 800, exceptions: 15 },
-    ExpectedExperiment { id: "predator-factored/smar", environment: "predator", mechanism: "simple_mar", states: 626, exceptions: 0 },
-    ExpectedExperiment { id: "predator-factored/mnar-unident", environment: "predator", mechanism: "unidentifiable_mnar", states: 626, exceptions: 39 },
+    ExpectedExperiment {
+        id: "icu/smar",
+        environment: "icu",
+        mechanism: "simple_mar",
+        states: 800,
+        exceptions: 33,
+    },
+    ExpectedExperiment {
+        id: "icu/mnar-ident",
+        environment: "icu",
+        mechanism: "identifiable_mnar",
+        states: 800,
+        exceptions: 36,
+    },
+    ExpectedExperiment {
+        id: "icu/mnar-unident",
+        environment: "icu",
+        mechanism: "unidentifiable_mnar",
+        states: 800,
+        exceptions: 15,
+    },
+    ExpectedExperiment {
+        id: "predator-factored/smar",
+        environment: "predator",
+        mechanism: "simple_mar",
+        states: 626,
+        exceptions: 0,
+    },
+    ExpectedExperiment {
+        id: "predator-factored/mnar-unident",
+        environment: "predator",
+        mechanism: "unidentifiable_mnar",
+        states: 626,
+        exceptions: 39,
+    },
 ];
 
 #[derive(Debug)]
@@ -80,16 +112,23 @@ fn parse_bool(value: &str) -> Result<bool, String> {
 }
 
 fn parse_u64(value: &str, field: &str) -> Result<u64, String> {
-    value.parse::<u64>().map_err(|_| format!("invalid {field}: {value}"))
+    value
+        .parse::<u64>()
+        .map_err(|_| format!("invalid {field}: {value}"))
 }
 
 fn parse_usize(value: &str, field: &str) -> Result<usize, String> {
-    value.parse::<usize>().map_err(|_| format!("invalid {field}: {value}"))
+    value
+        .parse::<usize>()
+        .map_err(|_| format!("invalid {field}: {value}"))
 }
 
 fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
     if fields.len() != 23 || fields[0] != "contract" {
-        return Err(format!("contract row must have 23 fields, got {}", fields.len()));
+        return Err(format!(
+            "contract row must have 23 fields, got {}",
+            fields.len()
+        ));
     }
     let mut baseline_ids: Vec<String> = fields[19].split(';').map(str::to_owned).collect();
     baseline_ids.sort();
@@ -106,7 +145,11 @@ fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
         learning_rows: parse_usize(fields[8], "learning row count")?,
         finished_rows: parse_usize(fields[9], "finished row count")?,
         exception_rows: parse_usize(fields[10], "exception row count")?,
-        exception_classes: fields[11].split(';').filter(|value| !value.is_empty()).map(str::to_owned).collect(),
+        exception_classes: fields[11]
+            .split(';')
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+            .collect(),
         known_belief_collapse_rows: parse_usize(fields[12], "belief-collapse exception count")?,
         baseline_count: parse_usize(fields[13], "baseline count")?,
         baseline_failed: parse_usize(fields[14], "failed baseline count")?,
@@ -137,10 +180,18 @@ fn parse_run(fields: &[&str]) -> Result<Run, String> {
     let mean = if fields[13].is_empty() {
         None
     } else {
-        Some(fields[13].parse::<f64>().map_err(|_| "invalid mean".to_owned())?)
+        Some(
+            fields[13]
+                .parse::<f64>()
+                .map_err(|_| "invalid mean".to_owned())?,
+        )
     };
-    let atv = fields[11].parse::<f64>().map_err(|_| "invalid ATV".to_owned())?;
-    let wtv = fields[12].parse::<f64>().map_err(|_| "invalid WTV".to_owned())?;
+    let atv = fields[11]
+        .parse::<f64>()
+        .map_err(|_| "invalid ATV".to_owned())?;
+    let wtv = fields[12]
+        .parse::<f64>()
+        .map_err(|_| "invalid WTV".to_owned())?;
     if !atv.is_finite() || !(0.0..=1.0).contains(&atv) {
         return Err(format!("ATV outside [0,1]: {atv}"));
     }
@@ -179,22 +230,35 @@ fn validate_contract(contract: &Contract, expected: ExpectedExperiment) -> Resul
     {
         return Err(format!("contract identity mismatch for {}", contract.id));
     }
-    if contract.repetitions != 20 || contract.size_count != SIZES.len() || contract.class_count != CLASSES.len() {
+    if contract.repetitions != 20
+        || contract.size_count != SIZES.len()
+        || contract.class_count != CLASSES.len()
+    {
         return Err(format!("experiment schedule mismatch for {}", contract.id));
     }
     if contract.learning_rows != 600 || contract.finished_rows + contract.exception_rows != 600 {
-        return Err(format!("learning denominator/status mismatch for {}", contract.id));
+        return Err(format!(
+            "learning denominator/status mismatch for {}",
+            contract.id
+        ));
     }
     if contract.exception_rows != expected.exceptions {
-        return Err(format!("pinned exception count mismatch for {}: expected {}, got {}", contract.id, expected.exceptions, contract.exception_rows));
+        return Err(format!(
+            "pinned exception count mismatch for {}: expected {}, got {}",
+            contract.id, expected.exceptions, contract.exception_rows
+        ));
     }
-    if contract.baseline_count != 2 || contract.baseline_failed != 0
+    if contract.baseline_count != 2
+        || contract.baseline_failed != 0
         || contract.baseline_ids != ["random".to_owned(), "upper".to_owned()]
     {
         return Err(format!("baseline contract mismatch for {}", contract.id));
     }
     if contract.oracle_mean <= contract.random_mean {
-        return Err(format!("policy normalization anchors are not ordered for {}", contract.id));
+        return Err(format!(
+            "policy normalization anchors are not ordered for {}",
+            contract.id
+        ));
     }
     if contract.exception_rows > 0 {
         if contract.exception_classes != ["RemoteException".to_owned()]
@@ -211,16 +275,27 @@ fn validate_contract(contract: &Contract, expected: ExpectedExperiment) -> Resul
     if contract.pomcp_count != 8 || contract.pomcp_failed != 0 {
         return Err(format!("POMCP contract mismatch for {}", contract.id));
     }
-    let expected_algorithms = vec!["AIMI".to_owned(), "AsMAR (MCAR)".to_owned(), "AsMAR (MAR)".to_owned()];
+    let expected_algorithms = vec![
+        "AIMI".to_owned(),
+        "AsMAR (MCAR)".to_owned(),
+        "AsMAR (MAR)".to_owned(),
+    ];
     if contract.algorithms != expected_algorithms {
-        return Err(format!("learning algorithm identities mismatch for {}", contract.id));
+        return Err(format!(
+            "learning algorithm identities mismatch for {}",
+            contract.id
+        ));
     }
     Ok(())
 }
 
 fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), String> {
     if runs.len() != 600 {
-        return Err(format!("{} has {} learning rows, expected 600", contract.id, runs.len()));
+        return Err(format!(
+            "{} has {} learning rows, expected 600",
+            contract.id,
+            runs.len()
+        ));
     }
     let mut seen = BTreeSet::new();
     let mut counts_by_size: BTreeMap<u64, usize> = BTreeMap::new();
@@ -229,7 +304,10 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
 
     for run in runs {
         if run.experiment_id != contract.id {
-            return Err(format!("experiment id mismatch: {} != {}", run.experiment_id, contract.id));
+            return Err(format!(
+                "experiment id mismatch: {} != {}",
+                run.experiment_id, contract.id
+            ));
         }
         if !SIZES.contains(&run.dataset_size) {
             return Err(format!("unexpected dataset size {}", run.dataset_size));
@@ -243,24 +321,39 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
         let expected_algorithm = algorithm_for(run.class.as_str())
             .ok_or_else(|| format!("unknown missingness class {}", run.class))?;
         if run.algorithm != expected_algorithm {
-            return Err(format!("algorithm/class mismatch: {} / {}", run.algorithm, run.class));
+            return Err(format!(
+                "algorithm/class mismatch: {} / {}",
+                run.algorithm, run.class
+            ));
         }
         if !run.atv_present || !run.wtv_present {
             return Err("missingness-function TV absent from a learning row".to_owned());
         }
         if run.atv > run.wtv + 1e-9 {
-            return Err(format!("average TV exceeds worst TV for {} / seed {}", contract.id, run.seed));
+            return Err(format!(
+                "average TV exceeds worst TV for {} / seed {}",
+                contract.id, run.seed
+            ));
         }
         if run.finished {
-            if run.exception || !run.mean_present || run.mean.is_none()
-                || !run.exception_kind.is_empty() || run.failure_reason_known
+            if run.exception
+                || !run.mean_present
+                || run.mean.is_none()
+                || !run.exception_kind.is_empty()
+                || run.failure_reason_known
             {
-                return Err("finished learning row lacks a valid mean or carries exception metadata".to_owned());
+                return Err(
+                    "finished learning row lacks a valid mean or carries exception metadata"
+                        .to_owned(),
+                );
             }
             finished += 1;
         } else {
-            if !run.exception || run.mean_present || run.mean.is_some()
-                || run.exception_kind != "RemoteException" || !run.failure_reason_known
+            if !run.exception
+                || run.mean_present
+                || run.mean.is_some()
+                || run.exception_kind != "RemoteException"
+                || !run.failure_reason_known
             {
                 return Err("unfinished learning row must retain the known RemoteException and omit policy mean".to_owned());
             }
@@ -268,22 +361,33 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
         }
         let key = (run.dataset_size, run.seed, run.class.as_str());
         if !seen.insert(key) {
-            return Err(format!("duplicate run key: {} / {} / {} / {}", contract.id, run.dataset_size, run.seed, run.class));
+            return Err(format!(
+                "duplicate run key: {} / {} / {} / {}",
+                contract.id, run.dataset_size, run.seed, run.class
+            ));
         }
         *counts_by_size.entry(run.dataset_size).or_default() += 1;
     }
 
     let expected_keys = SIZES.len() * 20 * CLASSES.len();
     if seen.len() != expected_keys {
-        return Err(format!("run-key denominator incomplete for {}", contract.id));
+        return Err(format!(
+            "run-key denominator incomplete for {}",
+            contract.id
+        ));
     }
     for size in SIZES {
         if counts_by_size.get(&size).copied() != Some(60) {
-            return Err(format!("dataset size {size} does not have 60 assumption/seed rows"));
+            return Err(format!(
+                "dataset size {size} does not have 60 assumption/seed rows"
+            ));
         }
     }
     if finished != contract.finished_rows || exceptions != contract.exception_rows {
-        return Err(format!("run status counts disagree with contract for {}", contract.id));
+        return Err(format!(
+            "run status counts disagree with contract for {}",
+            contract.id
+        ));
     }
     Ok((finished, exceptions))
 }
@@ -308,22 +412,35 @@ fn run_audit(input: &str) -> Result<String, String> {
             Some("run") => {
                 let run = parse_run(&fields)
                     .map_err(|error| format!("line {}: {error}", line_number + 1))?;
-                run_groups.entry(run.experiment_id.clone()).or_default().push(run);
+                run_groups
+                    .entry(run.experiment_id.clone())
+                    .or_default()
+                    .push(run);
             }
             _ => return Err(format!("unknown record on line {}", line_number + 1)),
         }
     }
 
     if contracts.len() != EXPECTED.len() {
-        return Err(format!("expected {} experiment contracts, got {}", EXPECTED.len(), contracts.len()));
+        return Err(format!(
+            "expected {} experiment contracts, got {}",
+            EXPECTED.len(),
+            contracts.len()
+        ));
     }
     if run_groups.len() != EXPECTED.len() {
-        return Err(format!("expected {} run groups, got {}", EXPECTED.len(), run_groups.len()));
+        return Err(format!(
+            "expected {} run groups, got {}",
+            EXPECTED.len(),
+            run_groups.len()
+        ));
     }
 
     let mut total_finished = 0_usize;
     let mut total_exceptions = 0_usize;
-    let mut output = String::from("experiment_id,environment,true_mechanism,pomdp_states,learning_rows,finished_rows,exception_rows,learning_success_rate,exceptions_n10,exceptions_n50,exceptions_other,baseline_count,pomcp_count,exception_class_count,known_belief_collapse_exception_rows\n");
+    let mut output = String::from(
+        "experiment_id,environment,true_mechanism,pomdp_states,learning_rows,finished_rows,exception_rows,learning_success_rate,exceptions_n10,exceptions_n50,exceptions_other,baseline_count,pomcp_count,exception_class_count,known_belief_collapse_exception_rows\n",
+    );
 
     for expected in EXPECTED {
         let contract = contracts
@@ -335,8 +452,14 @@ fn run_audit(input: &str) -> Result<String, String> {
             .ok_or_else(|| format!("missing learning rows for {}", expected.id))?;
         let (finished, exceptions) = validate_runs(contract, runs)?;
 
-        let exceptions_n10 = runs.iter().filter(|run| !run.finished && run.dataset_size == 10).count();
-        let exceptions_n50 = runs.iter().filter(|run| !run.finished && run.dataset_size == 50).count();
+        let exceptions_n10 = runs
+            .iter()
+            .filter(|run| !run.finished && run.dataset_size == 10)
+            .count();
+        let exceptions_n50 = runs
+            .iter()
+            .filter(|run| !run.finished && run.dataset_size == 50)
+            .count();
         let exceptions_other = exceptions - exceptions_n10 - exceptions_n50;
         let expected_failure_split = match expected.id {
             "icu/smar" => (33, 0, 0),
@@ -347,7 +470,10 @@ fn run_audit(input: &str) -> Result<String, String> {
             _ => unreachable!(),
         };
         if (exceptions_n10, exceptions_n50, exceptions_other) != expected_failure_split {
-            return Err(format!("pinned failure-size distribution mismatch for {}", expected.id));
+            return Err(format!(
+                "pinned failure-size distribution mismatch for {}",
+                expected.id
+            ));
         }
 
         total_finished += finished;
@@ -374,7 +500,9 @@ fn run_audit(input: &str) -> Result<String, String> {
     }
 
     if total_finished != 2_877 || total_exceptions != 123 {
-        return Err(format!("aggregate status mismatch: finished={total_finished}, exceptions={total_exceptions}"));
+        return Err(format!(
+            "aggregate status mismatch: finished={total_finished}, exceptions={total_exceptions}"
+        ));
     }
     output.push_str(&format!(
         "TOTAL,all,all,NA,3000,{total_finished},{total_exceptions},{:.6},120,3,0,10,40,1,123\n",
@@ -412,18 +540,23 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
             Some("run") => {
                 let run = parse_run(&fields)
                     .map_err(|error| format!("line {}: {error}", line_number + 1))?;
-                run_groups.entry(run.experiment_id.clone()).or_default().push(run);
+                run_groups
+                    .entry(run.experiment_id.clone())
+                    .or_default()
+                    .push(run);
             }
             _ => return Err(format!("unknown record on line {}", line_number + 1)),
         }
     }
 
     if contracts.len() != EXPECTED.len() || run_groups.len() != EXPECTED.len() {
-        return Err("policy-summary input does not contain the complete five-experiment matrix".to_owned());
+        return Err(
+            "policy-summary input does not contain the complete five-experiment matrix".to_owned(),
+        );
     }
 
     let mut output = String::from(
-        "experiment_id,dataset_size,assumed_missingness,algorithm,finished,exceptions,mean_return,median_return,minimum_return,maximum_return,mean_average_tv,mean_worst_tv,normalized_policy_value,oracle_anchor,random_anchor\n"
+        "experiment_id,dataset_size,assumed_missingness,algorithm,finished,exceptions,mean_return,median_return,minimum_return,maximum_return,mean_average_tv,mean_worst_tv,normalized_policy_value,oracle_anchor,random_anchor\n",
     );
 
     for expected in EXPECTED {
@@ -443,7 +576,13 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
                     .filter(|run| run.dataset_size == size && run.class == class)
                     .collect();
                 if cell.len() != 20 {
-                    return Err(format!("{} / {} / {} has {} runs, expected 20", expected.id, size, class, cell.len()));
+                    return Err(format!(
+                        "{} / {} / {} has {} runs, expected 20",
+                        expected.id,
+                        size,
+                        class,
+                        cell.len()
+                    ));
                 }
                 let finished: Vec<&Run> = cell.iter().copied().filter(|run| run.finished).collect();
                 let exceptions = cell.len() - finished.len();
@@ -472,12 +611,16 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
                     continue;
                 }
 
-                let mut returns: Vec<f64> = finished.iter().map(|run| run.mean.expect("finished row has mean")).collect();
+                let mut returns: Vec<f64> = finished
+                    .iter()
+                    .map(|run| run.mean.expect("finished row has mean"))
+                    .collect();
                 let median_return = median(&mut returns);
                 let mean_return = finished
                     .iter()
                     .map(|run| run.mean.expect("finished row has mean"))
-                    .sum::<f64>() / finished.len() as f64;
+                    .sum::<f64>()
+                    / finished.len() as f64;
                 let minimum_return = finished
                     .iter()
                     .map(|run| run.mean.expect("finished row has mean"))
@@ -486,10 +629,16 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
                     .iter()
                     .map(|run| run.mean.expect("finished row has mean"))
                     .fold(f64::NEG_INFINITY, f64::max);
-                let mean_average_tv = finished.iter().map(|run| run.atv).sum::<f64>() / finished.len() as f64;
-                let mean_worst_tv = finished.iter().map(|run| run.wtv).sum::<f64>() / finished.len() as f64;
-                let normalized = normalized_policy_value(mean_return, contract.oracle_mean, contract.random_mean)
-                    .map_or_else(String::new, |value| format!("{value:.9}"));
+                let mean_average_tv =
+                    finished.iter().map(|run| run.atv).sum::<f64>() / finished.len() as f64;
+                let mean_worst_tv =
+                    finished.iter().map(|run| run.wtv).sum::<f64>() / finished.len() as f64;
+                let normalized = normalized_policy_value(
+                    mean_return,
+                    contract.oracle_mean,
+                    contract.random_mean,
+                )
+                .map_or_else(String::new, |value| format!("{value:.9}"));
 
                 output.push_str(&format!(
                     "{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{},{:.9},{:.9}\n",
@@ -517,7 +666,9 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
-    let policy_summary = args.first().is_some_and(|argument| argument == "--policy-summary");
+    let policy_summary = args
+        .first()
+        .is_some_and(|argument| argument == "--policy-summary");
     let path_index = if policy_summary { 1 } else { 0 };
     let path = args.get(path_index).unwrap_or_else(|| {
         eprintln!("usage: miss-mdp-audit [--policy-summary] <normalized-upstream-results.tsv>");
@@ -574,7 +725,10 @@ mod tests {
     fn expected_pinned_artifact_set_has_five_distinct_experiments() {
         let ids: BTreeSet<&str> = EXPECTED.iter().map(|item| item.id).collect();
         assert_eq!(ids.len(), 5);
-        assert_eq!(EXPECTED.iter().map(|item| item.exceptions).sum::<usize>(), 123);
+        assert_eq!(
+            EXPECTED.iter().map(|item| item.exceptions).sum::<usize>(),
+            123
+        );
     }
 
     #[test]
