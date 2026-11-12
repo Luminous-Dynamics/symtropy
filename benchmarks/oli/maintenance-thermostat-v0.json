@@ -1,0 +1,231 @@
+{
+  "schema_version": "oli-generator-case-v0.1",
+  "case_id": "OLI-ABIOTIC-CONTROL-MAINTENANCE-THERMOSTAT-001",
+  "status": "SYNTHETIC_KNOWN_MECHANISM_CONTROL_AWAITING_RUST_VALIDATION",
+  "evidence_class": "SIMULATION",
+  "claim_ceiling": "Abstract engineered feedback controller with finite energy storage and repair; demonstrates regulated recovery under declared interventions, not biological homeostasis, life, learning, agency or intelligence",
+  "source": {
+    "model_class": "Fixed-rule feedback control with finite reservoir and lossy actuator",
+    "scientific_context": "Thermostat/control engineering provides an abiotic counterexample to interpreting setpoint recovery or homeostasis-like behavior as evidence of biological life. This benchmark is an abstract scalar compartment, not an empirically calibrated organism or thermostat model."
+  },
+  "implementation": {
+    "crate": "symtropy-lifesim-core",
+    "module": "maintenance",
+    "arithmetic": "IEEE754_f64",
+    "stochasticity": false,
+    "dependencies_added": [],
+    "state_variables": [
+      "integrity",
+      "stored_energy",
+      "tick"
+    ],
+    "fixed_parameters": [
+      "target_integrity",
+      "energy_per_integrity_unit",
+      "repair_efficiency",
+      "max_repair_power",
+      "idle_power",
+      "max_stored_energy",
+      "dt"
+    ],
+    "interventions": [
+      "damage_units",
+      "harvested_energy",
+      "controller_enabled",
+      "sensor_available"
+    ]
+  },
+  "equations": {
+    "damage_applied": "min(damage_requested, integrity_before)",
+    "integrity_after_damage": "integrity_before - damage_applied",
+    "energy_pre_storage": "energy_before + harvested_energy",
+    "energy_spilled": "max(energy_pre_storage - max_stored_energy, 0)",
+    "energy_available": "energy_pre_storage - energy_spilled",
+    "idle_energy": "min(idle_power * dt, energy_available)",
+    "repair_energy_demand": "max(target_integrity - integrity_after_damage, 0) * energy_per_integrity_unit / repair_efficiency",
+    "repair_energy_consumed": "if controller_enabled && sensor_available then min(repair_energy_demand, max_repair_power * dt, energy_after_idle) else 0",
+    "repair_applied": "min(integrity_deficit, repair_energy_consumed * repair_efficiency / energy_per_integrity_unit)",
+    "energy_balance": "energy_before + harvested_energy = energy_spilled + idle_energy_consumed + repair_energy_consumed + energy_after",
+    "integrity_balance": "integrity_after = integrity_before - damage_applied + repair_applied"
+  },
+  "default_test_parameters": {
+    "target_integrity": 1,
+    "energy_per_integrity_unit": 1,
+    "repair_efficiency": 1,
+    "max_repair_power": 1,
+    "idle_power": 0,
+    "max_stored_energy": 10,
+    "dt": 1
+  },
+  "cases": [
+    {
+      "id": "ACTIVE_FEEDBACK_RECOVERY",
+      "initial": {
+        "integrity": 0.5,
+        "stored_energy": 10
+      },
+      "intervention": {
+        "damage_units": 0.2,
+        "harvested_energy": 0,
+        "controller_enabled": true,
+        "sensor_available": true
+      },
+      "expected": {
+        "damage_applied": 0.2,
+        "repair_applied": 0.7,
+        "integrity_after": 1,
+        "repair_energy_consumed": 0.7,
+        "energy_after": 9.3
+      },
+      "interpretation": "A fixed controller recovers the declared integrity state by spending finite stored energy."
+    },
+    {
+      "id": "CONTROLLER_DISABLED_NEGATIVE_CONTROL",
+      "initial": {
+        "integrity": 0.5,
+        "stored_energy": 10
+      },
+      "intervention": {
+        "damage_units": 0.2,
+        "harvested_energy": 0,
+        "controller_enabled": false,
+        "sensor_available": true
+      },
+      "expected": {
+        "integrity_after": 0.3,
+        "repair_applied": 0,
+        "repair_energy_consumed": 0
+      },
+      "interpretation": "Identical damage without the feedback controller does not recover."
+    },
+    {
+      "id": "SENSOR_UNAVAILABLE_NEGATIVE_CONTROL",
+      "initial": {
+        "integrity": 0.5,
+        "stored_energy": 10
+      },
+      "intervention": {
+        "damage_units": 0.2,
+        "harvested_energy": 0,
+        "controller_enabled": true,
+        "sensor_available": false
+      },
+      "expected": {
+        "integrity_after": 0.3,
+        "repair_applied": 0
+      },
+      "interpretation": "Stored energy alone does not restore integrity when feedback observation is unavailable."
+    },
+    {
+      "id": "ENERGY_DEPLETION_NEGATIVE_CONTROL",
+      "initial": {
+        "integrity": 0.5,
+        "stored_energy": 0
+      },
+      "intervention": {
+        "damage_units": 0.2,
+        "harvested_energy": 0,
+        "controller_enabled": true,
+        "sensor_available": true
+      },
+      "expected": {
+        "integrity_after": 0.3,
+        "repair_applied": 0,
+        "energy_after": 0
+      },
+      "interpretation": "A working controller cannot perform repair without available energy."
+    },
+    {
+      "id": "HARVEST_REFILL_AND_RECOVERY",
+      "initial": {
+        "integrity": 0.2,
+        "stored_energy": 0
+      },
+      "interventions": [
+        {
+          "damage_units": 0.1,
+          "harvested_energy": 0,
+          "controller_enabled": true,
+          "sensor_available": true
+        },
+        {
+          "damage_units": 0,
+          "harvested_energy": 0.8,
+          "controller_enabled": true,
+          "sensor_available": true
+        }
+      ],
+      "expected_second_step": {
+        "repair_applied": 0.8,
+        "integrity_after": 0.9,
+        "energy_after": 0
+      },
+      "interpretation": "External energy supply can refill the store and enable repair; the source of energy is explicit."
+    },
+    {
+      "id": "FULL_ENERGY_LEDGER_WITH_SPILL_IDLE_AND_REPAIR",
+      "config_override": {
+        "max_repair_power": 0.4,
+        "idle_power": 0.5,
+        "max_stored_energy": 10
+      },
+      "initial": {
+        "integrity": 0.5,
+        "stored_energy": 9
+      },
+      "intervention": {
+        "damage_units": 0.1,
+        "harvested_energy": 2,
+        "controller_enabled": true,
+        "sensor_available": true
+      },
+      "expected": {
+        "energy_spilled": 1,
+        "idle_energy_consumed": 0.5,
+        "repair_energy_consumed": 0.4,
+        "integrity_after": 0.8,
+        "energy_after": 9.1,
+        "energy_balance_residual": 0
+      },
+      "interpretation": "Harvest, overflow spill, idle use, repair work and final storage reconcile to the energy balance."
+    }
+  ],
+  "metrics": {
+    "recovery_fraction": "repair_applied / damage_applied where damage_applied > 0",
+    "recovery_latency": "number of steps to return to target under a registered repeated intervention sequence",
+    "energy_cost_per_integrity": "repair_energy_consumed / repair_applied",
+    "reserve_depletion_time": "first tick when stored_energy reaches zero under repeated load",
+    "energy_balance_residual": "energy_before + harvested - spill - idle - repair - energy_after",
+    "integrity_balance_residual": "integrity_before - damage + repair - integrity_after"
+  },
+  "benchmark_tasks": [
+    "Causal intervention: compare identical damage with controller on/off",
+    "Sensor ablation: compare identical damage with sensing available/unavailable",
+    "Energy ablation: compare identical damage with energy reserve present/depleted",
+    "Harvest dependence: quantify whether external energy input restores maintenance capacity",
+    "Energy closure: verify every step's energy balance and repair efficiency",
+    "False-positive ontology control: homeostasis-like setpoint recovery must not establish biological life, reproduction, learning, agency or intelligence"
+  ],
+  "anti_leakage": [
+    "A full trajectory is one system-level run; steps within it are not independent specimens.",
+    "Split parameter regimes and energy/damage schedules, not adjacent time steps from one run.",
+    "Keep intervention labels sealed from any learned detector evaluation.",
+    "Do not generalize this one-dimensional controller to biological metabolism without independent physical calibration."
+  ],
+  "acceptance": {
+    "energy_balance_residual_absolute_max": 1e-12,
+    "integrity_balance_residual_absolute_max": 1e-12,
+    "no_integrity_out_of_bounds": true,
+    "no_negative_energy": true,
+    "zero_repair_when_controller_disabled": true,
+    "zero_repair_when_sensor_unavailable": true,
+    "zero_repair_when_energy_depleted": true,
+    "no_false_life_or_learning_promotion_from_regulated_recovery": true
+  },
+  "reproducibility": {
+    "output_digest_sha256": null,
+    "digest_status": "PENDING_EXACT_HEAD_RUST_EXECUTION",
+    "rust_validation_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
+    "physical_validation_status": "NOT_APPLICABLE_SYNTHETIC_CONTROL"
+  }
+}
