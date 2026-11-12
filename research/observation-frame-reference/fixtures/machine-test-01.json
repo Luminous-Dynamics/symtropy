@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "scenario_id": "machine-test-01",
+    "scenario_revision_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "run_id": "machine-test-01-run-0001",
+    "source_revision": "fab29d69346c6ce6b7e4c4ed6d2d3ac81b5705a3",
+    "branch_id": "baseline",
+    "replay_identity_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "initial_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "simulation_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "model_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "observable_set_sha256": "49f7e8d90e39e2913f695e64e59c4a6c5ee0ffd3137d0a5b7c5a892b46fa4ae4",
+    "adapter_version": "reference-oracle-0.1.0",
+    "simulation_tick": 120
+  },
+  "model_time": {
+    "clock_id": "symtropy-model-clock",
+    "timebase_id": "nanosecond-ticks-v1",
+    "ticks": 120000000,
+    "nanoseconds_per_tick": 1
+  },
+  "entities": [
+    {
+      "scenario_entity_id": "machine-test-01/actuator-a",
+      "claim_bearing": true,
+      "coordinate_frame_id": "machine-test-01/world-frame",
+      "binding_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "runtime_subject": {
+        "physical_authority_id": "test-physics-authority",
+        "world_generation_id": "generation-0001",
+        "net_id": 1001
+      },
+      "observables": [
+        {
+          "observable_id": "actuator-a/position-x",
+          "quantity_id": "position.x",
+          "unit": "m",
+          "value": { "kind": "binary64_bits", "value": "3ff0000000000000" },
+          "source_class": "synthetic",
+          "source_ref_sha256": null,
+          "source_time": {
+            "clock_id": "symtropy-model-clock",
+            "timestamp_ticks": 120000000,
+            "validity_window_ticks": 120
+          },
+          "uncertainty": {
+            "lower_binary64_bits": "3fe0000000000000",
+            "upper_binary64_bits": "3ff8000000000000"
+          },
+          "unavailable_reason": null
+        },
+        {
+          "observable_id": "actuator-a/velocity-x",
+          "quantity_id": "velocity.x",
+          "unit": "m/s",
+          "value": { "kind": "binary64_bits", "value": "0000000000000000" },
+          "source_class": "derived",
+          "source_ref_sha256": null,
+          "source_time": null,
+          "uncertainty": null,
+          "unavailable_reason": null
+        }
+      ]
+    },
+    {
+      "scenario_entity_id": "machine-test-01/sensor-a",
+      "claim_bearing": true,
+      "coordinate_frame_id": "machine-test-01/world-frame",
+      "binding_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "runtime_subject": {
+        "physical_authority_id": "test-physics-authority",
+        "world_generation_id": "generation-0001",
+        "net_id": 1002
+      },
+      "observables": [
+        {
+          "observable_id": "sensor-a/temperature",
+          "quantity_id": "temperature",
+          "unit": "K",
+          "value": { "kind": "binary64_bits", "value": "4072c00000000000" },
+          "source_class": "physical_measurement",
+          "source_ref_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "source_time": {
+            "clock_id": "plant-clock-01",
+            "timestamp_ticks": 8400,
+            "validity_window_ticks": 10
+          },
+          "uncertainty": {
+            "lower_binary64_bits": "4072b00000000000",
+            "upper_binary64_bits": "4072d00000000000"
+          },
+          "unavailable_reason": null
+        },
+        {
+          "observable_id": "sensor-a/health",
+          "quantity_id": "sensor.health",
+          "unit": "1",
+          "value": { "kind": "boolean", "value": true },
+          "source_class": "inferred",
+          "source_ref_sha256": null,
+          "source_time": null,
+          "uncertainty": null,
+          "unavailable_reason": null
+        }
+      ]
+    }
+  ],
+  "event_stream": [
+    {
+      "sequence": 1,
+      "event_id": "event-0001",
+      "event_kind": "physics_step_completed",
+      "scenario_entity_id": "machine-test-01/actuator-a",
+      "payload_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "sequence": 2,
+      "event_id": "event-0002",
+      "event_kind": "sensor_sample_recorded",
+      "scenario_entity_id": "machine-test-01/sensor-a",
+      "payload_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+    }
+  ]
+}
