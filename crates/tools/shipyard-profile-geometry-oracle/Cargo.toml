@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-profile-geometry-oracle"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Evidence-bound 2D profile comparison with conservative uncertainty bounds"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
