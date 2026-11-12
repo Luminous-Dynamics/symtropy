@@ -354,17 +354,22 @@ fn main() {
                 .matrix()[0][0]
             },
         ),
-        measure("delassus_multiplier_metric_norm", ITERATIONS, SAMPLES, || {
-            delassus
-                .multiplier_norm(
-                    &metric_induced_error_envelope_reference::ConstraintMultiplierV1::<
-                        ConstraintSpace,
-                        CONSTRAINTS,
-                    >::new([0.5, -1.0, 0.75])
-                    .unwrap(),
-                )
-                .unwrap()
-        }),
+        measure(
+            "delassus_multiplier_metric_norm",
+            ITERATIONS,
+            SAMPLES,
+            || {
+                delassus
+                    .multiplier_norm(
+                        &metric_induced_error_envelope_reference::ConstraintMultiplierV1::<
+                            ConstraintSpace,
+                            CONSTRAINTS,
+                        >::new([0.5, -1.0, 0.75])
+                        .unwrap(),
+                    )
+                    .unwrap()
+            },
+        ),
         measure("delassus_residual_dual_norm", ITERATIONS, SAMPLES, || {
             delassus
                 .residual_norm(
