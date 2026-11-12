@@ -1215,8 +1215,8 @@ impl<const D: usize> PhysicsWorld<D> {
                     // Measure the actual state-energy change around the exact
                     // production impulse path. An impulse magnitude has units
                     // of momentum, not energy; never convert it with a constant.
-                    let energy_before = self.bodies[a].kinetic_energy()
-                        + self.bodies[b].kinetic_energy();
+                    let energy_before =
+                        self.bodies[a].kinetic_energy() + self.bodies[b].kinetic_energy();
 
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
@@ -1226,8 +1226,8 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
-                    let energy_after = self.bodies[a].kinetic_energy()
-                        + self.bodies[b].kinetic_energy();
+                    let energy_after =
+                        self.bodies[a].kinetic_energy() + self.bodies[b].kinetic_energy();
                     total_friction_energy_change += energy_after - energy_before;
                 }
             }
