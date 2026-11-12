@@ -112,7 +112,7 @@ jobs:
             ([.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
             ([.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
             (.framing.no_row_randomization == true) and
-            (.cross.status | contains("unsupported")) and
+            (.cross_engine_and_fleet.status | contains("unsupported")) and
             (.hard_gates | length >= 9) and
             ([.axes[].data_status] | all(. != null))
           ' benchmarks/maritime-control-response/shift-matrix-v0.1.json >/dev/null
