@@ -349,7 +349,14 @@
     "multiple simultaneous fault alternatives use a family-wise alpha allocation; no per-test threshold is reused without adjustment",
     "unsupported outcomes poison the process and are never converted into infinite fault evidence",
     "an anytime e-process threshold crossing is a statistical model-pair flag, not a physical root-cause or operational authority claim",
-    "multi-scenario active-evidence ranking is not conflated with multi-scenario sequential posterior updating; joint hypothesis-scenario state must be retained across observations"
+    "multi-scenario active-evidence ranking is not conflated with multi-scenario sequential posterior updating; joint hypothesis-scenario state must be retained across observations",
+    "multi-scenario sequential inference uses an explicit joint hypothesis × persistent-scenario posterior ledger",
+    "joint-ledger genesis binds p(H)*p(S) and makes the initial independence assumption explicit",
+    "each observation updates p(H,S) using its scenario-specific likelihood; posterior p(S) is carried forward rather than reset",
+    "joint posterior, hypothesis marginal and scenario marginal are normalized and recomputed on every update",
+    "joint-ledger receipt chain is append-only, rejects duplicate observation receipts and binds every parent ledger digest",
+    "joint sequential ledger is bound to one immutable candidate, likelihood model, calibration review, hypothesis space and scenario set",
+    "changing candidate, channel, model, calibration, scenario set or outcome space requires a new evidence selection and ledger"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -521,6 +528,16 @@
       "id": "sequential_time_to_detection",
       "target": "Reduce median and p95 time-to-detection versus a matched fixed-window likelihood baseline at the same family-wise false-alarm budget.",
       "status": "aspirational"
+    },
+    {
+      "id": "persistent_joint_scenario_update",
+      "target": "Demonstrate exact replay of a joint p(H,S) posterior over multiple sequential observations, including posterior scenario-weight changes and zero reset of the original scenario prior.",
+      "status": "aspirational"
+    },
+    {
+      "id": "joint_vs_naive_remarginalization",
+      "target": "On matched repeated-outcome episodes, compare the joint ledger with an intentionally incorrect per-observation scenario-remarginalization baseline; show lower posterior calibration error and no overconfidence.",
+      "status": "aspirational"
     }
   ],
   "prohibited_claims": [
@@ -611,7 +628,7 @@
   },
   "active_evidence_selection": {
     "path": "active-evidence-selection-v0.1.json",
-    "schema_version": "liu-ice-active-evidence-selection-v0.5",
+    "schema_version": "liu-ice-active-evidence-selection-v0.6",
     "status": "protocol_only_not_executed",
     "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
     "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
@@ -651,9 +668,14 @@
       "assumption": "asymptotic repeated conditionally independent observations; not a finite-sample diagnostic error guarantee"
     },
     "sequential_updates": {
-      "status": "single_point_model_updates_supported_multiscenario_updates_blocked",
-      "rule": "Multi-scenario likelihood candidates can be ranked robustly but cannot be used for sequential posterior updates until a joint hypothesis × persistent-scenario posterior ledger exists.",
-      "claim_ceiling": "No multi-scenario sequential inference claim."
+      "status": "joint_hypothesis_scenario_ledger_supported",
+      "point_likelihood_model": "The original point-likelihood posterior updater remains available for a single frozen model.",
+      "persistent_scenario_model": "A separate joint ledger updates p(H,S) using p(outcome|H,S), carries posterior scenario weights forward and derives p(H) and p(S) marginals.",
+      "implementation": "src/joint_scenario_posterior.rs",
+      "protocol": "joint-scenario-posterior-v0.1.json",
+      "scope": "One fixed selected candidate, likelihood model, calibration review, hypothesis space, scenario set and outcome space per ledger. Switching evidence model or channel requires a new selection and ledger.",
+      "genesis_assumption": "p(H,S)=p(H)*p(S)",
+      "claim_ceiling": "Source-authored joint posterior mechanics and synthetic fixtures only until exact-head compilation, tests, independent mathematical review and calibrated real likelihood scenarios."
     }
   },
   "streaming_contract": {
