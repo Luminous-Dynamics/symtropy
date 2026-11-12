@@ -312,7 +312,9 @@ pub fn audit_ev_battery_manifest(
 
     for test in &manifest.cell_tests {
         require_nonempty(&test.protocol_evidence_ref, "cell-test protocol evidence")?;
-        require_nonempty(&test.metrology_evidence_ref, "cell-test metrology evidence")?;
+        if test.result_evidence_class.is_physical() {
+            require_nonempty(&test.metrology_evidence_ref, "cell-test metrology evidence")?;
+        }
         require_digest(&test.raw_data_sha256, "cell-test raw-data digest")?;
 
         let cell = cell_by_id.get(test.cell_id.as_str()).ok_or_else(|| {
@@ -338,6 +340,12 @@ pub fn audit_ev_battery_manifest(
             )));
         }
     }
+
+    let tested_cell_ids: BTreeSet<&str> = manifest
+        .cell_tests
+        .iter()
+        .map(|test| test.cell_id.as_str())
+        .collect();
 
     let mut packed_cell_ids = BTreeSet::new();
     let pack_by_id: BTreeMap<&str, &PackAssembly> = manifest
@@ -379,6 +387,13 @@ pub fn audit_ev_battery_manifest(
                 )));
             }
 
+            if !tested_cell_ids.contains(member.cell_id.as_str()) {
+                return Err(EvBatteryAuditError(format!(
+                    "pack {} cell {} has no linked cell test",
+                    pack.pack_id, member.cell_id
+                )));
+            }
+
             if !packed_cell_ids.insert(member.cell_id.as_str()) {
                 return Err(EvBatteryAuditError(format!(
                     "cell {} is assigned to more than one pack",
@@ -393,7 +408,9 @@ pub fn audit_ev_battery_manifest(
         require_nonempty(&mission.test_campaign_ref, "mission test-campaign reference")?;
         require_nonempty(&mission.system_boundary, "mission system boundary")?;
         require_nonempty(&mission.outcome_evidence_ref, "mission outcome evidence")?;
-        require_nonempty(&mission.metrology_evidence_ref, "mission metrology evidence")?;
+        if mission.evidence_class.is_physical() {
+            require_nonempty(&mission.metrology_evidence_ref, "mission metrology evidence")?;
+        }
         require_digest(&mission.raw_data_sha256, "mission raw-data digest")?;
 
         if !matches!(
@@ -592,6 +609,16 @@ mod tests {
 
         let error = audit_ev_battery_manifest(&manifest).expect_err("physical metrology required");
         assert!(error.0.contains("mission metrology evidence"));
+    }
+
+    #[test]
+    fn rejects_pack_member_without_cell_test() {
+        let mut manifest = valid_manifest();
+        manifest.cell_tests.clear();
+
+        let error =
+            audit_ev_battery_manifest(&manifest).expect_err("untested pack member fails");
+        assert!(error.0.contains("has no linked cell test"));
     }
 
     #[test]
