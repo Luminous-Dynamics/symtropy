@@ -66,7 +66,9 @@ fn required_bool(value: &Value, field: &str) -> Result<bool, String> {
 fn to_milli_c(value: f64, field: &str) -> Result<i64, String> {
     let scaled = value * 1000.0;
     if !scaled.is_finite() || scaled < i64::MIN as f64 || scaled > i64::MAX as f64 {
-        return Err(format!("{field}: temperature outside i64 milli-degree range"));
+        return Err(format!(
+            "{field}: temperature outside i64 milli-degree range"
+        ));
     }
     Ok(scaled.round() as i64)
 }
@@ -190,15 +192,18 @@ fn parse_case(case: &Value) -> Result<(String, FutureOptionScenario, Value), Str
             complete: required_bool(continuation_raw, "complete")?,
             digest: required_string(continuation_raw, "digest")?,
         },
-        aliases: array(required(continuation_raw, "actions")?, "continuation_domain.actions")?
-            .iter()
-            .map(|action| {
-                Ok(ActionAlias {
-                    label: required_string(action, "label")?,
-                    physical_action_id: required_string(action, "physical_action_id")?,
-                })
+        aliases: array(
+            required(continuation_raw, "actions")?,
+            "continuation_domain.actions",
+        )?
+        .iter()
+        .map(|action| {
+            Ok(ActionAlias {
+                label: required_string(action, "label")?,
+                physical_action_id: required_string(action, "physical_action_id")?,
             })
-            .collect::<Result<Vec<_>, String>>()?,
+        })
+        .collect::<Result<Vec<_>, String>>()?,
     };
 
     let aliases: BTreeMap<String, String> = continuation_domain
@@ -229,7 +234,9 @@ fn parse_case(case: &Value) -> Result<(String, FutureOptionScenario, Value), Str
             "probability_mass",
         )?;
         if !(0.0..=1.0).contains(&probability) {
-            return Err(format!("{case_id}/{branch_id}: probability mass outside [0,1]"));
+            return Err(format!(
+                "{case_id}/{branch_id}: probability mass outside [0,1]"
+            ));
         }
         let probability_mass_ppm = (probability * 1_000_000.0).round() as u32;
 
@@ -246,15 +253,17 @@ fn parse_case(case: &Value) -> Result<(String, FutureOptionScenario, Value), Str
         };
 
         let viability_complete = required_bool(raw_branch, "viability_complete")?;
-        let viability_receipt_digest =
-            required_string(raw_branch, "viability_receipt_digest")?;
+        let viability_receipt_digest = required_string(raw_branch, "viability_receipt_digest")?;
 
         let hard_constraint = required_string(raw_branch, "hard_constraint_status")?;
         let hard_constraints = if hard_constraint == "within_limits" {
             HardConstraintEvidence::WithinLimits
         } else if hard_constraint.starts_with("violated:") {
             HardConstraintEvidence::Violated {
-                constraint_id: hard_constraint.trim_start_matches("violated:").trim().to_owned(),
+                constraint_id: hard_constraint
+                    .trim_start_matches("violated:")
+                    .trim()
+                    .to_owned(),
             }
         } else {
             HardConstraintEvidence::Unknown {
@@ -355,7 +364,9 @@ fn compare_case(
         ));
     }
     if report.actuation_authorized {
-        return Err(format!("{case_id}: retrospective evaluator authorized actuation"));
+        return Err(format!(
+            "{case_id}: retrospective evaluator authorized actuation"
+        ));
     }
 
     if let Some(raw) = object(expected, "expected")?.get("common_continuations_by_observation") {
@@ -383,9 +394,9 @@ fn compare_case(
     }
 
     if let Some(raw) = object(expected, "expected")?.get("clairvoyant_only_action_count") {
-        let expected_count = raw
-            .as_u64()
-            .ok_or_else(|| format!("{case_id}: clairvoyant count must be a non-negative integer"))?;
+        let expected_count = raw.as_u64().ok_or_else(|| {
+            format!("{case_id}: clairvoyant count must be a non-negative integer")
+        })?;
         if report.clairvoyant_branch_option_count != expected_count as usize {
             return Err(format!(
                 "{case_id}: clairvoyant option count {} != {}",
@@ -394,8 +405,8 @@ fn compare_case(
         }
     }
 
-    if let Some(raw) = object(expected, "expected")?
-        .get("deployable_common_action_count_by_observation")
+    if let Some(raw) =
+        object(expected, "expected")?.get("deployable_common_action_count_by_observation")
     {
         let expected_counts =
             expected_count_map(raw, "deployable_common_action_count_by_observation")?;
@@ -437,13 +448,11 @@ fn main() {
     let path = env::args()
         .nth(1)
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            PathBuf::from(
-                "../../fixtures/known_answers_v0_1.json",
-            )
-        });
+        .unwrap_or_else(|| PathBuf::from("../../fixtures/known_answers_v0_1.json"));
     match run_corpus(&path) {
-        Ok(count) => println!("LOCO-FUTURE-OPTIONS-001: {count} JSON cases matched the Rust evaluator."),
+        Ok(count) => {
+            println!("LOCO-FUTURE-OPTIONS-001: {count} JSON cases matched the Rust evaluator.")
+        }
         Err(error) => {
             eprintln!("LOCO-FUTURE-OPTIONS-001 fixture failure: {error}");
             std::process::exit(1);
