@@ -245,7 +245,9 @@
         "detected_fault_ids",
         "mode",
         "oracle_outcome",
-        "fallback_reason_fault_ids"
+        "fallback_reason_fault_ids",
+        "deadline_miss_fault_ids",
+        "constraint_violation_fault_ids"
       ],
       "properties": {
         "tick": {
@@ -309,6 +311,22 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "deadline_miss_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "constraint_violation_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }
@@ -324,6 +342,9 @@
     "Fallback mode must identify the scheduled fault IDs that caused the fallback; non-fallback modes cannot declare fallback reasons.",
     "Each tick declares the frozen manoeuvre phase used for phase-conditioned fault analysis.",
     "If a fault declares critical_phase, its event interval must overlap at least one tick with that maneuver_phase.",
-    "Fault reports preserve onset-in-phase, overlap, fallback, deadline-miss and constraint-violation counts within the declared critical phase as separate values."
+    "Fault reports preserve onset-in-phase, overlap, fallback, deadline-miss and constraint-violation counts within the declared critical phase as separate values.",
+    "Each deadline_miss_fault_id identifies a scheduled fault active at that tick and requires inference_duration_us > control_deadline_us.",
+    "Each constraint_violation_fault_id identifies a scheduled fault active at that tick and requires oracle_outcome=constraint_violation.",
+    "Per-fault deadline misses and constraint violations are attributed only through these event-specific identifiers; temporal overlap alone does not assign causality."
   ]
 }
