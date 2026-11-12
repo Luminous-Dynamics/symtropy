@@ -7,7 +7,7 @@
 
 #![cfg(test)]
 
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub, SubAssign};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Rational {
@@ -80,6 +80,13 @@ impl Mul for Rational {
     }
 }
 
+impl SubAssign for Rational {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+
 impl Div for Rational {
     type Output = Self;
 
@@ -149,13 +156,13 @@ fn inverse<const N: usize>(matrix: Mat<N, N>) -> Mat<N, N> {
         }
 
         let pivot_values = augmented[pivot].clone();
-        for row in 0..N {
-            if row == pivot {
+        for (row_index, row_values) in augmented.iter_mut().enumerate() {
+            if row_index == pivot {
                 continue;
             }
-            let factor = augmented[row][pivot];
-            for column in 0..(2 * N) {
-                augmented[row][column] = augmented[row][column] - factor * pivot_values[column];
+            let factor = row_values[pivot];
+            for (value, pivot_value) in row_values.iter_mut().zip(pivot_values.iter()) {
+                *value -= factor * *pivot_value;
             }
         }
     }
