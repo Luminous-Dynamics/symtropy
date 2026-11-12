@@ -359,7 +359,10 @@ fn validate_ledger(ledger: &EvidenceLedger) -> Result<(), Vec<LedgerError>> {
         if !clocks.insert(mapping.source_clock_id.as_str()) {
             errors.push(LedgerError::DuplicateIdentity);
         }
-        if mapping.valid_until_tick.is_some_and(|until| until <= mapping.valid_from_tick) {
+        if mapping
+            .valid_until_tick
+            .is_some_and(|until| until <= mapping.valid_from_tick)
+        {
             errors.push(LedgerError::InvalidClockMappingInterval);
         }
         if mapping.first_received_at_tick < 0 || !nonzero_digest(&mapping.mapping_sha256) {
@@ -383,8 +386,12 @@ fn validate_ledger(ledger: &EvidenceLedger) -> Result<(), Vec<LedgerError>> {
         if event.first_received_at_tick < 0
             || event.source_tick < 0
             || event.valid_from_tick < 0
-            || event.valid_until_tick.is_some_and(|until| until <= event.valid_from_tick)
-            || event.model_training_cutoff_tick.is_some_and(|tick| tick < 0)
+            || event
+                .valid_until_tick
+                .is_some_and(|until| until <= event.valid_from_tick)
+            || event
+                .model_training_cutoff_tick
+                .is_some_and(|tick| tick < 0)
         {
             errors.push(LedgerError::InvalidLifecycleTime);
         }
@@ -441,10 +448,7 @@ fn scope_exclusion(event: &EvidenceEvent, scope: &EvidenceScope) -> Option<Exclu
     None
 }
 
-fn purpose_exclusion(
-    event: &EvidenceEvent,
-    purpose: DecisionPurpose,
-) -> Option<ExclusionReason> {
+fn purpose_exclusion(event: &EvidenceEvent, purpose: DecisionPurpose) -> Option<ExclusionReason> {
     if !event.authorized_purposes.contains(&purpose) {
         return Some(ExclusionReason::NotAuthorizedForPurpose);
     }
@@ -546,10 +550,7 @@ fn canonical_transcript(snapshot: &Snapshot) -> Vec<u8> {
 ///
 /// The returned transcript is canonical but not hashed. The caller must hash
 /// these exact bytes with SHA-256 and retain the resulting digest as a receipt.
-pub fn snapshot_as_of(
-    ledger: &EvidenceLedger,
-    request: &DecisionRequest,
-) -> SnapshotResult {
+pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> SnapshotResult {
     if let Err(errors) = validate_ledger(ledger) {
         return SnapshotResult::InvalidLedger(errors);
     }
@@ -610,7 +611,10 @@ pub fn snapshot_as_of(
             if event.valid_from_tick > request.cutoff_tick {
                 return Err(ExclusionReason::EventNotYetValid);
             }
-            if event.valid_until_tick.is_some_and(|until| request.cutoff_tick >= until) {
+            if event
+                .valid_until_tick
+                .is_some_and(|until| request.cutoff_tick >= until)
+            {
                 return Err(ExclusionReason::EventExpired);
             }
             if event.kind == EvidenceKind::ModelTrainingArtifact
@@ -740,11 +744,7 @@ mod tests {
         }
     }
 
-    fn snapshot(
-        ledger: &EvidenceLedger,
-        purpose: DecisionPurpose,
-        cutoff: i64,
-    ) -> Snapshot {
+    fn snapshot(ledger: &EvidenceLedger, purpose: DecisionPurpose, cutoff: i64) -> Snapshot {
         match snapshot_as_of(ledger, &request(purpose, cutoff)) {
             SnapshotResult::Snapshot(value) => value,
             SnapshotResult::InvalidLedger(errors) => {
@@ -803,12 +803,19 @@ mod tests {
     fn clock_mapping_received_after_cutoff_is_unavailable() {
         let mut mapping = clock();
         mapping.first_received_at_tick = 11;
-        let result = snapshot(&EvidenceLedger {
-            clock_mappings: vec![mapping],
-            events: vec![event("E1", EvidenceKind::ProcessObservation)],
-            lifecycle_events: Vec::new(),
-        }, DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::ClockMappingUnavailable);
+        let result = snapshot(
+            &EvidenceLedger {
+                clock_mappings: vec![mapping],
+                events: vec![event("E1", EvidenceKind::ProcessObservation)],
+                lifecycle_events: Vec::new(),
+            },
+            DecisionPurpose::FastProcess,
+            10,
+        );
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ClockMappingUnavailable
+        );
     }
 
     #[test]
@@ -818,7 +825,10 @@ mod tests {
             DecisionPurpose::MediumNextPass,
             10,
         );
-        assert_eq!(result.excluded[0].reason, ExclusionReason::OutcomeLabelLeakage);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::OutcomeLabelLeakage
+        );
     }
 
     #[test]
@@ -853,8 +863,16 @@ mod tests {
             DecisionPurpose::MediumNextPass,
             10,
         );
-        assert_eq!(result.excluded[0].reason, ExclusionReason::SupersededByKnownEvent);
-        assert!(result.included.iter().any(|item| item.event_id == "SCAN-NEW"));
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::SupersededByKnownEvent
+        );
+        assert!(
+            result
+                .included
+                .iter()
+                .any(|item| item.event_id == "SCAN-NEW")
+        );
     }
 
     #[test]
@@ -879,7 +897,12 @@ mod tests {
             DecisionPurpose::MediumNextPass,
             10,
         );
-        assert!(result.included.iter().any(|item| item.event_id == "SCAN-OLD"));
+        assert!(
+            result
+                .included
+                .iter()
+                .any(|item| item.event_id == "SCAN-OLD")
+        );
     }
 
     #[test]
@@ -923,7 +946,10 @@ mod tests {
             DecisionPurpose::MediumNextPass,
             10,
         );
-        assert_eq!(result.excluded[0].reason, ExclusionReason::RevokedByKnownEvent);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::RevokedByKnownEvent
+        );
     }
 
     #[test]
@@ -962,7 +988,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.source_sha256 = [0; 32];
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::InvalidSourceDigest);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::InvalidSourceDigest
+        );
     }
 
     #[test]
@@ -970,7 +999,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.transform_receipt_sha256 = [0; 32];
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::InvalidTransformDigest);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::InvalidTransformDigest
+        );
     }
 
     #[test]
@@ -986,7 +1018,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.scope.joint_revision = "JOINT-R2".to_owned();
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::WrongJointRevision);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::WrongJointRevision
+        );
     }
 
     #[test]
@@ -1002,7 +1037,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.scope.predecessor_pass_id = "PASS-01".to_owned();
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::MediumNextPass, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::WrongPredecessorPass);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::WrongPredecessorPass
+        );
     }
 
     #[test]
@@ -1010,7 +1048,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.source_clock_id = "UNKNOWN-CLOCK".to_owned();
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::ClockMappingUnavailable);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ClockMappingUnavailable
+        );
     }
 
     #[test]
@@ -1022,7 +1063,11 @@ mod tests {
             DecisionPurpose::FastProcess,
             10,
         );
-        let right = snapshot(&ledger(vec![second, first]), DecisionPurpose::FastProcess, 10);
+        let right = snapshot(
+            &ledger(vec![second, first]),
+            DecisionPurpose::FastProcess,
+            10,
+        );
         assert_eq!(left.included, right.included);
         assert_eq!(left.canonical_transcript, right.canonical_transcript);
     }
@@ -1032,15 +1077,25 @@ mod tests {
         let mut item = event("MODEL-1", EvidenceKind::ModelTrainingArtifact);
         item.model_training_cutoff_tick = Some(10);
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::MediumNextPass, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::OutcomeLabelLeakage);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::OutcomeLabelLeakage
+        );
     }
 
     #[test]
     fn model_trained_on_future_evidence_is_excluded_from_slow_replay() {
         let mut item = event("MODEL-1", EvidenceKind::ModelTrainingArtifact);
         item.model_training_cutoff_tick = Some(11);
-        let result = snapshot(&ledger(vec![item]), DecisionPurpose::SlowQualityRequalification, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::ModelTrainedOnFutureEvidence);
+        let result = snapshot(
+            &ledger(vec![item]),
+            DecisionPurpose::SlowQualityRequalification,
+            10,
+        );
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ModelTrainedOnFutureEvidence
+        );
     }
 
     #[test]
@@ -1062,7 +1117,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.timestamp_precision_ticks = 3;
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::ClockPrecisionTooCoarse);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ClockPrecisionTooCoarse
+        );
     }
 
     #[test]
@@ -1071,7 +1129,10 @@ mod tests {
         item.source_tick = 10;
         item.timestamp_precision_ticks = 1;
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::ClockBoundaryIndeterminate);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ClockBoundaryIndeterminate
+        );
     }
 
     #[test]
@@ -1091,7 +1152,10 @@ mod tests {
             10,
         );
         assert_eq!(baseline.included, with_late.included);
-        assert_eq!(baseline.canonical_transcript, with_late.canonical_transcript);
+        assert_eq!(
+            baseline.canonical_transcript,
+            with_late.canonical_transcript
+        );
     }
 
     #[test]
@@ -1148,7 +1212,10 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.authorized_purposes = vec![DecisionPurpose::SlowQualityRequalification];
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::MediumNextPass, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::NotAuthorizedForPurpose);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::NotAuthorizedForPurpose
+        );
     }
 
     #[test]
@@ -1173,7 +1240,12 @@ mod tests {
             DecisionPurpose::MediumNextPass,
             10,
         );
-        assert!(result.included.iter().any(|item| item.event_id == "SCAN-OLD"));
+        assert!(
+            result
+                .included
+                .iter()
+                .any(|item| item.event_id == "SCAN-OLD")
+        );
         assert_eq!(result.pending_lifecycle_event_ids, vec!["L1"]);
     }
 
@@ -1182,6 +1254,9 @@ mod tests {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.source_tick = i64::MAX;
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::ClockMappingOverflow);
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ClockMappingOverflow
+        );
     }
 }
