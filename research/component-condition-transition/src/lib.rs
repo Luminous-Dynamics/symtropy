@@ -5,6 +5,8 @@
 //! or maintenance authority. A SHA-256 string is syntax-checked only: this crate
 //! does not authenticate the referenced bytes or establish their physical truth.
 
+pub mod damage_receipt;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
@@ -37,6 +39,8 @@ impl ComponentIdentity {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EvidenceClass {
     Synthetic,
+    /// Deterministic transformations of admitted inputs, such as cycle counting.
+    Derived,
     ModelEstimate,
     Measured,
 }
