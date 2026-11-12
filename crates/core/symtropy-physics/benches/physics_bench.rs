@@ -200,16 +200,6 @@ fn bench_raycast_100_bodies(c: &mut Criterion) {
 
 fn bench_snapshot_runtime_identity(c: &mut Criterion) {
     for body_count in [1_000_usize, 10_000, 100_000] {
-        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
-        for index in 0..body_count {
-            let handle = world.add_sphere(
-                Point::new([index as f64 * 2.0, 0.0, 0.0]),
-                0.5,
-                1.0,
-            );
-            world.set_net_id(handle, symtropy_physics::body::NetId(index as u64 + 1));
-        }
-
         let mut group = c.benchmark_group(format!("snapshot_capture_{body_count}_bodies"));
         group.throughput(Throughput::Elements(body_count as u64));
 
