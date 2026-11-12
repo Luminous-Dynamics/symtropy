@@ -1,0 +1,32 @@
+name: Multiaxial HCF Reference
+
+on:
+  pull_request:
+    paths:
+      - "research/multiaxial-hcf-reference/**"
+      - ".github/workflows/multiaxial-hcf-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source:
+    name: Exact-source format, tests, and strict Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/multiaxial-hcf-reference/Cargo.toml -- --check
+
+      - name: Run tests
+        run: cargo +1.96.0 test --manifest-path research/multiaxial-hcf-reference/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/multiaxial-hcf-reference/Cargo.toml --all-targets --locked -- -D warnings
