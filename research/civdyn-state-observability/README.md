@@ -103,7 +103,16 @@ The pinned upstream tree also contains **242 individual PPO result manifests** u
 | Stacked PPO | Predator / unidentifiable MNAR | 20 |
 | **Total** | | **242** |
 
-Each individual manifest includes its own seed, model/pattern, training budget, evaluation episode count, architecture and PPO hyperparameters. The audit normalizer validates those per-run records and the Rust adapter checks exact group membership/counts, unique run IDs, non-zero seed coverage, budget integrity, finite return summaries and observed model labels. The upstream stacked-Predator path uses both `pred` and `predator` model labels; the audit permits only those two scoped aliases and emits the actual observed set rather than normalizing the source value away. It reports per-group mean/median/min/max returns, mean reported return standard deviation, seed coverage and architecture/hyperparameter diversity. It does not force a single seed-count assumption across groups.
+Each individual manifest includes its own seed, model/pattern, training budget, evaluation episode count, architecture and PPO hyperparameters. The audit normalizer validates those per-run records and the Rust adapter checks exact group membership/counts, unique run IDs, non-zero seed coverage, budget integrity, finite return summaries and observed model labels. The upstream stacked-Predator path uses both `pred` and `predator` model labels; the audit permits only those two scoped aliases and emits the actual observed set rather than normalizing the source value away. It reports per-group mean/median/min/max returns, mean reported return standard deviation, seed coverage, architecture/hyperparameter diversity, the complete observed run-ID sequence, missing run IDs and duplicated seed values. Non-contiguous IDs are preserved; they are not renumbered to the file count.
+
+
+### Pinned PPO artifact irregularities retained in the audit
+
+The 242 manifests include two groups with non-contiguous run IDs:
+- Stacked ICU / unidentifiable MNAR: 19 files, IDs 1–6 and 8–20; **PPO_007 is absent**. There are 17 unique seeds; seeds 421 and 422 appear twice each, with matching recorded hyperparameters and returns in the repeated pairs.
+- Stacked ICU / simple MAR: 23 files, IDs 1–10 and 12–24; **PPO_011 is absent**.
+
+These are reported as artifact coverage/provenance findings, not silently repaired. The audit requires each present ID to be unique and consistent with its path, but no longer assumes that the numeric ID is at most the number of files. The duplicated seeds remain in the run denominator and are emitted as a separate field. The exact missing IDs and the first group's duplicate seed values are pinned in CI.
 
 **Important comparison boundary:** the audit does not pool ICU and Predator returns into a single headline mean because they are different tasks with different reward scales. Stacked and unstacked models are also kept as separate groups; their architecture and tuned hyperparameters differ, so their raw returns are not by themselves a controlled causal comparison. The separate output is a provenance/coverage audit of the available reference artifacts, not a claim that all methods were matched in compute or evaluation.
 
