@@ -1,0 +1,13 @@
+[package]
+name = "nonlinear-chart-covariance-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Independent nonlinear coordinate-chart pullback reference for six-dimensional mechanics"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
