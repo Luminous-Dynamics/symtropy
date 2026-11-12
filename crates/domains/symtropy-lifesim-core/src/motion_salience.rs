@@ -94,6 +94,8 @@ pub enum MotionSalienceError {
     CommonRandomNumbersRequired,
     EmptyPopulation,
     InvalidObservationValue { agent_id: u32, field: &'static str },
+    DuplicateSweepCoordinate { noise_level_bits: u64, threshold_bits: u64 },
+    SweepReportConfigurationMismatch,
 }
 
 impl fmt::Display for MotionSalienceError {
@@ -118,6 +120,13 @@ impl fmt::Display for MotionSalienceError {
             Self::EmptyPopulation => write!(f, "pulse propagation population must not be empty"),
             Self::InvalidObservationValue { agent_id, field } => {
                 write!(f, "agent {agent_id} has invalid {field}")
+            }
+            Self::DuplicateSweepCoordinate { noise_level_bits, threshold_bits } => write!(
+                f,
+                "duplicate passability sweep coordinate noise_bits={noise_level_bits:#x}, threshold_bits={threshold_bits:#x}"
+            ),
+            Self::SweepReportConfigurationMismatch => {
+                write!(f, "sweep point and embedded report configuration do not match")
             }
         }
     }
@@ -272,6 +281,110 @@ pub struct PulsePropagationReport {
     pub outward_order_score: Option<f64>,
     pub passable: bool,
     pub failures: Vec<PassabilityFailure>,
+}
+
+/// One independently seeded passability result at a noise/threshold coordinate.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PassabilitySweepPoint {
+    pub noise_level: f64,
+    pub threshold_rad_per_second: f64,
+    pub report: PulsePropagationReport,
+}
+
+/// A contiguous interval of thresholds that passed the source-linked pulse assay.
+///
+/// A bounded window requires at least one failed threshold below and above the passing
+/// interval in the same noise slice. This is evidence for a bounded passability regime
+/// only within the tested parameter grid; it does not establish a universal phase boundary.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PassabilityWindow {
+    pub noise_level: f64,
+    pub lower_threshold_rad_per_second: f64,
+    pub upper_threshold_rad_per_second: f64,
+    pub passing_coordinate_count: usize,
+    pub bounded_below: bool,
+    pub bounded_above: bool,
+}
+
+impl PassabilityWindow {
+    pub const fn is_bounded(self) -> bool {
+        self.bounded_below && self.bounded_above
+    }
+}
+
+/// Identify contiguous passable threshold intervals independently for each noise level.
+///
+/// The input may be unordered. Duplicate (noise, threshold) coordinates are rejected;
+/// every embedded report must agree with the coordinate that contains it. Threshold
+/// values are sorted numerically, not assumed to be equally spaced.
+pub fn identify_passability_windows(
+    points: &[PassabilitySweepPoint],
+) -> Result<Vec<PassabilityWindow>, MotionSalienceError> {
+    let mut coordinates = HashSet::with_capacity(points.len());
+    let mut by_noise: std::collections::BTreeMap<u64, Vec<&PassabilitySweepPoint>> =
+        std::collections::BTreeMap::new();
+
+    for point in points {
+        if !point.noise_level.is_finite() || point.noise_level < 0.0 {
+            return Err(MotionSalienceError::InvalidObservationValue {
+                agent_id: u32::MAX,
+                field: "sweep_noise_level",
+            });
+        }
+        if !point.threshold_rad_per_second.is_finite()
+            || point.threshold_rad_per_second < 0.0
+        {
+            return Err(MotionSalienceError::InvalidObservationValue {
+                agent_id: u32::MAX,
+                field: "sweep_threshold",
+            });
+        }
+        if point.report.noise_level.to_bits() != point.noise_level.to_bits()
+            || point.report.salience_threshold_rad_per_second.to_bits()
+                != point.threshold_rad_per_second.to_bits()
+        {
+            return Err(MotionSalienceError::SweepReportConfigurationMismatch);
+        }
+        let key = (point.noise_level.to_bits(), point.threshold_rad_per_second.to_bits());
+        if !coordinates.insert(key) {
+            return Err(MotionSalienceError::DuplicateSweepCoordinate {
+                noise_level_bits: key.0,
+                threshold_bits: key.1,
+            });
+        }
+        by_noise.entry(key.0).or_default().push(point);
+    }
+
+    let mut windows = Vec::new();
+    for (noise_bits, slice) in &mut by_noise {
+        slice.sort_by(|left, right| {
+            left.threshold_rad_per_second
+                .total_cmp(&right.threshold_rad_per_second)
+        });
+        let mut index = 0usize;
+        while index < slice.len() {
+            if !slice[index].report.passable {
+                index += 1;
+                continue;
+            }
+
+            let start = index;
+            while index + 1 < slice.len() && slice[index + 1].report.passable {
+                index += 1;
+            }
+            let end = index;
+            windows.push(PassabilityWindow {
+                noise_level: f64::from_bits(*noise_bits),
+                lower_threshold_rad_per_second: slice[start].threshold_rad_per_second,
+                upper_threshold_rad_per_second: slice[end].threshold_rad_per_second,
+                passing_coordinate_count: end - start + 1,
+                bounded_below: start > 0,
+                bounded_above: end + 1 < slice.len(),
+            });
+            index += 1;
+        }
+    }
+    Ok(windows)
 }
 
 fn validate_response_time(
@@ -636,6 +749,94 @@ mod tests {
                 .failures
                 .contains(&PassabilityFailure::InsufficientTreatmentParticipation)
         );
+    }
+
+    fn synthetic_report(noise: f64, threshold: f64, passable: bool) -> PulsePropagationReport {
+        PulsePropagationReport {
+            source_agent_id: 0,
+            seed: 1,
+            noise_level: noise,
+            salience_threshold_rad_per_second: threshold,
+            non_source_population: 10,
+            treatment_response_count: if passable { 5 } else { 0 },
+            sham_response_count: 0,
+            treatment_response_fraction: if passable { 0.5 } else { 0.0 },
+            sham_response_fraction: 0.0,
+            incremental_response_fraction: if passable { 0.5 } else { 0.0 },
+            maximum_treatment_response_distance: if passable { 5.0 } else { 0.0 },
+            median_treatment_response_time_seconds: passable.then_some(2.0),
+            outward_order_score: passable.then_some(1.0),
+            passable,
+            failures: if passable {
+                Vec::new()
+            } else {
+                vec![PassabilityFailure::InsufficientTreatmentParticipation]
+            },
+        }
+    }
+
+    #[test]
+    fn sweep_finds_bounded_intermediate_passability_window_per_noise() {
+        let thresholds = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
+        let points: Vec<_> = thresholds
+            .into_iter()
+            .map(|threshold| {
+                let passable = (1.5..=2.5).contains(&threshold);
+                PassabilitySweepPoint {
+                    noise_level: 0.1,
+                    threshold_rad_per_second: threshold,
+                    report: synthetic_report(0.1, threshold, passable),
+                }
+            })
+            .collect();
+        let windows = identify_passability_windows(&points).unwrap();
+        assert_eq!(windows.len(), 1);
+        assert_eq!(windows[0].lower_threshold_rad_per_second, 1.5);
+        assert_eq!(windows[0].upper_threshold_rad_per_second, 2.5);
+        assert_eq!(windows[0].passing_coordinate_count, 3);
+        assert!(windows[0].is_bounded());
+    }
+
+    #[test]
+    fn sweep_keeps_noise_slices_separate_and_rejects_duplicate_coordinates() {
+        let mut points = Vec::new();
+        for noise in [0.0, 0.1] {
+            for threshold in [0.5, 1.0, 1.5] {
+                let passable = threshold == 1.0;
+                points.push(PassabilitySweepPoint {
+                    noise_level: noise,
+                    threshold_rad_per_second: threshold,
+                    report: synthetic_report(noise, threshold, passable),
+                });
+            }
+        }
+        let windows = identify_passability_windows(&points).unwrap();
+        assert_eq!(windows.len(), 2);
+        assert_eq!(
+            windows.iter().map(|window| window.noise_level).collect::<Vec<_>>(),
+            vec![0.0, 0.1]
+        );
+        assert!(windows.iter().all(|window| window.is_bounded()));
+
+        let mut duplicated = points.clone();
+        duplicated.push(points[0].clone());
+        assert!(matches!(
+            identify_passability_windows(&duplicated),
+            Err(MotionSalienceError::DuplicateSweepCoordinate { .. })
+        ));
+    }
+
+    #[test]
+    fn sweep_rejects_report_coordinate_mismatch() {
+        let point = PassabilitySweepPoint {
+            noise_level: 0.1,
+            threshold_rad_per_second: 2.0,
+            report: synthetic_report(0.1, 2.5, true),
+        };
+        assert!(matches!(
+            identify_passability_windows(&[point]),
+            Err(MotionSalienceError::SweepReportConfigurationMismatch)
+        ));
     }
 
     #[test]
