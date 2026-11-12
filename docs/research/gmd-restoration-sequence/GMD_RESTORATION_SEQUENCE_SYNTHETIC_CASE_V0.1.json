@@ -1,0 +1,55 @@
+{
+  "scenario_id": "gmd-blackstart-synthetic-01",
+  "owner_ref": "urn:example:operator:regional-grid",
+  "topology_revision": "island-topology-r3",
+  "topology_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "procedure_revision": "restoration-procedure-r5",
+  "procedure_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "horizon_seconds": 3600,
+  "baseline_load": {
+    "active_kw": 10.0,
+    "reactive_kvar_magnitude": 5.0
+  },
+  "capability": {
+    "source_ref": "urn:example:qualified-envelope:microgrid-r2",
+    "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidence_state": "Qualified",
+    "maximum_active_kw": 100.0,
+    "maximum_reactive_kvar": 60.0,
+    "maximum_apparent_kva": 120.0,
+    "available_energy_kwh": 100.0,
+    "reserve_floor_kwh": 20.0
+  },
+  "exclusive_resources": [
+    { "resource_id": "crew-a" },
+    { "resource_id": "switching-kit" }
+  ],
+  "steps": [
+    {
+      "step_id": "hospital",
+      "service_id": "hospital-critical-power",
+      "start_offset_seconds": 0,
+      "duration_seconds": 600,
+      "prerequisite_step_ids": [],
+      "exclusive_resource_ids": ["crew-a"],
+      "transient_active_kw": 30.0,
+      "transient_reactive_kvar_magnitude": 10.0,
+      "steady_active_kw": 20.0,
+      "steady_reactive_kvar_magnitude": 10.0,
+      "authority_state": "Approved"
+    },
+    {
+      "step_id": "water",
+      "service_id": "hospital-water",
+      "start_offset_seconds": 600,
+      "duration_seconds": 600,
+      "prerequisite_step_ids": ["hospital"],
+      "exclusive_resource_ids": ["crew-a"],
+      "transient_active_kw": 20.0,
+      "transient_reactive_kvar_magnitude": 10.0,
+      "steady_active_kw": 40.0,
+      "steady_reactive_kvar_magnitude": 20.0,
+      "authority_state": "Approved"
+    }
+  ]
+}

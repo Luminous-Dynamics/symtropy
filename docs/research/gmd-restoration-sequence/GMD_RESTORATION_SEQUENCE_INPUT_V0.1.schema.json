@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/gmd-restoration-sequence/GMD_RESTORATION_SEQUENCE_INPUT_V0.1.schema.json",
+  "title": "GMD Restoration Sequence Input v0.1",
+  "description": "A candidate black-start/restoration schedule evaluated against one externally qualified service-bus P/Q/S and finite energy envelope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_id", "owner_ref", "topology_revision", "topology_sha256",
+    "procedure_revision", "procedure_sha256", "horizon_seconds",
+    "baseline_load", "capability", "exclusive_resources", "steps"
+  ],
+  "properties": {
+    "scenario_id": { "type": "string", "minLength": 1 },
+    "owner_ref": { "type": "string", "minLength": 1 },
+    "topology_revision": { "type": "string", "minLength": 1 },
+    "topology_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "procedure_revision": { "type": "string", "minLength": 1 },
+    "procedure_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "horizon_seconds": { "type": "integer", "minimum": 1 },
+    "baseline_load": { "$ref": "#/$defs/load" },
+    "capability": { "$ref": "#/$defs/capability" },
+    "exclusive_resources": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resource_id"],
+        "properties": { "resource_id": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/step" }
+    }
+  },
+  "$defs": {
+    "load": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_kw", "reactive_kvar_magnitude"],
+      "properties": {
+        "active_kw": { "type": "number", "minimum": 0 },
+        "reactive_kvar_magnitude": { "type": "number", "minimum": 0 }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref", "source_sha256", "evidence_state", "maximum_active_kw",
+        "maximum_reactive_kvar", "maximum_apparent_kva",
+        "available_energy_kwh", "reserve_floor_kwh"
+      ],
+      "properties": {
+        "source_ref": { "type": "string", "minLength": 1 },
+        "source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "evidence_state": { "type": "string", "enum": ["Qualified", "Stale", "Unknown"] },
+        "maximum_active_kw": { "type": "number", "exclusiveMinimum": 0 },
+        "maximum_reactive_kvar": { "type": "number", "minimum": 0 },
+        "maximum_apparent_kva": { "type": "number", "exclusiveMinimum": 0 },
+        "available_energy_kwh": { "type": "number", "exclusiveMinimum": 0 },
+        "reserve_floor_kwh": { "type": "number", "minimum": 0 }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id", "service_id", "start_offset_seconds", "duration_seconds",
+        "prerequisite_step_ids", "exclusive_resource_ids",
+        "transient_active_kw", "transient_reactive_kvar_magnitude",
+        "steady_active_kw", "steady_reactive_kvar_magnitude", "authority_state"
+      ],
+      "properties": {
+        "step_id": { "type": "string", "minLength": 1 },
+        "service_id": { "type": "string", "minLength": 1 },
+        "start_offset_seconds": { "type": "integer", "minimum": 0 },
+        "duration_seconds": { "type": "integer", "minimum": 1 },
+        "prerequisite_step_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "exclusive_resource_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "transient_active_kw": { "type": "number", "minimum": 0 },
+        "transient_reactive_kvar_magnitude": { "type": "number", "minimum": 0 },
+        "steady_active_kw": { "type": "number", "minimum": 0 },
+        "steady_reactive_kvar_magnitude": { "type": "number", "minimum": 0 },
+        "authority_state": { "type": "string", "enum": ["Approved", "Pending", "Denied", "Unknown"] }
+      }
+    }
+  }
+}

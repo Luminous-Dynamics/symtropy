@@ -1,0 +1,49 @@
+{
+  "scenario_id": "gmd-blackstart-synthetic-01",
+  "feasibility": "FeasibleAgainstQualifiedEnvelope",
+  "operator_readiness": "ReadyForOperatorReview",
+  "execution_authorized": false,
+  "maximum_active_kw": 70.0,
+  "maximum_reactive_kvar_magnitude": 35.0,
+  "maximum_apparent_kva": 78.26237921249263,
+  "total_energy_used_kwh": 61.66666666666667,
+  "minimum_remaining_energy_kwh": 38.33333333333333,
+  "reserve_floor_kwh": 20.0,
+  "intervals": [
+    {
+      "start_offset_seconds": 0,
+      "end_offset_seconds": 600,
+      "active_kw": 40.0,
+      "reactive_kvar_magnitude": 15.0,
+      "apparent_kva": 42.720018726587654,
+      "interval_energy_kwh": 6.666666666666667,
+      "cumulative_energy_kwh": 6.666666666666667,
+      "remaining_energy_kwh": 93.33333333333333
+    },
+    {
+      "start_offset_seconds": 600,
+      "end_offset_seconds": 1200,
+      "active_kw": 50.0,
+      "reactive_kvar_magnitude": 25.0,
+      "apparent_kva": 55.90169943749474,
+      "interval_energy_kwh": 8.333333333333334,
+      "cumulative_energy_kwh": 15.0,
+      "remaining_energy_kwh": 85.0
+    },
+    {
+      "start_offset_seconds": 1200,
+      "end_offset_seconds": 3600,
+      "active_kw": 70.0,
+      "reactive_kvar_magnitude": 35.0,
+      "apparent_kva": 78.26237921249263,
+      "interval_energy_kwh": 46.666666666666664,
+      "cumulative_energy_kwh": 61.666666666666664,
+      "remaining_energy_kwh": 38.333333333333336
+    }
+  ],
+  "service_pickups": [
+    { "service_id": "hospital-critical-power", "first_planned_pickup_after_seconds": 600 },
+    { "service_id": "hospital-water", "first_planned_pickup_after_seconds": 1200 }
+  ],
+  "violation_count": 0
+}
