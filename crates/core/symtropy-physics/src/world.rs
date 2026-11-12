@@ -2744,4 +2744,3 @@ mod net_id_assignment_tests {
         assert_eq!(world.handle_for_net_id(NetId(11)), Some(first));
     }
 }
-
