@@ -56,3 +56,21 @@ The blocked case was rejected because a required pre-pour hold-point gate was un
 ## Next integration gate
 
 Run the exact generic adapter fixture through the existing #1902 exact oracle and hybrid planner without copying their solver or validator, preserve the construction-specific functional-output mapping as a separate adapter, and capture exact-head receipts. Extend with #1843 disturbance/recovery cases only after the nominal adapter matches the reference outcomes.
+
+## Disturbance matrix artifact check — 12 November 2026
+
+A second, deliberately separate scenario artifact was added to design the #1843 recovery comparison:
+
+- Matrix: `docs/research/construction/HIGHRISE_REFERENCE_FLOOR_DISRUPTION_MATRIX_V0_1.json`
+- Matrix Git blob SHA-1: `be43ea8106d2e621854269b1aa4ea575ef221593`
+- Closed schema: `docs/research/construction/HIGHRISE_REFERENCE_FLOOR_DISRUPTION_MATRIX_SCHEMA_V0_1.json`
+- Schema Git blob SHA-1: `57583ac85b1a03fa67b8106f4acd31766ad8b589`
+
+Local checks:
+- Matrix and schema JSON parse: **PASS**
+- Local structural walk over the schema's declared constraints: **PASS**
+- Ten unique case IDs, all with required preconditions, response sets, prohibited inferences and terminal dispositions: **PASS**
+
+The ten cases cover hoist outage; late/misidentified material; stale design/site epoch; inspection rejection and rework; calibration invalidation; communication loss/stale executor state; weather/ODD exit; scheduler budget exhaustion; common-mode survey/control failure; and as-built interface conflict.
+
+This establishes document structure only. The disruption cases have not been executed against the #1843 recovery planner, no exact-head CI has run, and no physical robot, lifting system, site, or safety authority was involved.
