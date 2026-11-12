@@ -381,9 +381,10 @@ mod tests {
         let first = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
         let second = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
         world.set_net_id(first, NetId(99));
-        // Current set_net_id permits duplicate body fields and overwrites the
-        // lookup-map entry. The sidecar validator must surface this invalid state.
-        world.set_net_id(second, NetId(99));
+        // Model a corrupted state introduced through the public mutable body
+        // API. The sidecar validator must surface it even when setter APIs
+        // reject duplicate assignments.
+        world.body_mut(second).expect("second body").net_id = Some(NetId(99));
 
         let snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
         assert_eq!(
