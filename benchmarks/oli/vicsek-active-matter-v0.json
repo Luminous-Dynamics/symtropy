@@ -171,6 +171,20 @@
       "complexity": "Expected near O(N + total local candidate work) for bounded density and local range; worst case remains O(N^2). Full shortest-path/clustering metrics remain checkpoint-only and more expensive.",
       "reproducibility": "Sorted candidate indices preserve the same floating-point heading-summation order as the brute-force reference.",
       "measured_speedup_status": "NOT_MEASURED; no performance claim is made until matched benchmark runs."
+    },
+    "spatial_index_correctness_gate": {
+      "test": "periodic_neighbor_index_never_omits_a_bruteforce_radius_neighbor",
+      "property": "For every registered focal particle, all brute-force minimum-image radius neighbours must be present in the sorted unique candidate set returned by PeriodicNeighborIndex.",
+      "cases": [
+        "one-cell grid",
+        "two-cell grid",
+        "three-cell grid",
+        "many-cell grid",
+        "periodic boundary neighbours",
+        "radius >= box fallback",
+        "deterministic point clouds"
+      ],
+      "result_status": "TEST_ADDED_NOT_EXECUTED"
     }
   },
   "benchmark_regimes": [
@@ -477,7 +491,7 @@
     "neighbor_count_variance": "Population variance of focal-agent directed visible-neighbour counts (out-degree variance).",
     "cluster_count": "Connected components of the configured graph semantics: undirected metric graph or weakly connected projection of directed visual visibility.",
     "largest_cluster_fraction": "Fraction of all particles in the largest connected component",
-    "mean_local_polar_order": "Mean of per-particle polar order over each particle's local interaction neighbourhood, including self",
+    "mean_local_polar_order": "Mean local polar order among particles with at least one other visible neighbour; null when there are no such particles.",
     "local_polar_order_variance": "Population variance of per-particle local polar-order values",
     "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters.",
     "mean_cluster_size": "Mean number of particles per connected component under the declared graph semantics.",
@@ -487,7 +501,7 @@
     "mean_clustering_coefficient_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION; checkpoint-only",
     "mean_shortest_path_length_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION; checkpoint-only",
     "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; future geometry extension",
-    "local_order_coverage_fraction": "Fraction of particles with at least one other directed visible neighbour.",
+    "local_order_coverage_fraction": "Fraction of particles with at least one other visible neighbour; report beside the local-order mean.",
     "mean_clustering_coefficient": "Mean Watts–Strogatz local clustering coefficient across all particles; degree 0 or 1 contributes zero",
     "mean_shortest_path_length": "Mean unweighted shortest-path distance over connected unordered pairs only; null if there are no connected pairs",
     "connected_pair_fraction": "Fraction of all unordered particle pairs belonging to the same connected component",
@@ -497,7 +511,7 @@
     "singleton_warning": "The unweighted mean over all connected components assigns singleton components polar order 1 by construction. Report nontrivial_cluster_coverage_fraction and mean_nontrivial_cluster_polar_order alongside the all-component statistic.",
     "directed_interaction_edge_count": "Count of focal-agent directed visibility relations over unordered pairs.",
     "reciprocal_interaction_pair_count": "Count of unordered pairs where both directed visibility relations exist.",
-    "interaction_reciprocity_fraction": "2 * reciprocal_interaction_pair_count / directed_interaction_edge_count; null if no directed edge exists.",
+    "interaction_reciprocity_fraction": "For directed visual visibility, fraction of directed visibility edges having a reciprocal counterpart; undefined when no directed edges exist.",
     "graph_semantics": "Every metric row tags whether topology is an undirected metric graph or the weakly connected projection of directed visual visibility."
   },
   "benchmark_tasks": [
@@ -550,7 +564,9 @@
     "Visual-sector source parameter grids and original source-code outputs must be reproduced before claiming paper parity.",
     "Do not treat frame-level observations from one visual-field trajectory as independent samples.",
     "Record offset, aperture, radial range, update rule and graph semantics as required grouping keys.",
-    "A weakly connected component is not evidence of mutual visibility; preserve directed edge and reciprocity fields."
+    "A weakly connected component is not evidence of mutual visibility; preserve directed edge and reciprocity fields.",
+    "Any per-run time series is treated as repeated measurement; independent seed/configuration trajectories are the inferential units.",
+    "The corrected Rahman erratum-aligned neighbour-time rule and the current-position rule are separate model identities and must never be pooled in one aggregate."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
@@ -592,5 +608,13 @@
     "indexed_metric_degree_reciprocity_and_local_order_must_match_bruteforce": true,
     "performance_claim_requires_matched_wall_clock_benchmark": false,
     "spatial_index_fallback_regimes_required": true
+  },
+  "phase_diagram_manifest": "benchmarks/oli/vicsek-phase-diagram-v0.json",
+  "spatial_index_scaling_manifest": "benchmarks/oli/vicsek-spatial-index-scaling-v0.json",
+  "scaling_design": {
+    "source_reproduction_profile": "RAHMAN_2026_CLUSTER_TOPOLOGY_ERRATUM_ALIGNED",
+    "independent_oli_profile": "OLI_FIXED_DENSITY_FINITE_SIZE_NOISE_GRID",
+    "status": "PRE_REGISTERED_NOT_EXECUTED",
+    "grid_manifest": "benchmarks/oli/vicsek-phase-diagram-v0.json"
   }
 }
