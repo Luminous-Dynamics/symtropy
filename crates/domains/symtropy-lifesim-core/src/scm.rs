@@ -265,6 +265,8 @@ pub struct ScmStepReport {
     pub communication_topology: ScmCommunicationTopology,
     /// Best objective fitness among the current agents (dimensionless, [0, 1]).
     pub best_agent_fitness: f64,
+    /// Best objective fitness observed at any acquired position up through this tick.
+    pub best_fitness_seen: f64,
     /// Index of the best-performing current agent; ties are resolved by lowest index.
     pub best_agent_index: usize,
     /// Mean objective fitness across current agents.
@@ -303,6 +305,7 @@ pub struct ScmModel {
     tick: u64,
     total_function_evaluations: u64,
     observations: Option<Vec<ScmObservation>>,
+    best_fitness_seen: Option<f64>,
     consensus_history: VecDeque<f64>,
 }
 
@@ -344,6 +347,7 @@ impl ScmModel {
             tick: 0,
             total_function_evaluations: 0,
             observations: None,
+            best_fitness_seen: None,
             consensus_history: VecDeque::with_capacity(config.tau_steps + 1),
         })
     }
@@ -362,6 +366,10 @@ impl ScmModel {
 
     pub const fn total_function_evaluations(&self) -> u64 {
         self.total_function_evaluations
+    }
+
+    pub const fn best_fitness_seen(&self) -> Option<f64> {
+        self.best_fitness_seen
     }
 
     pub fn agents(&self) -> &[ScmAgent] {
@@ -388,6 +396,10 @@ impl ScmModel {
             let initial_count = self.agents.len();
             self.record_evaluation_attempts(initial_count)?;
             initial_evaluations_this_call = initial_count;
+            self.best_fitness_seen = initial
+                .iter()
+                .map(|observation| observation.fitness)
+                .max_by(f64::total_cmp);
             self.observations = Some(initial);
         }
         let current_observations = self
@@ -588,6 +600,9 @@ impl ScmModel {
             .map(|observation| observation.fitness)
             .sum::<f64>()
             / updated_observations.len() as f64;
+        let next_best_fitness_seen = self
+            .best_fitness_seen
+            .map_or(best_agent_fitness, |best| best.max(best_agent_fitness));
         let agent_fitness_variance = updated_observations
             .iter()
             .map(|observation| {
@@ -602,6 +617,7 @@ impl ScmModel {
             consensus_window: self.config.consensus_window,
             communication_topology: self.config.communication_topology,
             best_agent_fitness,
+            best_fitness_seen: next_best_fitness_seen,
             best_agent_index,
             mean_agent_fitness,
             agent_fitness_variance,
@@ -634,6 +650,7 @@ impl ScmModel {
         self.agents = next_agents;
         self.rng = next_rng;
         self.observations = Some(updated_observations);
+        self.best_fitness_seen = Some(next_best_fitness_seen);
         self.total_function_evaluations = new_total_function_evaluations;
         self.consensus_history = next_history;
         self.sigma = next_sigma;
@@ -1258,6 +1275,35 @@ mod tests {
         assert!(report.agent_fitness_variance.is_finite());
         // A high consensus is not used as a substitute for measured task fitness.
         assert!(report.consensus.is_finite());
+    }
+
+    #[test]
+    fn best_fitness_seen_is_monotonic_and_includes_initial_observations() {
+        let mut model = ScmModel::new(
+            vec![
+                ScmAgent { position: vec![0.2, 0.2] },
+                ScmAgent { position: vec![0.8, 0.8] },
+            ],
+            ScmConfig {
+                sigma_initial: 0.0,
+                sigma_limit: 0.0,
+                omega: 0.0,
+                tau_steps: 4,
+                communication_topology: ScmCommunicationTopology::MetricRadius { radius: 0.0 },
+                ..ScmConfig::default()
+            },
+            101,
+        )
+        .unwrap();
+        assert!(model.best_fitness_seen().is_none());
+
+        let first = model.step(&Quadratic).unwrap();
+        assert_eq!(model.best_fitness_seen(), Some(first.best_fitness_seen));
+        assert!(first.best_fitness_seen >= first.best_agent_fitness);
+
+        let second = model.step(&Quadratic).unwrap();
+        assert!(second.best_fitness_seen >= first.best_fitness_seen);
+        assert_eq!(model.best_fitness_seen(), Some(second.best_fitness_seen));
     }
 
     #[test]
