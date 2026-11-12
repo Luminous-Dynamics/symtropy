@@ -124,6 +124,7 @@ exclude = [
 ]
 members = [
     ".",
+    "research/decision-time-action-assurance-001",
     "crates/apps/symtropy-cli",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
