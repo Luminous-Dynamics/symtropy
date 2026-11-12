@@ -73,3 +73,12 @@ A named outage suite is useful but does not establish the full resilience envelo
 For each critical pair that is isolable in the baseline, the adapter replays the same domain-neutral pairwise evaluator under each outage combination and records every inclusion-minimal set that removes identifiability. It reports minimum cut order and the tolerated failure-atom count before the first cut. A pair already non-isolable or not evaluated in the baseline receives `baseline_not_qualified`; where no cut appears within the declared order, the report states only a lower bound.
 
 The search is deterministic and exhaustive within explicit bounds. v0.1 permits at most 16 failure atoms and cut order at most 2; both values must be declared together or the runtime uses the documented 12-atom / order-2 defaults. Exceeding a bound produces an error, not a sampled or heuristic result. Failure atoms are structural outage hypotheses, not probabilistically independent events. This does not estimate reliability, failure rates or fault probabilities.
+
+
+## P0.10 — dynamic signatures beyond static response envelopes
+
+A static interval signature can lose temporal ordering and lag information. P0.10 introduces a separate event-aligned trajectory comparison without rewriting the existing static pair report. The synthetic fixture keeps turbocharger-degradation and cooling-restriction ranges identical per channel (same marginal minima and maxima) while giving shaft-speed and vibration trajectories different time orderings.
+
+Admission rules: same declared timebase and event-alignment reference; independently qualified event alignment for measured cases; sensor timebase/calibration/dependency/source-role qualification; exact A/B event-relative sample grid; binding to the corresponding qualified measurement-window references and artifact identities; and a sustained run of pairwise non-overlapping value intervals. The sustained dwell rule prevents a single transient outlier from becoming a diagnosability claim. All time samples from one physical sensor share one measurement-principle group and count at most once.
+
+The same domain-neutral interval/evidence/dependency-cut kernel is used on the aligned time-slice signatures. Results are supplementary: static non_isolable remains static non_isolable; temporal output is a separately scoped result. A synthetic temporal separation is not a marine-engine measurement or validation claim.

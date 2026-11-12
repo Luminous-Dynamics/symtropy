@@ -96,3 +96,12 @@ The adapter enumerates every singleton installed-sensor outage and every pairwis
 For the frozen fixture this is 7 failure atoms (5 sensors + 2 shared dependencies) and 28 exact outage combinations at cut order 2. For each baseline-identifiable critical fault pair, the evaluator reports every inclusion-minimal cut set that makes the pair non-identifiable or not evaluated, the minimum cut order found, and the number of enumerated failure atoms tolerated before the first cut. Baseline non-identifiable pairs are marked `baseline_not_qualified`; no positive resilience is assigned to them. No-cut results through the bound report only a lower bound.
 
 The search is exact and bounded. Inputs exceeding the declared bounds fail closed; there is no random sampling or heuristic fallback. Failure atoms are outage hypotheses and are **not** assumed probabilistically independent. The cut sets are structural evidence for the exact declared topology and response matrix, not field reliability probabilities.
+
+
+## P0.10 — time-aligned trajectory diagnosability
+
+Static response envelopes can be identical even when fault evolution differs. The frozen turbocharger-degradation / cooling-restriction pair deliberately remains non-isolable under the static per-channel minimum/maximum ranges. A separate supplementary trajectory case compares event-aligned time series from shaft speed and vibration. Both channels have the same marginal minimum/maximum ranges under the two fault hypotheses, but their temporal ordering differs.
+
+Temporal evidence is admitted only when the event-alignment reference is bound to the case timebase, event-alignment uncertainty plus per-sensor timestamp uncertainty stays within the declared limit, sample grids match exactly, acquisition windows match the already-qualified static response windows, and evidence/source/calibration/dependency roles are qualified. A sensor contributes one measurement principle regardless of how many samples it contributes. It must show disjoint response intervals over a sustained minimum sample span; one isolated transient point does not count.
+
+The adapter sends qualifying time-slice interval signatures through the same reusable classify_pair_signatures kernel. The static pair result remains unchanged. The supplementary report may state that temporal evidence resolves a static ambiguity, but this synthetic fixture is not physical fault validation.

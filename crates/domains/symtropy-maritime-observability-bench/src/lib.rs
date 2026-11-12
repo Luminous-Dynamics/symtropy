@@ -4,7 +4,7 @@
 #![forbid(unsafe_code)]
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
-use symtropy_sensor_observability_bench::{evaluate_case, EvaluationReport, Violation};
+use symtropy_sensor_observability_bench::{classify_pair_signatures, evaluate_case, ChannelPairSignature, EvaluationReport, PairAvailability, PairEvidenceClass, PairEvidenceRole, Violation};
 
 type Check<T> = Result<T, Vec<Violation>>;
 
@@ -158,9 +158,136 @@ fn validate_clock_qualification(input:&Value,clock:&Value,clock_sha256:&str)->Ch
     Ok(())
 }
 
+
+fn validate_trajectory_signature_cases(input:&Value)->Check<()>{
+    let cases=array(input,"trajectory_signature_cases","$")?;
+    let sensors=input["sensors"].as_array().expect("validated sensors");
+    let states=input["states"].as_array().expect("validated states");
+    let pairs=input["required_fault_pairs"].as_array().expect("validated pairs");
+    let responses=input["responses"].as_array().expect("validated responses");
+    let mut case_ids=BTreeSet::new();
+    let mut paired_faults=BTreeSet::new();
+    for (i,c) in cases.iter().enumerate(){
+        let p=format!("$.trajectory_signature_cases[{i}]");
+        allowed_keys(c,&["signature_case_id","pair_id","fault_a","fault_b","event_alignment_ref","event_alignment_state",
+            "event_alignment_record_id","event_alignment_record_sha256","timebase_id","alignment_uncertainty_ms",
+            "sample_period_ms","minimum_separated_duration_ms","minimum_independent_principles","trajectory_channels"],&p)?;
+        let id=txt(c,"signature_case_id",&p)?;
+        if !case_ids.insert(id.to_owned()){return Err(err("DUPLICATE_TRAJECTORY_SIGNATURE_CASE",&p,"signature case IDs must be unique"));}
+        let pair_id=txt(c,"pair_id",&p)?;
+        let fault_a=txt(c,"fault_a",&p)?;
+        let fault_b=txt(c,"fault_b",&p)?;
+        if fault_a==fault_b||!states.iter().any(|s|s["state_id"]==fault_a)||!states.iter().any(|s|s["state_id"]==fault_b){
+            return Err(err("TRAJECTORY_FAULT_PAIR",&p,"trajectory pair must reference two distinct declared states"));
+        }
+        let declaration=pairs.iter().find(|pair|pair["pair_id"]==pair_id
+            &&pair["fault_a"]==fault_a&&pair["fault_b"]==fault_b)
+            .ok_or_else(||err("TRAJECTORY_PAIR_NOT_DECLARED",&p,"trajectory case must bind the exact ordered required-fault-pair declaration"))?;
+        let semantic_key=pair_key(fault_a,fault_b);
+        if !paired_faults.insert(semantic_key){return Err(err("DUPLICATE_TRAJECTORY_FAULT_RELATION",&p,"only one trajectory case per unordered fault pair is permitted in v0.1"));}
+        let _=declaration;
+        let _=txt(c,"event_alignment_ref",&p)?;
+        let _=txt(c,"timebase_id",&p)?;
+        let alignment_state=txt(c,"event_alignment_state",&p)?;
+        if !matches!(alignment_state,"synthetic_conformance"|"independently_reviewed"|"unreviewed"|"unknown"){
+            return Err(err("TRAJECTORY_ALIGNMENT_STATE",&p,"unsupported event-alignment evidence state"));
+        }
+        let record_id=c["event_alignment_record_id"].as_str().filter(|s|!s.trim().is_empty());
+        let record_sha=c["event_alignment_record_sha256"].as_str();
+        if !c["event_alignment_record_sha256"].is_null()&&record_sha.is_none_or(|s|!hex64(s)){
+            return Err(err("TRAJECTORY_ALIGNMENT_SHA256",&p,"alignment digest must be null or lowercase SHA-256"));
+        }
+        match txt(input,"evidence_class","$")?{
+            "SYNTHETIC_CONFORMANCE_FIXTURE"=>{
+                if alignment_state=="independently_reviewed"{
+                    return Err(err("SYNTHETIC_TRAJECTORY_ALIGNMENT_OVERCLAIM",&p,"synthetic fixture cannot claim independent event-alignment review"));
+                }
+                if record_id.is_some()||record_sha.is_some(){
+                    return Err(err("SYNTHETIC_TRAJECTORY_ALIGNMENT_RECORD",&p,"synthetic alignment cannot carry a physical review record"));
+                }
+            }
+            "MEASURED"=>{
+                if alignment_state=="independently_reviewed"{
+                    if record_id.is_none()||record_sha.is_none_or(|s|!hex64(s)){
+                        return Err(err("INCOMPLETE_TRAJECTORY_ALIGNMENT_REVIEW",&p,"measured trajectory alignment requires review record ID and SHA-256"));
+                    }
+                }else if record_id.is_some()||record_sha.is_some(){
+                    return Err(err("UNREVIEWED_TRAJECTORY_ALIGNMENT_RECORD",&p,"unreviewed alignment cannot carry a review record"));
+                }
+            }
+            _=>unreachable!()
+        }
+        let alignment_uncertainty=c["alignment_uncertainty_ms"].as_f64()
+            .filter(|x|x.is_finite()&&*x>=0.0)
+            .ok_or_else(||err("TRAJECTORY_ALIGNMENT_UNCERTAINTY",&p,"alignment uncertainty must be finite and non-negative"))?;
+        let sample_period=c["sample_period_ms"].as_u64().filter(|x|*x>0)
+            .ok_or_else(||err("TRAJECTORY_SAMPLE_PERIOD",&p,"sample period must be a positive integer"))?;
+        let minimum_duration=c["minimum_separated_duration_ms"].as_f64()
+            .filter(|x|x.is_finite()&&*x>0.0)
+            .ok_or_else(||err("TRAJECTORY_MINIMUM_DURATION",&p,"minimum separated duration must be finite and positive"))?;
+        let minimum_principles=c["minimum_independent_principles"].as_u64().filter(|x|*x>0)
+            .ok_or_else(||err("TRAJECTORY_PRINCIPLE_THRESHOLD",&p,"minimum independent principles must be positive"))?;
+        let profile_min=input["layout_profile"]["minimum_independent_principles_for_critical_pairs"].as_u64().unwrap_or(1);
+        if declaration["critical"]==true&&minimum_principles<profile_min{
+            return Err(err("TRAJECTORY_THRESHOLD_BELOW_PROFILE",&p,"critical trajectory pair cannot undercut the layout profile"));
+        }
+        let channels=array(c,"trajectory_channels",&p)?;
+        if channels.is_empty(){return Err(err("EMPTY_TRAJECTORY_CHANNELS",&p,"at least one temporal channel is required"));}
+        let mut sensor_seen=BTreeSet::new();
+        for (j,ch) in channels.iter().enumerate(){
+            let at=format!("{p}.trajectory_channels[{j}]");
+            allowed_keys(ch,&["sensor_id","channel_id","measurement_window_ref_a","measurement_window_ref_b","artifact_id_a","artifact_id_b","samples_a","samples_b"],&at)?;
+            let sensor_id=txt(ch,"sensor_id",&at)?;
+            let channel_id=txt(ch,"channel_id",&at)?;
+            if !sensor_seen.insert(sensor_id.to_owned()){return Err(err("DUPLICATE_TRAJECTORY_SENSOR",&at,"one trajectory channel per sensor is permitted in v0.1"));}
+            let _sensor=sensors.iter().find(|s|s["sensor_id"]==sensor_id&&s["channel_id"]==channel_id)
+                .ok_or_else(||err("UNKNOWN_TRAJECTORY_SENSOR",&at,"trajectory sensor/channel binding does not resolve"))?;
+            let window_a=txt(ch,"measurement_window_ref_a",&at)?;
+            let window_b=txt(ch,"measurement_window_ref_b",&at)?;
+            let artifact_a=txt(ch,"artifact_id_a",&at)?;
+            let artifact_b=txt(ch,"artifact_id_b",&at)?;
+            let response_a=responses.iter().find(|r|r["state_id"]==fault_a&&r["channel_id"]==channel_id)
+                .ok_or_else(||err("MISSING_TRAJECTORY_RESPONSE_A",&at,"static state-A response not found"))?;
+            let response_b=responses.iter().find(|r|r["state_id"]==fault_b&&r["channel_id"]==channel_id)
+                .ok_or_else(||err("MISSING_TRAJECTORY_RESPONSE_B",&at,"static state-B response not found"))?;
+            if response_a["measurement_window_ref"]!=window_a||response_b["measurement_window_ref"]!=window_b
+                ||response_a["artifact_id"]!=artifact_a||response_b["artifact_id"]!=artifact_b{
+                return Err(err("TRAJECTORY_SOURCE_BINDING_MISMATCH",&at,"trajectory must bind the exact static response windows and source artifact identities"));
+            }
+            let a=array(ch,"samples_a",&at)?;
+            let b=array(ch,"samples_b",&at)?;
+            if a.len()<2||a.len()!=b.len(){return Err(err("TRAJECTORY_SAMPLE_COUNT",&at,"state A/B trajectories need equal sample counts of at least two"));}
+            let mut previous=None;
+            for (k,(sa,sb)) in a.iter().zip(b.iter()).enumerate(){
+                let pa=format!("{at}.samples_a[{k}]");
+                let pb=format!("{at}.samples_b[{k}]");
+                allowed_keys(sa,&["offset_ms","value_lower","value_upper"],&pa)?;
+                allowed_keys(sb,&["offset_ms","value_lower","value_upper"],&pb)?;
+                let ta=sa["offset_ms"].as_u64().ok_or_else(||err("TRAJECTORY_OFFSET",&pa,"offset must be a non-negative integer"))?;
+                let tb=sb["offset_ms"].as_u64().ok_or_else(||err("TRAJECTORY_OFFSET",&pb,"offset must be a non-negative integer"))?;
+                if ta!=tb{return Err(err("TRAJECTORY_OFFSET_MISMATCH",&at,"state A/B samples must share identical event-relative offsets"));}
+                if let Some(prev)=previous{
+                    if ta<=prev||ta-prev!=sample_period{return Err(err("TRAJECTORY_SAMPLE_GRID",&at,"sample offsets must be strictly increasing on the declared regular grid"));}
+                }
+                previous=Some(ta);
+                for (sample,path) in [(sa,&pa),(sb,&pb)]{
+                    let lo=sample["value_lower"].as_f64().filter(|x|x.is_finite());
+                    let hi=sample["value_upper"].as_f64().filter(|x|x.is_finite());
+                    if lo.zip(hi).is_none_or(|(lo,hi)|lo>hi){return Err(err("TRAJECTORY_VALUE_INTERVAL",path,"trajectory sample needs a finite ordered interval"));}
+                }
+            }
+            if previous.unwrap_or(0) as f64-a[0]["offset_ms"].as_f64().unwrap_or(0.0)<minimum_duration{
+                return Err(err("TRAJECTORY_DURATION_UNSUPPORTED",&at,"trajectory does not contain enough time span for its minimum separation duration"));
+            }
+            if alignment_uncertainty+1e-9<0.0{return Err(err("TRAJECTORY_TIME_GRID",&at,"invalid alignment uncertainty"));}
+        }
+    }
+    Ok(())
+}
+
 fn validate_input(input:&Value)->Check<()>{
     if !input.is_object(){return Err(err("EXPECTED_OBJECT","$","case must be an object"));}
-    allowed_keys(input,&["schema_version","assessment_id","generated_at","evidence_class","asset","operating_domain","evidence_digests","layout_profile","sensors","states","required_fault_pairs","responses","common_cause_scenarios","claim_ceiling"],"$")?;
+    allowed_keys(input,&["schema_version","assessment_id","generated_at","evidence_class","asset","operating_domain","evidence_digests","layout_profile","sensors","states","required_fault_pairs","responses","common_cause_scenarios","trajectory_signature_cases","claim_ceiling"],"$")?;
     if txt(input,"schema_version","$")?!="0.1.0"{return Err(err("SCHEMA_VERSION","$.schema_version","expected 0.1.0"));}
     if !matches!(txt(input,"evidence_class","$")?,"SYNTHETIC_CONFORMANCE_FIXTURE"|"MEASURED"){
         return Err(err("EVIDENCE_CLASS","$.evidence_class","unsupported evidence class"));
@@ -410,6 +537,7 @@ fn validate_input(input:&Value)->Check<()>{
         return Err(err("SHARED_DEPENDENCY_OUTAGE_NOT_COVERED","$.common_cause_scenarios",
             format!("every shared installed dependency requires at least one outage scenario: {}",missing_shared.join(", "))));
     }
+    validate_trajectory_signature_cases(input)?;
     Ok(())
 }
 
@@ -892,7 +1020,182 @@ fn fault_assessments(input:&Value,report:&EvaluationReport)->(Vec<Value>,Vec<Val
     (fault_out,classes_out)
 }
 
-fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>,scenarios:Vec<Value>,resilience:Value)->Value{
+
+fn longest_separated_trajectory_span(samples_a:&[Value],samples_b:&[Value],sample_period_ms:u64)->f64{
+    let mut run_start:Option<u64>=None;
+    let mut run_end:Option<u64>=None;
+    let mut longest=0.0f64;
+    for (a,b) in samples_a.iter().zip(samples_b.iter()){
+        let offset=a["offset_ms"].as_u64().unwrap();
+        let separated=a["value_upper"].as_f64().unwrap()<b["value_lower"].as_f64().unwrap()
+            ||b["value_upper"].as_f64().unwrap()<a["value_lower"].as_f64().unwrap();
+        if separated{
+            if run_end.is_some_and(|previous|offset==previous.saturating_add(sample_period_ms)){
+                run_end=Some(offset);
+            }else{
+                run_start=Some(offset);
+                run_end=Some(offset);
+            }
+            longest=longest.max(offset.saturating_sub(run_start.unwrap_or(offset)) as f64);
+        }else{
+            run_start=None;
+            run_end=None;
+        }
+    }
+    longest
+}
+fn trajectory_pair_assessments(input:&Value,base:&EvaluationReport,base_windows:&[Value])->Check<Vec<Value>>{
+    let evidence_class=match txt(input,"evidence_class","$")?{
+        "SYNTHETIC_CONFORMANCE_FIXTURE"=>PairEvidenceClass::SyntheticConformanceFixture,
+        "MEASURED"=>PairEvidenceClass::Measured,
+        _=>return Err(err("TRAJECTORY_EVIDENCE_CLASS","$.evidence_class","unsupported trajectory evidence class")),
+    };
+    let evidence_class_name=match evidence_class{
+        PairEvidenceClass::SyntheticConformanceFixture=>"SYNTHETIC_CONFORMANCE_FIXTURE",
+        PairEvidenceClass::Measured=>"MEASURED",
+    };
+    let domain=&input["operating_domain"];
+    let profile=&input["layout_profile"];
+    let sensors=input["sensors"].as_array().expect("validated sensors");
+    let responses=input["responses"].as_array().expect("validated responses");
+    let maximum_uncertainty=profile["maximum_timestamp_uncertainty_ms"].as_f64().unwrap_or(0.0);
+    let mut reports=Vec::new();
+    for trajectory in input["trajectory_signature_cases"].as_array().expect("validated trajectories"){
+        let id=txt(trajectory,"signature_case_id","$.trajectory_signature_cases[]")?;
+        let pair_id=txt(trajectory,"pair_id","$.trajectory_signature_cases[]")?;
+        let fault_a=txt(trajectory,"fault_a","$.trajectory_signature_cases[]")?;
+        let fault_b=txt(trajectory,"fault_b","$.trajectory_signature_cases[]")?;
+        let static_pair_state=match pair_status(base,fault_a,fault_b){
+            Some("IDENTIFIABLE")=>"isolable",
+            Some("NOT_IDENTIFIABLE")=>"non_isolable",
+            _=>"not_evaluated",
+        };
+        let alignment_state=txt(trajectory,"event_alignment_state","$.trajectory_signature_cases[]")?;
+        let alignment_evidence_ok=match (evidence_class,alignment_state){
+            (PairEvidenceClass::SyntheticConformanceFixture,"synthetic_conformance")=>trajectory["event_alignment_record_id"].is_null()&&trajectory["event_alignment_record_sha256"].is_null(),
+            (PairEvidenceClass::Measured,"independently_reviewed")=>trajectory["event_alignment_record_id"].as_str().is_some_and(|s|!s.trim().is_empty())
+                &&trajectory["event_alignment_record_sha256"].as_str().is_some_and(hex64),
+            _=>false,
+        };
+        let timebase_id=txt(trajectory,"timebase_id","$.trajectory_signature_cases[]")?;
+        let timebase_matches=timebase_id==domain["measurement_timebase_id"].as_str().unwrap_or("");
+        let alignment_uncertainty=trajectory["alignment_uncertainty_ms"].as_f64().unwrap_or(f64::INFINITY);
+        let period=trajectory["sample_period_ms"].as_f64().unwrap_or(0.0);
+        let minimum_duration=trajectory["minimum_separated_duration_ms"].as_f64().unwrap_or(f64::INFINITY);
+        let mut signatures=Vec::new();
+        let mut channel_reports=Vec::new();
+        for channel in trajectory["trajectory_channels"].as_array().expect("validated trajectory channels"){
+            let sensor_id=txt(channel,"sensor_id","$.trajectory_signature_cases[].trajectory_channels[]")?;
+            let channel_id=txt(channel,"channel_id","$.trajectory_signature_cases[].trajectory_channels[]")?;
+            let sensor=sensors.iter().find(|s|s["sensor_id"]==sensor_id&&s["channel_id"]==channel_id).expect("validated sensor binding");
+            let sensor_uncertainty=sensor["timestamp_uncertainty_ms"].as_f64().unwrap_or(f64::INFINITY);
+            let combined_uncertainty=alignment_uncertainty+sensor_uncertainty;
+            let sensor_timebase_ok=sensor_timebase_qualified(sensor,domain,profile,evidence_class_name);
+            let dependency_reviewed=match evidence_class{
+                PairEvidenceClass::SyntheticConformanceFixture=>sensor["dependency_review_state"]=="synthetic_conformance",
+                PairEvidenceClass::Measured=>sensor["dependency_review_state"]=="independently_reviewed"
+                    &&sensor["dependency_review_record_id"].as_str().is_some_and(|s|!s.trim().is_empty())
+                    &&sensor["dependency_review_record_sha256"].as_str().is_some_and(hex64),
+            };
+            let response_a=responses.iter().find(|r|r["state_id"]==fault_a&&r["channel_id"]==channel_id).expect("validated static response A");
+            let response_b=responses.iter().find(|r|r["state_id"]==fault_b&&r["channel_id"]==channel_id).expect("validated static response B");
+            let role_ok=match evidence_class{
+                PairEvidenceClass::SyntheticConformanceFixture=>sensor["source_role"]=="synthetic"
+                    &&response_a["evidence_role"]=="SYNTHETIC_CONFORMANCE_FIXTURE"&&response_b["evidence_role"]=="SYNTHETIC_CONFORMANCE_FIXTURE",
+                PairEvidenceClass::Measured=>sensor["source_role"]=="measured"
+                    &&response_a["evidence_role"]=="INDEPENDENT_MEASUREMENT"&&response_b["evidence_role"]=="INDEPENDENT_MEASUREMENT",
+            } && sensor["derived_from_channel_ids"].as_array().is_none_or(|a|a.is_empty())
+                &&sensor["quality_state"]=="current"
+                &&matches!(sensor["calibration_state"].as_str(),Some("current"|"not_applicable"))
+                &&dependency_reviewed;
+            let window_a=base_windows.iter().find(|w|w["state_id"]==fault_a).is_some_and(|w|w["status"]=="qualified");
+            let window_b=base_windows.iter().find(|w|w["state_id"]==fault_b).is_some_and(|w|w["status"]=="qualified");
+            let alignment_ok=alignment_evidence_ok&&timebase_matches&&alignment_uncertainty.is_finite()
+                &&combined_uncertainty<=maximum_uncertainty&&period>2.0*combined_uncertainty;
+            let qualified=role_ok&&sensor_timebase_ok&&window_a&&window_b&&alignment_ok;
+            let samples_a=channel["samples_a"].as_array().expect("validated samples A");
+            let samples_b=channel["samples_b"].as_array().expect("validated samples B");
+            let separated_span=longest_separated_trajectory_span(samples_a,samples_b,trajectory["sample_period_ms"].as_u64().unwrap());
+            let temporal_ok=qualified&&separated_span+1e-9>=minimum_duration;
+            let principle=txt(sensor,"measurement_principle_ref","$.sensors[]")?;
+            let dependencies=set(sensor,"dependency_groups","$.sensors[]")?;
+            let evidence_role=if !qualified{PairEvidenceRole::Unknown}else{match evidence_class{
+                PairEvidenceClass::SyntheticConformanceFixture=>PairEvidenceRole::SyntheticConformanceFixture,
+                PairEvidenceClass::Measured=>PairEvidenceRole::IndependentMeasurement,
+            }};
+            if qualified&&temporal_ok{
+                for (a,b) in samples_a.iter().zip(samples_b.iter()){
+                    let offset=a["offset_ms"].as_u64().unwrap();
+                    signatures.push(ChannelPairSignature{
+                        channel_id:format!("{channel_id}@{offset}ms"),
+                        independence_group_ref:principle.to_owned(),
+                        dependency_groups:dependencies.clone(),
+                        interval_a:Some((a["value_lower"].as_f64().unwrap(),a["value_upper"].as_f64().unwrap())),
+                        interval_b:Some((b["value_lower"].as_f64().unwrap(),b["value_upper"].as_f64().unwrap())),
+                        availability_a:PairAvailability::Valid,
+                        availability_b:PairAvailability::Valid,
+                        evidence_role_a:evidence_role,
+                        evidence_role_b:evidence_role,
+                    });
+                }
+            }else if !qualified{
+                for sample in samples_a{
+                    let offset=sample["offset_ms"].as_u64().unwrap();
+                    signatures.push(ChannelPairSignature{
+                        channel_id:format!("{channel_id}@{offset}ms"),
+                        independence_group_ref:principle.to_owned(),
+                        dependency_groups:dependencies.clone(),
+                        interval_a:None,interval_b:None,
+                        availability_a:PairAvailability::Unknown,
+                        availability_b:PairAvailability::Unknown,
+                        evidence_role_a:evidence_role,
+                        evidence_role_b:evidence_role,
+                    });
+                }
+            }
+            channel_reports.push(json!({
+                "sensor_id":sensor_id,
+                "channel_id":channel_id,
+                "measurement_principle_ref":principle,
+                "combined_alignment_uncertainty_ms":combined_uncertainty,
+                "longest_separated_sample_span_ms":separated_span,
+                "minimum_required_separated_duration_ms":minimum_duration,
+                "qualified_temporal_separation":temporal_ok,
+                "reason":if temporal_ok{"SUSTAINED_TIME_ALIGNED_INTERVAL_SEPARATION"}
+                    else if !qualified{"TIMEBASE_ALIGNMENT_OR_SOURCE_QUALIFICATION_NOT_PROVEN"}
+                    else{"NO_SUSTAINED_SEPARATION_FOR_REQUIRED_DURATION"}
+            }));
+        }
+        let minimum=trajectory["minimum_independent_principles"].as_u64().unwrap() as usize;
+        let classification=classify_pair_signatures(&signatures,minimum,evidence_class,&BTreeSet::new())
+            .map_err(|e|err("TRAJECTORY_KERNEL_ERROR","$.trajectory_signature_cases",e))?;
+        let trajectory_state=match classification.status.as_str(){
+            "IDENTIFIABLE"=>"isolable",
+            "NOT_IDENTIFIABLE"=>"non_isolable",
+            _=>"not_evaluated",
+        };
+        let supplementary=if static_pair_state=="non_isolable"&&trajectory_state=="isolable"{
+            "STATIC_AMBIGUITY_RESOLVED_BY_TEMPORAL_SIGNATURE"
+        }else{"NO_STATIC_CONCLUSION_UPGRADED"};
+        reports.push(json!({
+            "signature_case_id":id,
+            "pair_id":pair_id,
+            "fault_a":fault_a,
+            "fault_b":fault_b,
+            "static_pair_state":static_pair_state,
+            "trajectory_state":trajectory_state,
+            "independent_measurement_principle_count":classification.observed_independent_principles,
+            "minimum_independent_principles":minimum,
+            "qualifying_measurement_principles":classification.independence_group_refs,
+            "trajectory_channels":channel_reports,
+            "supplementary_interpretation":supplementary,
+            "claim_ceiling":"Trajectory separation applies only to the declared aligned relative-time samples, channels, event reference, timestamp uncertainty and evidence role. Static interval diagnosability is reported separately and is never overwritten. Synthetic trajectory separation is software conformance only, not measured engine diagnosis."
+        }));
+    }
+    Ok(reports)
+}
+
+fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>,scenarios:Vec<Value>,resilience:Value,trajectory_reports:Vec<Value>)->Value{
     let asset=&input["asset"];let domain=&input["operating_domain"];let digests=&input["evidence_digests"];
     let sensors:Vec<Value>=input["sensors"].as_array().unwrap().iter().map(|s|json!({
         "sensor_id":s["sensor_id"],"channel_id":s["channel_id"],"installed":s["installed"],
@@ -933,6 +1236,7 @@ fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>
         "measurement_window_assessments":window_assessments,
         "pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
         "resilience_analysis":resilience,
+        "trajectory_pair_assessments":trajectory_reports,
         "metrics":[metric("installed_sensor_count",base.channel_count),metric("independent_evidence_group_count",base.independence_group_count),
             metric("state_hypothesis_count",base.state_count),metric("required_fault_pair_count",base.required_pair_count),
             metric("identifiable_fault_pair_count",base.identifiable_pair_count),metric("non_identifiable_fault_pair_count",base.not_identifiable_pair_count),
@@ -976,7 +1280,8 @@ pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Chec
         }));
     }
     let resilience=resilience_analysis(input,&base)?;
-    Ok(make_report(input,&base,base_windows,scenarios,resilience))
+    let trajectory_reports=trajectory_pair_assessments(input,&base,&base_windows)?;
+    Ok(make_report(input,&base,base_windows,scenarios,resilience,trajectory_reports))
 }
 
 pub fn evaluate_and_bind_execution(input:&Value,clock:&Value,source_commit:&str,case_sha256:&str,clock_sha256:&str)->Check<Value>{
@@ -1356,6 +1661,70 @@ mod tests{
         c["layout_profile"]["maximum_failure_cut_order"]=json!(3);
         let errors=eval(&c).expect_err("v0.1 must not approximate order three");
         assert!(errors.iter().any(|e|e.code=="INVALID_FAILURE_CUT_BOUNDS"));
+    }
+
+
+    #[test]
+    fn aligned_trajectories_resolve_static_turbo_cooling_ambiguity_without_overwriting_static_result(){
+        let r=eval(&fixture()).unwrap();
+        let static_pair=r["pair_assessments"].as_array().unwrap().iter()
+            .find(|p|p["fault_a"]=="ENGINE_TURBOCHARGER_DEGRADATION"&&p["fault_b"]=="ENGINE_COOLING_RESTRICTION").unwrap();
+        assert_eq!(static_pair["state"],"non_isolable");
+        let temporal=r["trajectory_pair_assessments"].as_array().unwrap().iter()
+            .find(|p|p["pair_id"]=="engine_turbocharger_degradation-vs-engine_cooling_restriction").unwrap();
+        assert_eq!(temporal["static_pair_state"],"non_isolable");
+        assert_eq!(temporal["trajectory_state"],"isolable");
+        assert_eq!(temporal["independent_measurement_principle_count"],2);
+        assert_eq!(temporal["supplementary_interpretation"],"STATIC_AMBIGUITY_RESOLVED_BY_TEMPORAL_SIGNATURE");
+        assert!(temporal["trajectory_channels"].as_array().unwrap().iter().all(|c|c["qualified_temporal_separation"]==true));
+    }
+    #[test]
+    fn trajectory_sample_grid_mismatch_is_rejected(){
+        let mut c=fixture();
+        c["trajectory_signature_cases"][0]["trajectory_channels"][0]["samples_b"][2]["offset_ms"]=json!(2500);
+        let errors=eval(&c).expect_err("unmatched event-relative offsets must fail closed");
+        assert!(errors.iter().any(|e|e.code=="TRAJECTORY_OFFSET_MISMATCH"));
+    }
+    #[test]
+    fn one_transient_separated_sample_does_not_qualify_as_sustained_temporal_signature(){
+        let mut c=fixture();
+        for ch in c["trajectory_signature_cases"][0]["trajectory_channels"].as_array_mut().unwrap(){
+            let n=ch["samples_b"].as_array().unwrap().len();
+            for i in 0..n { ch["samples_b"][i]=ch["samples_a"][i].clone(); }
+            ch["samples_b"][0]["value_lower"]=json!(ch["samples_a"][0]["value_lower"].as_f64().unwrap()+5.0);
+            ch["samples_b"][0]["value_upper"]=json!(ch["samples_a"][0]["value_upper"].as_f64().unwrap()+5.0);
+        }
+        let r=eval(&c).unwrap();
+        let temporal=&r["trajectory_pair_assessments"][0];
+        assert_eq!(temporal["trajectory_state"],"non_isolable");
+        assert_eq!(temporal["independent_measurement_principle_count"],0);
+    }
+    #[test]
+    fn unproven_event_alignment_yields_not_evaluated_not_static_promotion(){
+        let mut c=fixture();
+        c["trajectory_signature_cases"][0]["event_alignment_state"]=json!("unknown");
+        let r=eval(&c).unwrap();
+        assert_eq!(r["trajectory_pair_assessments"][0]["trajectory_state"],"not_evaluated");
+        assert_eq!(r["trajectory_pair_assessments"][0]["static_pair_state"],"non_isolable");
+    }
+    #[test]
+    fn trajectory_sensor_principles_are_counted_once_even_with_many_time_samples(){
+        let mut c=fixture();
+        c["sensors"][4]["measurement_principle_ref"]=c["sensors"][1]["measurement_principle_ref"].clone();
+        let r=eval(&c).unwrap();
+        assert_eq!(r["trajectory_pair_assessments"][0]["trajectory_state"],"non_isolable");
+        assert_eq!(r["trajectory_pair_assessments"][0]["independent_measurement_principle_count"],1);
+    }
+    #[test]
+    fn model_estimate_static_responses_cannot_support_measured_temporal_signature(){
+        let mut c=fixture();
+        for response in c["responses"].as_array_mut().unwrap().iter_mut().filter(|r|
+            (r["state_id"]=="ENGINE_TURBOCHARGER_DEGRADATION"||r["state_id"]=="ENGINE_COOLING_RESTRICTION")
+            &&(r["channel_id"]=="shaft-speed"||r["channel_id"]=="vibration-rms")){
+            response["evidence_role"]=json!("MODEL_ESTIMATE");
+        }
+        let r=eval(&c).unwrap();
+        assert_eq!(r["trajectory_pair_assessments"][0]["trajectory_state"],"not_evaluated");
     }
 
     #[test]

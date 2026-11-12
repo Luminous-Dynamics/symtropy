@@ -20,7 +20,8 @@
     "authority_boundary",
     "claim_ceiling",
     "execution",
-    "measurement_window_assessments"
+    "measurement_window_assessments",
+    "trajectory_pair_assessments"
   ],
   "properties": {
     "schema_version": {
@@ -1039,6 +1040,125 @@
         "claim_ceiling": {
           "type": "string",
           "minLength": 80
+        }
+      }
+    },
+    "trajectory_pair_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "signature_case_id",
+          "pair_id",
+          "fault_a",
+          "fault_b",
+          "static_pair_state",
+          "trajectory_state",
+          "independent_measurement_principle_count",
+          "minimum_independent_principles",
+          "qualifying_measurement_principles",
+          "trajectory_channels",
+          "supplementary_interpretation",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "signature_case_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "pair_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "fault_a": {
+            "$ref": "#/$defs/ref"
+          },
+          "fault_b": {
+            "$ref": "#/$defs/ref"
+          },
+          "static_pair_state": {
+            "enum": [
+              "isolable",
+              "non_isolable",
+              "not_evaluated"
+            ]
+          },
+          "trajectory_state": {
+            "enum": [
+              "isolable",
+              "non_isolable",
+              "not_evaluated"
+            ]
+          },
+          "independent_measurement_principle_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minimum_independent_principles": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "qualifying_measurement_principles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "trajectory_channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sensor_id",
+                "channel_id",
+                "measurement_principle_ref",
+                "combined_alignment_uncertainty_ms",
+                "longest_separated_sample_span_ms",
+                "minimum_required_separated_duration_ms",
+                "qualified_temporal_separation",
+                "reason"
+              ],
+              "properties": {
+                "sensor_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "channel_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "measurement_principle_ref": {
+                  "$ref": "#/$defs/ref"
+                },
+                "combined_alignment_uncertainty_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "longest_separated_sample_span_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "minimum_required_separated_duration_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "qualified_temporal_separation": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "$ref": "#/$defs/ref"
+                }
+              }
+            }
+          },
+          "supplementary_interpretation": {
+            "enum": [
+              "STATIC_AMBIGUITY_RESOLVED_BY_TEMPORAL_SIGNATURE",
+              "NO_STATIC_CONCLUSION_UPGRADED"
+            ]
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 80
+          }
         }
       }
     }

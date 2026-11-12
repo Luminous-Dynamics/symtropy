@@ -824,5 +824,168 @@
       ]
     }
   ],
-  "claim_ceiling": "Fabricated conformance data only. No physical maritime engine, calibration, sensor topology, fault diagnosis, shipboard or maintenance claim."
+  "claim_ceiling": "Fabricated conformance data only. No physical maritime engine, calibration, sensor topology, fault diagnosis, shipboard or maintenance claim.",
+  "trajectory_signature_cases": [
+    {
+      "signature_case_id": "turbocharger-vs-cooling-load-step-temporal-v1",
+      "pair_id": "engine_turbocharger_degradation-vs-engine_cooling_restriction",
+      "fault_a": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "event_alignment_ref": "alignment:synthetic-engine-load-step-v1",
+      "event_alignment_state": "synthetic_conformance",
+      "event_alignment_record_id": null,
+      "event_alignment_record_sha256": null,
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "alignment_uncertainty_ms": 1,
+      "sample_period_ms": 1000,
+      "minimum_separated_duration_ms": 2000,
+      "minimum_independent_principles": 2,
+      "trajectory_channels": [
+        {
+          "sensor_id": "crankshaft-speed-sensor",
+          "channel_id": "shaft-speed",
+          "measurement_window_ref_a": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+          "measurement_window_ref_b": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+          "artifact_id_a": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:shaft-speed",
+          "artifact_id_b": "artifact:response:ENGINE_COOLING_RESTRICTION:shaft-speed",
+          "samples_a": [
+            {
+              "offset_ms": 0,
+              "value_lower": 749.5,
+              "value_upper": 750.5
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 743.5,
+              "value_upper": 744.5
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 737.5,
+              "value_upper": 738.5
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 731.5,
+              "value_upper": 732.5
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 725.5,
+              "value_upper": 726.5
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 719.5,
+              "value_upper": 720.5
+            }
+          ],
+          "samples_b": [
+            {
+              "offset_ms": 0,
+              "value_lower": 719.5,
+              "value_upper": 720.5
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 725.5,
+              "value_upper": 726.5
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 731.5,
+              "value_upper": 732.5
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 737.5,
+              "value_upper": 738.5
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 743.5,
+              "value_upper": 744.5
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 749.5,
+              "value_upper": 750.5
+            }
+          ]
+        },
+        {
+          "sensor_id": "engine-vibration-sensor",
+          "channel_id": "vibration-rms",
+          "measurement_window_ref_a": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+          "measurement_window_ref_b": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+          "artifact_id_a": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:vibration-rms",
+          "artifact_id_b": "artifact:response:ENGINE_COOLING_RESTRICTION:vibration-rms",
+          "samples_a": [
+            {
+              "offset_ms": 0,
+              "value_lower": 1.95,
+              "value_upper": 2.05
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 2.35,
+              "value_upper": 2.45
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 2.75,
+              "value_upper": 2.85
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 3.15,
+              "value_upper": 3.25
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 3.55,
+              "value_upper": 3.65
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 3.95,
+              "value_upper": 4.05
+            }
+          ],
+          "samples_b": [
+            {
+              "offset_ms": 0,
+              "value_lower": 3.95,
+              "value_upper": 4.05
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 3.55,
+              "value_upper": 3.65
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 3.15,
+              "value_upper": 3.25
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 2.75,
+              "value_upper": 2.85
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 2.35,
+              "value_upper": 2.45
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 1.95,
+              "value_upper": 2.05
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
