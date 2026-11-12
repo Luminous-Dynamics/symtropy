@@ -471,8 +471,10 @@ fn solve_node(
             let mut invalid_reasons = Vec::new();
 
             for action_id in candidate_actions {
-                let mut children: BTreeMap<String, BTreeMap<String, (String, String, String)>> =
-                    BTreeMap::new();
+                let mut children: BTreeMap<
+                    String,
+                    BTreeMap<String, (String, String, String, String)>,
+                > = BTreeMap::new();
                 let mut action_unknown = false;
                 let mut action_invalid = false;
                 let mut action_no_policy = false;
