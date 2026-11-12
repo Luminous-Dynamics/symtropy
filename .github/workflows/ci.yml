@@ -342,6 +342,48 @@ jobs:
         assert by_world["healthy_sensor_fault"]["sensing_penalty_service_units"] == "0.900000"
         assert by_world["healthy_sensor_fault"]["path_energy_kwh"] == "0.350000"
 
+        fixed_summary_rows = [
+            row for row in contingent_rows
+            if row["record_type"] == "fixed_sequence_summary"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(fixed_summary_rows) == 1
+        fixed_summary = fixed_summary_rows[0]
+        assert fixed_summary["status"] == "reference_baseline"
+        assert fixed_summary["worst_case_post_sensing_regret"] == "1.400000"
+        assert fixed_summary["regret_reduction"] == "13.600000"
+        assert fixed_summary["maximum_path_energy_kwh"] == "0.350000"
+        assert fixed_summary["maximum_path_latency_ticks"] == "2"
+        assert fixed_summary["maximum_path_penalty_service_units"] == "1.400000"
+
+        fixed_paths = [
+            row for row in contingent_rows
+            if row["record_type"] == "fixed_sequence_path"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(fixed_paths) == 3
+        fixed_by_world = {row["world_id"]: row for row in fixed_paths}
+        assert set(fixed_by_world) == {"healthy", "degraded", "healthy_sensor_fault"}
+        assert fixed_by_world["healthy"]["sensing_penalty_service_units"] == "1.100000"
+        assert fixed_by_world["healthy"]["regret_service_units"] == "1.100000"
+        assert fixed_by_world["degraded"]["sensing_penalty_service_units"] == "1.400000"
+        assert fixed_by_world["degraded"]["regret_service_units"] == "1.400000"
+        assert fixed_by_world["healthy_sensor_fault"]["sensing_penalty_service_units"] == "0.900000"
+        assert fixed_by_world["healthy_sensor_fault"]["regret_service_units"] == "0.900000"
+
+        # Paired per-world comparison: the contingent tree stops after the
+        # clear healthy screen; it does not increase worst-case regret.
+        contingent_by_world = by_world
+        assert float(by_world["healthy"]["sensing_penalty_service_units"]) == 0.600000
+        assert float(fixed_by_world["healthy"]["sensing_penalty_service_units"]) == 1.100000
+        assert float(by_world["healthy"]["regret_service_units"]) == 0.600000
+        assert float(fixed_by_world["healthy"]["regret_service_units"]) == 1.100000
+        assert by_world["degraded"]["regret_service_units"] == fixed_by_world["degraded"]["regret_service_units"]
+        assert by_world["healthy_sensor_fault"]["regret_service_units"] == fixed_by_world["healthy_sensor_fault"]["regret_service_units"]
+        assert max(float(row["regret_service_units"]) for row in by_world.values()) == max(
+            float(row["regret_service_units"]) for row in fixed_by_world.values()
+        ) == 1.400000
+
         missing_predictions = [
             row for row in contingent_rows
             if row["record_type"] == "prediction"
