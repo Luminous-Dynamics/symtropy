@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Multirate event-time alignment input contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "event",
+    "channel",
+    "clock_transform",
+    "stream"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-MULTIRATE-EVENT-TIME-QUAL-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_contract_only"
+    },
+    "event": {
+      "$ref": "#/$defs/event"
+    },
+    "channel": {
+      "$ref": "#/$defs/channel"
+    },
+    "clock_transform": {
+      "$ref": "#/$defs/transform"
+    },
+    "stream": {
+      "$ref": "#/$defs/stream"
+    },
+    "claim_ceiling": {
+      "const": "EVENT_TIME_ALIGNMENT_ONLY"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "workpiece_id",
+        "joint_revision",
+        "pass_id",
+        "master_clock_domain",
+        "start_master_ns",
+        "end_master_ns",
+        "decision_cutoff_master_ns",
+        "boundary_uncertainty_ns",
+        "maximum_alignment_uncertainty_ns"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_master_ns": {
+          "type": "integer"
+        },
+        "end_master_ns": {
+          "type": "integer"
+        },
+        "decision_cutoff_master_ns": {
+          "type": "integer"
+        },
+        "boundary_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_alignment_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "source_clock_domain",
+        "nominal_interval_ns",
+        "maximum_jitter_ns",
+        "maximum_gap_ns",
+        "source_timestamp_uncertainty_ns",
+        "minimum_coverage_permille"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_interval_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_jitter_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_gap_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_timestamp_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_clock_domain",
+        "master_clock_domain",
+        "reference_source_ns",
+        "reference_master_ns",
+        "drift_ppb",
+        "drift_uncertainty_ppb",
+        "transform_uncertainty_ns",
+        "valid_from_source_ns",
+        "valid_until_source_ns",
+        "transform_sha256",
+        "calibration_sha256"
+      ],
+      "properties": {
+        "source_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_source_ns": {
+          "type": "integer"
+        },
+        "reference_master_ns": {
+          "type": "integer"
+        },
+        "drift_ppb": {
+          "type": "integer"
+        },
+        "drift_uncertainty_ppb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transform_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_source_ns": {
+          "type": "integer"
+        },
+        "valid_until_source_ns": {
+          "type": "integer"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "calibration_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "pass_id",
+        "source_clock_domain",
+        "source_stream_sha256",
+        "samples"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_stream_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "source_time_ns",
+        "arrival_master_ns",
+        "sample_sha256",
+        "quality"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_time_ns": {
+          "type": "integer"
+        },
+        "arrival_master_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "sample_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "valid",
+            "clipped",
+            "dropped"
+          ],
+          "properties": {
+            "valid": {
+              "type": "boolean"
+            },
+            "clipped": {
+              "type": "boolean"
+            },
+            "dropped": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
