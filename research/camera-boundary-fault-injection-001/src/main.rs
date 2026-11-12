@@ -605,6 +605,23 @@ mod tests {
     }
 
     #[test]
+    fn pixel_corruption_keeps_the_original_receipt_and_targets_a_safe_frame_path() {
+        let base = base_request();
+        let (request, corrupt_target, _, _, _) =
+            prepare_request(&base, FaultCase::PixelCorruption).unwrap();
+        let target = corrupt_target.expect("pixel corruption must identify one frame artifact");
+        assert_eq!(target.relative_path, PathBuf::from("frames/frame_0001.rgb"));
+        assert_eq!(
+            request["observations"][0]["upstream"]["frame_sha256"],
+            base["observations"][0]["upstream"]["frame_sha256"]
+        );
+        assert_eq!(
+            request["observations"][0]["upstream"]["receipt_sha256"],
+            base["observations"][0]["upstream"]["receipt_sha256"]
+        );
+    }
+
+    #[test]
     fn calibration_shift_keeps_a_valid_but_different_digest() {
         let (request, _, pin, _, _) =
             prepare_request(&base_request(), FaultCase::CalibrationShift).unwrap();
