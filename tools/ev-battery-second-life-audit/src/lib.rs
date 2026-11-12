@@ -174,7 +174,7 @@ pub struct DecisionPolicy {
     pub unknown_hard_gate_blocks_eligibility: bool,
     pub hard_gates_not_compensable: bool,
     pub read_only: bool,
-    pub minimum_independent_physical_specimens_per_pack: usize,
+    pub minimum_cell_count_per_pack: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -329,7 +329,7 @@ pub fn audit_second_life_manifest(
     if !manifest.policy.unknown_hard_gate_blocks_eligibility
         || !manifest.policy.hard_gates_not_compensable
         || !manifest.policy.read_only
-        || manifest.policy.minimum_independent_physical_specimens_per_pack == 0
+        || manifest.policy.minimum_cell_count_per_pack == 0
     {
         return Err(SecondLifeAuditError(
             "decision policy must be fail-closed, read-only and require physical specimens".into(),
@@ -476,7 +476,7 @@ pub fn audit_second_life_manifest(
             physical_cell_count += 1;
         }
 
-        if physical_cell_count < manifest.policy.minimum_independent_physical_specimens_per_pack {
+        if physical_cell_count < manifest.policy.minimum_cell_count_per_pack {
             return Err(SecondLifeAuditError(format!(
                 "pack {} does not meet the minimum independent physical specimen count",
                 pack.pack_id
@@ -606,6 +606,39 @@ pub fn audit_second_life_manifest(
                     "eligible decision {} has unknown incident history",
                     decision.decision_id
                 )));
+            }
+
+            for incident in &pack.incident_history {
+                if incident.state == IncidentState::VerifiedAbsent {
+                    let evidence = admitted_evidence(
+                        &evidence_by_id,
+                        &incident.evidence_id,
+                        &format!("pack {} verified-absent incident history", pack.pack_id),
+                    )?;
+                    if !evidence.evidence_class.is_physical() {
+                        return Err(SecondLifeAuditError(format!(
+                            "eligible decision {} relies on non-physical evidence for verified absence",
+                            decision.decision_id
+                        )));
+                    }
+                }
+            }
+
+            for cell_id in &pack.cell_ids {
+                let cell = cell_by_id
+                    .get(cell_id.as_str())
+                    .expect("pack cell closure validated");
+                let evidence = admitted_evidence(
+                    &evidence_by_id,
+                    &cell.evidence_id,
+                    &format!("eligible pack {} cell {}", pack.pack_id, cell_id),
+                )?;
+                if !evidence.evidence_class.is_physical() {
+                    return Err(SecondLifeAuditError(format!(
+                        "eligible decision {} uses non-physical cell-health evidence",
+                        decision.decision_id
+                    )));
+                }
             }
 
             if pack.bms_compatibility_disposition != GateDisposition::Pass {
@@ -780,7 +813,7 @@ mod tests {
                 unknown_hard_gate_blocks_eligibility: true,
                 hard_gates_not_compensable: true,
                 read_only: true,
-                minimum_independent_physical_specimens_per_pack: 2,
+                minimum_cell_count_per_pack: 2,
             },
         }
     }
@@ -888,6 +921,7 @@ mod tests {
         let pack = manifest.packs.iter_mut().find(|x| x.pack_id == pack_id).unwrap();
         pack.history_completeness = HistoryCompleteness::Complete;
         pack.incident_history[0].state = IncidentState::VerifiedAbsent;
+        pack.incident_history[0].evidence_id = "E-PHYSICAL".into();
         pack.bms_compatibility_disposition = GateDisposition::Pass;
         pack.hard_gates[0].disposition = GateDisposition::Pass;
         pack.hard_gates[0].evidence_id = "E-PHYSICAL".into();
@@ -965,6 +999,28 @@ mod tests {
         let error =
             audit_second_life_manifest(&manifest).expect_err("synthetic safety evidence rejected");
         assert!(error.0.contains("non-physical required hard gate"));
+    }
+
+    #[test]
+    fn rejects_verified_absent_history_backed_only_by_synthetic_evidence() {
+        let mut manifest = valid_manifest();
+        make_pack_eligible(&mut manifest, "PACK-A");
+        manifest.packs[0].incident_history[0].evidence_id = "E-HISTORY".into();
+
+        let error = audit_second_life_manifest(&manifest)
+            .expect_err("synthetic evidence cannot establish verified absence");
+        assert!(error.0.contains("non-physical evidence for verified absence"));
+    }
+
+    #[test]
+    fn rejects_synthetic_cell_health_evidence_for_eligible_pack() {
+        let mut manifest = valid_manifest();
+        make_pack_eligible(&mut manifest, "PACK-A");
+        manifest.cells[0].evidence_id = "E-HISTORY".into();
+
+        let error = audit_second_life_manifest(&manifest)
+            .expect_err("synthetic cell health cannot qualify reuse");
+        assert!(error.0.contains("non-physical cell-health evidence"));
     }
 
     #[test]
