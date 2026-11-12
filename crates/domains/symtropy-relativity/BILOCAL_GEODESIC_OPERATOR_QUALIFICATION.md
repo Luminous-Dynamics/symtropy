@@ -60,6 +60,8 @@ The implementation must make endpoint tangent/covector and coordinate-chart conv
 
 ## Benchmark ladder
 
+For BGO-0 in Minkowski spacetime, the exact transfer over affine interval \(\\Delta\\lambda\) is \(W_{XX}=I_4\), \(W_{XK}=\\Delta\\lambda I_4\), \(W_{KX}=0\), and \(W_{KK}=I_4\). This is the first machine-checkable known-answer case.
+
 | ID | Case | Required outputs |
 |---|---|---|
 | BGO-0 | Minkowski analytic transfer | All four 4×4 blocks, composition, inverse, Wronskian |
