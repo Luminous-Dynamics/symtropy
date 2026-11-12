@@ -90,7 +90,9 @@ impl fmt::Display for FixedWingCruiseError {
                 maximum_lift_coefficient,
             } => write!(
                 f,
-                "required lift coefficient {required_lift_coefficient} reaches or exceeds maximum {maximum_lift_coefficient}"
+                "required lift coefficient {} reaches or exceeds maximum {}",
+                required_lift_coefficient,
+                maximum_lift_coefficient
             ),
             Self::NonFiniteResult(name) => {
                 write!(f, "fixed-wing cruise model produced non-finite {name}")
@@ -182,8 +184,12 @@ pub fn estimate_steady_level_cruise(
                 "wing_area_m2" => "wing area must be finite and positive",
                 "aspect_ratio" => "aspect ratio must be finite and positive",
                 "oswald_efficiency" => "Oswald efficiency must be finite and positive",
-                "zero_lift_drag_coefficient" => "zero-lift drag coefficient must be finite and positive",
-                "maximum_lift_coefficient" => "maximum lift coefficient must be finite and positive",
+                "zero_lift_drag_coefficient" => {
+                    "zero-lift drag coefficient must be finite and positive"
+                },
+                "maximum_lift_coefficient" => {
+                    "maximum lift coefficient must be finite and positive"
+                },
                 "propulsive_efficiency" => "propulsive efficiency must be finite and positive",
                 "true_airspeed_m_s" => "true airspeed must be finite and positive",
                 _ => "invalid numeric input",
