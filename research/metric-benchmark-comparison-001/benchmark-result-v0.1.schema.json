@@ -406,7 +406,8 @@
             "momentum_l2_error",
             "constraint_residual",
             "energy_work_defect_j",
-            "discrete_step_equivariance_defect"
+            "discrete_step_equivariance_defect",
+            "lifted_acceleration_relative_error"
           ],
           "properties": {
             "lifted_position_l2_error": {
@@ -445,6 +446,13 @@
               "minimum": 0
             },
             "discrete_step_equivariance_defect": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "lifted_acceleration_relative_error": {
               "type": [
                 "number",
                 "null"
