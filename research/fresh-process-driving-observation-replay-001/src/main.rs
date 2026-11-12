@@ -7,7 +7,7 @@
 
 use action_conditioned_offscreen_camera::{
     ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration, MissingFrameReason,
-    MissingObservationEvent, MissingObservationInput, ObservationDisposition,
+    MissingObservationEvent, ObservationDisposition,
     ObservationStreamGuard, Q16_ONE, RENDERER_REVISION, RenderClocks, RoadMarkingKind,
     RoadPolyline, SoftwareCameraRenderer, TimingPolicy, WorldRenderSnapshot, sha256_hex,
 };
@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use std::env;
 use std::error::Error;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 const EPISODE_ID: &str = "fresh-process-driving-episode-v0-1";
@@ -1627,16 +1627,16 @@ fn run_parent(
         });
 
         if tick == MISSING_TICK {
-            let event = guard.record_missing(MissingObservationInput {
-                episode_id: EPISODE_ID,
-                agent_id: AGENT_ID,
-                clock_id: CLOCK_ID,
+            let event = guard.record_missing(
+                EPISODE_ID,
+                AGENT_ID,
+                CLOCK_ID,
                 tick,
-                sequence: tick,
-                capture_timestamp_us: capture_time,
-                noticed_timestamp_us: capture_time + 1_200,
-                reason: MissingFrameReason::CameraDrop,
-            })?;
+                tick,
+                capture_time,
+                capture_time + 1_200,
+                MissingFrameReason::CameraDrop,
+            )?;
             missing_events.push(event);
             continue;
         }
