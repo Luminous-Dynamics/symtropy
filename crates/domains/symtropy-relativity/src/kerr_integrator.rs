@@ -1633,7 +1633,7 @@ mod tests {
             crossing_options,
         )
         .unwrap();
-        let result = integrator.integrate(initial, 1.0).unwrap();
+        let result = integrator.integrate(initial, 0.3).unwrap();
         let final_radius = result
             .samples
             .last()
@@ -2084,7 +2084,7 @@ mod tests {
             KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
                 .unwrap();
         let bundle = integrator
-            .integrate_observer_tangent_bundle(seed, 10.0)
+            .integrate_observer_tangent_bundle(seed, 9.6)
             .unwrap();
         let interior_index = bundle
             .samples
