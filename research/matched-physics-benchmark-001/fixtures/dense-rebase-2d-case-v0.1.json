@@ -1,0 +1,85 @@
+{
+  "schema_version": "luminous.matched_physics_benchmark_case.v0.1",
+  "case_id": "METRIC-DENSE-REBASE-2D-001",
+  "benchmark_tier": "DENSE_METRIC_KERNEL",
+  "fixture_mode": "synthetic_algebra_fixture",
+  "payload_sha256": "fe7e0edb0056782af6c2d062aad7168d617b9c61273560381998f1041f927ee6",
+  "payload": {
+    "dimension": 2,
+    "units_profile_id": "dimensionless-v1",
+    "source_frame_id": "CartesianQ",
+    "target_frame_id": "DenseY",
+    "coordinate_relation": "q = S y",
+    "metric_source": [
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        3
+      ]
+    ],
+    "rebasis_source_from_target": [
+      [
+        1,
+        2
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "tangent_source": [
+      5,
+      2
+    ],
+    "cotangent_source": [
+      5,
+      7
+    ],
+    "expected": {
+      "tangent_target": [
+        1,
+        2
+      ],
+      "cotangent_target": [
+        5,
+        17
+      ],
+      "metric_target": [
+        [
+          2,
+          4
+        ],
+        [
+          4,
+          11
+        ]
+      ],
+      "tangent_metric_norm_squared": 62,
+      "cotangent_dual_norm_squared_numerator": 173,
+      "cotangent_dual_norm_squared_denominator": 6,
+      "canonical_pairing": 39,
+      "component_infinity_norm_source_tangent": 5,
+      "component_infinity_norm_target_tangent": 2
+    }
+  },
+  "source_fixture_refs": [
+    {
+      "repository": "Luminous-Dynamics/symtropy",
+      "commit_sha": "b9fcf688b502d602eac91297880bf3a3e484545f",
+      "path": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.json",
+      "git_blob_sha1": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284",
+      "role": "physical_follow_on_fixture"
+    }
+  ],
+  "comparator_targets": [
+    "symtropy-reference",
+    "independent-high-precision-oracle",
+    "drake",
+    "mujoco",
+    "pinocchio"
+  ],
+  "claim_ceiling": "FIXTURE_CONFORMANCE_ONLY_NO_SOTA_CLAIM"
+}
