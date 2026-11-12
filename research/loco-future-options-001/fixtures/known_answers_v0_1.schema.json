@@ -202,6 +202,9 @@
             },
             "observed_predecessor_state_digest": {
               "$ref": "#/$defs/digest"
+            },
+            "branch_manifest_digest": {
+              "$ref": "#/$defs/digest"
             }
           }
         },
@@ -358,6 +361,7 @@
                 "additionalProperties": false,
                 "required": [
                   "branch_id",
+                  "successor_state_digest",
                   "reserve_state_digest",
                   "topology_digest",
                   "terminal_safe_stop_reachable"
@@ -374,6 +378,9 @@
                   },
                   "terminal_safe_stop_reachable": {
                     "type": "boolean"
+                  },
+                  "successor_state_digest": {
+                    "$ref": "#/$defs/digest"
                   }
                 }
               }
