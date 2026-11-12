@@ -358,8 +358,15 @@ impl KerrNullConstants {
     pub fn polar_potential(self, spin: f64, theta_rad: f64) -> Result<f64, KerrGeodesicError> {
         validate_spin(spin)?;
         validate_polar_angle(theta_rad)?;
-        let sin_theta = theta_rad.sin();
-        let cos_theta = theta_rad.cos();
+        // Preserve the exact equatorial invariant submanifold. libm::cos(pi/2)
+        // is a small positive value rather than mathematical zero; for Q=0
+        // that roundoff otherwise makes Theta spuriously negative and causes
+        // a constraint-preserving integrator to reject every step.
+        let (sin_theta, cos_theta) = if theta_rad == core::f64::consts::FRAC_PI_2 {
+            (1.0, 0.0)
+        } else {
+            (theta_rad.sin(), theta_rad.cos())
+        };
         let value = self.carter_constant_over_m2
             + spin * spin * self.energy * self.energy * cos_theta * cos_theta
             - self.angular_momentum_z_over_m.powi(2) * cos_theta * cos_theta
@@ -378,8 +385,11 @@ impl KerrNullConstants {
     ) -> Result<f64, KerrGeodesicError> {
         validate_spin(spin)?;
         validate_polar_angle(theta_rad)?;
-        let sin_theta = theta_rad.sin();
-        let cos_theta = theta_rad.cos();
+        let (sin_theta, cos_theta) = if theta_rad == core::f64::consts::FRAC_PI_2 {
+            (1.0, 0.0)
+        } else {
+            (theta_rad.sin(), theta_rad.cos())
+        };
         let value = -2.0 * spin * spin * self.energy * self.energy * cos_theta * sin_theta
             + 2.0 * self.angular_momentum_z_over_m.powi(2) * cos_theta
                 / (sin_theta * sin_theta * sin_theta);
@@ -3527,6 +3537,28 @@ mod tests {
             ),
             Err(KerrGeodesicError::ForbiddenRadialRegion { .. })
         ));
+    }
+
+    #[test]
+    fn exact_equatorial_polar_invariant_is_not_corrupted_by_cos_pi_over_two_roundoff() {
+        for (spin, angular_momentum) in [(0.0, 6.0), (0.9, 2.0), (-0.8, 1.5)] {
+            let constants = KerrNullConstants::new(1.0, angular_momentum, 0.0).unwrap();
+            let theta = core::f64::consts::FRAC_PI_2;
+            assert_eq!(constants.polar_potential(spin, theta).unwrap(), 0.0);
+            assert_eq!(
+                constants.polar_potential_derivative(spin, theta).unwrap(),
+                0.0
+            );
+            let geodesic = KerrSeparatedNullGeodesic::new(hole(spin), constants);
+            let state = KerrMinoDynamicState::new(
+                KerrMinoState::new(0.0, 10.0, theta, 0.0),
+                -geodesic.radial_potential(10.0).unwrap().sqrt(),
+                0.0,
+            );
+            let derivative = geodesic.mino_dynamic_derivative(state).unwrap();
+            assert_eq!(derivative.d_polar_velocity_rad, 0.0);
+            assert_eq!(derivative.d_theta_rad, 0.0);
+        }
     }
 
     #[test]
