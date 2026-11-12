@@ -1007,7 +1007,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn unknown_and_invalid_observation_classes_expose_no_positive_action_set() {
         let mut unknown_source = input();
@@ -1057,7 +1056,10 @@ mod tests {
     #[test]
     fn incomplete_physical_successor_state_receipt_clears_its_option_set() {
         let mut source = input();
-        source.physical_successors[0].state.thermal_state_digest.clear();
+        source.physical_successors[0]
+            .state
+            .thermal_state_digest
+            .clear();
         let prefix = build_probe_policy_prefix(&source).unwrap();
         assert!(prefix.deployable_actions_by_observation["rough"].is_empty());
         assert!(!prefix.local_selection_is_deployable_by_observation["rough"]);
