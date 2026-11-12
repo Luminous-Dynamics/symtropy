@@ -313,9 +313,9 @@ fn validate_article(article: &ArticleDescriptor) -> Result<(), AuditError> {
     Ok(())
 }
 
-fn evidence_registry<'e>(
-    records: &'e [EvidenceRecord],
-) -> Result<BTreeMap<&'e str, &'e EvidenceRecord>, AuditError> {
+fn evidence_registry(
+    records: &[EvidenceRecord],
+) -> Result<BTreeMap<&str, &EvidenceRecord>, AuditError> {
     validate_unique(
         records.iter().map(|record| record.evidence_id.as_str()),
         "evidence ID",
@@ -1151,7 +1151,7 @@ mod tests {
             .find(|claim| claim.claim_id == "CLAIM-EXACT-REESS")
             .expect("claim exists");
         assert_eq!(claim.disposition, ClaimDisposition::CandidateForHumanReview);
-        assert!(claim.source_reported_pass == false);
+        assert!(!claim.source_reported_pass);
         assert!(claim.claim_ceiling.contains("Not a safety determination"));
     }
 
