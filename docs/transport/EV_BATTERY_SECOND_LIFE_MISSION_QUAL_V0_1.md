@@ -67,7 +67,7 @@ Record one proposed architecture: reuse original BMS unchanged; authorized softw
 
 ### Safety and eligibility gates
 
-Require explicit evidence for identity closure; cell population coverage; safety/fault history; isolation and protection; thermal and voltage margins; pack enclosure and propagation controls; BMS monitoring/protection; transport/handling; mission capability and reserve; test/quality-control; and applicable regulatory/operator records. Any required gate FAIL or UNKNOWN blocks an eligible repurpose route.
+Require explicit evidence for identity closure; cell population coverage; complete categorized safety/fault history; physical evidence for verified-absent fault records; physical cell-health observations; isolation and protection; thermal and voltage margins; pack enclosure and propagation controls; physically evidenced BMS compatibility; transport/handling; mission capability and reserve; test/quality-control; and applicable regulatory/operator records. The lower-bound usable energy, peak power and reserve must meet the mission requirements, with non-negative worst-case thermal margin. Any required gate FAIL or UNKNOWN blocks an eligible repurpose route.
 
 ## Benchmark tournament
 
@@ -84,7 +84,7 @@ Report unsafe false-acceptance rate, false rejection and abstention coverage; mi
 
 ## Initial research targets — not industry standards or achievements
 
-- Zero unsafe accepts in the frozen synthetic/adversarial suite for unknown safety, missing incident history, isolation defects, unsupported BMS configuration and mission-envelope violations.
+- Zero unsafe accepts in the frozen synthetic/adversarial suite for unknown safety, missing incident-history categories, synthetic `VERIFIED_ABSENT` claims, synthetic cell-health evidence, unsupported BMS configuration and mission-envelope violations.
 - For nominal 90% capability intervals, target at least 90% empirical coverage on held-out pack families; also disclose interval width, worst-family performance and sample-size uncertainty.
 - Report false-acceptance confidence bounds by chemistry, OEM, degradation mode and first-life duty; do not claim zero real-world risk from finite tests.
 - Demonstrate prospective mission-routing benefit over capacity-only and capacity+DCIR baselines on independently tested retired packs.
