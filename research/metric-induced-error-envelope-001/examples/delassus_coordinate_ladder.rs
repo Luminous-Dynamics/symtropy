@@ -14,11 +14,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         profile,
     )?;
     let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
-    let delassus_q = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-        &mass_q,
-        jacobian_q,
-        profile,
-    )?;
+    let delassus_q =
+        DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q,
+            jacobian_q,
+            profile,
+        )?;
     let multiplier = ConstraintMultiplierV1::<ConstraintSpace, 2>::new([0.75, -1.25])?;
     let residual = ConstraintResidualV1::<ConstraintSpace, 2>::new([0.25, -0.4])?;
     let multiplier_norm_q = delassus_q.multiplier_norm(&multiplier)?;
@@ -39,12 +40,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
         let mass_y = rebasis.metric_to_to(&mass_q, profile)?;
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis)?;
-        let delassus_y =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                jacobian_y,
-                profile,
-            )?;
+        let delassus_y = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y,
+            jacobian_y,
+            profile,
+        )?;
 
         let mut delassus_defect = 0.0_f64;
         for row in 0..2 {
