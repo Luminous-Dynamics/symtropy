@@ -246,7 +246,9 @@ impl<const D: usize> WorldSnapshotWithRuntimeIds<D> {
                 });
             }
             if !handles.insert(identity.handle) {
-                return Err(RuntimeIdentitySnapshotError::DuplicateBodyHandle(identity.handle));
+                return Err(RuntimeIdentitySnapshotError::DuplicateBodyHandle(
+                    identity.handle,
+                ));
             }
             if let Some(net_id) = identity.net_id
                 && !net_ids.insert(net_id)
