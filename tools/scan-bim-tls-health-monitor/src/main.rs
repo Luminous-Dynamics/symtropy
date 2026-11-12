@@ -18,7 +18,7 @@ const MIN_PERMUTATIONS: usize = 999;
 const MAX_PERMUTATIONS: usize = 100_000;
 const CLAIM_CEILING: &str = "Longitudinal repeatability/precision change on a pinned synthetic control setup only; absolute accuracy, calibration, registration validity and engineering task fitness are not evaluated.";
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Input {
     schema_version: String,
@@ -32,7 +32,7 @@ struct Input {
     current_sessions: Vec<Session>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct SensorIdentity {
     manufacturer: String,
@@ -43,7 +43,7 @@ struct SensorIdentity {
     profile_sha256: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ControlSetup {
     artifact_id: String,
@@ -55,7 +55,7 @@ struct ControlSetup {
     environment_stratum: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Session {
     session_id: String,
@@ -63,7 +63,7 @@ struct Session {
     targets: Vec<TargetPrecision>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct TargetPrecision {
     target_id: String,
