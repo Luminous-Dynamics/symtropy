@@ -22,7 +22,8 @@
         "conditioned_property_evidence_refs": [
           "MAT-PROPERTY-SYN-001"
         ],
-        "mat_uq_profile_ref": "MAT-UQ-SYN-001"
+        "mat_uq_profile_ref": "MAT-UQ-SYN-001",
+        "process_window_ref": "PROCESS-WINDOW-SYN-001"
       },
       "interface_refs": [
         {
