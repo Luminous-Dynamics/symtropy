@@ -62,6 +62,19 @@
         "independent_oracle"
       ],
       "do_not_pool_with": []
+    },
+    {
+      "id": "P5_GENERAL_FACTOR_GRAPH",
+      "state": "task_dependent_local_global_estimation",
+      "unit": "method_specific",
+      "methods": [
+        "holistic_factor_graph"
+      ],
+      "do_not_pool_with": [
+        "P1_PIPE_CHAINAGE",
+        "P2_TUNNEL_POSITIONING",
+        "P3_ACOUSTIC_FEATURE_INSPECTION"
+      ]
     }
   ],
   "studies": [
@@ -201,7 +214,7 @@
       "year": 2026,
       "published": "2026-07-23",
       "doi": "10.1109/TRO.2026.3714645",
-      "population": "P2_TUNNEL_POSITIONING",
+      "population": "P5_GENERAL_FACTOR_GRAPH",
       "applicability": "generic_algorithm_baseline_only",
       "sensors": [
         "absolute_measurements",
@@ -221,7 +234,7 @@
       "repository": "https://github.com/leggedrobotics/holistic_fusion",
       "limits": [
         "not_buried_pipe_validated",
-        "no_SU F_sensor_data_claim",
+        "no_SU F sensor data claim",
         "evaluate_on_same_admitted_observations_and_ground_truth"
       ]
     },
