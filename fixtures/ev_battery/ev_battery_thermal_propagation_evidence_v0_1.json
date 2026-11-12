@@ -1,0 +1,499 @@
+{
+  "campaign_id": "TRP-EVIDENCE-CAMPAIGN-001",
+  "evidence": [
+    {
+      "evidence_id": "E-REESS",
+      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "independent_laboratory_test",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic fixture only",
+      "authority_or_lab_ref": "SYNTHETIC-REF-E-REESS",
+      "metrology_ref": "MET-REESS"
+    },
+    {
+      "evidence_id": "E-CELL",
+      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "physical_test",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic fixture only",
+      "authority_or_lab_ref": "SYNTHETIC-REF-E-CELL",
+      "metrology_ref": "MET-CELL"
+    },
+    {
+      "evidence_id": "E-BESS",
+      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "physical_test",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic fixture only",
+      "authority_or_lab_ref": "SYNTHETIC-REF-E-BESS",
+      "metrology_ref": "MET-BESS"
+    },
+    {
+      "evidence_id": "E-RISK",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_class": "risk_analysis",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic fixture only",
+      "authority_or_lab_ref": "SYNTHETIC-REF-E-RISK",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-COMPARISON",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_class": "independent_laboratory_test",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic fixture only",
+      "authority_or_lab_ref": "SYNTHETIC-REF-E-COMPARISON",
+      "metrology_ref": "MET-COMP"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "EV-REESS-001",
+      "article": {
+        "article_id": "EV-REESS-A",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "reess_pack",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "standard_id": "UN-R100-2026",
+      "standard_revision": "05-series",
+      "protocol_revision": "protocol-r1",
+      "trigger_method": "localized_external_heating",
+      "trigger_achieved": true,
+      "post_trigger_observation_minutes": 120,
+      "propagation_observed": false,
+      "fire_observed": false,
+      "explosion_observed": false,
+      "smoke_into_occupant_boundary": false,
+      "warning_time_seconds": 15,
+      "result": "no_propagation_within_window",
+      "evidence_id": "E-REESS"
+    },
+    {
+      "test_id": "EV-CELL-001",
+      "article": {
+        "article_id": "EV-CELL-A",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "cell",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "standard_id": "UN-R100-2026",
+      "standard_revision": "05-series",
+      "protocol_revision": "protocol-r1",
+      "trigger_method": "localized_external_heating",
+      "trigger_achieved": true,
+      "post_trigger_observation_minutes": 120,
+      "propagation_observed": null,
+      "fire_observed": null,
+      "explosion_observed": null,
+      "smoke_into_occupant_boundary": null,
+      "warning_time_seconds": 15,
+      "result": "pass",
+      "evidence_id": "E-CELL"
+    },
+    {
+      "test_id": "BESS-INSTALL-001",
+      "article": {
+        "article_id": "BESS-A",
+        "product_revision": "r1",
+        "application": "stationary_storage",
+        "level": "stationary_installation",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "7777777777777777777777777777777777777777777777777777777777777777",
+          "topology": "8888888888888888888888888888888888888888888888888888888888888888",
+          "thermal_pathways": "9999999999999999999999999999999999999999999999999999999999999999",
+          "protection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "enclosure": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "exposure": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      },
+      "standard_id": "UL-9540A",
+      "standard_revision": "6th-edition",
+      "protocol_revision": "protocol-r1",
+      "trigger_method": "localized_external_heating",
+      "trigger_achieved": true,
+      "post_trigger_observation_minutes": 120,
+      "propagation_observed": null,
+      "fire_observed": null,
+      "explosion_observed": null,
+      "smoke_into_occupant_boundary": null,
+      "warning_time_seconds": 15,
+      "result": "pass",
+      "evidence_id": "E-BESS"
+    },
+    {
+      "test_id": "RISK-001",
+      "article": {
+        "article_id": "EV-REESS-RISK",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "reess_pack",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "standard_id": "UN-R100-2026",
+      "standard_revision": "05-series",
+      "protocol_revision": "protocol-r1",
+      "trigger_method": "localized_external_heating",
+      "trigger_achieved": false,
+      "post_trigger_observation_minutes": 120,
+      "propagation_observed": null,
+      "fire_observed": null,
+      "explosion_observed": null,
+      "smoke_into_occupant_boundary": null,
+      "warning_time_seconds": 15,
+      "result": "risk_analysis_submitted",
+      "evidence_id": "E-RISK"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "CLAIM-EXACT-REESS",
+      "source_test_id": "EV-REESS-001",
+      "target_article": {
+        "article_id": "EV-REESS-A",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "reess_pack",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "equivalence": [
+        {
+          "domain": "cell_source_terms",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "topology",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "thermal_pathways",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "protection",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "enclosure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "exposure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        }
+      ]
+    },
+    {
+      "claim_id": "CLAIM-CELL-TO-VEHICLE",
+      "source_test_id": "EV-CELL-001",
+      "target_article": {
+        "article_id": "EV-VEHICLE-A",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "vehicle",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "equivalence": [
+        {
+          "domain": "cell_source_terms",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "topology",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "thermal_pathways",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "protection",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "enclosure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "exposure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        }
+      ]
+    },
+    {
+      "claim_id": "CLAIM-BESS-TO-EV",
+      "source_test_id": "BESS-INSTALL-001",
+      "target_article": {
+        "article_id": "EV-REESS-B",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "reess_pack",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "7777777777777777777777777777777777777777777777777777777777777777",
+          "topology": "8888888888888888888888888888888888888888888888888888888888888888",
+          "thermal_pathways": "9999999999999999999999999999999999999999999999999999999999999999",
+          "protection": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "enclosure": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "exposure": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      },
+      "equivalence": [
+        {
+          "domain": "cell_source_terms",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "topology",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "thermal_pathways",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "protection",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "enclosure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "exposure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        }
+      ]
+    },
+    {
+      "claim_id": "CLAIM-CHANGED-TOPOLOGY",
+      "source_test_id": "EV-REESS-001",
+      "target_article": {
+        "article_id": "EV-REESS-A",
+        "product_revision": "r2",
+        "application": "ev_traction",
+        "level": "reess_pack",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "equivalence": [
+        {
+          "domain": "cell_source_terms",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "topology",
+          "status": "different",
+          "evidence_id": null,
+          "rationale": "synthetic negative control: candidate fingerprint differs"
+        },
+        {
+          "domain": "thermal_pathways",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "protection",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "enclosure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "exposure",
+          "status": "same_with_evidence",
+          "evidence_id": "E-COMPARISON",
+          "rationale": "synthetic known-answer equivalence receipt"
+        }
+      ]
+    },
+    {
+      "claim_id": "CLAIM-UNKNOWN-EXPOSURE",
+      "source_test_id": "EV-REESS-001",
+      "target_article": {
+        "article_id": "EV-REESS-C",
+        "product_revision": "r1",
+        "application": "ev_traction",
+        "level": "reess_pack",
+        "chemistry_family": "NMC",
+        "cell_format": "pouch",
+        "nominal_cell_capacity_wh": 250,
+        "state_of_charge_permille": 1000,
+        "age_cycles": 50,
+        "fingerprints": {
+          "cell_source_terms": "1111111111111111111111111111111111111111111111111111111111111111",
+          "topology": "2222222222222222222222222222222222222222222222222222222222222222",
+          "thermal_pathways": "3333333333333333333333333333333333333333333333333333333333333333",
+          "protection": "4444444444444444444444444444444444444444444444444444444444444444",
+          "enclosure": "5555555555555555555555555555555555555555555555555555555555555555",
+          "exposure": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      },
+      "equivalence": [
+        {
+          "domain": "cell_source_terms",
+          "status": "unknown",
+          "evidence_id": null,
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "topology",
+          "status": "unknown",
+          "evidence_id": null,
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "thermal_pathways",
+          "status": "unknown",
+          "evidence_id": null,
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "protection",
+          "status": "unknown",
+          "evidence_id": null,
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "enclosure",
+          "status": "unknown",
+          "evidence_id": null,
+          "rationale": "synthetic known-answer equivalence receipt"
+        },
+        {
+          "domain": "exposure",
+          "status": "unknown",
+          "evidence_id": null,
+          "rationale": "synthetic known-answer equivalence receipt"
+        }
+      ]
+    }
+  ]
+}
