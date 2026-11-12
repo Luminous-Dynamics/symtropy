@@ -244,7 +244,9 @@ fn one<'a>(
     kind: EvidenceKind,
 ) -> Result<&'a EvidenceEnvelope, AbstainReason> {
     let mut matches = evidence.iter().filter(|item| item.kind == kind);
-    let first = matches.next().ok_or(AbstainReason::MissingRequiredEvidence)?;
+    let first = matches
+        .next()
+        .ok_or(AbstainReason::MissingRequiredEvidence)?;
     if matches.next().is_some() {
         return Err(AbstainReason::DuplicateRequiredEvidence);
     }
@@ -336,8 +338,20 @@ fn validate_envelope(
     if item.expires_at_tick < item.valid_from_tick {
         push_reason(reasons, AbstainReason::EvidenceDependencyOrderInvalid);
     }
-    validate_lifecycle(&item.revocation, input.decision_tick, false, pending, reasons);
-    validate_lifecycle(&item.supersession, input.decision_tick, true, pending, reasons);
+    validate_lifecycle(
+        &item.revocation,
+        input.decision_tick,
+        false,
+        pending,
+        reasons,
+    );
+    validate_lifecycle(
+        &item.supersession,
+        input.decision_tick,
+        true,
+        pending,
+        reasons,
+    );
 }
 
 pub fn compose_medium_decision(input: &CompositionInput) -> CompositionDecision {
@@ -421,9 +435,7 @@ pub fn compose_medium_decision(input: &CompositionInput) -> CompositionDecision 
     expected_feature_ids.sort();
     let mut actual_feature_ids = input.medium_feature_event_ids.clone();
     actual_feature_ids.sort();
-    let has_duplicate_features = actual_feature_ids
-        .windows(2)
-        .any(|pair| pair[0] == pair[1]);
+    let has_duplicate_features = actual_feature_ids.windows(2).any(|pair| pair[0] == pair[1]);
     if has_duplicate_features || actual_feature_ids != expected_feature_ids {
         let forbidden = input.medium_feature_event_ids.iter().any(|id| {
             input.evidence.iter().any(|event| {
@@ -461,7 +473,10 @@ pub fn compose_medium_decision(input: &CompositionInput) -> CompositionDecision 
         || empty(&qualification.policy_id)
         || empty(&qualification.policy_revision)
     {
-        push_reason(&mut reasons, AbstainReason::ScanQualificationReceiptMismatch);
+        push_reason(
+            &mut reasons,
+            AbstainReason::ScanQualificationReceiptMismatch,
+        );
     }
     if !valid_sha256(&qualification.receipt_sha256)
         || !valid_sha256(&qualification.observed_scan_sha256)
@@ -913,13 +928,7 @@ mod tests {
     #[test]
     fn ndt_outcome_cannot_be_used_as_a_medium_loop_feature() {
         let mut input = base_input();
-        let mut ndt = envelope(
-            EvidenceKind::NdtOutcome,
-            "NDT-01",
-            digest('7'),
-            38,
-            39,
-        );
+        let mut ndt = envelope(EvidenceKind::NdtOutcome, "NDT-01", digest('7'), 38, 39);
         ndt.evidence_class = EvidenceClass::Inspected;
         ndt.purpose = DecisionPurpose::SlowQualityRequalification;
         ndt.authorized_for_medium_next_pass = false;
