@@ -19,6 +19,10 @@ pub enum ReceiptError {
     SourceDigestMalformed,
     TransformDigestMalformed,
     SourceDigestMismatch,
+    IdentityMismatch,
+    InvalidPolicy,
+    ProfileCountOverflow,
+    ResidualMetricsInconsistent,
     TransformDigestMismatch,
     SourceFrameMismatch,
     TargetFrameMismatch,
@@ -62,8 +66,8 @@ pub struct Correspondence2 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FitMetrics {
-    pub translation_error_units: f64,
-    pub rotation_error_radians: f64,
+    pub translation_magnitude_units: f64,
+    pub rotation_radians: f64,
     pub residual_rms_units: f64,
     pub residual_p95_units: f64,
     pub residual_max_units: f64,
@@ -254,8 +258,8 @@ pub fn fit_rigid_transform_2d(
     let max = residuals.last().copied().unwrap_or(0.0);
 
     let metrics = FitMetrics {
-        translation_error_units: tx.hypot(ty),
-        rotation_error_radians: angle,
+        translation_magnitude_units: tx.hypot(ty),
+        rotation_radians: angle,
         residual_rms_units: rms,
         residual_p95_units: residuals[p95_index],
         residual_max_units: max,
@@ -269,6 +273,15 @@ pub fn validate_receipt(
     expected: &ExpectedContext,
     policy: ReceiptPolicy,
 ) -> Result<(), ReceiptError> {
+    if policy.minimum_coverage_permille > 1_000
+        || policy.maximum_occlusion_permille > 1_000
+        || policy.maximum_uncertainty_microunits == 0
+        || policy.minimum_confidence_permille < 950
+        || policy.minimum_confidence_permille > 1_000
+        || policy.transform_tolerance_ppb == 0
+    {
+        return Err(ReceiptError::InvalidPolicy);
+    }
     let identities = [
         receipt.workpiece_id.as_str(),
         receipt.joint_revision.as_str(),
@@ -319,7 +332,7 @@ pub fn validate_receipt(
         || receipt.predecessor_pass_id != expected.predecessor_pass_id
         || receipt.scan_id != expected.scan_id
     {
-        return Err(ReceiptError::SourceDigestMismatch);
+        return Err(ReceiptError::IdentityMismatch);
     }
     if receipt.capture_tick > expected.decision_tick {
         return Err(ReceiptError::CaptureFromFuture);
@@ -327,13 +340,19 @@ pub fn validate_receipt(
     if expected.decision_tick.saturating_sub(receipt.capture_tick) > expected.maximum_age_ticks {
         return Err(ReceiptError::ReceiptStale);
     }
+    let acquired_plus_occluded = receipt
+        .acquired_profile_count
+        .checked_add(receipt.occluded_profile_count)
+        .ok_or(ReceiptError::ProfileCountOverflow)?;
+    let matched_plus_rejected = receipt
+        .matched_profile_count
+        .checked_add(receipt.rejected_profile_count)
+        .ok_or(ReceiptError::ProfileCountOverflow)?;
     if receipt.expected_profile_count == 0
         || receipt.acquired_profile_count > receipt.expected_profile_count
         || receipt.occluded_profile_count > receipt.expected_profile_count
-        || receipt.acquired_profile_count + receipt.occluded_profile_count
-            != receipt.expected_profile_count
-        || receipt.matched_profile_count + receipt.rejected_profile_count
-            != receipt.acquired_profile_count
+        || acquired_plus_occluded != receipt.expected_profile_count
+        || matched_plus_rejected != receipt.acquired_profile_count
         || receipt.matched_profile_count < policy.minimum_matched_profiles
     {
         return Err(ReceiptError::InvalidProfileCounts);
@@ -358,6 +377,11 @@ pub fn validate_receipt(
     }
     if receipt.residual_max_microunits > policy.maximum_residual_microunits {
         return Err(ReceiptError::ResidualMaximumAboveLimit);
+    }
+    if receipt.residual_max_microunits < receipt.residual_rms_microunits
+        || receipt.residual_max_microunits < receipt.residual_p95_microunits
+    {
+        return Err(ReceiptError::ResidualMetricsInconsistent);
     }
     if !receipt.transform.is_proper_rigid(policy.transform_tolerance_ppb as f64 / 1.0e9) {
         return Err(ReceiptError::InvalidTransform);
@@ -667,7 +691,7 @@ mod tests {
     fn receipt_rejects_wrong_predecessor_identity() {
         let mut receipt = valid_receipt();
         receipt.predecessor_pass_id = "PASS-OLD".to_owned();
-        assert_eq!(validate_receipt(&receipt, &context(), policy()), Err(ReceiptError::SourceDigestMismatch));
+        assert_eq!(validate_receipt(&receipt, &context(), policy()), Err(ReceiptError::IdentityMismatch));
     }
 
     #[test]
@@ -678,6 +702,81 @@ mod tests {
     #[test]
     fn receipt_rejects_occlusion_out_of_range() {
         assert_receipt_error(|r| r.occlusion_permille = 1_001, ReceiptError::OcclusionOutOfRange);
+    }
+
+    #[test]
+    fn receipt_rejects_target_frame_mismatch() {
+        assert_receipt_error(|r| r.target_frame_id = "OTHER-TARGET".to_owned(), ReceiptError::TargetFrameMismatch);
+    }
+
+    #[test]
+    fn receipt_rejects_malformed_transform_digest() {
+        assert_receipt_error(|r| r.registration_receipt_sha256 = "xyz".to_owned(), ReceiptError::TransformDigestMalformed);
+    }
+
+    #[test]
+    fn receipt_rejects_profile_count_overflow() {
+        assert_receipt_error(
+            |r| {
+                r.expected_profile_count = u64::MAX;
+                r.acquired_profile_count = u64::MAX;
+                r.occluded_profile_count = 1;
+            },
+            ReceiptError::ProfileCountOverflow,
+        );
+    }
+
+    #[test]
+    fn receipt_rejects_zero_expected_profile_count() {
+        assert_receipt_error(
+            |r| {
+                r.expected_profile_count = 0;
+                r.acquired_profile_count = 0;
+                r.matched_profile_count = 0;
+                r.rejected_profile_count = 0;
+                r.occluded_profile_count = 0;
+            },
+            ReceiptError::InvalidProfileCounts,
+        );
+    }
+
+    #[test]
+    fn receipt_rejects_insufficient_matched_profiles() {
+        assert_receipt_error(
+            |r| {
+                r.acquired_profile_count = 90;
+                r.matched_profile_count = 89;
+                r.rejected_profile_count = 1;
+                r.occluded_profile_count = 10;
+            },
+            ReceiptError::InvalidProfileCounts,
+        );
+    }
+
+    #[test]
+    fn receipt_rejects_nonfinite_transform_component() {
+        assert_receipt_error(
+            |r| r.transform.matrix[0] = f64::NAN,
+            ReceiptError::InvalidTransform,
+        );
+    }
+
+    #[test]
+    fn receipt_rejects_inconsistent_residual_summary() {
+        assert_receipt_error(
+            |r| r.residual_rms_microunits = 250,
+            ReceiptError::ResidualMetricsInconsistent,
+        );
+    }
+
+    #[test]
+    fn receipt_rejects_invalid_policy_bounds() {
+        let mut policy = policy();
+        policy.maximum_occlusion_permille = 1_001;
+        assert_eq!(
+            validate_receipt(&valid_receipt(), &context(), policy),
+            Err(ReceiptError::InvalidPolicy)
+        );
     }
 
     #[test]
