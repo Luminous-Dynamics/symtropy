@@ -129,7 +129,8 @@ fn duplicates<'a>(ids: impl Iterator<Item = &'a str>) -> Vec<String> {
     }
     counts
         .into_iter()
-        .filter_map(|(id, count)| (count > 1).then(|| id.to_owned()))
+        .filter(|(_, count)| *count > 1)
+        .map(|(id, _)| id.to_owned())
         .collect()
 }
 
@@ -172,13 +173,28 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
     let mut findings = Vec::new();
 
     for id in duplicates(problem.machines.iter().map(|item| item.id.as_str())) {
-        finding(&mut findings, "DUPLICATE_MACHINE_ID", id, "machine IDs must be unique");
+        finding(
+            &mut findings,
+            "DUPLICATE_MACHINE_ID",
+            id,
+            "machine IDs must be unique",
+        );
     }
     for id in duplicates(problem.operators.iter().map(|item| item.id.as_str())) {
-        finding(&mut findings, "DUPLICATE_OPERATOR_ID", id, "operator IDs must be unique");
+        finding(
+            &mut findings,
+            "DUPLICATE_OPERATOR_ID",
+            id,
+            "operator IDs must be unique",
+        );
     }
     for id in duplicates(problem.operations.iter().map(|item| item.id.as_str())) {
-        finding(&mut findings, "DUPLICATE_OPERATION_ID", id, "operation IDs must be unique");
+        finding(
+            &mut findings,
+            "DUPLICATE_OPERATION_ID",
+            id,
+            "operation IDs must be unique",
+        );
     }
 
     let mut machines = BTreeMap::<&str, &Machine>::new();
@@ -205,17 +221,13 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
 
     let mut operators = BTreeMap::<&str, &Operator>::new();
     for operator in &problem.operators {
-        operators
-            .entry(operator.id.as_str())
-            .or_insert(operator);
+        operators.entry(operator.id.as_str()).or_insert(operator);
         check_windows(&operator.id, &operator.availability, &mut findings);
     }
 
     let mut operations = BTreeMap::<&str, &Operation>::new();
     for operation in &problem.operations {
-        operations
-            .entry(operation.id.as_str())
-            .or_insert(operation);
+        operations.entry(operation.id.as_str()).or_insert(operation);
         if operation.duration_ticks == 0 {
             finding(
                 &mut findings,
@@ -271,7 +283,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     &mut findings,
                     "DURATION_MISMATCH",
                     &assignment.operation_id,
-                    format!("expected {} ticks but assignment spans {actual}", operation.duration_ticks),
+                    format!(
+                        "expected {} ticks but assignment spans {actual}",
+                        operation.duration_ticks
+                    ),
                 );
             }
             if assignment.start_tick < operation.release_tick {
@@ -297,22 +312,35 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
 
         match machines.get(assignment.machine_id.as_str()) {
             Some(machine) => {
-                if !machine.capabilities.contains(&operation.required_capability) {
+                if !machine
+                    .capabilities
+                    .contains(&operation.required_capability)
+                {
                     finding(
                         &mut findings,
                         "MACHINE_CAPABILITY_MISMATCH",
                         &assignment.operation_id,
-                        format!("machine {} lacks {}", machine.id, operation.required_capability),
+                        format!(
+                            "machine {} lacks {}",
+                            machine.id, operation.required_capability
+                        ),
                     );
                 }
                 if interval_valid
-                    && !available(&machine.availability, assignment.start_tick, assignment.finish_tick)
+                    && !available(
+                        &machine.availability,
+                        assignment.start_tick,
+                        assignment.finish_tick,
+                    )
                 {
                     finding(
                         &mut findings,
                         "MACHINE_UNAVAILABLE",
                         &assignment.operation_id,
-                        format!("machine {} is unavailable for the full operation interval", machine.id),
+                        format!(
+                            "machine {} is unavailable for the full operation interval",
+                            machine.id
+                        ),
                     );
                 }
                 if interval_valid {
@@ -337,7 +365,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                         &mut findings,
                         "OPERATOR_SKILL_MISMATCH",
                         &assignment.operation_id,
-                        format!("operator {} lacks {}", operator.id, operation.required_skill),
+                        format!(
+                            "operator {} lacks {}",
+                            operator.id, operation.required_skill
+                        ),
                     );
                 }
                 if let Some(certification) = &operation.required_certification {
@@ -351,13 +382,20 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     }
                 }
                 if interval_valid
-                    && !available(&operator.availability, assignment.start_tick, assignment.finish_tick)
+                    && !available(
+                        &operator.availability,
+                        assignment.start_tick,
+                        assignment.finish_tick,
+                    )
                 {
                     finding(
                         &mut findings,
                         "OPERATOR_UNAVAILABLE",
                         &assignment.operation_id,
-                        format!("operator {} is unavailable for the full operation interval", operator.id),
+                        format!(
+                            "operator {} is unavailable for the full operation interval",
+                            operator.id
+                        ),
                     );
                 }
                 if interval_valid {
@@ -402,7 +440,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     &mut findings,
                     "MACHINE_OVERLAP",
                     machine_id,
-                    format!("operations {} and {} overlap", pair[0].0.operation_id, pair[1].0.operation_id),
+                    format!(
+                        "operations {} and {} overlap",
+                        pair[0].0.operation_id, pair[1].0.operation_id
+                    ),
                 );
             }
         }
@@ -416,7 +457,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     &mut findings,
                     "OPERATOR_OVERLAP",
                     operator_id,
-                    format!("operations {} and {} overlap", pair[0].0.operation_id, pair[1].0.operation_id),
+                    format!(
+                        "operations {} and {} overlap",
+                        pair[0].0.operation_id, pair[1].0.operation_id
+                    ),
                 );
             }
         }
@@ -445,7 +489,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     &mut findings,
                     "SETUP_RULE_UNKNOWN",
                     &assignment.operation_id,
-                    format!("machine {machine_id} has no setup rule for {previous_family} -> {}", operation.product_family),
+                    format!(
+                        "machine {machine_id} has no setup rule for {previous_family} -> {}",
+                        operation.product_family
+                    ),
                 ),
                 [rule] => match previous_finish.checked_add(rule.duration_ticks) {
                     Some(ready) if ready <= assignment.start_tick => {}
@@ -453,7 +500,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                         &mut findings,
                         "SETUP_TIME_VIOLATION",
                         &assignment.operation_id,
-                        format!("machine {machine_id} is ready at {ready}, after operation start {}", assignment.start_tick),
+                        format!(
+                            "machine {machine_id} is ready at {ready}, after operation start {}",
+                            assignment.start_tick
+                        ),
                     ),
                     None => finding(
                         &mut findings,
@@ -466,7 +516,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                     &mut findings,
                     "SETUP_RULE_AMBIGUOUS",
                     &assignment.operation_id,
-                    format!("machine {machine_id} has multiple rules for {previous_family} -> {}", operation.product_family),
+                    format!(
+                        "machine {machine_id} has multiple rules for {previous_family} -> {}",
+                        operation.product_family
+                    ),
                 ),
             }
             previous_finish = assignment.finish_tick;
@@ -500,7 +553,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                 &mut findings,
                 "PRECEDENCE_VIOLATION",
                 &edge.after_operation_id,
-                format!("{} must finish by tick {ready} before {} starts at {}", edge.before_operation_id, edge.after_operation_id, after.start_tick),
+                format!(
+                    "{} must finish by tick {ready} before {} starts at {}",
+                    edge.before_operation_id, edge.after_operation_id, after.start_tick
+                ),
             ),
             None => finding(
                 &mut findings,
@@ -554,11 +610,17 @@ mod tests {
     fn missing_and_duplicate_operations_fail() {
         let (problem, mut missing) = two_job_four_stage_case();
         missing.assignments.retain(|a| a.operation_id != "cut-b");
-        assert!(has(&validate(&problem, &missing), "MISSING_OPERATION_ASSIGNMENT"));
+        assert!(has(
+            &validate(&problem, &missing),
+            "MISSING_OPERATION_ASSIGNMENT"
+        ));
 
         let (problem, mut duplicate) = two_job_four_stage_case();
         duplicate.assignments.push(duplicate.assignments[0].clone());
-        assert!(has(&validate(&problem, &duplicate), "DUPLICATE_OPERATION_ASSIGNMENT"));
+        assert!(has(
+            &validate(&problem, &duplicate),
+            "DUPLICATE_OPERATION_ASSIGNMENT"
+        ));
     }
 
     #[test]
@@ -568,42 +630,83 @@ mod tests {
         assert!(has(&validate(&problem, &schedule), "DURATION_MISMATCH"));
 
         let (mut problem, schedule) = two_job_four_stage_case();
-        problem.operations.iter_mut().find(|o| o.id == "sew-a").unwrap().due_tick = Some(4);
+        problem
+            .operations
+            .iter_mut()
+            .find(|o| o.id == "sew-a")
+            .unwrap()
+            .due_tick = Some(4);
         assert!(has(&validate(&problem, &schedule), "DUE_TIME_VIOLATION"));
     }
 
     #[test]
     fn machine_and_operator_non_overlap_are_enforced() {
         let (problem, mut schedule) = two_job_four_stage_case();
-        let cut_b = schedule.assignments.iter_mut().find(|a| a.operation_id == "cut-b").unwrap();
+        let cut_b = schedule
+            .assignments
+            .iter_mut()
+            .find(|a| a.operation_id == "cut-b")
+            .unwrap();
         cut_b.start_tick = 2;
         cut_b.finish_tick = 4;
         assert!(has(&validate(&problem, &schedule), "MACHINE_OVERLAP"));
 
         let (mut problem, mut schedule) = two_job_four_stage_case();
-        let finisher = problem.operators.iter_mut().find(|o| o.id == "finisher").unwrap();
+        let finisher = problem
+            .operators
+            .iter_mut()
+            .find(|o| o.id == "finisher")
+            .unwrap();
         finisher.skills.insert("sewing".to_owned());
         finisher.certifications.insert("sew-qualified".to_owned());
-        schedule.assignments.iter_mut().find(|a| a.operation_id == "sew-b").unwrap().operator_id = "finisher".to_owned();
+        schedule
+            .assignments
+            .iter_mut()
+            .find(|a| a.operation_id == "sew-b")
+            .unwrap()
+            .operator_id = "finisher".to_owned();
         assert!(has(&validate(&problem, &schedule), "OPERATOR_OVERLAP"));
     }
 
     #[test]
     fn machine_capability_operator_skill_and_certification_are_checked() {
         let (mut problem, schedule) = two_job_four_stage_case();
-        problem.machines.iter_mut().find(|m| m.id == "sew-line").unwrap().capabilities.clear();
-        assert!(has(&validate(&problem, &schedule), "MACHINE_CAPABILITY_MISMATCH"));
+        problem
+            .machines
+            .iter_mut()
+            .find(|m| m.id == "sew-line")
+            .unwrap()
+            .capabilities
+            .clear();
+        assert!(has(
+            &validate(&problem, &schedule),
+            "MACHINE_CAPABILITY_MISMATCH"
+        ));
 
         let (problem, mut schedule) = two_job_four_stage_case();
-        schedule.assignments.iter_mut().find(|a| a.operation_id == "cut-a").unwrap().operator_id = "sewer".to_owned();
-        assert!(has(&validate(&problem, &schedule), "OPERATOR_SKILL_MISMATCH"));
+        schedule
+            .assignments
+            .iter_mut()
+            .find(|a| a.operation_id == "cut-a")
+            .unwrap()
+            .operator_id = "sewer".to_owned();
+        assert!(has(
+            &validate(&problem, &schedule),
+            "OPERATOR_SKILL_MISMATCH"
+        ));
     }
 
     #[test]
     fn resource_availability_is_enforced() {
         let (mut problem, schedule) = two_job_four_stage_case();
-        problem.machines[0].availability = vec![Interval { start_tick: 0, end_tick: 2 }];
-        problem.operators[0].availability = vec![Interval { start_tick: 0, end_tick: 2 }];
+        problem.machines[0].availability = vec![Interval {
+            start_tick: 0,
+            end_tick: 2,
+        }];
+        problem.operators[0].availability = vec![Interval {
+            start_tick: 0,
+            end_tick: 2,
+        }];
         let report = validate(&problem, &schedule);
         assert!(has(&report, "MACHINE_UNAVAILABLE"));
         assert!(has(&report, "OPERATOR_UNAVAILABLE"));
@@ -628,7 +731,11 @@ mod tests {
     #[test]
     fn precedence_is_checked_independently() {
         let (problem, mut schedule) = two_job_four_stage_case();
-        let sew_a = schedule.assignments.iter_mut().find(|a| a.operation_id == "sew-a").unwrap();
+        let sew_a = schedule
+            .assignments
+            .iter_mut()
+            .find(|a| a.operation_id == "sew-a")
+            .unwrap();
         sew_a.start_tick = 2;
         sew_a.finish_tick = 7;
         assert!(has(&validate(&problem, &schedule), "PRECEDENCE_VIOLATION"));
