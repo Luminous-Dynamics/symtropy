@@ -134,10 +134,7 @@ pub struct ConditionClaim {
 }
 
 impl ConditionClaim {
-    fn validate(
-        &self,
-        evidence: &BTreeMap<&str, &EvidenceRef>,
-    ) -> Result<(), TransitionError> {
+    fn validate(&self, evidence: &BTreeMap<&str, &EvidenceRef>) -> Result<(), TransitionError> {
         if self.claim_id.trim().is_empty() || self.evidence_id.trim().is_empty() {
             return Err(TransitionError::EmptyClaimIdentity);
         }
@@ -373,10 +370,7 @@ impl ConditionLedger {
 
     /// Validate completely before mutation. Any error leaves the ledger
     /// byte-for-byte equivalent at the Rust value level to its prior state.
-    pub fn apply(
-        &mut self,
-        event: ConditionEvent,
-    ) -> Result<TransitionReceipt, TransitionError> {
+    pub fn apply(&mut self, event: ConditionEvent) -> Result<TransitionReceipt, TransitionError> {
         if event.event_id.trim().is_empty() {
             return Err(TransitionError::EmptyEventId);
         }
@@ -417,12 +411,7 @@ impl ConditionLedger {
         for claim in claims {
             self.seen_claim_ids.insert(claim.claim_id.clone());
             self.history.push(ConditionRecord {
-                subject: subject_for_claim(
-                    &event.kind,
-                    &event.subject,
-                    &subject_after,
-                    &claim,
-                ),
+                subject: subject_for_claim(&event.kind, &event.subject, &subject_after, &claim),
                 event_id: event.event_id.clone(),
                 claim,
             });
@@ -492,14 +481,7 @@ fn validate_kind(
     kind: &TransitionKind,
     current: &ComponentIdentity,
     evidence: &BTreeMap<&str, &EvidenceRef>,
-) -> Result<
-    (
-        ComponentIdentity,
-        Vec<ConditionClaim>,
-        TransitionKindLabel,
-    ),
-    TransitionError,
-> {
+) -> Result<(ComponentIdentity, Vec<ConditionClaim>, TransitionKindLabel), TransitionError> {
     match kind {
         TransitionKind::Assessment { claims } => {
             validate_claims(claims, evidence)?;
@@ -773,7 +755,10 @@ mod tests {
                 vec![source("crack-evaluation", EvidenceClass::ModelEstimate)],
             ))
             .unwrap();
-        assert_eq!(ledger.history()[0].claim.disposition, ConditionDisposition::OutOfDomain);
+        assert_eq!(
+            ledger.history()[0].claim.disposition,
+            ConditionDisposition::OutOfDomain
+        );
         assert_eq!(ledger.history()[0].claim.quantity, None);
     }
 
