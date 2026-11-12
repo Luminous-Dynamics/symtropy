@@ -42,7 +42,7 @@ pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{
-    BodyRuntimeIdentitySnapshot, ReplayTape, WorldCommand, WorldSnapshot,
-    WorldSnapshotWithRuntimeIds, apply_commands,
+    BodyRuntimeIdentitySnapshot, ReplayTape, RuntimeIdentitySnapshotError, WorldCommand,
+    WorldSnapshot, WorldSnapshotWithRuntimeIds, apply_commands,
 };
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
