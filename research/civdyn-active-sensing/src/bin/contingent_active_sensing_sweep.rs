@@ -15,7 +15,11 @@ const SOURCE_DIGEST: &str = "sha256-contingent-three-world-source-v1";
 const EVALUATOR_COLUMNS: usize = 36;
 
 fn csv_field(value: &str) -> String {
-    if value.contains([',', '"', '\n', '\r']) {
+    if value.contains(',')
+        || value.contains('"')
+        || value.contains('\n')
+        || value.contains('\r')
+    {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_owned()
