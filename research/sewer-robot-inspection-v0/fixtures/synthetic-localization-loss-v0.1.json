@@ -91,5 +91,9 @@
     "Synthetic negative control only. No real robot, sensor, image, pipe asset or defect annotation is represented.",
     "A retrieved robot does not make the missing interval inspected.",
     "The mission does not support a defect-free conclusion for the missing or degraded intervals."
-  ]
+  ],
+  "acceptance_profile": {
+    "minimum_surface_coverage_percent": 90,
+    "maximum_localization_p95_error_m": 0.1
+  }
 }
