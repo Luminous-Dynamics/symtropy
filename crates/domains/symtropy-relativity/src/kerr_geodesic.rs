@@ -1861,7 +1861,7 @@ impl KerrSeparatedNullGeodesic {
             initial,
             final_parameter,
             config,
-            KerrMinoCoordinateChart::Ingoing,
+            KerrMinoCoordinateChart::IngoingKerr,
         )
     }
 
