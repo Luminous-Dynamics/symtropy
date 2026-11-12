@@ -128,9 +128,7 @@ impl FaultSpec {
             Self::CameraBurstDrop { .. } => "camera_burst_drop",
             Self::CameraPartialOcclusion { .. } => "camera_partial_occlusion",
             Self::GpsLocalizationNoise { .. } => "gps_localization_noise",
-            Self::SpeedEstimateMultiplicativeNoise { .. } => {
-                "speed_estimate_multiplicative_noise"
-            }
+            Self::SpeedEstimateMultiplicativeNoise { .. } => "speed_estimate_multiplicative_noise",
             Self::InferenceControlDelay { .. } => "inference_control_delay",
         }
     }
@@ -182,7 +180,10 @@ impl FaultSpec {
         let mut findings = Vec::new();
         if self.onset_tick() == 0
             || self.duration_ticks() == 0
-            || self.onset_tick().checked_add(self.duration_ticks()).is_none()
+            || self
+                .onset_tick()
+                .checked_add(self.duration_ticks())
+                .is_none()
         {
             findings.push(Finding::InvalidFaultWindow);
         }
@@ -198,15 +199,12 @@ impl FaultSpec {
                 if !matches!(*duration_ticks, 20 | 60) {
                     findings.push(Finding::UnsupportedFaultSeverity);
                 }
-                if !burst_probability.is_finite()
-                    || !(0.0..=1.0).contains(burst_probability)
-                {
+                if !burst_probability.is_finite() || !(0.0..=1.0).contains(burst_probability) {
                     findings.push(Finding::InvalidFaultParameter);
                 }
             }
             Self::CameraPartialOcclusion {
-                occlusion_fraction,
-                ..
+                occlusion_fraction, ..
             } => {
                 if !occlusion_fraction.is_finite()
                     || ((*occlusion_fraction - 0.5).abs() > f64::EPSILON
@@ -218,7 +216,8 @@ impl FaultSpec {
             Self::GpsLocalizationNoise { sigma_m, .. } => {
                 if !sigma_m.is_finite()
                     || ((*sigma_m - 5.0).abs() > f64::EPSILON
-                        && (*sigma_m - 15.0).abs() > f64::EPSILON) {
+                        && (*sigma_m - 15.0).abs() > f64::EPSILON)
+                {
                     findings.push(Finding::UnsupportedFaultSeverity);
                 }
             }
@@ -364,7 +363,13 @@ impl FaultCampaign {
         {
             findings.push(Finding::InvalidExpectedPairManifest);
         }
-        if duplicate(&self.pairs.iter().map(|pair| pair.pair_id.clone()).collect::<Vec<_>>()) {
+        if duplicate(
+            &self
+                .pairs
+                .iter()
+                .map(|pair| pair.pair_id.clone())
+                .collect::<Vec<_>>(),
+        ) {
             findings.push(Finding::DuplicatePair);
         }
         if expected != observed {
@@ -411,12 +416,7 @@ impl FaultCampaign {
         }
     }
 
-    fn audit_pair(
-        &self,
-        pair: &PairedRun,
-        metric_ids: &[String],
-        findings: &mut Vec<Finding>,
-    ) {
+    fn audit_pair(&self, pair: &PairedRun, metric_ids: &[String], findings: &mut Vec<Finding>) {
         if !nonempty(&pair.pair_id)
             || !nonempty(&pair.clean.run_id)
             || !nonempty(&pair.perturbed.run_id)
@@ -516,7 +516,8 @@ impl FaultCampaign {
                 .iter()
                 .map(|event| event.tick)
                 .collect::<BTreeSet<_>>();
-            let expected_missing_ticks = (*onset_tick..(*onset_tick).saturating_add(*duration_ticks))
+            let expected_missing_ticks = (*onset_tick
+                ..(*onset_tick).saturating_add(*duration_ticks))
                 .collect::<BTreeSet<_>>();
             if missing_events.len() != *duration_ticks as usize
                 || missing_ticks != expected_missing_ticks
@@ -579,11 +580,7 @@ impl FaultCampaign {
             if let (Some(lower), Some(value), Some(upper)) =
                 (metric.lower_95, metric.value, metric.upper_95)
             {
-                if !lower.is_finite()
-                    || !upper.is_finite()
-                    || lower > value
-                    || value > upper
-                {
+                if !lower.is_finite() || !upper.is_finite() || lower > value || value > upper {
                     findings.push(Finding::InvalidMetricInterval);
                 }
             } else if metric.lower_95.is_some() || metric.upper_95.is_some() {
@@ -600,12 +597,7 @@ impl FaultCampaign {
         }
     }
 
-    fn audit_recovery(
-        &self,
-        fault: &FaultSpec,
-        run: &RunRecord,
-        findings: &mut Vec<Finding>,
-    ) {
+    fn audit_recovery(&self, fault: &FaultSpec, run: &RunRecord, findings: &mut Vec<Finding>) {
         let Some(recovery) = run.recovery.as_ref() else {
             findings.push(Finding::MissingRecoveryAssessment);
             return;
@@ -639,9 +631,7 @@ impl FaultCampaign {
                 }
             }
             RecoveryDisposition::NotApplicable => {
-                if recovery.stable_from_tick.is_some()
-                    || recovery.fault_restored_tick.is_some()
-                {
+                if recovery.stable_from_tick.is_some() || recovery.fault_restored_tick.is_some() {
                     findings.push(Finding::InvalidRecoveryAssessment);
                 }
             }
@@ -676,9 +666,7 @@ impl FaultCampaign {
                     _ => None,
                 };
                 let unavailable_reason = match (clean, perturbed) {
-                    (None, _) | (_, None) => {
-                        Some("missing_clean_or_perturbed_metric".to_string())
-                    }
+                    (None, _) | (_, None) => Some("missing_clean_or_perturbed_metric".to_string()),
                     (Some(baseline), Some(value))
                         if !baseline.is_finite() || !value.is_finite() =>
                     {
@@ -861,11 +849,7 @@ fn is_sha256_hex(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-pub fn relative_degradation(
-    clean: f64,
-    perturbed: f64,
-    direction: MetricDirection,
-) -> Option<f64> {
+pub fn relative_degradation(clean: f64, perturbed: f64, direction: MetricDirection) -> Option<f64> {
     if !clean.is_finite() || !perturbed.is_finite() || clean.abs() <= f64::EPSILON {
         return None;
     }
@@ -1068,11 +1052,9 @@ mod tests {
     #[test]
     fn campaign_schema_is_parseable_and_pins_protocol_bounds() {
         let schema: serde_json::Value =
-            serde_json::from_str(include_str!("../schemas/fault-campaign-v1.schema.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../schemas/fault-campaign-v1.schema.json")).unwrap();
         let report_schema: serde_json::Value =
-            serde_json::from_str(include_str!("../schemas/audit-report-v1.schema.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../schemas/audit-report-v1.schema.json")).unwrap();
         assert_eq!(
             schema["$schema"],
             "https://json-schema.org/draft/2020-12/schema"
@@ -1082,7 +1064,13 @@ mod tests {
             "https://json-schema.org/draft/2020-12/schema"
         );
         assert_eq!(schema["properties"]["schema_version"]["const"], 1);
-        assert!(schema["$defs"]["fault_spec"]["oneOf"].as_array().unwrap().len() >= 5);
+        assert!(
+            schema["$defs"]["fault_spec"]["oneOf"]
+                .as_array()
+                .unwrap()
+                .len()
+                >= 5
+        );
         assert!(report_schema["$defs"]["pair_report"].is_object());
     }
 
@@ -1091,22 +1079,38 @@ mod tests {
         let report = campaign().audit();
         assert_eq!(report.disposition, AuditDisposition::Valid);
         assert!(report.findings.is_empty());
-        assert_eq!(report.pair_results[0].metric_results[0].relative_degradation, Some(0.2));
-        assert_eq!(report.pair_results[0].metric_results[1].relative_degradation, Some(25.0 / 30.0));
+        assert_eq!(
+            report.pair_results[0].metric_results[0].relative_degradation,
+            Some(0.2)
+        );
+        assert_eq!(
+            report.pair_results[0].metric_results[1].relative_degradation,
+            Some(25.0 / 30.0)
+        );
     }
 
     #[test]
     fn rejects_clean_perturbed_context_mismatch() {
         let mut value = campaign();
         value.pairs[0].perturbed.context.checkpoint_sha256 = digest('f');
-        assert!(value.audit().findings.contains(&Finding::MatchedContextMismatch));
+        assert!(
+            value
+                .audit()
+                .findings
+                .contains(&Finding::MatchedContextMismatch)
+        );
     }
 
     #[test]
     fn rejects_lost_pair_denominator() {
         let mut value = campaign();
         value.pairs.clear();
-        assert!(value.audit().findings.contains(&Finding::PairDenominatorMismatch));
+        assert!(
+            value
+                .audit()
+                .findings
+                .contains(&Finding::PairDenominatorMismatch)
+        );
     }
 
     #[test]
@@ -1121,7 +1125,12 @@ mod tests {
             sampled_value_sha256: digest('7'),
             evidence_sha256: digest('8'),
         });
-        assert!(value.audit().findings.contains(&Finding::CleanRunContainsFault));
+        assert!(
+            value
+                .audit()
+                .findings
+                .contains(&Finding::CleanRunContainsFault)
+        );
     }
 
     #[test]
@@ -1133,7 +1142,12 @@ mod tests {
             burst_probability: 0.01,
             schedule_seed_sha256: digest('6'),
         });
-        assert!(value.audit().findings.contains(&Finding::UnsupportedFaultSeverity));
+        assert!(
+            value
+                .audit()
+                .findings
+                .contains(&Finding::UnsupportedFaultSeverity)
+        );
     }
 
     #[test]
@@ -1149,7 +1163,12 @@ mod tests {
             .perturbed
             .fault_events
             .remove(missing_frame_index);
-        assert!(value.audit().findings.contains(&Finding::CameraDropDenominatorMismatch));
+        assert!(
+            value
+                .audit()
+                .findings
+                .contains(&Finding::CameraDropDenominatorMismatch)
+        );
     }
 
     #[test]
@@ -1157,7 +1176,11 @@ mod tests {
         let mut value = campaign();
         value.pairs[0].perturbed.fault_events[0].fault_family = "gps_localization_noise".into();
         let report = value.audit();
-        assert!(report.findings.contains(&Finding::FaultEventOutsideDeclaredSchedule));
+        assert!(
+            report
+                .findings
+                .contains(&Finding::FaultEventOutsideDeclaredSchedule)
+        );
     }
 
     #[test]
@@ -1165,9 +1188,11 @@ mod tests {
         let mut value = campaign();
         value.pairs[0].perturbed.fault_events[1].tick = 100;
         let report = value.audit();
-        assert!(report
-            .findings
-            .contains(&Finding::CameraDropDenominatorMismatch));
+        assert!(
+            report
+                .findings
+                .contains(&Finding::CameraDropDenominatorMismatch)
+        );
     }
 
     #[test]
@@ -1208,7 +1233,11 @@ mod tests {
         let mut value = campaign();
         value.pairs[0].perturbed.completed_episodes = 4;
         let report = value.audit();
-        assert!(report.findings.contains(&Finding::EpisodeDenominatorMismatch));
+        assert!(
+            report
+                .findings
+                .contains(&Finding::EpisodeDenominatorMismatch)
+        );
     }
 
     #[test]
@@ -1234,7 +1263,12 @@ mod tests {
     #[test]
     fn rejects_invalid_metric_confidence_interval() {
         let mut value = campaign();
-        value.pairs[0].perturbed.metrics.get_mut("driving_score").unwrap().lower_95 = Some(80.0);
+        value.pairs[0]
+            .perturbed
+            .metrics
+            .get_mut("driving_score")
+            .unwrap()
+            .lower_95 = Some(80.0);
         let report = value.audit();
         assert!(report.findings.contains(&Finding::InvalidMetricInterval));
     }
@@ -1255,7 +1289,11 @@ mod tests {
             .fault_events
             .retain(|event| event.kind != FaultEventKind::FaultRestored);
         let report = value.audit();
-        assert!(report.findings.contains(&Finding::InvalidRecoveryAssessment));
+        assert!(
+            report
+                .findings
+                .contains(&Finding::InvalidRecoveryAssessment)
+        );
     }
 
     #[test]
@@ -1263,16 +1301,18 @@ mod tests {
         let mut value = campaign();
         value.pairs[0].perturbed.recovery = None;
         let report = value.audit();
-        assert!(report.findings.contains(&Finding::MissingRecoveryAssessment));
+        assert!(
+            report
+                .findings
+                .contains(&Finding::MissingRecoveryAssessment)
+        );
     }
 
     #[test]
     fn rejects_unsorted_or_duplicate_privilege_sets() {
         let mut value = campaign();
-        value.pairs[0].clean.context.input_privileges = vec![
-            "vehicle_state".into(),
-            "camera_rgb".into(),
-        ];
+        value.pairs[0].clean.context.input_privileges =
+            vec!["vehicle_state".into(), "camera_rgb".into()];
         let report = value.audit();
         assert!(report.findings.contains(&Finding::InvalidPrivilegeManifest));
     }
