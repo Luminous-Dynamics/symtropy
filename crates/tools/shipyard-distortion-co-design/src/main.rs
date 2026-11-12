@@ -37,7 +37,7 @@ fn number_at(value: &Value, key: &str) -> Option<i64> {
     value.get(key).and_then(Value::as_i64)
 }
 
-fn string_list(value: &Value, key: &str) -> Option<Vec<&str>> {
+fn string_list<'a>(value: &'a Value, key: &str) -> Option<Vec<&'a str>> {
     value
         .get(key)?
         .as_array()?
