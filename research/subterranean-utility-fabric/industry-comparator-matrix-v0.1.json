@@ -61,7 +61,8 @@
       "limits": [
         "exact_platform_configuration_must_be_frozen",
         "sensor_performance_requires_matched_test",
-        "not_cable_microduct_qualified"
+        "not_cable_microduct_qualified",
+        "manufacturer_claim_not_independently_measured"
       ]
     },
     {
@@ -152,7 +153,8 @@
       ],
       "limits": [
         "not_a_neutral_interoperability_test",
-        "specific product capabilities need exact version review"
+        "specific product capabilities need exact version review",
+        "manufacturer_claim_not_independently_measured"
       ]
     },
     {
