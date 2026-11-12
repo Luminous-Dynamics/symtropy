@@ -12,10 +12,10 @@ This is not ISO certification or conformance testing. It is a research profile a
 
 ## Composition modes
 
-- **Integrated:** one declared common schema. The verifier rejects silent schema divergence.
-- **Unified:** separate component schemas are retained and connected by explicit mappings. A shared orchestrator does not erase native source meaning.
+- **Integrated:** each integrated interface declares the canonical composition schema it maps into. The verifier rejects a missing target or silent schema divergence.
+- **Unified:** separate component schemas are retained and connected by explicit interface mappings. No global common schema is silently imposed; a shared orchestrator does not erase native source meaning.
 - **Federated:** component twins coordinate peer-to-peer. The verifier requires peer identity and authority evidence rather than assuming a central canonical source.
-- **Mixed:** a composition graph can contain more than one mode; mode is checked per interface.
+- **Mixed:** a composition graph can contain more than one mode; mode is checked per interface and every integrated edge must name its canonical schema.
 
 ## Commissioning semantics
 
