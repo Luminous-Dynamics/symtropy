@@ -153,6 +153,11 @@ pub struct Mission {
     pub application: MissionApplication,
     pub duty_cycle_ref: String,
     pub system_boundary: String,
+    pub ambient_min_c: f64,
+    pub ambient_max_c: f64,
+    pub required_energy_kwh: f64,
+    pub required_peak_power_kw: f64,
+    pub reserve_kwh: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -257,6 +262,34 @@ fn admitted_evidence<'a>(
     }
 
     Ok(record)
+}
+
+fn validate_complete_incident_history(
+    pack: &PackCandidate,
+) -> Result<(), SecondLifeAuditError> {
+    const REQUIRED_EVENT_TYPES: [&str; 6] = [
+        "thermal_event",
+        "overcharge",
+        "deep_discharge",
+        "crash_or_mechanical_abuse",
+        "water_ingress",
+        "isolation_fault",
+    ];
+
+    for required in REQUIRED_EVENT_TYPES {
+        if !pack
+            .incident_history
+            .iter()
+            .any(|record| record.event_type == required)
+        {
+            return Err(SecondLifeAuditError(format!(
+                "pack {} is missing complete incident-history category {}",
+                pack.pack_id, required
+            )));
+        }
+    }
+
+    Ok(())
 }
 
 fn mission_matches_route(
@@ -385,6 +418,21 @@ pub fn audit_second_life_manifest(
 
     for mission in &manifest.missions {
         require_nonempty(&mission.duty_cycle_ref, "mission duty-cycle reference")?;
+        if !mission.ambient_min_c.is_finite()
+            || !mission.ambient_max_c.is_finite()
+            || mission.ambient_min_c > mission.ambient_max_c
+            || !mission.required_energy_kwh.is_finite()
+            || mission.required_energy_kwh < 0.0
+            || !mission.required_peak_power_kw.is_finite()
+            || mission.required_peak_power_kw < 0.0
+            || !mission.reserve_kwh.is_finite()
+            || mission.reserve_kwh < 0.0
+        {
+            return Err(SecondLifeAuditError(format!(
+                "mission {} has invalid ambient or energy/power requirement",
+                mission.mission_id
+            )));
+        }
     }
 
     let cell_by_id: BTreeMap<&str, &CellObservation> = manifest
@@ -579,7 +627,7 @@ pub fn audit_second_life_manifest(
                     decision.decision_id
                 ))
             })?;
-            let _mission = mission_by_id
+            let mission = mission_by_id
                 .get(mission_id)
                 .expect("eligible decision mission was validated");
 
@@ -607,6 +655,7 @@ pub fn audit_second_life_manifest(
                     decision.decision_id
                 )));
             }
+            validate_complete_incident_history(pack)?;
 
             for incident in &pack.incident_history {
                 if incident.state == IncidentState::VerifiedAbsent {
@@ -647,6 +696,17 @@ pub fn audit_second_life_manifest(
                     decision.decision_id
                 )));
             }
+            let bms_evidence = admitted_evidence(
+                &evidence_by_id,
+                &pack.bms_evidence_id,
+                &format!("pack {} BMS compatibility", pack.pack_id),
+            )?;
+            if !bms_evidence.evidence_class.is_physical() {
+                return Err(SecondLifeAuditError(format!(
+                    "eligible decision {} relies on non-physical BMS compatibility evidence",
+                    decision.decision_id
+                )));
+            }
 
             if !eligible_hard_gates(pack, &evidence_by_id)? {
                 return Err(SecondLifeAuditError(format!(
@@ -671,14 +731,18 @@ pub fn audit_second_life_manifest(
                 )));
             }
 
-            let positive_metrics = [
-                decision.lower_bound_usable_energy_kwh.unwrap_or(0.0),
-                decision.lower_bound_peak_power_kw.unwrap_or(0.0),
-                decision.lower_bound_reserve_kwh.unwrap_or(0.0),
-            ];
-            if positive_metrics.iter().any(|value| *value < 0.0) {
+            let usable_energy = decision.lower_bound_usable_energy_kwh.unwrap_or(0.0);
+            let peak_power = decision.lower_bound_peak_power_kw.unwrap_or(0.0);
+            let reserve = decision.lower_bound_reserve_kwh.unwrap_or(0.0);
+            let thermal_margin = decision.worst_case_thermal_margin_c.unwrap_or(f64::NEG_INFINITY);
+
+            if usable_energy < mission.required_energy_kwh
+                || peak_power < mission.required_peak_power_kw
+                || reserve < mission.reserve_kwh
+                || thermal_margin < 0.0
+            {
                 return Err(SecondLifeAuditError(format!(
-                    "eligible decision {} has a negative capability bound",
+                    "eligible decision {} capability bounds do not meet target mission",
                     decision.decision_id
                 )));
             }
@@ -743,7 +807,7 @@ mod tests {
                 BmsStrategy::GatewayInterface,
                 GateDisposition::Unknown,
                 vec![gate("safety", GateDisposition::Unknown, "E-SAFETY", true)],
-                vec![incident(IncidentState::Unknown)],
+                vec![incident("thermal_event", IncidentState::Unknown)],
             ),
             pack(
                 "PACK-B",
@@ -752,7 +816,7 @@ mod tests {
                 BmsStrategy::ReplaceBms,
                 GateDisposition::Fail,
                 vec![gate("safety", GateDisposition::Fail, "E-SAFETY", false)],
-                vec![incident(IncidentState::EventRecorded)],
+                complete_incident_history(IncidentState::EventRecorded),
             ),
             pack(
                 "PACK-C",
@@ -761,7 +825,7 @@ mod tests {
                 BmsStrategy::AuthorizedFirmwareUpdate,
                 GateDisposition::Unknown,
                 vec![gate("cell_matching", GateDisposition::Fail, "E-HISTORY", false)],
-                vec![incident(IncidentState::VerifiedAbsent)],
+                complete_incident_history(IncidentState::VerifiedAbsent),
             ),
         ];
 
@@ -797,12 +861,22 @@ mod tests {
                     application: MissionApplication::PvSelfConsumption,
                     duty_cycle_ref: "DUTY-PV".into(),
                     system_boundary: "pack".into(),
+                    ambient_min_c: 5.0,
+                    ambient_max_c: 40.0,
+                    required_energy_kwh: 10.0,
+                    required_peak_power_kw: 3.0,
+                    reserve_kwh: 1.5,
                 },
                 Mission {
                     mission_id: "UPS".into(),
                     application: MissionApplication::ThirdLifeUps,
                     duty_cycle_ref: "DUTY-UPS".into(),
                     system_boundary: "pack".into(),
+                    ambient_min_c: 10.0,
+                    ambient_max_c: 35.0,
+                    required_energy_kwh: 2.0,
+                    required_peak_power_kw: 5.0,
+                    reserve_kwh: 0.5,
                 },
             ],
             cells,
@@ -861,12 +935,26 @@ mod tests {
         }
     }
 
-    fn incident(state: IncidentState) -> IncidentRecord {
+    fn incident(event_type: &str, state: IncidentState) -> IncidentRecord {
         IncidentRecord {
-            event_type: "thermal_event".into(),
+            event_type: event_type.into(),
             state,
             evidence_id: "E-HISTORY".into(),
         }
+    }
+
+    fn complete_incident_history(state: IncidentState) -> Vec<IncidentRecord> {
+        [
+            "thermal_event",
+            "overcharge",
+            "deep_discharge",
+            "crash_or_mechanical_abuse",
+            "water_ingress",
+            "isolation_fault",
+        ]
+        .into_iter()
+        .map(|event_type| incident(event_type, state))
+        .collect()
     }
 
     fn pack(
@@ -889,7 +977,11 @@ mod tests {
             incident_history: incidents,
             bms_strategy: bms,
             bms_compatibility_disposition: bms_disposition,
-            bms_evidence_id: "E-BMS".into(),
+            bms_evidence_id: if bms_disposition == GateDisposition::Pass {
+                "E-PHYSICAL".into()
+            } else {
+                "E-BMS".into()
+            },
             capability_envelope_ref: format!("CAPABILITY-{id}"),
             capability_evidence_id: "E-CAP".into(),
             hard_gates,
@@ -921,7 +1013,9 @@ mod tests {
         let pack = manifest.packs.iter_mut().find(|x| x.pack_id == pack_id).unwrap();
         pack.history_completeness = HistoryCompleteness::Complete;
         pack.incident_history[0].state = IncidentState::VerifiedAbsent;
-        pack.incident_history[0].evidence_id = "E-PHYSICAL".into();
+        for incident in &mut pack.incident_history {
+            incident.evidence_id = "E-PHYSICAL".into();
+        }
         pack.bms_compatibility_disposition = GateDisposition::Pass;
         pack.hard_gates[0].disposition = GateDisposition::Pass;
         pack.hard_gates[0].evidence_id = "E-PHYSICAL".into();
@@ -1077,6 +1171,41 @@ mod tests {
         let error =
             audit_second_life_manifest(&manifest).expect_err("third-life mission mismatch");
         assert!(error.0.contains("route does not match target mission class"));
+    }
+
+    #[test]
+    fn rejects_eligible_route_when_mission_energy_power_or_reserve_is_insufficient() {
+        let mut manifest = valid_manifest();
+        make_pack_eligible(&mut manifest, "PACK-A");
+        manifest.routing_decisions[0].lower_bound_usable_energy_kwh = Some(9.0);
+
+        let error = audit_second_life_manifest(&manifest)
+            .expect_err("lower-bound energy below mission target must fail");
+        assert!(error.0.contains("capability bounds do not meet target mission"));
+    }
+
+    #[test]
+    fn rejects_complete_history_missing_a_required_incident_category() {
+        let mut manifest = valid_manifest();
+        make_pack_eligible(&mut manifest, "PACK-A");
+        manifest.packs[0]
+            .incident_history
+            .retain(|record| record.event_type != "overcharge");
+
+        let error = audit_second_life_manifest(&manifest)
+            .expect_err("incident history completeness must be explicit");
+        assert!(error.0.contains("missing complete incident-history category"));
+    }
+
+    #[test]
+    fn rejects_synthetic_bms_compatibility_evidence_for_eligible_route() {
+        let mut manifest = valid_manifest();
+        make_pack_eligible(&mut manifest, "PACK-A");
+        manifest.packs[0].bms_evidence_id = "E-BMS".into();
+
+        let error = audit_second_life_manifest(&manifest)
+            .expect_err("synthetic BMS compatibility cannot qualify reconfiguration");
+        assert!(error.0.contains("non-physical BMS compatibility evidence"));
     }
 
     #[test]
