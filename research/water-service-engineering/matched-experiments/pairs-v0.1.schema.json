@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/matched-experiments/pairs-v0.1.schema.json",
+  "title": "Water Matched Experiment Pair Schema v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "profile",
+    "pairs",
+    "interpretation_rules",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "water-matched-experiment-pairs-v0.1"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "evidence_class",
+        "minimum_baseline_count",
+        "deployment_parity_fields",
+        "development_budget_policy",
+        "values_are_normative"
+      ],
+      "properties": {
+        "profile_id": {
+          "const": "SYNTHETIC-MATCHED-EXPERIMENT-PROFILE-V0"
+        },
+        "evidence_class": {
+          "const": "synthetic_design_profile"
+        },
+        "minimum_baseline_count": {
+          "const": 2
+        },
+        "deployment_parity_fields": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "development_budget_policy": {
+          "const": "record_per_baseline_do_not_hide_or_force_equality"
+        },
+        "values_are_normative": {
+          "const": false
+        }
+      }
+    },
+    "pairs": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pair_id",
+          "protocol_revision",
+          "evidence_class",
+          "shared_deployment_inputs",
+          "scoring_profile",
+          "baseline_runs",
+          "expected_pair_disposition",
+          "note"
+        ],
+        "properties": {
+          "pair_id": {
+            "type": "string",
+            "pattern": "^MEC-[0-9]{3}$"
+          },
+          "protocol_revision": {
+            "const": "WATER-MATCHED-EXPERIMENT-0.1"
+          },
+          "evidence_class": {
+            "const": "synthetic_design_fixture"
+          },
+          "shared_deployment_inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scenario_ref",
+              "network_id",
+              "topology_revision",
+              "topology_digest",
+              "geometry_revision",
+              "geometry_digest",
+              "demand_trace_digest",
+              "disturbance_trace_digest",
+              "random_seed",
+              "sensor_set",
+              "sampling_period_seconds",
+              "missingness_profile_ref",
+              "time_grid_ref",
+              "unit_system",
+              "scoring_horizon_seconds",
+              "service_floor_profile_digest",
+              "required_service_area_ids",
+              "actuator_envelope_digest",
+              "local_protection_contract_digest",
+              "decision_deadline_ms",
+              "future_covariates_available"
+            ],
+            "properties": {
+              "scenario_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "network_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "topology_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "topology_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "geometry_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "geometry_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "demand_trace_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "disturbance_trace_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "random_seed": {
+                "type": "integer"
+              },
+              "sensor_set": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sampling_period_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "missingness_profile_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "time_grid_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit_system": {
+                "const": "SI"
+              },
+              "scoring_horizon_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "service_floor_profile_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "required_service_area_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "actuator_envelope_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "local_protection_contract_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "decision_deadline_ms": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "future_covariates_available": {
+                "const": false
+              }
+            }
+          },
+          "scoring_profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scoring_profile_ref",
+              "event_metric_version",
+              "service_metric_version",
+              "uncertainty_metric_version",
+              "resource_metric_version",
+              "aggregation_policy",
+              "abstention_reported",
+              "coverage_reported"
+            ],
+            "properties": {
+              "scoring_profile_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "event_metric_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "service_metric_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uncertainty_metric_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "resource_metric_version": {
+                "type": "string",
+                "minLength": 1
+              },
+              "aggregation_policy": {
+                "const": "no_single_compensatory_score"
+              },
+              "abstention_reported": {
+                "const": true
+              },
+              "coverage_reported": {
+                "const": true
+              }
+            }
+          },
+          "baseline_runs": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "baseline_id",
+                "baseline_version_ref",
+                "configuration_digest",
+                "implementation_artifact_digest",
+                "deployment_inputs",
+                "resource_budget",
+                "execution_environment_ref",
+                "solver_or_runtime_version",
+                "data_population_ref",
+                "split_receipt_ref",
+                "future_covariate_access"
+              ],
+              "properties": {
+                "baseline_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "baseline_version_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "configuration_digest": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "implementation_artifact_digest": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "deployment_inputs": {
+                  "type": "object"
+                },
+                "resource_budget": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "training_sample_count",
+                    "training_source_population_ref",
+                    "split_receipt_ref",
+                    "offline_compute_seconds",
+                    "offline_memory_mb",
+                    "hyperparameter_trials",
+                    "engineer_hours",
+                    "online_cpu_ms_p95",
+                    "online_memory_mb",
+                    "communication_bytes_per_decision"
+                  ],
+                  "properties": {
+                    "training_sample_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "training_source_population_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "split_receipt_ref": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "offline_compute_seconds": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "offline_memory_mb": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "hyperparameter_trials": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "engineer_hours": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "online_cpu_ms_p95": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "online_memory_mb": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "communication_bytes_per_decision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "execution_environment_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "solver_or_runtime_version": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "data_population_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "split_receipt_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "future_covariate_access": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "expected_pair_disposition": {
+            "enum": [
+              "admit",
+              "reject"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "interpretation_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
