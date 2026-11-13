@@ -226,11 +226,6 @@ jobs:
             research/water-service-engineering/membrane-ro-m0.schema.json \
             research/water-service-engineering/membrane-ro-m0-manifest-v0.1.json \
             artifacts/membrane-ro-m0/receipt.json
-            research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json
-            research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json
-            research/water-service-engineering/membrane-ro-m0b-regression.schema.json
-            research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json
-            artifacts/membrane-ro-m0b-regression/receipt.json
       - name: Validate grouped multi-pressure membrane RO M0B regression
         id: membrane_ro_m0b_contracts
         run: |
@@ -354,6 +349,11 @@ jobs:
             research/water-service-engineering/membrane-wq-sample-fixtures-v0.1.json
             research/water-service-engineering/membrane-wq-sample-manifest-v0.1.json
             artifacts/membrane-ro-m0/receipt.json
+            research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json
+            research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json
+            research/water-service-engineering/membrane-ro-m0b-regression.schema.json
+            research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json
+            artifacts/membrane-ro-m0b-regression/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
