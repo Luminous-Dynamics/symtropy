@@ -25,8 +25,7 @@
       "required_service_area_ids",
       "actuator_envelope_digest",
       "local_protection_contract_digest",
-      "decision_deadline_ms",
-      "future_covariates_available"
+      "decision_deadline_ms"
     ],
     "development_budget_policy": "record_per_baseline_do_not_hide_or_force_equality",
     "values_are_normative": false
