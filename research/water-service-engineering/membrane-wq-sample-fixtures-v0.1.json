@@ -127,6 +127,31 @@
         "telemetry_feature_cutoff": "2030-01-01T10:20:00Z"
       },
       "expected": "ADMISSIBLE_DISTINCT_LOCATION_SAMPLE"
+    },
+    {
+      "case_id": "M2-006-same-time-different-location-distinct-record",
+      "record": {
+        "schema_version": "membrane-wq-sample-v0.1",
+        "evidence_class": "synthetic_contract_fixture",
+        "dataset_id": "BRISTOL_POU_WQ_12W",
+        "sample_id": "SYN-SAMPLE-006",
+        "sample_collection_time": "2030-01-01T10:20:00Z",
+        "sample_location_id": "SYN-OUTLET",
+        "analyte_id": "SYN-ANALYTE-A",
+        "result_qualifier": "QUANTIFIED",
+        "value": 0.17,
+        "unit": "mg/L",
+        "method_id": "SYN-METHOD-01",
+        "lod": 0.01,
+        "loq": 0.03,
+        "lab_qc_status": "ACCEPTED",
+        "accreditation_scope": "synthetic_fixture_only",
+        "replicate_id": null,
+        "result_note": "Same nominal time as the synthetic pretreatment sample; location identity is distinct.",
+        "label_scope": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY",
+        "telemetry_feature_cutoff": "2030-01-01T10:20:00Z"
+      },
+      "expected": "ADMISSIBLE_DISTINCT_LOCATION_SAMPLE"
     }
   ]
 }
