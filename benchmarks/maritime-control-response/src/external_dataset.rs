@@ -609,8 +609,13 @@ mod tests {
         );
         assert_eq!(
             protocol["archive_audit_receipt"]["artifact_id"],
-            13986307496_u64
+            14014574182_u64
         );
+        assert_eq!(
+            protocol["archive_audit_receipt"]["archive_sha256"],
+            protocol["dataset"]["zenodo_record"]["file"]["sha256"]
+        );
+        assert_eq!(protocol["archive_audit_receipt"]["rust_tests_failed"], 0);
         assert_eq!(protocol["dataset"]["files"]["csv_count"], 16);
         assert_eq!(protocol["dataset"]["files"]["baseline_reference_files"], 1);
         assert_eq!(protocol["dataset"]["files"]["fault_scenario_files"], 15);
@@ -620,7 +625,10 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .iter()
-                .all(|target| target["status"] == "aspirational")
+                .all(|target| {
+                    target["status"] == "aspirational"
+                        || target["status"] == "gate_not_performance_target"
+                })
         );
         assert_eq!(
             schema["$schema"],
