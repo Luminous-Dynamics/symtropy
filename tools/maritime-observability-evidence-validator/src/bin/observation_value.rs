@@ -462,7 +462,7 @@ mod tests {
     #[test]
     fn derived_or_shared_evidence_is_not_scored(){
         let report=evaluate(&fixture()).unwrap();
-        let derived=report["ranked_candidates"].iter().find(|item|item["candidate_id"]=="derived-load-estimate").unwrap();
+        let derived=report["ranked_candidates"].as_array().unwrap().iter().find(|item|item["candidate_id"]=="derived-load-estimate").unwrap();
         assert_eq!(derived["status"],"NOT_EVALUATED");
         assert!(derived["reason_codes"].as_array().unwrap().iter().any(|reason|reason=="SHARED_DEPENDENCY_WITH_EXISTING_EVIDENCE"));
         assert!(derived["reason_codes"].as_array().unwrap().iter().any(|reason|reason=="EVIDENCE_NOT_MEASURED_OR_CALIBRATION_RECORD"));
@@ -470,7 +470,7 @@ mod tests {
     #[test]
     fn stale_or_expired_record_is_not_scored(){
         let report=evaluate(&fixture()).unwrap();
-        let stale=report["ranked_candidates"].iter().find(|item|item["candidate_id"]=="stale-thermocouple-record").unwrap();
+        let stale=report["ranked_candidates"].as_array().unwrap().iter().find(|item|item["candidate_id"]=="stale-thermocouple-record").unwrap();
         assert_eq!(stale["status"],"NOT_EVALUATED");
     }
     #[test]
