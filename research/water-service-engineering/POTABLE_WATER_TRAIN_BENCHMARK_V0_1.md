@@ -163,3 +163,12 @@ No T0/T1 pass implies potable water. No synthetic or modelled outcome may be lab
 ## 11. Explicit nonclaims
 
 No product, cartridge, membrane, UV device, treatment train or water result has been qualified by this protocol. It does not establish potability, WHO scheme stars, NSF certification, SANS 241 compliance, lab accreditation, public-health safety, reuse permission or regulatory release.
+
+
+## Specialized membrane-fouling workstream
+
+The whole-train benchmark is complemented by [MEMBRANE-FOULING-QUAL-001 #4977](https://github.com/Luminous-Dynamics/symtropy/issues/4977), which owns MF/UF/NF/RO fouling-state estimation, TMP/flux prediction, cleaning-policy comparisons, integrity evidence and actual post-cleaning outcomes.
+
+A 2026 comparative review of 78 peer-reviewed studies found that measurement-based and mechanistic/statistical models remain important, while AI/hybrid models extend prediction of TMP, flux decline, resistance growth and cleaning response. The review emphasizes that prediction is more mature than deployable control; few studies connect fouling-state estimation to supervisory decisions or actuator-linked feedback. This suggests a genuine opportunity: benchmark decision quality and measured cleaning outcomes at equal process and sensor budgets, rather than claiming a breakthrough from prediction error alone. Source: https://doi.org/10.3389/frwa.2026.1863523.
+
+The sub-benchmark remains separate from this whole-train comparison and reuses the existing metrology, water accounting and water-quality assessment boundaries.
