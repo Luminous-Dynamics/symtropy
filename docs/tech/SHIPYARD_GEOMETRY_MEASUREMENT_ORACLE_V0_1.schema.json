@@ -44,7 +44,8 @@
         "scan_sha256",
         "coordinate_frame",
         "captured_at_tick",
-        "points"
+        "points",
+        "x_grid_sha256"
       ],
       "properties": {
         "evidence_class": {
@@ -88,6 +89,10 @@
           "items": {
             "$ref": "#/$defs/point"
           }
+        },
+        "x_grid_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
