@@ -775,19 +775,21 @@ mod tests {
             }
         }
 
-        for left in &boxes {
-            let left_cells = grid_cells(left);
-            for right in &boxes {
+        let indexed_cells: Vec<Option<BTreeSet<CellKey>>> = boxes
+            .iter()
+            .map(|item| grid_cells(item).map(|cells| cells.into_iter().collect()))
+            .collect();
+
+        for (left_index, left) in boxes.iter().enumerate() {
+            for (right_index, right) in boxes.iter().enumerate() {
                 if left.intersection_closed(right).is_none() {
                     continue;
                 }
 
-                let right_cells = grid_cells(right);
-                match (&left_cells, &right_cells) {
+                match (&indexed_cells[left_index], &indexed_cells[right_index]) {
                     (Some(left_cells), Some(right_cells)) => {
-                        let right_set: BTreeSet<_> = right_cells.iter().copied().collect();
                         assert!(
-                            left_cells.iter().any(|cell| right_set.contains(cell)),
+                            left_cells.iter().any(|cell| right_cells.contains(cell)),
                             "grid false negative for left={left:?}, right={right:?}"
                         );
                     }
