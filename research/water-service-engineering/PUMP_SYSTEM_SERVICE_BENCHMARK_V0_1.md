@@ -177,3 +177,12 @@ These are aspirational test objectives, not expected results or universal limits
 ## 14. Explicit nonclaims
 
 No pump curve, energy saving, reliability, NPSH, transient safety, service continuity, regulatory compliance or commercial readiness is demonstrated by this protocol. No physical testing has yet been performed.
+
+ 
+## 15. New control comparator: model-free ENC under sparse sensing
+
+A 1 October 2026 *Water Research* paper introduces model-free Exact Nonlinearity Cancellation (ENC) control for water distribution pumps (Villacres, Putri & Moazeni, DOI [10.1016/j.watres.2026.126295](https://doi.org/10.1016/j.watres.2026.126295)). It reports 200 measured samples and a 90% computation reduction against its data-driven MPC comparator in the studied small WDS. Crucially, the article states that every regulated tank level and junction pressure was directly measured; it identifies sparse/partial sensing as the major next step. Data are available on request, so exact reproduction is not yet claimed.
+
+New child work [#5018](https://github.com/Luminous-Dynamics/symtropy/issues/5018) and its 15-case [scenario pack](./pump-control-robustness/PUMP_CONTROL_ROBUSTNESS_V0_1.md) place ENC beside rule/PI, hydraulic MPC, DeePC and qualified-estimator hybrids under identical measurement and disturbance budgets.
+
+Report service-qualified coverage, pressure and reserve shortfall duration, demand delivered, energy at matched delivery conditions, fault detection, estimator interval coverage, abstention, data budget and worst-case execution time. A lower compute or energy score is invalid if it violates a hard service floor or acts on unobservable state. The synthetic scenario values are not utility setpoints or engineering limits.
