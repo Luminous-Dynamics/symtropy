@@ -245,7 +245,8 @@ fn dense_run(size: u64) {
     });
     println!(
         "distribution=dense_single_bucket reservations={size} promoted_buckets={} insert_ms={:.3} indexed_candidates={} indexed_query_p50_us={:.3} full_scan_overlaps={} full_scan_query_p50_us={:.3}",
-        book.promoted_bucket_count_for_resource("shared-workface").unwrap(),
+        book.promoted_bucket_count_for_resource("shared-workface")
+            .unwrap(),
         elapsed.as_secs_f64() * 1_000.0,
         book.candidate_count_for_interval("shared-workface", query_start, query_start + 100)
             .unwrap(),
