@@ -1,0 +1,78 @@
+{
+  "schema_version": "0.1.0",
+  "oracle_id": "water-matched-experiment-admission-oracle-v0.1",
+  "corpus_id": "water-matched-experiment-pairs-v0.1",
+  "results": [
+    {
+      "pair_id": "MEC-001",
+      "expected_pair_disposition": "admit",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-002",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-003",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-004",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-005",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-006",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-007",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-008",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-009",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "pair_id": "MEC-010",
+      "expected_pair_disposition": "reject",
+      "deployment_parity_must_be_exact": true,
+      "development_budget_must_be_disclosed": true,
+      "evidence_ceiling": "synthetic_design_only"
+    }
+  ],
+  "interpretation": "Expected pair-admission states only; no baseline performance is measured."
+}
