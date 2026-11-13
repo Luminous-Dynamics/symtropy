@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard geometry measurement oracle corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "units",
+    "baseline",
+    "cases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-GEOMETRY-MEASUREMENT-ORACLE-001"
+    },
+    "units": {
+      "const": "um"
+    },
+    "baseline": {
+      "$ref": "#/$defs/baseline"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_2D_PROFILE_COMPARISON_ONLY"
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_um",
+        "z_um",
+        "uncertainty_um"
+      ],
+      "properties": {
+        "x_um": {
+          "type": "integer"
+        },
+        "z_um": {
+          "type": "integer"
+        },
+        "uncertainty_um": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "scan_id",
+        "scan_sha256",
+        "registration_receipt_sha256",
+        "coordinate_frame",
+        "units",
+        "reference_points",
+        "observed_points",
+        "registration",
+        "domain",
+        "limits"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "units": {
+          "const": "um"
+        },
+        "reference_points": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
+        },
+        "observed_points": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/point"
+          }
+        },
+        "registration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scan_sha256",
+            "receipt_sha256",
+            "target_frame",
+            "residual_um"
+          ],
+          "properties": {
+            "scan_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "receipt_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "target_frame": {
+              "type": "string"
+            },
+            "residual_um": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x_min_um",
+            "x_max_um"
+          ],
+          "properties": {
+            "x_min_um": {
+              "type": "integer"
+            },
+            "x_max_um": {
+              "type": "integer"
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_point_gap_um",
+            "minimum_coverage_permille",
+            "maximum_point_uncertainty_um",
+            "maximum_registration_residual_um",
+            "coverage_gap_threshold_um"
+          ],
+          "properties": {
+            "maximum_point_gap_um": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minimum_coverage_permille": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "maximum_point_uncertainty_um": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maximum_registration_residual_um": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "coverage_gap_threshold_um": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "mutation",
+        "expected_disposition"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^GEO-[0-9]{3}$"
+        },
+        "mutation": {
+          "enum": [
+            "none",
+            "uniform_offset_1000_um",
+            "sign_crossing_100_um",
+            "long_internal_gap",
+            "wrong_coordinate_frame",
+            "scan_digest_mismatch",
+            "registration_receipt_digest_mismatch",
+            "registration_residual_over_limit",
+            "point_uncertainty_over_limit",
+            "duplicate_x_station",
+            "non_monotonic_x_station",
+            "station_grid_mismatch",
+            "zero_point_uncertainty",
+            "invalid_domain",
+            "coverage_below_minimum",
+            "point_outside_domain"
+          ]
+        },
+        "expected_disposition": {
+          "type": "string"
+        },
+        "expected_reason": {
+          "type": "string"
+        },
+        "expected_metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "coverage_permille",
+            "maximum_gap_um",
+            "registration_residual_um",
+            "maximum_absolute_deviation_um",
+            "mean_absolute_deviation_um",
+            "absolute_profile_area_um2",
+            "uncertainty_expanded_area_upper_um2"
+          ],
+          "properties": {
+            "coverage_permille": {
+              "type": "integer"
+            },
+            "maximum_gap_um": {
+              "type": "integer"
+            },
+            "registration_residual_um": {
+              "type": "integer"
+            },
+            "maximum_absolute_deviation_um": {
+              "type": "integer"
+            },
+            "mean_absolute_deviation_um": {
+              "type": "integer"
+            },
+            "absolute_profile_area_um2": {
+              "type": "integer"
+            },
+            "uncertainty_expanded_area_upper_um2": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  }
+}

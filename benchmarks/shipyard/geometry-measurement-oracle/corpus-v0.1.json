@@ -1,0 +1,187 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-GEOMETRY-MEASUREMENT-ORACLE-001",
+  "units": "um",
+  "baseline": {
+    "profile_id": "REF-WELD-XS-001",
+    "scan_id": "SCAN-OBS-001",
+    "scan_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "registration_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "coordinate_frame": "WELD-REFERENCE-FRAME-R1",
+    "units": "um",
+    "reference_points": [
+      {
+        "x_um": 0,
+        "z_um": 0,
+        "uncertainty_um": 1
+      },
+      {
+        "x_um": 1000,
+        "z_um": 0,
+        "uncertainty_um": 1
+      },
+      {
+        "x_um": 2000,
+        "z_um": 0,
+        "uncertainty_um": 1
+      }
+    ],
+    "observed_points": [
+      {
+        "x_um": 0,
+        "z_um": 0,
+        "uncertainty_um": 2
+      },
+      {
+        "x_um": 1000,
+        "z_um": 0,
+        "uncertainty_um": 2
+      },
+      {
+        "x_um": 2000,
+        "z_um": 0,
+        "uncertainty_um": 2
+      }
+    ],
+    "registration": {
+      "scan_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_frame": "WELD-REFERENCE-FRAME-R1",
+      "residual_um": 2
+    },
+    "domain": {
+      "x_min_um": 0,
+      "x_max_um": 2000
+    },
+    "limits": {
+      "maximum_point_gap_um": 1200,
+      "minimum_coverage_permille": 1000,
+      "maximum_point_uncertainty_um": 5,
+      "maximum_registration_residual_um": 10,
+      "coverage_gap_threshold_um": 1100
+    }
+  },
+  "cases": [
+    {
+      "case_id": "GEO-001",
+      "mutation": "none",
+      "expected_disposition": "QUALIFIED",
+      "expected_metrics": {
+        "coverage_permille": 1000,
+        "maximum_gap_um": 1000,
+        "registration_residual_um": 2,
+        "maximum_absolute_deviation_um": 0,
+        "mean_absolute_deviation_um": 0,
+        "absolute_profile_area_um2": 0,
+        "uncertainty_expanded_area_upper_um2": 6000
+      }
+    },
+    {
+      "case_id": "GEO-002",
+      "mutation": "uniform_offset_1000_um",
+      "expected_disposition": "QUALIFIED",
+      "expected_metrics": {
+        "coverage_permille": 1000,
+        "maximum_gap_um": 1000,
+        "registration_residual_um": 2,
+        "maximum_absolute_deviation_um": 1000,
+        "mean_absolute_deviation_um": 1000,
+        "absolute_profile_area_um2": 2000000,
+        "uncertainty_expanded_area_upper_um2": 2006000
+      }
+    },
+    {
+      "case_id": "GEO-003",
+      "mutation": "sign_crossing_100_um",
+      "expected_disposition": "QUALIFIED",
+      "expected_metrics": {
+        "coverage_permille": 1000,
+        "maximum_gap_um": 1000,
+        "registration_residual_um": 2,
+        "maximum_absolute_deviation_um": 100,
+        "mean_absolute_deviation_um": 67,
+        "absolute_profile_area_um2": 100000,
+        "uncertainty_expanded_area_upper_um2": 156000
+      }
+    },
+    {
+      "case_id": "GEO-004",
+      "mutation": "long_internal_gap",
+      "expected_disposition": "BLOCK_GAP_TOO_LARGE",
+      "expected_reason": "GAP_TOO_LARGE"
+    },
+    {
+      "case_id": "GEO-005",
+      "mutation": "wrong_coordinate_frame",
+      "expected_disposition": "BLOCK_FRAME_MISMATCH",
+      "expected_reason": "FRAME_MISMATCH"
+    },
+    {
+      "case_id": "GEO-006",
+      "mutation": "scan_digest_mismatch",
+      "expected_disposition": "BLOCK_SCAN_DIGEST_MISMATCH",
+      "expected_reason": "SCAN_DIGEST_MISMATCH"
+    },
+    {
+      "case_id": "GEO-007",
+      "mutation": "registration_receipt_digest_mismatch",
+      "expected_disposition": "BLOCK_REGISTRATION_RECEIPT_MISMATCH",
+      "expected_reason": "REGISTRATION_RECEIPT_MISMATCH"
+    },
+    {
+      "case_id": "GEO-008",
+      "mutation": "registration_residual_over_limit",
+      "expected_disposition": "BLOCK_REGISTRATION_RESIDUAL_TOO_LARGE",
+      "expected_reason": "REGISTRATION_RESIDUAL_TOO_LARGE"
+    },
+    {
+      "case_id": "GEO-009",
+      "mutation": "point_uncertainty_over_limit",
+      "expected_disposition": "BLOCK_POINT_UNCERTAINTY_TOO_LARGE",
+      "expected_reason": "POINT_UNCERTAINTY_TOO_LARGE"
+    },
+    {
+      "case_id": "GEO-010",
+      "mutation": "duplicate_x_station",
+      "expected_disposition": "BLOCK_NON_MONOTONIC_STATIONS",
+      "expected_reason": "NON_MONOTONIC_STATIONS"
+    },
+    {
+      "case_id": "GEO-011",
+      "mutation": "non_monotonic_x_station",
+      "expected_disposition": "BLOCK_NON_MONOTONIC_STATIONS",
+      "expected_reason": "NON_MONOTONIC_STATIONS"
+    },
+    {
+      "case_id": "GEO-012",
+      "mutation": "station_grid_mismatch",
+      "expected_disposition": "BLOCK_STATION_GRID_MISMATCH",
+      "expected_reason": "STATION_GRID_MISMATCH"
+    },
+    {
+      "case_id": "GEO-013",
+      "mutation": "zero_point_uncertainty",
+      "expected_disposition": "BLOCK_UNCERTAINTY_MISSING",
+      "expected_reason": "UNCERTAINTY_MISSING"
+    },
+    {
+      "case_id": "GEO-014",
+      "mutation": "invalid_domain",
+      "expected_disposition": "BLOCK_INVALID_DOMAIN",
+      "expected_reason": "INVALID_DOMAIN"
+    },
+    {
+      "case_id": "GEO-015",
+      "mutation": "coverage_below_minimum",
+      "expected_disposition": "BLOCK_COVERAGE_TOO_LOW",
+      "expected_reason": "COVERAGE_TOO_LOW"
+    },
+    {
+      "case_id": "GEO-016",
+      "mutation": "point_outside_domain",
+      "expected_disposition": "BLOCK_POINT_OUTSIDE_DOMAIN",
+      "expected_reason": "POINT_OUTSIDE_DOMAIN"
+    }
+  ],
+  "claim_ceiling": "SYNTHETIC_2D_PROFILE_COMPARISON_ONLY"
+}
