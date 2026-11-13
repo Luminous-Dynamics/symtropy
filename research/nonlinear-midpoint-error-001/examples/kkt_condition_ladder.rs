@@ -1,7 +1,6 @@
 use nonlinear_midpoint_error_envelope::{
-    InconclusiveReasonV1, JacobianLipschitzWitnessV1, KantorovichProfileV1,
-    MidpointKktStateV1, MidpointParametersV1, QualificationStatusV1,
-    qualify_midpoint_state_v1,
+    InconclusiveReasonV1, JacobianLipschitzWitnessV1, KantorovichProfileV1, MidpointKktStateV1,
+    MidpointParametersV1, QualificationStatusV1, qualify_midpoint_state_v1,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,8 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 v1: 4.0 / time_step - epsilon / (2.0 * time_step),
                 multiplier: 2.0 * mass / time_step - epsilon * mass / (2.0 * time_step),
             };
-            let receipt =
-                qualify_midpoint_state_v1(parameters, state, lipschitz, profile)?;
+            let receipt = qualify_midpoint_state_v1(parameters, state, lipschitz, profile)?;
             let status = match receipt.status {
                 QualificationStatusV1::AdmissibleLocalRootEstimate => "ADMISSIBLE_ESTIMATE",
                 QualificationStatusV1::Inconclusive(InconclusiveReasonV1::SingularKktJacobian) => {
