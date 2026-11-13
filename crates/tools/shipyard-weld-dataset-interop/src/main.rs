@@ -65,18 +65,19 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
 
     let sources = manifest.get("sources").and_then(Value::as_array)
         .ok_or_else(|| vec!["sources must be an array".to_owned()])?;
-    if sources.len() != 3 {
-        errors.push(format!("expected three source cards, found {}", sources.len()));
+    if sources.len() != 4 {
+        errors.push(format!("expected four source cards, found {}", sources.len()));
     }
     let expected_ids = [
         "bam-tandem-gmaw-2026",
         "intel-robotic-welding-multimodal",
         "gmaw-thermography-profilometry-2025",
+        "bam-scientific-tool-use-v0.1.0",
     ];
     let mut source_ids = HashSet::new();
     for (index, source) in sources.iter().enumerate() {
         let id = str_at(source, "dataset_id").unwrap_or("");
-        if id != expected_ids[index.min(2)] || !source_ids.insert(id.to_owned()) {
+        if id != expected_ids[index.min(3)] || !source_ids.insert(id.to_owned()) {
             errors.push(format!("sources[{index}] has unexpected or duplicate dataset_id"));
         }
         if bool_at(source, "raw_files_downloaded") != Some(false)
@@ -145,6 +146,39 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
         errors.push("thermography source card missing".to_owned());
     }
 
+    let tool_use = sources
+        .iter()
+        .find(|source| str_at(source, "dataset_id") == Some(expected_ids[3]));
+    if let Some(tool_use) = tool_use {
+        let known_limitations = string_list(tool_use, "known_limitations").unwrap_or_default();
+        if str_at(tool_use, "rights_status") != Some("RIGHTS_RECONCILIATION_REQUIRED")
+            || str_at(tool_use, "raw_file_license")
+                != Some("DERIVATIVE_CLAIMS_CC-BY-4.0; OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD")
+            || integer_at(tool_use, "independent_unit_count") != Some(5)
+            || integer_at(tool_use, "task_count") != Some(160)
+            || integer_at(tool_use, "answerable_task_count") != Some(130)
+            || integer_at(tool_use, "constructed_withheld_task_count") != Some(30)
+            || integer_at(tool_use, "introductory_sft_example_count") != Some(480)
+            || integer_at(tool_use, "heldout_test_workpiece_count") != Some(1)
+            || bool_at(tool_use, "published_models_all_solved_test_ceiling") != Some(true)
+            || bool_at(tool_use, "raw_files_downloaded") != Some(false)
+            || bool_at(tool_use, "raw_files_vendored") != Some(false)
+            || !known_limitations
+                .iter()
+                .any(|item| item.contains("rights conflict is unresolved"))
+            || !known_limitations
+                .iter()
+                .any(|item| item.contains("observed score ceiling"))
+        {
+            errors.push(
+                "BAM scientific tool-use derivative must remain rights-reconciliation-required, five-WID and ceiling-limited"
+                    .to_owned(),
+            );
+        }
+    } else {
+        errors.push("BAM scientific tool-use derivative source card missing".to_owned());
+    }
+
     let split = manifest.get("split_policy").ok_or_else(|| vec!["split_policy missing".to_owned()])?;
     if bool_at(split, "random_sample_split_allowed") != Some(false)
         || str_at(split, "bam_group") != Some("workpiece_id")
@@ -167,8 +201,8 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
 
     let controls = manifest.get("controls").and_then(Value::as_array)
         .ok_or_else(|| vec!["controls must be an array".to_owned()])?;
-    if controls.len() != 41 {
-        errors.push(format!("expected 41 controls, found {}", controls.len()));
+    if controls.len() != 46 {
+        errors.push(format!("expected 46 controls, found {}", controls.len()));
     }
     let mut control_ids = HashSet::new();
     let mut positive = 0usize;
@@ -190,8 +224,8 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
             errors.push(format!("{id}: mutation and rationale must be non-empty"));
         }
     }
-    if positive != 1 || negative != 40 {
-        errors.push(format!("expected 1 positive / 40 negative controls, found {positive}/{negative}"));
+    if positive != 1 || negative != 45 {
+        errors.push(format!("expected 1 positive / 45 negative controls, found {positive}/{negative}"));
     }
 
     if errors.is_empty() {
@@ -412,7 +446,7 @@ mod tests {
     #[test]
     fn frozen_three_domain_registry_is_admitted_metadata_only() {
         let summary=validate_registry(REGISTRY_SCHEMA,REGISTRY_MANIFEST).expect("registry baseline");
-        assert_eq!(summary,RegistrySummary{sources:3,controls:41,positive:1,negative:40});
+        assert_eq!(summary,RegistrySummary{sources:4,controls:46,positive:1,negative:45});
     }
 
     #[test]
@@ -436,6 +470,52 @@ mod tests {
         v["sources"][2]["raw_file_license"]=Value::String("CC-BY-NC-4.0".to_owned());
         v["sources"][2]["rights_status"]=Value::String("PUBLIC_REUSE".to_owned());
         assert!(validate_registry(REGISTRY_SCHEMA,&serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
+    fn derivative_cc_by_claim_cannot_override_source_zenodo_rights_conflict() {
+        let mut value = registry_value();
+        value["sources"][3]["rights_status"] =
+            Value::String("RIGHTS_PENDING".to_owned());
+        assert!(validate_registry(
+            REGISTRY_SCHEMA,
+            &serde_json::to_string(&value).unwrap()
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn task_rows_cannot_be_promoted_to_independent_physical_samples() {
+        let mut value = registry_value();
+        value["sources"][3]["independent_unit_count"] = Value::from(160);
+        assert!(validate_registry(
+            REGISTRY_SCHEMA,
+            &serde_json::to_string(&value).unwrap()
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn model_score_ceiling_must_remain_explicit() {
+        let mut value = registry_value();
+        value["sources"][3]["published_models_all_solved_test_ceiling"] =
+            Value::Bool(false);
+        assert!(validate_registry(
+            REGISTRY_SCHEMA,
+            &serde_json::to_string(&value).unwrap()
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn constructed_withheld_files_are_not_natural_missingness_labels() {
+        let mut value = registry_value();
+        value["sources"][3]["constructed_withheld_task_count"] = Value::from(0);
+        assert!(validate_registry(
+            REGISTRY_SCHEMA,
+            &serde_json::to_string(&value).unwrap()
+        )
+        .is_err());
     }
 
     #[test]
