@@ -1,0 +1,1358 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/das-source-observation-v0.1.schema.json",
+  "title": "SUF vendor-neutral DAS source-observation envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "claim_ceiling",
+    "observation_id",
+    "source_artifact",
+    "sensor",
+    "observed_property",
+    "time",
+    "spatial_axis",
+    "fibre_reference",
+    "processing",
+    "quality",
+    "rights",
+    "disclosure"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.das.source_observation.v0.1"
+    },
+    "status": {
+      "const": "metadata_envelope_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "observation_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "source_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_uri",
+        "media_type",
+        "byte_length",
+        "sha256",
+        "binding_state"
+      ],
+      "properties": {
+        "artifact_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 3
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "binding_state": {
+          "enum": [
+            "digest_verified_for_acquired_bytes",
+            "scenario_assumption",
+            "not_yet_acquired"
+          ]
+        },
+        "source_native": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_namespace",
+        "source_system",
+        "thing_id",
+        "sensor_id",
+        "datastream_id",
+        "vendor",
+        "model",
+        "firmware_revision",
+        "interrogator_config_revision",
+        "optical_path_id",
+        "sample_rate_hz",
+        "gauge_length_m",
+        "channel_pitch_m",
+        "declared_spatial_resolution_m"
+      ],
+      "properties": {
+        "owner_namespace": {
+          "type": "string",
+          "minLength": 3
+        },
+        "source_system": {
+          "type": "string",
+          "minLength": 2
+        },
+        "thing_id": {
+          "type": "string",
+          "minLength": 2
+        },
+        "sensor_id": {
+          "type": "string",
+          "minLength": 2
+        },
+        "datastream_id": {
+          "type": "string",
+          "minLength": 2
+        },
+        "vendor": {
+          "type": "string",
+          "minLength": 2
+        },
+        "model": {
+          "type": "string",
+          "minLength": 2
+        },
+        "firmware_revision": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "interrogator_config_revision": {
+          "type": "string",
+          "minLength": 2
+        },
+        "optical_path_id": {
+          "type": "string",
+          "minLength": 2
+        },
+        "sample_rate_hz": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "gauge_length_m": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "channel_pitch_m": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "declared_spatial_resolution_m": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "observed_property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identifier",
+        "phenomenon",
+        "unit",
+        "quantity_semantics"
+      ],
+      "properties": {
+        "identifier": {
+          "type": "string",
+          "format": "uri"
+        },
+        "phenomenon": {
+          "enum": [
+            "axial_strain",
+            "strain_rate",
+            "phase",
+            "amplitude",
+            "temperature",
+            "electrical_current",
+            "other"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity_semantics": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phenomenon_start",
+        "phenomenon_end",
+        "result_time",
+        "clock_source",
+        "synchronization_state",
+        "max_clock_offset_ms"
+      ],
+      "properties": {
+        "phenomenon_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "phenomenon_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "result_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "clock_source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "synchronization_state": {
+          "enum": [
+            "synchronized",
+            "bounded_offset",
+            "unsynchronized",
+            "unknown"
+          ]
+        },
+        "max_clock_offset_ms": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "spatial_axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "axis_kind",
+        "unit",
+        "start",
+        "step",
+        "sample_count",
+        "direction"
+      ],
+      "properties": {
+        "axis_kind": {
+          "enum": [
+            "optical_range",
+            "vendor_channel_index",
+            "physical_fibre_chainage"
+          ]
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "channel_index"
+          ]
+        },
+        "start": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "direction": {
+          "enum": [
+            "endpoint_a_to_b",
+            "endpoint_b_to_a",
+            "vendor_defined",
+            "unknown"
+          ]
+        },
+        "calibration_reference": {
+          "type": "string",
+          "minLength": 3
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "axis_kind": {
+                "const": "optical_range"
+              }
+            },
+            "required": [
+              "axis_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "const": "m"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "axis_kind": {
+                "const": "vendor_channel_index"
+              }
+            },
+            "required": [
+              "axis_kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "unit": {
+                "const": "channel_index"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "axis_kind": {
+                "const": "physical_fibre_chainage"
+              }
+            },
+            "required": [
+              "axis_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "calibration_reference"
+            ],
+            "properties": {
+              "unit": {
+                "const": "m"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "fibre_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity_state",
+        "fibre_id",
+        "fibre_revision",
+        "endpoint_from_id",
+        "endpoint_to_id",
+        "route_revision"
+      ],
+      "properties": {
+        "identity_state": {
+          "enum": [
+            "identified",
+            "unresolved",
+            "withheld"
+          ]
+        },
+        "fibre_id": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "fibre_revision": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "endpoint_from_id": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "endpoint_to_id": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "route_revision": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "identity_state": {
+                "const": "identified"
+              }
+            },
+            "required": [
+              "identity_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "fibre_id": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "const": "present"
+                  }
+                },
+                "required": [
+                  "state",
+                  "value"
+                ]
+              },
+              "fibre_revision": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "const": "present"
+                  }
+                },
+                "required": [
+                  "state",
+                  "value"
+                ]
+              },
+              "endpoint_from_id": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "const": "present"
+                  }
+                },
+                "required": [
+                  "state",
+                  "value"
+                ]
+              },
+              "endpoint_to_id": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "const": "present"
+                  }
+                },
+                "required": [
+                  "state",
+                  "value"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "processing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "method_id",
+        "method_revision",
+        "parent_artifact_sha256"
+      ],
+      "properties": {
+        "stage": {
+          "enum": [
+            "raw_vendor_native",
+            "normalized_derivative",
+            "processed_derivative",
+            "feature_derivative"
+          ]
+        },
+        "method_id": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "method_revision": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "parent_artifact_sha256": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          }
+        },
+        "parameters_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "const": "raw_vendor_native"
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "parent_artifact_sha256": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "normalized_derivative",
+                  "processed_derivative",
+                  "feature_derivative"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "parent_artifact_sha256": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "parameters_sha256"
+            ]
+          }
+        }
+      ]
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "epistemic_state",
+        "availability_state",
+        "quality_state",
+        "coverage_state",
+        "review_state"
+      ],
+      "properties": {
+        "epistemic_state": {
+          "enum": [
+            "observed",
+            "compiled_secondary",
+            "model_inference",
+            "scenario_assumption",
+            "unknown"
+          ]
+        },
+        "availability_state": {
+          "enum": [
+            "available",
+            "unobserved",
+            "unavailable",
+            "withheld",
+            "stale"
+          ]
+        },
+        "quality_state": {
+          "enum": [
+            "valid",
+            "degraded",
+            "invalid",
+            "conflicting",
+            "unsupported"
+          ]
+        },
+        "coverage_state": {
+          "enum": [
+            "observable",
+            "degraded",
+            "unobserved",
+            "unusable",
+            "unavailable",
+            "not_assessed",
+            "unknown"
+          ]
+        },
+        "review_state": {
+          "enum": [
+            "unreviewed",
+            "accepted",
+            "rejected",
+            "indeterminate"
+          ]
+        }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rights_state",
+        "permitted_purposes",
+        "custodian"
+      ],
+      "properties": {
+        "rights_state": {
+          "enum": [
+            "permitted",
+            "permission_required",
+            "restricted",
+            "withheld",
+            "unknown"
+          ]
+        },
+        "permitted_purposes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          },
+          "uniqueItems": true
+        },
+        "custodian": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        },
+        "license_or_permission_reference": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "audience"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "public_aggregate",
+            "partner_generalized",
+            "operational",
+            "restricted_critical"
+          ]
+        },
+        "audience": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2
+          }
+        },
+        "purpose_ref": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "value"
+              ],
+              "properties": {
+                "state": {
+                  "const": "present"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "unavailable",
+                    "withheld",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "time": {
+            "properties": {
+              "synchronization_state": {
+                "const": "unsynchronized"
+              }
+            },
+            "required": [
+              "synchronization_state"
+            ]
+          }
+        },
+        "required": [
+          "time"
+        ]
+      },
+      "then": {
+        "properties": {
+          "time": {
+            "properties": {
+              "max_clock_offset_ms": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source_artifact": {
+            "properties": {
+              "source_native": {
+                "const": true
+              }
+            },
+            "required": [
+              "source_native"
+            ]
+          }
+        },
+        "required": [
+          "source_artifact"
+        ]
+      },
+      "then": {
+        "properties": {
+          "processing": {
+            "properties": {
+              "stage": {
+                "const": "raw_vendor_native"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
