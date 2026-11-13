@@ -193,7 +193,7 @@ struct PreparedOccupancy {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum PreparedInsertion {
     Duplicate,
-    New(PreparedOccupancy),
+    New(Box<PreparedOccupancy>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -458,11 +458,11 @@ impl SpatialOccupancyBook {
             return Err(SpatialError::PotentialConflict(Box::new(conflict)));
         }
 
-        Ok(PreparedInsertion::New(PreparedOccupancy {
+        Ok(PreparedInsertion::New(Box::new(PreparedOccupancy {
             occupancy,
             expanded_bounds,
             expanded_interval,
-        }))
+        })))
     }
 
     /// Commit a previously validated candidate. No typed validation or conflict
@@ -798,7 +798,7 @@ mod tests {
         for (index, x) in coordinates.iter().enumerate() {
             for y in coordinates {
                 for z in coordinates {
-                    let width = if (index + (y as usize & 1)) % 2 == 0 {
+                    let width = if (index + (y as usize & 1)).is_multiple_of(2) {
                         1_000
                     } else {
                         10_001
@@ -819,16 +819,15 @@ mod tests {
                     continue;
                 }
 
-                match (&indexed_cells[left_index], &indexed_cells[right_index]) {
-                    (Some(left_cells), Some(right_cells)) => {
-                        assert!(
-                            left_cells.iter().any(|cell| right_cells.contains(cell)),
-                            "grid false negative for left={left:?}, right={right:?}"
-                        );
-                    }
-                    // An oversized box uses the global fallback and is compared
-                    // against every candidate; it cannot be pruned by the grid.
-                    _ => {}
+                // An oversized box uses the global fallback and is compared
+                // against every candidate; it cannot be pruned by the grid.
+                if let (Some(left_cells), Some(right_cells)) =
+                    (&indexed_cells[left_index], &indexed_cells[right_index])
+                {
+                    assert!(
+                        left_cells.iter().any(|cell| right_cells.contains(cell)),
+                        "grid false negative for left={left:?}, right={right:?}"
+                    );
                 }
             }
         }
