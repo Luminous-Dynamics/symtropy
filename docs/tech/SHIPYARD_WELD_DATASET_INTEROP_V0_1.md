@@ -2,12 +2,13 @@
 
 Tracking: [SHIPYARD-WELD-DATASET-INTEROP-001 #4683](https://github.com/Luminous-Dynamics/symtropy/issues/4683)
 
-## Three registered domains
+## Four registered domains
 
 | Dataset | Independent unit | Modalities | Label/evidence ceiling | Rights |
 |---|---|---|---|---|
 | BAM Tandem-GMAW | 5 WIDs | robot, current/voltage, leading/trailing source, 3D scan, video, t8/5 | process observations, surface metrology, thermocouple measurement; no NDT result in seed | raw Zenodo licence blank; RIGHTS_PENDING; article CC BY 4.0 applies only to article text/metadata |
 | Intel Robotic Welding Multimodal | 236 sessions | video, 16 kHz audio, sensor time series, five post-weld images | intended defect-category annotations; dataset card notes label noise/no expert post-weld validation and possible multi-defect samples | gated Intel Research Use License; research-only/non-commercial, non-transferable/non-sublicensable |
+| BAM Scientific Tool Use v0.1.0 | 5 WIDs | selected NetCDF/HDF5 arrays, task prompts/schemas/reference answers; no video | 160 numerical/evidence tasks (130 answerable, 30 constructed missing-file), 480 separate introductory SFT summaries; no expert defect/NDT/quality labels | derivative claims CC BY 4.0, but original Zenodo source record currently shows blank licence and copyright; RIGHTS_RECONCILIATION_REQUIRED; no raw files admitted |
 | GMAW thermography/profilometry | 4 runs | thermography/process CSV, laser profile, macrograph penetration profile, processed features | width/reinforcement metrology and destructive macrographic penetration; not NDT | article CC BY-NC; item-level Figshare v3 licence still pending independent read-back |
 
 No raw files are downloaded or vendored in v0.1. The three data sources are not concatenated and their labels are not pooled.
@@ -70,3 +71,11 @@ These are synthetic nanosecond-level known answers, not measured results from BA
 ## Claim ceiling
 
 A PASS establishes only that metadata rights, grouping and synthetic alignment rules are represented correctly. It does not parse the 39.9 GB or 4.5 GB datasets, establish physical quality, validate an NDT predictor, demonstrate cross-domain generalization or authorize commercial reuse.
+
+## BAM Scientific Tool Use derivative — ceiling-limited regression candidate
+
+Public card: https://huggingface.co/datasets/harrrshall/bam-scientific-tool-use, repository revision `51e0e9a`. The card describes 160 raw-file tasks across 30 passes from five WIDs (130 answerable + 30 constructed withheld-file cases), 480 separate introductory evidence-summary/SFT examples, and a 60-file NetCDF/HDF5 source subset of about 400,184,634 bytes. It reports three models solving all 32 test tasks in three repeats; the test set is a single held-out workpiece (WID632). This is an auditable tool-use regression harness with a ceiling effect, not a frontier-discriminative benchmark or physical quality/acceptance benchmark.
+
+**Rights conflict:** the derivative card and its attribution file assert CC BY 4.0 for source and derivative data, while the official Zenodo v2.0.0 source record currently presents a blank License field and “Copyright (C) 2026 The Authors.” The registry therefore sets `RIGHTS_RECONCILIATION_REQUIRED`. Do not download, mirror, train on, redistribute or score the derivative's raw source subset until the source authors/BAM confirm the exact rights chain in writing. The card also states that it is independently prepared and not endorsed by BAM/source creators.
+
+Use restrictions even after rights resolution: five WIDs are the independent physical clusters; 160 task rows are not 160 independent experiments; the 32-task test has one WID; the 30 withheld-file cases are constructed controls, not natural missingness; and the 480 introductory SFT items are not to be pooled into raw-file task scores. These boundaries are machine-checked as WDINT-042 through WDINT-046.
