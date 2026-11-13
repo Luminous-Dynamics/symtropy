@@ -1,0 +1,666 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime-ukc-physical-corpus-v0.1.schema.json",
+  "title": "Luminous Maritime UKC Physical Benchmark Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_cases",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.maritime-ukc-physical-corpus"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_synthetic_case"
+      ],
+      "properties": {
+        "valid_synthetic_case": {
+          "$ref": "#/$defs/physicalCase"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "base",
+          "mutations",
+          "expected_code"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "base": {
+            "const": "valid_synthetic_case"
+          },
+          "mutations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/mutation"
+            }
+          },
+          "expected_code": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nullableNumber": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableString": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "path"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "set",
+            "remove",
+            "insert"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {}
+      }
+    },
+    "physicalCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_kind",
+        "scenario_family",
+        "evaluation_cutoff_utc",
+        "vessel",
+        "waterway",
+        "operating_condition",
+        "measurement",
+        "model",
+        "lineage",
+        "units",
+        "clearance_construction"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "scenario_family": {
+          "enum": [
+            "intermediate_channel",
+            "confined_channel",
+            "harbour_approach",
+            "inland_waterway",
+            "open_water_reference"
+          ]
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vessel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "vessel_id",
+            "configuration_revision",
+            "vessel_class",
+            "length_m",
+            "beam_m",
+            "static_draught_m",
+            "trim_m",
+            "trim_convention",
+            "propulsion_mode",
+            "propeller_configuration_ref"
+          ],
+          "properties": {
+            "vessel_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configuration_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vessel_class": {
+              "enum": [
+                "cargo",
+                "container",
+                "tanker",
+                "inland_cargo",
+                "passenger",
+                "other"
+              ]
+            },
+            "length_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "beam_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "static_draught_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "trim_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "trim_convention": {
+              "enum": [
+                "stern_down_positive",
+                "bow_down_positive",
+                null
+              ]
+            },
+            "propulsion_mode": {
+              "enum": [
+                "self_propelled",
+                "towed",
+                "assisted",
+                "other"
+              ]
+            },
+            "propeller_configuration_ref": {
+              "$ref": "#/$defs/nullableString"
+            }
+          }
+        },
+        "waterway": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "waterway_id",
+            "geometry_revision",
+            "waterway_type",
+            "horizontal_crs",
+            "vertical_datum",
+            "channel_width_m",
+            "depth_at_critical_point_m",
+            "depth_uncertainty_m",
+            "bathymetry_observed_at_utc",
+            "bathymetry_max_age_s",
+            "bathymetry_source_group"
+          ],
+          "properties": {
+            "waterway_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "geometry_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "waterway_type": {
+              "enum": [
+                "intermediate_channel",
+                "confined_channel",
+                "harbour_approach",
+                "inland_waterway",
+                "open_water"
+              ]
+            },
+            "horizontal_crs": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "vertical_datum": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "channel_width_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "depth_at_critical_point_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "depth_uncertainty_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "bathymetry_observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "bathymetry_max_age_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bathymetry_source_group": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "operating_condition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "condition_id",
+            "speed_through_water_mps",
+            "depth_froude",
+            "depth_to_draught_ratio",
+            "channel_width_to_beam_ratio",
+            "water_level_above_datum_m",
+            "water_level_uncertainty_m",
+            "water_level_observed_at_utc",
+            "water_level_max_age_s",
+            "current_speed_mps",
+            "current_direction_deg",
+            "current_observed_at_utc",
+            "current_max_age_s",
+            "water_density_kg_m3",
+            "significant_wave_height_m",
+            "forcing_valid_until_utc"
+          ],
+          "properties": {
+            "condition_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "speed_through_water_mps": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "depth_froude": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "depth_to_draught_ratio": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "channel_width_to_beam_ratio": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "water_level_above_datum_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "water_level_uncertainty_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "water_level_observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "water_level_max_age_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "current_speed_mps": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "current_direction_deg": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "current_observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "current_max_age_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "water_density_kg_m3": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "significant_wave_height_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "forcing_valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "measurement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sensor_id",
+            "measurement_kind",
+            "sensor_position_from_aft_perpendicular_m",
+            "sensor_vertical_datum",
+            "measured_ukc_m",
+            "resolution_m",
+            "uncertainty_m",
+            "calibration_valid_until_utc",
+            "measured_at_utc",
+            "evidence_ref",
+            "source_group",
+            "rights_review_status"
+          ],
+          "properties": {
+            "sensor_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurement_kind": {
+              "enum": [
+                "synthetic_instrument_observation",
+                "model_test_reference",
+                "in_service_sensor",
+                "other"
+              ]
+            },
+            "sensor_position_from_aft_perpendicular_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "sensor_vertical_datum": {
+              "$ref": "#/$defs/nullableString"
+            },
+            "measured_ukc_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "resolution_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "uncertainty_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "calibration_valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "measured_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "evidence_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rights_review_status": {
+              "enum": [
+                "reviewed_permitted",
+                "review_required",
+                "synthetic_not_applicable"
+              ]
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "revision",
+            "method",
+            "use_role",
+            "output_reference_point",
+            "returns_dynamic_trim",
+            "propeller_representation",
+            "applicability",
+            "convergence_status",
+            "config_digest",
+            "training_group",
+            "evaluation_group",
+            "evaluation_split",
+            "no_leakage_attested",
+            "independent_validation_reference"
+          ],
+          "properties": {
+            "model_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "method": {
+              "enum": [
+                "empirical_formula",
+                "towing_urans",
+                "self_propelled_urans",
+                "potential_flow",
+                "other"
+              ]
+            },
+            "use_role": {
+              "enum": [
+                "primary_prediction",
+                "benchmark_comparator"
+              ]
+            },
+            "output_reference_point": {
+              "enum": [
+                "midship",
+                "sensor_location",
+                "full_longitudinal_profile",
+                "other"
+              ]
+            },
+            "returns_dynamic_trim": {
+              "type": "boolean"
+            },
+            "propeller_representation": {
+              "enum": [
+                "not_applicable",
+                "none",
+                "body_force",
+                "actuator_disk",
+                "resolved_propeller",
+                "other"
+              ]
+            },
+            "applicability": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "depth_to_draught_min",
+                "depth_to_draught_max",
+                "depth_froude_min",
+                "depth_froude_max",
+                "channel_width_to_beam_min",
+                "channel_width_to_beam_max"
+              ],
+              "properties": {
+                "depth_to_draught_min": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "depth_to_draught_max": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "depth_froude_min": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "depth_froude_max": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "channel_width_to_beam_min": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "channel_width_to_beam_max": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "convergence_status": {
+              "enum": [
+                "converged",
+                "not_converged",
+                "not_applicable",
+                "unknown"
+              ]
+            },
+            "config_digest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "training_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evaluation_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evaluation_split": {
+              "enum": [
+                "train",
+                "validation",
+                "test",
+                "held_out"
+              ]
+            },
+            "no_leakage_attested": {
+              "type": "boolean"
+            },
+            "independent_validation_reference": {
+              "$ref": "#/$defs/nullableString"
+            }
+          }
+        },
+        "lineage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bathymetry_source_group",
+            "water_level_source_group",
+            "current_source_group",
+            "measurement_source_group",
+            "independence_claim"
+          ],
+          "properties": {
+            "bathymetry_source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "water_level_source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "current_source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "measurement_source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "independence_claim": {
+              "type": "boolean"
+            }
+          }
+        },
+        "units": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "length",
+            "speed",
+            "density",
+            "angle",
+            "time_standard"
+          ],
+          "properties": {
+            "length": {
+              "const": "m"
+            },
+            "speed": {
+              "const": "m/s"
+            },
+            "density": {
+              "const": "kg/m3"
+            },
+            "angle": {
+              "const": "deg"
+            },
+            "time_standard": {
+              "const": "UTC"
+            }
+          }
+        },
+        "clearance_construction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "draught_basis",
+            "static_draught_includes_dynamic_squat",
+            "measured_ukc_already_includes_dynamic_effects",
+            "predicted_squat_added_to_measured_ukc",
+            "trim_reconciled_to_sensor_location"
+          ],
+          "properties": {
+            "draught_basis": {
+              "enum": [
+                "static",
+                "dynamic",
+                "unknown"
+              ]
+            },
+            "static_draught_includes_dynamic_squat": {
+              "type": "boolean"
+            },
+            "measured_ukc_already_includes_dynamic_effects": {
+              "type": "boolean"
+            },
+            "predicted_squat_added_to_measured_ukc": {
+              "type": "boolean"
+            },
+            "trim_reconciled_to_sensor_location": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

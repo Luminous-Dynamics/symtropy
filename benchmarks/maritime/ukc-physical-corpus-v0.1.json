@@ -1,0 +1,492 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-ukc-physical-corpus",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "A contract-valid synthetic case is not a physical prediction, calibration result, validated UKC estimate, navigation clearance or authority to transit.",
+  "base_cases": {
+    "valid_synthetic_case": {
+      "case_id": "synthetic-self-propelled-intermediate-channel-baseline",
+      "fixture_kind": "synthetic_fixture",
+      "scenario_family": "intermediate_channel",
+      "evaluation_cutoff_utc": "2026-11-02T09:00:00Z",
+      "vessel": {
+        "vessel_id": "SYNTHETIC-VESSEL-10000-DWT",
+        "configuration_revision": "synthetic-config-v1",
+        "vessel_class": "cargo",
+        "length_m": 190,
+        "beam_m": 32,
+        "static_draught_m": 10,
+        "trim_m": 0.12,
+        "trim_convention": "stern_down_positive",
+        "propulsion_mode": "self_propelled",
+        "propeller_configuration_ref": "fixture:synthetic-propeller-config-v1"
+      },
+      "waterway": {
+        "waterway_id": "SYNTHETIC-INTERMEDIATE-CHANNEL",
+        "geometry_revision": "synthetic-channel-v1",
+        "waterway_type": "intermediate_channel",
+        "horizontal_crs": "EPSG:32633",
+        "vertical_datum": "SYNTHETIC-VERTICAL-DATUM-A",
+        "channel_width_m": 64,
+        "depth_at_critical_point_m": 14.5,
+        "depth_uncertainty_m": 0.05,
+        "bathymetry_observed_at_utc": "2026-11-02T08:00:00Z",
+        "bathymetry_max_age_s": 86400,
+        "bathymetry_source_group": "synthetic-bathy-source-A"
+      },
+      "operating_condition": {
+        "condition_id": "synthetic-condition-v1",
+        "speed_through_water_mps": 5,
+        "depth_froude": 0.42,
+        "depth_to_draught_ratio": 1.45,
+        "channel_width_to_beam_ratio": 2,
+        "water_level_above_datum_m": 0.5,
+        "water_level_uncertainty_m": 0.03,
+        "water_level_observed_at_utc": "2026-11-02T08:30:00Z",
+        "water_level_max_age_s": 3600,
+        "current_speed_mps": 0.3,
+        "current_direction_deg": 45,
+        "current_observed_at_utc": "2026-11-02T08:30:00Z",
+        "current_max_age_s": 3600,
+        "water_density_kg_m3": 1025,
+        "significant_wave_height_m": 0.2,
+        "forcing_valid_until_utc": "2026-11-02T10:00:00Z"
+      },
+      "measurement": {
+        "sensor_id": "SYNTHETIC-UKC-SENSOR-BOW-01",
+        "measurement_kind": "synthetic_instrument_observation",
+        "sensor_position_from_aft_perpendicular_m": 160,
+        "sensor_vertical_datum": "SYNTHETIC-VERTICAL-DATUM-A",
+        "measured_ukc_m": 0.9,
+        "resolution_m": 0.01,
+        "uncertainty_m": 0.03,
+        "calibration_valid_until_utc": "2027-01-01T00:00:00Z",
+        "measured_at_utc": "2026-11-02T08:45:00Z",
+        "evidence_ref": "fixture:synthetic-ukc-reading-001",
+        "source_group": "synthetic-sensor-source-C",
+        "rights_review_status": "synthetic_not_applicable"
+      },
+      "model": {
+        "model_id": "SYNTHETIC-SELF-PROPELLED-URANS",
+        "revision": "synthetic-model-v1",
+        "method": "self_propelled_urans",
+        "use_role": "primary_prediction",
+        "output_reference_point": "sensor_location",
+        "returns_dynamic_trim": true,
+        "propeller_representation": "body_force",
+        "applicability": {
+          "depth_to_draught_min": 1,
+          "depth_to_draught_max": 2.2,
+          "depth_froude_min": 0.1,
+          "depth_froude_max": 0.7,
+          "channel_width_to_beam_min": 1.2,
+          "channel_width_to_beam_max": 4
+        },
+        "convergence_status": "converged",
+        "config_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "training_group": "synthetic-train-family-A",
+        "evaluation_group": "synthetic-heldout-family-B",
+        "evaluation_split": "held_out",
+        "no_leakage_attested": true,
+        "independent_validation_reference": "fixture:synthetic-known-answer-oracle-only"
+      },
+      "lineage": {
+        "bathymetry_source_group": "synthetic-bathy-source-A",
+        "water_level_source_group": "synthetic-water-level-source-B",
+        "current_source_group": "synthetic-current-source-D",
+        "measurement_source_group": "synthetic-sensor-source-C",
+        "independence_claim": true
+      },
+      "units": {
+        "length": "m",
+        "speed": "m/s",
+        "density": "kg/m3",
+        "angle": "deg",
+        "time_standard": "UTC"
+      },
+      "clearance_construction": {
+        "draught_basis": "static",
+        "static_draught_includes_dynamic_squat": false,
+        "measured_ukc_already_includes_dynamic_effects": true,
+        "predicted_squat_added_to_measured_ukc": false,
+        "trim_reconciled_to_sensor_location": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_self_propelled_urans_synthetic_positive",
+      "base": "valid_synthetic_case",
+      "mutations": [],
+      "expected_code": "CASE_CONTRACT_VALID_NOT_PHYSICALLY_QUALIFIED"
+    },
+    {
+      "id": "valid_trim_aware_empirical_method_synthetic_positive",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.method",
+          "value": "empirical_formula"
+        },
+        {
+          "op": "set",
+          "path": "model.propeller_representation",
+          "value": "not_applicable"
+        }
+      ],
+      "expected_code": "CASE_CONTRACT_VALID_NOT_PHYSICALLY_QUALIFIED"
+    },
+    {
+      "id": "missing_waterway_vertical_datum",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "waterway.vertical_datum",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_VERTICAL_DATUM"
+    },
+    {
+      "id": "sensor_vertical_datum_mismatch",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "measurement.sensor_vertical_datum",
+          "value": "SYNTHETIC-DATUM-B"
+        }
+      ],
+      "expected_code": "VERTICAL_DATUM_MISMATCH"
+    },
+    {
+      "id": "missing_sensor_position",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "measurement.sensor_position_from_aft_perpendicular_m",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_SENSOR_POSITION"
+    },
+    {
+      "id": "sensor_position_outside_vessel_length",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "measurement.sensor_position_from_aft_perpendicular_m",
+          "value": 220
+        }
+      ],
+      "expected_code": "SENSOR_POSITION_OUT_OF_RANGE"
+    },
+    {
+      "id": "missing_trim_sign_convention",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "remove",
+          "path": "vessel.trim_convention"
+        }
+      ],
+      "expected_code": "MISSING_TRIM_SIGN_CONVENTION"
+    },
+    {
+      "id": "bow_sensor_without_dynamic_trim_output",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.returns_dynamic_trim",
+          "value": false
+        }
+      ],
+      "expected_code": "TRIM_NOT_RESOLVED_AT_SENSOR"
+    },
+    {
+      "id": "towing_urans_used_as_primary_for_self_propelled_vessel",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.method",
+          "value": "towing_urans"
+        }
+      ],
+      "expected_code": "TOWING_MODEL_NOT_APPLICABLE_FOR_SELF_PROPELLED"
+    },
+    {
+      "id": "self_propelled_urans_without_propeller_representation",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.propeller_representation",
+          "value": "none"
+        }
+      ],
+      "expected_code": "MISSING_PROPULSION_REPRESENTATION"
+    },
+    {
+      "id": "depth_to_draught_outside_model_domain",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.depth_to_draught_ratio",
+          "value": 0.8
+        }
+      ],
+      "expected_code": "MODEL_OUT_OF_DOMAIN_H_OVER_T"
+    },
+    {
+      "id": "depth_froude_outside_model_domain",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.depth_froude",
+          "value": 0.85
+        }
+      ],
+      "expected_code": "MODEL_OUT_OF_DOMAIN_FR_H"
+    },
+    {
+      "id": "channel_blockage_outside_model_domain",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.channel_width_to_beam_ratio",
+          "value": 5
+        }
+      ],
+      "expected_code": "MODEL_OUT_OF_DOMAIN_W_OVER_B"
+    },
+    {
+      "id": "non_converged_urans_run",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.convergence_status",
+          "value": "not_converged"
+        }
+      ],
+      "expected_code": "MODEL_RUN_NOT_CONVERGED"
+    },
+    {
+      "id": "malformed_model_configuration_digest",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.config_digest",
+          "value": "abc123"
+        }
+      ],
+      "expected_code": "INVALID_MODEL_CONFIG_DIGEST"
+    },
+    {
+      "id": "water_density_missing",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.water_density_kg_m3",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_WATER_DENSITY"
+    },
+    {
+      "id": "bathymetry_exceeds_freshness_policy",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "waterway.bathymetry_observed_at_utc",
+          "value": "2026-10-30T08:00:00Z"
+        }
+      ],
+      "expected_code": "STALE_BATHYMETRY"
+    },
+    {
+      "id": "current_observation_exceeds_freshness_policy",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.current_observed_at_utc",
+          "value": "2026-11-02T06:00:00Z"
+        }
+      ],
+      "expected_code": "STALE_CURRENT"
+    },
+    {
+      "id": "forcing_validity_ends_before_evaluation_cutoff",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.forcing_valid_until_utc",
+          "value": "2026-11-02T08:55:00Z"
+        }
+      ],
+      "expected_code": "FORCING_OUTSIDE_VALIDITY"
+    },
+    {
+      "id": "sensor_calibration_expired_at_evaluation_cutoff",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "measurement.calibration_valid_until_utc",
+          "value": "2026-11-02T08:00:00Z"
+        }
+      ],
+      "expected_code": "SENSOR_CALIBRATION_EXPIRED"
+    },
+    {
+      "id": "measurement_uncertainty_missing",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "measurement.uncertainty_m",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_MEASUREMENT_UNCERTAINTY"
+    },
+    {
+      "id": "bathymetry_uncertainty_missing",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "waterway.depth_uncertainty_m",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_DEPTH_UNCERTAINTY"
+    },
+    {
+      "id": "shared_source_misrepresented_as_independent",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "lineage.water_level_source_group",
+          "value": "synthetic-bathy-source-A"
+        }
+      ],
+      "expected_code": "FALSE_INDEPENDENCE_CLAIM"
+    },
+    {
+      "id": "speed_unit_conflicts_with_mps_field",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "units.speed",
+          "value": "kn"
+        }
+      ],
+      "expected_code": "UNIT_CONTRACT_MISMATCH"
+    },
+    {
+      "id": "squat_double_counted_in_draught_and_measured_ukc",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "clearance_construction.static_draught_includes_dynamic_squat",
+          "value": true
+        },
+        {
+          "op": "set",
+          "path": "clearance_construction.predicted_squat_added_to_measured_ukc",
+          "value": true
+        }
+      ],
+      "expected_code": "DOUBLE_COUNT_SQUAT_COMPONENT"
+    },
+    {
+      "id": "static_draught_missing",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "vessel.static_draught_m",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_STATIC_DRAUGHT"
+    },
+    {
+      "id": "speed_through_water_missing",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "operating_condition.speed_through_water_mps",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_SPEED_THROUGH_WATER"
+    },
+    {
+      "id": "reference_candidate_rights_not_reviewed",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "measurement.rights_review_status",
+          "value": "review_required"
+        }
+      ],
+      "expected_code": "TERMS_NOT_REVIEWED"
+    },
+    {
+      "id": "held_out_evaluation_leaks_training_source_group",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.evaluation_group",
+          "value": "synthetic-train-family-A"
+        }
+      ],
+      "expected_code": "DATA_SPLIT_LEAKAGE"
+    },
+    {
+      "id": "independent_validation_reference_missing",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "model.independent_validation_reference",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_INDEPENDENT_VALIDATION_REFERENCE"
+    },
+    {
+      "id": "negative_depth_uncertainty",
+      "base": "valid_synthetic_case",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "waterway.depth_uncertainty_m",
+          "value": -0.1
+        }
+      ],
+      "expected_code": "INVALID_UNCERTAINTY"
+    }
+  ]
+}
