@@ -1244,8 +1244,8 @@ mod tests {
     #[test]
     fn floor_epoch_mismatch_blocks_resource_reservation_before_owner_call() {
         let floor = floor_binding();
-        let mut book = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
-            .expect("reservation book");
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
         book.register_resource("HOIST-1", 1).expect("resource");
         let mut request = reservation("r1", "task-1", 10, 20);
         request.site_epoch = "site-epoch-old".to_owned();
