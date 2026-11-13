@@ -80,3 +80,32 @@ A passing report means only that the supplied schedule satisfies this
 version's declared synthetic constraint model. It is not evidence of factory
 productivity, energy/water savings, safe working conditions, product quality,
 industrial feasibility or physical execution.
+
+
+## Route eligibility gate v0.2
+
+The `route_gate` module binds every production job to exactly one upstream
+`RouteRequirement` and a matching `RouteReceipt`. A scheduled textile job is
+not eligible merely because a schedule can be made feasible.
+
+The gate requires exact matching of:
+- physical lot ID and incoming mass;
+- route ID and versioned receiving specification;
+- receipt ID and exact receipt SHA-256;
+- evidence-manifest SHA-256;
+- upstream contract version and distinct issuer/verifier IDs.
+
+Only `Eligible` route receipts pass. `Conditional`, `InsufficientEvidence`
+and `Ineligible` all block scheduling. `validate_with_route_gates` combines
+the ordinary machine/operator/precedence report with route precondition findings.
+
+This layer checks structural identity and digest-string equality. It does not
+recompute receipt SHA-256 from artifact bytes, authenticate the issuer/verifier,
+or verify physical evidence. The upstream verifier must verify the exact receipt
+bytes before a route is supplied here. A mismatch against the pinned digest
+makes a changed/stale receipt visible to the schedule gate.
+
+The 18 route-gate unit tests cover eligible multi-lot binding, missing and
+non-eligible receipts, digest/lot/route/spec/mass mismatch, duplicate
+requirements/receipts, unknown jobs, malformed digests, independent verifier
+identity and combined schedule validation.
