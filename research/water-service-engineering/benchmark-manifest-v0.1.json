@@ -160,5 +160,22 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "pump_control_robustness": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5018",
+    "protocol": "research/water-service-engineering/pump-control-robustness/PUMP_CONTROL_ROBUSTNESS_V0_1.md",
+    "scenarios": "research/water-service-engineering/pump-control-robustness/scenarios-v0.1.json",
+    "schema": "research/water-service-engineering/pump-control-robustness/scenarios-v0.1.schema.json",
+    "expected_disposition_oracle": "research/water-service-engineering/pump-control-robustness/disposition-oracle-v0.1.json",
+    "case_count": 15,
+    "baseline_families": [
+      "tuned_rule_or_pi",
+      "hydraulic_model_mpc",
+      "data_enabled_predictive_control",
+      "model_free_enc_2026",
+      "qualified_estimator_plus_controller"
+    ],
+    "status": "synthetic_scenario_contract_only_no_controller_reproduction_or_physical_qualification",
+    "hard_gate": "stale_conflicting_or_unobservable_critical_state_requires_abstention_or_independent_local_safety_policy"
   }
 }
