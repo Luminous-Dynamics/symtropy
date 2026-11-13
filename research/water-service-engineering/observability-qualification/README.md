@@ -5,7 +5,7 @@ Read-only Rust evaluator for the synthetic failure-domain observability corpus.
 ## Run from the Symtropy repository root
 
 ```sh
-cargo test --locked --package water-service-t0 --bin water-observability-qualification
+cargo test --locked --package water-service-t0
 cargo run --locked --package water-service-t0 --bin water-observability-qualification -- \
   research/water-service-engineering/observability-qualification/scenarios-v0.1.json \
   research/water-service-engineering/observability-qualification/scenarios-v0.1.schema.json \
