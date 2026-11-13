@@ -866,15 +866,10 @@ mod tests {
             0,
             vec![outcome(1_000_000, 30, 50)],
         );
-        let valuable = beneficial_query("slower-higher-value", QueryKind::CounterfactualSimulation, 20_000);
-        let fast = candidate(
-            "fast-lower-value",
-            QueryKind::SensorReacquisition,
-            5_000,
-            100,
-            0,
-            0,
-            vec![outcome(1_000_000, 30, 50)],
+        let valuable = beneficial_query(
+            "slower-higher-value",
+            QueryKind::CounterfactualSimulation,
+            20_000,
         );
         let dominated = candidate(
             "dominated",
