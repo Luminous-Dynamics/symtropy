@@ -339,12 +339,24 @@
       "expected_disposition": "ABSTAIN",
       "mutation": "reference and observed profiles contain the same number of x stations but different canonical x-grid SHA-256 identifiers",
       "reason": "XGridDigestMismatch"
+    },
+    {
+      "control_id": "GMO-032",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed profiles bind different layer IDs while the scan and transition IDs remain otherwise valid",
+      "reason": "LayerMismatch"
+    },
+    {
+      "control_id": "GMO-033",
+      "expected_disposition": "ABSTAIN",
+      "mutation": "reference and observed profiles bind different predecessor pass IDs while the transition string is unchanged",
+      "reason": "PredecessorPassMismatch"
     }
   ],
   "totals": {
-    "cases": 31,
+    "cases": 33,
     "positive": 4,
-    "negative": 27,
-    "additional_negative_controls": 26
+    "negative": 29,
+    "additional_negative_controls": 28
   }
 }
