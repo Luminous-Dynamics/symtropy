@@ -19,6 +19,11 @@ pub struct FloorBinding {
     pub site_epoch: String,
     pub design_revision_digest: String,
     pub target_frame_id: String,
+    pub benchmark_profile_id: String,
+    pub benchmark_profile_digest: String,
+    pub reference_fixture_id: String,
+    pub reference_fixture_digest: String,
+    pub claim_ceiling: String,
     /// Stable identity of the integer-minute accounting timeline for labour slices.
     pub labour_time_axis_id: String,
 }
@@ -29,6 +34,11 @@ impl FloorBinding {
         require_non_empty("site_epoch", &self.site_epoch)?;
         require_non_empty("design_revision_digest", &self.design_revision_digest)?;
         require_non_empty("target_frame_id", &self.target_frame_id)?;
+        require_non_empty("benchmark_profile_id", &self.benchmark_profile_id)?;
+        require_non_empty("benchmark_profile_digest", &self.benchmark_profile_digest)?;
+        require_non_empty("reference_fixture_id", &self.reference_fixture_id)?;
+        require_non_empty("reference_fixture_digest", &self.reference_fixture_digest)?;
+        require_non_empty("claim_ceiling", &self.claim_ceiling)?;
         require_non_empty("labour_time_axis_id", &self.labour_time_axis_id)
     }
 
@@ -137,6 +147,11 @@ pub struct FloorReport {
     pub site_epoch: String,
     pub design_revision_digest: String,
     pub target_frame_id: String,
+    pub benchmark_profile_id: String,
+    pub benchmark_profile_digest: String,
+    pub reference_fixture_id: String,
+    pub reference_fixture_digest: String,
+    pub claim_ceiling: String,
     pub labour_time_axis_id: String,
     pub currency_code: String,
     pub required_units: u64,
@@ -612,6 +627,11 @@ impl FloorLedger {
             site_epoch: self.binding.site_epoch.clone(),
             design_revision_digest: self.binding.design_revision_digest.clone(),
             target_frame_id: self.binding.target_frame_id.clone(),
+            benchmark_profile_id: self.binding.benchmark_profile_id.clone(),
+            benchmark_profile_digest: self.binding.benchmark_profile_digest.clone(),
+            reference_fixture_id: self.binding.reference_fixture_id.clone(),
+            reference_fixture_digest: self.binding.reference_fixture_digest.clone(),
+            claim_ceiling: self.binding.claim_ceiling.clone(),
             labour_time_axis_id: self.binding.labour_time_axis_id.clone(),
             currency_code: self.currency_code.clone(),
             required_units,
@@ -828,6 +848,11 @@ mod tests {
             site_epoch: "site-epoch-1".to_owned(),
             design_revision_digest: "design-digest-1".to_owned(),
             target_frame_id: "project-grid-1".to_owned(),
+            benchmark_profile_id: "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001".to_owned(),
+            benchmark_profile_digest: "sha256:synthetic-profile-digest".to_owned(),
+            reference_fixture_id: "highrise-reference-floor-micro-oracle-001".to_owned(),
+            reference_fixture_digest: "sha256:synthetic-fixture-digest".to_owned(),
+            claim_ceiling: "synthetic_accepted_output_accounting_only".to_owned(),
             labour_time_axis_id: "project-labour-clock-1".to_owned(),
         }
     }
