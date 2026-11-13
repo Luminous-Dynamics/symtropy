@@ -176,18 +176,16 @@ fn valid_utility_basis(basis: &UtilityEvidenceBasis) -> bool {
             .sha256
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
-    if !valid_digest
-        || basis.evidence_id.trim().is_empty()
-        || basis.method_ref.trim().is_empty()
-    {
+    if !valid_digest || basis.evidence_id.trim().is_empty() || basis.method_ref.trim().is_empty() {
         return false;
     }
     match basis.kind {
-        UtilityEvidenceKind::MeterObservation
-        | UtilityEvidenceKind::ProcessTrialMeasurement => basis
-            .calibration_id
-            .as_deref()
-            .is_some_and(|value| !value.trim().is_empty()),
+        UtilityEvidenceKind::MeterObservation | UtilityEvidenceKind::ProcessTrialMeasurement => {
+            basis
+                .calibration_id
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+        }
         UtilityEvidenceKind::MachineNameplate | UtilityEvidenceKind::EngineeringEstimate => {
             basis.calibration_id.is_none()
         }
@@ -280,8 +278,7 @@ pub fn validate_utilities(
         });
     }
 
-    let mut evidence_basis_counts =
-        BTreeMap::<UtilityEvidenceKind, usize>::new();
+    let mut evidence_basis_counts = BTreeMap::<UtilityEvidenceKind, usize>::new();
 
     let mut profiles = BTreeMap::<UtilityConsumerKey, &UtilityConsumerProfile>::new();
     for profile in &model.profiles {
@@ -335,7 +332,10 @@ pub fn validate_utilities(
 
     let mut envelope_by_metric = BTreeMap::<UtilityMetric, Vec<&UtilityEnvelope>>::new();
     for envelope in &model.envelopes {
-        match (envelope.capacity_units_per_tick, envelope.capacity_basis.as_ref()) {
+        match (
+            envelope.capacity_units_per_tick,
+            envelope.capacity_basis.as_ref(),
+        ) {
             (Some(_), Some(basis)) if valid_utility_basis(basis) => {
                 *evidence_basis_counts.entry(basis.kind).or_default() += 1;
             }
@@ -750,11 +750,15 @@ mod tests {
         let report = validate_utilities(&problem(), &schedule(), &model);
         assert!(report.valid, "{:#?}", report.findings);
         assert_eq!(
-            report.evidence_basis_counts.get(&UtilityEvidenceKind::MeterObservation),
+            report
+                .evidence_basis_counts
+                .get(&UtilityEvidenceKind::MeterObservation),
             Some(&1)
         );
         assert_eq!(
-            report.evidence_basis_counts.get(&UtilityEvidenceKind::EngineeringEstimate),
+            report
+                .evidence_basis_counts
+                .get(&UtilityEvidenceKind::EngineeringEstimate),
             Some(&1)
         );
     }
