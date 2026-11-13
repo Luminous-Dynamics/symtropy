@@ -50,6 +50,189 @@ fn nonempty(value: Option<&str>) -> bool {
     value.is_some_and(|text| !text.trim().is_empty())
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TwinLifecycleState {
+    Unconfigured,
+    Candidate,
+    Commissioned,
+    Degraded,
+    Suspended,
+    RequalificationRequired,
+    Decommissioned,
+}
+
+impl TwinLifecycleState {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "UNCONFIGURED" => Some(Self::Unconfigured),
+            "CANDIDATE" => Some(Self::Candidate),
+            "COMMISSIONED" => Some(Self::Commissioned),
+            "DEGRADED" => Some(Self::Degraded),
+            "SUSPENDED" => Some(Self::Suspended),
+            "REQUALIFICATION_REQUIRED" => Some(Self::RequalificationRequired),
+            "DECOMMISSIONED" => Some(Self::Decommissioned),
+            _ => None,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Unconfigured => "UNCONFIGURED",
+            Self::Candidate => "CANDIDATE",
+            Self::Commissioned => "COMMISSIONED",
+            Self::Degraded => "DEGRADED",
+            Self::Suspended => "SUSPENDED",
+            Self::RequalificationRequired => "REQUALIFICATION_REQUIRED",
+            Self::Decommissioned => "DECOMMISSIONED",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LifecycleEvent {
+    ConfigurationComplete,
+    CommissioningPassed,
+    CommissioningFailed,
+    OptionalBudgetExceeded,
+    CriticalBudgetExceeded,
+    DependencyRevisionChanged,
+    RecommissioningStarted,
+    SuspensionCleared,
+    RequalificationStarted,
+    Decommission,
+}
+
+impl LifecycleEvent {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "CONFIGURATION_COMPLETE" => Some(Self::ConfigurationComplete),
+            "COMMISSIONING_PASSED" => Some(Self::CommissioningPassed),
+            "COMMISSIONING_FAILED" => Some(Self::CommissioningFailed),
+            "OPTIONAL_BUDGET_EXCEEDED" => Some(Self::OptionalBudgetExceeded),
+            "CRITICAL_BUDGET_EXCEEDED" => Some(Self::CriticalBudgetExceeded),
+            "DEPENDENCY_REVISION_CHANGED" => Some(Self::DependencyRevisionChanged),
+            "RECOMMISSIONING_STARTED" => Some(Self::RecommissioningStarted),
+            "SUSPENSION_CLEARED" => Some(Self::SuspensionCleared),
+            "REQUALIFICATION_STARTED" => Some(Self::RequalificationStarted),
+            "DECOMMISSION" => Some(Self::Decommission),
+            _ => None,
+        }
+    }
+}
+
+/// Apply one lifecycle event. Illegal transitions return None and cannot be
+/// interpreted as readiness. Recovery always requires fresh commissioning.
+fn lifecycle_transition(
+    state: TwinLifecycleState,
+    event: LifecycleEvent,
+) -> Option<TwinLifecycleState> {
+    use LifecycleEvent as E;
+    use TwinLifecycleState as S;
+
+    if event == E::Decommission && state != S::Decommissioned {
+        return Some(S::Decommissioned);
+    }
+
+    match (state, event) {
+        (S::Unconfigured, E::ConfigurationComplete) => Some(S::Candidate),
+        (S::Candidate, E::CommissioningPassed) => Some(S::Commissioned),
+        (S::Candidate, E::CommissioningFailed) => Some(S::Candidate),
+        (S::Commissioned, E::OptionalBudgetExceeded) => Some(S::Degraded),
+        (S::Commissioned, E::CriticalBudgetExceeded) => Some(S::Suspended),
+        (S::Commissioned, E::DependencyRevisionChanged) => {
+            Some(S::RequalificationRequired)
+        }
+        (S::Degraded, E::CriticalBudgetExceeded) => Some(S::Suspended),
+        (S::Degraded, E::DependencyRevisionChanged) => {
+            Some(S::RequalificationRequired)
+        }
+        (S::Degraded, E::RecommissioningStarted) => Some(S::Candidate),
+        (S::Suspended, E::SuspensionCleared) => Some(S::RequalificationRequired),
+        (S::Suspended, E::DependencyRevisionChanged) => {
+            Some(S::RequalificationRequired)
+        }
+        (S::RequalificationRequired, E::RequalificationStarted) => Some(S::Candidate),
+        _ => None,
+    }
+}
+
+fn validate_lifecycle_scenarios(corpus: &Value) -> Result<usize, Vec<String>> {
+    let Some(scenarios) = corpus.get("lifecycle_scenarios").and_then(Value::as_array) else {
+        return Err(vec!["lifecycle_scenarios must be an array".to_owned()]);
+    };
+    let mut errors = Vec::new();
+    if scenarios.len() != 8 {
+        errors.push(format!(
+            "expected 8 lifecycle scenarios, found {}",
+            scenarios.len()
+        ));
+    }
+    let mut scenario_ids = HashSet::new();
+    for (index, scenario) in scenarios.iter().enumerate() {
+        let Some(id) = str_at(scenario, "scenario_id") else {
+            errors.push(format!("lifecycle_scenarios[{index}] has no scenario_id"));
+            continue;
+        };
+        if !scenario_ids.insert(id.to_owned()) {
+            errors.push(format!("duplicate lifecycle scenario {id}"));
+        }
+        let Some(mut state) = str_at(scenario, "initial_state").and_then(TwinLifecycleState::parse)
+        else {
+            errors.push(format!("{id}: unknown initial lifecycle state"));
+            continue;
+        };
+        let Some(events) = scenario.get("events").and_then(Value::as_array) else {
+            errors.push(format!("{id}: events must be an array"));
+            continue;
+        };
+        let Some(expected_states) = scenario.get("expected_states").and_then(Value::as_array) else {
+            errors.push(format!("{id}: expected_states must be an array"));
+            continue;
+        };
+        if expected_states.len() != events.len() + 1
+            || expected_states.first().and_then(Value::as_str) != Some(state.as_str())
+        {
+            errors.push(format!("{id}: expected_states must include the initial state and every transition"));
+            continue;
+        }
+        for (step, event_value) in events.iter().enumerate() {
+            let Some(event_name) = event_value.as_str() else {
+                errors.push(format!("{id}: event[{step}] must be a string"));
+                break;
+            };
+            let Some(event) = LifecycleEvent::parse(event_name) else {
+                errors.push(format!("{id}: unknown lifecycle event {event_name}"));
+                break;
+            };
+            let Some(next_state) = lifecycle_transition(state, event) else {
+                errors.push(format!(
+                    "{id}: illegal transition {} + {event_name}",
+                    state.as_str()
+                ));
+                break;
+            };
+            let expected = expected_states
+                .get(step + 1)
+                .and_then(Value::as_str)
+                .unwrap_or("");
+            if next_state.as_str() != expected {
+                errors.push(format!(
+                    "{id}: after {event_name}, expected {expected}, computed {}",
+                    next_state.as_str()
+                ));
+                break;
+            }
+            state = next_state;
+        }
+    }
+    if errors.is_empty() {
+        Ok(scenarios.len())
+    } else {
+        Err(errors)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct CaseResult {
     readiness: Readiness,
@@ -286,6 +469,7 @@ struct Summary {
     ready_limited: usize,
     not_ready: usize,
     exact_oracle_agreements: usize,
+    lifecycle_scenarios: usize,
 }
 
 fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<String>> {
@@ -391,6 +575,14 @@ fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<
         }
     }
 
+    let lifecycle_scenarios = match validate_lifecycle_scenarios(&corpus) {
+        Ok(count) => count,
+        Err(lifecycle_errors) => {
+            errors.extend(lifecycle_errors);
+            0
+        }
+    };
+
     if errors.is_empty() {
         Ok(Summary {
             cases: cases.len(),
@@ -398,6 +590,7 @@ fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<
             ready_limited,
             not_ready,
             exact_oracle_agreements: agreements,
+            lifecycle_scenarios,
         })
     } else {
         Err(errors)
@@ -430,11 +623,13 @@ fn main() -> ExitCode {
         Ok(summary) => {
             println!(
                 concat!(
-                    "PASS: {cases} synthetic cases; {ready} READY / {limited} READY_LIMITED / ",
+                    "PASS: {cases} synthetic cases; {lifecycle} lifecycle scenarios; ",
+                    "{ready} READY / {limited} READY_LIMITED / ",
                     "{blocked} NOT_READY; {agreements} exact oracle agreements; ",
                     "no ISO conformance claimed"
                 ),
                 cases = summary.cases,
+                lifecycle = summary.lifecycle_scenarios,
                 ready = summary.ready,
                 limited = summary.ready_limited,
                 blocked = summary.not_ready,
@@ -475,6 +670,138 @@ mod tests {
             .iter_mut()
             .find(|case| case["case_id"] == id)
             .expect("case exists")
+    }
+
+
+    #[test]
+    fn frozen_lifecycle_corpus_matches_all_expected_transitions() {
+        let corpus = corpus_value();
+        assert_eq!(
+            validate_lifecycle_scenarios(&corpus).expect("lifecycle corpus should be legal"),
+            8
+        );
+    }
+
+    #[test]
+    fn candidate_cannot_be_commissioned_without_a_passed_commissioning_event() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Unconfigured,
+                LifecycleEvent::CommissioningPassed
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn optional_budget_breach_degrades_but_does_not_suspend() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Commissioned,
+                LifecycleEvent::OptionalBudgetExceeded
+            ),
+            Some(TwinLifecycleState::Degraded)
+        );
+    }
+
+    #[test]
+    fn critical_budget_breach_suspends_a_commissioned_twin() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Commissioned,
+                LifecycleEvent::CriticalBudgetExceeded
+            ),
+            Some(TwinLifecycleState::Suspended)
+        );
+    }
+
+    #[test]
+    fn degraded_twin_requires_a_fresh_commissioning_cycle() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Degraded,
+                LifecycleEvent::RecommissioningStarted
+            ),
+            Some(TwinLifecycleState::Candidate)
+        );
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Degraded,
+                LifecycleEvent::CommissioningPassed
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn suspended_twin_cannot_recommission_directly() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Suspended,
+                LifecycleEvent::RequalificationStarted
+            ),
+            None
+        );
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Suspended,
+                LifecycleEvent::SuspensionCleared
+            ),
+            Some(TwinLifecycleState::RequalificationRequired)
+        );
+    }
+
+    #[test]
+    fn dependency_revision_change_invalidates_commissioning() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Commissioned,
+                LifecycleEvent::DependencyRevisionChanged
+            ),
+            Some(TwinLifecycleState::RequalificationRequired)
+        );
+    }
+
+    #[test]
+    fn requalification_must_return_through_candidate_state() {
+        let required = lifecycle_transition(
+            TwinLifecycleState::Suspended,
+            LifecycleEvent::SuspensionCleared
+        ).expect("suspension can be cleared into requalification");
+        let candidate = lifecycle_transition(
+            required,
+            LifecycleEvent::RequalificationStarted
+        ).expect("requalification can begin");
+        let commissioned = lifecycle_transition(
+            candidate,
+            LifecycleEvent::CommissioningPassed
+        ).expect("fresh commissioning can pass");
+        assert_eq!(commissioned, TwinLifecycleState::Commissioned);
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::RequalificationRequired,
+                LifecycleEvent::CommissioningPassed
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn decommissioned_twin_is_terminal() {
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Commissioned,
+                LifecycleEvent::Decommission
+            ),
+            Some(TwinLifecycleState::Decommissioned)
+        );
+        assert_eq!(
+            lifecycle_transition(
+                TwinLifecycleState::Decommissioned,
+                LifecycleEvent::ConfigurationComplete
+            ),
+            None
+        );
     }
 
     #[test]
