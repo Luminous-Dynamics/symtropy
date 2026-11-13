@@ -247,6 +247,8 @@ pub struct ProbePortfolio {
     /// Exact current posterior/prior distribution, distinct from the stable label-space digest.
     pub prior_distribution_sha256: String,
     pub policy_sha256: String,
+    /// Full frozen policy, retained so every baseline selection can replay eligibility decisions.
+    pub policy: ProbeSelectionPolicy,
     pub candidate_catalogue_sha256: String,
     pub risk_assessment_catalogue_sha256: String,
     pub risk_evidence_reviewed_by_authority_owner: bool,
@@ -705,6 +707,7 @@ pub fn rank_diagnostic_probes(
         hypothesis_manifest_sha256: hypothesis_digest,
         prior_distribution_sha256: prior_distribution_digest,
         policy_sha256: policy_digest,
+        policy: policy.clone(),
         candidate_catalogue_sha256,
         risk_assessment_catalogue_sha256,
         risk_evidence_reviewed_by_authority_owner,
@@ -897,6 +900,14 @@ pub fn select_probe_baseline(
 ) -> Result<ProbeBaselineSelection, ProbeError> {
     if !cost_penalty_scale_seconds.is_finite() || cost_penalty_scale_seconds <= 0.0 {
         return Err(ProbeError::InvalidPolicy);
+    }
+    // Recompute the complete portfolio from frozen priors, candidate manifests
+    // and policy. A caller-edited eligible flag or ranking must not bypass
+    // authority, risk, calibration or likelihood gates in a baseline.
+    let replayed_portfolio =
+        rank_diagnostic_probes(&portfolio.prior, candidates, &portfolio.policy)?;
+    if &replayed_portfolio != portfolio {
+        return Err(ProbeError::SelectionReplayMismatch);
     }
     let candidate_ids = candidates
         .iter()
