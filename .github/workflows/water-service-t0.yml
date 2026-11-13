@@ -51,6 +51,62 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for F0 JSON Schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate dark-fibre F0 input corpus and oracle identity
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "dark-fiber-observability.schema.json").read_text())
+          inputs = json.loads((root / "dark-fiber-observability-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "dark-fiber-observability-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "dark-fiber-benchmark-manifest-v0.1.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"DARK_FIBER_F0_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          input_ids = [case["case_id"] for case in inputs["cases"]]
+          oracle_ids = [case["case_id"] for case in oracle["cases"]]
+          if len(input_ids) != 10 or len(set(input_ids)) != 10:
+              raise SystemExit("DARK_FIBER_F0_INPUT_IDENTITY_FAIL")
+          if len(oracle_ids) != 10 or len(set(oracle_ids)) != 10:
+              raise SystemExit("DARK_FIBER_F0_ORACLE_IDENTITY_FAIL")
+          if sorted(input_ids) != sorted(oracle_ids):
+              raise SystemExit("DARK_FIBER_F0_INPUT_ORACLE_IDS_DIFFER")
+          if manifest["f0"]["case_count"] != 10:
+              raise SystemExit("DARK_FIBER_F0_MANIFEST_CASE_COUNT_FAIL")
+          if any("expected" in case for case in inputs["cases"]):
+              raise SystemExit("DARK_FIBER_F0_INPUTS_MUST_NOT_EMBED_ORACLE")
+          print("DARK_FIBER_F0_SCHEMA_PASS: 10 synthetic route-geometry cases; separate oracle identity verified")
+          PY
+      - name: Evaluate dark-fibre F0 geometry corpus at exact revision
+        id: dark_fiber_f0
+        env:
+          DARK_FIBER_F0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin dark-fiber-f0 -- \
+            research/water-service-engineering/dark-fiber-observability-cases-v0.1.json \
+            research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json \
+            research/water-service-engineering/dark-fiber-observability.schema.json \
+            research/water-service-engineering/dark-fiber-benchmark-manifest-v0.1.json \
+            artifacts/dark-fiber-f0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +118,17 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/dark-fiber-observability-cases-v0.1.json
+            research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json
+            research/water-service-engineering/dark-fiber-observability.schema.json
+            research/water-service-engineering/dark-fiber-benchmark-manifest-v0.1.json
+            artifacts/dark-fiber-f0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          DARK_FIBER_F0_OUTCOME: ${{ steps.dark_fiber_f0.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$DARK_FIBER_F0_OUTCOME" = "success"
