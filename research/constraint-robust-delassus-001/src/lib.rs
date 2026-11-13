@@ -67,11 +67,10 @@ impl Default for RobustConstraintProfileV1 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RobustConstraintStatusV1 {
-    RobustlyAdmitted,
-    WeaklyAdmitted,
+    AdmittedByNumericalEnvelope,
+    WeaklyAdmittedByNumericalEnvelope,
     OutsideMassPerturbationEnvelope,
     ConstraintRankInconclusive,
-    InverseSensitivityInconclusive,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -479,6 +478,7 @@ impl<From, To, const N: usize> CoordinateRebase<From, To, N> {
         source_from_target: Matrix<N>,
         profile: RobustConstraintProfileV1,
     ) -> Result<Self, RobustConstraintErrorV1> {
+        validate_profile(profile)?;
         let target_from_source = inverse(&source_from_target, profile)?;
         let condition_inf_estimate = matrix_inf(&source_from_target) * matrix_inf(&target_from_source);
         if !condition_inf_estimate.is_finite() {
@@ -608,9 +608,9 @@ pub fn estimate_robust_delassus<const K: usize, Frame, const N: usize>(
     let status = if lower <= profile.minimum_delassus_eigenvalue {
         RobustConstraintStatusV1::ConstraintRankInconclusive
     } else if epsilon / nominal_minimum_eigenvalue > profile.maximum_informative_relative_bound {
-        RobustConstraintStatusV1::WeaklyAdmitted
+        RobustConstraintStatusV1::WeaklyAdmittedByNumericalEnvelope
     } else {
-        RobustConstraintStatusV1::RobustlyAdmitted
+        RobustConstraintStatusV1::AdmittedByNumericalEnvelope
     };
 
     Ok(RobustDelassusEnvelopeV1 {
@@ -725,8 +725,8 @@ mod tests {
         let envelope = estimate_robust_delassus(&metric, &jacobian, &delta_mass, &delta_jacobian).unwrap();
         assert!(matches!(
             envelope.status,
-            RobustConstraintStatusV1::RobustlyAdmitted
-                | RobustConstraintStatusV1::WeaklyAdmitted
+            RobustConstraintStatusV1::AdmittedByNumericalEnvelope
+                | RobustConstraintStatusV1::WeaklyAdmittedByNumericalEnvelope
         ));
 
         let perturbed_mass = std::array::from_fn(|row| {
