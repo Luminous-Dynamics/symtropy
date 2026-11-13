@@ -7,6 +7,7 @@ use std::{
 };
 
 const VERSION: &str = "0.1.0";
+#[cfg(test)]
 const FROZEN: &str =
     include_str!("../../../benchmarks/maritime-control-response/control-response-corpus-v0.1.json");
 type Check<T> = Result<T, String>;
