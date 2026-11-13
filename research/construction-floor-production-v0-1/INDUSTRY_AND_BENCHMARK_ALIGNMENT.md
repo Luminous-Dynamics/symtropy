@@ -154,6 +154,40 @@ Use one frozen starting state, identical disturbance traces and the same accepta
 
 Compare P6/SYNCHRO/ALICE/nPlan as planning and optimization ecosystems through supported exports, adapters and operator workflow. Do not claim a full product bake-off from public descriptions or from synthetic simulations.
 
+## 4A. Competitive reality: what existing products and research already do
+
+Do not claim that Luminous invented 4D construction planning, dynamic clash detection, resource calendars, or crane-space checking.
+
+**Commercial capability baseline:**
+- Bentley SYNCHRO 4D publicly documents model-based scheduling and 4D simulation, human/material/equipment/**space** resource assignments, dynamic spatial coordination tests for objects/equipment/work zones, baseline-vs-actual comparison, cost tracking and earned-value reporting. [Official SYNCHRO feature list](https://bentleysystems.service-now.com/community?id=kb_article&sysparm_article=KB0017688) · [Product overview](https://www.bentley.com/products/synchro-4d/).
+- Autodesk Navisworks publicly documents federated-model review, clash/interference resolution, 4D TimeLiner simulation and cost-item import. [Official Navisworks overview](https://www.autodesk.com/products/navisworks/overview).
+- These capabilities are meaningful industry baselines, not straw men. We should test interoperability and complementary workflow value rather than claim that Luminous replaces those products.
+
+**Research state of the art to reproduce on matched inputs:**
+- Dashti et al. (2021) already integrated 4D BIM, discrete-event simulation and RRT path planning to detect, resolve and reschedule time-space conflicts, with a real case study. This predates our work; time-space planning itself is not novel. [Automation in Construction, DOI 10.1016/j.autcon.2021.103957](https://doi.org/10.1016/j.autcon.2021.103957).
+- Agrawal et al. (November 2025) combined linked data, construction-site point clouds, 4D BIM and a crane-space ontology for mobile-crane placement/rotation constraints, reporting mean F1 scores of 0.94 and 0.91 on two modular-construction sites. These are study-specific dataset results, not a universal target or score transferable to our AABB model. [Advanced Engineering Informatics, DOI 10.1016/j.aei.2025.103778](https://doi.org/10.1016/j.aei.2025.103778).
+- Hosny et al. (2020) quantified uncertainty effects in construction workspace planning; their experiment observed collision-volume increases up to 220% for 40% input-parameter deviations. This supports uncertainty stress testing, not a universal multiplier. [Automation in Construction, DOI 10.1016/j.autcon.2020.103222](https://doi.org/10.1016/j.autcon.2020.103222).
+- A 2026 systematic review of 375 construction-robotics studies highlights multi-agent coordination, dynamic task assignment, real-time conflict resolution and integration with construction safety zoning/scheduling as deployment research needs. It is a research agenda, not evidence that every commercial fleet lacks those features. [Results in Engineering, DOI 10.1016/j.rineng.2026.110406](https://doi.org/10.1016/j.rineng.2026.110406).
+
+**The defensible Luminous differentiation hypothesis is the assurance composition, not 4D geometry alone:**
+- bind occupancy to current site epoch, design digest, coordinate frame and instrument/calibration context;
+- use declared geometry and time uncertainty with fail-closed unknown/stale semantics;
+- join spatial conflicts to existing resource reservations, task lifecycle, independent acceptance receipts and accepted-floor economics;
+- expose complete conflict sets and reject partial reservation/occupancy mutations in the local reference model;
+- plan information acquisition through scenario-wise value of information without invented probabilities;
+- retain accountable human/site authority for permits, lifts, safety and professional disposition.
+
+Public feature pages do not establish whether SYNCHRO, Navisworks or other enterprise deployments can or cannot supply all of those evidence semantics. That question requires a real adapter/conformance test and vendor/operator review. Do not turn missing public documentation into a claim of missing product capability.
+
+**Head-to-head protocol before any “better than SOTA” claim:**
+1. Freeze the same IFC/4D model, task graph, work-zone geometry, resource capacities, uncertainty envelope, timebase and hidden-state challenge for every implementation.
+2. Compare SYNCHRO/Navisworks-supported workflows, B1 nominal geometry, B2 uncertainty-expanded geometry, B3 our indexed broad phase plus exact AABB oracle, and B4 an independent narrow-phase geometry implementation where available.
+3. Report precision/recall/F1 against independent conflict labels, false-clear and false-conflict counts, stale-context rejection, candidate-pair reduction, memory, p50/p95/p99 latency, schedule disruption and conflict-resolution time.
+4. Separately report independently accepted output, first-pass yield, rework, total workflow labour, unallocated shared cost, task-attributed cost, energy/material, and time-to-accepted-floor.
+5. Publish versioned adapters, raw fixtures, exact input/output digests, vendor/product version, configuration and assessor protocol. Missing data or incompatible interfaces are a disclosed non-comparison, never a guessed win.
+
+A valid first competitive milestone is **matched semantic parity plus stronger evidence traceability**. A performance win comes only after independent replication on at least two site datasets and an equal-scope vendor baseline.
+
 ## 5. Target ladder
 
 The following are proposed research targets, not achieved results:
