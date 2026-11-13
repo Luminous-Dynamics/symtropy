@@ -89,7 +89,8 @@
         "maximum_registration_error_um",
         "minimum_coverage_permille",
         "maximum_occlusion_permille",
-        "maximum_fidelity_error_units"
+        "maximum_fidelity_error_units",
+        "expected_revision"
       ],
       "properties": {
         "component_id": {
@@ -181,6 +182,10 @@
             "null"
           ],
           "minimum": 0
+        },
+        "expected_revision": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
