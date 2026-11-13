@@ -1,0 +1,315 @@
+{
+  "schema_version": "suf.das_data_lifecycle_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "workstream": "DAS-DATA-LIFECYCLE-QUAL-001",
+  "claim_ceiling": "Synthetic campaign plan only. No compression, streaming, storage or retention implementation is qualified.",
+  "strategies": [
+    "S0_CONTINUOUS_RAW",
+    "S1_LOSSLESS_COMPRESSION",
+    "S2_LOW_RATE_PLUS_HIGH_RATE_BUFFER",
+    "S3_EVENT_TRIGGERED_RAW",
+    "S4_EDGE_FEATURES_PLUS_SELECTIVE_RAW",
+    "S5_DECLARED_LOSSY_COMPRESSION",
+    "S6_DOWNSAMPLED",
+    "S7_FEATURE_ONLY_CONTROL",
+    "S8_ADAPTIVE_VALUE_POLICY"
+  ],
+  "metrics": [
+    "bytes_per_channel_hour",
+    "bytes_per_fibre_km_day",
+    "lossless_byte_integrity",
+    "sample_gap_fraction",
+    "ingest_throughput",
+    "queue_age_p95",
+    "trigger_buffer_completeness",
+    "event_pod_by_class",
+    "critical_miss_rate",
+    "false_alarms_per_observable_fibre_km_day",
+    "chainage_error_p95",
+    "geographic_error_p95",
+    "uncertainty_interval_coverage",
+    "replay_determinism",
+    "cpu_gpu_energy_per_km_day",
+    "query_latency_p95",
+    "retrieval_cost_per_adjudicated_event"
+  ],
+  "scenarios": [
+    {
+      "id": "DLC-001",
+      "scenario_type": "LOSSLESS_BASELINE",
+      "name": "Continuous lossless archival baseline",
+      "expected_disposition": "Accepted",
+      "conditions": "Exact raw source chunks and acquisition configuration are available with a frozen expected byte digest.",
+      "perturbations": [
+        "lossless_baseline"
+      ],
+      "oracle_requirement": "Archive and retrieve chunks; verify byte identity and deterministic replay."
+    },
+    {
+      "id": "DLC-002",
+      "scenario_type": "LOSSLESS_COMPRESSION",
+      "name": "Lossless compression and decompression",
+      "expected_disposition": "Accepted",
+      "conditions": "Compression/decompression are versioned and no lossy transform is applied.",
+      "perturbations": [
+        "lossless_compression"
+      ],
+      "oracle_requirement": "Verify exact source byte equality after round trip."
+    },
+    {
+      "id": "DLC-003",
+      "scenario_type": "LOSSY_RARE_TRANSIENT",
+      "name": "Lossy compression attenuates a rare transient",
+      "expected_disposition": "Rejected",
+      "conditions": "A rare impulsive event is attenuated below the frozen detection threshold after compression.",
+      "perturbations": [
+        "lossy_rare_transient"
+      ],
+      "oracle_requirement": "Fail non-inferiority; preserve source and record the lost event signature."
+    },
+    {
+      "id": "DLC-004",
+      "scenario_type": "LOSSY_WITHIN_BUDGET",
+      "name": "Lossy compression stays inside the declared envelope",
+      "expected_disposition": "Accepted",
+      "conditions": "Held-out events and no-event periods are available with independent truth and distortion budget.",
+      "perturbations": [
+        "lossy_within_budget"
+      ],
+      "oracle_requirement": "Accept only if all pre-registered detection/localization/uncertainty guardrails hold."
+    },
+    {
+      "id": "DLC-005",
+      "scenario_type": "DOWNSAMPLE_ALIASING",
+      "name": "Downsampling aliases an event waveform",
+      "expected_disposition": "Rejected",
+      "conditions": "Sampling reduction violates the declared signal bandwidth/Nyquist condition for the target event.",
+      "perturbations": [
+        "downsample_aliasing"
+      ],
+      "oracle_requirement": "Reject and retain original high-rate source."
+    },
+    {
+      "id": "DLC-006",
+      "scenario_type": "RING_BUFFER_SUCCESS",
+      "name": "High-rate pre/post event buffer is complete",
+      "expected_disposition": "Accepted",
+      "conditions": "Event trigger fires under declared load with sufficient pre-trigger buffer and post-trigger duration.",
+      "perturbations": [
+        "ring_buffer_success"
+      ],
+      "oracle_requirement": "Verify expected sample counts, timestamps, source digest and no gap."
+    },
+    {
+      "id": "DLC-007",
+      "scenario_type": "RING_BUFFER_OVERFLOW",
+      "name": "Trigger burst overruns ring buffer",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Burst rate exceeds memory/buffer budget and overwrites oldest context.",
+      "perturbations": [
+        "ring_buffer_overflow"
+      ],
+      "oracle_requirement": "Expose overflow, incomplete pre/post window and lost duration; never silently accept."
+    },
+    {
+      "id": "DLC-008",
+      "scenario_type": "LOW_RATE_MISSED_EVENT",
+      "name": "Low-rate screen misses a short event",
+      "expected_disposition": "Rejected",
+      "conditions": "A short critical transient falls between low-rate samples and no high-rate trigger is raised.",
+      "perturbations": [
+        "low_rate_missed_event"
+      ],
+      "oracle_requirement": "Count critical miss; low-rate negative cannot clear the event."
+    },
+    {
+      "id": "DLC-009",
+      "scenario_type": "FALSE_TRIGGER_BURST",
+      "name": "Noisy environment causes repeated triggers",
+      "expected_disposition": "Accepted",
+      "conditions": "Repeated triggers merge under declared rules without losing raw context or exhausting resources.",
+      "perturbations": [
+        "false_trigger_burst"
+      ],
+      "oracle_requirement": "Report false-trigger rate, retained bytes and resource impact."
+    },
+    {
+      "id": "DLC-010",
+      "scenario_type": "NETWORK_OUTAGE",
+      "name": "Link outage during acquisition",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Source acquisition continues locally but remote storage is unavailable.",
+      "perturbations": [
+        "network_outage"
+      ],
+      "oracle_requirement": "Record outage interval, local buffer state, completeness and recovery lag."
+    },
+    {
+      "id": "DLC-011",
+      "scenario_type": "EDGE_BACKPRESSURE",
+      "name": "Edge processor falls behind source rate",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Processing queue age grows beyond declared limit.",
+      "perturbations": [
+        "edge_backpressure"
+      ],
+      "oracle_requirement": "Expose queue lag and skipped/late decisions; do not claim real-time coverage."
+    },
+    {
+      "id": "DLC-012",
+      "scenario_type": "SOURCE_DIGEST_MISMATCH",
+      "name": "Stored source bytes do not match acquired digest",
+      "expected_disposition": "Rejected",
+      "conditions": "A chunk is truncated or modified during transfer/storage.",
+      "perturbations": [
+        "source_digest_mismatch"
+      ],
+      "oracle_requirement": "Reject exact-source claim and prevent downstream evidence acceptance."
+    },
+    {
+      "id": "DLC-013",
+      "scenario_type": "DERIVATION_PARENT_MISSING",
+      "name": "Derived feature lacks a resolvable parent artifact",
+      "expected_disposition": "Rejected",
+      "conditions": "Feature references a missing or wrong source digest.",
+      "perturbations": [
+        "derivation_parent_missing"
+      ],
+      "oracle_requirement": "Reject provenance chain; do not present as reproducible evidence."
+    },
+    {
+      "id": "DLC-014",
+      "scenario_type": "CLOCK_GAP",
+      "name": "Chunk timestamps contain a gap or clock jump",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Timebase changes or chunks are missing; sample sequence alone appears continuous.",
+      "perturbations": [
+        "clock_gap"
+      ],
+      "oracle_requirement": "Preserve the gap and invalidate event-latency/periodicity claims across it."
+    },
+    {
+      "id": "DLC-015",
+      "scenario_type": "OOD_EDGE_CLASSIFIER",
+      "name": "Edge detector encounters out-of-distribution coupling",
+      "expected_disposition": "Indeterminate",
+      "conditions": "A new conduit/coupling profile has no qualified model support.",
+      "perturbations": [
+        "ood_edge_classifier"
+      ],
+      "oracle_requirement": "Abstain or escalate; do not use feature absence as no-event proof."
+    },
+    {
+      "id": "DLC-016",
+      "scenario_type": "TIER_MIGRATION",
+      "name": "Archive tier migration and integrity verification",
+      "expected_disposition": "Accepted",
+      "conditions": "An object migrates between storage tiers with exact object version and digest receipt.",
+      "perturbations": [
+        "tier_migration"
+      ],
+      "oracle_requirement": "Verify byte equality, metadata and retrieval after migration."
+    },
+    {
+      "id": "DLC-017",
+      "scenario_type": "UNAUTHORIZED_READ",
+      "name": "Unauthorized consumer requests restricted waveform",
+      "expected_disposition": "Rejected",
+      "conditions": "Consumer role lacks owner permission for the source/route purpose.",
+      "perturbations": [
+        "unauthorized_read"
+      ],
+      "oracle_requirement": "Deny access and preserve auditable access decision."
+    },
+    {
+      "id": "DLC-018",
+      "scenario_type": "RETENTION_EXPIRY",
+      "name": "Owner-approved retention expiry",
+      "expected_disposition": "Accepted",
+      "conditions": "Retention duration elapses for a scoped artifact and no legal hold applies.",
+      "perturbations": [
+        "retention_expiry"
+      ],
+      "oracle_requirement": "Delete or cryptographically expire according to approved policy while preserving permitted audit receipt."
+    },
+    {
+      "id": "DLC-019",
+      "scenario_type": "UNOBSERVED_NEGATIVE",
+      "name": "Missing samples incorrectly represented as no event",
+      "expected_disposition": "Rejected",
+      "conditions": "Data outage or blind interval is encoded as a clean negative result.",
+      "perturbations": [
+        "unobserved_negative"
+      ],
+      "oracle_requirement": "Reject negative claim and preserve missingness state."
+    },
+    {
+      "id": "DLC-020",
+      "scenario_type": "QUERY_RESOURCE_ABUSE",
+      "name": "Expensive query overloads observation service",
+      "expected_disposition": "Rejected",
+      "conditions": "Unbounded time/spatial query or repeated subscription exhausts resources.",
+      "perturbations": [
+        "query_resource_abuse"
+      ],
+      "oracle_requirement": "Enforce query quotas/complexity controls, rate limits and bounded streaming."
+    },
+    {
+      "id": "DLC-021",
+      "scenario_type": "FEATURE_ONLY_REPLAY",
+      "name": "Feature-only archive requested for raw replay task",
+      "expected_disposition": "Unsupported",
+      "conditions": "Only embeddings/features remain; original waveform was not retained.",
+      "perturbations": [
+        "feature_only_replay"
+      ],
+      "oracle_requirement": "Return Unsupported for raw replay and disclose retention limitation."
+    },
+    {
+      "id": "DLC-022",
+      "scenario_type": "CROSS_VENDOR_CONFIG_LOSS",
+      "name": "Normalization drops vendor gauge length or timebase config",
+      "expected_disposition": "Rejected",
+      "conditions": "Normalized stream omits source-specific acquisition fields needed for matched replay.",
+      "perturbations": [
+        "cross_vendor_config_loss"
+      ],
+      "oracle_requirement": "Reject normalization or preserve missing metadata as unqualified."
+    },
+    {
+      "id": "DLC-023",
+      "scenario_type": "COMPRESSION_MODEL_DRIFT",
+      "name": "Compression settings drift after firmware update",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Vendor firmware changes quantization/encoding behavior without profile revision.",
+      "perturbations": [
+        "compression_model_drift"
+      ],
+      "oracle_requirement": "Require new source profile and repeat qualification."
+    },
+    {
+      "id": "DLC-024",
+      "scenario_type": "REPLAY_DETERMINISM",
+      "name": "Exact source and transform revisions reproduce identical result",
+      "expected_disposition": "Accepted",
+      "conditions": "All immutable source objects and transform software/config hashes are present.",
+      "perturbations": [
+        "replay_determinism"
+      ],
+      "oracle_requirement": "Independent replay yields identical deterministic outputs or declared numeric tolerance."
+    }
+  ],
+  "global_controls": [
+    "Original source bytes are immutable when available and rights permit.",
+    "Lossy transformations create a separate derived artifact and never overwrite source bytes.",
+    "Every derived artifact binds exact parent digest, method, parameters and software revision.",
+    "Missing or unobserved samples are not negative observations.",
+    "High-rate buffer overflow and dropped samples are explicit dispositions.",
+    "Compression acceptance requires event, localization, uncertainty and replay guardrails.",
+    "Data rights and retention policies apply independently to source and derived artifacts.",
+    "Operational observation pipeline is read-only relative to SCADA/protection.",
+    "Cost is compared only within declared compatible units.",
+    "All test populations and source acquisition profiles remain separate."
+  ]
+}
