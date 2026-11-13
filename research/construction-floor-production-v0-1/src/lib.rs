@@ -7,8 +7,10 @@
 use std::collections::BTreeMap;
 
 use construction_robot_interop_core::{
-    ContextBinding, ReservationBook, ReservationError, ReservationOutcome, ReservationRequest,
-    TaskMachine, TaskState,
+    ContextBinding, TaskMachine, TaskState,
+};
+use construction_robot_interop_core::resources::{
+    ReservationBook, ReservationError, ReservationOutcome, ReservationRequest,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
