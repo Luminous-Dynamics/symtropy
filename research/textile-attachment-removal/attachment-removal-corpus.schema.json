@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/textile-attachment-removal/attachment-removal-corpus.schema.json",
+  "title": "Textile attachment removal corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "title",
+    "status",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_reference_fixtures"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\\\S"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "sha256",
+        "tier",
+        "calibration_id"
+      ],
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tier": {
+          "enum": [
+            "SyntheticFixture",
+            "Simulation",
+            "PhysicalObserved",
+            "IndependentlyInspected"
+          ]
+        },
+        "calibration_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "specimen_id",
+        "garment_revision",
+        "attachment_id",
+        "join_method",
+        "requested_action",
+        "tool_profile_id",
+        "max_force_mn"
+      ],
+      "properties": {
+        "task_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "specimen_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "garment_revision": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "attachment_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "join_method": {
+          "enum": [
+            "Sewn",
+            "BarTacked",
+            "Riveted",
+            "Zippered",
+            "Buttoned",
+            "SnapFastened",
+            "HookAndLoop",
+            "AdhesiveBonded",
+            "ThermallyFused",
+            "Unknown"
+          ]
+        },
+        "requested_action": {
+          "enum": [
+            "Remove",
+            "Retain",
+            "Replace",
+            "Inspect",
+            "ManualReview"
+          ]
+        },
+        "tool_profile_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "max_force_mn": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "massBalance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_mass_mg",
+        "textile_recovered_mass_mg",
+        "attachment_recovered_mass_mg",
+        "residual_mass_mg",
+        "unexplained_mass_mg"
+      ],
+      "properties": {
+        "input_mass_mg": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "textile_recovered_mass_mg": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attachment_recovered_mass_mg": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "residual_mass_mg": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unexplained_mass_mg": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "damage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "damage_area_mm2",
+        "severed_yarns",
+        "holes",
+        "tears"
+      ],
+      "properties": {
+        "damage_area_mm2": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "severed_yarns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "holes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tears": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "task",
+        "execution_state",
+        "outcome",
+        "action_evidence",
+        "post_inspection",
+        "peak_force_mn",
+        "force_calibration_id",
+        "mass_balance",
+        "damage"
+      ],
+      "properties": {
+        "attempt_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "task": {
+          "$ref": "#/$defs/task"
+        },
+        "execution_state": {
+          "enum": [
+            "Planned",
+            "Executed",
+            "Aborted",
+            "Abstained"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "NotAttempted",
+            "Removed",
+            "Partial",
+            "NotRemoved",
+            "Aborted",
+            "Abstained"
+          ]
+        },
+        "action_evidence": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post_inspection": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "peak_force_mn": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "force_calibration_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mass_balance": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/massBalance"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "damage": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/damage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "purpose",
+        "expected_valid",
+        "expected_evidence_ceiling",
+        "must_include_findings",
+        "record"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_valid": {
+          "type": "boolean"
+        },
+        "expected_evidence_ceiling": {
+          "enum": [
+            "ContractOnly",
+            "SimulationOnly",
+            "PhysicalExecutionObserved",
+            "PhysicalRemovalIndependentlyInspected"
+          ]
+        },
+        "must_include_findings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "record": {
+          "$ref": "#/$defs/record"
+        }
+      }
+    }
+  }
+}
