@@ -150,9 +150,16 @@ impl<F, const N: usize> Metric<F, N> {
         tangent: &Tangent<F, N>,
         profile: MetricProfileV1,
     ) -> Result<f64, MetricErrorV1> {
+        validate_profile(profile)?;
         let applied = apply(&self.matrix, &tangent.components);
         let squared = dot(&tangent.components, &applied);
-        checked_sqrt(squared, profile.relative_pivot_tolerance)
+        let scale = tangent
+            .components
+            .iter()
+            .zip(applied.iter())
+            .map(|(left, right)| (left * right).abs())
+            .sum::<f64>();
+        checked_sqrt(squared, scale, profile.relative_pivot_tolerance)
     }
 
     pub fn cotangent_norm(
@@ -163,7 +170,13 @@ impl<F, const N: usize> Metric<F, N> {
         let factor = cholesky(&self.matrix, profile.relative_pivot_tolerance)?;
         let raised = solve_cholesky(&factor, &covector.components);
         let squared = dot(&covector.components, &raised);
-        checked_sqrt(squared, profile.relative_pivot_tolerance)
+        let scale = covector
+            .components
+            .iter()
+            .zip(raised.iter())
+            .map(|(left, right)| (left * right).abs())
+            .sum::<f64>();
+        checked_sqrt(squared, scale, profile.relative_pivot_tolerance)
     }
 
     /// The Riesz map M: T -> T* maps a tangent vector to its metric covector.
@@ -204,6 +217,7 @@ impl<F, const N: usize> Metric<F, N> {
 pub struct CoordinateRebasis<From, To, const N: usize> {
     to_from: Matrix<N>,
     from_to: Matrix<N>,
+    condition_inf_estimate: f64,
     _frames: PhantomData<fn() -> (From, To)>,
 }
 
@@ -217,15 +231,25 @@ impl<From, To, const N: usize> CoordinateRebasis<From, To, N> {
             return Err(MetricErrorV1::CoordinateChangeNotFinite);
         }
         let from_to = inverse(&to_from, profile.relative_pivot_tolerance)?;
+        let condition_inf_estimate = matrix_inf(&to_from) * matrix_inf(&from_to);
+        if !condition_inf_estimate.is_finite() {
+            return Err(MetricErrorV1::NonFiniteArithmetic);
+        }
         Ok(Self {
             to_from,
             from_to,
+            condition_inf_estimate,
             _frames: PhantomData,
         })
     }
 
     pub fn matrix(&self) -> &Matrix<N> {
         &self.to_from
+    }
+
+    /// Coordinate diagnostic only; not a physical uncertainty measure.
+    pub fn condition_inf_estimate(&self) -> f64 {
+        self.condition_inf_estimate
     }
 
     pub fn push_tangent_to_from(
@@ -311,8 +335,16 @@ fn validate_profile(profile: MetricProfileV1) -> Result<(), MetricErrorV1> {
     Ok(())
 }
 
-fn checked_sqrt(value: f64, tolerance: f64) -> Result<f64, MetricErrorV1> {
-    if !value.is_finite() {
+fn checked_sqrt(
+    value: f64,
+    scale: f64,
+    relative_tolerance: f64,
+) -> Result<f64, MetricErrorV1> {
+    if !value.is_finite() || !scale.is_finite() {
+        return Err(MetricErrorV1::NonFiniteArithmetic);
+    }
+    let tolerance = relative_tolerance * scale;
+    if !tolerance.is_finite() {
         return Err(MetricErrorV1::NonFiniteArithmetic);
     }
     if value < -tolerance {
@@ -542,6 +574,57 @@ mod tests {
         let residual_norm = metric.cotangent_norm(&residual, profile()).unwrap();
         let error_norm = metric.tangent_norm(&error, profile()).unwrap();
         assert!((residual_norm - error_norm).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn riesz_residual_dual_norm_is_invariant_after_dense_rebasis() {
+        let metric_q = cartesian_metric();
+        let basis = rebasis();
+        let exact_q =
+            Tangent::<CartesianFrame, 3>::new([0.5, -2.0 / 3.0, 0.8]).unwrap();
+        let approximate_q =
+            Tangent::<CartesianFrame, 3>::new([0.50001, -2.0 / 3.00002, 0.80003]).unwrap();
+        let force_q = metric_q.lower(&exact_q).unwrap();
+
+        let residual_q = riesz_residual(&metric_q, &approximate_q, &force_q).unwrap();
+        let error_q = Tangent::<CartesianFrame, 3>::new(std::array::from_fn(|i| {
+            approximate_q.components()[i] - exact_q.components()[i]
+        }))
+        .unwrap();
+        let residual_norm_q = metric_q.cotangent_norm(&residual_q, profile()).unwrap();
+        let error_norm_q = metric_q.tangent_norm(&error_q, profile()).unwrap();
+        assert!((residual_norm_q - error_norm_q).abs() < 1.0e-12);
+
+        let exact_y = basis.pull_tangent_to_to(&exact_q).unwrap();
+        let approximate_y = basis.pull_tangent_to_to(&approximate_q).unwrap();
+        let force_y = basis.pull_covector_to_to(&force_q).unwrap();
+        let metric_y = basis.pull_metric_to_to(&metric_q, profile()).unwrap();
+        let residual_y = riesz_residual(&metric_y, &approximate_y, &force_y).unwrap();
+        let error_y = Tangent::<DenseGeneralizedFrame, 3>::new(std::array::from_fn(|i| {
+            approximate_y.components()[i] - exact_y.components()[i]
+        }))
+        .unwrap();
+        let residual_norm_y = metric_y.cotangent_norm(&residual_y, profile()).unwrap();
+        let error_norm_y = metric_y.tangent_norm(&error_y, profile()).unwrap();
+        assert!((residual_norm_y - error_norm_y).abs() < 1.0e-11);
+        assert!((residual_norm_q - residual_norm_y).abs() < 1.0e-11);
+        assert!(basis.condition_inf_estimate() > 1.0);
+    }
+
+    #[test]
+    fn wrong_metric_congruence_is_detected() {
+        let metric_q = cartesian_metric();
+        let basis = rebasis();
+        let correct = basis.pull_metric_to_to(&metric_q, profile()).unwrap();
+        let wrong = multiply(
+            &multiply(&transpose(basis.matrix()), metric_q.matrix()),
+            &transpose(basis.matrix()),
+        );
+        assert_eq!(
+            Metric::<DenseGeneralizedFrame, 3>::new(wrong, profile()).unwrap_err(),
+            MetricErrorV1::MetricNotSymmetric
+        );
+        assert!(correct.matrix().iter().flatten().all(|value| value.is_finite()));
     }
 
     #[test]
