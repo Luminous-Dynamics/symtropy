@@ -32,9 +32,6 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all -- --check
 
