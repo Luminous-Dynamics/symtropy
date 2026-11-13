@@ -31,6 +31,15 @@ The validator checks:
 - precedence and minimum-lag constraints;
 - deterministic, sorted findings for reproducible comparison.
 
+The independent `utilities` module additionally checks time-indexed
+electricity, steam, water and wastewater envelopes. It binds complete/partial
+demand profiles to production operations and setup reservations, segments the
+schedule at every operation/envelope boundary, aggregates concurrent demand
+and rejects missing profiles, unknown capacity, uncovered positive demand,
+overlapping envelopes and capacity exceedance. A complete profile explicitly
+declares omitted utility metrics as zero; an incomplete or missing profile is
+not treated as zero.
+
 All time values are integer ticks in one caller-declared common unit. The
 reference does not infer minutes, shifts, machine cycle times or setup rules.
 
@@ -67,10 +76,11 @@ v0.1 scope is deliberately limited to explicit zero-duration setup transitions;
 nonzero setup models are rejected as unsupported. It is an oracle for small
 instances, not a production scheduler.
 
-The validator can now check explicit setup-labor reservations, but its bounded
-exact oracle deliberately continues to reject nonzero setup durations. It does
-not yet search for setup operators or setup intervals. The next benchmark
-increment should add time-indexed electricity/steam/water envelopes and then
+The validator can now check explicit setup-labor reservations and the separate
+utility-envelope module can check declared time-varying capacities. The bounded
+exact oracle still rejects nonzero setup durations and does not search for
+setup operators or utility feasibility. The next benchmark increment should
+bind measured utility profiles to actual machine/operation receipts and add
 robust disruption/replanning scenarios. Observed production receipts and
 worker-approved constraints remain independent evidence gates.
 
