@@ -9,9 +9,10 @@ A dependency-free Rust reference implementation for the **single, already-disamb
 - Binds each observation to exact fibre, fibre revision, route revision, interrogator configuration, physical start/end endpoint identities, direction and source digest.
 - Rejects stale/mismatched identities, out-of-range values, invalid anchors and unsupported coordinate frames.
 - Interpolates along a versioned route polyline only when the caller explicitly declares a projected-metre CRS and easting/northing axis order.
-- Produces a conservative horizontal uncertainty bound by summing declared absolute error bounds. This is not a statistical confidence interval.
+- Produces a conservative horizontal-equivalent uncertainty bound by summing declared absolute error bounds. Callers must first propagate native axis errors through the exact transform sensitivities. This is not a statistical confidence interval.
 - Returns route positioning only. It does not attribute the result to a utility asset.
 - Includes a discrete expected-information / expected-value-of-sample-information evaluator that keeps information gain separate from decision-loss reduction and suppresses net-value rankings when cost and loss units are incomparable.
+- Includes a source-envelope semantic validator for raw-vs-derived lineage, modality boundaries, typed sample axes and pitch/resolution separation.
 
 ## Decision-value evaluator
 
