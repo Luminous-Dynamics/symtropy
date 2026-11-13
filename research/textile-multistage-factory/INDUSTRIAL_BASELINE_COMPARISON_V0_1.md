@@ -8,32 +8,37 @@ Parent: [TEXTILE-MULTISTAGE-FACTORY-001 #4875](https://github.com/Luminous-Dynam
 
 Valvan publicly describes:
 - **Fibersort:** NIR-based fibre/blend concentration prediction with RGB colour sorting for post-consumer textiles.
-- **Trimclean:** a downstream trim-extraction system described as removing zippers, buttons and labels from fibre-sorted textiles.
+- **Trimclean:** a downstream trim-extraction system described as removing zippers, buttons and labels from fibre-sorted textiles. Its published process is important to represent accurately: Fibersort output is first cut into **20–100 mm clippings**; an optical camera system and a metal sensor detect unwanted material in the clippings; trim-bearing clippings are then pneumatically separated from textile clippings.
 
-Source: https://www.valvan.com/en/solutions/textile-sorting-recycling
+Sources:
+- Valvan process overview: https://www.valvan.com/en/solutions/textile-sorting-recycling
+- Trimclean technical leaflet: https://www.valvan.com/uploads/general/VALVAN_trimclean_leaflet-A4_08_lowres.pdf?v=1685433923
 
-This is a real industrial process comparator. Its public product description does not supply an independently reproduced, matched-lot performance dataset for every feedstock, damage mode, residual-trim level, operating cost or accepted downstream grade. Do not turn supplier descriptions into validated quantitative claims.
+This is a real industrial process comparator, but it is a post-cutting/clipping-level trim separation route—not a whole-garment seam-ripping robot. A Luminous pre-shredder garment-disassembly system would test a different value proposition: whether components can be recovered and textile panels/fibre length preserved before shredding, with lower residual trim and damage. Its comparison must therefore include output size/length distribution, fines, recovered-component reuse, contamination, downstream grade and energy/labour per accepted kilogram.
+
+The supplier's public descriptions do not provide an independently reproduced, matched-lot performance dataset for every feedstock, damage mode, residual-trim level, operating cost or accepted downstream grade. Do not turn supplier descriptions into validated quantitative claims.
 
 The research-review finding that attachment-removal AI is sparse concerns the published research corpus. It does not establish that commercial trim-removal systems do not exist.
 
 ## 2. Matched process arms
 
-### Arm A — incumbent line
+### Arm A — incumbent Fibersort + Trimclean line
 
-Observe the actual installed configuration and freeze its process map. A representative logical path to verify on-site is:
+Observe the actual installed configuration and freeze its process map. A representative path to verify on-site is:
 
 1. lot intake, weighing and custody assignment;
 2. operator presentation / pre-sort, if present;
 3. Fibersort NIR/RGB identification and material/colour routing;
-4. Trimclean trim extraction;
-5. post-trim inspection and reject/rework;
-6. output-lot weighing, sampling and downstream recycler acceptance.
+4. cutting of sorted textiles into 20–100 mm clippings (per the published Trimclean leaflet);
+5. Trimclean optical/metal detection and pneumatic separation of trim-bearing clippings;
+6. post-separation inspection, reject/rework and output-lot weighing;
+7. downstream recycler sampling and acceptance.
 
-This is a proposed data-collection template, not an assertion that every site uses this exact route or order. Record bypasses, manual rework, recirculation, maintenance stops and rejects.
+This is the published supplier process flow, not a claim that every installation uses identical settings or sequencing. Record bypasses, manual rework, recirculation, maintenance stops, rejects, clipping geometry and whether trim-bearing clippings are discarded, recirculated or separately processed.
 
 ### Arm B — evidence-gated line candidate
 
-Use the same incoming lot and product acceptance criteria. Candidate stages may include:
+Use the same incoming lot and product acceptance criteria. The proposed differentiator is **pre-shredder disassembly at garment/panel scale**, compared with the incumbent's post-cutting clipping separation. Candidate stages may include:
 
 1. visual garment-family/presentation assessment;
 2. calibrated NIR composition estimate;
@@ -71,7 +76,8 @@ Use independent incoming-lot allocation or randomized matched sublots where prac
 | Routing | predicted route, actual route, reject, abstain, remeasurement and manual override |
 | Composition | reference method, per-fibre error, blend error, unknown fraction, instrument and calibration |
 | Sorting quality | output stream purity, contamination, false accept, false reject and unassigned mass |
-| Trim removal | target trim mass, removed mass, residual trim, partial/failed extraction, component identity |
+| Trim removal | target trim mass, removed mass, residual trim, partial/failed extraction, component identity; stage of removal (whole garment vs 20–100 mm clipping) |
+| Material preservation | recovered panel dimensions, fibre-length distribution, fines/dust fraction and whether components are reusable before shredding |
 | Textile damage | holes, tears, severed yarns, damaged area, strength-retention method where measured |
 | Mass balance | input, accepted textile output, recovered trim, reject, residual and unexplained mass |
 | Labour | operator minutes by task, intervention count/type, setup/changeover time and certification |
@@ -100,7 +106,9 @@ Report both arms and each product/fibre/condition stratum:
 
 - accepted kg per elapsed hour and per active hour;
 - output stream purity and downstream acceptance rate;
-- residual trim by attachment family;
+- residual trim by attachment family and process stage (whole garment vs clipping);
+- recoverable component reuse and textile panel/fibre-length retention before shredding;
+- fines/dust fraction and downstream spinning/yarn acceptance where measured;
 - damage rate/severity and strength retention where measured;
 - total labour minutes and intervention burden per accepted kg;
 - electricity, steam and water per accepted kg;
@@ -128,7 +136,7 @@ After the first incumbent dataset and measurement repeatability study, set prere
 
 - no increase in false acceptance of unknown/out-of-domain material;
 - equal or higher downstream accepted kg per input tonne;
-- lower damage and residual-trim burden at matched accepted throughput;
+- lower residual trim and textile damage while preserving longer textile fractions or reusable components at matched accepted throughput;
 - lower manual intervention burden without unsafe automation;
 - schedule feasibility with zero hard machine, labour, precedence or utility violations;
 - stable recovery of service after machine, operator, supply or utility disruptions.
