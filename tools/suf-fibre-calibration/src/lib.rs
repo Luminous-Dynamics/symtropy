@@ -335,6 +335,10 @@ pub struct RouteVertex {
 pub struct RouteGeometry {
     /// Exact route revision.
     pub route_revision: String,
+    /// Physical endpoint at route station zero.
+    pub station_origin_endpoint_id: String,
+    /// Physical endpoint toward which route station increases.
+    pub station_increasing_to_endpoint_id: String,
     /// Declared coordinate frame.
     pub frame: CoordinateFrame,
     vertices: Vec<RouteVertex>,
@@ -344,11 +348,22 @@ impl RouteGeometry {
     /// Construct and validate route geometry.
     pub fn new(
         route_revision: String,
+        station_origin_endpoint_id: String,
+        station_increasing_to_endpoint_id: String,
         frame: CoordinateFrame,
         vertices: Vec<RouteVertex>,
     ) -> CalibrationResult<Self> {
         if route_revision.trim().is_empty() {
             return Err(CalibrationError::EmptyIdentifier("route_revision"));
+        }
+        if station_origin_endpoint_id.trim().is_empty() {
+            return Err(CalibrationError::EmptyIdentifier("station_origin_endpoint_id"));
+        }
+        if station_increasing_to_endpoint_id.trim().is_empty() {
+            return Err(CalibrationError::EmptyIdentifier("station_increasing_to_endpoint_id"));
+        }
+        if station_origin_endpoint_id == station_increasing_to_endpoint_id {
+            return Err(CalibrationError::BindingMismatch("route station endpoints must be distinct"));
         }
         frame.validate()?;
         if vertices.len() < 2 {
@@ -378,6 +393,8 @@ impl RouteGeometry {
         }
         Ok(Self {
             route_revision,
+            station_origin_endpoint_id,
+            station_increasing_to_endpoint_id,
             frame,
             vertices,
         })
@@ -571,6 +588,15 @@ impl CalibrationModel {
         if route_geometry.route_revision != binding.route_revision {
             return Err(CalibrationError::BindingMismatch("route geometry revision"));
         }
+        let (expected_origin, expected_increasing_to) = match binding.direction {
+            FibreDirection::AToB => (&binding.endpoint_a_id, &binding.endpoint_b_id),
+            FibreDirection::BToA => (&binding.endpoint_b_id, &binding.endpoint_a_id),
+        };
+        if &route_geometry.station_origin_endpoint_id != expected_origin
+            || &route_geometry.station_increasing_to_endpoint_id != expected_increasing_to
+        {
+            return Err(CalibrationError::BindingMismatch("route geometry station orientation"));
+        }
         let uncertainty_total = uncertainty.total_bound_m()?;
         if !uncertainty_total.is_finite() {
             return Err(CalibrationError::NonFinite("total uncertainty bound"));
@@ -716,6 +742,8 @@ mod tests {
     fn route() -> RouteGeometry {
         RouteGeometry::new(
             "route-r7".to_owned(),
+            "chamber-A".to_owned(),
+            "chamber-B".to_owned(),
             frame(),
             vec![
                 RouteVertex {
@@ -942,6 +970,8 @@ mod tests {
         assert_eq!(
             RouteGeometry::new(
                 "route-r7".to_owned(),
+                "chamber-A".to_owned(),
+                "chamber-B".to_owned(),
                 geographic,
                 route().vertices,
             ),
@@ -956,6 +986,8 @@ mod tests {
         assert_eq!(
             RouteGeometry::new(
                 "route-r7".to_owned(),
+                "chamber-A".to_owned(),
+                "chamber-B".to_owned(),
                 wrong_axis,
                 route().vertices,
             ),
@@ -968,6 +1000,8 @@ mod tests {
         assert!(matches!(
             RouteGeometry::new(
                 "route-r7".to_owned(),
+                "chamber-A".to_owned(),
+                "chamber-B".to_owned(),
                 frame(),
                 vec![
                     RouteVertex { station_m: 0.0, easting_m: 0.0, northing_m: 0.0 },
