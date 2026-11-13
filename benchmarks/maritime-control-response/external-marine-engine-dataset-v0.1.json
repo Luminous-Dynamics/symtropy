@@ -59,20 +59,20 @@
         "download_status": "downloaded_publisher_size_md5_verified_and_raw_csv_payload_audited",
         "md5_independently_verified": true,
         "sha256_computed_in_github_runner": true,
-        "sha256_receipt_status": "verified by successful exact-head raw CSV audit run 43312150806, with machine-readable artifact 13986307496",
+        "sha256_receipt_status": "verified by successful exact-head raw CSV audit run 43377608370 (#168), with machine-readable artifact 14014574182",
         "audit_receipt": {
-          "workflow_run_id": 43312150806,
-          "workflow_run_number": 131,
-          "head_sha": "076350d5eea003ecb38a8eb5bb782787d608d2bc",
-          "job_id": 131510695601,
-          "artifact_id": 13986307496,
-          "artifact_name": "marine-engine-fault-audit-43312150806",
-          "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43312150806/artifacts/13986307496",
+          "workflow_run_id": 43377608370,
+          "workflow_run_number": 168,
+          "head_sha": "153250ea314270f955c77dd1c8801ddf4af04615",
+          "job_id": 131727651115,
+          "artifact_id": 14014574182,
+          "artifact_name": "marine-engine-fault-audit-43377608370",
+          "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182",
           "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
           "recording_csv_files": 16,
           "baseline_files": 1,
           "scenario_files": 15,
-          "rust_tests_passed": 114,
+          "rust_tests_passed": 121,
           "rust_tests_failed": 0
         }
       }
@@ -153,8 +153,8 @@
     {
       "id": "archive_and_signal_semantics_audit",
       "status": "completed_archive_and_csv_payload_audit",
-      "required": "Completed by exact-head GitHub Actions run 43311807638: publisher size and MD5 verified, archive SHA-256 recorded, 16 recording CSVs separated from two metadata CSV exports, all CSVs parsed under role-specific 70/73-column schemas, time fields verified in seconds and strictly increasing, and index/dictionary/normalization-script hashes present in the machine-readable receipt.",
-      "qualification": "Archive and CSV payload semantics are audited. Model evaluation, label-to-physical-cause validity, physical run identities, held-out splits, and external validation remain not executed."
+      "required": "Completed by exact-head GitHub Actions run 43377608370 (#168): publisher-reported size and MD5 verified, archive SHA-256 recorded, 16 recording CSVs separated from two metadata CSV exports, role-specific 70/73-column CSV layouts parsed, time fields verified in seconds and strictly increasing, and index/dictionary/normalization-script hashes recorded in the audit artifact.",
+      "qualification": "Archive bytes, extracted file inventory, CSV syntax and published time-column semantics are audited. Model evaluation, label-to-physical-cause validity, physical run identities, held-out splits, fault detection and external validation remain not executed."
     },
     {
       "id": "within_dataset_held_out_load",
@@ -268,27 +268,27 @@
       "status": "aspirational"
     }
   ],
-  "claim_ceiling": "The ZIP was downloaded by the exact-head GitHub Actions runner and its publisher-reported size and MD5 matched; a SHA-256 was computed but its value is not yet committed in the receipt. Extracted file inventory, CSV payload, physical run identities, per-file missingness, splits and model results remain unaudited; no model accuracy or cross-engine/fleet claim is made.",
+  "claim_ceiling": "A successful exact-head Rust archive audit verified publisher size and MD5, computed archive SHA-256, checked ZIP member safety, audited all 16 recording CSV payloads and their published role-specific schemas, monotonic time fields, missingness and metadata hashes. No model has been trained or scored; no physical root-cause, cross-engine or fleet validation claim is made.",
   "source_interpretation": {
     "reported_intervention_label": "The five class names describe the experimental anomaly scenarios reported by the dataset creators.",
     "causal_limit": "A scenario label is not by itself proof that the intervention reproduces the full causal physics, degradation progression or failure envelope of an in-service fault.",
     "audit_requirement": "Review the archive README, intervention procedures, channel dictionary and manuscript before interpreting a scenario label as a physical root cause or using it to claim field representativeness.",
     "secondary_review_note": "A secondary review of the data descriptor flags potential proxy interventions and qualitative technical validation. Treat this as an audit lead, not an authoritative correction to the dataset creators' metadata."
   },
-  "claimCeiling": "The ZIP was downloaded by the exact-head GitHub Actions runner and its publisher-reported size and MD5 matched; a SHA-256 was computed but its value is not yet committed in the receipt. Extracted file inventory, CSV payload, physical run identities, per-file missingness, splits and model results remain unaudited; no model accuracy or cross-engine/fleet claim is made.",
+  "claimCeiling": "Archive and CSV payload integrity are verified by an exact-head Rust audit receipt. This does not validate physical root causes, publisher label validity, model performance or cross-engine/fleet generalization.",
   "archive_audit_receipt": {
-    "workflow_run_id": 43312150806,
-    "workflow_run_number": 131,
-    "head_sha": "076350d5eea003ecb38a8eb5bb782787d608d2bc",
-    "job_id": 131510695601,
-    "artifact_id": 13986307496,
-    "artifact_name": "marine-engine-fault-audit-43312150806",
-    "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43312150806/artifacts/13986307496",
+    "workflow_run_id": 43377608370,
+    "workflow_run_number": 168,
+    "head_sha": "153250ea314270f955c77dd1c8801ddf4af04615",
+    "job_id": 131727651115,
+    "artifact_id": 14014574182,
+    "artifact_name": "marine-engine-fault-audit-43377608370",
+    "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182",
     "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
     "recording_csv_files": 16,
     "baseline_files": 1,
     "scenario_files": 15,
-    "rust_tests_passed": 114,
+    "rust_tests_passed": 121,
     "rust_tests_failed": 0
   }
 }
