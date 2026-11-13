@@ -1,6 +1,6 @@
 # Bilocal geodesic operators: Kerr cross-formulation qualification
 
-**Status:** planned research contract; no BGO integrator or BGO-to-canonical comparison is claimed by this document.
+**Status:** BGO-0 transfer algebra and Minkowski known-answer source are now authored in `src/bilocal.rs`; the exact-head Rust runner is pending. No curvature-driven BGO integrator or BGO-to-canonical comparison is claimed.
 
 ## Why this is the next step
 
@@ -9,6 +9,12 @@ The Kerr optical implementation now has three ingredients that should not remain
 The full BGO propagates both endpoint displacement and covariant tangent displacement. Unlike the projected Jacobi block, the full transfer remains invertible through an ordinary conjugate point even when the 2×2 screen Jacobi determinant vanishes. This gives us a route to distinguish a physical caustic from a numerical singularity and to retain branch/parity information through focusing events.
 
 The October 2026 EMRI self-lensing preprint uses BGOs to derive the point-to-point Jacobi map and image-resolved magnification for Kerr null rays. It is a particularly relevant external target, but is a preprint and is not a validation oracle by itself: https://arxiv.org/abs/2610.08399. The October 2026 MNRAS Kerr-lensing paper supplies a complementary image-position/extended-source comparison and documents independent Schwarzschild and Mathematica/NDSolve checks: https://doi.org/10.1093/mnras/stag1890.
+
+## Executable BGO-0 slice
+
+`BilocalGeodesicOperator` now represents the 8×8 transfer in `(xi, ell)` ordering and exposes checked construction from a full matrix or four 4×4 blocks, composition, scaled-pivot inversion, and a symplectic residual. `minkowski(delta_lambda)` implements the exact transfer `W_XX=I`, `W_XK=delta_lambda I`, `W_KX=0`, `W_KK=I`. Authored Rust tests cover all four blocks, affine-interval composition, inverse/backward propagation, Wronskian preservation, the zero-interval identity, non-finite rejection and singular-matrix rejection. These tests are source-authored; do not call them passed until the exact-head Rust 1.96 workflow succeeds.
+
+The type deliberately does not yet evolve a Kerr curvature tensor. Its BGO-1 and BGO-2 milestones remain open.
 
 ## Mathematical contract
 
