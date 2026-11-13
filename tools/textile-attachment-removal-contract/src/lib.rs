@@ -255,8 +255,7 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
             record.outcome,
             RemovalOutcome::Removed | RemovalOutcome::Partial
         )
-        && (action.evidence_id == inspection.evidence_id
-            || action.sha256 == inspection.sha256)
+        && (action.evidence_id == inspection.evidence_id || action.sha256 == inspection.sha256)
     {
         add(
             &mut findings,
@@ -450,9 +449,7 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
                         "physical peak force must bind to a calibration profile",
                     );
                 }
-                if record.force_calibration_id.as_deref()
-                    != action.calibration_id.as_deref()
-                {
+                if record.force_calibration_id.as_deref() != action.calibration_id.as_deref() {
                     add(
                         &mut findings,
                         "FORCE_CALIBRATION_MISMATCH",
