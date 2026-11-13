@@ -572,8 +572,7 @@ mod tests {
         start_ms: u64,
         end_ms: u64,
     ) {
-        let indexed =
-            book.candidate_reservation_ids(resource_id, start_ms, end_ms);
+        let indexed = book.candidate_reservation_ids(resource_id, start_ms, end_ms);
         let exact_overlaps: BTreeSet<String> = book
             .reservations
             .iter()
@@ -591,8 +590,7 @@ mod tests {
                     .request
                     .interval_end_ms
                     .saturating_add(record.request.clock_uncertainty_ms);
-                (start_ms < existing_end && existing_start < end_ms)
-                    .then(|| reservation_id.clone())
+                (start_ms < existing_end && existing_start < end_ms).then(|| reservation_id.clone())
             })
             .collect();
 
@@ -658,20 +656,15 @@ mod tests {
         }
 
         let starts = [
-            0_u64, 1, 59_899, 59_990, 60_000, 60_100, 119_999, 120_000, 200_000, 249_999,
-            299_999, 300_000,
+            0_u64, 1, 59_899, 59_990, 60_000, 60_100, 119_999, 120_000, 200_000, 249_999, 299_999,
+            300_000,
         ];
         let durations = [1_u64, 10, 100, 1_000, 60_000, 120_000];
         for start in starts {
             for duration in durations {
                 let end = start.saturating_add(duration);
                 if start < end {
-                    assert_index_contains_every_exact_overlap(
-                        &book,
-                        "work-zone-A",
-                        start,
-                        end,
-                    );
+                    assert_index_contains_every_exact_overlap(&book, "work-zone-A", start, end);
                 }
             }
         }
@@ -694,12 +687,7 @@ mod tests {
             book.candidate_count_for_interval("work-zone-A", long_end - 5, long_end + 5),
             Ok(1)
         );
-        assert_index_contains_every_exact_overlap(
-            &book,
-            "work-zone-A",
-            long_end - 5,
-            long_end + 5,
-        );
+        assert_index_contains_every_exact_overlap(&book, "work-zone-A", long_end - 5, long_end + 5);
     }
 
     #[test]
@@ -759,10 +747,7 @@ mod tests {
             expired.candidate_count_for_interval("work-zone-A", 100, 200),
             Ok(0)
         );
-        assert_eq!(
-            expired.state("expire-me"),
-            Some(ReservationState::Expired)
-        );
+        assert_eq!(expired.state("expire-me"), Some(ReservationState::Expired));
         assert!(expired.expiry_index.is_empty());
 
         let mut invalidated = book(2);
@@ -791,15 +776,15 @@ mod tests {
             book.reserve(item.clone(), 0),
             Ok(ReservationOutcome::Granted)
         );
-        assert_eq!(
-            book.reserve(item, 0),
-            Ok(ReservationOutcome::Duplicate)
-        );
+        assert_eq!(book.reserve(item, 0), Ok(ReservationOutcome::Duplicate));
         assert_eq!(
             book.candidate_count_for_interval("work-zone-A", 100, 200),
             Ok(1)
         );
-        assert_eq!(book.expiry_index.values().map(BTreeSet::len).sum::<usize>(), 1);
+        assert_eq!(
+            book.expiry_index.values().map(BTreeSet::len).sum::<usize>(),
+            1
+        );
     }
 
     #[test]
