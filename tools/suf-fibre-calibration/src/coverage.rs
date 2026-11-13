@@ -283,7 +283,7 @@ impl EventConditionedCoverageInput {
         } else {
             None
         };
-        let pod_95_interval = if let Some(point) = pod {
+        let pod_95_interval = if pod.is_some() {
             Some(wilson_interval(self.detected_events, self.eligible_event_trials, 1.959_963_984_540_054))
         } else {
             None
