@@ -604,6 +604,7 @@ pub fn verify_normalized_receipt(serialized: &str) -> Result<Value, WireReceiptE
     if !validate_payload_shape(payload) {
         return Err(WireReceiptError::InvalidEnvelope);
     }
+    validate_report_input_consistency(payload)?;
     let identity = &payload["identity"];
     let configuration = &payload["configuration"];
     let decision = &payload["decision_input"];
@@ -876,6 +877,128 @@ fn validate_payload_shape(payload: &Value) -> bool {
     }
     report["causal_chain_complete"].as_bool() == Some(true)
         && report["actuation_authorized"] == Value::Bool(false)
+}
+
+fn evidence_is_qualified(value: &Value) -> bool {
+    value["status"].as_str() == Some("qualified")
+}
+
+fn validate_report_input_consistency(payload: &Value) -> Result<(), WireReceiptError> {
+    let report = &payload["report"];
+    let energy_input = &payload["energy_input"];
+    let thermal_input = &payload["thermal_input"];
+    let sampling_input = &payload["sampling_input"];
+    let decision_input = &payload["decision_input"];
+
+    if evidence_is_qualified(&report["energy"]) {
+        let closure = &energy_input["closure"];
+        if energy_input["boundary_complete"] != Value::Bool(true)
+            || closure["status"].as_str() != Some("balanced")
+            || report["energy"]["value"]["disposition"].as_str() != Some("balanced")
+            || report["energy"]["value"]["first_law_receipt_digest"]
+                != closure["receipt_digest"]
+        {
+            return Err(WireReceiptError::ContradictoryPayloadBinding(
+                "energy_report_upgrades_unqualified_input",
+            ));
+        }
+    }
+
+    if evidence_is_qualified(&report["thermal"]) {
+        let required = thermal_input["required_node_ids"].as_array();
+        let observed = thermal_input["observed_node_ids"].as_array();
+        if thermal_input["sequence_reset"] != Value::Bool(false)
+            || thermal_input["expected_predecessor_digest"]
+                != thermal_input["observed_predecessor_digest"]
+            || required.is_none()
+            || observed.is_none()
+            || required != observed
+            || report["thermal"]["value"]["disposition"].as_str() != Some("continuous")
+            || report["thermal"]["value"]["result_digest"] != thermal_input["result_digest"]
+            || report["thermal"]["value"]["node_count"].as_u64()
+                != observed.map(|nodes| nodes.len() as u64)
+        {
+            return Err(WireReceiptError::ContradictoryPayloadBinding(
+                "thermal_report_upgrades_incomplete_input",
+            ));
+        }
+    }
+
+    if evidence_is_qualified(&report["sampling"]) {
+        if sampling_input["specification_qualified"] != Value::Bool(true)
+            || sampling_input["measured_rate_hz"].as_u64()
+                < sampling_input["required_rate_hz"].as_u64()
+            || report["sampling"]["value"]["disposition"].as_str()
+                != Some("meets_declared_specification")
+            || report["sampling"]["value"]["measured_rate_hz"]
+                != sampling_input["measured_rate_hz"]
+        {
+            return Err(WireReceiptError::ContradictoryPayloadBinding(
+                "sampling_report_upgrades_unqualified_input",
+            ));
+        }
+    }
+
+    if evidence_is_qualified(&report["terminal_safe_stop"])
+        && (payload["terminal_safe_stop_qualified"] != Value::Bool(true)
+            || report["terminal_safe_stop"]["value"] != Value::Bool(true))
+    {
+        return Err(WireReceiptError::ContradictoryPayloadBinding(
+            "terminal_report_upgrades_unqualified_input",
+        ));
+    }
+
+    if evidence_is_qualified(&report["decision"]) {
+        let disposition = report["decision"]["value"]["disposition"].as_str();
+        let regret = decision_input["regret_upper_units"].as_u64();
+        let epsilon = decision_input["epsilon_task_loss_units"].as_u64();
+        let valid_tick = decision_input["valid_through_tick"].as_u64();
+        let application_tick = decision_input["actuator_application_tick"].as_u64();
+        let consistent = match disposition {
+            Some("sufficient") => {
+                regret <= epsilon && application_tick <= valid_tick
+                    && report["decision"]["value"]["regret_upper_units"]
+                        == decision_input["regret_upper_units"]
+            }
+            Some("insufficient") => {
+                regret > epsilon && application_tick <= valid_tick
+                    && report["decision"]["value"]["regret_upper_units"]
+                        == decision_input["regret_upper_units"]
+                    && report["decision"]["value"]["epsilon_task_loss_units"]
+                        == decision_input["epsilon_task_loss_units"]
+            }
+            Some("expired") => {
+                application_tick > valid_tick
+                    && report["decision"]["value"]["valid_through_tick"]
+                        == decision_input["valid_through_tick"]
+                    && report["decision"]["value"]["application_tick"]
+                        == decision_input["actuator_application_tick"]
+            }
+            _ => false,
+        };
+        if !consistent {
+            return Err(WireReceiptError::ContradictoryPayloadBinding(
+                "decision_report_mismatches_input",
+            ));
+        }
+    }
+
+    if report["mission_closure"]["status"].as_str() == Some("closed")
+        && (!evidence_is_qualified(&report["source_to_actuator_aoi"])
+            || !evidence_is_qualified(&report["command_to_motion"])
+            || !evidence_is_qualified(&report["decision"])
+            || report["decision"]["value"]["disposition"].as_str() != Some("sufficient")
+            || !evidence_is_qualified(&report["thermal"])
+            || !evidence_is_qualified(&report["energy"])
+            || !evidence_is_qualified(&report["sampling"])
+            || !evidence_is_qualified(&report["terminal_safe_stop"]))
+    {
+        return Err(WireReceiptError::ContradictoryPayloadBinding(
+            "closed_mission_contains_unqualified_domain",
+        ));
+    }
+
+    Ok(())
 }
 
 fn has_exact_keys(value: &Value, expected: &[&str]) -> bool {
