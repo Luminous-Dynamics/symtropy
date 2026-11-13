@@ -1,0 +1,413 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "water-control-robustness-scenarios-v0.1",
+  "profile": {
+    "profile_id": "SYNTHETIC-SMALL-WDS-CONTROL-V0",
+    "evidence_class": "synthetic_design_profile",
+    "plant_population": "small_looped_water_distribution_network",
+    "pressure_floor_m": 20,
+    "pressure_ceiling_m": 60,
+    "storage_reserve_floor_fraction": 0.25,
+    "storage_ceiling_fraction": 0.9,
+    "time_step_seconds": 60,
+    "values_are_normative": false
+  },
+  "baseline_families": [
+    "tuned_rule_or_pi",
+    "hydraulic_model_mpc",
+    "data_enabled_predictive_control",
+    "model_free_enc_2026",
+    "qualified_estimator_plus_controller"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "WCR-001",
+      "scenario_class": "nominal",
+      "measurement_state": "fully_observed",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1,
+      "disturbances": [],
+      "expected_disposition": "run_nominal",
+      "required_behaviors": [
+        "report hard service constraints at every step",
+        "log sensor and actuator inputs with units and timestamps",
+        "report energy only at the declared electrical and delivery boundaries"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Nominal fully observed synthetic run."
+    },
+    {
+      "scenario_id": "WCR-002",
+      "scenario_class": "demand_variation",
+      "measurement_state": "fully_observed",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1.25,
+      "disturbances": [
+        "demand_ramp"
+      ],
+      "expected_disposition": "run_nominal",
+      "required_behaviors": [
+        "report hard service constraints at every step",
+        "log sensor and actuator inputs with units and timestamps",
+        "report energy only at the declared electrical and delivery boundaries"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Demand increases by 25% within the illustrative synthetic operating envelope."
+    },
+    {
+      "scenario_id": "WCR-003",
+      "scenario_class": "sparse_sensing",
+      "measurement_state": "partial_with_qualified_estimator",
+      "direct_state_coverage_fraction": 0.5,
+      "unobserved_critical_variables": [
+        "junction_pressure_2",
+        "tank_level_2"
+      ],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "qualified_estimator_with_bound"
+      ],
+      "expected_disposition": "run_with_qualified_estimator",
+      "required_behaviors": [
+        "bind estimator revision, calibration, uncertainty and state coverage",
+        "propagate conservative state bounds into independent command validation",
+        "abstain if any critical bound is exceeded or unqualified"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Half of regulated state variables lack direct sensors; a separately qualified estimator supplies conservative bounds."
+    },
+    {
+      "scenario_id": "WCR-004",
+      "scenario_class": "sparse_sensing",
+      "measurement_state": "partial_unqualified",
+      "direct_state_coverage_fraction": 0.5,
+      "unobserved_critical_variables": [
+        "junction_pressure_2",
+        "tank_level_2"
+      ],
+      "demand_peak_factor": 1,
+      "disturbances": [],
+      "expected_disposition": "abstain_or_local_fallback",
+      "required_behaviors": [
+        "mark critical state as unknown or degraded",
+        "do not issue a new supervisory command from untrusted state",
+        "invoke only separately qualified local policy or interlock"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Critical variables are unobserved and no qualified estimator evidence is available."
+    },
+    {
+      "scenario_id": "WCR-005",
+      "scenario_class": "sensor_fault",
+      "measurement_state": "partial_with_qualified_estimator",
+      "direct_state_coverage_fraction": 0.75,
+      "unobserved_critical_variables": [
+        "junction_pressure_1"
+      ],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "one_sensor_dropout",
+        "qualified_estimator_with_bound"
+      ],
+      "expected_disposition": "run_with_qualified_estimator",
+      "required_behaviors": [
+        "bind estimator revision, calibration, uncertainty and state coverage",
+        "propagate conservative state bounds into independent command validation",
+        "abstain if any critical bound is exceeded or unqualified"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "One critical pressure channel is missing; fallback estimation must carry a bound and freshness receipt."
+    },
+    {
+      "scenario_id": "WCR-006",
+      "scenario_class": "sensor_fault",
+      "measurement_state": "degraded",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "pressure_sensor_bias_plus_5_percent_full_scale"
+      ],
+      "expected_disposition": "abstain_or_local_fallback",
+      "required_behaviors": [
+        "mark critical state as unknown or degraded",
+        "do not issue a new supervisory command from untrusted state",
+        "invoke only separately qualified local policy or interlock"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "One pressure sensor is biased by +5% full scale; independent cross-check or qualified fault detection is required."
+    },
+    {
+      "scenario_id": "WCR-007",
+      "scenario_class": "sensor_fault",
+      "measurement_state": "degraded",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "common_mode_pressure_bias_plus_3_percent_full_scale"
+      ],
+      "expected_disposition": "abstain_or_local_fallback",
+      "required_behaviors": [
+        "mark critical state as unknown or degraded",
+        "do not issue a new supervisory command from untrusted state",
+        "invoke only separately qualified local policy or interlock"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "All pressure channels share a +3% full-scale bias; majority voting cannot detect this common-cause fault."
+    },
+    {
+      "scenario_id": "WCR-008",
+      "scenario_class": "sensor_fault",
+      "measurement_state": "degraded",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "redundant_pressure_disagreement_10_percent_full_scale"
+      ],
+      "expected_disposition": "abstain_or_local_fallback",
+      "required_behaviors": [
+        "mark critical state as unknown or degraded",
+        "do not issue a new supervisory command from untrusted state",
+        "invoke only separately qualified local policy or interlock"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Redundant pressure measurements disagree beyond the declared consistency tolerance."
+    },
+    {
+      "scenario_id": "WCR-009",
+      "scenario_class": "timebase_fault",
+      "measurement_state": "degraded",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "telemetry_age_120_seconds",
+        "control_period_60_seconds"
+      ],
+      "expected_disposition": "abstain_or_local_fallback",
+      "required_behaviors": [
+        "mark critical state as unknown or degraded",
+        "do not issue a new supervisory command from untrusted state",
+        "invoke only separately qualified local policy or interlock"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Critical telemetry is two control periods old or has unresolved time synchronization."
+    },
+    {
+      "scenario_id": "WCR-010",
+      "scenario_class": "topology_fault",
+      "measurement_state": "out_of_domain",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1.15,
+      "disturbances": [
+        "unannounced_valve_state_change",
+        "topology_revision_mismatch"
+      ],
+      "expected_disposition": "stop_and_reconcile",
+      "required_behaviors": [
+        "stop issuing supervisory proposals",
+        "preserve all conflicting evidence and controller state",
+        "require explicit topology/actuator/timebase reconciliation"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "A valve state/topology revision mismatch invalidates the frozen controller context."
+    },
+    {
+      "scenario_id": "WCR-011",
+      "scenario_class": "actuator_fault",
+      "measurement_state": "disturbed",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1.3,
+      "disturbances": [
+        "pump_2_trip",
+        "demand_peak"
+      ],
+      "expected_disposition": "local_safety_only",
+      "required_behaviors": [
+        "keep supervisory controller out of authority path",
+        "preserve independent local equipment protections",
+        "reconcile plant, sensor and actuator state before supervisory resume"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Pump 2 becomes unavailable during peak demand; only verified remaining capacity and independent interlocks may support a new strategy."
+    },
+    {
+      "scenario_id": "WCR-012",
+      "scenario_class": "source_fault",
+      "measurement_state": "disturbed",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1,
+      "disturbances": [
+        "source_level_below_declared_floor",
+        "suction_margin_unqualified"
+      ],
+      "expected_disposition": "local_safety_only",
+      "required_behaviors": [
+        "keep supervisory controller out of authority path",
+        "preserve independent local equipment protections",
+        "reconcile plant, sensor and actuator state before supervisory resume"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Source/suction state crosses the declared bound or its measurement is not trustworthy."
+    },
+    {
+      "scenario_id": "WCR-013",
+      "scenario_class": "power_fault",
+      "measurement_state": "disturbed",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1.2,
+      "disturbances": [
+        "power_loss_900_seconds",
+        "controlled_restart"
+      ],
+      "expected_disposition": "local_safety_only",
+      "required_behaviors": [
+        "keep supervisory controller out of authority path",
+        "preserve independent local equipment protections",
+        "reconcile plant, sensor and actuator state before supervisory resume"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Power is lost for 15 minutes; restart requires a separately qualified local sequence and reconciled state."
+    },
+    {
+      "scenario_id": "WCR-014",
+      "scenario_class": "communications_fault",
+      "measurement_state": "degraded",
+      "direct_state_coverage_fraction": 1,
+      "unobserved_critical_variables": [],
+      "demand_peak_factor": 1.1,
+      "disturbances": [
+        "supervisory_link_offline_120_seconds",
+        "local_interlock_online"
+      ],
+      "expected_disposition": "local_safety_only",
+      "required_behaviors": [
+        "keep supervisory controller out of authority path",
+        "preserve independent local equipment protections",
+        "reconcile plant, sensor and actuator state before supervisory resume"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Supervisory communication is lost while the independent local safety system remains available."
+    },
+    {
+      "scenario_id": "WCR-015",
+      "scenario_class": "compound_fault",
+      "measurement_state": "out_of_domain",
+      "direct_state_coverage_fraction": 0.5,
+      "unobserved_critical_variables": [
+        "junction_pressure_2",
+        "tank_level_2"
+      ],
+      "demand_peak_factor": 1.4,
+      "disturbances": [
+        "pump_2_trip",
+        "pressure_sensor_dropout",
+        "supervisory_link_offline",
+        "common_mode_bias_possible"
+      ],
+      "expected_disposition": "stop_and_reconcile",
+      "required_behaviors": [
+        "stop issuing supervisory proposals",
+        "preserve all conflicting evidence and controller state",
+        "require explicit topology/actuator/timebase reconciliation"
+      ],
+      "prohibited_behaviors": [
+        "treat missing, stale, biased or unobservable state as nominal",
+        "relax the declared pressure or storage floor to improve energy or compute score",
+        "claim safe control from controller self-assessment alone",
+        "convert a synthetic result into a physical or utility performance claim"
+      ],
+      "note": "Multiple concurrent faults invalidate normal estimator and control assumptions."
+    }
+  ],
+  "interpretation_rules": [
+    "All numerical pressure and storage values are illustrative synthetic contract inputs, not South African standards, utility setpoints or a Johannesburg operating profile.",
+    "The scenario pack contains controller admission and expected-disposition requirements, not computed controller commands or measured controller performance.",
+    "Each controller receives the same initial condition, disturbance trace, direct sensor channels, sample time, actuator envelope and training-history budget within each paired comparison.",
+    "The model-free ENC publication comparator assumes direct measurement of all regulated variables; do not silently grant it qualified estimates in sparse-sensor cases.",
+    "A qualified estimator is a separate component with its own calibration, observability, uncertainty and stale-data gates. It is not supplied by a controller's self-confidence score.",
+    "A local safety interlock is independent of the supervisory controller and may have different sensors, power, logic and authority; this pack does not implement or qualify that interlock.",
+    "Controller abstention is a valid result and must be scored separately from control failure; never hide abstention in an accuracy aggregate.",
+    "No live utility SCADA connections, credentials, pump/valve commands, service allocation or emergency actions are authorized.",
+    "The 2026 ENC article's reported sample counts and compute differences are publication claims, not reproduced measurements in this repository."
+  ],
+  "claim_ceiling": "Synthetic scenario design and expected-behavior contract only. No controller is implemented or qualified, and no hydraulic, hardware, safety, energy-saving or field outcome is established."
+}
