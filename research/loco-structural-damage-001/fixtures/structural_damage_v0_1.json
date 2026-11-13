@@ -1,0 +1,372 @@
+{
+  "schema_version": "loco-structural-damage-scenarios-v0.1",
+  "issue": 4364,
+  "baseline_citation": "Yu et al., PNAS 123(10), e2519129123, 2026-03-10",
+  "status": "synthetic_injection_manifest_only",
+  "deployable_policy_visibility": [
+    "runtime_sensor_values",
+    "validated_module_state_receipts",
+    "verified_connection_graph_if_available"
+  ],
+  "evaluator_only": [
+    "scenario_id",
+    "future_damage_event",
+    "true_cut_location",
+    "true_structural_failure_mode",
+    "posthoc_ground_truth"
+  ],
+  "evidence_tiers": [
+    "simulation",
+    "structural_bench",
+    "test_rig",
+    "hardware",
+    "field_service"
+  ],
+  "scenarios": [
+    {
+      "id": "S01-one-hind-module-amputation",
+      "split": "validation",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "amputation",
+        "module": "hind_left",
+        "cut_location": "randomized_heldout_dock_or_link_point",
+        "method": "instrumented_physical_disconnect"
+      },
+      "onset": {
+        "time_ms": 10000,
+        "gait_phase": "stance"
+      },
+      "terrain": "flat_then_uneven",
+      "task": "continue_or_recover",
+      "payload_kg": 0,
+      "expected_gate": "updated_module_graph_and_robust_viability_required"
+    },
+    {
+      "id": "S02-both-hind-modules-amputated",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "multi_module_amputation",
+        "modules": [
+          "hind_left",
+          "hind_right"
+        ],
+        "cut_locations": "heldout_randomized"
+      },
+      "onset": {
+        "time_ms": 12000,
+        "gait_phase": "randomized"
+      },
+      "terrain": "grass_and_gravel",
+      "task": "continue_or_controlled_stop",
+      "payload_kg": 0,
+      "expected_gate": "all_remaining_physical_successors_and_recovery_options_checked"
+    },
+    {
+      "id": "S03-single-module-remains",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "multi_module_amputation",
+        "modules": "all_but_one",
+        "cut_locations": "heldout_randomized"
+      },
+      "onset": {
+        "time_ms": 15000,
+        "gait_phase": "randomized"
+      },
+      "terrain": "flat",
+      "task": "isolated_module_mobility",
+      "payload_kg": 0,
+      "expected_gate": "aggregate_task_and_isolated_module_task_are_separate"
+    },
+    {
+      "id": "S04-detached-module-remains-powered",
+      "split": "adversarial",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "amputation",
+        "module": "front_right",
+        "module_power": "on",
+        "module_compute": "on",
+        "module_motion": "active_after_separation"
+      },
+      "onset": {
+        "time_ms": 9000,
+        "gait_phase": "swing"
+      },
+      "terrain": "mixed_obstacles",
+      "task": "aggregate_continue_and_isolated_module_safety",
+      "payload_kg": 0,
+      "expected_gate": "aggregate_controller_must_not_address_nonexistent_connection"
+    },
+    {
+      "id": "S05-attached-dead-module",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "attached_dead_module",
+        "module": "front_left",
+        "motor_driver": "disabled",
+        "passive_mass_and_contact": "retained"
+      },
+      "onset": {
+        "time_ms": 11000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "uneven_bricks",
+      "task": "walk_or_recover",
+      "payload_kg": 0,
+      "expected_gate": "attached_dead_module_not_classified_as_amputation"
+    },
+    {
+      "id": "S06-local-power-loss",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "local_power_loss",
+        "module": "rear_right",
+        "battery": "isolated",
+        "mechanical_attachment": "intact"
+      },
+      "onset": {
+        "time_ms": 13000,
+        "gait_phase": "stance"
+      },
+      "terrain": "sand",
+      "task": "walk_or_stop",
+      "payload_kg": 0,
+      "expected_gate": "module_power_state_receipt_required"
+    },
+    {
+      "id": "S07-local-compute-reset",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "local_compute_failure",
+        "module": "spine",
+        "compute": "reset_or_hang",
+        "power": "on",
+        "mechanical_attachment": "intact"
+      },
+      "onset": {
+        "time_ms": 8000,
+        "gait_phase": "turn"
+      },
+      "terrain": "pavers",
+      "task": "recover_or_stop",
+      "payload_kg": 0,
+      "expected_gate": "stale_or_missing_compute_heartbeat_invalidates_module_control"
+    },
+    {
+      "id": "S08-module-imu-loss",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "local_sensor_failure",
+        "module": "front_right",
+        "sensor": "imu",
+        "mode": "dropout"
+      },
+      "onset": {
+        "time_ms": 10000,
+        "gait_phase": "swing"
+      },
+      "terrain": "grass",
+      "task": "walk_or_stop",
+      "payload_kg": 0,
+      "expected_gate": "sensor_loss_not_inferred_as_structural_detachment"
+    },
+    {
+      "id": "S09-communication-isolation",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "communication_isolation",
+        "module": "rear_left",
+        "module_local_compute": "on",
+        "local_power": "on",
+        "aggregate_link": "lost"
+      },
+      "onset": {
+        "time_ms": 14000,
+        "gait_phase": "stance"
+      },
+      "terrain": "mud",
+      "task": "distributed_autonomy_or_controlled_stop",
+      "payload_kg": 0,
+      "expected_gate": "distributed_control_claim_requires_local_only_runtime_test"
+    },
+    {
+      "id": "S10-partially-engaged-dock",
+      "split": "adversarial",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "partial_dock_engagement",
+        "connection": [
+          "front_module",
+          "spine_module"
+        ],
+        "engagement_fraction_ppm": 450000
+      },
+      "onset": {
+        "time_ms": 0,
+        "gait_phase": "pre_mission"
+      },
+      "terrain": "level_test_rig",
+      "task": "load_bearing_and_connection_check",
+      "payload_kg": 0,
+      "expected_gate": "no_contact_or_load_action_until_verified_dock_state"
+    },
+    {
+      "id": "S11-dock-fracture-under-load",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "dock_fracture",
+        "connection": [
+          "rear_module",
+          "spine_module"
+        ],
+        "load_ramp": "source_qualified"
+      },
+      "onset": {
+        "time_ms": 16000,
+        "gait_phase": "stance"
+      },
+      "terrain": "uneven",
+      "task": "controlled_stop_and_recovery",
+      "payload_kg": 1,
+      "expected_gate": "complete_successor_graph_includes_partial_and_full_separation"
+    },
+    {
+      "id": "S12-link-crack-stiffness-loss",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "structural_link_stiffness_loss",
+        "module": "front_left",
+        "stiffness_fraction_ppm": 400000
+      },
+      "onset": {
+        "time_ms": 10000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "obstacle_course",
+      "task": "walk_or_recover",
+      "payload_kg": 0,
+      "expected_gate": "connected_topology_does_not_imply_healthy_structure"
+    },
+    {
+      "id": "S13-backbone-module-loss",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "spine_module_amputation",
+        "module": "central_spine"
+      },
+      "onset": {
+        "time_ms": 12000,
+        "gait_phase": "turn"
+      },
+      "terrain": "grass_roots",
+      "task": "recover_or_stop",
+      "payload_kg": 0,
+      "expected_gate": "new_support_graph_and_load_paths_requalified"
+    },
+    {
+      "id": "S14-two-modules-one-side",
+      "split": "heldout",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "compound_module_amputation",
+        "modules": [
+          "front_left",
+          "rear_left"
+        ]
+      },
+      "onset": {
+        "time_ms": 17000,
+        "gait_phase": "randomized"
+      },
+      "terrain": "low_friction",
+      "task": "continue_or_recover",
+      "payload_kg": 0,
+      "expected_gate": "no_single_module_fault_assumption"
+    },
+    {
+      "id": "S15-unknown-cut-topology",
+      "split": "adversarial",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "unknown_structural_failure",
+        "cut_location": "outside_training_and_model"
+      },
+      "onset": {
+        "time_ms": 19000,
+        "gait_phase": "randomized"
+      },
+      "terrain": "heldout_family",
+      "task": "controlled_stop_or_safe_recovery",
+      "payload_kg": 0,
+      "expected_gate": "unknown_topology_not_mapped_to_nearest_known_graph"
+    },
+    {
+      "id": "S16-repair-stale-calibration",
+      "split": "adversarial",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "manual_module_reassembly",
+        "module": "rear_left",
+        "structural_connection": "replaced",
+        "actuator_calibration": "stale",
+        "sensor_calibration": "stale"
+      },
+      "onset": {
+        "time_ms": 0,
+        "gait_phase": "pre_mission"
+      },
+      "terrain": "service_bench",
+      "task": "return_to_service_check",
+      "payload_kg": 0,
+      "expected_gate": "no_reentry_until_all_required_receipts_refreshed"
+    },
+    {
+      "id": "S17-central-torso-detachable-limb",
+      "split": "heldout",
+      "platform": "central_torso_detachable_limb",
+      "damage": {
+        "type": "limb_detachment",
+        "module": "front_right",
+        "limb_power_and_compute": "central_torso_dependent"
+      },
+      "onset": {
+        "time_ms": 9000,
+        "gait_phase": "stance"
+      },
+      "terrain": "flat",
+      "task": "walk_or_recover",
+      "payload_kg": 0,
+      "expected_gate": "not_pooled_with_autonomous_module_stratum"
+    },
+    {
+      "id": "S18-remote-controller-link-loss",
+      "split": "adversarial",
+      "platform": "self_sufficient_modular_quadruped",
+      "damage": {
+        "type": "remote_controller_link_loss",
+        "module_local_compute": "present",
+        "remote_policy_host": "disconnected"
+      },
+      "onset": {
+        "time_ms": 11000,
+        "gait_phase": "walk"
+      },
+      "terrain": "outdoor_gravel",
+      "task": "local_only_autonomy_test",
+      "payload_kg": 0,
+      "expected_gate": "no_distributed_autonomy_claim_without_onboard_execution_evidence"
+    }
+  ]
+}
