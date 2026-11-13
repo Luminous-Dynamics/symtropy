@@ -429,8 +429,8 @@ fn calibration_metrics(samples: &[CalibrationSample]) -> CalibrationMetrics {
     }
 }
 
-fn collect_calibration<'a>(
-    pairs: &'a [PairedDecision],
+fn collect_calibration(
+    pairs: &[PairedDecision],
     role: BranchRole,
     after: bool,
     actor_presence: bool,
@@ -587,13 +587,12 @@ fn validate_pair(
     if cost.maneuver_distance_mm > campaign.action_budget.maximum_maneuver_distance_mm {
         findings.insert(Finding::ActionDistanceBudgetExceeded);
     }
-    if pair.no_safe_information_action_available {
-        if action.information_action != InformationActionKind::None
+    if pair.no_safe_information_action_available
+        && (action.information_action != InformationActionKind::None
             || action.decision_after == DrivingDecision::Proceed
-            || active_outcome.conflict_boundary_encroached
-        {
-            findings.insert(Finding::NoSafeActionViolation);
-        }
+            || active_outcome.conflict_boundary_encroached)
+    {
+        findings.insert(Finding::NoSafeActionViolation);
     }
     if matches!(
         action.information_action,
@@ -842,7 +841,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         expected_pair_count: campaign.expected_pair_count,
         observed_pair_count: campaign.pairs.len(),
         active_information_action_count: active_action_count,
-        decision_change_count: decision_change_count,
+        decision_change_count,
         unsafe_information_action_count: unsafe_information_actions,
         no_safe_action_violations,
         collision_or_contact_count: collision_count,
@@ -899,8 +898,8 @@ mod tests {
         }
     }
 
-    fn branch(
-        id: &str,
+    struct BranchFixture<'a> {
+        id: &'a str,
         role: BranchRole,
         action: InformationActionKind,
         before: u32,
@@ -909,28 +908,34 @@ mod tests {
         decision_after: DrivingDecision,
         actor_present: bool,
         crosses: bool,
-    ) -> BranchTrace {
+    }
+
+    fn branch(spec: BranchFixture<'_>) -> BranchTrace {
         BranchTrace {
-            branch_id: id.to_string(),
-            role,
-            information_action: action,
-            decision_before,
-            decision_after,
-            belief_before: belief(500_000, before, 500_000, 100_000),
+            branch_id: spec.id.to_string(),
+            role: spec.role,
+            information_action: spec.action,
+            decision_before: spec.decision_before,
+            decision_after: spec.decision_after,
+            belief_before: belief(500_000, spec.before, 500_000, 100_000),
             belief_after: belief(
-                if actor_present {
-                    after
+                if spec.actor_present {
+                    spec.after
                 } else {
-                    1_000_000 - after
+                    1_000_000 - spec.after
                 },
-                if crosses { after } else { 1_000_000 - after },
+                if spec.crosses {
+                    spec.after
+                } else {
+                    1_000_000 - spec.after
+                },
                 100_000,
                 100_000,
             ),
-            action_cost: cost(action),
+            action_cost: cost(spec.action),
             evaluator_outcome: EvaluatorOutcome {
-                actor_present,
-                crosses_within_horizon: crosses,
+                actor_present: spec.actor_present,
+                crosses_within_horizon: spec.crosses,
                 conflict_boundary_encroached: false,
                 contact_or_collision: false,
                 traffic_rule_violation: false,
@@ -957,28 +962,28 @@ mod tests {
             exogenous_randomness_sha256: "c".repeat(64),
             causal_branch_audit_sha256: "d".repeat(64),
             no_safe_information_action_available: no_safe_action,
-            passive_control: branch(
-                &format!("{id}-passive"),
-                BranchRole::PassiveControl,
-                InformationActionKind::None,
-                450_000,
-                passive_after,
-                DrivingDecision::Wait,
-                DrivingDecision::Wait,
+            passive_control: branch(BranchFixture {
+                id: &format!("{id}-passive"),
+                role: BranchRole::PassiveControl,
+                action: InformationActionKind::None,
+                before: 450_000,
+                after: passive_after,
+                decision_before: DrivingDecision::Wait,
+                decision_after: DrivingDecision::Wait,
                 actor_present,
                 crosses,
-            ),
-            active_observation: branch(
-                &format!("{id}-active"),
-                BranchRole::ActiveObservation,
+            }),
+            active_observation: branch(BranchFixture {
+                id: &format!("{id}-active"),
+                role: BranchRole::ActiveObservation,
                 action,
-                450_000,
-                active_after,
-                DrivingDecision::Wait,
-                DrivingDecision::Yield,
+                before: 450_000,
+                after: active_after,
+                decision_before: DrivingDecision::Wait,
+                decision_after: DrivingDecision::Yield,
                 actor_present,
                 crosses,
-            ),
+            }),
         }
     }
 
