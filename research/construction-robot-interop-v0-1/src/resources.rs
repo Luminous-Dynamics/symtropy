@@ -337,6 +337,22 @@ impl ReservationBook {
             .map_or(0, BTreeSet::len))
     }
 
+    /// Independent full-history expiry count for differential tests and benchmarks.
+    /// The production `expire` path uses the ordered expiry index instead.
+    pub fn reference_due_count_at(&self, now_ms: u64) -> usize {
+        self.reservations
+            .values()
+            .filter(|record| {
+                record.state == ReservationState::Active
+                    && record
+                        .request
+                        .expires_at_ms
+                        .saturating_sub(record.request.clock_uncertainty_ms)
+                        <= now_ms
+            })
+            .count()
+    }
+
     /// Reserve capacity in a declared clock domain and current site epoch.
     /// Overlap is evaluated on half-open intervals [start, end).
     pub fn reserve(
@@ -877,6 +893,42 @@ mod tests {
             Some(ReservationState::Invalidated)
         );
         assert!(invalidated.expiry_index.is_empty());
+    }
+
+    #[test]
+    fn expiry_index_and_full_history_oracle_agree_on_due_count() {
+        let mut book = book(10);
+        for index in 0..100_u64 {
+            let mut item = request(
+                &format!("expiry-{index}"),
+                &format!("robot-{index}"),
+                10_000 + index * 100,
+                10_050 + index * 100,
+                10_150 + index * 100,
+                1,
+            );
+            item.clock_uncertainty_ms = 0;
+            book.reserve(item, 0).expect("due reservation");
+        }
+        for index in 100..200_u64 {
+            let item = request(
+                &format!("future-{index}"),
+                &format!("robot-{index}"),
+                1_000_000 + index * 100,
+                1_000_050 + index * 100,
+                10_000_000_000,
+                1,
+            );
+            book.reserve(item, 0).expect("future reservation");
+        }
+
+        assert_eq!(book.reference_due_count_at(20_000), 100);
+        assert_eq!(book.expire(20_000), 100);
+        assert_eq!(book.reference_due_count_at(20_000), 0);
+        assert_eq!(
+            book.active_reservation_count_for_resource("work-zone-A"),
+            Ok(100)
+        );
     }
 
     #[test]
