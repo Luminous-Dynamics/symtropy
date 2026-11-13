@@ -256,10 +256,16 @@ impl EvaluationInput {
         if has_duplicates(&self.expected_decision_ids) {
             findings.push("expected_decision_ids contains duplicates".to_string());
         }
-        if self.expected_episode_ids.iter().any(|id| id.trim().is_empty()) {
+        if self
+            .expected_episode_ids
+            .iter()
+            .any(|id| id.trim().is_empty()) {
             findings.push("expected_episode_ids contains an empty identity".to_string());
         }
-        if self.expected_decision_ids.iter().any(|id| id.trim().is_empty()) {
+        if self
+            .expected_decision_ids
+            .iter()
+            .any(|id| id.trim().is_empty()) {
             findings.push("expected_decision_ids contains an empty identity".to_string());
         }
 
@@ -294,7 +300,10 @@ impl EvaluationInput {
                 findings.push(format!("unexpected decision_id {:?}", decision.decision_id));
             }
             if !expected_episodes.contains(decision.episode_id.as_str()) {
-                findings.push(format!("decision {:?} references an unexpected episode", decision.decision_id));
+                findings.push(format!(
+                    "decision {:?} references an unexpected episode",
+                    decision.decision_id
+                ));
             }
             if decision.outcome_status != OutcomeStatus::Observed {
                 findings.push(format!(
@@ -303,33 +312,60 @@ impl EvaluationInput {
                 ));
             }
             if decision.outcome_timestamp_us < decision.prediction_timestamp_us {
-                findings.push(format!("decision {:?} has outcome timestamp before prediction", decision.decision_id));
+                findings.push(format!(
+                    "decision {:?} has outcome timestamp before prediction",
+                    decision.decision_id
+                ));
             }
             if !unit_interval(decision.predicted_failure_probability) {
-                findings.push(format!("decision {:?} predicted_failure_probability is outside [0, 1]", decision.decision_id));
+                findings.push(format!(
+                    "decision {:?} predicted_failure_probability is outside [0, 1]",
+                    decision.decision_id
+                ));
             }
             if !unit_interval(decision.observed_loss) {
-                findings.push(format!("decision {:?} observed_loss is outside [0, 1]", decision.decision_id));
+                findings.push(format!(
+                    "decision {:?} observed_loss is outside [0, 1]",
+                    decision.decision_id
+                ));
             }
             if decision.policy_input_fields.is_empty() {
-                findings.push(format!("decision {:?} has no declared policy input fields", decision.decision_id));
+                findings.push(format!(
+                    "decision {:?} has no declared policy input fields",
+                    decision.decision_id
+                ));
             }
             if decision.policy_input_fields.len() > 100_000 {
-                findings.push(format!("decision {:?} exceeds policy input field bound", decision.decision_id));
+                findings.push(format!(
+                    "decision {:?} exceeds policy input field bound",
+                    decision.decision_id
+                ));
             }
             let mut field_ids = BTreeSet::new();
             for field in &decision.policy_input_fields {
                 if field.field_id.trim().is_empty() {
-                    findings.push(format!("decision {:?} contains an empty policy field identity", decision.decision_id));
+                    findings.push(format!(
+                        "decision {:?} contains an empty policy field identity",
+                        decision.decision_id
+                    ));
                 }
                 if !field_ids.insert(field.field_id.as_str()) {
-                    findings.push(format!("decision {:?} contains duplicate policy field {:?}", decision.decision_id, field.field_id));
+                    findings.push(format!(
+                        "decision {:?} contains duplicate policy field {:?}",
+                        decision.decision_id, field.field_id
+                    ));
                 }
                 if field.source_role != SourceRole::PolicyVisible {
-                    findings.push(format!("decision {:?} contains non-policy-visible field {:?}", decision.decision_id, field.field_id));
+                    findings.push(format!(
+                        "decision {:?} contains non-policy-visible field {:?}",
+                        decision.decision_id, field.field_id
+                    ));
                 }
                 if field.available_timestamp_us > decision.prediction_timestamp_us {
-                    findings.push(format!("decision {:?} contains future policy input {:?}", decision.decision_id, field.field_id));
+                    findings.push(format!(
+                        "decision {:?} contains future policy input {:?}",
+                        decision.decision_id, field.field_id
+                    ));
                 }
             }
 
@@ -339,7 +375,10 @@ impl EvaluationInput {
                 ("fallback_duration_ms", decision.fallback_duration_ms),
             ] {
                 if value.is_some_and(|number| !number.is_finite() || number < 0.0) {
-                    findings.push(format!("decision {:?} has invalid {name}", decision.decision_id));
+                    findings.push(format!(
+                        "decision {:?} has invalid {name}",
+                        decision.decision_id
+                    ));
                 }
             }
             if decision.abstained {
@@ -382,7 +421,9 @@ impl EvaluationInput {
             findings.push(format!("expected decision {missing:?} is missing"));
         }
         for missing in expected_episodes.difference(&observed_episodes) {
-            findings.push(format!("expected episode {missing:?} has no decision records"));
+            findings.push(format!(
+                "expected episode {missing:?} has no decision records"
+            ));
         }
 
         findings.sort();
@@ -402,9 +443,18 @@ impl EvaluationInput {
 
 fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
     let total = input.decisions.len();
-    let failures = input.decisions.iter().filter(|decision| decision.observed_failure).count();
+    let failures = input
+        .decisions
+        .iter()
+        .filter(|decision| decision.observed_failure)
+        .count();
     let overall_failure_rate = failures as f64 / total as f64;
-    let overall_mean_loss = mean(input.decisions.iter().map(|decision| decision.observed_loss));
+    let overall_mean_loss = mean(
+        input
+            .decisions
+            .iter()
+            .map(|decision| decision.observed_loss),
+    );
 
     // Stable deterministic tie semantics: equal probabilities enter coverage together.
     let mut ranked = input.decisions.iter().collect::<Vec<_>>();
@@ -425,9 +475,7 @@ fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
     while index < ranked.len() {
         let threshold = ranked[index].predicted_failure_probability;
         let mut end = index;
-        while end < ranked.len()
-            && ranked[end].predicted_failure_probability == threshold
-        {
+        while end < ranked.len() && ranked[end].predicted_failure_probability == threshold {
             accepted += 1;
             accepted_failures += if ranked[end].observed_failure { 1 } else { 0 };
             accepted_loss += ranked[end].observed_loss;
@@ -493,20 +541,31 @@ fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
     let fallback = fallback_metrics(&input.decisions);
     let resources = resource_metrics(&input.decisions);
     let bootstrap = bootstrap_metrics(input);
-    let accepted_records = input.decisions.iter().filter(|decision| !decision.abstained).collect::<Vec<_>>();
+    let accepted_records = input
+        .decisions
+        .iter()
+        .filter(|decision| !decision.abstained)
+        .collect::<Vec<_>>();
     let actual_autonomy_coverage = accepted_records.len() as f64 / total as f64;
     let actual_accepted_failure_rate = if accepted_records.is_empty() {
         None
     } else {
         Some(
-            accepted_records.iter().filter(|decision| decision.observed_failure).count() as f64
+            accepted_records
+                .iter()
+                .filter(|decision| decision.observed_failure)
+                .count() as f64
                 / accepted_records.len() as f64,
         )
     };
     let actual_accepted_mean_loss = if accepted_records.is_empty() {
         None
     } else {
-        Some(mean(accepted_records.iter().map(|decision| decision.observed_loss)))
+        Some(mean(
+            accepted_records
+                .iter()
+                .map(|decision| decision.observed_loss),
+        ))
     };
 
     EvaluationReport {
@@ -535,7 +594,6 @@ fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
         claim_ceiling: "Offline statistics for the exact declared frozen records only. Risk-coverage and calibration metrics are not a safe-action certificate, a distribution-free safety guarantee, a runtime controller or evidence of roadworthiness.".to_string(),
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 struct SelectiveSummary {
@@ -705,8 +763,14 @@ fn calibration_metrics(decisions: &[DecisionRecord], bin_count: usize) -> Calibr
     }));
     let epsilon = 1e-15_f64;
     let log_loss = mean(decisions.iter().map(|decision| {
-        let p = decision.predicted_failure_probability.clamp(epsilon, 1.0 - epsilon);
-        if decision.observed_failure { -p.ln() } else { -(1.0 - p).ln() }
+        let p = decision
+            .predicted_failure_probability
+            .clamp(epsilon, 1.0 - epsilon);
+        if decision.observed_failure {
+            -p.ln()
+        } else {
+            -(1.0 - p).ln()
+        }
     }));
     let mut bins = (0..bin_count)
         .map(|bin_index| {
@@ -737,8 +801,15 @@ fn calibration_metrics(decisions: &[DecisionRecord], bin_count: usize) -> Calibr
                     absolute_gap: None,
                 }
             } else {
-                let predicted = mean(members.iter().map(|decision| decision.predicted_failure_probability));
-                let observed = members.iter().filter(|decision| decision.observed_failure).count() as f64
+                let predicted = mean(
+                    members
+                        .iter()
+                        .map(|decision| decision.predicted_failure_probability),
+                );
+                let observed = members
+                    .iter()
+                    .filter(|decision| decision.observed_failure)
+                    .count() as f64
                     / members.len() as f64;
                 CalibrationBin {
                     bin_index,
@@ -774,19 +845,31 @@ fn calibration_metrics(decisions: &[DecisionRecord], bin_count: usize) -> Calibr
 fn family_metrics(decisions: &[DecisionRecord]) -> Vec<FamilyMetrics> {
     let mut by_family: BTreeMap<&str, Vec<&DecisionRecord>> = BTreeMap::new();
     for decision in decisions {
-        by_family.entry(decision.scenario_family.as_str()).or_default().push(decision);
+        by_family
+            .entry(decision.scenario_family.as_str())
+            .or_default()
+            .push(decision);
     }
     by_family
         .into_iter()
         .map(|(family, records)| {
-            let accepted = records.iter().filter(|decision| !decision.abstained).collect::<Vec<_>>();
-            let failures = accepted.iter().filter(|decision| decision.observed_failure).count();
+            let accepted = records
+                .iter()
+                .filter(|decision| !decision.abstained)
+                .collect::<Vec<_>>();
+            let failures = accepted
+                .iter()
+                .filter(|decision| decision.observed_failure)
+                .count();
             FamilyMetrics {
                 scenario_family: family.to_string(),
                 decisions: records.len(),
                 accepted_decisions: accepted.len(),
                 abstained_decisions: records.len() - accepted.len(),
-                observed_failures: records.iter().filter(|decision| decision.observed_failure).count(),
+                observed_failures: records
+                    .iter()
+                    .filter(|decision| decision.observed_failure)
+                    .count(),
                 accepted_failure_rate: if accepted.is_empty() {
                     None
                 } else {
@@ -804,16 +887,30 @@ fn family_metrics(decisions: &[DecisionRecord]) -> Vec<FamilyMetrics> {
 }
 
 fn fallback_metrics(decisions: &[DecisionRecord]) -> FallbackMetrics {
-    let abstained = decisions.iter().filter(|decision| decision.abstained).collect::<Vec<_>>();
-    let successes = abstained.iter().filter(|decision| decision.fallback_succeeded == Some(true)).count();
-    let failures = abstained.iter().filter(|decision| decision.fallback_succeeded == Some(false)).count();
-    let durations = abstained.iter().filter_map(|decision| decision.fallback_duration_ms);
-    let late = abstained.iter().filter(|decision| {
+    let abstained = decisions
+        .iter()
+        .filter(|decision| decision.abstained)
+        .collect::<Vec<_>>();
+    let successes = abstained
+        .iter()
+        .filter(|decision| decision.fallback_succeeded == Some(true))
+        .count();
+    let failures = abstained
+        .iter()
+        .filter(|decision| decision.fallback_succeeded == Some(false))
+        .count();
+    let durations = abstained
+        .iter()
+        .filter_map(|decision| decision.fallback_duration_ms);
+    let late = abstained
+        .iter()
+        .filter(|decision| {
         matches!(
             (decision.abstention_timestamp_us, decision.decision_deadline_us),
             (Some(timestamp), Some(deadline)) if timestamp > deadline
         )
-    }).count();
+    })
+        .count();
     FallbackMetrics {
         abstained_decisions: abstained.len(),
         fallback_successes: successes,
@@ -825,24 +922,50 @@ fn fallback_metrics(decisions: &[DecisionRecord]) -> FallbackMetrics {
         },
         mean_fallback_duration_ms: {
             let values = durations.collect::<Vec<_>>();
-            if values.is_empty() { None } else { Some(mean(values.into_iter())) }
+            if values.is_empty() {
+                None
+            } else {
+                Some(mean(values.into_iter()))
+            }
         },
         late_abstentions: late,
-        total_human_interventions: abstained.iter().map(|decision| decision.human_interventions).sum(),
+        total_human_interventions: abstained
+            .iter()
+            .map(|decision| decision.human_interventions)
+            .sum(),
     }
 }
 
 fn resource_metrics(decisions: &[DecisionRecord]) -> ResourceMetrics {
-    let latencies = decisions.iter().filter_map(|decision| decision.inference_latency_ms).collect::<Vec<_>>();
-    let energies = decisions.iter().filter_map(|decision| decision.inference_energy_mj).collect::<Vec<_>>();
-    let memories = decisions.iter().filter_map(|decision| decision.peak_memory_bytes).collect::<Vec<_>>();
+    let latencies = decisions
+        .iter()
+        .filter_map(|decision| decision.inference_latency_ms)
+        .collect::<Vec<_>>();
+    let energies = decisions
+        .iter()
+        .filter_map(|decision| decision.inference_energy_mj)
+        .collect::<Vec<_>>();
+    let memories = decisions
+        .iter()
+        .filter_map(|decision| decision.peak_memory_bytes)
+        .collect::<Vec<_>>();
     ResourceMetrics {
         latency_observation_count: latencies.len(),
-        mean_inference_latency_ms: if latencies.is_empty() { None } else { Some(mean(latencies.iter().copied())) },
+        mean_inference_latency_ms: if latencies.is_empty() {
+            None
+        } else {
+            Some(mean(latencies.iter().copied()))
+        },
         energy_observation_count: energies.len(),
-        mean_inference_energy_mj: if energies.is_empty() { None } else { Some(mean(energies.iter().copied())) },
+        mean_inference_energy_mj: if energies.is_empty() {
+            None
+        } else {
+            Some(mean(energies.iter().copied()))
+        },
         memory_observation_count: memories.len(),
-        mean_peak_memory_bytes: if memories.is_empty() { None } else {
+        mean_peak_memory_bytes: if memories.is_empty() {
+            None
+        } else {
             Some(memories.iter().map(|value| *value as f64).sum::<f64>() / memories.len() as f64)
         },
     }
@@ -905,8 +1028,14 @@ mod tests {
     }
 
     fn input(records: Vec<DecisionRecord>) -> EvaluationInput {
-        let ids = records.iter().map(|record| record.decision_id.clone()).collect::<Vec<_>>();
-        let episodes = records.iter().map(|record| record.episode_id.clone()).collect::<Vec<_>>();
+        let ids = records
+            .iter()
+            .map(|record| record.decision_id.clone())
+            .collect::<Vec<_>>();
+        let episodes = records
+            .iter()
+            .map(|record| record.episode_id.clone())
+            .collect::<Vec<_>>();
         EvaluationInput {
             schema_version: 1,
             protocol_id: "selective-driving-v0.1".to_string(),
