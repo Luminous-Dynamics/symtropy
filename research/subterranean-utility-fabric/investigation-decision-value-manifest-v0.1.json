@@ -1,0 +1,361 @@
+{
+  "schema_version": "suf.investigation_decision_value_manifest.v0.1",
+  "status": "synthetic_policy_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "workstream": "INVESTIGATION-DECISION-VALUE-QUAL-001",
+  "claim_ceiling": "Synthetic policy campaign plan only. No real investigation policy or operational cost improvement is claimed.",
+  "policies": [
+    "P0_CONVENTIONAL_NO_ADDED_SENSING",
+    "P1_FIXED_CALENDAR_INSPECTION",
+    "P2_THRESHOLD_DISPATCH",
+    "P3_FIXED_RISK_SCORE",
+    "P4_GREEDY_BLIND_COVERAGE",
+    "P5_EIG_RANKING",
+    "P6_EVSI_RANKING",
+    "P7_BOUNDED_HYBRID",
+    "P8_RANDOM_FEASIBLE_ACTION"
+  ],
+  "metrics": [
+    "critical_miss_rate",
+    "false_dispatch_rate",
+    "expected_decision_loss",
+    "realized_decision_loss",
+    "realized_regret",
+    "expected_information_gain_bits",
+    "expected_value_sample_information",
+    "net_value_when_units_compatible",
+    "human_review_minutes",
+    "technician_minutes",
+    "queue_age",
+    "budget_utilization",
+    "action_completion_rate",
+    "post_action_verification_rate",
+    "abstention_quality",
+    "risk_coverage",
+    "cost_per_accepted_actionable_event"
+  ],
+  "scenarios": [
+    {
+      "id": "IDV-001",
+      "scenario_type": "CONVENTIONAL_BASELINE",
+      "name": "Conventional inspection/no added sensing baseline",
+      "expected_disposition": "Accepted",
+      "conditions": "All policies are evaluated against the same route, event exposure and resource boundary.",
+      "perturbations": [
+        "conventional_baseline"
+      ],
+      "oracle_requirement": "Retain P0 as a valid winner; new sensing is not automatically better."
+    },
+    {
+      "id": "IDV-002",
+      "scenario_type": "THRESHOLD_FALSE_DISPATCH",
+      "name": "Threshold alarm triggers a false field dispatch",
+      "expected_disposition": "Rejected",
+      "conditions": "No independent event truth supports the alarm and the threshold policy would dispatch.",
+      "perturbations": [
+        "threshold_false_dispatch"
+      ],
+      "oracle_requirement": "Count false dispatch burden and include travel/verification time."
+    },
+    {
+      "id": "IDV-003",
+      "scenario_type": "EIG_POSITIVE_EVSI_ZERO",
+      "name": "Measurement reduces entropy but does not change the optimal decision",
+      "expected_disposition": "DoNotAcquire",
+      "conditions": "Posterior hypotheses select the same action under the frozen loss matrix.",
+      "perturbations": [
+        "eig_positive_evsi_zero"
+      ],
+      "oracle_requirement": "EIG may be positive; EVSI must be zero; do not acquire solely for information."
+    },
+    {
+      "id": "IDV-004",
+      "scenario_type": "EIG_ZERO_EVSI_POSITIVE",
+      "name": "Measurement has low entropy change but changes a high-consequence decision",
+      "expected_disposition": "Accepted",
+      "conditions": "Small uncertainty reduction crosses a decision threshold with a supported loss matrix.",
+      "perturbations": [
+        "eig_zero_evsi_positive"
+      ],
+      "oracle_requirement": "Rank by EVSI, not entropy alone."
+    },
+    {
+      "id": "IDV-005",
+      "scenario_type": "INCOMPARABLE_COST_LOSS",
+      "name": "Measurement cost and consequence loss use incomparable units",
+      "expected_disposition": "Unsupported",
+      "conditions": "Survey is quoted in currency, consequence in uncalibrated risk points.",
+      "perturbations": [
+        "incomparable_cost_loss"
+      ],
+      "oracle_requirement": "Suppress net-value ranking; publish separate dimensions."
+    },
+    {
+      "id": "IDV-006",
+      "scenario_type": "CRITICAL_HARD_GUARD",
+      "name": "Critical-risk safeguard requires escalation despite low EVSI",
+      "expected_disposition": "Accepted",
+      "conditions": "Predefined critical condition has mandatory owner/engineer review.",
+      "perturbations": [
+        "critical_hard_guard"
+      ],
+      "oracle_requirement": "Hard rule cannot be overridden by policy utility."
+    },
+    {
+      "id": "IDV-007",
+      "scenario_type": "OWNER_PERMISSION_ABSENT",
+      "name": "Proposed measurement lacks owner permission",
+      "expected_disposition": "Rejected",
+      "conditions": "Action is technically possible but no authority for route/data access exists.",
+      "perturbations": [
+        "owner_permission_absent"
+      ],
+      "oracle_requirement": "Mark infeasible; no acquisition/dispatch."
+    },
+    {
+      "id": "IDV-008",
+      "scenario_type": "UNSAFE_LIVE_TEST",
+      "name": "Candidate policy proposes induced fault on live asset",
+      "expected_disposition": "Rejected",
+      "conditions": "Action would require damage, strike, switching or unsafe physical intervention.",
+      "perturbations": [
+        "unsafe_live_test"
+      ],
+      "oracle_requirement": "Reject action; only decommissioned or purpose-built non-live rigs may be used for active excitation."
+    },
+    {
+      "id": "IDV-009",
+      "scenario_type": "HUMAN_REVIEW_CAPACITY",
+      "name": "EVSI policy overloads limited human review queue",
+      "expected_disposition": "Indeterminate",
+      "conditions": "High priority recommendations exceed reviewer/technician capacity.",
+      "perturbations": [
+        "human_review_capacity"
+      ],
+      "oracle_requirement": "Include queue age and review minutes; enforce capacity and critical prioritization."
+    },
+    {
+      "id": "IDV-010",
+      "scenario_type": "RESOURCE_BUDGET_EQUALITY",
+      "name": "Policy receives more survey budget than comparator",
+      "expected_disposition": "Rejected",
+      "conditions": "Candidate P6 is given more crew hours/actions than baseline policies.",
+      "perturbations": [
+        "resource_budget_equality"
+      ],
+      "oracle_requirement": "Invalidate comparison; enforce equal initial resources and action menu."
+    },
+    {
+      "id": "IDV-011",
+      "scenario_type": "PRIOR_SHIFT",
+      "name": "Prior probabilities shift on a held-out site",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Event prevalence/coupling differs materially from the development set.",
+      "perturbations": [
+        "prior_shift"
+      ],
+      "oracle_requirement": "Evaluate sensitivity and calibration; abstain where unsupported."
+    },
+    {
+      "id": "IDV-012",
+      "scenario_type": "LIKELIHOOD_MISPECIFICATION",
+      "name": "Action outcome likelihoods are overconfident",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Observed likelihood calibration error exceeds frozen tolerance.",
+      "perturbations": [
+        "likelihood_mispecification"
+      ],
+      "oracle_requirement": "Propagate uncertainty or reject EVSI ranking; do not assume point likelihoods are true."
+    },
+    {
+      "id": "IDV-013",
+      "scenario_type": "BLIND_ZONE_GREEDY",
+      "name": "Coverage-greedy policy repeatedly selects low-consequence blind length",
+      "expected_disposition": "Accepted",
+      "conditions": "A small critical segment and large low-priority blind segment compete for actions.",
+      "perturbations": [
+        "blind_zone_greedy"
+      ],
+      "oracle_requirement": "Compare severity/decision value against raw blind km."
+    },
+    {
+      "id": "IDV-014",
+      "scenario_type": "SURVEY_TIE_HIGH_VALUE",
+      "name": "Survey anchor resolves absolute route datum ambiguity",
+      "expected_disposition": "Accepted",
+      "conditions": "Independent control point can fix a material geographic gauge freedom.",
+      "perturbations": [
+        "survey_tie_high_value"
+      ],
+      "oracle_requirement": "Measure decision value and downstream calibration/route-error impact."
+    },
+    {
+      "id": "IDV-015",
+      "scenario_type": "DUPLICATE_EVENT_OBSERVATIONS",
+      "name": "Many windows from one physical event inflate priority",
+      "expected_disposition": "Rejected",
+      "conditions": "Policy counts multiple overlapping windows as separate incidents.",
+      "perturbations": [
+        "duplicate_event_observations"
+      ],
+      "oracle_requirement": "Deduplicate using physical event identity before ranking or evaluation."
+    },
+    {
+      "id": "IDV-016",
+      "scenario_type": "ACTION_FAILURE",
+      "name": "Recommended field action cannot be completed due access/weather/outage",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Action completion probability is below declared minimum or access is withdrawn.",
+      "perturbations": [
+        "action_failure"
+      ],
+      "oracle_requirement": "Include action failure and rescheduling; do not count intended action as completed."
+    },
+    {
+      "id": "IDV-017",
+      "scenario_type": "NO_ACTION_OPTIMAL",
+      "name": "No feasible next measurement changes the decision",
+      "expected_disposition": "Accepted",
+      "conditions": "All available actions have non-positive EVSI or are infeasible.",
+      "perturbations": [
+        "no_action_optimal"
+      ],
+      "oracle_requirement": "Recommend no action and preserve investigation gap/uncertainty."
+    },
+    {
+      "id": "IDV-018",
+      "scenario_type": "POST_ACTION_VERIFICATION_MISSING",
+      "name": "Policy counts an action without independent post-action result",
+      "expected_disposition": "Rejected",
+      "conditions": "Survey/inspection completion is recorded but the outcome is not independently adjudicated.",
+      "perturbations": [
+        "post_action_verification_missing"
+      ],
+      "oracle_requirement": "Do not claim an accepted actionable event or realized regret improvement."
+    },
+    {
+      "id": "IDV-019",
+      "scenario_type": "FALSE_NEGATIVE_COST_UNDERWEIGHTED",
+      "name": "Loss matrix undervalues a critical miss",
+      "expected_disposition": "Rejected",
+      "conditions": "Model utility rewards savings more than a predeclared critical event safeguard.",
+      "perturbations": [
+        "false_negative_cost_underweighted"
+      ],
+      "oracle_requirement": "Apply hard safeguard/owner policy; reject the corrupted loss function."
+    },
+    {
+      "id": "IDV-020",
+      "scenario_type": "DECISION_REGRET",
+      "name": "Policy is evaluated on realized outcomes and held-out truth",
+      "expected_disposition": "Accepted",
+      "conditions": "All candidate and baseline actions have independently observed outcomes.",
+      "perturbations": [
+        "decision_regret"
+      ],
+      "oracle_requirement": "Compute realized loss/regret, not just model-predicted EVSI."
+    },
+    {
+      "id": "IDV-021",
+      "scenario_type": "POLICY_LEAKAGE",
+      "name": "Future event truth or adjudication leaks into policy selection",
+      "expected_disposition": "Rejected",
+      "conditions": "Action choice has access to held-out labels or post-event results.",
+      "perturbations": [
+        "policy_leakage"
+      ],
+      "oracle_requirement": "Reject evaluation split; group by site/time/physical event."
+    },
+    {
+      "id": "IDV-022",
+      "scenario_type": "FALSE_ALARM_BUDGET",
+      "name": "Policy minimizes cost by ignoring background false alarm burden",
+      "expected_disposition": "Rejected",
+      "conditions": "No-event exposure and false dispatches are omitted from loss.",
+      "perturbations": [
+        "false_alarm_budget"
+      ],
+      "oracle_requirement": "Include false alarms per observable km-day and false dispatch cost."
+    },
+    {
+      "id": "IDV-023",
+      "scenario_type": "OOD_ABSTENTION",
+      "name": "Policy receives an out-of-domain sensing profile",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Installation/coupling profile is outside qualified support.",
+      "perturbations": [
+        "ood_abstention"
+      ],
+      "oracle_requirement": "Abstain or request qualification; report uninvestigated length and decision."
+    },
+    {
+      "id": "IDV-024",
+      "scenario_type": "PARETO_NO_COMMON_UTILITY",
+      "name": "Risk, delay and monetary cost cannot be collapsed",
+      "expected_disposition": "Unsupported",
+      "conditions": "No defensible utility function maps all dimensions into a common unit.",
+      "perturbations": [
+        "pareto_no_common_utility"
+      ],
+      "oracle_requirement": "Publish Pareto front; avoid a scalar winner."
+    },
+    {
+      "id": "IDV-025",
+      "scenario_type": "ACTION_AUTHORITY_BOUNDARY",
+      "name": "Recommendation is mistaken for an authorization",
+      "expected_disposition": "Rejected",
+      "conditions": "System attempts to dispatch a crew or mutate owner asset/SCADA state.",
+      "perturbations": [
+        "action_authority_boundary"
+      ],
+      "oracle_requirement": "No control authority; owner/human approval remains mandatory."
+    },
+    {
+      "id": "IDV-026",
+      "scenario_type": "POLICY_SITE_TRANSFER",
+      "name": "Policy tested on a new route/site without target tuning",
+      "expected_disposition": "Accepted",
+      "conditions": "Route/site/time periods are grouped and held out.",
+      "perturbations": [
+        "policy_site_transfer"
+      ],
+      "oracle_requirement": "Report transfer, calibration and abstention."
+    },
+    {
+      "id": "IDV-027",
+      "scenario_type": "MANDATORY_COMPLIANCE_ACTION",
+      "name": "Action is required for a legal/contractual obligation independent of EVSI",
+      "expected_disposition": "Accepted",
+      "conditions": "Owner policy mandates inspection regardless of information value.",
+      "perturbations": [
+        "mandatory_compliance_action"
+      ],
+      "oracle_requirement": "Record as a mandatory feasibility/policy constraint, not an EVSI win."
+    },
+    {
+      "id": "IDV-028",
+      "scenario_type": "HUMAN_OVERRULE",
+      "name": "Authorized engineer rejects recommendation with documented rationale",
+      "expected_disposition": "Accepted",
+      "conditions": "Review trail records evidence and reason for override.",
+      "perturbations": [
+        "human_overrule"
+      ],
+      "oracle_requirement": "Treat human disposition as an independent adjudication outcome, not policy failure by default."
+    }
+  ],
+  "global_controls": [
+    "All policies share the same frozen observations, action menu, budget and independent truth.",
+    "One physical event identity counts as one event, regardless of overlapping windows.",
+    "EIG and EVSI are separate outputs and are never substituted for each other.",
+    "Cost-based net value is suppressed when costs/losses use incomparable units.",
+    "Critical-risk and legal/owner constraints are hard feasibility gates.",
+    "No recommendation is an authorization to perform an action.",
+    "Human/technician review capacity, action failure and post-action verification are included.",
+    "Future truth, adjudication labels and outcomes are excluded from policy inputs.",
+    "Evaluation uses held-out route/site/time and physical event groups.",
+    "No live fault induction, damage, switching or unsafe actuation is permitted.",
+    "Conventional/no-added-sensing baseline may be the best option.",
+    "Unknown/out-of-domain conditions preserve abstention and blind coverage."
+  ]
+}
