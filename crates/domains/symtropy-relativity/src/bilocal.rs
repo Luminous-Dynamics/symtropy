@@ -407,9 +407,7 @@ impl CanonicalCovariantEndpointMap {
             return Err(BilocalOperatorError::NonFinite("covariant variation"));
         }
         let mut canonical = [0.0; STATE_DIMENSION];
-        for index in 0..BLOCK_DIMENSION {
-            canonical[index] = covariant[index];
-        }
+        canonical[..BLOCK_DIMENSION].copy_from_slice(&covariant[..BLOCK_DIMENSION]);
         for momentum_index in 0..BLOCK_DIMENSION {
             let mut value = 0.0;
             for mu in 0..BLOCK_DIMENSION {
