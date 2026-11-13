@@ -137,7 +137,7 @@ Preserve all scenario failures, including incomplete, rejected and indeterminate
 
 ## 8. Executable reference evaluator
 
-The standalone Rust package implements the finite-cell arithmetic in `tools/suf-fibre-calibration/src/coverage.rs`. It requires every in-scope segment length to be allocated exactly once across observable, degraded, unobserved, unusable, unavailable, not-assessed and unknown states. It reports POD only when independent truth and eligible event trials exist, emits a 95% Wilson interval, and computes false alarms only per fully observable fibre-km-day. Degraded and blind exposure remain separate. These are calculation/contract tests, not field measurements.
+The standalone Rust package implements the finite-cell arithmetic in `tools/suf-fibre-calibration/src/coverage.rs`. It requires every in-scope segment length to be allocated exactly once across observable, degraded, unobserved, unusable, unavailable, not-assessed and unknown states. It reports POD only when independent event truth and eligible event trials exist, emits a 95% Wilson interval, and computes false alarms only when independent no-event/background truth exists, per fully observable fibre-km-day. Event-truth and background-truth qualification are separate dispositions. Unverified event/detection/miss counts are withheld from the report. Degraded and blind exposure remain separate. These are calculation/contract tests, not field measurements.
 
 ## 9. Claim ceiling
 
