@@ -33,9 +33,6 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml --all -- --check
 
