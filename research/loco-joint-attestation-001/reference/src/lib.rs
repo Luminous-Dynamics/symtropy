@@ -701,8 +701,10 @@ mod tests {
         );
         let mut receipt = appraisal();
         receipt.freshness = FreshnessDisposition::Stale;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::StaleOrReplayedEvidence));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::StaleOrReplayedEvidence)
+        );
     }
 
     #[test]
@@ -715,8 +717,10 @@ mod tests {
         );
         let mut receipt = appraisal();
         receipt.sequence = SequenceDisposition::Rollback;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::SequenceReplayOrRollback));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::SequenceReplayOrRollback)
+        );
     }
 
     #[test]
@@ -727,7 +731,10 @@ mod tests {
         let mut ctx = context();
         ctx.boot_epoch_digest = "boot-epoch-8".into();
         let result = bind_joint_receipt_attestation(&ctx, &profile(), Some(&receipt)).unwrap();
-        assert_eq!(result.disposition, AuthenticationDisposition::AuthenticatedWithinDeclaredPolicy);
+        assert_eq!(
+            result.disposition,
+            AuthenticationDisposition::AuthenticatedWithinDeclaredPolicy
+        );
         ctx.previous_sequence = Some(SequenceWatermark {
             boot_epoch_digest: "boot-epoch-8".into(),
             last_sequence: 2,
@@ -759,7 +766,8 @@ mod tests {
     fn unknown_signature_status_or_appraisal_yields_inconclusive() {
         let mut receipt = appraisal();
         receipt.signature = SignatureDisposition::Unknown;
-        let result = bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)).unwrap();
+        let result =
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)).unwrap();
         assert_eq!(result.disposition, AuthenticationDisposition::Inconclusive);
         let mut receipt = appraisal();
         receipt.appraisal = AppraisalDisposition::Inconclusive;
@@ -779,8 +787,12 @@ mod tests {
         );
         let mut receipt = appraisal();
         receipt.revocation = RevocationDisposition::Unknown;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)).unwrap().disposition,
-            AuthenticationDisposition::Inconclusive);
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt))
+                .unwrap()
+                .disposition,
+            AuthenticationDisposition::Inconclusive
+        );
         let mut receipt = appraisal();
         receipt.sequence = SequenceDisposition::Unknown;
         assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)).unwrap().disposition,
@@ -797,7 +809,8 @@ mod tests {
                 "calibration_profile_digest"
             ))
         );
-        let result = bind_joint_receipt_attestation(&context(), &profile(), Some(&appraisal())).unwrap();
+        let result =
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&appraisal())).unwrap();
         assert!(!result.physical_validity_assessed);
     }
 
