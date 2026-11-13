@@ -1,0 +1,60 @@
+name: Shipyard Weld Physics VVUQ
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-weld-physics-vvuq/**"
+      - "crates/tools/shipyard-weld-physics-vvuq/Cargo.lock"
+      - "benchmarks/shipyard/weld-physics/**"
+      - "docs/tech/SHIPYARD_WELD_PHYSICS_VVUQ_V0_1*"
+      - "rust-toolchain.toml"
+      - ".github/workflows/shipyard-weld-physics-vvuq.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-weld-physics-vvuq-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify frozen weld-physics manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Apply pinned Rust formatting for repair capture
+        run: cargo fmt --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all
+
+      - name: Capture pinned rustfmt source output
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustfmt-weld-physics
+          path: crates/tools/shipyard-weld-physics-vvuq/src/main.rs
+          if-no-files-found: error
+          retention-days: 1
+
+
+      - name: Run independent manifest verifier tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify exact frozen source/case manifest
+        run: cargo run --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml -- benchmarks/shipyard/weld-physics/vvuq-corpus-v0.1.json
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
