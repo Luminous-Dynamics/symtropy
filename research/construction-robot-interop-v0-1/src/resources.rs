@@ -282,6 +282,61 @@ impl ReservationBook {
             .len())
     }
 
+    /// Independent full-scan reference count for differential tests and benchmarks.
+    /// Endpoints must already include the caller's conservative clock uncertainty.
+    /// This intentionally walks reservation history and is not used for admission.
+    pub fn reference_candidate_count_for_interval(
+        &self,
+        resource_id: &str,
+        start_ms: u64,
+        end_ms: u64,
+    ) -> Result<usize, ReservationError> {
+        require_non_empty("resource_id", resource_id)?;
+        if start_ms >= end_ms {
+            return Err(ReservationError::InvalidInterval);
+        }
+        if !self.resources.contains_key(resource_id) {
+            return Err(ReservationError::UnknownResource);
+        }
+
+        Ok(self
+            .reservations
+            .values()
+            .filter(|record| {
+                if record.state != ReservationState::Active
+                    || record.request.resource_id != resource_id
+                {
+                    return false;
+                }
+                let existing_start = record
+                    .request
+                    .interval_start_ms
+                    .saturating_sub(record.request.clock_uncertainty_ms);
+                let existing_end = record
+                    .request
+                    .interval_end_ms
+                    .saturating_add(record.request.clock_uncertainty_ms);
+                overlaps(start_ms, end_ms, existing_start, existing_end)
+            })
+            .count())
+    }
+
+    /// Number of active reservations for one declared resource. Historical IDs
+    /// remain in the ledger but do not consume active capacity.
+    pub fn active_reservation_count_for_resource(
+        &self,
+        resource_id: &str,
+    ) -> Result<usize, ReservationError> {
+        require_non_empty("resource_id", resource_id)?;
+        if !self.resources.contains_key(resource_id) {
+            return Err(ReservationError::UnknownResource);
+        }
+        Ok(self
+            .active_by_resource
+            .get(resource_id)
+            .map_or(0, BTreeSet::len))
+    }
+
     /// Reserve capacity in a declared clock domain and current site epoch.
     /// Overlap is evaluated on half-open intervals [start, end).
     pub fn reserve(
@@ -628,6 +683,62 @@ mod tests {
             interval_end_ms: end,
             expires_at_ms: expiry,
             units,
+        }
+    }
+
+    #[test]
+    fn reference_full_scan_and_indexed_broad_phase_agree_on_overlap_completeness() {
+        let mut book = book_with_uncertainty(100, 500);
+        let records = [
+            (100, 200, 0),
+            (59_900, 60_100, 50),
+            (60_100, 60_200, 100),
+            (119_900, 120_100, 200),
+            (180_000, 240_000, 500),
+        ];
+        for (index, (start, end, uncertainty)) in records.into_iter().enumerate() {
+            let mut item = request(
+                &format!("reference-{index}"),
+                &format!("robot-{index}"),
+                start,
+                end,
+                end + 2_000,
+                1,
+            );
+            item.clock_uncertainty_ms = uncertainty;
+            book.reserve(item, 0).expect("reference reservation");
+        }
+
+        for start in [0_u64, 50, 100, 59_800, 59_999, 60_000, 60_200, 119_999, 180_000] {
+            for end in [start + 1, start + 50, start + 500, start + 2_000] {
+                let indexed = book.candidate_reservation_ids("work-zone-A", start, end);
+                let reference = book
+                    .reference_candidate_count_for_interval("work-zone-A", start, end)
+                    .expect("full scan reference");
+                let exact_ids: BTreeSet<String> = book
+                    .reservations
+                    .iter()
+                    .filter_map(|(id, record)| {
+                        if record.state != ReservationState::Active
+                            || record.request.resource_id != "work-zone-A"
+                        {
+                            return None;
+                        }
+                        let existing_start = record
+                            .request
+                            .interval_start_ms
+                            .saturating_sub(record.request.clock_uncertainty_ms);
+                        let existing_end = record
+                            .request
+                            .interval_end_ms
+                            .saturating_add(record.request.clock_uncertainty_ms);
+                        overlaps(start, end, existing_start, existing_end)
+                            .then(|| id.clone())
+                    })
+                    .collect();
+                assert_eq!(reference, exact_ids.len());
+                assert!(exact_ids.is_subset(&indexed));
+            }
         }
     }
 
