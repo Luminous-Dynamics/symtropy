@@ -901,14 +901,6 @@ pub fn select_probe_baseline(
     if !cost_penalty_scale_seconds.is_finite() || cost_penalty_scale_seconds <= 0.0 {
         return Err(ProbeError::InvalidPolicy);
     }
-    // Recompute the complete portfolio from frozen priors, candidate manifests
-    // and policy. A caller-edited eligible flag or ranking must not bypass
-    // authority, risk, calibration or likelihood gates in a baseline.
-    let replayed_portfolio =
-        rank_diagnostic_probes(&portfolio.prior, candidates, &portfolio.policy)?;
-    if &replayed_portfolio != portfolio {
-        return Err(ProbeError::SelectionReplayMismatch);
-    }
     let candidate_ids = candidates
         .iter()
         .map(|candidate| candidate.candidate_id.as_str())
@@ -947,6 +939,14 @@ pub fn select_probe_baseline(
         return Err(ProbeError::CandidateCatalogMismatch);
     }
 
+    // Recompute the complete portfolio from frozen priors, candidate manifests
+    // and policy. A caller-edited eligible flag or ranking must not bypass
+    // authority, risk, calibration or likelihood gates in a baseline.
+    let replayed_portfolio =
+        rank_diagnostic_probes(&portfolio.prior, candidates, &portfolio.policy)?;
+    if &replayed_portfolio != portfolio {
+        return Err(ProbeError::SelectionReplayMismatch);
+    }
     let eligible_assessments = portfolio
         .assessments
         .iter()
@@ -1972,14 +1972,12 @@ mod tests {
 
     #[test]
     fn baseline_replays_eligibility_and_rejects_forged_assessment_flags() {
-        let candidates = vec![
-            candidate(
-                "controlled_perturbation",
-                ProbeClass::ControlledPerturbation,
-                ProbeAuthorization::HumanAuthorized,
-                true,
-            ),
-        ];
+        let candidates = vec![candidate(
+            "controlled_perturbation",
+            ProbeClass::ControlledPerturbation,
+            ProbeAuthorization::HumanAuthorized,
+            true,
+        )];
         let policy = ProbeSelectionPolicy::conservative_read_only();
         let mut portfolio = rank_diagnostic_probes(&hypotheses(), &candidates, &policy).unwrap();
         assert!(!portfolio.assessments[0].eligible);
