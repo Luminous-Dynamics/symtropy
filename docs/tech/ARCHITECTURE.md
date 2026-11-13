@@ -1,5 +1,8 @@
 # Symtropy Architecture
 
+> **Capability warning:** this is a crate and dependency orientation guide, not a qualification statement. Generic traits, type parameters and feature flags do not imply that every dimension, shape pair, joint, contact regime or query path is supported. Use [RESEARCH_VALIDATION.md](../../crates/core/symtropy-physics/RESEARCH_VALIDATION.md) for current validity limits and [issue #1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472) for the exact capability/model-path census.
+
+
 ## Crate Dependency Graph
 
 ```
