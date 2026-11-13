@@ -196,7 +196,10 @@ pub fn validate_route_gates(
                 &mut findings,
                 "ROUTE_RECEIPT_MISSING",
                 entity,
-                format!("required route receipt {} is absent", requirement.receipt_id),
+                format!(
+                    "required route receipt {} is absent",
+                    requirement.receipt_id
+                ),
             );
             continue;
         };
@@ -409,24 +412,33 @@ mod tests {
         second.route_id = "reuse_as_is".to_owned();
         second.receiving_specification_id = "REUSE-ACCEPTANCE-V1".to_owned();
         second.input_mass_mg = 400_000;
-        assert!(validate_route_gates(
-            &p,
-            &requirements,
-            &[receipt(RouteReceiptStatus::Eligible), second]
-        )
-        .is_empty());
+        assert!(
+            validate_route_gates(
+                &p,
+                &requirements,
+                &[receipt(RouteReceiptStatus::Eligible), second]
+            )
+            .is_empty()
+        );
     }
 
     #[test]
     fn every_job_requires_a_route_receipt() {
         let findings = validate_route_gates(&problem(), &[], &[]);
-        assert!(findings.iter().any(|f| f.code == "ROUTE_REQUIREMENT_MISSING"));
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_REQUIREMENT_MISSING")
+        );
     }
 
     #[test]
     fn missing_upstream_receipt_blocks_job() {
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1"), requirement("JOB-2")], &[]);
+        let findings = validate_route_gates(
+            &problem(),
+            &[requirement("JOB-1"), requirement("JOB-2")],
+            &[],
+        );
         assert!(findings.iter().any(|f| f.code == "ROUTE_RECEIPT_MISSING"));
     }
 
@@ -469,17 +481,18 @@ mod tests {
             &[req],
             &[receipt(RouteReceiptStatus::Eligible)],
         );
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_RECEIPT_DIGEST_MISMATCH"));
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_RECEIPT_DIGEST_MISMATCH")
+        );
     }
 
     #[test]
     fn lot_mismatch_is_rejected() {
         let mut value = receipt(RouteReceiptStatus::Eligible);
         value.lot_id = "LOT-OTHER".to_owned();
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
+        let findings = validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
         assert!(findings.iter().any(|f| f.code == "ROUTE_LOT_MISMATCH"));
     }
 
@@ -487,8 +500,7 @@ mod tests {
     fn route_mismatch_is_rejected() {
         let mut value = receipt(RouteReceiptStatus::Eligible);
         value.route_id = "chemical_fibre_recycling".to_owned();
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
+        let findings = validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
         assert!(findings.iter().any(|f| f.code == "ROUTE_ID_MISMATCH"));
     }
 
@@ -496,64 +508,70 @@ mod tests {
     fn receiving_specification_mismatch_is_rejected() {
         let mut value = receipt(RouteReceiptStatus::Eligible);
         value.receiving_specification_id = "OTHER-SPEC".to_owned();
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_SPECIFICATION_MISMATCH"));
+        let findings = validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_SPECIFICATION_MISMATCH")
+        );
     }
 
     #[test]
     fn input_mass_mismatch_is_rejected() {
         let mut value = receipt(RouteReceiptStatus::Eligible);
         value.input_mass_mg = 900_000;
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_INPUT_MASS_MISMATCH"));
+        let findings = validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_INPUT_MASS_MISMATCH")
+        );
     }
 
     #[test]
     fn malformed_receipt_or_manifest_digest_is_rejected() {
         let mut value = receipt(RouteReceiptStatus::Eligible);
         value.evidence_manifest_sha256 = "invalid".to_owned();
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_RECEIPT_DIGEST_INVALID"));
+        let findings = validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_RECEIPT_DIGEST_INVALID")
+        );
     }
 
     #[test]
     fn same_issuer_and_verifier_is_not_independent() {
         let mut value = receipt(RouteReceiptStatus::Eligible);
         value.verifier_id = value.issuer_id.clone();
-        let findings =
-            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_RECEIPT_PROVENANCE_INVALID"));
+        let findings = validate_route_gates(&problem(), &[requirement("JOB-1")], &[value]);
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_RECEIPT_PROVENANCE_INVALID")
+        );
     }
 
     #[test]
     fn duplicate_route_requirements_for_a_job_are_rejected() {
         let req = requirement("JOB-1");
-        let findings =
-            validate_route_gates(&problem(), &[req.clone(), req], &[receipt(RouteReceiptStatus::Eligible)]);
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_REQUIREMENT_DUPLICATE"));
+        let findings = validate_route_gates(
+            &problem(),
+            &[req.clone(), req],
+            &[receipt(RouteReceiptStatus::Eligible)],
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_REQUIREMENT_DUPLICATE")
+        );
     }
 
     #[test]
     fn duplicate_receipt_ids_are_rejected() {
         let value = receipt(RouteReceiptStatus::Eligible);
-        let findings = validate_route_gates(
-            &problem(),
-            &[requirement("JOB-1")],
-            &[value.clone(), value],
-        );
+        let findings =
+            validate_route_gates(&problem(), &[requirement("JOB-1")], &[value.clone(), value]);
         assert!(findings.iter().any(|f| f.code == "ROUTE_RECEIPT_DUPLICATE"));
     }
 
@@ -564,22 +582,31 @@ mod tests {
             &[requirement("JOB-NOT-IN-PROBLEM")],
             &[receipt(RouteReceiptStatus::Eligible)],
         );
-        assert!(findings
-            .iter()
-            .any(|f| f.code == "ROUTE_REQUIREMENT_UNKNOWN_JOB"));
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.code == "ROUTE_REQUIREMENT_UNKNOWN_JOB")
+        );
     }
 
     #[test]
     fn combined_validation_includes_route_gate_findings() {
         let p = problem();
-        let report = validate_with_route_gates(&p, &Schedule {
-            assignments: Vec::new(),
-            setup_reservations: Vec::new(),
-        }, &[], &[]);
+        let report = validate_with_route_gates(
+            &p,
+            &Schedule {
+                assignments: Vec::new(),
+                setup_reservations: Vec::new(),
+            },
+            &[],
+            &[],
+        );
         assert!(!report.valid);
-        assert!(report
-            .findings
-            .iter()
-            .any(|f| f.code == "ROUTE_REQUIREMENT_MISSING"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|f| f.code == "ROUTE_REQUIREMENT_MISSING")
+        );
     }
 }
