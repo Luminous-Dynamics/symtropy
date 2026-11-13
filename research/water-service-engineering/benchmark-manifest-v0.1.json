@@ -251,7 +251,7 @@
       "binary": "water-recovery-verification",
       "binary_source": "tools/water-service-t0/src/bin/water-recovery-verification.rs",
       "workflow": ".github/workflows/water-recovery-verification.yml",
-      "authored_unit_tests": 24,
+      "authored_unit_tests": 27,
       "status": "source_authored_native_rust_tests_and_hosted_ci_unverified",
       "receipt": "artifacts/water-recovery-verification/receipt.json",
       "receipt_binds": [
@@ -262,7 +262,8 @@
         "cargo_lock_sha256",
         "implementation_revision"
       ],
-      "qualification_status": "NotRun"
+      "qualification_status": "NotRun",
+      "test_status": "authored_not_executed"
     }
   }
 }
