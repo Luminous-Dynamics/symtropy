@@ -84,5 +84,33 @@
     "false_alarm_reduction": "seek >=25% reduction at matched recall on one held-out profile",
     "localization": "seek >=25% lower P95 localization error at matched sensor budget on one held-out profile",
     "reproduction": "reproduce published synthetic benchmark before algorithmic superiority claim"
-  }
+  },
+  "literature_comparators": [
+    {
+      "id": "FARAH_SHAHROUR_2026_SYSTEMATIC_REVIEW",
+      "publication_date": "2026-09-11",
+      "study_count": 90,
+      "doi": "10.3390/w18182267",
+      "findings": {
+        "public_benchmark_studies": 30,
+        "using_three_named_common_resources": 23,
+        "pressure_modality_studies": 47,
+        "acoustic_vibration_modality_studies": 28,
+        "flow_modality_studies": 14,
+        "transient_modality_studies": 2,
+        "smart_meter_ami_modality_studies": 1
+      },
+      "status": "literature_review_not_new_benchmark_or_primary_dataset"
+    }
+  ],
+  "minimum_reporting_framework": [
+    "dataset_category_provenance_revision_licence_and_digest",
+    "network_pipe_population_topology_material_and_event_ground_truth",
+    "leak_type_size_pressure_regime_and_event_onset",
+    "sensor_modalities_locations_sample_rates_calibration_and_missingness",
+    "event_level_splits_and_held_out_network_status",
+    "class_prevalence_baselines_matching_tolerance_and_operational_denominators",
+    "detection_localization_uncertainty_abstention_and_robustness_metrics",
+    "reproducibility_receipt_and_exact_implementation_revision"
+  ]
 }
