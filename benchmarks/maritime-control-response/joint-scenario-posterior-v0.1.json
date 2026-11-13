@@ -1,0 +1,126 @@
+{
+  "schema_version": "symtropy-joint-hypothesis-scenario-posterior-v0.1",
+  "status": "source_authored_ci_pending",
+  "module": "src/joint_scenario_posterior.rs",
+  "purpose": "Sequentially update a persistent joint posterior over fault hypothesis H and likelihood/calibration scenario S, rather than reusing fixed scenario weights as if S were independently redrawn for every observation.",
+  "scope": {
+    "candidate_binding": "One immutable selected candidate and its exact likelihood-model, calibration-review and scenario manifest are fixed for one posterior ledger.",
+    "hypothesis_space": "Sorted stable hypothesis IDs; candidate likelihood vector positions follow this canonical order.",
+    "scenario_space": "Sorted unique scenario IDs and positive initial weights that sum to one; all scenarios share an identical outcome ID space.",
+    "prior": "Genesis uses p(H,S)=p(H)*p(S), where scenario weights are the declared prior over persistent epistemic alternatives. This factorization is an explicit assumption of v0.1.",
+    "observation": "Each externally acquired outcome is applied once using the scenario-specific likelihood p(o|H,S)."
+  },
+  "update": {
+    "formula": "p_t(H,S|o) = p_(t-1)(H,S) * p(o|H,S) / sum_(H,S) p_(t-1)(H,S) * p(o|H,S)",
+    "persistent_uncertainty": "The posterior over S is carried forward. A repeated observation updates the same persistent S; it is never reset to the original scenario weights.",
+    "outputs": [
+      "joint posterior cells",
+      "marginal p(H)",
+      "marginal p(S)",
+      "observation evidence probability",
+      "log evidence increment",
+      "joint entropy and realized entropy reduction",
+      "joint KL(posterior || prior)",
+      "append-only parent-linked ledger"
+    ],
+    "surprising_observation": "Realized entropy reduction may be negative for an individual outcome; KL divergence remains non-negative within numerical tolerance."
+  },
+  "ledger": {
+    "schema_version": "symtropy-joint-hypothesis-scenario-ledger-v1",
+    "binds": [
+      "candidate ID",
+      "candidate manifest SHA-256",
+      "stable hypothesis-space digest",
+      "persistent scenario-set digest",
+      "ordered hypothesis IDs",
+      "ordered scenario IDs",
+      "initial scenario prior weights",
+      "current joint posterior",
+      "ordered applied observation receipt digests",
+      "parent ledger digest",
+      "observation count",
+      "ledger digest"
+    ],
+    "receipt_replay": "Reapply the exact outcome IDs and receipt digests in append order from genesis to reproduce every ledger.",
+    "integrity_limit": "SHA-256 links content and ordering; it does not authenticate observation signer, sensor source, timestamp, authorization or physical truth."
+  },
+  "hard_gates": [
+    "start the ledger only from a candidate selected by replay of the exact frozen evidence portfolio and selection baseline",
+    "the candidate manifest must be recomputed and match the immutable candidate ID and likelihood model",
+    "candidate hypothesis-space digest must match the stable ordered hypothesis ID set",
+    "at least two unique likelihood scenarios are required",
+    "scenario IDs are sorted canonically; initial scenario weights are finite, strictly positive and sum to one",
+    "every scenario has the same outcome ID set and normalized likelihoods for every hypothesis",
+    "joint posterior cells are stored in a strict hypothesis-major, scenario-minor order",
+    "genesis joint prior is p(H) multiplied by the declared persistent scenario prior p(S)",
+    "every observation uses p(outcome | H,S) from its matching persistent scenario",
+    "scenario posterior weights are updated after every outcome and never reset to their initial weights",
+    "zero-probability observations fail closed; no infinite evidence or forced class assignment",
+    "an observation receipt digest may be applied only once in a ledger chain",
+    "each updated ledger binds its parent ledger digest and exact ordered receipt history",
+    "ledger digest and joint probability normalization are recomputed on every update",
+    "changing candidate, likelihood model, calibration, hypothesis space or scenario space requires a new selection and a new ledger",
+    "source receipt digest is not treated as signer authentication; upstream identity, authority, timestamp and sensor provenance checks remain mandatory",
+    "the module performs posterior arithmetic only; it does not acquire a sample, operate equipment, conduct an inspection or authorize an intervention"
+  ],
+  "comparators": [
+    {
+      "id": "incorrect_re_marginalization",
+      "method": "Deliberately incorrect baseline that re-applies the original scenario weights as an independent draw at each observation; retain only as a falsification comparator."
+    },
+    {
+      "id": "joint_hypothesis_scenario_ledger",
+      "method": "Proposed persistent joint posterior; carries p(H,S) across sequential observations and reports hypothesis and scenario marginals."
+    },
+    {
+      "id": "point_likelihood_posterior",
+      "method": "Single frozen likelihood model with p(H) updates; useful only when scenario uncertainty is absent or already resolved."
+    }
+  ],
+  "required_metrics": [
+    "joint_posterior_normalization_error",
+    "hypothesis_posterior_normalization_error",
+    "scenario_posterior_normalization_error",
+    "scenario_posterior_weight_change_per_observation",
+    "joint_entropy_nats",
+    "hypothesis_marginal_entropy_nats",
+    "scenario_marginal_entropy_nats",
+    "realized_joint_entropy_reduction_nats",
+    "realized_joint_kl_divergence_nats",
+    "observation_probability",
+    "observation_receipt_duplicate_rejection_count",
+    "ledger_parent_chain_validation_rate",
+    "ledger_replay_match_rate",
+    "impossible_outcome_rejection_count",
+    "candidate_or_scenario_manifest_mismatch_count"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "posterior_replay",
+      "target": "100% of joint posterior ledgers reproduce exactly from genesis, frozen likelihood manifests and ordered observation receipts.",
+      "status": "aspirational"
+    },
+    {
+      "id": "persistent_scenario_learning",
+      "target": "Sequential observations update p(S) as well as p(H), and matched tests distinguish the result from re-marginalizing original scenario weights at every step.",
+      "status": "aspirational"
+    },
+    {
+      "id": "numerical_stability",
+      "target": "Zero accepted non-finite, negative or non-normalized joint posterior cells under the frozen boundary and adversarial numerical suite.",
+      "status": "aspirational"
+    },
+    {
+      "id": "evidence_integrity",
+      "target": "Zero duplicate, reordered, cross-candidate or altered-receipt observations accepted into a qualified ledger.",
+      "status": "aspirational"
+    }
+  ],
+  "limitations": {
+    "factorized_genesis_prior": "v0.1 assumes prior independence between H and S. If domain knowledge requires dependence, a separately reviewed joint prior manifest is required before use.",
+    "single_candidate_scope": "A ledger is bound to one candidate likelihood model. Switching measurement type, likelihood model or calibration is not automatically composable in v0.1.",
+    "calibration": "The updater does not create or validate likelihood scenarios; scenario calibration and coverage remain independent evidence gates.",
+    "authentication": "The updater validates receipt digest format and binds it into the ledger, but source authenticity and authorization remain upstream trust responsibilities.",
+    "claim_ceiling": "Source-authored Bayesian ledger and synthetic fixtures only until exact-head compilation, tests, independent mathematical review, calibrated scenario data and external receipt verification are complete."
+  }
+}

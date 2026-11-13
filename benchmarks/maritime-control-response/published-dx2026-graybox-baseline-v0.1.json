@@ -1,0 +1,167 @@
+{
+  "schema_version": "liu-ice-dx2026-published-graybox-baseline-v0.1",
+  "status": "published_reference_not_reproduced",
+  "source": {
+    "title": "Physics-Informed ML Diagnostic Engine: DXC'26 LiU-ICE Track Solution",
+    "authors": [
+      "Antoni Rogowski",
+      "Anna Sztyber-Betley"
+    ],
+    "venue": "37th International Conference on Principles of Diagnosis and Resilient Systems (DX 2026)",
+    "article": "OASIcs.DX.2026.15",
+    "doi": "10.4230/OASIcs.DX.2026.15",
+    "publication_date": "2026-09-28",
+    "source_pdf": "https://drops.dagstuhl.de/storage/01oasics/oasics-vol148-dx2026/OASIcs.DX.2026.15/OASIcs.DX.2026.15.pdf",
+    "source_license": "CC-BY-4.0",
+    "results_table": "Table 7, pages 15:17-18"
+  },
+  "method": {
+    "family": "physics_informed_grey_box_state_space_lstm",
+    "summary": "Recurrent LSTM with physical hidden states; predict rates/directions rather than direct physical values; structurally derived MSO residuals and four virtual sensors; fault diagnosis matrix, fixed alarm thresholds and scalar-product isolation; selective fault-data training after structural decoupling; adaptive covariate-shift compensation.",
+    "operational_features": [
+      "0.75 second (15 sample) inertial debounce/high-inertia filtering",
+      "90 second (1800 sample) initialization/warm-up for covariate adaptation",
+      "fixed alarm thresholds over transformed physical residuals",
+      "four virtual sensors with two neural networks per sensor",
+      "structural model/measurement-set analysis for residual independence and fault isolation"
+    ],
+    "disclosed_limitations": [
+      "The 0.75 second debounce reduces spike-related false alarms but adds activation delay.",
+      "The 90 second adaptation warm-up temporarily reduces sensitivity and creates a blind interval.",
+      "A fault present at startup may be assimilated into the healthy baseline during warm-up.",
+      "A -10% intake-manifold pressure fault under standard FTP75 produced TDR 21.12%, though the same magnitude was detected under FTP75 Highway.",
+      "A +8% intercooler pressure fault under WLTP produced FIA 0.00% alongside a high false-alarm rate.",
+      "Air-mass-flow sensor faults were a significant sensitivity challenge."
+    ]
+  },
+  "official_results": {
+    "overall": {
+      "one_minus_false_alarm_rate_percent": 92.14,
+      "false_alarm_rate_percent": 7.86,
+      "fault_isolation_accuracy_percent": 79.62,
+      "official_score_percent": 88.01,
+      "tdr_percent": 92.26
+    },
+    "per_condition": [
+      {
+        "cycle": "FTP75 City 2",
+        "fault": "f_iml large",
+        "tdr_percent": 99.57,
+        "one_minus_far_percent": 100,
+        "fia_percent": 98.72,
+        "score_percent": 99.43
+      },
+      {
+        "cycle": "FTP75 City 2",
+        "fault": "f_iml small",
+        "tdr_percent": 97.13,
+        "one_minus_far_percent": 100,
+        "fia_percent": 99.33,
+        "score_percent": 98.82
+      },
+      {
+        "cycle": "FTP75 Highway",
+        "fault": "f_iml large",
+        "tdr_percent": 100,
+        "one_minus_far_percent": 95.6,
+        "fia_percent": 100,
+        "score_percent": 98.53
+      },
+      {
+        "cycle": "FTP75 Highway",
+        "fault": "f_iml small",
+        "tdr_percent": 96.66,
+        "one_minus_far_percent": 100,
+        "fia_percent": 98.87,
+        "score_percent": 98.51
+      },
+      {
+        "cycle": "FTP75 City 2",
+        "fault": "f_waf (-12%)",
+        "tdr_percent": 100,
+        "one_minus_far_percent": 94.06,
+        "fia_percent": 64.05,
+        "score_percent": 86.04
+      },
+      {
+        "cycle": "FTP75 City 2",
+        "fault": "f_waf (+12%)",
+        "tdr_percent": 96.83,
+        "one_minus_far_percent": 100,
+        "fia_percent": 100,
+        "score_percent": 98.94
+      },
+      {
+        "cycle": "FTP75 Standard",
+        "fault": "f_pim (-10%)",
+        "tdr_percent": 21.12,
+        "one_minus_far_percent": 85.1,
+        "fia_percent": 30.7,
+        "score_percent": 45.64
+      },
+      {
+        "cycle": "FTP75 Standard",
+        "fault": "f_pim (+10%)",
+        "tdr_percent": 99.93,
+        "one_minus_far_percent": 100,
+        "fia_percent": 91.25,
+        "score_percent": 97.06
+      },
+      {
+        "cycle": "FTP75 Highway",
+        "fault": "f_pim (-10%)",
+        "tdr_percent": 98.79,
+        "one_minus_far_percent": 100,
+        "fia_percent": 92.36,
+        "score_percent": 97.05
+      },
+      {
+        "cycle": "FTP75 Highway",
+        "fault": "f_pim (+10%)",
+        "tdr_percent": 99.22,
+        "one_minus_far_percent": 100,
+        "fia_percent": 100,
+        "score_percent": 99.74
+      },
+      {
+        "cycle": "WLTP",
+        "fault": "f_pic (-3%)",
+        "tdr_percent": 97.91,
+        "one_minus_far_percent": 96.35,
+        "fia_percent": 80.2,
+        "score_percent": 91.48
+      },
+      {
+        "cycle": "WLTP",
+        "fault": "f_pic (+8%)",
+        "tdr_percent": 100,
+        "one_minus_far_percent": 34.61,
+        "fia_percent": 0,
+        "score_percent": 44.87
+      }
+    ],
+    "metric_identity": "The paper's Table 7 explicitly labels the current official components TDR, 1-FAR, FIA and Score. The overall score 88.01 is their arithmetic mean. Do not substitute the older 2024 paper's top-ranked TIR for FIA."
+  },
+  "matched_reproduction": {
+    "protocol": "Reproduce the paper's exact 2026 training/evaluation splits, signal selection, state-space design, preprocessing, virtual sensors, fixed thresholds, debounce, adaptation warm-up, training schedule, and class probability interface before modifying the method.",
+    "required_recovered_artifacts": [
+      "training/validation/test recording identities",
+      "signal dictionary and MSO/residual derivation",
+      "virtual-sensor model architecture and weights",
+      "alarm threshold and filtering configuration",
+      "warm-up/update protocol",
+      "fixed class ordering and FIA calculation",
+      "runtime/hardware/dependency details"
+    ],
+    "status": "not_reproduced",
+    "benchmark_comparability": "Published official hidden-test results are a strong external reference, but exact matched re-evaluation on the same public split is needed for a fair architecture comparison."
+  },
+  "research_opportunities": [
+    "Fault-at-startup falsification: inject a labeled fault at sample zero and test whether warm-up adaptation assimilates it as normal.",
+    "Dual-track adaptation: keep the certified reference frozen while collecting a quarantined shadow baseline; never let the candidate update the live baseline before independent review.",
+    "Regime-specific uncertainty sets: use multi-hypothesis behavioral envelopes and abstain where sensor/condition shift makes fault signatures overlap.",
+    "Selective debounce: measure detection delay and FAR jointly; use sequential evidence rather than a fixed 15-sample inertial filter when the data supports faster safe confirmation.",
+    "Weak-magnitude isolation: prioritize f_pim(-10%), f_waf(-12%) and f_pic(+8%) stress cells; high aggregate score conceals severe condition-specific failures."
+  ],
+  "claim_ceiling": "Published benchmark reference only. The method and reported scores have not been independently reproduced by Symtropy; the values are not Symtropy results."
+}

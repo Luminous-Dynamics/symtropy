@@ -1,0 +1,170 @@
+{
+  "schema_version": "symtropy-startup-adaptation-guard-v0.1",
+  "status": "protocol_only_not_executed",
+  "threat_model": {
+    "reference": "The DXC'26 LiU-ICE grey-box solution uses a 90-second (1800 sample at 20 Hz) initialization and adaptive covariate-shift warm-up.",
+    "disclosed_failure": "The publication states that a fault present from engine startup may be absorbed into the adaptive healthy baseline, creating a temporary temporal blind spot.",
+    "adversary_and_fault_cases": [
+      "fault present at sample zero",
+      "fault begins during warm-up",
+      "slowly developing fault below a point residual threshold",
+      "new supported-looking but actually unsupported operating regime",
+      "sensor bias or dropout during warm-up",
+      "command/response clock or gateway common-cause failure",
+      "an unknown fault that does not trigger a known-class alarm",
+      "an anomaly that begins during a restart or model reset"
+    ]
+  },
+  "core_invariant": "The last independently qualified live baseline stays frozen and continues to generate the diagnostic reference while all new adaptation data are collected in a separate shadow candidate. No candidate update can change live inference until an external independent review and separate authorization process accepts it.",
+  "architecture": {
+    "live_reference": {
+      "mutability": "immutable within the guard",
+      "identity": "content-addressed baseline and frozen model digest",
+      "role": "continues inference from sample zero; there is no 90-second detection-off period"
+    },
+    "shadow_candidate": {
+      "storage": "separate append-only sample receipt chain",
+      "policy": "candidate only; never used as the active detection reference",
+      "disposition": "collecting, quarantined, or ready_for_independent_review"
+    },
+    "quarantine_triggers": [
+      "unsupported operating regime",
+      "any required sensor missing, stale, conflicted or uncalibrated",
+      "command history absent or causally invalid",
+      "standardized residual outside the frozen acceptance envelope",
+      "known-fault alarm",
+      "unknown-fault alarm",
+      "ambiguous behavioral hypothesis set",
+      "dependency/common-cause health not independently verified",
+      "sample gap, timestamp reversal or recording identity change"
+    ],
+    "completion": "After the predeclared shadow sample count, produce a candidate digest plus two or more independently verified health attestations from distinct issuer and dependency domains. This creates a review package, not a baseline update.",
+    "update_authority": "An external baseline-governance owner must review the complete candidate, attestations, prior baseline, model, rollback package and scope. The guard has no commit or activation function."
+  },
+  "policy": {
+    "reference_sample_rate_hz": 20,
+    "minimum_shadow_samples": 1800,
+    "minimum_shadow_duration_seconds": 90,
+    "maximum_standardized_residual": 3,
+    "maximum_sample_gap_seconds": 0.1,
+    "minimum_independent_health_attestations": 2,
+    "required_independent_axes": [
+      "issuer_identity",
+      "dependency_domain"
+    ],
+    "sample_order": "contiguous sample indices and strictly increasing timestamps",
+    "candidate_review": "two distinct upstream verified issuers from separate verified dependency domains; every attestation binds the exact candidate manifest digest"
+  },
+  "evidence_contract": {
+    "sample_receipt_binds": [
+      "baseline digest",
+      "model digest",
+      "recording and regime identity",
+      "sample index and timestamp",
+      "input receipt digest",
+      "standardized residual",
+      "regime support decision",
+      "required signal-quality decision",
+      "command history and causal timing decisions",
+      "known/unknown fault alarms and ambiguity state",
+      "dependency/common-cause verification receipt",
+      "previous shadow receipt digest"
+    ],
+    "proposal_binds": [
+      "frozen baseline and model identity",
+      "shadow policy digest",
+      "candidate receipt chain digest",
+      "first/last sample and timestamp",
+      "independent health-attestation receipt digests",
+      "candidate manifest digest"
+    ],
+    "authenticity_limit": "Digest integrity does not authenticate signers. Issuer identity, competence, independence, authority scope, expiry, revocation and evidence-source provenance must be verified upstream."
+  },
+  "comparators": [
+    {
+      "id": "frozen_reference_no_adaptation",
+      "method": "Continue using the qualified reference baseline; never learn during the evaluation."
+    },
+    {
+      "id": "unconditional_online_adaptation",
+      "method": "Reproduce immediate online baseline updates; deliberately stress-test fault absorption."
+    },
+    {
+      "id": "fixed_90_second_warmup",
+      "method": "Reproduce the published fixed warm-up behavior and startup masking risk."
+    },
+    {
+      "id": "shadow_candidate_quarantine",
+      "method": "Accumulate candidate data separately; quarantine on any support, residual, alarm, ambiguity or data-quality violation."
+    },
+    {
+      "id": "independent_health_review_gate",
+      "method": "Shadow quarantine plus multiple independent, digest-bound health attestations and separate owner authorization."
+    }
+  ],
+  "required_metrics": [
+    "startup_fault_detection_rate",
+    "startup_fault_detection_latency_seconds",
+    "fault_absorption_into_shadow_candidate_rate",
+    "healthy_baseline_contamination_rate",
+    "candidate_quarantine_recall",
+    "false_quarantine_rate_on_supported_healthy_windows",
+    "shadow_candidate_completion_rate",
+    "independent_attestation_rejection_rate",
+    "unauthorized_baseline_update_count",
+    "live_baseline_digest_change_count",
+    "reference_detector_availability_during_shadow_warmup",
+    "recovery_time_after_quarantine",
+    "rollback_success_rate",
+    "p95/p99 inference latency during parallel shadow collection"
+  ],
+  "hard_gates": [
+    "the previously qualified live baseline remains frozen throughout shadow collection",
+    "the live baseline continues to produce predictions from sample zero",
+    "a startup fault is never used to initialize or update the live healthy reference",
+    "any known or unknown fault alarm or ambiguous hypothesis set quarantines the entire candidate",
+    "an unsupported regime, missing/stale sensor or invalid command-response timing quarantines the entire candidate",
+    "sample gaps, time reversal and cross-recording samples are rejected",
+    "candidate samples are append-only and individually receipt-bound",
+    "the proposal is bound to the exact original baseline and model digests",
+    "independent health attestations must refer to the exact candidate manifest",
+    "attestation issuers and dependency domains are unique and independently verified upstream",
+    "the module cannot commit, activate or authorize a new baseline",
+    "baseline replacement requires external owner approval, rollback evidence and post-update regression testing",
+    "no aggregate readiness score can compensate for a startup fault-masking failure"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "zero_startup_fault_absorption",
+      "target": "Zero startup-fault episodes absorbed into the healthy baseline on the frozen fault-at-startup and fault-during-warmup falsification suite.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_detection_continuity",
+      "target": "Live reference detection remains active from sample zero; no fixed warm-up interval suppresses reporting.",
+      "status": "aspirational"
+    },
+    {
+      "id": "bounded_startup_detection_latency",
+      "target": "For onset-annotated supported cases, detect or explicitly abstain within 0.50 seconds while preserving the matched false-alarm budget.",
+      "status": "aspirational"
+    },
+    {
+      "id": "baseline_non_mutation",
+      "target": "Zero live-baseline digest changes during candidate collection, quarantine, or independent review.",
+      "status": "aspirational"
+    },
+    {
+      "id": "shadow_runtime_overhead",
+      "target": "Parallel shadow collection adds less than 10% p95 inference latency and causes no queue growth on the pinned 20 Hz reference device.",
+      "status": "aspirational"
+    }
+  ],
+  "evidence_boundary": {
+    "implementation": "Rust shadow candidate state machine in src/startup_adaptation.rs; synthetic contract tests only.",
+    "execution_performed": false,
+    "live_baseline_mutation_performed": false,
+    "physical_validation": false,
+    "claim_ceiling": "Fail-closed baseline adaptation contract and synthetic tests only; no field startup safety or production deployment claim."
+  }
+}

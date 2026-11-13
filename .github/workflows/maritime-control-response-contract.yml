@@ -57,6 +57,9 @@ jobs:
             (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1") and
             (.event_evaluation.status == "protocol_only_not_executed") and
             (.event_evaluation.alarm_debounce.minimum_positive_samples == 3) and
+            (.event_evaluation.alarm_debounce.reset_on_explicit_negative_sample == true) and
+            (.event_evaluation.alarm_debounce.merge_only_consecutive_positive_samples == true) and
+            (.event_evaluation.alarm_debounce.positive_run_must_not_bridge_unobserved_gap == true) and
             (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10) and
             (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
@@ -172,6 +175,18 @@ jobs:
             (.familywise_control != null) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/sequential-evidence-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-joint-hypothesis-scenario-posterior-v0.1" and
+            .status == "source_authored_ci_pending" and
+            (.scope.prior | contains("p(H,S)=p(H)*p(S)")) and
+            (.scope.scenario_space | contains("identical outcome ID space")) and
+            (.ledger.binds | index("parent ledger digest") != null) and
+            (.hard_gates | length >= 15) and
+            (.comparators | length == 3) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
+            (.limitations.claim_ceiling | contains("independent mathematical review"))
+          ' benchmarks/maritime-control-response/joint-scenario-posterior-v0.1.json >/dev/null
 
           jq -e '
             .schema_version == "symtropy-startup-adaptation-guard-v0.1" and

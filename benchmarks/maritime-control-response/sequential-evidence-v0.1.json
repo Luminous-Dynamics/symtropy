@@ -1,0 +1,126 @@
+{
+  "schema_version": "symtropy-sequential-evidence-v0.1",
+  "status": "protocol_only_not_executed",
+  "purpose": "Evaluate calibrated evidence for one declared fault hypothesis against a no-fault null as samples arrive, while preserving Type-I error control under optional stopping.",
+  "model": {
+    "schema_version": "symtropy-sequential-evidence-model-v0.1",
+    "likelihood_table": "A fixed categorical outcome distribution under a simple null and one simple alternative, for one frozen evidence channel.",
+    "statistic": "log E_t = sum_{i=1}^t log(P_alternative(X_i) / P_null(X_i)); E_t = exp(log E_t).",
+    "decision": "Cross the per-alternative threshold when E_t >= 1 / alpha_i; return model_conditional_evidence_threshold_crossed, never a physical-cause or operating-safety claim.",
+    "null_support": "Every listed outcome has positive null probability. An observed outcome outside the frozen support poisons the session; zero-null-probability observations are never turned into infinite evidence.",
+    "replay": "Each receipt binds outcome, timestamp, sample index, model, calibration, input receipt, prior receipt, log e-value and threshold."
+  },
+  "familywise_control": {
+    "method": "bonferroni",
+    "budget_units": "parts per million",
+    "allocation": "alpha_i = floor(familywise_alpha_ppm / alternative_count); sum_i alpha_i <= familywise_alpha_ppm.",
+    "default": {
+      "familywise_alpha_ppm": 1000,
+      "alternative_count": 4,
+      "per_alternative_alpha_ppm": 250,
+      "log_evidence_threshold": 8.294049640102028
+    },
+    "threshold": "log(1 / alpha_i)",
+    "dependence_between_alternatives": "No independence assumption is required for the Bonferroni family-wise bound, but each individual null e-process must remain valid."
+  },
+  "comparators": [
+    {
+      "id": "fixed_window_likelihood_test",
+      "method": "Evaluate a predeclared fixed-size sample window, then decide once."
+    },
+    {
+      "id": "simple_sprt_likelihood_ratio",
+      "method": "Accumulate the same simple-null/simple-alternative likelihood ratio with a fixed decision schedule."
+    },
+    {
+      "id": "anytime_valid_e_process",
+      "method": "The proposed process can be inspected after every accepted sample and stopped at any data-dependent time; threshold is governed by Ville's inequality under the validity conditions."
+    },
+    {
+      "id": "posterior_entropy_eig",
+      "method": "Measure average expected posterior entropy reduction; this is an evidence-acquisition utility, not a Type-I error guarantee."
+    },
+    {
+      "id": "worst_case_pairwise_chernoff",
+      "method": "Compare asymptotic pairwise mode separation under repeated observations; this is not a finite-sample false-alarm guarantee."
+    }
+  ],
+  "validity_conditions": {
+    "observations": "Current v0.1 requires repeated conditionally independent outcome draws from the declared fixed likelihood law under the null; nonstationary or serially dependent data need conditional likelihood models or a separately validated e-process.",
+    "channel": "One frozen channel, sensor semantics, operating regime and likelihood table per session. Changing channel selection within a session is not supported.",
+    "model": "The null and alternative likelihood distributions are fixed before confirmatory observations; both are normalized and every supported outcome has positive probability under each.",
+    "calibration": "Likelihoods require independent calibration and review. Hashes bind inputs but do not authenticate reviewer identity or prove calibration.",
+    "optional_stopping": "Under a valid nonnegative null e-process, Ville's inequality gives P(sup_t E_t >= 1/alpha_i) <= alpha_i, so users may inspect or stop at any sample without inflating the individual test's Type-I error.",
+    "multiple_faults": "Bonferroni allocation across the declared alternative count bounds the probability of any false fault alarm under the shared no-fault null by the family-wise alpha budget."
+  },
+  "protocol_constraints": {
+    "one_input_one_receipt": true,
+    "contiguous_sample_indices": true,
+    "monotonic_timestamps": true,
+    "model_and_calibration_bound_per_session": true,
+    "receipt_chain_replay": true,
+    "unknown_outcome_poisons_session": true,
+    "zero_probability_is_not_infinite_evidence": true,
+    "threshold_crossing_not_unique_cause": true,
+    "threshold_crossing_not_operational_authority": true
+  },
+  "required_metrics": [
+    "sequential_log_evalue",
+    "per_alternative_alpha_ppm",
+    "familywise_alpha_ppm",
+    "alternative_count",
+    "threshold_crossed",
+    "observations_to_threshold",
+    "time_to_threshold_seconds",
+    "false_alarms_per_observed_normal_hour",
+    "fault_event_recall",
+    "p95_event_detection_latency_seconds",
+    "receipt_chain_validation_rate",
+    "unknown_outcome_poison_count",
+    "model_calibration_stratum",
+    "null_model_drift_or_misspecification_rate"
+  ],
+  "hard_gates": [
+    "the null and alternative IDs, channel, model digest, calibration digest and outcome likelihood table are frozen before confirmatory testing",
+    "null and alternative outcome probabilities each sum to one and every listed outcome has positive null probability",
+    "the sequential likelihood-ratio increment is computed in log space and replayed from every observation receipt",
+    "an unsupported observed category poisons the session rather than producing infinite evidence",
+    "the sample stream is contiguous and the same evidence channel and likelihood table are used for the entire session",
+    "the likelihood model is checked for calibration on independent episodes and remains within its declared operating regime",
+    "the null outcome distribution is conditionally correct for the observed history; i.i.d./stationary assumptions are not silently assumed under drift",
+    "Bonferroni per-alternative alpha is no greater than the allocated family-wise budget divided by the number of tested alternatives",
+    "the optional-stopping claim is conditional on the null e-process validity conditions and does not imply protection against misspecification",
+    "a threshold crossing is a statistical flag for the declared model pair, not unique physical cause isolation or a maintenance/operating instruction",
+    "a changed channel, controller mode, calibration, likelihood version or unsupported regime requires a new evidence session and model identity",
+    "receipt integrity is not signer authentication, trusted time or proof of physical sensor truth"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "optional_stopping_false_alarm_control",
+      "target": "Across frozen no-fault replay episodes with predeclared optional stopping rules, empirical family-wise false-alarm probability remains at or below the configured bound within independent-episode uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_detection_latency",
+      "target": "Improve median and p95 fault-event detection latency versus the fixed-window baseline at the same family-wise false-alarm budget, on matched independent episodes.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_receipt_replay",
+      "target": "100% receipt-chain and log-evidence replay on all accepted samples, with zero unsupported outcomes treated as infinite evidence.",
+      "status": "aspirational"
+    },
+    {
+      "id": "regime_shift_restraint",
+      "target": "Zero valid e-process threshold-crossing claims after the frozen model or channel leaves its reviewed support; unsupported regimes remain not_evaluated or start a separately calibrated session.",
+      "status": "aspirational"
+    }
+  ],
+  "evidence_boundaries": {
+    "implementation": "src/sequential_evidence.rs is source-authored; no real engine likelihood model is calibrated or evaluated.",
+    "validity": "The optional-stopping guarantee is mathematical and model-conditional; synthetic unit tests do not validate real-world conditional independence or likelihood calibration.",
+    "non_authority": "A crossed threshold is not physical proof, unique isolation, maintenance authority, controller write permission or ODD clearance.",
+    "cross_engine": "A single engine test-bench cannot establish cross-engine or fleet validity."
+  },
+  "claim_ceiling": "Synthetic likelihood-ratio mechanics and receipt replay only until the likelihood model is calibrated, independent null episodes are audited, event-level comparator runs are completed and temporal-dependence assumptions are reviewed."
+}
