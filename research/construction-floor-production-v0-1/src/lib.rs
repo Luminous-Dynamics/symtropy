@@ -6,12 +6,10 @@
 
 use std::collections::BTreeMap;
 
-use construction_robot_interop_core::{
-    ContextBinding, TaskMachine, TaskState,
-};
 use construction_robot_interop_core::resources::{
     ReservationBook, ReservationError, ReservationOutcome, ReservationRequest,
 };
+use construction_robot_interop_core::{ContextBinding, TaskMachine, TaskState};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FloorBinding {
@@ -1022,12 +1020,18 @@ mod tests {
         let report = ledger.report().expect("report");
         assert_eq!(report.required_units, 2);
         assert_eq!(report.finally_accepted_units, 1);
-        assert_eq!(report.benchmark_profile_id, "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001");
+        assert_eq!(
+            report.benchmark_profile_id,
+            "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001"
+        );
         assert_eq!(
             report.reference_fixture_id,
             "highrise-reference-floor-micro-oracle-001"
         );
-        assert_eq!(report.claim_ceiling, "synthetic_accepted_output_accounting_only");
+        assert_eq!(
+            report.claim_ceiling,
+            "synthetic_accepted_output_accounting_only"
+        );
         assert_eq!(report.not_finally_accepted_unit_ids, vec!["unit-2"]);
         assert_eq!(report.unallocated_floor_cost_minor_units, 5_000);
         let missing_unit = report
@@ -1394,11 +1398,17 @@ mod tests {
         right
             .observe_attempt("unit-1", &right_machine, None)
             .expect("right attempt");
-        assert!(left.report().expect("left report").crew_time_rollups.iter().any(|row| {
-            row.task_id.as_deref() == Some("task-1")
-                && row.role == "inspector"
-                && row.crew_minutes == 15
-        }));
+        assert!(
+            left.report()
+                .expect("left report")
+                .crew_time_rollups
+                .iter()
+                .any(|row| {
+                    row.task_id.as_deref() == Some("task-1")
+                        && row.role == "inspector"
+                        && row.crew_minutes == 15
+                })
+        );
         for item in [&mut left, &mut right] {
             item.add_cost(CostEntry {
                 entry_id: "cost-1".to_owned(),
