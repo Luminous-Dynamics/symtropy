@@ -75,7 +75,7 @@ This crate does not:
 - implement MILP, CP-SAT, genetic algorithms, reinforcement learning or
   dispatch policies;
 - model lot streaming, batch splitting, rework or parallel subassemblies;
-- model electricity, steam, water, wastewater, peak demand or emissions;
+- model process emissions or a whole-factory environmental inventory;
 - establish ergonomic exposure or worker wellbeing;
 - command machines or act as an ERP/MES/plant controller;
 - prove that a schedule was executed or that output passed inspection.
@@ -87,13 +87,42 @@ v0.1 scope is deliberately limited to explicit zero-duration setup transitions;
 nonzero setup models are rejected as unsupported. It is an oracle for small
 instances, not a production scheduler.
 
-The validator can now check explicit setup-labor reservations and the separate
-utility-envelope module can check declared time-varying capacities. The bounded
-exact oracle still rejects nonzero setup durations and does not search for
-setup operators or utility feasibility. The next benchmark increment should
-bind measured utility profiles to actual machine/operation receipts and add
-robust disruption/replanning scenarios. Observed production receipts and
-worker-approved constraints remain independent evidence gates.
+## Disruption replay and replan qualification v0.1
+
+The `resilience` module evaluates a caller-supplied replan against a frozen,
+independently feasible baseline. It does not construct or optimize the replan.
+Supported deterministic event types are:
+
+- machine outage and operator absence over half-open availability intervals;
+- delayed material availability for an exact operation;
+- longer operation duration and tightened hard due dates;
+- utility capacity derating or capacity becoming explicitly unknown.
+
+The evaluator first verifies baseline schedule feasibility and, when a utility
+model is supplied, baseline utility feasibility. It then applies the future
+portion of the event to a cloned problem/model, preserving the historical
+portion before the observation tick. A proposed replan is checked with the
+same independent machine/operator/precedence and utility validators.
+
+Work already started before the observation tick is immutable. An event that
+interrupts an in-progress operation or setup is rejected into a separate
+incident/abort-restart path; v0.1 has no silent abort/restart semantics.
+Unknown capacity remains unknown and cannot be replaced by a guessed value.
+A numeric utility derate needs an evidence/method basis. The evaluator reports
+feasibility, makespan, post-event completion horizon, tardiness and plan churn
+(changed/added/dropped operations, machine/operator reassignment, start/finish
+movement, total absolute shift and setup-reservation changes) as separate
+metrics.
+
+This is a deterministic replay evaluator, not a stochastic failure model or
+replanner. It does not compare policy quality until matched replan candidates
+are supplied. The exact tiny-instance oracle still rejects nonzero setup
+durations and does not search setup operators, route receipts or utility
+profiles. The next benchmark tranche is a frozen disruption corpus and a
+compute-matched tournament of independent replan policies. Observed production
+receipts, calibrated utility sources and worker-approved constraints remain
+separate evidence gates.
+
 
 ## Claim ceiling
 
