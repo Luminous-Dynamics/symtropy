@@ -89,6 +89,9 @@ pub struct DecisionContext {
     pub input_integrity: InputIntegrity,
     pub current_action_id: String,
     pub current_action_estimates: Vec<ActionEstimate>,
+    /// Allowed absolute difference between prior and reconstructed expected loss.
+    /// This only absorbs protocol quantization; it is not a free optimism margin.
+    pub outcome_loss_consistency_tolerance_units: u64,
     pub resource_budget: ResourceBudget,
 }
 
@@ -139,6 +142,7 @@ pub enum RejectionReason {
     InvalidProbabilityMass,
     EmptyOutcomeActionSet,
     OutcomeActionSetMismatch,
+    OutcomeLossDistributionInconsistent,
     DuplicateOutcomeAction,
     NonPolicyVisibleEvidence,
     RealizedOutcomeLeakage,
@@ -168,6 +172,7 @@ impl RejectionReason {
             Self::InvalidProbabilityMass => "invalid_probability_mass",
             Self::EmptyOutcomeActionSet => "empty_outcome_action_set",
             Self::OutcomeActionSetMismatch => "outcome_action_set_mismatch",
+            Self::OutcomeLossDistributionInconsistent => "outcome_loss_distribution_inconsistent",
             Self::DuplicateOutcomeAction => "duplicate_outcome_action",
             Self::NonPolicyVisibleEvidence => "non_policy_visible_evidence",
             Self::RealizedOutcomeLeakage => "realized_outcome_leakage",
@@ -287,23 +292,43 @@ fn checked_latest_completion(context: &DecisionContext) -> Result<u64, Rejection
 
 fn expected_loss_after(
     candidate: &QueryCandidate,
-    current_action_ids: &BTreeSet<String>,
+    current_action_losses: &BTreeMap<String, u64>,
+    consistency_tolerance_units: u64,
     current_best_action_id: &str,
 ) -> Result<(u128, u64, u64), Vec<RejectionReason>> {
     if candidate.outcomes.is_empty() {
         return Err(vec![RejectionReason::EmptyOutcomeDistribution]);
     }
+    let current_action_ids = current_action_losses.keys().cloned().collect::<BTreeSet<_>>();
     let mut probability_total = 0_u64;
     let mut loss_numerator = 0_u128;
     let mut action_change_probability = 0_u64;
+    let mut prior_loss_numerators = current_action_ids
+        .iter()
+        .map(|action_id| (action_id.clone(), 0_u128))
+        .collect::<BTreeMap<_, _>>();
+
     for outcome in &candidate.outcomes {
         probability_total = probability_total
             .checked_add(u64::from(outcome.probability_ppm))
             .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
         let estimates = unique_action_map(&outcome.action_estimates)?;
-        if estimates.keys().cloned().collect::<BTreeSet<_>>() != *current_action_ids {
+        if estimates.keys().cloned().collect::<BTreeSet<_>>() != current_action_ids {
             return Err(vec![RejectionReason::OutcomeActionSetMismatch]);
         }
+
+        for (action_id, action_loss) in &estimates {
+            let contribution = u128::from(outcome.probability_ppm)
+                .checked_mul(u128::from(*action_loss))
+                .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
+            let total = prior_loss_numerators
+                .get_mut(action_id)
+                .ok_or_else(|| vec![RejectionReason::OutcomeActionSetMismatch])?;
+            *total = total
+                .checked_add(contribution)
+                .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
+        }
+
         let (best_action, best_loss) = argmin_action(&outcome.action_estimates)?;
         loss_numerator = loss_numerator
             .checked_add(
@@ -321,6 +346,22 @@ fn expected_loss_after(
     if probability_total != PROBABILITY_SCALE_PPM {
         return Err(vec![RejectionReason::InvalidProbabilityMass]);
     }
+
+    let allowed_difference = u128::from(consistency_tolerance_units)
+        .checked_mul(u128::from(PROBABILITY_SCALE_PPM))
+        .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
+    for (action_id, prior_loss) in current_action_losses {
+        let predicted_numerator = *prior_loss_numerators
+            .get(action_id)
+            .ok_or_else(|| vec![RejectionReason::OutcomeActionSetMismatch])?;
+        let prior_numerator = u128::from(*prior_loss)
+            .checked_mul(u128::from(PROBABILITY_SCALE_PPM))
+            .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
+        if predicted_numerator.abs_diff(prior_numerator) > allowed_difference {
+            return Err(vec![RejectionReason::OutcomeLossDistributionInconsistent]);
+        }
+    }
+
     let rounded_up = loss_numerator
         .checked_add(u128::from(PROBABILITY_SCALE_PPM - 1))
         .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?
@@ -508,11 +549,11 @@ pub fn allocate(request: &DecisionRequest) -> Result<DecisionReport, Vec<Rejecti
     let (baseline_best_action_id, baseline_loss, latest_completion) =
         validate_request(request)?;
     let context = &request.context;
-    let current_actions = context
+    let current_action_losses = context
         .current_action_estimates
         .iter()
-        .map(|estimate| estimate.action_id.clone())
-        .collect::<BTreeSet<_>>();
+        .map(|estimate| (estimate.action_id.clone(), estimate.expected_loss_units))
+        .collect::<BTreeMap<_, _>>();
     let mut seen_query_ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(request.candidates.len());
 
@@ -529,7 +570,8 @@ pub fn allocate(request: &DecisionRequest) -> Result<DecisionReport, Vec<Rejecti
 
         let expected = expected_loss_after(
             candidate,
-            &current_actions,
+            &current_action_losses,
+            context.outcome_loss_consistency_tolerance_units,
             &baseline_best_action_id,
         );
         let (loss_numerator, expected_after, change_probability) = match expected {
@@ -697,9 +739,10 @@ mod tests {
                 input_integrity: InputIntegrity::ValidFresh,
                 current_action_id: "brake".to_string(),
                 current_action_estimates: vec![
-                    estimate("brake", 40),
-                    estimate("proceed", 100),
+                    estimate("brake", 50),
+                    estimate("proceed", 50),
                 ],
+                outcome_loss_consistency_tolerance_units: 0,
                 resource_budget: ResourceBudget {
                     maximum_query_latency_us: 60_000,
                     maximum_energy_uj: 10_000,
@@ -721,7 +764,7 @@ mod tests {
             500,
             2,
             0,
-            vec![outcome(500_000, 30, 120), outcome(500_000, 60, 20)],
+            vec![outcome(500_000, 20, 80), outcome(500_000, 80, 20)],
         )
     }
 
@@ -744,7 +787,7 @@ mod tests {
             0,
             vec![
                 outcome(500_000, 40, 100),
-                outcome(500_000, 40, 90),
+                outcome(500_000, 60, 100),
             ],
         );
         let report = allocate(&base_request(vec![irrelevant])).unwrap();
@@ -836,6 +879,28 @@ mod tests {
     }
 
     #[test]
+    fn optimistic_post_query_losses_that_break_prior_bayes_consistency_are_rejected() {
+        let optimistic = candidate(
+            "fabricated-optimism",
+            QueryKind::HighFidelityWorldModel,
+            10_000,
+            100,
+            1,
+            0,
+            vec![
+                outcome(500_000, 1, 1),
+                outcome(500_000, 1, 1),
+            ],
+        );
+        let report = allocate(&base_request(vec![optimistic])).unwrap();
+        assert!(rejection(
+            &report,
+            "fabricated-optimism",
+            RejectionReason::OutcomeLossDistributionInconsistent
+        ));
+    }
+
+    #[test]
     fn query_outcome_cannot_change_the_declared_action_set() {
         let mut malformed = beneficial_query("action-set-leak", QueryKind::SensorReacquisition, 10_000);
         malformed.outcomes[0].action_estimates.push(estimate("hidden-action", 0));
@@ -870,7 +935,7 @@ mod tests {
             100,
             0,
             0,
-            vec![outcome(1_000_000, 30, 50)],
+            vec![outcome(500_000, 20, 80), outcome(500_000, 80, 20)],
         );
         let valuable = beneficial_query(
             "slower-higher-value",
@@ -884,7 +949,7 @@ mod tests {
             900,
             3,
             0,
-            vec![outcome(1_000_000, 35, 110)],
+            vec![outcome(500_000, 40, 60), outcome(500_000, 60, 40)],
         );
         let report = allocate(&base_request(vec![fast, valuable, dominated])).unwrap();
         assert!(report.pareto_frontier_query_ids.contains(&"fast-lower-value".to_string()));
@@ -903,7 +968,7 @@ mod tests {
                 100,
                 0,
                 0,
-                vec![outcome(1_000_000, 30, 50)],
+                vec![outcome(500_000, 20, 80), outcome(500_000, 80, 20)],
             ),
         ]);
         request.preference = AllocationPreference::LowestLatency;
