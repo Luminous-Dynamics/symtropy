@@ -73,3 +73,4 @@ A reported overlap is a potential conflict under the declared conservative bound
 The combined admission helper is a single-process, typed-error-atomic in-memory composition pattern. It is not crash-atomic durable commit, a distributed transaction or multi-controller serialization protocol; allocation failure or process termination is outside its guarantee. The cross-layer test uses synthetic fixtures and structural receipt references; it is not physical inspection evidence or an authenticated acceptance authority.
 
 The v0.1 AABB model is a deterministic broad-phase research reference only. The grid is an acceleration index; 1 m cell size and 4,096-cell fallback threshold are implementation parameters, not construction tolerances. False positives are allowed and must remain visible. A later narrow-phase geometry implementation needs an independent reference oracle and independently measured/as-built envelopes before any physical claim.
+
