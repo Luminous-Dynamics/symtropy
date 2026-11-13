@@ -418,7 +418,7 @@
           ],
           "properties": {
             "schema_version": {
-              "const": "liu-ice-active-evidence-selection-v0.6"
+              "const": "liu-ice-active-evidence-selection-v0.7"
             },
             "status": {
               "enum": [
