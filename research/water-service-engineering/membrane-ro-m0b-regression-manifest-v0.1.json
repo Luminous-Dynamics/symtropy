@@ -16,5 +16,7 @@
     "no_osf_raw_file_acquired",
     "no_membrane_performance_or_fouling_claim",
     "no extrapolation beyond input pressure range"
-  ]
+  ],
+  "evidence_class": "synthetic_multi_pressure_regression",
+  "evidence_ceiling": "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim"
 }
