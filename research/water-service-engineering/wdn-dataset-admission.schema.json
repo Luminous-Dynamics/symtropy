@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/wdn-dataset-admission.schema.json",
+  "title": "Water distribution dataset admission register v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "programme",
+    "tracking_issue",
+    "status",
+    "evidence_ceiling",
+    "intake_rules",
+    "datasets"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wdn-dataset-admission-v0.1"
+    },
+    "programme": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "status": {
+      "enum": [
+        "metadata_crosswalk_only_no_dataset_files_acquired",
+        "one_or_more_datasets_admitted"
+      ]
+    },
+    "evidence_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intake_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dataset_id",
+          "title",
+          "source",
+          "rights",
+          "profile",
+          "tasks",
+          "intake",
+          "evidence_limit"
+        ],
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "creators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "publication": {
+            "type": "object"
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "rights": {
+            "type": "object",
+            "required": [
+              "status",
+              "license"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "license": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": true
+          },
+          "profile": {
+            "type": "object"
+          },
+          "tasks": {
+            "type": "object",
+            "required": [
+              "eligible",
+              "not_eligible"
+            ],
+            "properties": {
+              "eligible": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "not_eligible": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "intake": {
+            "type": "object",
+            "required": [
+              "status",
+              "files_acquired",
+              "sha256",
+              "split_manifest"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "files_acquired": {
+                "const": false
+              },
+              "sha256": {
+                "maxItems": 0
+              },
+              "split_manifest": {
+                "type": "null"
+              }
+            },
+            "additionalProperties": true
+          },
+          "evidence_limit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "warning": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
