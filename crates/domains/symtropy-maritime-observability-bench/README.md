@@ -110,3 +110,14 @@ The adapter sends qualifying time-slice interval signatures through the same reu
 ## P0.11 — resilience of temporal diagnosability
 
 The exact P0.9 outage enumerator now replays temporal as well as static diagnosability under the same 28 single- and double-failure combinations. A temporal pair is qualified separately from its static baseline. For each baseline-isolable temporal pair, the report records the inclusion-minimal sensor/dependency cut sets that destroy its time-aligned distinction, using the same fail-closed search bounds. The synthetic turbocharger/cooling temporal pair is cut by loss of either participating sensor, the shared gateway, or the shared clock; loss of the three non-participating sensors does not destroy this particular temporal distinction. These are deterministic fixture properties, not hardware reliability probabilities.
+
+
+## P0.11 — multiview agreement is not independent corroboration
+
+The 2026 MVAPN literature is a useful comparator for multiview open-set diagnosis: it uses multiple physically complementary sensor views and cross-view consistency to improve unknown-fault recognition. Its reported multiview architecture does not, by itself, establish that the views are independent physical evidence.
+
+The maritime adapter now has a direct falsification test: it collapses all installed sensor channels onto one declared measurement-principle identity while preserving their individual channel names and response records. The critical normal-versus-injection pair must then become `non_isolable`, because the layout's two-independent-principle requirement cannot be satisfied by multiple views of one principle. This prevents view/channel-count inflation from masquerading as physical evidence diversity.
+
+This is synthetic conformance only. A measured deployment still needs an independently reviewed sensor register, measurement-principle identity, wiring/power/reference/clock/gateway topology, and evidence that candidate views do not share a fault-inducing common cause. Cross-view agreement is useful predictive information; it is not a substitute for dependency qualification.
+
+Reference comparator: [Prototype-driven open-set domain generalization via multiview adversarial purification, Knowledge-Based Systems (2026)](https://doi.org/10.1016/j.knosys.2026.116372).

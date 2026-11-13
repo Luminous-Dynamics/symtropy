@@ -5419,6 +5419,21 @@ mod tests{
         assert_eq!(adapted["parent_context"]["installation_profile_ref"],parent["profile"]["installation_profile_ref"]);
     }
     #[test]
+    fn repeated_views_of_one_measurement_principle_never_count_as_independent(){
+        let mut case=fixture();
+        let common_principle=case["sensors"][0]["measurement_principle_ref"].clone();
+        for sensor in case["sensors"].as_array_mut().unwrap(){
+            sensor["measurement_principle_ref"]=common_principle.clone();
+        }
+        let report=eval(&case).expect("same-principle channels remain a valid synthetic layout");
+        let pair=report["pair_assessments"].as_array().unwrap().iter()
+            .find(|pair|pair["fault_a"]=="ENGINE_NORMAL_STEADY"&&pair["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT")
+            .expect("required normal-versus-injection pair");
+        assert_eq!(pair["state"],"non_isolable",
+            "five correlated views of one measurement principle must not satisfy a two-principle gate");
+    }
+
+    #[test]
     fn gateway_loss_recomputes_and_withdraws_pair_isolability(){
         let r=eval(&fixture()).expect("adapter evaluates");
         assert_eq!(r["sensor_loss_scenarios"][0]["assessment_state"],"recomputed");
