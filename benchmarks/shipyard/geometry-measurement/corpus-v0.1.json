@@ -178,7 +178,7 @@
       "expected": {
         "disposition": "ABSTAIN",
         "reason": "UnsupportedGapTooLarge",
-        "coverage_permille": 400,
+        "coverage_permille": 200,
         "maximum_unsupported_gap_um": 8000
       }
     }
@@ -336,9 +336,9 @@
     }
   ],
   "totals": {
-    "cases": 25,
+    "cases": 30,
     "positive": 4,
-    "negative": 21,
-    "controls": 25
+    "negative": 26,
+    "additional_negative_controls": 25
   }
 }
