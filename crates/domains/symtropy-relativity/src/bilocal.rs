@@ -470,7 +470,14 @@ impl CanonicalCovariantEndpointMap {
 
 #[cfg(test)]
 mod tests {
-    use super::{BilocalGeodesicOperator, BilocalOperatorError};
+    use super::{
+        BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap,
+    };
+    use crate::{
+        MassKg, SchwarzschildBlackHole,
+        connection::{LeviCivitaConnection4, MetricDerivatives4},
+        metric::{MetricComponents4, schwarzschild_exterior_metric},
+    };
 
     const TOLERANCE: f64 = 1.0e-12;
 
@@ -556,4 +563,140 @@ mod tests {
             Err(BilocalOperatorError::InvalidTolerance(0.0))
         );
     }
+    #[test]
+    fn minkowski_endpoint_map_round_trips_canonical_variations() {
+        let metric = MetricComponents4::new([
+            [-1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        .unwrap();
+        let derivatives = MetricDerivatives4::zero();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            [1.0, 1.0, 0.0, 0.0],
+        )
+        .unwrap();
+
+        let canonical = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
+        let covariant = endpoint.to_covariant(canonical).unwrap();
+        let recovered = endpoint.to_canonical(covariant).unwrap();
+        for index in 0..8 {
+            assert!((recovered[index] - canonical[index]).abs() <= TOLERANCE);
+        }
+        assert_eq!(endpoint.matrix()[0][0], 1.0);
+        assert_eq!(endpoint.matrix()[0][4], 0.0);
+        assert_eq!(endpoint.matrix()[4][4], -1.0);
+    }
+
+    #[test]
+    fn schwarzschild_endpoint_map_round_trips_nontrivial_metric_and_connection() {
+        let hole = SchwarzschildBlackHole::new(MassKg::new(1.0e30).unwrap());
+        let radius = 4.0 * hole.gravitational_radius_m();
+        let theta = 1.1;
+        let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
+        let derivatives =
+            MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        let lapse_squared = 1.0 - hole.horizon_radius_m() / radius;
+        // Outgoing radial null tangent normalized by conserved energy E=1.
+        let tangent = [1.0 / lapse_squared, 1.0, 0.0, 0.0];
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            tangent,
+        )
+        .unwrap();
+
+        let canonical = [0.13, -0.29, 0.31, -0.47, 0.53, -0.61, 0.71, -0.83];
+        let covariant = endpoint.to_covariant(canonical).unwrap();
+        let recovered = endpoint.to_canonical(covariant).unwrap();
+        for index in 0..8 {
+            let scale = canonical[index].abs().max(1.0);
+            assert!(
+                (recovered[index] - canonical[index]).abs() <= 2.0e-12 * scale,
+                "index={index}, canonical={}, recovered={}",
+                canonical[index],
+                recovered[index]
+            );
+        }
+    }
+
+    #[test]
+    fn identical_endpoint_maps_transform_canonical_identity_to_covariant_identity() {
+        let metric = MetricComponents4::new([
+            [-1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        .unwrap();
+        let derivatives = MetricDerivatives4::zero();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            [1.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+        let mut canonical_identity = [[0.0; 8]; 8];
+        for index in 0..8 {
+            canonical_identity[index][index] = 1.0;
+        }
+
+        let transformed = CanonicalCovariantEndpointMap::transform_canonical_flow(
+            canonical_identity,
+            &endpoint,
+            &endpoint,
+        )
+        .unwrap();
+        assert!(
+            transformed.max_abs_difference(&BilocalGeodesicOperator::identity()) <= TOLERANCE
+        );
+    }
+
+    #[test]
+    fn endpoint_map_rejects_nonfinite_tangent_and_variations() {
+        let metric = MetricComponents4::new([
+            [-1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        .unwrap();
+        let derivatives = MetricDerivatives4::zero();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        assert!(matches!(
+            CanonicalCovariantEndpointMap::from_geometry(
+                &metric,
+                &derivatives,
+                &connection,
+                [1.0, f64::NAN, 0.0, 0.0]
+            ),
+            Err(BilocalOperatorError::NonFinite("endpoint tangent"))
+        ));
+
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            [1.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+        assert!(matches!(
+            endpoint.to_covariant([0.0, 0.0, f64::INFINITY, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Err(BilocalOperatorError::NonFinite("canonical variation"))
+        ));
+    }
+
 }
