@@ -26,6 +26,7 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 - The exact uncertainty/clearance-expanded AABB intersection remains authoritative; the grid cannot declare a conflict or clear a conflict by itself.
 - `candidate_count_for` exposes the broad-phase candidate count for benchmarking; `conflicts_for` then applies exact space/time tests.
 - The benchmark now separates sparse distributed workfaces from a dense cluster of 1,000 disjoint small envelopes packed into one 10 m cube. The dense workload is deliberately adversarial for uniform grids and quantifies local over-candidate behaviour.
+- A frozen grid-completeness unit test checks every pair in a 216-box corpus spanning negative coordinates, zero and 1 m cell boundaries, with two envelope sizes; if exact closed AABBs overlap/touch, the broad-phase cell sets must intersect or one side must use the global fallback. A full i64-coordinate-span fixture must take the fallback.
 - `insert` remains fail-closed and rejects admission if any conflict exists.
 - A combined admission helper evaluates the #3644 resource reservation and spatial occupancy against cloned in-memory owners, committing both only when both accept.
 - If spatial occupancy rejects, the tentative reservation is not committed; if the resource calendar rejects, the tentative occupancy is not committed.
