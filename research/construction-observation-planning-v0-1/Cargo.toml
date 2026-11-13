@@ -1,0 +1,10 @@
+[package]
+name = "construction-observation-planning-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+construction-spacetime-occupancy-core = { path = "../construction-spacetime-occupancy-v0-1" }
+
+[workspace]
