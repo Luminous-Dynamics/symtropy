@@ -34,7 +34,7 @@ A fast delivery does not prove a source is fresh. A shared schema does not prove
 
 The v0.1 corpus contains 12 finite cases:
 - 4 positive cases: integrated, unified, federated and mixed topologies;
-- 8 single-dominant-fault negatives: update frequency, jitter, p95 latency, stale source, semantic fidelity, provenance/authority, clock synchronization and uncertainty.
+- 9 negative cases: update frequency, sample frequency, jitter, p95 latency, stale source, semantic fidelity, provenance/authority, clock synchronization and uncertainty.
 
 The synthetic values are test fixtures only. They are not measured latency, real update rates, actual twin-fidelity scores or qualified uncertainty bounds.
 
@@ -42,7 +42,7 @@ The synthetic values are test fixtures only. They are not measured latency, real
 
 | Metric | Benchmark target |
 |---|---|
-| Frozen oracle agreement | 12/12 exact readiness + reason-code matches |
+| Frozen oracle agreement | 13/13 exact readiness + reason-code matches |
 | False-ready on seeded required-interface faults | 0 |
 | Missing/unbound provenance accepted | 0 |
 | Semantic-fidelity failures promoted | 0 |
@@ -72,3 +72,10 @@ Our intended differentiation is the evidence-bearing commissioning receipt: purp
 ## Claim ceiling
 
 A PASS proves only that the frozen synthetic corpus matches its commissioning oracle. It does not establish ISO 23247 conformance, safety under ISO 10218, physical model validity, source-authority correctness in production, operational readiness of a real shipyard or permission to command equipment.
+
+
+## Sampling cadence is not interface update cadence
+
+Each interface now declares both `sample_interval_us` / `max_sample_interval_us` and `update_interval_ms` / `max_update_interval_ms`. The former describes acquisition resolution at the source; the latter describes how often the interface publishes or updates a value. A gateway can publish 10 ms updates while forwarding a value originally sampled every 50 ms; that does not make the underlying measurement a 10 ms sample.
+
+The BAM companion article provides an explicit example of heterogeneous source cadence: current/voltage at 0.1 ms (100 µs), robot TCP coordinates at 8 ms (8,000 µs), and power-source OPC-UA variables at 100 ms (100,000 µs). These are not interchangeable with interface delivery latency or update frequency. The new DTC-013 negative control keeps the update interval within budget while violating the sampling-resolution limit; the only expected failure is `SAMPLE_FREQUENCY`.
