@@ -107,3 +107,8 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Pressurized-network dataset admission
+
+The public dataset crosswalk is now recorded in [wdn-dataset-crosswalk-v0.1.md](./wdn-dataset-crosswalk-v0.1.md), with the machine-readable [dataset register](./wdn-dataset-admission-v0.1.json) and [Draft 2020-12 schema](./wdn-dataset-admission.schema.json). Seven distinct populations are catalogued: DiTEC-WDN, LeakDB, WDSEventDB, Aghashahi LeakTestbed, Slovak utility SCADA, BattLeDIM/L-Town and the paper-reported 47k+ Net3 corpus. This is metadata intake only: no source files have been acquired or hashed, and unresolved dataset licences remain blocked from redistribution.
