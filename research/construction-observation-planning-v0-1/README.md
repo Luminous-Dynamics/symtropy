@@ -5,16 +5,19 @@
 Parent: [CONSTRUCTION-OBSERVATION-PLANNING-001 #4988](https://github.com/Luminous-Dynamics/symtropy/issues/4988).
 
 Stacked dependency order:
-[interop #3644](https://github.com/Luminous-Dynamics/symtropy/pull/3644)
-→ [accepted-floor ledger #4960](https://github.com/Luminous-Dynamics/symtropy/pull/4960)
-→ [space-time occupancy #4976](https://github.com/Luminous-Dynamics/symtropy/pull/4976)
+[interop + resource temporal index #5009](https://github.com/Luminous-Dynamics/symtropy/pull/5009)
+→ [accepted-floor ledger #5043](https://github.com/Luminous-Dynamics/symtropy/pull/5043)
+→ [space-time occupancy #5044](https://github.com/Luminous-Dynamics/symtropy/pull/5044)
 → this observation-planning adapter.
 
 ## Implemented v0.1
 
 - Declares observation actions with coverage-profile and calibration references, regions, a space-time access envelope, duration, crew time, cost and energy.
-- Selects one targeted observation using a deterministic lexicographic rule: maximize currently blocked work units covered, then minimize crew minutes, cost, duration and action ID.
-- Uses the existing space-time occupancy owner to reject or report access conflicts and stale site/design/frame context; no geometry checker is duplicated.
+- Provides geometry-only baseline selectors and resource-aware selector variants.
+- The targeted policy uses a deterministic lexicographic rule: maximize currently blocked work units covered, then minimize crew minutes, cost, duration and action ID.
+- Resource-aware variants evaluate spatial conflict through the existing occupancy owner and call `ReservationBook::preview_reservation` for time/clock/expiry/capacity feasibility. No second resource calendar or geometry checker is introduced.
+- Spatial conflicts and resource-calendar rejections are reported separately with exact typed reasons. A blocked high-coverage scan can be replaced by a lower-coverage feasible scan; the fixed resource-aware baseline never substitutes another action.
+- The read-only preview does not mutate reservations. A selected scan must be re-admitted by the owner at execution/commit time; preview is not a lock or durable reservation.
 - Keeps hidden scenario truth in a separate scenario oracle, never in the planner's selection inputs.
 - Evaluates each scenario separately; there are no invented probabilities or expected-value averages.
 - Calculates `net_voi = no_observation_loss - observation_cost - residual_loss_after_result` in integer minor currency units.
@@ -35,7 +38,7 @@ cargo clippy --manifest-path research/construction-observation-planning-v0-1/Car
 
 The scenario oracle supplies explicit no-observation and residual-loss figures for a frozen synthetic case. They are scenario inputs, not probability-weighted estimates, sensor detection rates or project cost estimates. A positive VOI is useful only within that declared case; negative VOI is a valid result.
 
-This adapter records references and consumes the occupancy index. It does not compute coverage, verify calibration, authenticate evidence, update survey adjustments or authorize work. Only qualified external observation/acceptance owners can establish those facts.
+This adapter records references and consumes the occupancy index and resource calendar. It does not compute coverage, verify calibration, authenticate evidence, update survey adjustments, run a full resource-constrained project schedule or authorize work. Only qualified external observation/acceptance owners can establish those facts.
 
 ## Claim ceiling
 
