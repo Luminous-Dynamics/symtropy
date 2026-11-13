@@ -1490,5 +1490,107 @@
         "SAMPLE_FREQUENCY"
       ]
     }
+  ],
+  "lifecycle_scenarios": [
+    {
+      "scenario_id": "LIFE-001",
+      "initial_state": "UNCONFIGURED",
+      "events": [
+        "CONFIGURATION_COMPLETE",
+        "COMMISSIONING_PASSED"
+      ],
+      "expected_states": [
+        "UNCONFIGURED",
+        "CANDIDATE",
+        "COMMISSIONED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-002",
+      "initial_state": "COMMISSIONED",
+      "events": [
+        "OPTIONAL_BUDGET_EXCEEDED"
+      ],
+      "expected_states": [
+        "COMMISSIONED",
+        "DEGRADED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-003",
+      "initial_state": "COMMISSIONED",
+      "events": [
+        "CRITICAL_BUDGET_EXCEEDED"
+      ],
+      "expected_states": [
+        "COMMISSIONED",
+        "SUSPENDED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-004",
+      "initial_state": "COMMISSIONED",
+      "events": [
+        "DEPENDENCY_REVISION_CHANGED"
+      ],
+      "expected_states": [
+        "COMMISSIONED",
+        "REQUALIFICATION_REQUIRED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-005",
+      "initial_state": "COMMISSIONED",
+      "events": [
+        "OPTIONAL_BUDGET_EXCEEDED",
+        "RECOMMISSIONING_STARTED",
+        "COMMISSIONING_PASSED"
+      ],
+      "expected_states": [
+        "COMMISSIONED",
+        "DEGRADED",
+        "CANDIDATE",
+        "COMMISSIONED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-006",
+      "initial_state": "COMMISSIONED",
+      "events": [
+        "CRITICAL_BUDGET_EXCEEDED",
+        "SUSPENSION_CLEARED",
+        "REQUALIFICATION_STARTED",
+        "COMMISSIONING_PASSED"
+      ],
+      "expected_states": [
+        "COMMISSIONED",
+        "SUSPENDED",
+        "REQUALIFICATION_REQUIRED",
+        "CANDIDATE",
+        "COMMISSIONED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-007",
+      "initial_state": "COMMISSIONED",
+      "events": [
+        "DECOMMISSION"
+      ],
+      "expected_states": [
+        "COMMISSIONED",
+        "DECOMMISSIONED"
+      ]
+    },
+    {
+      "scenario_id": "LIFE-008",
+      "initial_state": "UNCONFIGURED",
+      "events": [
+        "DECOMMISSION"
+      ],
+      "expected_states": [
+        "UNCONFIGURED",
+        "DECOMMISSIONED"
+      ]
+    }
   ]
 }
