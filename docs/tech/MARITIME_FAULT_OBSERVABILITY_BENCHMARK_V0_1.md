@@ -364,3 +364,8 @@ Additional Rust tests cover expired calibration, derived-channel non-independenc
 The `maritime_pairwise_observability` binary records the exact pinned generic-kernel Git revision, source commit and input case digest. It emits nominal pair classifications and per-dependency-cut re-evaluations. The focused workflow verifies expected statuses and confirms that physical diagnosability and authorization remain explicitly false.
 
 Measured mode admits `INDEPENDENT_MEASUREMENT` roles only when sensor installation, calibration, quality, exact asset configuration and a shared qualified timebase with valid uncertainty and qualification digest are established. Mismatched timebases or incomplete qualification produce unresolved evidence, not independent measurement credit.
+
+
+### Measurement-window and timebase admission refinement
+
+Each fault-state signature pair now binds two distinct synchronized measurement-window IDs. Pair comparison is refused when those IDs are absent or identical. Measured-mode credit also requires the exact asset-configuration digest, current calibration and quality, a qualified operating regime, one common qualified timebase/qualification digest across the pair, and per-channel timestamp uncertainty no greater than the case's declared maximum. Failure of these conditions downgrades that channel to unresolved evidence before calling the generic pair-classification kernel. The synthetic fixture uses a 5 ms maximum only as a fabricated conformance bound; it is not an engine instrumentation requirement.

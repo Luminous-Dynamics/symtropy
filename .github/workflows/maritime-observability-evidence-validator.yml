@@ -110,6 +110,7 @@ jobs:
             and .dependency_cut_results[0].pair_results[0].status == "NOT_IDENTIFIABLE"
             and .dependency_cut_results[1].pair_results[0].status == "IDENTIFIABLE"
             and .pair_separability_computed_by_reused_kernel == true
+            and (.base_pair_results[0].measurement_window_id_a != .base_pair_results[0].measurement_window_id_b)
             and .physical_diagnosability_established == false
             and .mutation_performed == false
             and .authorization_granted == false

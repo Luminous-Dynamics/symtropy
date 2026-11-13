@@ -10,6 +10,7 @@
     "evidence_class",
     "asset",
     "operating_domain",
+    "maximum_timestamp_uncertainty_ms",
     "channels",
     "pairs",
     "dependency_cut_scenarios",
@@ -212,7 +213,9 @@
           "fault_b",
           "critical",
           "minimum_independent_principles",
-          "responses"
+          "responses",
+          "measurement_window_id_a",
+          "measurement_window_id_b"
         ],
         "properties": {
           "pair_id": {
@@ -336,6 +339,14 @@
                 }
               }
             }
+          },
+          "measurement_window_id_a": {
+            "type": "string",
+            "minLength": 1
+          },
+          "measurement_window_id_b": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -421,6 +432,10 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 80
+    },
+    "maximum_timestamp_uncertainty_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
     }
   }
 }

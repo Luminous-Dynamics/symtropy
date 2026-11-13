@@ -107,7 +107,7 @@ fn interval(v:&Value,key:&str,path:&str,errors:&mut Errors)->Option<(f64,f64)>{
     Some((lower,upper))
 }
 
-fn channel_is_measured_and_qualified(channel:&Channel,asset_sha:&str)->bool{
+fn channel_is_measured_and_qualified(channel:&Channel,asset_sha:&str,max_timestamp_uncertainty_ms:f64)->bool{
     let v=&channel.raw;
     text(v,"source_role")==Some("measured")
         && v["installed"].as_bool()==Some(true)
@@ -115,13 +115,13 @@ fn channel_is_measured_and_qualified(channel:&Channel,asset_sha:&str)->bool{
         && text(v,"calibration_state")==Some("current")
         && text(v,"timebase_qualification_state")==Some("qualified")
         && text(v,"timebase_id").is_some()
-        && finite(v,"timestamp_uncertainty_ms").is_some_and(|x|x>=0.0)
+        && finite(v,"timestamp_uncertainty_ms").is_some_and(|x|x>=0.0&&x<=max_timestamp_uncertainty_ms)
         && v["timebase_qualification_sha256"].as_str().is_some_and(sha256)
         && text(v,"configuration_sha256")==Some(asset_sha)
         && v["derived_from_channel_ids"].as_array().is_some_and(|a|a.is_empty())
 }
 
-fn evidence_role(raw:Option<&str>,channel:&Channel,evidence_class:&str,asset_sha:&str,common_timebase:Option<&str>,common_clock_digest:Option<&str>)->PairEvidenceRole{
+fn evidence_role(raw:Option<&str>,channel:&Channel,evidence_class:&str,asset_sha:&str,common_timebase:Option<&str>,common_clock_digest:Option<&str>,regime_qualified:bool,max_timestamp_uncertainty_ms:f64)->PairEvidenceRole{
     match raw {
         Some("SYNTHETIC_CONFORMANCE_FIXTURE")
             if evidence_class=="SYNTHETIC_CONFORMANCE_FIXTURE"
@@ -131,7 +131,8 @@ fn evidence_role(raw:Option<&str>,channel:&Channel,evidence_class:&str,asset_sha
             => PairEvidenceRole::SyntheticConformanceFixture,
         Some("INDEPENDENT_MEASUREMENT")
             if evidence_class=="MEASURED"
-                && channel_is_measured_and_qualified(channel,asset_sha)
+                && regime_qualified
+                && channel_is_measured_and_qualified(channel,asset_sha,max_timestamp_uncertainty_ms)
                 && text(&channel.raw,"timebase_id")==common_timebase
                 && channel.raw["timebase_qualification_sha256"].as_str()==common_clock_digest
             => PairEvidenceRole::IndependentMeasurement,
@@ -155,7 +156,7 @@ fn availability(raw:Option<&str>)->Option<PairAvailability>{
 
 fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BTreeMap<String,Channel>,Vec<Value>,Vec<Value>),Errors>{
     let mut errors=Vec::new();
-    exact_keys(case,&["schema_version","case_id","evidence_class","asset","operating_domain","channels","pairs","dependency_cut_scenarios","authority_boundary","claim_ceiling"],&[],"$",&mut errors);
+    exact_keys(case,&["schema_version","case_id","evidence_class","asset","operating_domain","maximum_timestamp_uncertainty_ms","channels","pairs","dependency_cut_scenarios","authority_boundary","claim_ceiling"],&[],"$",&mut errors);
     if text(case,"schema_version")!=Some("0.1.0"){
         push(&mut errors,"SCHEMA_VERSION","$.schema_version","expected 0.1.0");
     }
@@ -176,9 +177,14 @@ fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BT
     let regime=text(&case["operating_domain"],"regime_id").unwrap_or("").to_owned();
     exact_keys(&case["operating_domain"],&["regime_id","qualification_state"],&[],"$.operating_domain",&mut errors);
     if regime.is_empty(){push(&mut errors,"REGIME_REQUIRED","$.operating_domain.regime_id","regime ID required");}
+    let regime_qualified=text(&case["operating_domain"],"qualification_state")==Some("qualified");
     if !matches!(text(&case["operating_domain"],"qualification_state"),Some("qualified"|"unsupported"|"not_evaluated")){
         push(&mut errors,"REGIME_STATE","$.operating_domain.qualification_state","invalid regime state");
     }
+    let max_timestamp_uncertainty=finite(case,"maximum_timestamp_uncertainty_ms").filter(|x|*x>0.0).unwrap_or_else(||{
+        push(&mut errors,"MAX_TIMESTAMP_UNCERTAINTY_INVALID","$.maximum_timestamp_uncertainty_ms","maximum timestamp uncertainty must be finite and positive");
+        0.0
+    });
 
     let Some(items)=case["channels"].as_array() else{
         push(&mut errors,"CHANNELS_REQUIRED","$.channels","channels array required");
@@ -244,13 +250,17 @@ fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BT
     let mut pair_ids=BTreeSet::new();
     for (i,pair) in pairs.iter().enumerate(){
         let path=format!("$.pairs[{i}]");
-        exact_keys(pair,&["pair_id","fault_a","fault_b","critical","minimum_independent_principles","responses"],&["expected_status"],&path,&mut errors);
+        exact_keys(pair,&["pair_id","fault_a","fault_b","critical","minimum_independent_principles","measurement_window_id_a","measurement_window_id_b","responses"],&["expected_status"],&path,&mut errors);
         let id=text(pair,"pair_id").unwrap_or("");
         if id.is_empty()||!pair_ids.insert(id.to_owned()){
             push(&mut errors,"PAIR_ID_INVALID",&format!("{path}.pair_id"),"pair IDs must be unique and non-empty");
         }
         if text(pair,"fault_a").is_none()||text(pair,"fault_b").is_none()||text(pair,"fault_a")==text(pair,"fault_b"){
             push(&mut errors,"FAULT_PAIR_INVALID",&path,"pair must reference two distinct fault hypotheses");
+        }
+        if text(pair,"measurement_window_id_a").is_none()||text(pair,"measurement_window_id_b").is_none()
+            || text(pair,"measurement_window_id_a")==text(pair,"measurement_window_id_b"){
+            push(&mut errors,"MEASUREMENT_WINDOWS_INVALID",&path,"the two fault signatures must bind distinct non-empty synchronized measurement-window IDs");
         }
         if pair["critical"].as_bool().is_none(){push(&mut errors,"CRITICAL_FLAG_REQUIRED",&format!("{path}.critical"),"critical must be boolean");}
         if pair["minimum_independent_principles"].as_u64().is_none_or(|v|v==0){
@@ -345,7 +355,7 @@ fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BT
     Ok((case_id,asset_id,regime,evidence_class,channels,pairs.clone(),cuts.clone()))
 }
 
-fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,evidence_class:PairEvidenceClass,asset_sha:&str,disabled:&BTreeSet<String>)->Result<Value,String>{
+fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,evidence_class:PairEvidenceClass,asset_sha:&str,disabled:&BTreeSet<String>,regime_qualified:bool,max_timestamp_uncertainty_ms:f64)->Result<Value,String>{
     let pair_id=text(pair,"pair_id").unwrap_or("UNKNOWN");
     let mut pair_timebases=BTreeSet::new();
     let mut pair_clock_digests=BTreeSet::new();
@@ -370,10 +380,10 @@ fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,evidence_class:Pa
             availability_b:availability(text(response,"availability_b")).expect("validated"),
             evidence_role_a:evidence_role(text(response,"evidence_role_a"),channel,
                 if evidence_class==PairEvidenceClass::Measured{"MEASURED"}else{"SYNTHETIC_CONFORMANCE_FIXTURE"},
-                asset_sha,common_timebase.as_deref(),common_clock_digest.as_deref()),
+                asset_sha,common_timebase.as_deref(),common_clock_digest.as_deref(),regime_qualified,max_timestamp_uncertainty_ms),
             evidence_role_b:evidence_role(text(response,"evidence_role_b"),channel,
                 if evidence_class==PairEvidenceClass::Measured{"MEASURED"}else{"SYNTHETIC_CONFORMANCE_FIXTURE"},
-                asset_sha,common_timebase.as_deref(),common_clock_digest.as_deref()),
+                asset_sha,common_timebase.as_deref(),common_clock_digest.as_deref(),regime_qualified,max_timestamp_uncertainty_ms),
         });
     }
     let result=classify_pair_signatures(
@@ -387,6 +397,8 @@ fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,evidence_class:Pa
     let shared_groups:Vec<String>=shared.into_iter().filter(|(_,count)|*count>1).map(|(id,_)|id).collect();
     Ok(json!({
         "pair_id":pair_id,"fault_a":text(pair,"fault_a").unwrap_or(""),"fault_b":text(pair,"fault_b").unwrap_or(""),
+        "measurement_window_id_a":text(pair,"measurement_window_id_a").unwrap_or(""),
+        "measurement_window_id_b":text(pair,"measurement_window_id_b").unwrap_or(""),
         "critical":pair["critical"],"status":result.status,
         "required_independent_principles":pair["minimum_independent_principles"],
         "observed_independent_principles":result.observed_independent_principles,
@@ -405,9 +417,11 @@ fn run_case(case:&Value,source:&str,digest:&str)->Result<Value,String>{
     let (case_id,asset_id,regime,evidence_class,channels,pairs,cuts)=
         validate_case(case).map_err(|e|serde_json::to_string(&json!({"violations":e})).unwrap_or_else(|_|"case validation failed".into()))?;
     let asset_sha=text(&case["asset"],"configuration_sha256").unwrap_or("");
+    let regime_qualified=text(&case["operating_domain"],"qualification_state")==Some("qualified");
+    let max_timestamp_uncertainty=finite(case,"maximum_timestamp_uncertainty_ms").unwrap_or(0.0);
     let no_cut=BTreeSet::new();
     let mut base_results=Vec::new();
-    for pair in &pairs{base_results.push(classify_one(pair,&channels,evidence_class,asset_sha,&no_cut)?);}
+    for pair in &pairs{base_results.push(classify_one(pair,&channels,evidence_class,asset_sha,&no_cut,regime_qualified,max_timestamp_uncertainty)?);}
     for pair in &pairs{
         if let Some(expected)=text(pair,"expected_status"){
             let actual=base_results.iter().find(|r|r["pair_id"]==pair["pair_id"]).and_then(|r|r["status"].as_str()).unwrap_or("");
@@ -419,7 +433,7 @@ fn run_case(case:&Value,source:&str,digest:&str)->Result<Value,String>{
         let disabled=string_array(cut,"disabled_dependency_groups","$",&mut Vec::new());
         let mut results=Vec::new();
         for pair in &pairs{
-            let result=classify_one(pair,&channels,evidence_class,asset_sha,&disabled)?;
+            let result=classify_one(pair,&channels,evidence_class,asset_sha,&disabled,regime_qualified,max_timestamp_uncertainty)?;
             results.push(result);
         }
         if let Some(expected)=cut.get("expected_statuses").and_then(Value::as_array){
@@ -469,7 +483,7 @@ mod tests{
     use super::*;
     fn fixture()->Value{serde_json::from_str(FIXTURE).expect("fixture parses")}
     fn run(v:&Value)->Value{run_case(v,&"a".repeat(40),&"b".repeat(64)).expect("fixture evaluates")}
-    fn status(v:&Value,id:&str)->&str{
+    fn status<'a>(v:&'a Value,id:&str)->&'a str{
         v["base_pair_results"].as_array().unwrap().iter().find(|p|p["pair_id"]==id).unwrap()["status"].as_str().unwrap()
     }
     #[test]
@@ -539,6 +553,47 @@ mod tests{
     fn unit_mismatch_is_rejected_before_kernel_call(){
         let mut v=fixture();
         v["pairs"][0]["responses"][0]["unit"]=json!("psi");
+        assert!(validate_case(&v).is_err());
+    }
+    fn measured_case()->Value{
+        let mut v=fixture();
+        v["evidence_class"]=json!("MEASURED");
+        for channel in v["channels"].as_array_mut().unwrap(){
+            channel["source_role"]=json!("measured");
+            channel["calibration_state"]=json!("current");
+        }
+        for response in v["pairs"][0]["responses"].as_array_mut().unwrap(){
+            response["evidence_role_a"]=json!("INDEPENDENT_MEASUREMENT");
+            response["evidence_role_b"]=json!("INDEPENDENT_MEASUREMENT");
+        }
+        v
+    }
+    #[test]
+    fn measured_case_requires_shared_qualified_timebase(){
+        let mut v=measured_case();
+        v["channels"][2]["timebase_id"]=json!("second-clock");
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn measured_case_requires_qualified_regime(){
+        let mut v=measured_case();
+        v["operating_domain"]["qualification_state"]=json!("unsupported");
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn measured_case_enforces_timestamp_uncertainty_bound(){
+        let mut v=measured_case();
+        v["pairs"][0]["minimum_independent_principles"]=json!(3);
+        v["channels"][2]["timestamp_uncertainty_ms"]=json!(8.0);
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn same_fault_window_cannot_be_compared_to_itself(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_id_b"]=v["pairs"][0]["measurement_window_id_a"].clone();
         assert!(validate_case(&v).is_err());
     }
     #[test]

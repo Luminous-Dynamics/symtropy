@@ -170,7 +170,9 @@
           "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
           "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
         }
-      ]
+      ],
+      "measurement_window_id_a": "synthetic-window-fault-a",
+      "measurement_window_id_b": "synthetic-window-fault-b"
     }
   ],
   "dependency_cut_scenarios": [
@@ -206,5 +208,6 @@
     "mode_transition_authorization": false,
     "restriction_clearance": false
   },
-  "claim_ceiling": "Synthetic pairwise-kernel adapter conformance only. It does not establish physical fault separability, installed sensor independence, actual engine diagnosability, machinery health, shipboard safety, maintenance authority, seaworthiness or permission to operate."
+  "claim_ceiling": "Synthetic pairwise-kernel adapter conformance only. It does not establish physical fault separability, installed sensor independence, actual engine diagnosability, machinery health, shipboard safety, maintenance authority, seaworthiness or permission to operate.",
+  "maximum_timestamp_uncertainty_ms": 5
 }
