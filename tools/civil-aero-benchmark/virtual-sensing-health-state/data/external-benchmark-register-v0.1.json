@@ -1,0 +1,488 @@
+{
+  "schema_version": "aero-virtual-sensing-external-benchmark-register/0.1.0",
+  "claim_ceiling": "public_metadata_reference_only_no_dataset_bytes_admitted",
+  "entries": [
+    {
+      "benchmark_id": "Z24_LONG_TERM_EOV_AND_SENSOR_HEALTH",
+      "structure": "post_tensioned_concrete_highway_bridge",
+      "role": "non_aerospace_environmental_variability_and_sensor_health_benchmark",
+      "official_source": "https://bwk.kuleuven.be/bwm/z24",
+      "publisher": "KU Leuven Structural Mechanics Section",
+      "official_metadata": {
+        "monitoring_period": "one year before demolition",
+        "long_term_acceleration_measurements": 16,
+        "environmental_sensors": 48,
+        "environmental_scans_per_hour": 10,
+        "acceleration_averages_per_hour": 8,
+        "samples_per_acceleration_average": 8192,
+        "known_sensor_events": [
+          "six temperature sensors lost during construction",
+          "one accelerometer damaged",
+          "considerable drift on some accelerometers",
+          "a few accelerometers failed"
+        ]
+      },
+      "access_terms": {
+        "registration_required": true,
+        "stated_use": "non-commercial research only",
+        "third_party_transfer_permitted": false,
+        "commercial_use_eligibility": "NEEDS_WRITTEN_PERMISSION",
+        "redistribution": "PROHIBITED_UNLESS_SEPARATELY_AUTHORIZED",
+        "terms_source": "https://bwk.kuleuven.be/bwm/z24"
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "channel_inventory_status": "NOT_RECONCILED",
+        "notes": [
+          "No source bytes have been downloaded or redistributed by this work.",
+          "Do not use for a commercial Luminous campaign without written permission from the data owner.",
+          "Do not infer exact per-channel timebases, units or channel maps from the overview page."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "Z24_PROGRESSIVE_DAMAGE_TEST",
+      "structure": "post_tensioned_concrete_highway_bridge",
+      "role": "non_aerospace_controlled_progressive_damage_and_modal_test_benchmark",
+      "official_source": "https://bwk.kuleuven.be/bwm/z24",
+      "official_metadata": {
+        "progressive_damage_campaign": "August-September 1998",
+        "damage_states_in_official_table": 17,
+        "measured_degrees_of_freedom": 291,
+        "measurement_setups": 9,
+        "reference_channels": 5,
+        "shakers": [
+          {
+            "force_kN": 1,
+            "location": "middle_span"
+          },
+          {
+            "force_kN": 0.5,
+            "location": "Koppigen_side_span"
+          }
+        ],
+        "nominal_force_band_Hz": [
+          3,
+          30
+        ],
+        "samples_per_record": 65536,
+        "sampling_rate_Hz": 100,
+        "antialias_cutoff_Hz": 30,
+        "test_events": [
+          "pier settlements 20/40/80/95 mm",
+          "foundation tilt",
+          "concrete soffit spalling 12/24 m2",
+          "abutment landslide 1 m",
+          "concrete hinge failure",
+          "anchor-head failures",
+          "rupture of 2/4/6 of 16 tendons"
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "notes": [
+          "The progressive damage measurement grid and long-term acceleration campaign are separate acquisition designs."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "SPECTRALTCN_Z24_PUBLISHED_COMPARISON",
+      "role": "published_classifier_baseline_metadata",
+      "source": "https://doi.org/10.1371/journal.pone.0358224",
+      "publication_date": "2026-09-21",
+      "published_protocol": {
+        "reported_sensor_channels": 27,
+        "reported_structural_states": 17,
+        "window_count": 15300,
+        "window_shape": [
+          27,
+          1024
+        ],
+        "sample_rate_Hz": 100,
+        "bandpass_Hz": [
+          0.5,
+          40
+        ],
+        "filter": "fourth_order_zero_phase_Butterworth",
+        "normalization": "per_channel_z_score",
+        "window": "Hann_1024_samples",
+        "split": "stratified_5_fold_cross_validation",
+        "reported_accuracy": 0.922,
+        "strongest_baseline": "ResNet1D",
+        "strongest_baseline_accuracy": 0.904,
+        "baseline_count": 10
+      },
+      "comparison_caveats": [
+        "The published protocol is a reproduction target, not an aircraft SHM result.",
+        "Stratified window-level folds are not evidence of generalization to a held-out acquisition period, specimen, configuration, environment or sensor installation.",
+        "The 0.5 Hz high-pass and per-channel z-score preprocessing may suppress low-frequency drift and channel gain signatures; evaluate the published pipeline as-is for fair replication, then separately evaluate fault-preserving preprocessing.",
+        "The paper's 27 reported channels differ from KU Leuven's official long-term overview count of 16 acceleration measurements. These may represent different channel subsets/acquisition configurations; reconcile against exact registered files before claiming reproduction.",
+        "The reported 92.2% is classification accuracy, not fault-isolation precision, damage POD, false-clear probability, decision preservation or aircraft safety."
+      ],
+      "admission": {
+        "status": "PUBLISHED_PROTOCOL_REFERENCE_ONLY",
+        "source_bytes_retrieved": false,
+        "exact_dataset_sha256": null,
+        "terms_review_status": "UPSTREAM_Z24_ACCESS_TERMS_APPLY"
+      }
+    },
+    {
+      "benchmark_id": "MY_THUAN_BRIDGE_FEM",
+      "role": "simulation_only_cross_structure_model_mismatch_benchmark",
+      "source": "https://doi.org/10.5281/zenodo.21415490",
+      "metadata": {
+        "type": "FEM_derived_bridge_dataset",
+        "physical_measurement_status": "NOT_A_PHYSICAL_BRIDGE_MEASUREMENT_CAMPAIGN",
+        "reported_damage_scenarios": 10
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "terms_review_status": "PENDING",
+        "license_review_status": "PENDING"
+      }
+    },
+    {
+      "benchmark_id": "NASA_PCOE_CFRP_RUN_TO_FAILURE",
+      "role": "aerospace_composite_damage_progression_with_independent_xray_ground_truth",
+      "official_source": "https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/",
+      "download_url": "https://phm-datasets.s3.amazonaws.com/NASA/2.+Composites.zip",
+      "official_metadata": {
+        "test_article": "CFRP composite panels",
+        "loading": "tension_tension_fatigue_run_to_failure",
+        "piezoelectric_sensor_count": 16,
+        "additional_instrumentation": "multiple_triaxial_strain_gauges",
+        "damage_ground_truth": "periodic_x_ray_characterization",
+        "laminate_layups": 3,
+        "contributors": "Stanford Structures and Composites Laboratory and NASA Ames Prognostics Center of Excellence"
+      },
+      "recommended_use": {
+        "track": "aerospace_composite_damage_progression",
+        "evaluate": [
+          "damage progression",
+          "sensor-fault corruption robustness",
+          "cross-layup generalization",
+          "strain plus Lamb-wave fusion",
+          "damage decision preservation"
+        ],
+        "caveats": [
+          "X-ray timing is periodic, so damage labels are interval-censored between inspections.",
+          "This dataset is a composite panel fatigue campaign, not a full aircraft wing or certification article."
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "license_status": "NOT_STATED_ON_OFFICIAL_CATALOG_PAGE",
+        "acknowledgement_required": true,
+        "transfer_or_commercial_use": "NEEDS_DATA_OWNER_TERMS_REVIEW",
+        "notes": [
+          "NASA's PCoE catalogue requests dataset and donor acknowledgement and states users employ the data at their own risk.",
+          "No dataset licence or permission for Luminous commercial/third-party use has been established by this register."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "SARISTU_FULL_SCALE_COMPOSITE_OUTER_WING_GUIDED_WAVES",
+      "role": "full_scale_aeronautical_composite_structure_sensor_integrity_and_damage",
+      "source_article": "https://doi.org/10.1177/1475921719889029",
+      "dataset_portal": "http://shm.ing.unibo.it/",
+      "official_metadata": {
+        "article_first_published_online": "2019-11-28",
+        "outer_wing_demonstrator_length_m": 4.5,
+        "outer_wing_demonstrator_width_m": [
+          1.2,
+          2.3
+        ],
+        "secondary_bonded_pzt_transducers": 160,
+        "sensing_methods": [
+          "electromechanical_impedance_per_transducer",
+          "active_guided_wave_screening"
+        ],
+        "impedance_purpose": [
+          "transducer_reliability",
+          "bond_strength"
+        ],
+        "acquisition_stages": [
+          "before_loading",
+          "before_fatigue",
+          "before_impacts",
+          "after_impacts"
+        ]
+      },
+      "recommended_use": {
+        "track": "aerospace_article_sensor_integrity_and_structural_damage",
+        "evaluate": [
+          "sensor/bond self-check vs independent fault witness",
+          "guided-wave damage localization and sizing",
+          "sparse-channel virtual sensing",
+          "sensor placement and removal",
+          "fatigue/impact stage generalization"
+        ],
+        "caveats": [
+          "This is the strongest direct aircraft-structure public benchmark candidate in the current register, but it is a composite outer-wing demonstrator rather than an operational aircraft.",
+          "The article page identifies the data portal as freely available; exact dataset version, file inventory, data licence and portal availability still require verification."
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "PORTAL_NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "license_status": "NOT_RECONCILED",
+        "notes": [
+          "The public paper says the dataset is freely available through the University of Bologna SHM portal.",
+          "The article itself is restricted access; no article text is redistributed.",
+          "The dataset portal request timed out during this research round. No file bytes were acquired."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "AIRBUS_USES2_TEMPERATURE_GUIDED_WAVE_PANEL_2026",
+      "role": "controlled_environment_only_composite_guided_wave_reference",
+      "source": "https://doi.org/10.5281/zenodo.19209079",
+      "repository_record": "https://zenodo.org/records/19209079",
+      "official_metadata": {
+        "published_version": "v2",
+        "campaign_dates": [
+          "2024-06",
+          "2025-03"
+        ],
+        "host": "Universite Gustave Eiffel climatic chamber",
+        "material": "composite panel",
+        "damage_state": "undamaged_panel",
+        "temperature_range_c": [
+          20,
+          70
+        ],
+        "humidity": "held_constant",
+        "interrogation_interval_minutes": 5,
+        "files": [
+          "Dataset_CompositeTest_June2024.zip (18.4 MB)",
+          "ReadMe.pdf",
+          "temperature/humidity Excel log",
+          "full acquired .sg2 signals",
+          "MATLAB processing scripts"
+        ],
+        "related_event": "EWSHM 2026",
+        "reported_archive_size_bytes": 18437111,
+        "record_data_volume_bytes": 3900000000
+      },
+      "recommended_use": {
+        "track": "environment_only_before_damage_training",
+        "evaluate": [
+          "temperature compensation without damage",
+          "environmental witness calibration",
+          "thermal drift and phase/amplitude shift",
+          "out-of-profile abstention"
+        ],
+        "caveats": [
+          "There is no damage progression in this campaign; do not train damage labels from it.",
+          "It should be paired with a separate damage-ground-truth dataset for causal deconfounding tests."
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "DOWNLOAD_ATTEMPTED_NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "license_status": "NO_LICENSE_FIELD_VISIBLE_IN_RECORD",
+        "notes": [
+          "Zenodo marks the record Dataset Open and publishes the zip and readme, but this review has not established a specific reuse licence.",
+          "The readme PDF was linked but its contents could not be decoded through the research interface.",
+          "The Zenodo record confirms the file Dataset_CompositeTest_June2024.zip and reports 18.4 MB for the archive; the record's current version reports 3.9 GB total data volume. A direct download attempt was rejected by the research fetch path because the payload exceeded its content-size limit, and local container DNS resolution was unavailable. No local bytes or SHA-256 were produced.",
+          "No explicit licence was visible in the Zenodo Rights section during inspection; the open-access status is not a substitute for a reuse licence."
+        ]
+      }
+    },
+    {
+      "benchmark_id": "UTAH_LONG_TERM_GUIDED_WAVE_SENSOR_DRIFT",
+      "role": "long_duration_environmental_variability_sensor_drift_and_installation_shift",
+      "source": "https://doi.org/10.1038/s41597-025-05300-5",
+      "publication_date": "2025-06-12",
+      "official_metadata": {
+        "monitoring_duration_years": 4.5,
+        "approximate_guided_wave_measurements": 6400000,
+        "conditions": [
+          "daily temperature variation",
+          "rain",
+          "snow",
+          "uncontrolled outdoor dynamics"
+        ],
+        "temperature_range_k": [
+          260.95,
+          325.65
+        ],
+        "observed_measurement_issues": [
+          "sensor drift",
+          "sensor installation shifts"
+        ],
+        "host": "University of Utah",
+        "paper_reported_sampling": {
+          "measurement_interval_seconds": 170,
+          "signal_count_approximate": 6400000,
+          "signals_per_measurement": 8,
+          "actuators": 2,
+          "receivers": 4
+        },
+        "paper_reported_damage_type_count": 13,
+        "unresolved_secondary_page_discrepancy": {
+          "source": "https://smartdata.ece.ufl.edu/index.php/2025/07/23/long-term-guided-wave-dataset-under-real-world-conditions-dataset/",
+          "reported_signal_count": 7600000,
+          "reported_measurement_interval_seconds": 30,
+          "reported_piezoelectric_sensor_count": 14,
+          "reconciliation_status": "NOT_RECONCILED_WITH_PAPER",
+          "instruction": "Do not merge these counts, sensor topologies or sampling intervals until the exact archive inventory and acquisition metadata are acquired and checked."
+        }
+      },
+      "recommended_use": {
+        "track": "long_term_environmental_sensor_drift",
+        "evaluate": [
+          "drift detection",
+          "installation-change detection",
+          "temporal generalization",
+          "environmental confounding",
+          "health-state calibration"
+        ],
+        "caveats": [
+          "This is a civil/infrastructure long-term guided-wave campaign and is a cross-domain transfer benchmark, not aircraft evidence."
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "license_status": "PAPER_DESCRIBES_DATASET_AS_PUBLIC_OPEN_ACCESS",
+        "notes": [
+          "The data descriptor reports a public dataset; exact source files, licence and channel inventory must be checked before use.",
+          "The paper describes approximately 6.4 million signals, sampled about every 170 seconds, comprising eight guided-wave paths from two actuators to four receivers; it reports 13 introduced damage types.",
+          "The lab's separate dataset landing page currently reports over 7.6 million signals, a 30-second interval and 14 piezoelectric sensors. These metadata conflict with the paper record and have not been reconciled.",
+          "The repository landing page warns that the original dataset URL is no longer available and points users to a new dataset link. The GitHub repository is recorded as a candidate retrieval route, not proof that exact bytes were acquired."
+        ]
+      },
+      "alternative_retrieval_path": "https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves"
+    },
+    {
+      "benchmark_id": "OPEN_GUIDED_WAVES_OMEGA_STRINGER_CFRP_DEBOND",
+      "role": "guided_wave_damage_morphology_with_conventional_ultrasound_verification",
+      "source": "https://doi.org/10.1016/j.dib.2022.108078",
+      "platform": "https://openguidedwaves.de/",
+      "official_metadata": {
+        "article_date": "2022-06",
+        "structure": "CFRP plate with omega stringer",
+        "damage_scenarios": [
+          "intact",
+          "localized_stringer_debond",
+          "large_stringer_debond"
+        ],
+        "damage_ground_truth": "impact-induced debonds verified by conventional ultrasound",
+        "excitation": [
+          "20-500 kHz chirp",
+          "5-cycle Hann tone bursts at 16.5, 50, 100, 200, 300 kHz"
+        ],
+        "measurement": "full ultrasonic guided wavefields",
+        "temperature": "constant"
+      },
+      "recommended_use": {
+        "track": "guided_wave_damage_localization_and_sizing",
+        "evaluate": [
+          "damage detection",
+          "debond localization",
+          "damage sizing",
+          "wavefield reconstruction",
+          "transfer to full-scale wing demonstrator"
+        ],
+        "caveats": [
+          "This is a controlled-temperature panel benchmark; it does not represent long-term environmental variability."
+        ]
+      },
+      "admission": {
+        "status": "REFERENCE_ONLY_NOT_ADMITTED",
+        "retrieval_status": "NOT_RETRIEVED",
+        "exact_source_sha256": null,
+        "exact_source_bytes": null,
+        "retrieval_timestamp_utc": null,
+        "terms_review_status": "PENDING",
+        "license_status": "ARTICLE_DESCRIBES_DATASET_AS_OPEN_ACCESS",
+        "notes": [
+          "Open Guided Waves platform states free access and encourages reuse for research comparison.",
+          "Exact individual dataset file, licence and provenance receipts still need admission."
+        ]
+      }
+    }
+  ],
+  "evaluation_plan": {
+    "track_A": "reproduce_the_published_SpectralTCN_preprocessing_and_stratified_5_fold_protocol_exactly_after_permission_and_exact_byte_admission",
+    "track_B": "time_block_environment_sensor_and_damage_regime_grouped_holdouts_with_no_window_leakage",
+    "track_C": "fault_preserving_pipeline_variant_that_does_not_normalize_away_bias_drift_gain_or_channel_health",
+    "track_D": "joint_HH_HF_DH_DF_and_unknown_fault_evaluation_with_raw_measurement_immutability",
+    "claim_boundary": "Z24_is_a_civil_infrastructure_transfer_benchmark_not_an_aerospace_validation_article",
+    "environment_first_aerospace_benchmark_ladder": [
+      "controlled_temperature_only: AIRBUS_USES2_TEMPERATURE_GUIDED_WAVE_PANEL_2026",
+      "known_damage_with_independent_ground_truth: NASA_PCOE_CFRP_RUN_TO_FAILURE and OPEN_GUIDED_WAVES_OMEGA_STRINGER_CFRP_DEBOND",
+      "sensor_integrity_on_full_scale_aeronautical_article: SARISTU_FULL_SCALE_COMPOSITE_OUTER_WING_GUIDED_WAVES",
+      "long_duration_eov_and_sensor_drift_transfer: UTAH_LONG_TERM_GUIDED_WAVE_SENSOR_DRIFT",
+      "joint_HH_HF_DH_DF_and_causal_environment_damage: Luminous synthetic oracle plus admitted physical subsets after rights review"
+    ],
+    "admission_gate": [
+      "record exact data owner, terms, licence and intended use before retrieval",
+      "acquire immutable original bytes and hash before unpacking or conversion",
+      "freeze file inventory, channel map, units, timebases, acquisition windows, calibration and ground-truth provenance",
+      "preserve raw files and treat every filter, normalization, resampling and reconstruction as a versioned measurement operator",
+      "group train/validation/test by specimen, damage state, acquisition day, thermal regime, sensor installation and physical campaign to prevent adjacent-window leakage",
+      "retain independent NDE/X-ray/ultrasound ground truth and inspection timing; report interval censoring where damage evolves between inspections"
+    ],
+    "split_contract_reference": "tools/civil-aero-benchmark/virtual-sensing-health-state/data/benchmark-split-contract-v0.1.json",
+    "split_contract_tracks": [
+      "specimen_holdout",
+      "thermal_extrapolation",
+      "installation_shift",
+      "purged_forward_time"
+    ],
+    "sota_comparison_register": [
+      {
+        "work": "MuViS-C",
+        "date": "2026-09-16",
+        "source": "https://arxiv.org/abs/2609.18396",
+        "status": "PROTOCOL_REFERENCE_ONLY",
+        "note": "Nine datasets, six domains, six model families and ten sensor corruption modes; local adapter is not a full reproduction."
+      },
+      {
+        "work": "Causal Bayesian optimization for sensor placement and deconfounding in SHM",
+        "date": "2026-10-01",
+        "source": "https://doi.org/10.1016/j.ymssp.2026.114895",
+        "status": "LITERATURE_REFERENCE_ONLY",
+        "note": "SCM/do-calculus, counterfactual placement, multi-objective optimization and full-scale bridge evaluation; no claim of reproducing or surpassing it."
+      },
+      {
+        "work": "Real-time sensing digital twin for aerospace SHM",
+        "date": "2026-06-08",
+        "source": "https://doi.org/10.1007/s00158-026-04324-8",
+        "status": "LITERATURE_REFERENCE_ONLY",
+        "note": "Physics-informed ROM, sensor placement, fault mechanisms, classifier, correction and reliability on a progressive composite-wing panel; direct application comparator."
+      }
+    ]
+  }
+}

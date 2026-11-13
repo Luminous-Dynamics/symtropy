@@ -1,0 +1,334 @@
+{
+  "schema_version": "aero-shm-benchmark-split-contract/0.1.0",
+  "contract_id": "aer01-no-leakage-cross-domain-evaluation-001",
+  "claim_ceiling": "synthetic_partition_integrity_only_no_dataset_or_model_performance_claim",
+  "policy": {
+    "required_splits": [
+      "train",
+      "validation",
+      "test"
+    ],
+    "every_sample_has_unique_sample_id": true,
+    "every_sample_has_unique_source_record_id_within_track": true,
+    "every_sample_has_unique_acquisition_window_id_within_track": true,
+    "held_out_group_must_be_disjoint_across_splits": true,
+    "group_holdout_requires_one_nonempty_holdout_axis": true,
+    "temporal_forward_requires_fixed_article_and_installation": true,
+    "temporal_forward_requires_purge_gap_at_least_feature_window_plus_preprocessing_memory": true,
+    "no_random_window_level_split_claim": true
+  },
+  "tracks": [
+    {
+      "track_id": "SPECIMEN_HOLDOUT",
+      "objective": "Generalize to entirely unseen physical specimens",
+      "split_mode": "group_holdout",
+      "holdout_axis": "specimen_id",
+      "required_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "purge_policy": null,
+      "records": [
+        {
+          "sample_id": "SPECIMEN_HOLDOUT-A1",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-SPECIMEN_HOLDOUT-A1",
+          "acquisition_window_id": "WIN-SPECIMEN_HOLDOUT-A1",
+          "specimen_id": "PANEL-A1",
+          "campaign_id": "SYNTHETIC-CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "SPECIMEN_HOLDOUT-A2",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-SPECIMEN_HOLDOUT-A2",
+          "acquisition_window_id": "WIN-SPECIMEN_HOLDOUT-A2",
+          "specimen_id": "PANEL-A2",
+          "campaign_id": "SYNTHETIC-CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "SPECIMEN_HOLDOUT-B1",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-SPECIMEN_HOLDOUT-B1",
+          "acquisition_window_id": "WIN-SPECIMEN_HOLDOUT-B1",
+          "specimen_id": "PANEL-B1",
+          "campaign_id": "SYNTHETIC-CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "SPECIMEN_HOLDOUT-C1",
+          "split": "validation",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-SPECIMEN_HOLDOUT-C1",
+          "acquisition_window_id": "WIN-SPECIMEN_HOLDOUT-C1",
+          "specimen_id": "PANEL-C1",
+          "campaign_id": "SYNTHETIC-CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "SPECIMEN_HOLDOUT-D1",
+          "split": "test",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-SPECIMEN_HOLDOUT-D1",
+          "acquisition_window_id": "WIN-SPECIMEN_HOLDOUT-D1",
+          "specimen_id": "PANEL-D1",
+          "campaign_id": "SYNTHETIC-CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        }
+      ]
+    },
+    {
+      "track_id": "THERMAL_EXTRAPOLATION",
+      "objective": "Extrapolate to an unseen thermal regime",
+      "split_mode": "group_holdout",
+      "holdout_axis": "thermal_regime_id",
+      "required_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "purge_policy": null,
+      "records": [
+        {
+          "sample_id": "THERMAL_EXTRAPOLATION-20-40C",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-THERMAL_EXTRAPOLATION-20-40C",
+          "acquisition_window_id": "WIN-THERMAL_EXTRAPOLATION-20-40C",
+          "specimen_id": "PANEL-T1",
+          "campaign_id": "SYNTHETIC-THERMAL-CHAMBER",
+          "configuration_id": "LAYUP-02",
+          "thermal_regime_id": "T20-40C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "THERMAL_EXTRAPOLATION-40-55C",
+          "split": "validation",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-THERMAL_EXTRAPOLATION-40-55C",
+          "acquisition_window_id": "WIN-THERMAL_EXTRAPOLATION-40-55C",
+          "specimen_id": "PANEL-T1",
+          "campaign_id": "SYNTHETIC-THERMAL-CHAMBER",
+          "configuration_id": "LAYUP-02",
+          "thermal_regime_id": "T40-55C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "THERMAL_EXTRAPOLATION-55-70C",
+          "split": "test",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-THERMAL_EXTRAPOLATION-55-70C",
+          "acquisition_window_id": "WIN-THERMAL_EXTRAPOLATION-55-70C",
+          "specimen_id": "PANEL-T1",
+          "campaign_id": "SYNTHETIC-THERMAL-CHAMBER",
+          "configuration_id": "LAYUP-02",
+          "thermal_regime_id": "T55-70C",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": null,
+          "interval_end_s": null
+        }
+      ]
+    },
+    {
+      "track_id": "INSTALLATION_SHIFT",
+      "objective": "Generalize across sensor re-bonding and installation generations",
+      "split_mode": "group_holdout",
+      "holdout_axis": "installation_generation",
+      "required_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "purge_policy": null,
+      "records": [
+        {
+          "sample_id": "INSTALLATION_SHIFT-I0",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-INSTALLATION_SHIFT-I0",
+          "acquisition_window_id": "WIN-INSTALLATION_SHIFT-I0",
+          "specimen_id": "PANEL-I1",
+          "campaign_id": "SYNTHETIC-REINSTALLATION",
+          "configuration_id": "LAYUP-03",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-ORIGINAL",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "INSTALLATION_SHIFT-I1",
+          "split": "validation",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-INSTALLATION_SHIFT-I1",
+          "acquisition_window_id": "WIN-INSTALLATION_SHIFT-I1",
+          "specimen_id": "PANEL-I1",
+          "campaign_id": "SYNTHETIC-REINSTALLATION",
+          "configuration_id": "LAYUP-03",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-REPAIR-1",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "INSTALLATION_SHIFT-I2",
+          "split": "test",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-INSTALLATION_SHIFT-I2",
+          "acquisition_window_id": "WIN-INSTALLATION_SHIFT-I2",
+          "specimen_id": "PANEL-I1",
+          "campaign_id": "SYNTHETIC-REINSTALLATION",
+          "configuration_id": "LAYUP-03",
+          "thermal_regime_id": "THERMAL-20-40C",
+          "installation_generation": "INSTALL-REPAIR-2",
+          "interval_start_s": null,
+          "interval_end_s": null
+        }
+      ]
+    },
+    {
+      "track_id": "TEMPORAL_FORWARD",
+      "objective": "Forward-in-time generalization on a fixed article",
+      "split_mode": "purged_forward_chaining",
+      "holdout_axis": null,
+      "required_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "purge_policy": {
+        "feature_window_seconds": 600,
+        "preprocessing_memory_seconds": 300,
+        "minimum_purge_gap_seconds": 900
+      },
+      "records": [
+        {
+          "sample_id": "TEMPORAL_FORWARD-T0",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-TEMPORAL_FORWARD-T0",
+          "acquisition_window_id": "WIN-TEMPORAL_FORWARD-T0",
+          "specimen_id": "PANEL-TIME-1",
+          "campaign_id": "SYNTHETIC-LONGITUDINAL",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": 0,
+          "interval_end_s": 3599
+        },
+        {
+          "sample_id": "TEMPORAL_FORWARD-T1",
+          "split": "validation",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-TEMPORAL_FORWARD-T1",
+          "acquisition_window_id": "WIN-TEMPORAL_FORWARD-T1",
+          "specimen_id": "PANEL-TIME-1",
+          "campaign_id": "SYNTHETIC-LONGITUDINAL",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": 5000,
+          "interval_end_s": 8599
+        },
+        {
+          "sample_id": "TEMPORAL_FORWARD-T2",
+          "split": "test",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-TEMPORAL_FORWARD-T2",
+          "acquisition_window_id": "WIN-TEMPORAL_FORWARD-T2",
+          "specimen_id": "PANEL-TIME-1",
+          "campaign_id": "SYNTHETIC-LONGITUDINAL",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-0",
+          "interval_start_s": 10000,
+          "interval_end_s": 13599
+        }
+      ]
+    },
+    {
+      "track_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT",
+      "objective": "Transfer jointly to unseen specimen, acquisition campaign and laminate configuration",
+      "split_mode": "group_holdout",
+      "holdout_axis": "specimen_id+campaign_id+configuration_id",
+      "required_splits": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "purge_policy": null,
+      "records": [
+        {
+          "sample_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TRAIN",
+          "split": "train",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TRAIN",
+          "acquisition_window_id": "WIN-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TRAIN",
+          "specimen_id": "PANEL-C1",
+          "campaign_id": "CAMPAIGN-A",
+          "configuration_id": "LAYUP-01",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-BASE",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-VALIDATION",
+          "split": "validation",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-VALIDATION",
+          "acquisition_window_id": "WIN-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-VALIDATION",
+          "specimen_id": "PANEL-C2",
+          "campaign_id": "CAMPAIGN-B",
+          "configuration_id": "LAYUP-02",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-BASE",
+          "interval_start_s": null,
+          "interval_end_s": null
+        },
+        {
+          "sample_id": "COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TEST",
+          "split": "test",
+          "dataset_id": "SYNTHETIC_SPLIT_CONTRACT",
+          "source_record_id": "SRC-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TEST",
+          "acquisition_window_id": "WIN-COMPOUND_ARTICLE_CAMPAIGN_HOLDOUT-TEST",
+          "specimen_id": "PANEL-C3",
+          "campaign_id": "CAMPAIGN-C",
+          "configuration_id": "LAYUP-03",
+          "thermal_regime_id": "MIXED-EOV",
+          "installation_generation": "INSTALL-BASE",
+          "interval_start_s": null,
+          "interval_end_s": null
+        }
+      ]
+    }
+  ]
+}

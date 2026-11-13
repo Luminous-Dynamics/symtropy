@@ -1,0 +1,289 @@
+{
+  "schema_version": "aero-virtual-sensing-health-state/0.1.0",
+  "model_id": "aer01-synthetic-hh-hf-dh-df-campaign-001",
+  "model_scope": "synthetic_static_response_template_hypothesis_test",
+  "claim_ceiling": "synthetic_joint_structure_sensor_state_and_abstention_only",
+  "assumptions": {
+    "observation_model": "static_normalized_sensor_response",
+    "fault_model": "at_most_one_arbitrary_channel_residual",
+    "structural_states": [
+      "HEALTHY",
+      "DAMAGED"
+    ],
+    "channel_order": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "response_units": "normalized_response",
+    "operator_status": "ADMITTED",
+    "calibration_status": "VALID"
+  },
+  "policy": {
+    "maximum_faulty_channels": 1,
+    "minimum_consistent_channels": 2,
+    "absolute_residual_tolerance": 0.05,
+    "fault_confirmation_requires_independent_witness": true,
+    "raw_measurements_immutable": true,
+    "reconstruction_is_not_measurement": true,
+    "reconstruction_requires_unique_joint_hypothesis": true,
+    "damage_clearance_from_reconstruction_prohibited": true
+  },
+  "channels": [
+    {
+      "sensor_id": "S1",
+      "quantity": "normalized_strain",
+      "unit": "normalized_response",
+      "operator_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "operator_status": "ADMITTED",
+      "calibration_status": "VALID",
+      "common_cause_group": "BUS_A"
+    },
+    {
+      "sensor_id": "S2",
+      "quantity": "normalized_strain",
+      "unit": "normalized_response",
+      "operator_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "operator_status": "ADMITTED",
+      "calibration_status": "VALID",
+      "common_cause_group": "BUS_A"
+    },
+    {
+      "sensor_id": "S3",
+      "quantity": "normalized_strain",
+      "unit": "normalized_response",
+      "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "operator_status": "ADMITTED",
+      "calibration_status": "VALID",
+      "common_cause_group": "BUS_B"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "HH_HEALTHY_STRUCTURE_HEALTHY_SENSORS",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        1,
+        1
+      ],
+      "observed_values": [
+        0.01,
+        -0.01,
+        0.02
+      ],
+      "expected": {
+        "disposition": "HEALTHY_WITHIN_DECLARED_SYNTHETIC_SUPPORT",
+        "structural_state": "HEALTHY",
+        "faulty_sensor_ids": [],
+        "damage_preserved": false,
+        "post_reconstruction_structural_state": "HEALTHY"
+      },
+      "sensor_fault_witnesses": []
+    },
+    {
+      "case_id": "HF_HEALTHY_STRUCTURE_FAULTY_SENSOR",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        1,
+        1
+      ],
+      "observed_values": [
+        0.01,
+        0.8,
+        -0.01
+      ],
+      "expected": {
+        "disposition": "SENSOR_FAULT_WITNESS_CONFIRMED",
+        "structural_state": "HEALTHY",
+        "faulty_sensor_ids": [
+          "S2"
+        ],
+        "damage_preserved": false,
+        "post_reconstruction_structural_state": "HEALTHY"
+      },
+      "sensor_fault_witnesses": [
+        {
+          "sensor_id": "S2",
+          "status": "FAULT_CONFIRMED",
+          "evidence_kind": "independent_builtin_self_test",
+          "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ]
+    },
+    {
+      "case_id": "DH_DAMAGED_STRUCTURE_HEALTHY_SENSORS",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        1,
+        1
+      ],
+      "observed_values": [
+        1.02,
+        0.99,
+        1.01
+      ],
+      "expected": {
+        "disposition": "STRUCTURAL_DAMAGE_SUSPECTED",
+        "structural_state": "DAMAGED",
+        "faulty_sensor_ids": [],
+        "damage_preserved": true,
+        "post_reconstruction_structural_state": "DAMAGED"
+      },
+      "sensor_fault_witnesses": []
+    },
+    {
+      "case_id": "DF_DAMAGED_STRUCTURE_FAULTY_SENSOR",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        1,
+        1
+      ],
+      "observed_values": [
+        1.02,
+        1.8,
+        0.98
+      ],
+      "expected": {
+        "disposition": "DAMAGE_AND_SENSOR_FAULT_WITNESS_CONFIRMED",
+        "structural_state": "DAMAGED",
+        "faulty_sensor_ids": [
+          "S2"
+        ],
+        "damage_preserved": true,
+        "post_reconstruction_structural_state": "DAMAGED"
+      },
+      "sensor_fault_witnesses": [
+        {
+          "sensor_id": "S2",
+          "status": "FAULT_CONFIRMED",
+          "evidence_kind": "independent_builtin_self_test",
+          "evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ]
+    },
+    {
+      "case_id": "AMBIGUOUS_DAMAGE_VS_SINGLE_SENSOR_FAULT",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        0,
+        0
+      ],
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_AMBIGUOUS_HYPOTHESES",
+        "structural_state": null,
+        "faulty_sensor_ids": [],
+        "damage_preserved": null,
+        "post_reconstruction_structural_state": null
+      },
+      "sensor_fault_witnesses": []
+    },
+    {
+      "case_id": "OUT_OF_MODEL_ENVIRONMENTAL_OR_UNKNOWN_SHIFT",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        1,
+        1
+      ],
+      "observed_values": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_OUT_OF_MODEL",
+        "structural_state": null,
+        "faulty_sensor_ids": [],
+        "damage_preserved": null,
+        "post_reconstruction_structural_state": null
+      },
+      "sensor_fault_witnesses": []
+    },
+    {
+      "case_id": "INSUFFICIENT_OBSERVATIONS",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        1,
+        1,
+        1
+      ],
+      "observed_values": [
+        0.01,
+        null,
+        null
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_INSUFFICIENT_OBSERVABILITY",
+        "structural_state": null,
+        "faulty_sensor_ids": [],
+        "damage_preserved": null,
+        "post_reconstruction_structural_state": null
+      },
+      "sensor_fault_witnesses": []
+    },
+    {
+      "case_id": "UNWITNESSED_LOCALIZED_ANOMALY",
+      "healthy_template": [
+        0,
+        0,
+        0
+      ],
+      "damaged_template": [
+        2,
+        2,
+        2
+      ],
+      "observed_values": [
+        0.8,
+        0.01,
+        -0.01
+      ],
+      "sensor_fault_witnesses": [],
+      "expected": {
+        "disposition": "ABSTAIN_SENSOR_FAULT_UNCONFIRMED",
+        "structural_state": null,
+        "faulty_sensor_ids": [],
+        "damage_preserved": null,
+        "post_reconstruction_structural_state": null
+      }
+    }
+  ]
+}

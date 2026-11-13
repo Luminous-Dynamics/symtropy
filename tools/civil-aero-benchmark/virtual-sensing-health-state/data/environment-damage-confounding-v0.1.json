@@ -1,0 +1,2204 @@
+{
+  "schema_version": "aero-causal-environment-damage-confounding/0.1.0",
+  "problem_id": "aer01-environment-damage-identifiability-001",
+  "claim_ceiling": "synthetic_environment_damage_hypothesis_and_abstention_only",
+  "model": {
+    "structural_channel_ids": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "structural_channel_common_cause_groups": [
+      "STRAIN-BUS-A",
+      "STRAIN-BUS-B",
+      "STRAIN-BUS-C"
+    ],
+    "structural_sensor_response_units": "normalized_response",
+    "healthy_signature": [
+      0,
+      0,
+      0
+    ],
+    "damage_signature": [
+      1,
+      0,
+      0
+    ],
+    "environmental_model": {
+      "mean_temperature_effect_per_kelvin": [
+        0.015,
+        0.015,
+        0.015
+      ],
+      "span_gradient_effect_per_kelvin": [
+        0.2,
+        0,
+        0
+      ],
+      "profiles": [
+        {
+          "profile_id": "NOMINAL",
+          "mean_temperature_delta_k": 0,
+          "span_gradient_delta_k": 0
+        },
+        {
+          "profile_id": "UNIFORM_HEATING",
+          "mean_temperature_delta_k": 20,
+          "span_gradient_delta_k": 0
+        },
+        {
+          "profile_id": "THERMAL_GRADIENT",
+          "mean_temperature_delta_k": 0,
+          "span_gradient_delta_k": 5
+        },
+        {
+          "profile_id": "COMBINED_HEATING_AND_GRADIENT",
+          "mean_temperature_delta_k": 20,
+          "span_gradient_delta_k": 5
+        }
+      ]
+    },
+    "structural_channel_fault_domains": [
+      {
+        "sensor_id": "S1",
+        "fault_domains": [
+          {
+            "domain_type": "power",
+            "domain_id": "STRUCT-POWER-A"
+          },
+          {
+            "domain_type": "daq",
+            "domain_id": "STRUCT-DAQ-A"
+          },
+          {
+            "domain_type": "clock",
+            "domain_id": "STRUCT-CLOCK-A"
+          },
+          {
+            "domain_type": "calibration_chain",
+            "domain_id": "STRUCT-CALIBRATION_CHAIN-A"
+          },
+          {
+            "domain_type": "wiring_harness",
+            "domain_id": "STRUCT-WIRING_HARNESS-A"
+          }
+        ],
+        "topology_evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      {
+        "sensor_id": "S2",
+        "fault_domains": [
+          {
+            "domain_type": "power",
+            "domain_id": "STRUCT-POWER-B"
+          },
+          {
+            "domain_type": "daq",
+            "domain_id": "STRUCT-DAQ-B"
+          },
+          {
+            "domain_type": "clock",
+            "domain_id": "STRUCT-CLOCK-B"
+          },
+          {
+            "domain_type": "calibration_chain",
+            "domain_id": "STRUCT-CALIBRATION_CHAIN-B"
+          },
+          {
+            "domain_type": "wiring_harness",
+            "domain_id": "STRUCT-WIRING_HARNESS-B"
+          }
+        ],
+        "topology_evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      {
+        "sensor_id": "S3",
+        "fault_domains": [
+          {
+            "domain_type": "power",
+            "domain_id": "STRUCT-POWER-C"
+          },
+          {
+            "domain_type": "daq",
+            "domain_id": "STRUCT-DAQ-C"
+          },
+          {
+            "domain_type": "clock",
+            "domain_id": "STRUCT-CLOCK-C"
+          },
+          {
+            "domain_type": "calibration_chain",
+            "domain_id": "STRUCT-CALIBRATION_CHAIN-C"
+          },
+          {
+            "domain_type": "wiring_harness",
+            "domain_id": "STRUCT-WIRING_HARNESS-C"
+          }
+        ],
+        "topology_evidence_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    ]
+  },
+  "policy": {
+    "absolute_observation_tolerance": 0.05,
+    "environmental_profile_mean_tolerance_k": 1,
+    "environmental_profile_gradient_tolerance_k": 0.5,
+    "redundant_gradient_agreement_tolerance_k": 0.5,
+    "maximum_probe_standard_uncertainty_k": 0.25,
+    "required_environmental_probe_quantities": [
+      "wing_mean_temperature_delta",
+      "wing_span_temperature_gradient",
+      "wing_span_temperature_gradient"
+    ],
+    "evidence_digest_algorithm": "sha256",
+    "witness_must_be_independent_of_structural_channels": true,
+    "raw_structural_observations_immutable": true,
+    "abstain_on_multiple_joint_hypotheses": true
+  },
+  "cases": [
+    {
+      "case_id": "HH_NOMINAL_ENVIRONMENT",
+      "observed_values": [
+        0.01,
+        -0.01,
+        0.02
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-HH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "HEALTHY_WITHIN_DECLARED_SUPPORT",
+        "structural_state": "HEALTHY",
+        "environmental_state": "NOMINAL",
+        "candidate_count": 1
+      }
+    },
+    {
+      "case_id": "HH_UNIFORM_HEATING",
+      "observed_values": [
+        0.31,
+        0.29,
+        0.32
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-HH_UNIFORM_HEATING-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 20,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "HEALTHY_WITHIN_DECLARED_SUPPORT",
+        "structural_state": "HEALTHY",
+        "environmental_state": "UNIFORM_HEATING",
+        "candidate_count": 1
+      }
+    },
+    {
+      "case_id": "DH_NOMINAL_ENVIRONMENT",
+      "observed_values": [
+        1.02,
+        0.01,
+        -0.01
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-DH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "STRUCTURAL_DAMAGE_SUSPECTED",
+        "structural_state": "DAMAGED",
+        "environmental_state": "NOMINAL",
+        "candidate_count": 1
+      }
+    },
+    {
+      "case_id": "APPARENT_DAMAGE_EXPLAINED_BY_THERMAL_GRADIENT",
+      "observed_values": [
+        1.01,
+        0.02,
+        -0.01
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-APPARENT_DAMAGE_EXPLAINED_BY_THERMAL_GRADIENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "HEALTHY_WITHIN_DECLARED_SUPPORT",
+        "structural_state": "HEALTHY",
+        "environmental_state": "THERMAL_GRADIENT",
+        "candidate_count": 1
+      }
+    },
+    {
+      "case_id": "DAMAGE_PLUS_UNIFORM_HEATING",
+      "observed_values": [
+        1.31,
+        0.29,
+        0.32
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-DAMAGE_PLUS_UNIFORM_HEATING-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 20,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "STRUCTURAL_DAMAGE_SUSPECTED",
+        "structural_state": "DAMAGED",
+        "environmental_state": "UNIFORM_HEATING",
+        "candidate_count": 1
+      }
+    },
+    {
+      "case_id": "DAMAGE_PLUS_COMBINED_ENVIRONMENT",
+      "observed_values": [
+        2.31,
+        0.29,
+        0.31
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-DAMAGE_PLUS_COMBINED_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 20,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "STRUCTURAL_DAMAGE_SUSPECTED",
+        "structural_state": "DAMAGED",
+        "environmental_state": "COMBINED_HEATING_AND_GRADIENT",
+        "candidate_count": 1
+      }
+    },
+    {
+      "case_id": "AMBIGUOUS_DAMAGE_VS_THERMAL_GRADIENT_NO_WITNESS",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENT_DAMAGE_AMBIGUOUS",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 2
+      }
+    },
+    {
+      "case_id": "AMBIGUOUS_DAMAGE_VS_COMBINED_ENVIRONMENT_NO_WITNESS",
+      "observed_values": [
+        1.3,
+        0.3,
+        0.3
+      ],
+      "environmental_witnesses": [],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENT_DAMAGE_AMBIGUOUS",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 2
+      }
+    },
+    {
+      "case_id": "CONFLICTING_REDUNDANT_GRADIENT_PROBES",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-CONFLICTING_REDUNDANT_GRADIENT_PROBES-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_CONFLICTING_ENVIRONMENTAL_WITNESSES",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "EXPIRED_ENVIRONMENTAL_PROBE",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-EXPIRED_ENVIRONMENTAL_PROBE-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "EXPIRED",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "ENVIRONMENTAL_PROBE_WINDOW_MISMATCH",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-ENVIRONMENTAL_PROBE_WINDOW_MISMATCH-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-002",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENT_WINDOW_MISMATCH",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "ENVIRONMENTAL_PROBE_UNCERTAINTY_TOO_LARGE",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-ENVIRONMENTAL_PROBE_UNCERTAINTY_TOO_LARGE-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 2,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_UNQUALIFIED_ENVIRONMENTAL_WITNESS",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "ENVIRONMENT_OUTSIDE_DECLARED_PROFILES",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-ENVIRONMENT_OUTSIDE_DECLARED_PROFILES-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 10,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 2,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 2,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENT_OUT_OF_MODEL",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "STRUCTURE_ENVIRONMENT_MODEL_MISMATCH",
+      "observed_values": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-STRUCTURE_ENVIRONMENT_MODEL_MISMATCH-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_STRUCTURAL_ENVIRONMENT_MODEL_MISMATCH",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "INSUFFICIENT_ENVIRONMENTAL_PROBES",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-INSUFFICIENT_ENVIRONMENTAL_PROBES-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 5,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_INSUFFICIENT_ENVIRONMENTAL_OBSERVABILITY",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "DUPLICATE_COMMON_CAUSE_ENVIRONMENTAL_WITNESSES",
+      "acquisition_window_id": "WIN-001",
+      "observed_values": [
+        0,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-HH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        },
+        {
+          "witness_id": "WITNESS-DUPLICATE-COMMON-CAUSE-2",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-02",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-02"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-MEAN-02"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-02"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-02"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-02"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-C",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-C"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-C"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-C"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-C"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-C"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            {
+              "sensor_id": "ENV-GRAD-D",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-D"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-D"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-D"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-D"
+                }
+              ],
+              "topology_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    },
+    {
+      "case_id": "ENVIRONMENTAL_WITNESS_SHARES_DAQ_WITH_STRUCTURAL_SENSOR",
+      "acquisition_window_id": "WIN-001",
+      "observed_values": [
+        1,
+        0,
+        0
+      ],
+      "environmental_witnesses": [
+        {
+          "witness_id": "WITNESS-DH_NOMINAL_ENVIRONMENT-1",
+          "probes": [
+            {
+              "sensor_id": "ENV-MEAN-01",
+              "quantity": "wing_mean_temperature_delta",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "common_cause_group": "ENV-BUS-A",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "STRUCT-DAQ-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-MEAN-01"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-MEAN-01"
+                }
+              ],
+              "topology_evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            {
+              "sensor_id": "ENV-GRAD-A",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "common_cause_group": "ENV-BUS-B",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-A"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-A"
+                }
+              ],
+              "topology_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            {
+              "sensor_id": "ENV-GRAD-B",
+              "quantity": "wing_span_temperature_gradient",
+              "reading_k": 0,
+              "standard_uncertainty_k": 0.1,
+              "calibration_status": "VALID",
+              "operator_status": "ADMITTED",
+              "evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "common_cause_group": "ENV-BUS-C",
+              "acquisition_window_id": "WIN-001",
+              "spatial_support": "WING-THERMAL-CONTEXT-01",
+              "independent_of_structural_channels": true,
+              "fault_domains": [
+                {
+                  "domain_type": "power",
+                  "domain_id": "ENV-POWER-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "daq",
+                  "domain_id": "ENV-DAQ-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "clock",
+                  "domain_id": "ENV-CLOCK-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "calibration_chain",
+                  "domain_id": "ENV-CALIBRATION_CHAIN-ENV-GRAD-B"
+                },
+                {
+                  "domain_type": "wiring_harness",
+                  "domain_id": "ENV-WIRING_HARNESS-ENV-GRAD-B"
+                }
+              ],
+              "topology_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            }
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "ABSTAIN_ENVIRONMENTAL_WITNESS_NOT_INDEPENDENT",
+        "structural_state": null,
+        "environmental_state": null,
+        "candidate_count": 0
+      }
+    }
+  ]
+}

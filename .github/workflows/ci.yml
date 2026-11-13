@@ -14,6 +14,149 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+
+  aero-01-virtual-sensing-exact-head:
+    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'research/aero-01-') }}
+    name: AER-01 Virtual Sensing (Exact PR Head)
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out exact pull-request head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    - name: Assert exact subject revision
+      env:
+        EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: |
+        set -euo pipefail
+        actual_subject_sha="$(git rev-parse HEAD)"
+        test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+        printf 'subject_commit=%s\n' "$actual_subject_sha"
+        printf 'event_commit=%s\n' "$GITHUB_SHA"
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: rustfmt
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Check virtual-sensing formatting
+      run: cargo fmt --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml -- --check
+
+    - name: Run joint-state, witness and damage-preservation tests
+      run: cargo test --locked --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml
+
+    - name: Run Rust joint-state evaluator
+      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin aero-virtual-sensing-health-state > virtual-sensing-health-state-result.json
+
+    - name: Independently recompute in Python
+      run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py --rust-output virtual-sensing-health-state-result.json
+
+    - name: Run Rust MuViS-C corruption evaluator
+      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin muvis_c_corruption > muvis-c-corruption-result.json
+
+    - name: Independently recompute MuViS-C corruption grid
+      run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py --rust-output muvis-c-corruption-result.json
+
+    - name: Run Rust environment-damage identifiability evaluator
+      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin environment_damage_confounding > environment-damage-confounding-result.json
+
+    - name: Independently recompute environment-damage hypotheses
+      run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py --rust-output environment-damage-confounding-result.json
+
+    - name: Run Rust anti-leakage benchmark split contract
+      run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml --bin benchmark_split_contract > benchmark-split-contract-result.json
+
+    - name: Independently verify benchmark split partitions
+      run: python3 tools/civil-aero-benchmark/virtual-sensing-health-state/verify_benchmark_split_contract.py --rust-output benchmark-split-contract-result.json
+
+    - name: Create exact subject and digest receipts
+      run: |
+        set -euo pipefail
+        subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+        workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/ci.yml")
+        printf 'subject_commit=%s\nevent_commit=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' "$subject_sha" "$GITHUB_SHA" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > virtual-sensing-exact-head-manifest.txt
+        sha256sum rust-toolchain.toml > virtual-sensing-toolchain.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml > virtual-sensing-cargo-manifest.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.lock > virtual-sensing-cargo-lock.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/main.rs > virtual-sensing-rust-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py > virtual-sensing-python-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json > virtual-sensing-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json > virtual-sensing-external-register.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs > muvis-c-rust-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs > environment-damage-rust-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py > environment-damage-python-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json > environment-damage-source.sha256
+        sha256sum environment-damage-confounding-result.json > environment-damage-result.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/benchmark_split_contract.rs > benchmark-split-rust-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_benchmark_split_contract.py > benchmark-split-python-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/benchmark-split-contract-v0.1.json > benchmark-split-source.sha256
+        sha256sum benchmark-split-contract-result.json > benchmark-split-result.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py > muvis-c-python-source.sha256
+        sha256sum tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json > muvis-c-source.sha256
+        sha256sum muvis-c-corruption-result.json > muvis-c-result.sha256
+        sha256sum virtual-sensing-health-state-result.json > virtual-sensing-result.sha256
+        sha256sum virtual-sensing-exact-head-manifest.txt > virtual-sensing-manifest.sha256
+
+    - name: Retain exact-head source, output and receipts
+      uses: actions/upload-artifact@v4
+      with:
+        name: aero-01-virtual-sensing-${{ github.event.pull_request.head.sha || github.sha }}
+        path: |
+          rust-toolchain.toml
+          .github/workflows/ci.yml
+          tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.toml
+          tools/civil-aero-benchmark/virtual-sensing-health-state/Cargo.lock
+          tools/civil-aero-benchmark/virtual-sensing-health-state/README.md
+          tools/civil-aero-benchmark/virtual-sensing-health-state/src/main.rs
+          tools/civil-aero-benchmark/virtual-sensing-health-state/verify_independent.py
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/hh-hf-dh-df-v0.1.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/external-benchmark-register-v0.1.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/muvis_c_corruption.rs
+          tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/environment_damage_confounding.rs
+          tools/civil-aero-benchmark/virtual-sensing-health-state/src/bin/benchmark_split_contract.rs
+          tools/civil-aero-benchmark/virtual-sensing-health-state/verify_benchmark_split_contract.py
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/benchmark-split-contract-v0.1.json
+          benchmark-split-contract-result.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/verify_environment_damage_independent.py
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/environment-damage-confounding-v0.1.json
+          environment-damage-confounding-result.json
+          tools/civil-aero-benchmark/virtual-sensing-health-state/verify_muvis_c_independent.py
+          tools/civil-aero-benchmark/virtual-sensing-health-state/data/muvis-c-corruption-v0.1.json
+          muvis-c-corruption-result.json
+          virtual-sensing-health-state-result.json
+          virtual-sensing-exact-head-manifest.txt
+          virtual-sensing-toolchain.sha256
+          virtual-sensing-cargo-manifest.sha256
+          virtual-sensing-cargo-lock.sha256
+          virtual-sensing-rust-source.sha256
+          virtual-sensing-python-source.sha256
+          virtual-sensing-source.sha256
+          virtual-sensing-external-register.sha256
+          muvis-c-rust-source.sha256
+          environment-damage-rust-source.sha256
+          environment-damage-python-source.sha256
+          environment-damage-source.sha256
+          environment-damage-result.sha256
+          benchmark-split-rust-source.sha256
+          benchmark-split-python-source.sha256
+          benchmark-split-source.sha256
+          benchmark-split-result.sha256
+          muvis-c-python-source.sha256
+          muvis-c-source.sha256
+          muvis-c-result.sha256
+          virtual-sensing-result.sha256
+          virtual-sensing-manifest.sha256
+        if-no-files-found: error
+        retention-days: 90
+
+
   test:
     # Living World exact-head qualification helpers have their own dedicated,
     # immutable-product workflows. Running the full 3-OS workspace matrix on
