@@ -167,6 +167,12 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         {
             local_failures.push("UPDATE_FREQUENCY");
         }
+        if u64_at(interface, "sample_interval_us")
+            .is_none_or(|value| value > u64_at(interface, "max_sample_interval_us").unwrap_or(0))
+        {
+            local_failures.push("SAMPLE_FREQUENCY");
+        }
+
         if u64_at(interface, "jitter_p95_ms")
             .is_none_or(|value| value > u64_at(interface, "max_jitter_p95_ms").unwrap_or(0))
         {
@@ -305,9 +311,9 @@ fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<
     let Some(cases) = corpus.get("cases").and_then(Value::as_array) else {
         return Err(vec!["cases must be an array".to_owned()]);
     };
-    if cases.len() != 12 {
+    if cases.len() != 13 {
         errors.push(format!(
-            "expected 12 commissioning cases, found {}",
+            "expected 13 commissioning cases, found {}",
             cases.len()
         ));
     }
@@ -319,6 +325,7 @@ fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<
     let mut agreements = 0usize;
     let allowed_failures = [
         "UPDATE_FREQUENCY",
+        "SAMPLE_FREQUENCY",
         "UPDATE_JITTER",
         "LATENCY_P95",
         "SOURCE_STALE",
@@ -477,11 +484,11 @@ mod tests {
         assert_eq!(
             summary,
             Summary {
-                cases: 12,
+                cases: 13,
                 ready: 4,
                 ready_limited: 0,
-                not_ready: 8,
-                exact_oracle_agreements: 12,
+                not_ready: 9,
+                exact_oracle_agreements: 13,
             }
         );
     }
@@ -503,6 +510,34 @@ mod tests {
         assert_eq!(
             evaluate_case(case).expect("case evaluates").readiness,
             Readiness::NotReady
+        );
+    }
+
+    #[test]
+    fn high_sample_interval_is_not_hidden_by_good_update_frequency() {
+        let mut corpus = corpus_value();
+        let case = case_named(&mut corpus, "DTC-001");
+        case["interfaces"][0]["sample_interval_us"] = Value::from(50_000);
+        case["interfaces"][0]["max_sample_interval_us"] = Value::from(10_000);
+        case["interfaces"][0]["update_interval_ms"] = Value::from(10);
+        case["interfaces"][0]["max_update_interval_ms"] = Value::from(250);
+        let result = evaluate_case(case).expect("case evaluates");
+        assert!(result.failures.contains(&"SAMPLE_FREQUENCY".to_owned()));
+        assert!(!result.failures.contains(&"UPDATE_FREQUENCY".to_owned()));
+    }
+
+    #[test]
+    fn BAM_like_interpass_streams_have_distinct_sampling_and_update_contracts() {
+        let mut corpus = corpus_value();
+        let case = case_named(&mut corpus, "DTC-001");
+        let interface = &mut case["interfaces"][0];
+        interface["sample_interval_us"] = Value::from(100); // 0.1 ms current/voltage
+        interface["max_sample_interval_us"] = Value::from(200);
+        interface["update_interval_ms"] = Value::from(100);
+        interface["max_update_interval_ms"] = Value::from(250);
+        assert_eq!(
+            evaluate_case(case).expect("case evaluates").readiness,
+            Readiness::Ready
         );
     }
 
