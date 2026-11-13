@@ -176,7 +176,7 @@ impl BilocalGeodesicOperator {
         }
 
         let mut augmented = [[0.0; STATE_DIMENSION * 2]; STATE_DIMENSION];
-        let mut row_scales = [0.0; STATE_DIMENSION];
+        let mut row_scales = [0.0_f64; STATE_DIMENSION];
         for row in 0..STATE_DIMENSION {
             for column in 0..STATE_DIMENSION {
                 let value = self.matrix[row][column];
