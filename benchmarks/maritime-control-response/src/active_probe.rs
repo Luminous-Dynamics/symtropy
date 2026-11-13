@@ -2747,6 +2747,12 @@ mod tests {
                 .unwrap()
                 .contains("reruns rank_diagnostic_probes")
         );
+        assert!(
+            protocol["method"]["portfolio_replay"]["forged_assessment_control"]
+                .as_str()
+                .unwrap()
+                .contains("SelectionReplayMismatch")
+        );
         assert_eq!(
             protocol["method"]["sequential_update_policy"]["no_silent_fallback"],
             true
