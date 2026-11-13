@@ -363,7 +363,7 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
                 "point_of_use_service_disposition": if failed {
                     "SYNTHETIC_NONCOMPLIANT"
                 } else {
-                    storage_outlet
+                    storage_outlet.as_str()
                 },
                 "release_allowed": false
             }))
