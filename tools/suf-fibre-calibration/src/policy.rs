@@ -204,10 +204,10 @@ pub fn select_advisory_actions(
 }
 
 fn validate_optional_digest(value: Option<&str>, field: &'static str) -> PolicyResult<()> {
-    if let Some(value) = value {
-        if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            return Err(PolicyError::InvalidReceiptDigest(field));
-        }
+    if let Some(value) = value
+        && (value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    {
+        return Err(PolicyError::InvalidReceiptDigest(field));
     }
     Ok(())
 }
