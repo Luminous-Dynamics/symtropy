@@ -797,7 +797,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_twelve_case_corpus_matches_all_expected_dispositions() {
+    fn frozen_thirteen_case_corpus_matches_all_expected_dispositions() {
         let summary = validate_corpus(SCHEMA_TEXT, CORPUS_TEXT)
             .expect("frozen commissioning corpus should match its oracle");
         assert_eq!(
