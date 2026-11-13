@@ -265,5 +265,17 @@
       "qualification_status": "NotRun",
       "test_status": "authored_not_executed"
     }
+  },
+  "matched_experiments": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5075",
+    "protocol": "research/water-service-engineering/matched-experiments/MATCHED_EXPERIMENT_PROTOCOL_V0_1.md",
+    "pairs": "research/water-service-engineering/matched-experiments/pairs-v0.1.json",
+    "schema": "research/water-service-engineering/matched-experiments/pairs-v0.1.schema.json",
+    "oracle": "research/water-service-engineering/matched-experiments/admission-oracle-v0.1.json",
+    "pair_count": 10,
+    "authored_unit_tests": 22,
+    "expected_admitted_pairs": 1,
+    "expected_rejected_pairs": 9,
+    "status": "synthetic_paired_input_admission_only_no_baseline_performance_measurement"
   }
 }
