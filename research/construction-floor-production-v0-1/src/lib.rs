@@ -840,6 +840,11 @@ mod tests {
         AcceptanceReceipt, ApplyOutcome, EventEnvelope, TransitionKind,
     };
 
+    const BENCHMARK_PROFILE_BLOB_ID: &str =
+        "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6";
+    const REFERENCE_FIXTURE_BLOB_ID: &str =
+        "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23";
+
     fn floor_binding() -> FloorBinding {
         FloorBinding {
             floor_id: "floor-reference-01".to_owned(),
@@ -847,9 +852,9 @@ mod tests {
             design_revision_digest: "design-digest-1".to_owned(),
             target_frame_id: "project-grid-1".to_owned(),
             benchmark_profile_id: "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001".to_owned(),
-            benchmark_profile_digest: "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6".into(),
+            benchmark_profile_digest: BENCHMARK_PROFILE_BLOB_ID.to_owned(),
             reference_fixture_id: "highrise-reference-floor-micro-oracle-001".to_owned(),
-            reference_fixture_digest: "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23".into(),
+            reference_fixture_digest: REFERENCE_FIXTURE_BLOB_ID.to_owned(),
             claim_ceiling: "synthetic_accepted_output_accounting_only".to_owned(),
             labour_time_axis_id: "project-labour-clock-1".to_owned(),
         }
