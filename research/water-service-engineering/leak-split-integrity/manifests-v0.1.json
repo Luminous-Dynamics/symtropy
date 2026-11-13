@@ -7,8 +7,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-001-temporal-clean",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "temporal_holdout",
@@ -40,8 +40,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "A2",
@@ -57,8 +57,8 @@
           "window_end_utc": "2026-01-02T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "A3",
@@ -74,8 +74,8 @@
           "window_end_utc": "2026-01-03T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -85,8 +85,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-002-event-leak",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_event_out",
@@ -118,8 +118,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "B2",
@@ -135,8 +135,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "B3",
@@ -152,8 +152,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -163,8 +163,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-003-scenario-seed-leak",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_scenario_out",
@@ -196,8 +196,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "C2",
@@ -213,8 +213,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "C3",
@@ -230,8 +230,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -241,8 +241,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-004-augmentation-leak",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_event_out",
@@ -274,8 +274,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "D2",
@@ -293,8 +293,8 @@
           "augmentation_parent_ids": [
             "D1"
           ],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "D3",
@@ -310,8 +310,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -321,8 +321,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-005-network-clean",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_network_out",
@@ -354,8 +354,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "E2",
@@ -371,8 +371,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "E3",
@@ -388,8 +388,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -399,8 +399,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-006-network-leak",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_network_out",
@@ -432,8 +432,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "F2",
@@ -449,8 +449,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "F3",
@@ -466,8 +466,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -477,8 +477,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-007-physical-run-leak",
       "population_class": "laboratory_testbed",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_physical_run_out",
@@ -510,8 +510,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "G2",
@@ -527,8 +527,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "G3",
@@ -544,8 +544,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -555,13 +555,13 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-008-stream-overlap",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
-        "protocol": "temporal_holdout",
-        "generalization_claim": "temporal_holdout",
-        "group_key": "sensor_stream_time",
+        "protocol": "leave_event_out",
+        "generalization_claim": "Event-held-out with non-overlapping-event requirement; stream overlap adversarial control",
+        "group_key": "source_event_id",
         "guard_gap_seconds": 0,
         "train_end_utc": "2026-01-01T23:59:59Z",
         "validation_start_utc": "2026-01-02T00:00:00Z",
@@ -588,8 +588,8 @@
           "window_end_utc": "2026-01-01T00:20:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "H2",
@@ -605,8 +605,8 @@
           "window_end_utc": "2026-01-01T00:25:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "H3",
@@ -622,8 +622,8 @@
           "window_end_utc": "2026-01-03T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -633,8 +633,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-009-provenance-unknown",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_event_out",
@@ -666,8 +666,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "I2",
@@ -683,8 +683,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "I3",
@@ -700,8 +700,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -711,8 +711,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-010-pretraining-unknown",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_network_out",
@@ -742,8 +742,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "J2",
@@ -759,8 +759,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "J3",
@@ -776,8 +776,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -787,8 +787,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-011-test-label-tuning",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "leave_network_out",
@@ -820,8 +820,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "K2",
@@ -837,8 +837,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "K3",
@@ -854,8 +854,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
@@ -865,8 +865,8 @@
       "corpus_id": "water-leak-split-integrity-v0.1",
       "dataset_id": "SPLIT-012-invalid-window",
       "population_class": "synthetic",
-      "source_revision": "synthetic-generator-v0.1",
-      "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_revision": "synthetic-metadata-fixture-v0.1",
+      "source_digest": null,
       "rights_status": "internal_synthetic_only",
       "split_policy": {
         "protocol": "temporal_holdout",
@@ -898,8 +898,8 @@
           "window_end_utc": "2026-01-01T00:10:00Z",
           "split": "train",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "L2",
@@ -915,8 +915,8 @@
           "window_end_utc": "2026-01-02T00:10:00Z",
           "split": "validation",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         },
         {
           "sample_id": "L3",
@@ -932,8 +932,8 @@
           "window_end_utc": "2026-01-03T00:10:00Z",
           "split": "test",
           "augmentation_parent_ids": [],
-          "source_revision": "synthetic-generator-v0.1",
-          "sample_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "source_revision": "synthetic-metadata-fixture-v0.1",
+          "sample_digest": null
         }
       ],
       "claim_ceiling": "Synthetic split-integrity contract only. Does not qualify detector performance or field transfer."
