@@ -412,6 +412,370 @@ pub fn qualify_midpoint_state_v1(
     })
 }
 
+/// Outcomes from the outward-rounded Krawczyk inclusion check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KrawczykInconclusiveReasonV1 {
+    PreconditionerNotVerified,
+    PositiveConstraintBranchNotContained,
+    ContractionNotProved,
+    KrawczykImageNotStrictlyIncluded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KrawczykStatusV1 {
+    ValidatedUniqueRoot,
+    Inconclusive(KrawczykInconclusiveReasonV1),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KrawczykErrorV1 {
+    UnsupportedFixture,
+    InvalidRadius,
+    NonFiniteIntervalArithmetic,
+    ExactCenterResidualNotZero,
+}
+
+impl fmt::Display for KrawczykErrorV1 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl std::error::Error for KrawczykErrorV1 {}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KrawczykReceiptV1 {
+    pub center: Vector3,
+    pub radius: f64,
+    pub krawczyk_image: Option<[[f64; 2]; KKT_DIMENSION]>,
+    pub contraction_upper_bound: Option<f64>,
+    pub preconditioner_verified_exactly: bool,
+    pub positive_constraint_branch_contained: bool,
+    pub strict_inclusion: bool,
+    pub status: KrawczykStatusV1,
+    pub theorem_id: &'static str,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct OutwardIntervalV1 {
+    lower: f64,
+    upper: f64,
+}
+
+fn next_up_f64(value: f64) -> f64 {
+    if value.is_nan() || value == f64::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+fn next_down_f64(value: f64) -> f64 {
+    if value.is_nan() || value == f64::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits((1_u64 << 63) | 1);
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+impl OutwardIntervalV1 {
+    fn new(lower: f64, upper: f64) -> Result<Self, KrawczykErrorV1> {
+        if !lower.is_finite() || !upper.is_finite() || lower > upper {
+            return Err(KrawczykErrorV1::NonFiniteIntervalArithmetic);
+        }
+        Ok(Self { lower, upper })
+    }
+
+    fn point(value: f64) -> Result<Self, KrawczykErrorV1> {
+        Self::new(value, value)
+    }
+
+    fn add(self, other: Self) -> Result<Self, KrawczykErrorV1> {
+        let lower = self.lower + other.lower;
+        let upper = self.upper + other.upper;
+        if !lower.is_finite() || !upper.is_finite() {
+            return Err(KrawczykErrorV1::NonFiniteIntervalArithmetic);
+        }
+        Self::new(next_down_f64(lower), next_up_f64(upper))
+    }
+
+    fn sub(self, other: Self) -> Result<Self, KrawczykErrorV1> {
+        let lower = self.lower - other.upper;
+        let upper = self.upper - other.lower;
+        if !lower.is_finite() || !upper.is_finite() {
+            return Err(KrawczykErrorV1::NonFiniteIntervalArithmetic);
+        }
+        Self::new(next_down_f64(lower), next_up_f64(upper))
+    }
+
+    fn mul(self, other: Self) -> Result<Self, KrawczykErrorV1> {
+        let products = [
+            self.lower * other.lower,
+            self.lower * other.upper,
+            self.upper * other.lower,
+            self.upper * other.upper,
+        ];
+        if products.iter().any(|value| !value.is_finite()) {
+            return Err(KrawczykErrorV1::NonFiniteIntervalArithmetic);
+        }
+        let lower = products.iter().copied().fold(f64::INFINITY, f64::min);
+        let upper = products
+            .iter()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max);
+        Self::new(next_down_f64(lower), next_up_f64(upper))
+    }
+
+    fn abs_upper(self) -> f64 {
+        self.lower.abs().max(self.upper.abs())
+    }
+
+    fn image(self) -> [f64; 2] {
+        [self.lower, self.upper]
+    }
+}
+
+type IntervalMatrix3 = [[OutwardIntervalV1; KKT_DIMENSION]; KKT_DIMENSION];
+
+fn interval_matrix_product(
+    left: &Matrix3,
+    right: &IntervalMatrix3,
+) -> Result<IntervalMatrix3, KrawczykErrorV1> {
+    let zero = OutwardIntervalV1::point(0.0)?;
+    let mut product = [[zero; KKT_DIMENSION]; KKT_DIMENSION];
+    for row in 0..KKT_DIMENSION {
+        for column in 0..KKT_DIMENSION {
+            let mut sum = zero;
+            for inner in 0..KKT_DIMENSION {
+                sum = sum.add(
+                    OutwardIntervalV1::point(left[row][inner])?.mul(right[inner][column])?,
+                )?;
+            }
+            product[row][column] = sum;
+        }
+    }
+    Ok(product)
+}
+
+fn interval_identity_minus(
+    matrix: &IntervalMatrix3,
+) -> Result<IntervalMatrix3, KrawczykErrorV1> {
+    let zero = OutwardIntervalV1::point(0.0)?;
+    let one = OutwardIntervalV1::point(1.0)?;
+    let mut result = [[zero; KKT_DIMENSION]; KKT_DIMENSION];
+    for row in 0..KKT_DIMENSION {
+        for column in 0..KKT_DIMENSION {
+            let identity = if row == column { one } else { zero };
+            result[row][column] = identity.sub(matrix[row][column])?;
+        }
+    }
+    Ok(result)
+}
+
+fn interval_matrix_vector_product(
+    matrix: &IntervalMatrix3,
+    vector: &[OutwardIntervalV1; KKT_DIMENSION],
+) -> Result<[OutwardIntervalV1; KKT_DIMENSION], KrawczykErrorV1> {
+    let zero = OutwardIntervalV1::point(0.0)?;
+    let mut result = [zero; KKT_DIMENSION];
+    for row in 0..KKT_DIMENSION {
+        let mut sum = zero;
+        for column in 0..KKT_DIMENSION {
+            sum = sum.add(matrix[row][column].mul(vector[column])?)?;
+        }
+        result[row] = sum;
+    }
+    Ok(result)
+}
+
+fn interval_matrix_contraction_upper(
+    matrix: &IntervalMatrix3,
+) -> Result<f64, KrawczykErrorV1> {
+    let mut maximum_row_sum = 0.0_f64;
+    for row in matrix.iter() {
+        let mut row_sum = 0.0_f64;
+        for value in row.iter() {
+            row_sum = next_up_f64(row_sum + value.abs_upper());
+            if !row_sum.is_finite() {
+                return Err(KrawczykErrorV1::NonFiniteIntervalArithmetic);
+            }
+        }
+        maximum_row_sum = maximum_row_sum.max(row_sum);
+    }
+    Ok(maximum_row_sum)
+}
+
+fn reference_dyadic_midpoint_parameters() -> MidpointParametersV1 {
+    MidpointParametersV1 {
+        q0: 0.0,
+        v0: 0.0,
+        time_step: 1.0,
+        mass: 1.0,
+        applied_force: 0.0,
+    }
+}
+
+/// Exact inverse of the KKT Jacobian at z*=(q1,v1,lambda)=(2,4,2)
+/// for the dimensionless dyadic fixture. Every entry is dyadic.
+pub fn reference_dyadic_krawczyk_preconditioner_v1() -> Matrix3 {
+    [
+        [0.0, 0.0, 1.0],
+        [-1.0, 0.0, 2.0],
+        [-0.5, -0.5, 0.0],
+    ]
+}
+
+/// Outward-rounded Krawczyk inclusion check for one exact dyadic KKT fixture.
+///
+/// The function deliberately rejects other physical parameters and centers.
+/// It verifies C*J(z*)=I exactly, encloses J(X) with outward-rounded IEEE-754
+/// intervals, then checks both strict Krawczyk image inclusion and a sup-norm
+/// contraction bound < 1. Because C is verified as an exact inverse at the
+/// center, it is nonsingular. The Krawczyk map is therefore a contraction of
+/// the box into its interior, proving exactly one root in the box for this
+/// declared polynomial system.
+///
+/// This is not a generic solver certificate and grants no authority outside
+/// the exact frozen fixture.
+pub fn krawczyk_validate_dyadic_midpoint_fixture_v1(
+    parameters: MidpointParametersV1,
+    center: MidpointKktStateV1,
+    radius: f64,
+    preconditioner: Matrix3,
+) -> Result<KrawczykReceiptV1, KrawczykErrorV1> {
+    let expected_parameters = reference_dyadic_midpoint_parameters();
+    let expected_center = MidpointKktStateV1 {
+        q1: 2.0,
+        v1: 4.0,
+        multiplier: 2.0,
+    };
+    if parameters != expected_parameters || center != expected_center {
+        return Err(KrawczykErrorV1::UnsupportedFixture);
+    }
+    if !radius.is_finite() || radius <= 0.0 {
+        return Err(KrawczykErrorV1::InvalidRadius);
+    }
+
+    let center_vector = center.components();
+    let jacobian = midpoint_kkt_jacobian_v1(parameters, center)
+        .map_err(|_| KrawczykErrorV1::UnsupportedFixture)?;
+    let center_residual = midpoint_kkt_residual_v1(parameters, center)
+        .map_err(|_| KrawczykErrorV1::UnsupportedFixture)?;
+    if center_residual != [0.0; KKT_DIMENSION] {
+        return Err(KrawczykErrorV1::ExactCenterResidualNotZero);
+    }
+
+    let preconditioner_product: Matrix3 = std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            (0..KKT_DIMENSION)
+                .map(|inner| preconditioner[row][inner] * jacobian[inner][column])
+                .sum()
+        })
+    });
+    let preconditioner_verified = (0..KKT_DIMENSION).all(|row| {
+        (0..KKT_DIMENSION).all(|column| {
+            preconditioner_product[row][column] == if row == column { 1.0 } else { 0.0 }
+        })
+    });
+    if !preconditioner_verified {
+        return Ok(KrawczykReceiptV1 {
+            center: center_vector,
+            radius,
+            krawczyk_image: None,
+            contraction_upper_bound: None,
+            preconditioner_verified_exactly: false,
+            positive_constraint_branch_contained: false,
+            strict_inclusion: false,
+            status: KrawczykStatusV1::Inconclusive(
+                KrawczykInconclusiveReasonV1::PreconditionerNotVerified,
+            ),
+            theorem_id: "dyadic-midpoint-krawczyk-contraction-v1",
+        });
+    }
+
+    let q1_interval = OutwardIntervalV1::new(center.q1 - radius, center.q1 + radius)?;
+    let lambda_interval =
+        OutwardIntervalV1::new(center.multiplier - radius, center.multiplier + radius)?;
+    let half = OutwardIntervalV1::point(0.5)?;
+    let q_mid_interval = q1_interval.mul(half)?;
+    let positive_branch_contained = q_mid_interval.lower > 0.0;
+    if !positive_branch_contained {
+        return Ok(KrawczykReceiptV1 {
+            center: center_vector,
+            radius,
+            krawczyk_image: None,
+            contraction_upper_bound: None,
+            preconditioner_verified_exactly: true,
+            positive_constraint_branch_contained: false,
+            strict_inclusion: false,
+            status: KrawczykStatusV1::Inconclusive(
+                KrawczykInconclusiveReasonV1::PositiveConstraintBranchNotContained,
+            ),
+            theorem_id: "dyadic-midpoint-krawczyk-contraction-v1",
+        });
+    }
+
+    let zero = OutwardIntervalV1::point(0.0)?;
+    let one = OutwardIntervalV1::point(1.0)?;
+    let negative_one = OutwardIntervalV1::point(-1.0)?;
+    let negative_two = OutwardIntervalV1::point(-2.0)?;
+    let jacobian_box: IntervalMatrix3 = [
+        [OutwardIntervalV1::point(2.0)?, negative_one, zero],
+        [lambda_interval.mul(negative_one)?, one, q_mid_interval.mul(negative_two)?],
+        [q_mid_interval, zero, zero],
+    ];
+
+    let preconditioned_jacobian =
+        interval_matrix_product(&preconditioner, &jacobian_box)?;
+    let defect = interval_identity_minus(&preconditioned_jacobian)?;
+    let contraction_upper = interval_matrix_contraction_upper(&defect)?;
+
+    let delta_box = [
+        OutwardIntervalV1::new(-radius, radius)?,
+        OutwardIntervalV1::new(-radius, radius)?,
+        OutwardIntervalV1::new(-radius, radius)?,
+    ];
+    let correction_box = interval_matrix_vector_product(&defect, &delta_box)?;
+    let mut image = [[0.0; 2]; KKT_DIMENSION];
+    let mut strict_inclusion = true;
+    for index in 0..KKT_DIMENSION {
+        let image_interval =
+            OutwardIntervalV1::point(center_vector[index])?.add(correction_box[index])?;
+        image[index] = image_interval.image();
+        let box_lower = center_vector[index] - radius;
+        let box_upper = center_vector[index] + radius;
+        strict_inclusion &= image_interval.lower > box_lower && image_interval.upper < box_upper;
+    }
+
+    let status = if contraction_upper >= 1.0 {
+        KrawczykStatusV1::Inconclusive(KrawczykInconclusiveReasonV1::ContractionNotProved)
+    } else if !strict_inclusion {
+        KrawczykStatusV1::Inconclusive(
+            KrawczykInconclusiveReasonV1::KrawczykImageNotStrictlyIncluded,
+        )
+    } else {
+        KrawczykStatusV1::ValidatedUniqueRoot
+    };
+
+    Ok(KrawczykReceiptV1 {
+        center: center_vector,
+        radius,
+        krawczyk_image: Some(image),
+        contraction_upper_bound: Some(contraction_upper),
+        preconditioner_verified_exactly: true,
+        positive_constraint_branch_contained: true,
+        strict_inclusion,
+        status,
+        theorem_id: "dyadic-midpoint-krawczyk-contraction-v1",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -588,6 +952,112 @@ mod tests {
         assert_eq!(
             receipt.status,
             QualificationStatusV1::Inconclusive(InconclusiveReasonV1::KantorovichProductTooLarge)
+        );
+    }
+
+    #[test]
+    fn outward_interval_arithmetic_expands_rounded_endpoints() {
+        let one = OutwardIntervalV1::point(1.0).unwrap();
+        let sum = one.add(one).unwrap();
+        let product = one.mul(one).unwrap();
+        assert!(sum.lower < 2.0 && sum.upper > 2.0);
+        assert!(product.lower < 1.0 && product.upper > 1.0);
+    }
+
+    #[test]
+    fn dyadic_krawczyk_check_proves_a_unique_root_in_the_box() {
+        let parameters = reference_dyadic_midpoint_parameters();
+        let center = MidpointKktStateV1 {
+            q1: 2.0,
+            v1: 4.0,
+            multiplier: 2.0,
+        };
+        let receipt = krawczyk_validate_dyadic_midpoint_fixture_v1(
+            parameters,
+            center,
+            2.0_f64.powi(-8),
+            reference_dyadic_krawczyk_preconditioner_v1(),
+        )
+        .unwrap();
+
+        assert_eq!(receipt.status, KrawczykStatusV1::ValidatedUniqueRoot);
+        assert!(receipt.preconditioner_verified_exactly);
+        assert!(receipt.positive_constraint_branch_contained);
+        assert!(receipt.strict_inclusion);
+        assert!(receipt.contraction_upper_bound.unwrap() < 1.0);
+        let image = receipt.krawczyk_image.unwrap();
+        for coordinate in 0..KKT_DIMENSION {
+            assert!(image[coordinate][0] > receipt.center[coordinate] - receipt.radius);
+            assert!(image[coordinate][1] < receipt.center[coordinate] + receipt.radius);
+        }
+    }
+
+    #[test]
+    fn wrong_preconditioner_cannot_earn_a_unique_root_receipt() {
+        let parameters = reference_dyadic_midpoint_parameters();
+        let center = MidpointKktStateV1 {
+            q1: 2.0,
+            v1: 4.0,
+            multiplier: 2.0,
+        };
+        let mut wrong = reference_dyadic_krawczyk_preconditioner_v1();
+        wrong[0][0] = 0.25;
+        let receipt = krawczyk_validate_dyadic_midpoint_fixture_v1(
+            parameters,
+            center,
+            2.0_f64.powi(-8),
+            wrong,
+        )
+        .unwrap();
+        assert_eq!(
+            receipt.status,
+            KrawczykStatusV1::Inconclusive(
+                KrawczykInconclusiveReasonV1::PreconditionerNotVerified
+            )
+        );
+        assert!(receipt.krawczyk_image.is_none());
+    }
+
+    #[test]
+    fn box_touching_positive_branch_boundary_is_inconclusive() {
+        let parameters = reference_dyadic_midpoint_parameters();
+        let center = MidpointKktStateV1 {
+            q1: 2.0,
+            v1: 4.0,
+            multiplier: 2.0,
+        };
+        let receipt = krawczyk_validate_dyadic_midpoint_fixture_v1(
+            parameters,
+            center,
+            2.0,
+            reference_dyadic_krawczyk_preconditioner_v1(),
+        )
+        .unwrap();
+        assert_eq!(
+            receipt.status,
+            KrawczykStatusV1::Inconclusive(
+                KrawczykInconclusiveReasonV1::PositiveConstraintBranchNotContained
+            )
+        );
+    }
+
+    #[test]
+    fn krawczyk_entrypoint_refuses_unmatched_physical_parameters() {
+        let mut parameters = reference_dyadic_midpoint_parameters();
+        parameters.mass = 2.0;
+        let center = MidpointKktStateV1 {
+            q1: 2.0,
+            v1: 4.0,
+            multiplier: 2.0,
+        };
+        assert_eq!(
+            krawczyk_validate_dyadic_midpoint_fixture_v1(
+                parameters,
+                center,
+                2.0_f64.powi(-8),
+                reference_dyadic_krawczyk_preconditioner_v1()
+            ),
+            Err(KrawczykErrorV1::UnsupportedFixture)
         );
     }
 
