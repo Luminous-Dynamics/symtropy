@@ -420,9 +420,7 @@ fn compare_profiles_inner(
     }
 
     let mut station_valid = Vec::with_capacity(reference.points.len());
-    for (reference_point, observed_point) in
-        reference.points.iter().zip(observed.points.iter())
-    {
+    for (reference_point, observed_point) in reference.points.iter().zip(observed.points.iter()) {
         station_valid.push(station_is_measured(
             reference_point,
             observed_point,
