@@ -837,8 +837,14 @@ mod tests {
             book.candidate_count_for_interval("work-zone-B", 100, 200),
             Ok(1)
         );
+        // Same 60-second bucket yields one broad-phase false positive; the exact
+        // full-scan oracle confirms that the half-open intervals do not overlap.
         assert_eq!(
             book.candidate_count_for_interval("work-zone-A", 10_000, 20_000),
+            Ok(1)
+        );
+        assert_eq!(
+            book.reference_candidate_count_for_interval("work-zone-A", 10_000, 20_000),
             Ok(0)
         );
     }
@@ -923,9 +929,9 @@ mod tests {
             book.reserve(item, 0).expect("future reservation");
         }
 
-        assert_eq!(book.reference_due_count_at(20_000), 100);
-        assert_eq!(book.expire(20_000), 100);
-        assert_eq!(book.reference_due_count_at(20_000), 0);
+        assert_eq!(book.reference_due_count_at(20_100), 100);
+        assert_eq!(book.expire(20_100), 100);
+        assert_eq!(book.reference_due_count_at(20_100), 0);
         assert_eq!(
             book.active_reservation_count_for_resource("work-zone-A"),
             Ok(100)
