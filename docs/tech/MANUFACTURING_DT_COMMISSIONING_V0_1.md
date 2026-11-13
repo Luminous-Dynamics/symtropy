@@ -24,7 +24,7 @@ The same power-source component can be adequate for inter-pass planning but too 
 ## V0 evaluator
 
 The dependency-free Rust library accepts typed component evidence and a task profile. It checks:
-- source owner, authority, output scope and exact revision identity;
+- source owner, authority, output scope and exact pinned component revision;
 - non-zero source-byte and transform/registration receipt digests;
 - observation age and future timestamps;
 - per-channel sampling and update interval requirements;
@@ -33,7 +33,7 @@ The dependency-free Rust library accepts typed component evidence and a task pro
 - coordinate frame, registration error, coverage and occlusion;
 - output fidelity error;
 - common-cause domains when independent sources are required;
-- duplicate, missing and unbound components.
+- duplicate, missing and unbound components, including component-revision mismatch.
 
 Required evidence failure yields NOT_READY. An optional component failure yields DEGRADED. Unknown mandatory values never satisfy a requirement. Unlisted components are rejected rather than silently incorporated.
 
