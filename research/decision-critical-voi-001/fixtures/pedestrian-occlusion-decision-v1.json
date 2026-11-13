@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "context": {
+    "decision_id": "pedestrian-occlusion-decision-1",
+    "model_revision": "symthaea-hdc-ltc-cfc-voi-reference-v0.1",
+    "decision_timestamp_us": 1000000,
+    "actuation_deadline_timestamp_us": 1100000,
+    "actuation_reserve_us": 30000,
+    "input_integrity": "valid_fresh",
+    "current_action_id": "brake",
+    "current_action_estimates": [
+      {
+        "action_id": "brake",
+        "expected_loss_units": 50
+      },
+      {
+        "action_id": "proceed",
+        "expected_loss_units": 50
+      }
+    ],
+    "outcome_loss_consistency_tolerance_units": 0,
+    "resource_budget": {
+      "maximum_query_latency_us": 60000,
+      "maximum_energy_uj": 10000,
+      "maximum_simulator_transitions": 8,
+      "maximum_human_intervention_ms": 30000,
+      "maximum_model_compute_units": 200
+    }
+  },
+  "preference": "pareto_only",
+  "candidates": [
+    {
+      "query_id": "high-entropy-no-decision-value",
+      "kind": "high_fidelity_world_model",
+      "latency_bound_us": 10000,
+      "energy_uj": 200,
+      "simulator_transitions": 1,
+      "human_intervention_ms": 0,
+      "model_compute_units": 100,
+      "information_privilege": "policy_visible",
+      "outcome_provenance": "predicted_before_decision",
+      "fault_schedule_visible": false,
+      "outcomes": [
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 40
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 100
+            }
+          ]
+        },
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 60
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "query_id": "reacquire-front-camera",
+      "kind": "sensor_reacquisition",
+      "latency_bound_us": 10000,
+      "energy_uj": 300,
+      "simulator_transitions": 0,
+      "human_intervention_ms": 0,
+      "model_compute_units": 30,
+      "information_privilege": "policy_visible",
+      "outcome_provenance": "predicted_before_decision",
+      "fault_schedule_visible": false,
+      "outcomes": [
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 20
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 80
+            }
+          ]
+        },
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 80
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "query_id": "counterfactual-slow-reasoning",
+      "kind": "counterfactual_simulation",
+      "latency_bound_us": 20000,
+      "energy_uj": 1500,
+      "simulator_transitions": 4,
+      "human_intervention_ms": 0,
+      "model_compute_units": 100,
+      "information_privilege": "policy_visible",
+      "outcome_provenance": "predicted_before_decision",
+      "fault_schedule_visible": false,
+      "outcomes": [
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 5
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 95
+            }
+          ]
+        },
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 95
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "query_id": "query-crosses-actuation-cutoff",
+      "kind": "high_fidelity_world_model",
+      "latency_bound_us": 71000,
+      "energy_uj": 3000,
+      "simulator_transitions": 4,
+      "human_intervention_ms": 0,
+      "model_compute_units": 180,
+      "information_privilege": "policy_visible",
+      "outcome_provenance": "predicted_before_decision",
+      "fault_schedule_visible": false,
+      "outcomes": [
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 10
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 90
+            }
+          ]
+        },
+        {
+          "probability_ppm": 500000,
+          "action_estimates": [
+            {
+              "action_id": "brake",
+              "expected_loss_units": 90
+            },
+            {
+              "action_id": "proceed",
+              "expected_loss_units": 10
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
