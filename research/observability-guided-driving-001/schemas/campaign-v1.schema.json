@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/observability-guided-driving-campaign-v1.schema.json",
+  "title": "Observability-guided driving paired campaign v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "benchmark_revision",
+    "evaluator_revision",
+    "model_id",
+    "model_status",
+    "model_revision",
+    "checkpoint_sha256",
+    "hardware_id",
+    "inference_precision",
+    "power_profile",
+    "energy_measurement_method",
+    "policy_visible_field_ids",
+    "evaluator_only_field_ids",
+    "expected_pair_count",
+    "action_budget",
+    "pairs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "benchmark_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluator_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_status": {
+      "enum": [
+        "trained_policy",
+        "untrained_input_bridge",
+        "synthetic_reference"
+      ]
+    },
+    "model_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checkpoint_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hardware_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "inference_precision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "power_profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "energy_measurement_method": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_visible_field_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evaluator_only_field_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "expected_pair_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "action_budget": {
+      "$ref": "#/$defs/action_budget"
+    },
+    "pairs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000000,
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "probability": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "belief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_present_ppm",
+        "crosses_within_horizon_ppm",
+        "epistemic_uncertainty_ppm",
+        "aleatoric_uncertainty_ppm"
+      ],
+      "properties": {
+        "actor_present_ppm": {
+          "$ref": "#/$defs/probability"
+        },
+        "crosses_within_horizon_ppm": {
+          "$ref": "#/$defs/probability"
+        },
+        "epistemic_uncertainty_ppm": {
+          "$ref": "#/$defs/probability"
+        },
+        "aleatoric_uncertainty_ppm": {
+          "$ref": "#/$defs/probability"
+        }
+      }
+    },
+    "action_cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_us",
+        "energy_uj",
+        "maneuver_distance_mm",
+        "estimated_residual_risk_ppm",
+        "max_admissible_risk_ppm",
+        "expected_information_gain_milli_nats",
+        "admissible_under_policy_constraints"
+      ],
+      "properties": {
+        "duration_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_uj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maneuver_distance_mm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_residual_risk_ppm": {
+          "$ref": "#/$defs/probability"
+        },
+        "max_admissible_risk_ppm": {
+          "$ref": "#/$defs/probability"
+        },
+        "expected_information_gain_milli_nats": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "admissible_under_policy_constraints": {
+          "type": "boolean"
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_present",
+        "crosses_within_horizon",
+        "conflict_boundary_encroached",
+        "contact_or_collision",
+        "traffic_rule_violation",
+        "minimum_clearance_mm"
+      ],
+      "properties": {
+        "actor_present": {
+          "type": "boolean"
+        },
+        "crosses_within_horizon": {
+          "type": "boolean"
+        },
+        "conflict_boundary_encroached": {
+          "type": "boolean"
+        },
+        "contact_or_collision": {
+          "type": "boolean"
+        },
+        "traffic_rule_violation": {
+          "type": "boolean"
+        },
+        "minimum_clearance_mm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "role",
+        "information_action",
+        "decision_before",
+        "decision_after",
+        "belief_before",
+        "belief_after",
+        "action_cost",
+        "evaluator_outcome"
+      ],
+      "properties": {
+        "branch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "passive_control",
+            "active_observation"
+          ]
+        },
+        "information_action": {
+          "enum": [
+            "none",
+            "wait",
+            "sensor_request",
+            "safe_reposition"
+          ]
+        },
+        "decision_before": {
+          "enum": [
+            "yield",
+            "wait",
+            "proceed"
+          ]
+        },
+        "decision_after": {
+          "enum": [
+            "yield",
+            "wait",
+            "proceed"
+          ]
+        },
+        "belief_before": {
+          "$ref": "#/$defs/belief"
+        },
+        "belief_after": {
+          "$ref": "#/$defs/belief"
+        },
+        "action_cost": {
+          "$ref": "#/$defs/action_cost"
+        },
+        "evaluator_outcome": {
+          "$ref": "#/$defs/outcome"
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "scenario_id",
+        "decision_tick",
+        "initial_world_snapshot_sha256",
+        "scenario_seed_sha256",
+        "exogenous_randomness_sha256",
+        "causal_branch_audit_sha256",
+        "no_safe_information_action_available",
+        "passive_control",
+        "active_observation"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initial_world_snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scenario_seed_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "exogenous_randomness_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "causal_branch_audit_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "no_safe_information_action_available": {
+          "type": "boolean"
+        },
+        "passive_control": {
+          "$ref": "#/$defs/branch"
+        },
+        "active_observation": {
+          "$ref": "#/$defs/branch"
+        }
+      }
+    },
+    "action_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_duration_us",
+        "maximum_energy_uj",
+        "maximum_maneuver_distance_mm",
+        "maximum_residual_risk_ppm"
+      ],
+      "properties": {
+        "maximum_duration_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_energy_uj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_maneuver_distance_mm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_residual_risk_ppm": {
+          "$ref": "#/$defs/probability"
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "The passive and active records must share a root decision boundary and evaluator-only actor outcome labels.",
+    "Policy-visible field IDs and evaluator-only field IDs must be disjoint.",
+    "Risk, duration, energy, maneuver distance and information gain are separate terms; do not create a composite score.",
+    "A no-safe-information-action pair cannot request a sensor, reposition, proceed into the conflict zone or encroach the boundary.",
+    "The causal branch audit digest refers to independently audited #4556 evidence; a syntactically valid digest does not authenticate that evidence.",
+    "For trained_policy, checkpoint_sha256 is required and must identify the frozen checkpoint.",
+    "The evaluator-only actor/intent labels are not valid policy inputs."
+  ]
+}

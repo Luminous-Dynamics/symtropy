@@ -1,0 +1,14 @@
+[package]
+name = "observability-guided-driving"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Risk-constrained active perception and value-of-information audit for driving"
+
+[workspace]
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"

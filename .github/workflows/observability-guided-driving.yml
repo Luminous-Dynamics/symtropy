@@ -1,0 +1,52 @@
+name: observability-guided-driving
+
+on:
+  pull_request:
+    paths:
+      - "research/observability-guided-driving-001/**"
+      - ".github/workflows/observability-guided-driving.yml"
+  push:
+    paths:
+      - "research/observability-guided-driving-001/**"
+      - ".github/workflows/observability-guided-driving.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  auditor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/observability-guided-driving-001/Cargo.toml -- --check
+
+      - name: Run paired calibration, VOI and negative-control tests
+        run: cargo test --locked --manifest-path research/observability-guided-driving-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/observability-guided-driving-001/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Audit the checked-in occluded-crosswalk fixture
+        run: |
+          cargo run --quiet --locked \
+            --manifest-path research/observability-guided-driving-001/Cargo.toml -- \
+            research/observability-guided-driving-001/fixtures/occluded-crosswalk-paired-v1.json \
+            "${RUNNER_TEMP}/observability-report.json"
+          jq -e '
+            .disposition == "valid" and
+            .expected_pair_count == 2 and
+            .observed_pair_count == 2 and
+            .unsafe_information_action_count == 0 and
+            .no_safe_action_violations == 0 and
+            (.active_minus_passive_crossing_brier < 0)
+          ' "${RUNNER_TEMP}/observability-report.json"
