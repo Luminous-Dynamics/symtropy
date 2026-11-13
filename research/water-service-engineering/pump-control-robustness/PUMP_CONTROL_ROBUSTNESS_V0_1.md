@@ -56,14 +56,14 @@ Separate a method's required state estimator from the controller. If a method re
 
 ## 4. Synthetic scenario corpus
 
-The companion schema and JSON pack define 15 cases, from fully observed nominal operation through demand ramps, sparse sensors, dropout, bias, common-mode drift, sensor disagreement, stale timebases, topology mismatch, pump trip, source/suction limitation, power interruption, communications loss and compound common-cause failure.
+The companion schema and JSON pack define 15 cases, from fully observed nominal operation through demand ramps, sparse sensors, dropout, bias, common-mode drift, sensor disagreement, stale timebases, topology mismatch, pump trip, source/suction limitation, power interruption, communications loss and compound common-cause failure. Coverage is derived from named required and directly measured state variables; an unweighted percentage alone is not authoritative. Each estimator-backed case includes explicit synthetic-only estimator, calibration and uncertainty references, with actual qualification expressly false. Independent local protection availability is a separate field. The disposition model distinguishes supervisory abstention, local-safety-only and stop/reconcile.
 
 All pressure/storage bounds are expressly synthetic and non-normative. They are not Johannesburg Water setpoints, South African drinking-water standards or engineering design criteria.
 
 The companion oracle records only the expected **admission disposition**:
 - run nominally;
-- run only with a separately qualified estimator;
-- abstain / invoke a qualified local fallback;
+- run only with a separately evidenced estimator contract (synthetic fixture marker here; no real qualification is claimed);
+- abstain from supervisory action;
 - local safety system only;
 - stop and reconcile.
 
