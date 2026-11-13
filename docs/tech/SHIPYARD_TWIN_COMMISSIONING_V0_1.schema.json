@@ -7,7 +7,8 @@
     "schema_version",
     "benchmark_id",
     "claim_ceiling",
-    "cases"
+    "cases",
+    "lifecycle_scenarios"
   ],
   "properties": {
     "schema_version": {
@@ -25,6 +26,14 @@
       "maxItems": 13,
       "items": {
         "$ref": "#/$defs/case"
+      }
+    },
+    "lifecycle_scenarios": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/lifecycle_scenario"
       }
     }
   },
@@ -346,6 +355,66 @@
               "UNCERTAINTY_LIMIT",
               "COMPOSITION_MODE",
               "SAMPLE_FREQUENCY"
+            ]
+          }
+        }
+      }
+    },
+    "lifecycle_scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "initial_state",
+        "events",
+        "expected_states"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^LIFE-[0-9]{3}$"
+        },
+        "initial_state": {
+          "enum": [
+            "UNCONFIGURED",
+            "CANDIDATE",
+            "COMMISSIONED",
+            "DEGRADED",
+            "SUSPENDED",
+            "REQUALIFICATION_REQUIRED",
+            "DECOMMISSIONED"
+          ]
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "CONFIGURATION_COMPLETE",
+              "COMMISSIONING_PASSED",
+              "COMMISSIONING_FAILED",
+              "OPTIONAL_BUDGET_EXCEEDED",
+              "CRITICAL_BUDGET_EXCEEDED",
+              "DEPENDENCY_REVISION_CHANGED",
+              "RECOMMISSIONING_STARTED",
+              "SUSPENSION_CLEARED",
+              "REQUALIFICATION_STARTED",
+              "DECOMMISSION"
+            ]
+          }
+        },
+        "expected_states": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "enum": [
+              "UNCONFIGURED",
+              "CANDIDATE",
+              "COMMISSIONED",
+              "DEGRADED",
+              "SUSPENDED",
+              "REQUALIFICATION_REQUIRED",
+              "DECOMMISSIONED"
             ]
           }
         }
