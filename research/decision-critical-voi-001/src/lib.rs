@@ -133,6 +133,7 @@ pub enum RejectionReason {
     EmptyIdentity,
     DuplicateActionId,
     MissingCurrentAction,
+    CurrentActionNotBestEstimate,
     DuplicateQueryId,
     EmptyOutcomeDistribution,
     InvalidProbabilityMass,
@@ -161,6 +162,7 @@ impl RejectionReason {
             Self::EmptyIdentity => "empty_identity",
             Self::DuplicateActionId => "duplicate_action_id",
             Self::MissingCurrentAction => "missing_current_action",
+            Self::CurrentActionNotBestEstimate => "current_action_not_best_estimate",
             Self::DuplicateQueryId => "duplicate_query_id",
             Self::EmptyOutcomeDistribution => "empty_outcome_distribution",
             Self::InvalidProbabilityMass => "invalid_probability_mass",
@@ -306,15 +308,6 @@ fn expected_loss_after(
                     .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?,
             )
             .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
-        if best_action != candidate
-            .outcomes
-            .first()
-            .and_then(|_| None::<String>)
-            .unwrap_or_default()
-        {
-            // No-op: action-change probability is computed by the caller,
-            // which knows the current best action.
-        }
     }
     if probability_total != PROBABILITY_SCALE_PPM {
         return Err(vec![RejectionReason::InvalidProbabilityMass]);
@@ -503,13 +496,18 @@ fn validate_request(request: &DecisionRequest) -> Result<(String, u64, u64), Vec
             request.context.decision_timestamp_us
         }
     };
-    let baseline = current_map
-        .get(&request.context.current_action_id)
-        .copied()
-        .or_else(|| current_map.values().copied().min())
-        .unwrap_or(0);
+    let best_current = current_map
+        .iter()
+        .min_by(|left, right| left.1.cmp(right.1).then_with(|| left.0.cmp(right.0)))
+        .map(|(action_id, loss)| (action_id.clone(), *loss));
+    if let Some((best_action_id, _)) = &best_current {
+        if best_action_id != &request.context.current_action_id {
+            reasons.insert(RejectionReason::CurrentActionNotBestEstimate);
+        }
+    }
+    let (baseline_action_id, baseline_loss) = best_current.unwrap_or_default();
     if reasons.is_empty() {
-        Ok((request.context.current_action_id.clone(), baseline, latest))
+        Ok((baseline_action_id, baseline_loss, latest))
     } else {
         Err(reasons.into_iter().collect())
     }
@@ -710,7 +708,7 @@ mod tests {
                 actuation_deadline_timestamp_us: 1_100_000,
                 actuation_reserve_us: 30_000,
                 input_integrity: InputIntegrity::ValidFresh,
-                current_action_id: "proceed".to_string(),
+                current_action_id: "brake".to_string(),
                 current_action_estimates: vec![
                     estimate("brake", 40),
                     estimate("proceed", 100),
@@ -781,7 +779,7 @@ mod tests {
             report.recommended_query_id.as_deref(),
             Some("reacquire-front-camera")
         );
-        assert_eq!(report.candidates[0].expected_decision_loss_reduction_units, Some(40));
+        assert_eq!(report.candidates[0].expected_decision_loss_reduction_units, Some(15));
         assert_eq!(report.candidates[0].predicted_best_action_change_probability_ppm, 500_000);
     }
 
@@ -885,7 +883,7 @@ mod tests {
             100,
             0,
             0,
-            vec![outcome(1_000_000, 40, 50)],
+            vec![outcome(1_000_000, 30, 50)],
         );
         let valuable = beneficial_query("slower-higher-value", QueryKind::CounterfactualSimulation, 20_000);
         let dominated = candidate(
@@ -895,7 +893,7 @@ mod tests {
             900,
             3,
             0,
-            vec![outcome(1_000_000, 10, 110)],
+            vec![outcome(1_000_000, 35, 110)],
         );
         let report = allocate(&base_request(vec![fast, valuable, dominated])).unwrap();
         assert!(report.pareto_frontier_query_ids.contains(&"fast-lower-value".to_string()));
