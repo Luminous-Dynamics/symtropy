@@ -705,7 +705,7 @@ mod tests {
             value.maximum_sample_age_ns = 1_000_000_000;
             value
         };
-        let process = make_rate("PROCESS-01", 100_000, 1_000_000);
+        let process = make_rate("PROCESS-01", 100_000, 3_000_000);
         let robot = make_rate("ROBOT-01", 8_000_000, 9_000_000);
         let opcua = make_rate("OPCUA-01", 100_000_000, 110_000_000);
         let receipt = align_event(&window, &[opcua, robot, process], decision)
