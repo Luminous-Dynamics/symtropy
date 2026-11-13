@@ -1398,17 +1398,6 @@ mod tests {
         right
             .observe_attempt("unit-1", &right_machine, None)
             .expect("right attempt");
-        assert!(
-            left.report()
-                .expect("left report")
-                .crew_time_rollups
-                .iter()
-                .any(|row| {
-                    row.task_id.as_deref() == Some("task-1")
-                        && row.role == "inspector"
-                        && row.crew_minutes == 15
-                })
-        );
         for item in [&mut left, &mut right] {
             item.add_cost(CostEntry {
                 entry_id: "cost-1".to_owned(),
@@ -1428,6 +1417,17 @@ mod tests {
             })
             .expect("labour");
         }
+        assert!(
+            left.report()
+                .expect("left report")
+                .crew_time_rollups
+                .iter()
+                .any(|row| {
+                    row.task_id.as_deref() == Some("task-1")
+                        && row.role == "inspector"
+                        && row.crew_minutes == 15
+                })
+        );
         assert_eq!(left.report(), right.report());
     }
 
