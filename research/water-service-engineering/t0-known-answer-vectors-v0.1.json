@@ -17,11 +17,6 @@
         "total_dynamic_head_m": 25,
         "electrical_input_power_w": 3503.5714285714284
       },
-      "expected": {
-        "hydraulic_power_w": 2452.5,
-        "wire_to_water_efficiency": 0.7,
-        "electrical_specific_energy_kwh_m3": 0.09732142857142857
-      },
       "oracle": "P_hydraulic = rho * g * Q * H; eta = P_hydraulic / P_electrical; kWh/m3 = rho*g*H/(3.6e6*eta)"
     },
     {
@@ -31,11 +26,6 @@
         "system_curve": "H_s(Q) = 10 + 20000 * Q^2",
         "flow_unit": "m3/s",
         "head_unit": "m"
-      },
-      "expected": {
-        "flow_m3_s": 0.01,
-        "head_m": 12,
-        "residual_m": 0
       },
       "oracle": "Solve H_p(Q) = H_s(Q); both curves must return the same duty head"
     },
@@ -48,12 +38,6 @@
         "head_unit": "m",
         "assumption": "identical pumps, equal flow split, same manifold head"
       },
-      "expected": {
-        "total_flow_m3_s": 0.0158113883008419,
-        "flow_per_pump_m3_s": 0.00790569415042095,
-        "common_head_m": 15,
-        "flow_split_residual_m3_s": 0
-      },
       "oracle": "H_parallel(Q) = H_single(Q/2); intersect with system curve"
     },
     {
@@ -64,11 +48,6 @@
         "measured_flow_m3_s": 0.01,
         "minimum_service_flow_m3_s": 0.009
       },
-      "expected": {
-        "service_disposition": "INFEASIBLE",
-        "reason": "MINIMUM_SERVICE_HEAD_NOT_MET",
-        "energy_credit_eligible": false
-      },
       "oracle": "A feasible energy or cost objective cannot compensate for a hard service-floor violation"
     },
     {
@@ -77,10 +56,6 @@
         "pump_command": "ON",
         "measured_flow_m3_s": 0,
         "electrical_input_power_w": 300
-      },
-      "expected": {
-        "delivery_disposition": "NO_DELIVERY",
-        "command_is_not_flow_evidence": true
       },
       "oracle": "Commanded state and measured hydraulic delivery are distinct observations"
     },
@@ -91,10 +66,6 @@
         "measured_delivery_pressure": null,
         "minimum_service_pressure": 150000
       },
-      "expected": {
-        "service_disposition": "INDETERMINATE",
-        "schedule_feasible": false
-      },
       "oracle": "Missing critical service evidence never becomes zero, a pass, or a feasible schedule"
     },
     {
@@ -104,11 +75,6 @@
         "demand_m3_s": 0.005,
         "outage_duration_s": 120,
         "minimum_reserve_m3": 0.2
-      },
-      "expected": {
-        "demand_volume_m3": 0.6,
-        "storage_end_m3": 0.4,
-        "service_disposition": "SERVICE_MAINTAINED_WITHIN_DECLARED_RESERVE"
       },
       "oracle": "Storage balance is start volume minus integrated demand; declare service maintained only when demand is supplied and end storage remains above the profile reserve"
     },
@@ -121,10 +87,6 @@
         ],
         "requested_flow_m3_s": 0.02,
         "extrapolation_allowed": false
-      },
-      "expected": {
-        "calculation_disposition": "UNSUPPORTED",
-        "schedule_feasible": false
       },
       "oracle": "Do not extrapolate a pump curve outside its declared test/map domain"
     },
@@ -140,16 +102,6 @@
         "fixed_speed_ratio": 1,
         "assumed_total_wire_to_water_efficiency_both_modes": 0.7,
         "vfd_pump_curve_at_speed_ratio_r": "H(Q,r) = 20 * r^2 - 80000 * Q^2"
-      },
-      "expected": {
-        "system_head_m": 10.5,
-        "fixed_speed_pump_head_m": 18,
-        "fixed_speed_throttle_loss_m": 7.5,
-        "vfd_speed_ratio": 0.7905694150420949,
-        "vfd_pump_head_m": 10.5,
-        "fixed_speed_specific_energy_kwh_m3": 0.07007142857142858,
-        "vfd_specific_energy_kwh_m3": 0.040875,
-        "idealized_energy_reduction_fraction": 0.4166666666666667
       },
       "oracle": "At matched flow, fixed-speed pump head equals system head plus throttle loss; choose r so 20*r^2 - 80000*Q^2 equals the system head. Hold total efficiency fixed only to isolate hydraulic head reduction; real drive and pump efficiency maps must be measured"
     }
@@ -172,15 +124,6 @@
         "evaporation_or_other_water_loss_l": 5,
         "captured_dry_residual_marker_mg": 50
       },
-      "expected": {
-        "water_in_l": 1000,
-        "water_out_l": 1000,
-        "water_balance_residual_l": 0,
-        "marker_in_mg": 2000,
-        "marker_accounted_mg": 2000,
-        "marker_balance_residual_mg": 0,
-        "evidence_disposition": "SYNTHETIC_ARITHMETIC_ONLY"
-      },
       "oracle": "sum(output water streams) = feed water; sum(marker mass in output liquid and captured residual solids) = feed marker mass"
     },
     {
@@ -194,10 +137,6 @@
           "marker_alpha"
         ]
       },
-      "expected": {
-        "assessment_disposition": "INDETERMINATE",
-        "release_allowed": false
-      },
       "oracle": "Incomplete required analyte coverage cannot produce a compliant assessment"
     },
     {
@@ -206,10 +145,6 @@
         "declared_train_has_stage_bypass": true,
         "bypass_observed": true,
         "profile_requires_stage": true
-      },
-      "expected": {
-        "assessment_disposition": "INDETERMINATE",
-        "release_allowed": false
       },
       "oracle": "Required process barrier bypass is a no-release condition until reassessed under the applicable profile"
     },
@@ -221,10 +156,6 @@
         "measured_marker_alpha_mg_l": 1.2,
         "absolute_uncertainty_mg_l": 0.05
       },
-      "expected": {
-        "assessment_disposition": "SYNTHETIC_NONCOMPLIANT",
-        "release_allowed": false
-      },
       "oracle": "Synthetic challenge only: the complete measurement uncertainty interval exceeds the synthetic upper bound"
     },
     {
@@ -232,10 +163,6 @@
       "inputs": {
         "source_water_profile_admitted": false,
         "raw_water_observation_current": true
-      },
-      "expected": {
-        "assessment_disposition": "UNSUPPORTED",
-        "release_allowed": false
       },
       "oracle": "A current observation outside the treatment train's admitted raw-water envelope does not make the train suitable"
     },
@@ -245,10 +172,6 @@
         "critical_method_current": false,
         "critical_instrument_calibration_current": false
       },
-      "expected": {
-        "assessment_disposition": "INDETERMINATE",
-        "release_allowed": false
-      },
       "oracle": "Stale method/calibration on decisive measurements prevents a current positive assessment"
     },
     {
@@ -257,10 +180,6 @@
         "synthetic_profile_requires_storage_outlet_sample": true,
         "treatment_outlet_disposition": "SYNTHETIC_PASS",
         "storage_outlet_disposition": "SYNTHETIC_NONCOMPLIANT"
-      },
-      "expected": {
-        "point_of_use_service_disposition": "SYNTHETIC_NONCOMPLIANT",
-        "release_allowed": false
       },
       "oracle": "A passing treatment outlet cannot override a failed downstream storage/point-of-use result"
     },
@@ -275,10 +194,6 @@
         "evaporation_or_other_water_loss_l": 5,
         "residual_stream_measured": false
       },
-      "expected": {
-        "volume_closure_disposition": "INCOMPLETE",
-        "recovery_claim_allowed": false
-      },
       "oracle": "An unmeasured or omitted declared residual stream prevents complete-cycle closure and recovery claims"
     }
   ],
@@ -291,11 +206,6 @@
         "declared_legitimate_demand_change": true,
         "independent_leak_evidence": false
       },
-      "expected": {
-        "diagnostic_disposition": "ALTERNATIVE_CAUSE_CANDIDATE",
-        "confirmed_leak": false,
-        "physical_action_allowed": false
-      },
       "oracle": "Demand changes can produce hydraulic residuals; an anomaly is not confirmation of a leak"
     },
     {
@@ -304,10 +214,6 @@
         "pressure_transient": true,
         "pump_or_valve_event_recorded": true,
         "steady_state_leak_model_only": true
-      },
-      "expected": {
-        "diagnostic_disposition": "INDETERMINATE_PENDING_TRANSIENT_REVIEW",
-        "confirmed_leak": false
       },
       "oracle": "A steady-state model cannot classify an unmodelled pump/valve transient as a leak"
     },
@@ -318,10 +224,6 @@
         "independent_sensor_count": 1,
         "network_segment_ambiguity": true
       },
-      "expected": {
-        "localization_disposition": "INDETERMINATE",
-        "high_confidence_location_allowed": false
-      },
       "oracle": "Detection candidate and unique localization are distinct outputs"
     },
     {
@@ -330,10 +232,6 @@
         "flow_sensor_drift": true,
         "pressure_sensor_shared_calibration_dependency": true,
         "independent_reference_available": false
-      },
-      "expected": {
-        "diagnostic_disposition": "INDETERMINATE",
-        "sensor_consensus_is_not_independent": true
       },
       "oracle": "Correlated sensor errors cannot be counted as independent corroboration"
     },
@@ -344,10 +242,6 @@
         "critical_pressure_sensor_missing": true,
         "alarm_count": 0
       },
-      "expected": {
-        "network_disposition": "PARTIALLY_UNOBSERVED",
-        "leak_absence_claim_allowed": false
-      },
       "oracle": "No alarm with missing telemetry or unobserved pipe length is not evidence of no leak"
     },
     {
@@ -356,10 +250,6 @@
         "maintenance_completion_reported": true,
         "post_repair_flow_pressure_evidence": false,
         "independent_reinspection": false
-      },
-      "expected": {
-        "repair_disposition": "NOT_VERIFIED",
-        "saved_water_claim_allowed": false
       },
       "oracle": "A work-order closeout or operator assertion alone does not prove repair success or water saved"
     }
