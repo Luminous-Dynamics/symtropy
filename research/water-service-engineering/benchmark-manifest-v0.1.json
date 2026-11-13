@@ -183,5 +183,11 @@
       "status": "synthetic_transport_arithmetic_only"
     },
     "evidence_ceiling": "no_raw_dataset_file_acquired_no_fouling_model_or_cleaning_performance_claim"
+  },
+  "membrane_cip_counterfactual": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5012",
+    "protocol": "research/water-service-engineering/MEMBRANE_CIP_COUNTERFACTUAL_PROTOCOL_V0_1.md",
+    "manifest": "research/water-service-engineering/membrane-cip-counterfactual-manifest-v0.1.json",
+    "status": "target_trial_contract_only_no_cleaning_policy_qualified"
   }
 }
