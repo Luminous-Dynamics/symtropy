@@ -407,10 +407,7 @@ impl SpatialOccupancyBook {
     /// Number of broad-phase candidates considered by the spatial index. This is
     /// a diagnostic for benchmark/reporting only; exact conflict results come from
     /// `conflicts_for`, which applies interval and AABB overlap tests.
-    pub fn candidate_count_for(
-        &self,
-        occupancy: &SpatialOccupancy,
-    ) -> Result<usize, SpatialError> {
+    pub fn candidate_count_for(&self, occupancy: &SpatialOccupancy) -> Result<usize, SpatialError> {
         let expanded_candidate = self.validate_occupancy(occupancy)?;
         if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
             return if previous == occupancy {
@@ -721,7 +718,10 @@ mod tests {
         book.insert(first).expect("negative-side occupancy");
 
         assert_eq!(book.candidate_count_for(&touching), Ok(1));
-        assert_eq!(book.conflicts_for(&touching).expect("conflict query").len(), 1);
+        assert_eq!(
+            book.conflicts_for(&touching).expect("conflict query").len(),
+            1
+        );
     }
 
     #[test]
@@ -746,7 +746,12 @@ mod tests {
         book.insert(oversized).expect("global fallback occupancy");
 
         assert_eq!(book.candidate_count_for(&small), Ok(1));
-        assert_eq!(book.conflicts_for(&small).expect("global fallback query").len(), 1);
+        assert_eq!(
+            book.conflicts_for(&small)
+                .expect("global fallback query")
+                .len(),
+            1
+        );
     }
 
     #[test]
@@ -774,7 +779,11 @@ mod tests {
             100,
         );
         assert_eq!(book.candidate_count_for(&candidate), Ok(0));
-        assert!(book.conflicts_for(&candidate).expect("empty-gap query").is_empty());
+        assert!(
+            book.conflicts_for(&candidate)
+                .expect("empty-gap query")
+                .is_empty()
+        );
     }
 
     #[test]
@@ -1294,7 +1303,6 @@ mod tests {
             },
         )
         .expect("independent inspection acceptance");
-        
 
         assert_eq!(
             ledger.observe_attempt("rebar-functional-unit-001", &machine, None),
