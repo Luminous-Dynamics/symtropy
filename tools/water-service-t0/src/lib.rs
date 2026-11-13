@@ -266,7 +266,7 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
                 "evaporation_or_other_water_loss_l",
             ]
             .iter()
-            .map(|key| number(i, &[key]))
+            .map(|key| number(i, &[*key]))
             .collect::<Result<Vec<_>, _>>()?
             .iter()
             .sum::<f64>();
