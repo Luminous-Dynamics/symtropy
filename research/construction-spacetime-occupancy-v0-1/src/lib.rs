@@ -755,6 +755,57 @@ mod tests {
     }
 
     #[test]
+    fn grid_broad_phase_has_no_false_negatives_on_frozen_boundary_pair_corpus() {
+        let coordinates = [-10_001_i64, -10_000, -1, 0, 1, 9_999, 10_000, 10_001];
+        let mut boxes = Vec::new();
+
+        for (index, x) in coordinates.iter().enumerate() {
+            for y in coordinates {
+                for z in coordinates {
+                    let width = if (index + (y as usize & 1)) % 2 == 0 {
+                        1_000
+                    } else {
+                        10_001
+                    };
+                    boxes.push(bounds(
+                        [*x, y, z],
+                        [*x + width, y + width, z + width],
+                    ));
+                }
+            }
+        }
+
+        for left in &boxes {
+            let left_cells = grid_cells(left);
+            for right in &boxes {
+                if left.intersection_closed(right).is_none() {
+                    continue;
+                }
+
+                let right_cells = grid_cells(right);
+                match (&left_cells, &right_cells) {
+                    (Some(left_cells), Some(right_cells)) => {
+                        let right_set: BTreeSet<_> = right_cells.iter().copied().collect();
+                        assert!(
+                            left_cells.iter().any(|cell| right_set.contains(cell)),
+                            "grid false negative for left={left:?}, right={right:?}"
+                        );
+                    }
+                    // An oversized box uses the global fallback and is compared
+                    // against every candidate; it cannot be pruned by the grid.
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn extreme_coordinate_span_uses_global_fallback() {
+        let giant = bounds([i64::MIN, i64::MIN, i64::MIN], [i64::MAX, i64::MAX, i64::MAX]);
+        assert!(grid_cells(&giant).is_none());
+    }
+
+    #[test]
     fn sparse_grid_filters_unrelated_candidate_pairs() {
         let mut book = book();
         for index in 0..128_i64 {
