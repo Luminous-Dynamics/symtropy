@@ -38,7 +38,8 @@
         "repository",
         "commit_sha",
         "path",
-        "git_blob_sha"
+        "git_blob_sha",
+        "coordinate_family"
       ],
       "properties": {
         "case_id": {
@@ -55,6 +56,31 @@
         },
         "git_blob_sha": {
           "const": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284"
+        },
+        "coordinate_family": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "family",
+            "basis_condition_2",
+            "transformed_mass_condition_2"
+          ],
+          "properties": {
+            "family": {
+              "enum": [
+                0,
+                2
+              ]
+            },
+            "basis_condition_2": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "transformed_mass_condition_2": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
         }
       }
     },
