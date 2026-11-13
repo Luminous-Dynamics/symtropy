@@ -1304,7 +1304,7 @@
         "authoritative": false
       },
       "expected_overall_disposition": "not_restored",
-      "note": "A high weighted mean (about 98.92%) cannot compensate for DMA-C's known service-floor breach at 22%."
+      "note": "A high weighted mean (98.42%) cannot compensate for DMA-C's known service-floor breach at 22%."
     },
     {
       "scenario_id": "WRV-006",
