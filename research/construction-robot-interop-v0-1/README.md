@@ -129,6 +129,12 @@ These are synthetic test adapters in one Rust crate, not two independently autho
 
 ## Shared-resource reservation evaluator
 
+### Read-only reservation previews
+
+The temporal-index owner now exposes `ReservationBook::preview_reservation` for planning alternatives. It runs the same current-site/clock/expiry checks, uncertainty-expanded half-open overlap filtering and exact peak-concurrency event sweep as `reserve`, but does not expire records, insert bookings or mutate index state. Time-due active records are ignored for capacity, while reuse of a due/consumed reservation ID is rejected exactly as the mutating reserve path would reject it after lazy expiry.
+
+This lets upstream planners compare several resource-feasible alternatives against one unchanged reservation snapshot. A preview is not a reservation or a concurrency lock: another actor may reserve the capacity between preview and later commit. Execution must call `reserve` / the owning admission primitive again and reconcile the returned result; do not treat a prior preview as a durable grant.
+
 The dependency-free `resources` module adds a deterministic calendar for exclusive and capacity-limited resources. It uses half-open time intervals, a declared common clock domain, explicit expiry, owner-bound release and site-epoch invalidation. It uses an event sweep over uncertainty-expanded half-open intervals and checks peak simultaneous occupancy, rather than summing every reservation that intersects a candidate window. This admits a valid long reservation spanning disjoint earlier/later reservations while rejecting a genuine peak overbooking. It preserves released/expired/invalidated IDs so an old reservation cannot be resurrected by reusing its identifier.
 
 The evaluator is scheduling-only: its `Granted` result is not a safety permit, work-zone clearance or motion authorization. The caller supplies a project-specific maximum clock uncertainty in the declared site clock domain; requests above that bound are rejected, interval overlap is conservatively expanded by each request's uncertainty, and reservation expiry uses the earliest possible expiry. This does not synchronize clocks or establish that the chosen uncertainty bound is physically justified. Spatial conflict geometry, external identity authorization and live dispatch remain outside this module.
