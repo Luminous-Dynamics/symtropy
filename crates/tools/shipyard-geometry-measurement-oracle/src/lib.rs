@@ -5,8 +5,6 @@
 //! differences. It does not perform 3D point-cloud registration, calibrate a
 //! laser scanner, infer weld quality, or authorize production decisions.
 
-use std::convert::TryFrom;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EvidenceClass {
     SyntheticContractOnly,
@@ -86,6 +84,7 @@ pub enum AbstainReason {
     InvalidUncertaintyLimit,
     FutureObservation,
     ObservationTooOld,
+    ObservationOrderMismatch,
     ProfileTooShort,
     RegionNotExactlyCovered,
     NonMonotonicStations,
@@ -172,7 +171,7 @@ fn round_div_nearest(numerator: u128, denominator: u128) -> Result<u128, Abstain
     let remainder = numerator % denominator;
     let round_up = remainder >= denominator - remainder;
     quotient
-        .checked_add(u128::from(round_up))
+        .checked_add(if round_up { 1 } else { 0 })
         .ok_or(AbstainReason::NumericOverflow)
 }
 
@@ -297,6 +296,9 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
         return Err(AbstainReason::InvalidUncertaintyLimit);
     }
 
+    if observed.captured_at_tick <= reference.captured_at_tick {
+        return Err(AbstainReason::ObservationOrderMismatch);
+    }
     observation_age(
         reference.captured_at_tick,
         limits.decision_at_tick,
@@ -315,9 +317,9 @@ fn station_is_measured(
     observed: &ProfilePoint,
     maximum_uncertainty_um: u64,
 ) -> Result<bool, AbstainReason> {
-    let (Some(reference_z), Some(observed_z)) = (reference.z_um, observed.z_um) else {
+    if reference.z_um.is_none() || observed.z_um.is_none() {
         return Ok(false);
-    };
+    }
     let (Some(reference_uncertainty), Some(observed_uncertainty)) =
         (reference.uncertainty_um, observed.uncertainty_um)
     else {
@@ -331,7 +333,6 @@ fn station_is_measured(
     {
         return Err(AbstainReason::PointUncertaintyTooLarge);
     }
-    let _ = (reference_z, observed_z);
     Ok(true)
 }
 
@@ -409,7 +410,10 @@ fn compare_profiles_inner(
         let width = width_between(left_reference.x_um, right_reference.x_um)?;
         maximum_sample_spacing = maximum_sample_spacing.max(width);
 
-        if !station_valid[index] || !station_valid[index + 1] {
+        if !station_valid[index]
+            || !station_valid[index + 1]
+            || width > limits.maximum_unsupported_gap_um
+        {
             current_unsupported_gap = current_unsupported_gap
                 .checked_add(width)
                 .ok_or(AbstainReason::NumericOverflow)?;
@@ -734,6 +738,13 @@ mod tests {
         let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         request.observed.captured_at_tick = 101;
         abstains(&request, AbstainReason::FutureObservation);
+    }
+
+    #[test]
+    fn observed_profile_must_follow_reference_profile_in_time() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.captured_at_tick = request.reference.captured_at_tick;
+        abstains(&request, AbstainReason::ObservationOrderMismatch);
     }
 
     #[test]
