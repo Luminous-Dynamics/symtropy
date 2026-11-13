@@ -1,0 +1,265 @@
+{
+  "schema_version": "suf.observability_by_design_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "workstream": "OBSERVABILITY-BY-DESIGN-QUAL-001",
+  "claim_ceiling": "Synthetic design campaign only. No physical installation, approved corridor design, coupling measurement or economic benefit is claimed.",
+  "architectures": [
+    "A0_EXISTING_CONVENTIONAL_INSPECTION",
+    "A1_EXISTING_SPARE_FIBRE",
+    "A2_SHARED_TRENCH_DUCT",
+    "A3_DEDICATED_SENSING_DUCT",
+    "A4_COUPLED_FIBRE_CONDUIT",
+    "A5_SPARSE_POINT_SENSORS",
+    "A6_HYBRID_DAS_POINT_SURVEY",
+    "A7_NO_ADDED_SENSING"
+  ],
+  "metrics": [
+    "pod_by_event_class_magnitude",
+    "false_alarms_per_observable_fibre_km_day",
+    "event_chainage_error",
+    "geographic_route_error",
+    "observable_degraded_blind_unavailable_length",
+    "snr_coupling_attenuation",
+    "anchor_count_spacing",
+    "spatial_interval_coverage_width",
+    "repair_recalibration_downtime",
+    "cost_per_qualified_observable_km_year",
+    "cost_per_accepted_actionable_event",
+    "common_cause_recovery"
+  ],
+  "scenarios": [
+    {
+      "id": "OBD-001",
+      "scenario_type": "EXISTING_SPARE_FIBRE",
+      "name": "Reuse existing authorized spare fibre",
+      "expected_disposition": "Accepted",
+      "conditions": "Fibre owner grants rights; route, endpoints and optical budget are documented and independently calibrated.",
+      "perturbations": [
+        "existing_spare_fibre"
+      ],
+      "oracle_requirement": "Compare reuse cost and coverage against dedicated sensing alternatives on the same route."
+    },
+    {
+      "id": "OBD-002",
+      "scenario_type": "DARK_FIBRE_RIGHTS_UNKNOWN",
+      "name": "Dark fibre exists but commercial/operational rights are unresolved",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Physical fibre is available but owner, lease, permitted purpose or coexistence status is not established.",
+      "perturbations": [
+        "dark_fibre_rights_unknown"
+      ],
+      "oracle_requirement": "Do not use the fibre until rights and non-interference are approved."
+    },
+    {
+      "id": "OBD-003",
+      "scenario_type": "DIRECT_BURIED",
+      "name": "Sensing fibre direct-buried with independently known installation profile",
+      "expected_disposition": "Accepted",
+      "conditions": "Fibre depth, soil/backfill, route, coupling and reference events are documented.",
+      "perturbations": [
+        "direct_buried"
+      ],
+      "oracle_requirement": "Qualify coupling and POD separately from conduit/shared-trench profiles."
+    },
+    {
+      "id": "OBD-004",
+      "scenario_type": "CONDUIT_DAMPING",
+      "name": "Fibre in conduit has reduced mechanical coupling",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Conduit installation has attenuation/damping relative to direct burial.",
+      "perturbations": [
+        "conduit_damping"
+      ],
+      "oracle_requirement": "Do not inherit direct-burial POD; qualify the conduit stratum and report blind/degraded length."
+    },
+    {
+      "id": "OBD-005",
+      "scenario_type": "SHARED_TRENCH_OFFSET",
+      "name": "Sensing fibre is offset from the target cable in a shared trench",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Lateral/vertical separation varies and event propagation between cable and fibre is uncertain.",
+      "perturbations": [
+        "shared_trench_offset"
+      ],
+      "oracle_requirement": "Require independent localization and asset-attribution evidence; chainage alone is insufficient."
+    },
+    {
+      "id": "OBD-006",
+      "scenario_type": "DEDICATED_SENSING_DUCT",
+      "name": "Separate sensing duct with engineered coupling and test access",
+      "expected_disposition": "Accepted",
+      "conditions": "Dedicated path, calibration anchors and test points are part of the synthetic design.",
+      "perturbations": [
+        "dedicated_sensing_duct"
+      ],
+      "oracle_requirement": "Compare lifecycle benefit to dedicated installation CAPEX and ongoing calibration."
+    },
+    {
+      "id": "OBD-007",
+      "scenario_type": "UNPLANNED_SLACK",
+      "name": "Unrecorded fibre slack and coils at access chambers",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Optical path length differs from route station due to undocumented slack.",
+      "perturbations": [
+        "unplanned_slack"
+      ],
+      "oracle_requirement": "Require measured path/topology or maintain an unresolved transform."
+    },
+    {
+      "id": "OBD-008",
+      "scenario_type": "SPLICE_DENSITY",
+      "name": "High splice count and optical loss across route",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Splices add loss and maintenance/uncertainty to the optical path.",
+      "perturbations": [
+        "splice_density"
+      ],
+      "oracle_requirement": "Measure attenuation, continuity, calibration offsets and usable range per segment."
+    },
+    {
+      "id": "OBD-009",
+      "scenario_type": "ENDPOINT_TEST_ACCESS",
+      "name": "Accessible endpoint and calibration test location",
+      "expected_disposition": "Accepted",
+      "conditions": "Endpoints and independent tie points are accessible under owner authorization.",
+      "perturbations": [
+        "endpoint_test_access"
+      ],
+      "oracle_requirement": "Measure reduced calibration time and maintainability without claiming field benefit."
+    },
+    {
+      "id": "OBD-010",
+      "scenario_type": "NO_ENDPOINT_ACCESS",
+      "name": "Fibre endpoint cannot be accessed for calibration or repair",
+      "expected_disposition": "Indeterminate",
+      "conditions": "No authorized optical access or independent tie point exists.",
+      "perturbations": [
+        "no_endpoint_access"
+      ],
+      "oracle_requirement": "Report limited observability and cost of creating access; do not assume tap-test."
+    },
+    {
+      "id": "OBD-011",
+      "scenario_type": "REPAIRABLE_PATH",
+      "name": "Route designed with replaceable fibre sections and known splice locations",
+      "expected_disposition": "Accepted",
+      "conditions": "Repair path, as-built process and recalibration procedure are explicitly declared.",
+      "perturbations": [
+        "repairable_path"
+      ],
+      "oracle_requirement": "Benchmark repair time and downstream transform invalidation."
+    },
+    {
+      "id": "OBD-012",
+      "scenario_type": "FLOOD_COMMON_CAUSE",
+      "name": "Water ingress affects access node, sensor and communications together",
+      "expected_disposition": "Rejected",
+      "conditions": "Common-cause flooding removes sensing and access capability simultaneously.",
+      "perturbations": [
+        "flood_common_cause"
+      ],
+      "oracle_requirement": "Expose the blind state and compare independent point sensing/manual access alternatives."
+    },
+    {
+      "id": "OBD-013",
+      "scenario_type": "POWER_BACKHAUL_OUTAGE",
+      "name": "Interrogator/backhaul power or communications outage",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Local sensing may continue but remote stream is unavailable.",
+      "perturbations": [
+        "power_backhaul_outage"
+      ],
+      "oracle_requirement": "Measure local buffering, outage coverage, recovery time and evidence loss."
+    },
+    {
+      "id": "OBD-014",
+      "scenario_type": "ANCHOR_SPACING_TOO_SPARSE",
+      "name": "Calibration anchors do not constrain route curvature",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Tie points are too sparse for the route topology and required error bound.",
+      "perturbations": [
+        "anchor_spacing_too_sparse"
+      ],
+      "oracle_requirement": "Request additional anchors or publish wider uncertainty; do not overfit smooth geometry."
+    },
+    {
+      "id": "OBD-015",
+      "scenario_type": "ROUTE_CHANGE_UNRECORDED",
+      "name": "Construction reroute changes fibre path without updating as-built",
+      "expected_disposition": "Rejected",
+      "conditions": "Existing calibration is bound to an obsolete route revision.",
+      "perturbations": [
+        "route_change_unrecorded"
+      ],
+      "oracle_requirement": "Invalidate all dependent geography until new as-built and calibration are accepted."
+    },
+    {
+      "id": "OBD-016",
+      "scenario_type": "MULTI_TENANT_RIGHTS",
+      "name": "Several utilities share corridor but fibre/asset access rights differ",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Sensing access for one tenant must not disclose another tenant's exact geometry or event state.",
+      "perturbations": [
+        "multi_tenant_rights"
+      ],
+      "oracle_requirement": "Apply owner-scoped identity, permission and disclosure; test least-privilege access."
+    },
+    {
+      "id": "OBD-017",
+      "scenario_type": "POINT_SENSOR_ALTERNATIVE",
+      "name": "Point sensors provide adequate coverage at lower lifecycle cost",
+      "expected_disposition": "Accepted",
+      "conditions": "A matched site profile shows sparse points meet the declared service requirement.",
+      "perturbations": [
+        "point_sensor_alternative"
+      ],
+      "oracle_requirement": "Allow a non-DAS alternative to win the economics comparison."
+    },
+    {
+      "id": "OBD-018",
+      "scenario_type": "NO_ADDED_SENSOR_BASELINE",
+      "name": "Conventional inspection/no added sensing is economically superior",
+      "expected_disposition": "Accepted",
+      "conditions": "The route has low criticality or low event exposure and inspection can meet service needs.",
+      "perturbations": [
+        "no_added_sensor_baseline"
+      ],
+      "oracle_requirement": "Keep no-added-sensing as a valid Pareto candidate; do not force DAS deployment."
+    },
+    {
+      "id": "OBD-019",
+      "scenario_type": "FIBRE_POWER_SEPARATION",
+      "name": "Sensing and power assets have independent access/common-cause profile",
+      "expected_disposition": "Accepted",
+      "conditions": "Qualified compartment, route and safety separation is defined by competent engineers.",
+      "perturbations": [
+        "fibre_power_separation"
+      ],
+      "oracle_requirement": "Compare observability while preserving separate utility engineering acceptance."
+    },
+    {
+      "id": "OBD-020",
+      "scenario_type": "PUBLIC_GEOMETRY_DISCLOSURE",
+      "name": "Public/partner service requests exact critical fibre and splice geometry",
+      "expected_disposition": "Rejected",
+      "conditions": "Audience does not have the utility owner's operational permission.",
+      "perturbations": [
+        "public_geometry_disclosure"
+      ],
+      "oracle_requirement": "Return generalized output and deny restricted geometry."
+    }
+  ],
+  "global_controls": [
+    "Existing fibre access and use require explicit owner permission.",
+    "Direct-burial and conduit coupling are separate qualification strata.",
+    "Channel pitch, gauge length, spatial resolution and sensing range are different parameters.",
+    "Fibre chainage and route geography require a versioned transformation with uncertainty.",
+    "Physical route changes invalidate downstream calibration receipts.",
+    "All in-scope route length is assigned a time- and event-specific observability state.",
+    "Point sensors and no-added-sensing are valid architecture alternatives.",
+    "Critical-asset geometry and event state are disclosed only under owner permission.",
+    "Common-cause outage and maintenance access are part of the lifecycle model.",
+    "No synthetic layout is an engineering design or authorization for construction."
+  ]
+}
