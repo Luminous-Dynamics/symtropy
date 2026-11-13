@@ -140,6 +140,7 @@ pub enum AbstainReason {
     ArithmeticOverflow,
     InvalidCadence,
     InvalidCoveragePolicy,
+    MissingUncertaintyDeclaration,
     InvalidEventWindow,
     DuplicateSequence,
     OutOfOrderSequence,
@@ -315,6 +316,14 @@ fn validate_stream_identity(
         || !valid_digest(&stream.transform.calibration_receipt_sha256)
     {
         return Err(AbstainReason::InvalidEvidenceDigest);
+    }
+    if stream.transform.calibration_uncertainty_ns == 0
+        || stream.transform.drift_uncertainty_ppb == 0
+        || stream.samples.iter().any(|sample| {
+            sample.source_timestamp_ns.is_some() && sample.timestamp_uncertainty_ns == 0
+        })
+    {
+        return Err(AbstainReason::MissingUncertaintyDeclaration);
     }
     if stream.nominal_period_ns == 0
         || stream.maximum_gap_ns == 0
@@ -693,7 +702,8 @@ mod tests {
         window.end_ns = 500_000_000;
         let decision = 1_000_000_000;
         let make_rate = |id: &str, period: u64, maximum_gap: u64| {
-            let mut value = stream(id, period, ((500_000_000 - 2_000_000) / period + 1) as usize);
+            let sample_count = ((500_000_000u64 - 2_000_000 - 1) / period + 1) as usize;
+            let mut value = stream(id, period, sample_count);
             value.maximum_gap_ns = maximum_gap;
             value.maximum_sample_age_ns = 1_000_000_000;
             value
@@ -885,6 +895,7 @@ mod tests {
         input.samples[1].quality = SampleQuality::Dropped;
         input.samples[2].quality = SampleQuality::Invalid;
         input.minimum_coverage_permille = 700;
+        input.maximum_gap_ns = 50_000_000;
         let receipt = align_stream(&event(), &input, DECISION).expect("remaining coverage");
         assert_eq!(receipt.clipped_sample_count, 1);
         assert_eq!(receipt.dropped_sample_count, 1);
@@ -935,8 +946,8 @@ mod tests {
     #[test]
     fn event_end_is_half_open_and_not_double_counted() {
         let mut input = stream("END", 10_000_000, 10);
-        input.samples[9].source_timestamp_ns = Some(EVENT_END);
-        input.samples[9].received_master_ns = Some(EVENT_END + 1_000_000);
+        input.samples[9].source_timestamp_ns = Some(EVENT_END + 3_000);
+        input.samples[9].received_master_ns = Some(EVENT_END + 1_003_000);
         input.maximum_gap_ns = 20_000_000;
         let receipt = align_stream(&event(), &input, DECISION).expect("window still covered");
         assert_eq!(receipt.out_of_window_count, 1);
@@ -1013,6 +1024,26 @@ mod tests {
     #[test]
     fn causal_lag_above_combined_uncertainty_is_resolvable() {
         assert!(causal_lag_resolvable(111, 60, 50).expect("comparison"));
+    }
+
+    #[test]
+    fn zero_or_undeclared_clock_uncertainty_is_rejected() {
+        let mut input = stream("ZERO-UNCERTAINTY", 10_000_000, 10);
+        input.transform.calibration_uncertainty_ns = 0;
+        assert_eq!(
+            align_stream(&event(), &input, DECISION),
+            Err(AbstainReason::MissingUncertaintyDeclaration)
+        );
+    }
+
+    #[test]
+    fn zero_sample_timestamp_uncertainty_is_rejected() {
+        let mut input = stream("ZERO-SAMPLE-UNCERTAINTY", 10_000_000, 10);
+        input.samples[0].timestamp_uncertainty_ns = 0;
+        assert_eq!(
+            align_stream(&event(), &input, DECISION),
+            Err(AbstainReason::MissingUncertaintyDeclaration)
+        );
     }
 
     #[test]
