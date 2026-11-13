@@ -41,7 +41,8 @@
         "clock_domain",
         "supported",
         "independent_sources_required",
-        "requirements"
+        "requirements",
+        "profile_sha256"
       ],
       "properties": {
         "task_id": {
@@ -68,6 +69,10 @@
           "items": {
             "$ref": "#/$defs/requirement"
           }
+        },
+        "profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -211,7 +216,8 @@
         "coverage_permille",
         "occlusion_permille",
         "fidelity_error_units",
-        "common_cause_domains"
+        "common_cause_domains",
+        "clock_mapping_receipt_sha256"
       ],
       "properties": {
         "component_id": {
@@ -324,6 +330,13 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "clock_mapping_receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     }
