@@ -82,6 +82,7 @@ Command-conditioned residuals must account for actuator lag, load/ambient distur
 |---|---|---|
 | Fault detection and diagnosis | Macro-F1, balanced accuracy, event recall, false alarms per engine-hour, duration, detection latency, worst-fault recall | Entire runs, loads, engines and vessels; no overlapping-window leakage |
 | Control-to-response consistency | Conditional residual coverage/sharpness, response-mismatch event recall, false mismatches per engine-hour, regime-wise calibration, prediction-to-response latency residual | Command available by prediction time; response strictly after prediction; future-command and future-model controls; held-out regimes; control/feedback dropout; common-cause removal; no actuation |
+| External-context robustness | False-context-excusal rate, false-internal-attribution rate, negative-control sensitivity, context-conditioned residual coverage/sharpness, context OOD abstention, worst-context recall | Same-internal-state context swaps; same-context internal-fault swaps; no-path negative controls; post-prediction/weather leakage; context-source independence; C-shift/F-shift/C+F splits |
 | Multi-source / cross-domain transfer | Target-domain delta, per-source contribution, negative-transfer rate, calibration and OOD false-known | Hold out whole operating conditions/engines; target fault labels sealed in zero-shot |
 | Continual adaptation | Average accuracy, backward transfer, forgetting, prior-domain calibration, update compute/memory | Re-evaluate every previous domain after each update |
 | Data trust / reconstruction | Missingness detection, anomaly recall, reconstruction error, interval coverage, false-safe reconstruction | Dropout correlated with faults, stuck sensors, drift, missing-not-at-random, reconstruction leakage |
@@ -97,6 +98,9 @@ Command-conditioned residuals must account for actuator lag, load/ambient distur
 - Zero promotion of control intent or controller output into measured physical response; actuator feedback requires verified signal semantics and never proves delivered fuel or torque by itself.
 - Zero use of commands, model updates or measurements that were unavailable at prediction time; unsupported regimes and configuration changes withdraw the affected qualification.
 - A response mismatch alone never names a root cause or authorizes maintenance, mode transition, restriction clearance or actuation.
+- Zero environmental-context use to excuse an independently supported internal-fault residual; zero context effect from a declared negative-control variable with no qualified physical path.
+- Zero observational association, SHAP attribution or weather/anomaly correlation promoted to causal mechanism without an independently qualified physical path and appropriate intervention/identification evidence.
+- Zero post-prediction, stale, out-of-support or internally derived external-context observations promoted as independent predictive evidence.
 - Zero imputed/reconstructed-to-measured promotion.
 - Zero target-label, future-data, temporal-window or intervention/censoring leakage.
 - Zero false-safe restoration or mode-transition claims from partial evidence.
@@ -300,3 +304,34 @@ Important limits preserved in the registry:
 - The intercooler-only anomaly result is substantially weaker (75% balanced accuracy, 63.1% F1), making early/low-severity detection a useful falsification target.
 
 Do not claim to beat this result until it is reproduced on the paper's own protocol. Then evaluate whole-run/intervention and chronological holdouts, leave-one-load-point-out, severity-wise event recall, false alarms per valid engine-hour, calibration and unknown-fault rejection. Cross-engine/vessel performance remains NOT_EVALUATED unless independent fault-labeled engines/vessels are actually available. This dedicated reproduction and grouped-split audit is tracked by [MARITIME-OPERATIONAL-BASELINE-001 #4909](https://github.com/Luminous-Dynamics/symtropy/issues/4909).
+
+
+## External-context robustness and adaptive sensing
+
+The external-context benchmark is now an executable companion to the control-response contract: [#4629](https://github.com/Luminous-Dynamics/symtropy/pull/4629), benchmark ID `MARITIME-EXTERNAL-CONTEXT-ROBUSTNESS-001`. It separates the internal physical state, external environment, a configuration/regime-bound context-effect path, the expected physical response and the measured response. The synthetic suite checks that high sea state can explain an otherwise healthy response without creating an internal-fault label, while an independently evident internal degradation remains a mismatch under the same high sea state.
+
+This distinction is supported by current research, but the evidence levels matter:
+
+- Park et al. (2026) report an internal-VAE / external-only RCAP-SHAP method on 18 months of one container ship's data, with 335 anomalies in four clusters and external associations involving wave height, draft/trim and sea-surface temperature. This is a useful operational-vessel observational comparator, not proof of causal intervention effects or multi-vessel transfer: https://doi.org/10.1016/j.cie.2026.112028.
+- Lin et al. (2026) classify mechanical diagnosis shifts as condition shift (C-shift), fault-semantic shift (F-shift) and combined C+F, and distinguish known-fault generalization from calibrated unknown-fault detection and human referral: https://doi.org/10.1007/s10462-026-11722-3.
+- Li et al. (October 2026) review adaptive closed-loop sensor placement for mechanical digital twins: virtual pre-placement, data/model calibration, online performance evaluation, trigger-based re-optimization and software-defined sensing adjustments. This suggests moving beyond a one-time static sensor layout, while keeping physical sensor changes and operational actions behind independent engineering authorization: https://doi.org/10.1016/j.jmsy.2026.07.027.
+
+### Empirical protocol
+
+Keep four evidence strata separate: observational vessel context associations, simulation-generated context interventions, controlled test-bench interventions, and independently replicated vessel/engine interventions. Use chronological and whole-run/whole-vessel holdouts. Match on operating regime and internal state where possible. Include negative-control exposures and context-swap counterfactuals. Report the context support envelope and abstention rate rather than extrapolating outside it.
+
+### New scorecard
+
+- **False-context-excusal:** internal faults that are accepted as environmentally explained when their independently supported internal residual remains outside the qualified conditioned envelope.
+- **False-internal-attribution:** healthy internal state labelled faulty when a qualified external context path explains the observed response.
+- **Negative-control sensitivity:** rate at which a context variable with no qualified physical path changes the expected-response or diagnostic result.
+- **Context-conditioned residual coverage and sharpness:** conditional on environment/load strata, including worst-context calibration and event recall.
+- **C/F/C+F shift matrix:** known fault under unseen environmental conditions; unseen fault semantics under familiar conditions; and both shifts simultaneously, with explicit risk/coverage and referral precision.
+
+Hard gates: zero false-context-excusal and false-internal-attribution on the frozen synthetic corpus; zero negative-control envelope changes; zero future-context leakage; 100% synthetic abstention outside the declared context-support region. These are software-contract aims, not measured vessel performance or operating limits.
+
+### Lifecycle adaptive sensing
+
+Treat sensor selection as a versioned engineering policy, not a one-off install-time optimum. Trigger a virtual layout re-evaluation when any of the following changes: asset configuration, mission/operating envelope, sensor availability or calibration, timebase quality, model scope, fault catalogue, or context support envelope. Report Pareto trade-offs across fault-pair diagnosability, context coverage, calibration burden, independence/common-cause exposure, latency, bandwidth and lifecycle cost.
+
+A software-defined measurement policy may recommend selecting among already-installed qualified channels or changing analysis weights. It must not silently activate/deactivate physical instruments, alter controller inputs or change vessel operations. Route/load changes, test maneuvers and hardware modifications require separate approved authority. The qualification-impact engine in #4611 supplies the dependency-expiry mechanism for determining which prior claims must be repeated after a sensing-policy or configuration change.
