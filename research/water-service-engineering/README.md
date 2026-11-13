@@ -133,3 +133,8 @@ The new M0B increment adds synthetic pressure series grouped by replicate, with 
 ### Sensor/process fault observability F0
 
 The new [MEMBRANE_OBSERVABILITY_FAULT_BENCH_F0_V0_1.md](./MEMBRANE_OBSERVABILITY_FAULT_BENCH_F0_V0_1.md) defines a 13-scenario synthetic negative-control challenge for differentiating true normalized resistance growth from pressure/flow sensor inconsistency, clock skew, missingness, temperature shift, feed salinity change, pump-speed regime change and interacting causes. It has a separate [input corpus](./membrane-observability-fault-cases-v0.1.json), [oracle](./membrane-observability-fault-oracle-v0.1.json), schema and manifest. A transparent Rust residual-rule baseline returns six dispositions including MULTIPLE_CAUSES and INDETERMINATE; it has no CIP authority. The workflow independently replays the 13 cases and requires an exact-revision receipt.
+
+
+### SOTA comparison and benchmark targets
+
+See [MEMBRANE_SOTA_COMPARISON_AND_BENCHMARK_TARGETS_V0_1.md](./MEMBRANE_SOTA_COMPARISON_AND_BENCHMARK_TARGETS_V0_1.md) for the current task-matched comparison against PI-STGAT SWRO anomaly diagnosis, the two-stage RO digital-twin temporal validation study, Morocco's request-only 15–20-day industrial fouling warning result, and 2026 membrane-fouling reviews. Reported figures remain paper-specific. Chronological/regime holdouts, sensor-fault negative controls, uncertainty/abstention and lifecycle intervention value are required before claiming field superiority.
