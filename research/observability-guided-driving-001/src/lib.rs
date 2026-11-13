@@ -315,13 +315,13 @@ fn entropy_nats(probability_ppm: u32) -> f64 {
 
 fn brier(probability_ppm: u32, outcome: bool) -> f64 {
     let p = probability_ppm as f64 / 1_000_000.0;
-    let y = f64::from(outcome);
+    let y = if outcome { 1.0 } else { 0.0 };
     (p - y).powi(2)
 }
 
 fn log_loss(probability_ppm: u32, outcome: bool) -> f64 {
     let p = (probability_ppm as f64 / 1_000_000.0).clamp(1e-6, 1.0 - 1e-6);
-    let y = f64::from(outcome);
+    let y = if outcome { 1.0 } else { 0.0 };
     -(y * p.ln() + (1.0 - y) * (1.0 - p).ln())
 }
 
@@ -335,7 +335,7 @@ fn calibration_metrics(samples: &[CalibrationSample]) -> CalibrationMetrics {
     const BIN_COUNT: usize = 10;
     let mut bins: Vec<Vec<CalibrationSample>> = vec![Vec::new(); BIN_COUNT];
     for sample in samples {
-        let index = ((sample.probability_ppm as usize) * BIN_COUNT / 1_000_001)
+        let index = ((sample.probability_ppm as usize) / 100_000)
             .min(BIN_COUNT - 1);
         bins[index].push(*sample);
     }
@@ -956,11 +956,7 @@ mod tests {
                 450_000,
                 active_after,
                 DrivingDecision::Wait,
-                if no_safe_action {
-                    DrivingDecision::Yield
-                } else {
-                    DrivingDecision::Yield
-                },
+                DrivingDecision::Yield,
                 actor_present,
                 crosses,
             ),
@@ -1120,6 +1116,41 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "duplicate_pair_id"));
         assert!(has(&report, "duplicate_branch_id"));
+    }
+
+    #[test]
+    fn proper_scores_match_known_binary_probability_examples() {
+        assert!((brier(800_000, true) - 0.04).abs() < 1e-12);
+        assert!((brier(200_000, false) - 0.04).abs() < 1e-12);
+        assert!((log_loss(800_000, true) - -0.8_f64.ln()).abs() < 1e-12);
+        assert!((log_loss(200_000, false) - -0.8_f64.ln()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn reliability_bins_include_probability_one_in_the_final_bin() {
+        let samples = vec![
+            CalibrationSample { probability_ppm: 0, outcome: false },
+            CalibrationSample { probability_ppm: 100_000, outcome: false },
+            CalibrationSample { probability_ppm: 999_999, outcome: true },
+            CalibrationSample { probability_ppm: 1_000_000, outcome: true },
+        ];
+        let metrics = calibration_metrics(&samples);
+        assert_eq!(metrics.reliability_bins[0].sample_count, 1);
+        assert_eq!(metrics.reliability_bins[1].sample_count, 1);
+        assert_eq!(metrics.reliability_bins[9].sample_count, 2);
+        assert_eq!(metrics.reliability_bins.iter().map(|bin| bin.sample_count).sum::<usize>(), 4);
+    }
+
+    #[test]
+    fn report_keeps_uncertainty_information_value_cost_and_safety_as_separate_axes() {
+        let report = audit_campaign(&campaign());
+        let value = serde_json::to_value(report).unwrap();
+        assert!(value.get("active_minus_passive_crossing_brier").is_some());
+        assert!(value.get("active_cost").is_some());
+        assert!(value.get("unsafe_information_action_count").is_some());
+        assert!(value.get("collision_or_contact_count").is_some());
+        assert!(value.get("composite_score").is_none());
+        assert!(value.get("observability_score").is_none());
     }
 
     #[test]
