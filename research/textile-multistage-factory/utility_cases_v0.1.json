@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "TEXTILE-UTILITY-CASES-001",
+  "fixture_class": "synthetic",
+  "claim_ceiling": "Synthetic time-indexed utility feasibility semantics only; no plant meter data, resource savings or production performance is claimed.",
+  "cases": [
+    {
+      "case_id": "UTIL-001-KNOWN-LOAD-UNDER-CAPACITY",
+      "purpose": "Complete operation utility profile fits within a known time-window capacity.",
+      "expected_valid": true,
+      "expected_finding": null
+    },
+    {
+      "case_id": "UTIL-002-CONCURRENT-PEAK-EXCEEDED",
+      "purpose": "Concurrent operation peak demand exceeds the electrical capacity envelope.",
+      "expected_valid": false,
+      "expected_finding": "UTILITY_CAPACITY_EXCEEDED"
+    },
+    {
+      "case_id": "UTIL-003-MISSING-UTILITY-PROFILE",
+      "purpose": "A scheduled operation without a utility profile is not assumed to consume zero.",
+      "expected_valid": false,
+      "expected_finding": "UTILITY_PROFILE_MISSING"
+    },
+    {
+      "case_id": "UTIL-004-UNKNOWN-CAPACITY",
+      "purpose": "Known positive demand cannot be qualified against an unknown capacity meter.",
+      "expected_valid": false,
+      "expected_finding": "UTILITY_CAPACITY_UNKNOWN"
+    },
+    {
+      "case_id": "UTIL-005-ENVELOPE-GAP",
+      "purpose": "Positive demand outside the time coverage of all envelopes fails closed.",
+      "expected_valid": false,
+      "expected_finding": "UTILITY_CAPACITY_MISSING"
+    },
+    {
+      "case_id": "UTIL-006-SETUP-PEAK-COUNTED",
+      "purpose": "Setup utility consumption is counted concurrently with the scheduled production operation.",
+      "expected_valid": false,
+      "expected_finding": "UTILITY_CAPACITY_EXCEEDED"
+    },
+    {
+      "case_id": "UTIL-007-OVERLAP-AND-DUPLICATE-METRIC",
+      "purpose": "Overlapping capacity envelopes and duplicate metric demand entries are rejected.",
+      "expected_valid": false,
+      "expected_finding": "UTILITY_ENVELOPE_OVERLAP"
+    },
+    {
+      "case_id": "UTIL-008-HALF-OPEN-TOUCHING-INTERVALS",
+      "purpose": "Sequential operations that touch at a half-open boundary do not overlap or sum their peaks.",
+      "expected_valid": true,
+      "expected_finding": null
+    }
+  ]
+}
