@@ -103,3 +103,10 @@ Physical T1 cleaning trials require manufacturer- and competent-engineer-approve
 ## 10. Nonclaims
 
 No CIP policy, causal treatment effect, membrane recovery, cleaning recipe, cost reduction, saved water, product integrity or autonomous control is qualified. Correlation between a cleaning event and improved TMP/flux is not a causal effect or proof of lifecycle benefit.
+
+
+## Quality-label evidence boundary
+
+The parent programme's M2 sample-time label contract allows laboratory outcomes only at the actual sample timestamp, treatment-chain location and analyte. It forbids telemetry feature timestamps after sample collection, treats below-LOD/LOQ as qualified/censored results rather than zero, and excludes rejected lab QC. The six current M2 fixtures are synthetic contract tests, not real Bristol results.
+
+Any target-trial outcome using laboratory quality data must retain this sample-time/location scope. Do not infer continuous quality between samples or treat a detection limit as a compliance threshold.
