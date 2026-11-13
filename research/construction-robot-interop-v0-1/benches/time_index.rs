@@ -93,7 +93,11 @@ fn sparse_run(size: u64) {
             .candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
             .expect("indexed local candidates");
         reference_local_overlaps = book
-            .reference_candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
+            .reference_candidate_count_for_interval(
+                "shared-hoist",
+                local_start,
+                local_start + 1_000,
+            )
             .expect("reference local overlaps");
         indexed_gap_candidates = book
             .candidate_count_for_interval("shared-hoist", gap_start, gap_start + 1_000)
