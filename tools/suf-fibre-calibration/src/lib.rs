@@ -8,6 +8,7 @@
 //! geodetic projection, DAS event detection, or physical qualification.
 
 pub mod decision;
+pub mod source;
 
 use core::fmt;
 
