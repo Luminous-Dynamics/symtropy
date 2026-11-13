@@ -731,9 +731,15 @@ pub fn evaluate_dark_fiber_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
             let (Some(distance), Some(uncertainty)) =
                 (distance_value.as_f64(), uncertainty_value.as_f64())
             else {
-                return Err(format!("{id}: valid route mapping requires separation and uncertainty"));
+                return Err(format!(
+                    "{id}: valid route mapping requires separation and uncertainty"
+                ));
             };
-            if !distance.is_finite() || !uncertainty.is_finite() || distance < 0.0 || uncertainty < 0.0 {
+            if !distance.is_finite()
+                || !uncertainty.is_finite()
+                || distance < 0.0
+                || uncertainty < 0.0
+            {
                 return Err(format!("{id}: invalid separation or uncertainty"));
             }
             let lower = (distance - uncertainty).max(0.0);
