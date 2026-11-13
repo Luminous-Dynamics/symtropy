@@ -37,4 +37,4 @@ Rust tests are authored. Run them with a supported Rust toolchain and report exa
 
 The 12-case fixture currently has 1 SYNTHETIC_PASS, 4 BLOCKED and 7 REJECTED expected dispositions. The five-cell linear and 100-cell isolated-failure cases retain their synthetic service arithmetic but are BLOCKED for missing cross-talk coverage. This is intentional: array-scale output is not qualified while cross-cell coupling is unmeasured.
 
-Twenty-one Rust tests are authored, including an independent formula oracle for N=5 and N=100. They have **not** been compiled or executed in this environment; no CI result is claimed.
+Twenty-three Rust tests are authored, including an independent formula oracle for N=5 and N=100. They have **not** been compiled or executed in this environment; no CI result is claimed.
