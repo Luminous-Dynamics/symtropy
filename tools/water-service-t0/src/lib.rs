@@ -1245,6 +1245,285 @@ pub fn evaluate_membrane_observability_f0(
     }))
 }
 
+pub fn evaluate_membrane_observability_f1(
+    inputs: &Value,
+    oracle: &Value,
+) -> Result<Value, String> {
+    const EXPECTED_TRACES: usize = 9;
+    const STEPS_PER_TRACE: usize = 8;
+    const CEILING: &str =
+        "synthetic_trace_evaluation_only_no_plant_detection_latency_or_alarm_rate_claim";
+
+    if string(inputs, &["schema_version"])? != "membrane-observability-f1-traces-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_time_indexed_fault_injection"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "membrane-observability-f1-trace-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_time_indexed_fault_injection"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("membrane observability F1 input/oracle identity mismatch".to_owned());
+    }
+
+    let thresholds = at(inputs, &["baseline_thresholds"])?;
+    let pressure_threshold = number(thresholds, &["pressure_pair_residual_fraction"])?;
+    let flow_threshold = number(thresholds, &["flow_pair_residual_fraction"])?;
+    let clock_threshold = number(thresholds, &["absolute_clock_skew_seconds"])?;
+    let missing_threshold = number(thresholds, &["critical_channel_missing_fraction"])?;
+    let temperature_threshold = number(thresholds, &["absolute_temperature_shift_c"])?;
+    let conductivity_threshold = number(thresholds, &["feed_conductivity_ratio_deviation"])?;
+    let pump_threshold = number(thresholds, &["pump_speed_ratio_deviation"])?;
+    let resistance_threshold = number(thresholds, &["normalized_resistance_ratio"])?;
+    let uncertainty_threshold =
+        number(thresholds, &["maximum_resistance_relative_uncertainty"])?;
+
+    let traces = at(inputs, &["traces"])?
+        .as_array()
+        .ok_or_else(|| "membrane observability F1 traces must be an array".to_owned())?;
+    let oracle_traces = at(oracle, &["traces"])?
+        .as_array()
+        .ok_or_else(|| "membrane observability F1 oracle traces must be an array".to_owned())?;
+    if traces.len() != EXPECTED_TRACES || oracle_traces.len() != EXPECTED_TRACES {
+        return Err(format!(
+            "membrane observability F1 expected {EXPECTED_TRACES} traces; got {} and {}",
+            traces.len(),
+            oracle_traces.len()
+        ));
+    }
+
+    let mut oracle_by_id = BTreeMap::new();
+    for trace in oracle_traces {
+        let id = string(trace, &["trace_id"])?;
+        if oracle_by_id.insert(id.clone(), trace).is_some() {
+            return Err(format!("membrane observability F1 duplicate oracle trace ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_TRACES);
+    let mut mismatches = Vec::new();
+    let mut total_windows = 0_u64;
+    let mut matched_windows = 0_u64;
+    let mut false_fouling_sensor_windows = 0_u64;
+    let mut false_fouling_regime_windows = 0_u64;
+    let mut false_fouling_stable_windows = 0_u64;
+    let mut false_cip_recommendations = 0_u64;
+    let mut detection_delays = Vec::new();
+
+    for trace in traces {
+        let id = string(trace, &["trace_id"])?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("membrane observability F1 duplicate trace ID: {id}"));
+        }
+        let event_class = string(trace, &["event_class"])?;
+        let steps = at(trace, &["steps"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: steps must be an array"))?;
+        if steps.len() != STEPS_PER_TRACE {
+            return Err(format!(
+                "{id}: expected {STEPS_PER_TRACE} steps; got {}",
+                steps.len()
+            ));
+        }
+        let oracle_trace = oracle_by_id
+            .get(&id)
+            .ok_or_else(|| format!("membrane observability F1 oracle missing trace {id}"))?;
+        let expected_steps = at(oracle_trace, &["expected_dispositions"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: oracle expected_dispositions must be an array"))?;
+        let expected_cip = at(oracle_trace, &["expected_cip_recommendations"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: oracle expected_cip_recommendations must be an array"))?;
+        if expected_steps.len() != STEPS_PER_TRACE || expected_cip.len() != STEPS_PER_TRACE {
+            return Err(format!("{id}: oracle step count mismatch"));
+        }
+
+        let event_onset = at(trace, &["event_onset_step_index"])?
+            .as_u64();
+        let is_fouling_event = event_class == "FOULING" || event_class == "FOULING_AND_SENSOR";
+        if is_fouling_event != event_onset.is_some() {
+            return Err(format!("{id}: fouling event and onset index must agree"));
+        }
+
+        let mut actual_dispositions = Vec::with_capacity(STEPS_PER_TRACE);
+        let mut detected_step = None;
+        let mut trace_false_fouling = 0_u64;
+        let mut trace_cip_recommendations = 0_u64;
+
+        for (index, step) in steps.iter().enumerate() {
+            let time_index = at(step, &["time_index"])?
+                .as_u64()
+                .ok_or_else(|| format!("{id}: time_index must be an unsigned integer"))?;
+            if time_index != index as u64 {
+                return Err(format!("{id}: time indices must be contiguous from zero"));
+            }
+            let input = at(step, &["inputs"])?;
+            let pressure_residual = number(input, &["pressure_sensor_pair_delta_fraction"])?;
+            let flow_residual = number(input, &["flow_sensor_pair_delta_fraction"])?;
+            let clock_skew = number(input, &["clock_skew_seconds"])?;
+            let missing_fraction = number(input, &["critical_channel_missing_fraction"])?;
+            let temperature_delta = number(input, &["temperature_delta_c"])?;
+            let conductivity_ratio = number(input, &["feed_conductivity_ratio"])?;
+            let pump_ratio = number(input, &["pump_speed_ratio"])?;
+            let resistance_value = at(input, &["normalized_resistance_ratio"])?
+                .as_f64()
+                .filter(|value| value.is_finite() && *value > 0.0);
+            let uncertainty_value = at(input, &["normalized_resistance_relative_uncertainty"])?
+                .as_f64()
+                .filter(|value| value.is_finite() && *value >= 0.0);
+
+            let sensor_fault = pressure_residual > pressure_threshold
+                || flow_residual > flow_threshold
+                || clock_skew.abs() > clock_threshold
+                || missing_fraction > missing_threshold;
+            let regime_shift = temperature_delta.abs() > temperature_threshold
+                || (conductivity_ratio - 1.0).abs() > conductivity_threshold
+                || (pump_ratio - 1.0).abs() > pump_threshold;
+            let resistance_observable = resistance_value.is_some()
+                && uncertainty_value.is_some()
+                && uncertainty_value.unwrap_or(f64::INFINITY) <= uncertainty_threshold;
+            let fouling_suspected = resistance_observable
+                && resistance_value.unwrap_or(0.0) > resistance_threshold;
+
+            let disposition = if sensor_fault && (fouling_suspected || regime_shift) {
+                "MULTIPLE_CAUSES"
+            } else if sensor_fault {
+                "SENSOR_FAULT_SUSPECTED"
+            } else if fouling_suspected && regime_shift {
+                "MULTIPLE_CAUSES"
+            } else if fouling_suspected {
+                "FOULING_SUSPECTED"
+            } else if regime_shift {
+                "OPERATING_REGIME_SHIFT"
+            } else if !resistance_observable {
+                "INDETERMINATE"
+            } else {
+                "NO_FAULT"
+            };
+
+            let expected_row = &expected_steps[index];
+            let expected_time = at(expected_row, &["time_index"])?
+                .as_u64()
+                .ok_or_else(|| format!("{id}: oracle time_index must be an unsigned integer"))?;
+            if expected_time != time_index {
+                return Err(format!("{id}: oracle time index mismatch at step {index}"));
+            }
+            let expected_disposition = string(expected_row, &["expected_disposition"])?;
+            let cip_expected = expected_cip[index]
+                .as_bool()
+                .ok_or_else(|| format!("{id}: CIP oracle values must be booleans"))?;
+            if cip_expected {
+                false_cip_recommendations += 1;
+            }
+            if disposition == "FOULING_SUSPECTED" || disposition == "MULTIPLE_CAUSES" {
+                if event_class == "SENSOR_ONLY" {
+                    false_fouling_sensor_windows += 1;
+                    trace_false_fouling += 1;
+                } else if event_class == "REGIME_ONLY" {
+                    false_fouling_regime_windows += 1;
+                    trace_false_fouling += 1;
+                } else if event_class == "NONE" {
+                    false_fouling_stable_windows += 1;
+                    trace_false_fouling += 1;
+                }
+            }
+            if is_fouling_event
+                && time_index >= event_onset.unwrap_or(u64::MAX)
+                && detected_step.is_none()
+                && (disposition == "FOULING_SUSPECTED" || disposition == "MULTIPLE_CAUSES")
+            {
+                detected_step = Some(time_index);
+            }
+            if disposition == expected_disposition && !cip_expected {
+                matched_windows += 1;
+            } else {
+                mismatches.push(json!({
+                    "trace_id": id,
+                    "time_index": time_index,
+                    "expected_disposition": expected_disposition,
+                    "actual_disposition": disposition,
+                    "expected_cip_recommendation": cip_expected
+                }));
+            }
+            actual_dispositions.push(disposition);
+            total_windows += 1;
+            trace_cip_recommendations += u64::from(cip_expected);
+        }
+
+        let expected_detected = at(oracle_trace, &["expected_detected_step_index"])?
+            .as_u64();
+        if detected_step != expected_detected {
+            mismatches.push(json!({
+                "trace_id": id,
+                "expected_detected_step_index": expected_detected,
+                "actual_detected_step_index": detected_step
+            }));
+        }
+        let delay = match (event_onset, detected_step) {
+            (Some(onset), Some(detected)) => Some(detected.saturating_sub(onset)),
+            _ => None,
+        };
+        if let Some(value) = delay {
+            detection_delays.push(value);
+        }
+        results.push(json!({
+            "trace_id": id,
+            "event_class": event_class,
+            "event_onset_step_index": event_onset,
+            "actual_dispositions": actual_dispositions,
+            "detected_step_index": detected_step,
+            "detection_delay_steps": delay,
+            "false_fouling_windows": trace_false_fouling,
+            "cip_recommendations": trace_cip_recommendations
+        }));
+    }
+
+    if seen.len() != oracle_by_id.len() || total_windows != (EXPECTED_TRACES * STEPS_PER_TRACE) as u64 {
+        return Err("membrane observability F1 input/oracle coverage mismatch".to_owned());
+    }
+    results.sort_by(|a, b| {
+        a.get("trace_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("trace_id").and_then(Value::as_str))
+    });
+    let mean_delay = if detection_delays.is_empty() {
+        None
+    } else {
+        Some(
+            detection_delays.iter().sum::<u64>() as f64
+                / detection_delays.len() as f64,
+        )
+    };
+
+    Ok(json!({
+        "schema_version": "membrane-observability-f1-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_time_indexed_fault_injection",
+        "evidence_ceiling": CEILING,
+        "trace_count": results.len(),
+        "total_window_count": total_windows,
+        "matched_window_count": matched_windows,
+        "false_fouling_windows_sensor_only": false_fouling_sensor_windows,
+        "false_fouling_windows_regime_only": false_fouling_regime_windows,
+        "false_fouling_windows_stable_control": false_fouling_stable_windows,
+        "false_cip_recommendations": false_cip_recommendations,
+        "detected_fouling_event_count": detection_delays.len(),
+        "mean_detected_event_delay_steps": mean_delay,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "Synthetic time-indexed fault-injection traces are not plant-level detection-delay evidence.",
+            "The baseline uses a supplied normalized-resistance observer feature and does not estimate it from field data.",
+            "No real event lead time, false-alarm rate, mechanism classification, cleaning benefit or membrane lifetime is established.",
+            "No diagnostic output authorizes CIP or plant actuator commands."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1281,9 +1560,51 @@ mod tests {
             "membrane_observability_oracle" => include_str!(
                 "../../../research/water-service-engineering/membrane-observability-fault-oracle-v0.1.json"
             ),
+            "membrane_observability_f1_inputs" => include_str!(
+                "../../../research/water-service-engineering/membrane-observability-f1-traces-v0.1.json"
+            ),
+            "membrane_observability_f1_oracle" => include_str!(
+                "../../../research/water-service-engineering/membrane-observability-f1-trace-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_seventy_two_membrane_observability_f1_windows_match_separate_oracle() {
+        let result = evaluate_membrane_observability_f1(
+            &load("membrane_observability_f1_inputs"),
+            &load("membrane_observability_f1_oracle"),
+        )
+        .expect("membrane observability F1 traces must evaluate");
+        assert_eq!(result["trace_count"], 9);
+        assert_eq!(result["total_window_count"], 72);
+        assert_eq!(result["matched_window_count"], 72);
+        assert_eq!(result["false_fouling_windows_sensor_only"], 0);
+        assert_eq!(result["false_fouling_windows_regime_only"], 0);
+        assert_eq!(result["false_fouling_windows_stable_control"], 0);
+        assert_eq!(result["false_cip_recommendations"], 0);
+        assert_eq!(result["detected_fouling_event_count"], 2);
+        assert_eq!(result["mean_detected_event_delay_steps"], 0.0);
+    }
+
+    #[test]
+    fn membrane_observability_f1_sensor_fault_clear_recovers_to_no_fault() {
+        let result = evaluate_membrane_observability_f1(
+            &load("membrane_observability_f1_inputs"),
+            &load("membrane_observability_f1_oracle"),
+        )
+        .expect("membrane observability F1 traces must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["trace_id"] == "MTR-009-pressure-drift-clears")
+            .unwrap();
+        assert_eq!(row["actual_dispositions"][5], "SENSOR_FAULT_SUSPECTED");
+        assert_eq!(row["actual_dispositions"][6], "NO_FAULT");
+        assert_eq!(row["actual_dispositions"][7], "NO_FAULT");
     }
 
     #[test]
