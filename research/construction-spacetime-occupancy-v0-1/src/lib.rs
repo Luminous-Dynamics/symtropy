@@ -845,7 +845,10 @@ mod tests {
             ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
         reservations
             .register_resource("workface-resource", 1)
-            .expect("resource");
+            .expect("workface resource");
+        reservations
+            .register_resource("independent-robot-resource", 1)
+            .expect("independent robot resource");
 
         let first = occupancy(
             "first",
@@ -855,7 +858,7 @@ mod tests {
             0,
             100,
         );
-        let second = occupancy(
+        let mut second = occupancy(
             "second",
             "task-second",
             OccupancyKind::RobotOperatingEnvelope,
@@ -863,6 +866,7 @@ mod tests {
             50,
             150,
         );
+        second.reservation.resource_id = "independent-robot-resource".to_owned();
 
         let admitted = spatial
             .reserve_and_insert(&mut reservations, first, 0)
