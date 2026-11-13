@@ -48,12 +48,31 @@ pub enum RankErrorV1 {
     InvalidProfile,
     NonFiniteInput,
     NonFiniteIntermediate,
-    NonSymmetric { row: usize, column: usize, defect: f64 },
-    NotPositiveDefinite { pivot: usize, value: f64 },
-    SingularPivot { column: usize, magnitude: f64, threshold: f64 },
-    NonPositiveSemidefinite { eigenvalue: f64, tolerance: f64 },
-    JacobiDidNotConverge { residual_off_diagonal: f64 },
-    InconclusiveRank { eigenvalue: f64, cutoff: f64 },
+    NonSymmetric {
+        row: usize,
+        column: usize,
+        defect: f64,
+    },
+    NotPositiveDefinite {
+        pivot: usize,
+        value: f64,
+    },
+    SingularPivot {
+        column: usize,
+        magnitude: f64,
+        threshold: f64,
+    },
+    NonPositiveSemidefinite {
+        eigenvalue: f64,
+        tolerance: f64,
+    },
+    JacobiDidNotConverge {
+        residual_off_diagonal: f64,
+    },
+    InconclusiveRank {
+        eigenvalue: f64,
+        cutoff: f64,
+    },
     InvalidExactRankWitness,
 }
 
@@ -114,13 +133,14 @@ fn multiply<const R: usize, const K: usize, const C: usize>(
     }
     out
 }
-fn mat_vec<const R: usize, const C: usize>(
-    a: &Matrix<R, C>,
-    x: &Vector<C>,
-) -> Vector<R> {
+fn mat_vec<const R: usize, const C: usize>(a: &Matrix<R, C>, x: &Vector<C>) -> Vector<R> {
     let mut out = [0.0; R];
     for (i, row) in a.iter().enumerate() {
-        out[i] = row.iter().zip(x.iter()).map(|(left, right)| left * right).sum();
+        out[i] = row
+            .iter()
+            .zip(x.iter())
+            .map(|(left, right)| left * right)
+            .sum();
     }
     out
 }
@@ -151,7 +171,10 @@ fn cholesky<const N: usize>(a: &Matrix<N, N>) -> Result<Matrix<N, N>, RankErrorV
                     return Err(RankErrorV1::NonFiniteIntermediate);
                 }
                 if pivot <= 0.0 {
-                    return Err(RankErrorV1::NotPositiveDefinite { pivot: i, value: pivot });
+                    return Err(RankErrorV1::NotPositiveDefinite {
+                        pivot: i,
+                        value: pivot,
+                    });
                 }
                 lower[i][j] = pivot.sqrt();
             } else {
@@ -178,7 +201,11 @@ fn solve<const N: usize>(
     }
     let scale = matrix_max_abs(a);
     if scale == 0.0 {
-        return Err(RankErrorV1::SingularPivot { column: 0, magnitude: 0.0, threshold: 0.0 });
+        return Err(RankErrorV1::SingularPivot {
+            column: 0,
+            magnitude: 0.0,
+            threshold: 0.0,
+        });
     }
     let threshold = scale * profile.relative_pivot_tolerance;
     let mut lu = *a;
@@ -189,7 +216,11 @@ fn solve<const N: usize>(
             .ok_or(RankErrorV1::ZeroDimension)?;
         let pivot = lu[pivot_row][col].abs();
         if !pivot.is_finite() || pivot <= threshold {
-            return Err(RankErrorV1::SingularPivot { column: col, magnitude: pivot, threshold });
+            return Err(RankErrorV1::SingularPivot {
+                column: col,
+                magnitude: pivot,
+                threshold,
+            });
         }
         if pivot_row != col {
             lu.swap(col, pivot_row);
@@ -256,7 +287,11 @@ impl<const N: usize> SpdMetricV1<N> {
                 let defect = (matrix[i][j] - matrix[j][i]).abs();
                 let scale = 1.0_f64.max(matrix[i][j].abs()).max(matrix[j][i].abs());
                 if defect > symmetry_tolerance * scale {
-                    return Err(RankErrorV1::NonSymmetric { row: i, column: j, defect });
+                    return Err(RankErrorV1::NonSymmetric {
+                        row: i,
+                        column: j,
+                        defect,
+                    });
                 }
             }
         }
@@ -349,16 +384,17 @@ fn jacobi_eigen<const K: usize>(
         }
     }
     if residual > convergence_threshold {
-        return Err(RankErrorV1::JacobiDidNotConverge { residual_off_diagonal: residual });
+        return Err(RankErrorV1::JacobiDidNotConverge {
+            residual_off_diagonal: residual,
+        });
     }
 
     let values_unsorted: Vector<K> = std::array::from_fn(|i| a[i][i]);
     let mut order: Vec<usize> = (0..K).collect();
     order.sort_by(|left, right| values_unsorted[*left].total_cmp(&values_unsorted[*right]));
     let values = std::array::from_fn(|i| values_unsorted[order[i]]);
-    let sorted_vectors = std::array::from_fn(|row| {
-        std::array::from_fn(|col| vectors[row][order[col]])
-    });
+    let sorted_vectors =
+        std::array::from_fn(|row| std::array::from_fn(|col| vectors[row][order[col]]));
     if !values.iter().all(|x| x.is_finite()) || !finite_matrix(&sorted_vectors) {
         return Err(RankErrorV1::NonFiniteIntermediate);
     }
@@ -474,16 +510,13 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
 
         // G = L L^T; W_hat = L^T W L.
         let lower = constraint_metric.lower;
-        let normalized_delassus = multiply(
-            &multiply(&transpose(&lower), &delassus),
-            &lower,
-        );
+        let normalized_delassus = multiply(&multiply(&transpose(&lower), &delassus), &lower);
         let eigen = jacobi_eigen(&normalized_delassus, profile)?;
         let max_eigen = eigen.values.iter().map(|x| x.abs()).fold(0.0_f64, f64::max);
-        let rank_cutoff = profile.absolute_rank_tolerance
-            + profile.relative_rank_tolerance * max_eigen;
-        let psd_tolerance = profile.absolute_psd_tolerance
-            + profile.relative_psd_tolerance * max_eigen;
+        let rank_cutoff =
+            profile.absolute_rank_tolerance + profile.relative_rank_tolerance * max_eigen;
+        let psd_tolerance =
+            profile.absolute_psd_tolerance + profile.relative_psd_tolerance * max_eigen;
 
         let mut active = [false; K];
         let mut rank = 0usize;
@@ -522,12 +555,26 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         let min_nonzero = if near_threshold || rank == 0 {
             None
         } else {
-            Some(eigen.values.iter().filter(|v| **v > rank_cutoff * profile.near_rank_band_factor).copied().fold(f64::INFINITY, f64::min))
+            Some(
+                eigen
+                    .values
+                    .iter()
+                    .filter(|v| **v > rank_cutoff * profile.near_rank_band_factor)
+                    .copied()
+                    .fold(f64::INFINITY, f64::min),
+            )
         };
         let max_nonzero = if near_threshold || rank == 0 {
             None
         } else {
-            Some(eigen.values.iter().filter(|v| **v > rank_cutoff * profile.near_rank_band_factor).copied().fold(0.0_f64, f64::max))
+            Some(
+                eigen
+                    .values
+                    .iter()
+                    .filter(|v| **v > rank_cutoff * profile.near_rank_band_factor)
+                    .copied()
+                    .fold(0.0_f64, f64::max),
+            )
         };
         let condition_nonzero_spectrum = match (min_nonzero, max_nonzero) {
             (Some(min), Some(max)) if min > 0.0 => Some(max / min),
@@ -658,21 +705,25 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
             solve(&self.mass.matrix, &generalized_constraint_force, profile)?;
         if !canonical_multiplier.iter().all(|x| x.is_finite())
             || !generalized_constraint_force.iter().all(|x| x.is_finite())
-            || !minimum_kinetic_velocity_correction.iter().all(|x| x.is_finite())
+            || !minimum_kinetic_velocity_correction
+                .iter()
+                .all(|x| x.is_finite())
         {
             return Err(RankErrorV1::NonFiniteIntermediate);
         }
 
-        Ok(ConstraintSolveOutcomeV1::Compatible(ConstraintSolveReceiptV1 {
-            rank: self.rank_receipt,
-            range_status: RangeStatusV1::Consistent,
-            relative_range_defect: range_defect,
-            canonical_multiplier,
-            multiplier_nullspace,
-            multiplier_nullity: nullity,
-            generalized_constraint_force,
-            minimum_kinetic_velocity_correction,
-        }))
+        Ok(ConstraintSolveOutcomeV1::Compatible(
+            ConstraintSolveReceiptV1 {
+                rank: self.rank_receipt,
+                range_status: RangeStatusV1::Consistent,
+                relative_range_defect: range_defect,
+                canonical_multiplier,
+                multiplier_nullspace,
+                multiplier_nullity: nullity,
+                generalized_constraint_force,
+                minimum_kinetic_velocity_correction,
+            },
+        ))
     }
 }
 
@@ -712,19 +763,11 @@ mod tests {
     }
 
     fn mass() -> SpdMetricV1<3> {
-        SpdMetricV1::new(
-            [[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 4.0]],
-            1.0e-14,
-        )
-        .unwrap()
+        SpdMetricV1::new([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 4.0]], 1.0e-14).unwrap()
     }
 
     fn identity_constraint_metric() -> SpdMetricV1<3> {
-        SpdMetricV1::new(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
-            1.0e-14,
-        )
-        .unwrap()
+        SpdMetricV1::new([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], 1.0e-14).unwrap()
     }
 
     fn redundant_j() -> Matrix<3, 3> {
@@ -768,11 +811,7 @@ mod tests {
         assert!(receipt.condition_full_operator.is_none());
         assert!(receipt.condition_nonzero_spectrum.unwrap().is_finite());
 
-        let expected = [
-            [1.0, 0.0, 1.0],
-            [0.0, 0.5, 0.5],
-            [1.0, 0.5, 1.5],
-        ];
+        let expected = [[1.0, 0.0, 1.0], [0.0, 0.5, 0.5], [1.0, 0.5, 1.5]];
         for i in 0..3 {
             for j in 0..3 {
                 close(operator.delassus()[i][j], expected[i][j], 1.0e-14);
@@ -809,7 +848,8 @@ mod tests {
         }
 
         for alpha in [-3.0, -1.0, 0.0, 0.25, 2.0] {
-            let representative = std::array::from_fn(|i| receipt.canonical_multiplier[i] + alpha * null[i]);
+            let representative =
+                std::array::from_fn(|i| receipt.canonical_multiplier[i] + alpha * null[i]);
             let reconstructed_rhs = mat_vec(operator.delassus(), &representative);
             for i in 0..3 {
                 close(reconstructed_rhs[i], rhs[i], 2.0e-12);
@@ -818,7 +858,11 @@ mod tests {
             let correction = solve(&mass().matrix, &force, profile()).unwrap();
             for i in 0..3 {
                 close(force[i], receipt.generalized_constraint_force[i], 2.0e-12);
-                close(correction[i], receipt.minimum_kinetic_velocity_correction[i], 2.0e-12);
+                close(
+                    correction[i],
+                    receipt.minimum_kinetic_velocity_correction[i],
+                    2.0e-12,
+                );
             }
         }
     }
@@ -842,17 +886,19 @@ mod tests {
     #[test]
     fn full_row_rank_baseline_keeps_finite_full_condition() {
         let jacobian = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let operator = RankAwareDelassusV1::new(
-            mass(),
-            jacobian,
-            identity_constraint_metric(),
-            profile(),
-        )
-        .unwrap();
+        let operator =
+            RankAwareDelassusV1::new(mass(), jacobian, identity_constraint_metric(), profile())
+                .unwrap();
         assert_eq!(operator.rank_receipt().status, RankStatusV1::FullRowRank);
         assert_eq!(operator.rank_receipt().rank, Some(3));
         assert_eq!(operator.rank_receipt().nullity, Some(0));
-        assert!(operator.rank_receipt().condition_full_operator.unwrap().is_finite());
+        assert!(
+            operator
+                .rank_receipt()
+                .condition_full_operator
+                .unwrap()
+                .is_finite()
+        );
     }
 
     fn inverse3(a: &Matrix<3, 3>) -> Matrix<3, 3> {
@@ -910,7 +956,11 @@ mod tests {
             &old_receipt.canonical_multiplier,
         );
         for i in 0..3 {
-            close(new_receipt.canonical_multiplier[i], expected_lambda_new[i], 5.0e-10);
+            close(
+                new_receipt.canonical_multiplier[i],
+                expected_lambda_new[i],
+                5.0e-10,
+            );
             close(
                 new_receipt.generalized_constraint_force[i],
                 old_receipt.generalized_constraint_force[i],
@@ -936,9 +986,15 @@ mod tests {
             ..profile()
         };
         let operator = RankAwareDelassusV1::new(mass, jacobian, metric, tuned).unwrap();
-        assert_eq!(operator.rank_receipt().status, RankStatusV1::InconclusiveNearThreshold);
+        assert_eq!(
+            operator.rank_receipt().status,
+            RankStatusV1::InconclusiveNearThreshold
+        );
         let outcome = operator.analyze_rhs([1.0, 1.0], tuned).unwrap();
-        assert!(matches!(outcome, ConstraintSolveOutcomeV1::Inconclusive { .. }));
+        assert!(matches!(
+            outcome,
+            ConstraintSolveOutcomeV1::Inconclusive { .. }
+        ));
     }
 
     #[test]
@@ -953,20 +1009,28 @@ mod tests {
 
     #[test]
     fn singular_mass_and_nonfinite_jacobian_fail_closed() {
-        let singular = SpdMetricV1::new(
-            [[1.0, 2.0, 0.0], [2.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
-            1.0e-14,
-        );
-        assert!(matches!(singular, Err(RankErrorV1::NotPositiveDefinite { .. })));
+        let singular =
+            SpdMetricV1::new([[1.0, 2.0, 0.0], [2.0, 1.0, 0.0], [0.0, 0.0, 1.0]], 1.0e-14);
+        assert!(matches!(
+            singular,
+            Err(RankErrorV1::NotPositiveDefinite { .. })
+        ));
 
         let invalid_j = [[f64::NAN, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0]];
-        let result = RankAwareDelassusV1::new(mass(), invalid_j, identity_constraint_metric(), profile());
+        let result =
+            RankAwareDelassusV1::new(mass(), invalid_j, identity_constraint_metric(), profile());
         assert_eq!(result, Err(RankErrorV1::NonFiniteInput));
     }
 
     #[test]
     fn rank_deficient_full_condition_is_never_reported() {
-        let operator = RankAwareDelassusV1::new(mass(), redundant_j(), identity_constraint_metric(), profile()).unwrap();
+        let operator = RankAwareDelassusV1::new(
+            mass(),
+            redundant_j(),
+            identity_constraint_metric(),
+            profile(),
+        )
+        .unwrap();
         let receipt = operator.rank_receipt();
         assert_eq!(receipt.status, RankStatusV1::RankDeficient);
         assert!(receipt.condition_full_operator.is_none());
