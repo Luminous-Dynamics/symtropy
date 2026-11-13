@@ -44,6 +44,7 @@ pub enum IntervalErrorV1 {
     DivisionByZeroInterval,
     NegativeSquareRoot,
     SingularMatrixInterval,
+    ProblemBindingMismatch,
 }
 
 impl fmt::Display for IntervalErrorV1 {
@@ -213,12 +214,39 @@ pub enum InconclusiveReasonV1 {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RootCertificateV1 {
-    pub candidate_multiplier: f64,
-    pub starting_interval: IntervalV1,
-    pub residual_at_candidate: IntervalV1,
-    pub derivative_on_starting_interval: IntervalV1,
-    pub interval_newton_image: IntervalV1,
-    pub certified_root_interval: IntervalV1,
+    candidate_multiplier: f64,
+    starting_interval: IntervalV1,
+    residual_at_candidate: IntervalV1,
+    derivative_on_starting_interval: IntervalV1,
+    interval_newton_image: IntervalV1,
+    certified_root_interval: IntervalV1,
+    problem_binding: MidpointProblemV1,
+}
+
+impl RootCertificateV1 {
+    pub fn candidate_multiplier(&self) -> f64 {
+        self.candidate_multiplier
+    }
+
+    pub fn starting_interval(&self) -> IntervalV1 {
+        self.starting_interval
+    }
+
+    pub fn residual_at_candidate(&self) -> IntervalV1 {
+        self.residual_at_candidate
+    }
+
+    pub fn derivative_on_starting_interval(&self) -> IntervalV1 {
+        self.derivative_on_starting_interval
+    }
+
+    pub fn interval_newton_image(&self) -> IntervalV1 {
+        self.interval_newton_image
+    }
+
+    pub fn certified_root_interval(&self) -> IntervalV1 {
+        self.certified_root_interval
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -243,12 +271,71 @@ pub struct StepErrorBoundsV1 {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StepCertificateV1 {
-    pub root: RootCertificateV1,
-    pub position_next_interval: [IntervalV1; 6],
-    pub velocity_next_interval: [IntervalV1; 6],
-    pub returned_position_next: Vector6,
-    pub returned_velocity_next: Vector6,
-    pub error_bounds: StepErrorBoundsV1,
+    root: RootCertificateV1,
+    position_next_interval: [IntervalV1; 6],
+    velocity_next_interval: [IntervalV1; 6],
+    returned_position_next: Vector6,
+    returned_velocity_next: Vector6,
+    error_bounds: StepErrorBoundsV1,
+}
+
+impl StepCertificateV1 {
+    pub fn root(&self) -> &RootCertificateV1 {
+        &self.root
+    }
+
+    pub fn position_next_interval(&self) -> &[IntervalV1; 6] {
+        &self.position_next_interval
+    }
+
+    pub fn velocity_next_interval(&self) -> &[IntervalV1; 6] {
+        &self.velocity_next_interval
+    }
+
+    pub fn returned_position_next(&self) -> &Vector6 {
+        &self.returned_position_next
+    }
+
+    pub fn returned_velocity_next(&self) -> &Vector6 {
+        &self.returned_velocity_next
+    }
+
+    pub fn error_bounds(&self) -> &StepErrorBoundsV1 {
+        &self.error_bounds
+    }
+}
+
+fn same_vector_bits<const N: usize>(left: &[f64; N], right: &[f64; N]) -> bool {
+    left.iter()
+        .zip(right.iter())
+        .all(|(left, right)| left.to_bits() == right.to_bits())
+}
+
+fn same_matrix_bits<const R: usize, const C: usize>(
+    left: &[[f64; C]; R],
+    right: &[[f64; C]; R],
+) -> bool {
+    left.iter()
+        .zip(right.iter())
+        .all(|(left_row, right_row)| same_vector_bits(left_row, right_row))
+}
+
+fn same_problem_bits(left: &MidpointProblemV1, right: &MidpointProblemV1) -> bool {
+    left.time_step.to_bits() == right.time_step.to_bits()
+        && same_vector_bits(
+            &left.initial_relative_position,
+            &right.initial_relative_position,
+        )
+        && same_vector_bits(&left.free_relative_position, &right.free_relative_position)
+        && same_matrix_bits(&left.delassus, &right.delassus)
+        && same_vector_bits(&left.initial_position, &right.initial_position)
+        && same_vector_bits(&left.initial_velocity, &right.initial_velocity)
+        && same_vector_bits(&left.free_midpoint_velocity, &right.free_midpoint_velocity)
+        && same_matrix_bits(
+            &left.mass_inverse_jacobian_transpose,
+            &right.mass_inverse_jacobian_transpose,
+        )
+        && same_matrix_bits(&left.mass_metric, &right.mass_metric)
 }
 
 fn interval_dot3(
@@ -727,6 +814,7 @@ pub fn certify_midpoint_step(
         derivative_on_starting_interval,
         interval_newton_image,
         certified_root_interval,
+        problem_binding: *problem,
     };
     Ok(RootOutcomeV1::CertifiedUniqueRoot(root))
 }
@@ -735,6 +823,10 @@ pub fn certify_step_error_bounds(
     problem: &MidpointProblemV1,
     root: &RootCertificateV1,
 ) -> Result<StepCertificateV1, IntervalErrorV1> {
+    if !same_problem_bits(problem, &root.problem_binding) {
+        return Err(IntervalErrorV1::ProblemBindingMismatch);
+    }
+    problem.validate().map_err(|_| IntervalErrorV1::ProblemBindingMismatch)?;
     let (returned_position_next, returned_velocity_next) =
         candidate_step(problem, root.candidate_multiplier)?;
     let (position_next_interval, velocity_next_interval) =
@@ -911,6 +1003,23 @@ mod tests {
         );
         assert!(
             certificate.velocity_next_interval[3].contains(0.33333333333333276)
+        );
+    }
+
+    #[test]
+    fn step_error_bounds_reject_a_certificate_replayed_against_changed_inputs() {
+        let problem = fixture();
+        let candidate = -0.1 / (0.01 * 1.5);
+        let outcome = certify_midpoint_step(&problem, candidate, 1.0e-5).unwrap();
+        let RootOutcomeV1::CertifiedUniqueRoot(root) = outcome else {
+            panic!("expected certified root");
+        };
+
+        let mut changed_problem = problem;
+        changed_problem.delassus[0][0] = 1.5000000000000002;
+        assert_eq!(
+            certify_step_error_bounds(&changed_problem, &root),
+            Err(IntervalErrorV1::ProblemBindingMismatch)
         );
     }
 
