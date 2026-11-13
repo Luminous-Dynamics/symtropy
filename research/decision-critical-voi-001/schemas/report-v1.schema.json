@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/decision-critical-voi-report-v1.schema.json",
+  "title": "Decision-critical VOI report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "model_revision",
+    "disposition",
+    "baseline_best_action_id",
+    "baseline_expected_loss_units",
+    "actuation_deadline_timestamp_us",
+    "actuation_reserve_us",
+    "latest_query_completion_timestamp_us",
+    "preference",
+    "pareto_frontier_query_ids",
+    "recommended_query_id",
+    "skipped_query_is_valid",
+    "candidates",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "model_revision": {
+      "type": "string"
+    },
+    "disposition": {
+      "enum": [
+        "no_query_candidates",
+        "no_feasible_positive_voi_query",
+        "pareto_options_available",
+        "query_recommended"
+      ]
+    },
+    "baseline_best_action_id": {
+      "type": "string"
+    },
+    "baseline_expected_loss_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actuation_deadline_timestamp_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actuation_reserve_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "latest_query_completion_timestamp_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preference": {
+      "enum": [
+        "pareto_only",
+        "highest_decision_value",
+        "lowest_latency",
+        "lowest_energy",
+        "fewest_simulator_transitions",
+        "least_human_time"
+      ]
+    },
+    "pareto_frontier_query_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_query_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "skipped_query_is_valid": {
+      "type": "boolean"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assessment"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query_id",
+        "kind",
+        "feasible",
+        "pareto_frontier",
+        "predicted_best_action_change_probability_ppm",
+        "baseline_best_action_id",
+        "expected_loss_before_units",
+        "expected_loss_after_units",
+        "expected_decision_loss_reduction_units",
+        "expected_loss_after_numerator_ppm",
+        "completion_timestamp_us",
+        "latest_query_completion_timestamp_us",
+        "latency_bound_us",
+        "energy_uj",
+        "simulator_transitions",
+        "human_intervention_ms",
+        "model_compute_units",
+        "rejection_reasons"
+      ],
+      "properties": {
+        "query_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "sensor_reacquisition",
+            "additional_viewpoint",
+            "counterfactual_simulation",
+            "human_correction",
+            "high_fidelity_world_model"
+          ]
+        },
+        "feasible": {
+          "type": "boolean"
+        },
+        "pareto_frontier": {
+          "type": "boolean"
+        },
+        "predicted_best_action_change_probability_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "baseline_best_action_id": {
+          "type": "string"
+        },
+        "expected_loss_before_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_loss_after_units": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected_decision_loss_reduction_units": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected_loss_after_numerator_ppm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "completion_timestamp_us": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "latest_query_completion_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latency_bound_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_uj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_intervention_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_compute_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejection_reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "A positive VOI value is valid only after action-loss distribution consistency is established.",
+    "Pareto dominance compares expected decision-loss reduction, latency, energy, simulator transitions, human intervention and model compute separately.",
+    "A no-query result is valid and is not treated as a failure.",
+    "A recommendation uses the explicit request preference and deterministic tie-breaks; it is not a weighted composite score."
+  ]
+}
