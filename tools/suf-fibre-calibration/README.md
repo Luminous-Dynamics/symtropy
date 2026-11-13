@@ -13,6 +13,7 @@ A dependency-free Rust reference implementation for the **single, already-disamb
 - Returns route positioning only. It does not attribute the result to a utility asset.
 - Includes a discrete expected-information / expected-value-of-sample-information evaluator that keeps information gain separate from decision-loss reduction and suppresses net-value rankings when cost and loss units are incomparable.
 - Includes a source-envelope semantic validator for raw-vs-derived lineage, modality boundaries, typed sample axes and pitch/resolution separation.
+- Includes a deterministic integration benchmark with 10,000 seeded samples over a bent projected route, independent oracle equations, endpoint checks and monotonicity checks.
 
 ## Decision-value evaluator
 
@@ -51,4 +52,4 @@ cargo fmt --manifest-path tools/suf-fibre-calibration/Cargo.toml -- --check
 
 ## Claim ceiling
 
-Passing this crate's unit tests establishes behavior of the declared arithmetic and rejection contract only. It is not a field result, calibration certification, spatial conformance claim or engineering approval.
+Passing this crate's tests establishes behavior of the declared arithmetic, semantic-envelope and synthetic geometry contracts only. The 10,000-sample test is synthetic and is not physical DAS performance. It is not a field result, calibration certification, spatial conformance claim or engineering approval.
