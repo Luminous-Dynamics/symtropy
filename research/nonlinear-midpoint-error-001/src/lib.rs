@@ -525,10 +525,7 @@ impl OutwardIntervalV1 {
             return Err(KrawczykErrorV1::NonFiniteIntervalArithmetic);
         }
         let lower = products.iter().copied().fold(f64::INFINITY, f64::min);
-        let upper = products
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let upper = products.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         Self::new(next_down_f64(lower), next_up_f64(upper))
     }
 
@@ -553,9 +550,8 @@ fn interval_matrix_product(
         for column in 0..KKT_DIMENSION {
             let mut sum = zero;
             for inner in 0..KKT_DIMENSION {
-                sum = sum.add(
-                    OutwardIntervalV1::point(left[row][inner])?.mul(right[inner][column])?,
-                )?;
+                sum = sum
+                    .add(OutwardIntervalV1::point(left[row][inner])?.mul(right[inner][column])?)?;
             }
             product[row][column] = sum;
         }
@@ -563,9 +559,7 @@ fn interval_matrix_product(
     Ok(product)
 }
 
-fn interval_identity_minus(
-    matrix: &IntervalMatrix3,
-) -> Result<IntervalMatrix3, KrawczykErrorV1> {
+fn interval_identity_minus(matrix: &IntervalMatrix3) -> Result<IntervalMatrix3, KrawczykErrorV1> {
     let zero = OutwardIntervalV1::point(0.0)?;
     let one = OutwardIntervalV1::point(1.0)?;
     let mut result = [[zero; KKT_DIMENSION]; KKT_DIMENSION];
@@ -594,9 +588,7 @@ fn interval_matrix_vector_product(
     Ok(result)
 }
 
-fn interval_matrix_contraction_upper(
-    matrix: &IntervalMatrix3,
-) -> Result<f64, KrawczykErrorV1> {
+fn interval_matrix_contraction_upper(matrix: &IntervalMatrix3) -> Result<f64, KrawczykErrorV1> {
     let mut maximum_row_sum = 0.0_f64;
     for row in matrix.iter() {
         let mut row_sum = 0.0_f64;
@@ -624,11 +616,7 @@ fn reference_dyadic_midpoint_parameters() -> MidpointParametersV1 {
 /// Exact inverse of the KKT Jacobian at z*=(q1,v1,lambda)=(2,4,2)
 /// for the dimensionless dyadic fixture. Every entry is dyadic.
 pub fn reference_dyadic_krawczyk_preconditioner_v1() -> Matrix3 {
-    [
-        [0.0, 0.0, 1.0],
-        [-1.0, 0.0, 2.0],
-        [-0.5, -0.5, 0.0],
-    ]
+    [[0.0, 0.0, 1.0], [-1.0, 0.0, 2.0], [-0.5, -0.5, 0.0]]
 }
 
 /// Outward-rounded Krawczyk inclusion check for one exact dyadic KKT fixture.
@@ -727,12 +715,15 @@ pub fn krawczyk_validate_dyadic_midpoint_fixture_v1(
     let negative_two = OutwardIntervalV1::point(-2.0)?;
     let jacobian_box: IntervalMatrix3 = [
         [OutwardIntervalV1::point(2.0)?, negative_one, zero],
-        [lambda_interval.mul(negative_one)?, one, q_mid_interval.mul(negative_two)?],
+        [
+            lambda_interval.mul(negative_one)?,
+            one,
+            q_mid_interval.mul(negative_two)?,
+        ],
         [q_mid_interval, zero, zero],
     ];
 
-    let preconditioned_jacobian =
-        interval_matrix_product(&preconditioner, &jacobian_box)?;
+    let preconditioned_jacobian = interval_matrix_product(&preconditioner, &jacobian_box)?;
     let defect = interval_identity_minus(&preconditioned_jacobian)?;
     let contraction_upper = interval_matrix_contraction_upper(&defect)?;
 
@@ -1011,9 +1002,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             receipt.status,
-            KrawczykStatusV1::Inconclusive(
-                KrawczykInconclusiveReasonV1::PreconditionerNotVerified
-            )
+            KrawczykStatusV1::Inconclusive(KrawczykInconclusiveReasonV1::PreconditionerNotVerified)
         );
         assert!(receipt.krawczyk_image.is_none());
     }
