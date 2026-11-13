@@ -499,6 +499,9 @@ fn validate_trace_report_binding(
     if trace.sampling.specification_digest != trace.configuration.sampling_spec_digest {
         return Err(WireReceiptError::ReportBindingMismatch("sampling_input"));
     }
+    if trace.terminal_safe_stop_qualified && trace.terminal_reserve_state_digest.trim().is_empty() {
+        return Err(WireReceiptError::ReportBindingMismatch("terminal_reserve_state_digest"));
+    }
     Ok(())
 }
 
@@ -1150,6 +1153,10 @@ mod tests {
         assert_eq!(envelope["schema_version"], RECEIPT_SCHEMA_VERSION);
         assert_eq!(envelope["payload"]["identity"]["mission_id"], "mission-01");
         assert_eq!(envelope["payload"]["identity"]["terminal_event_sequence"], 8);
+        assert_eq!(
+            envelope["payload"]["terminal_reserve_state_digest"],
+            "thermal-1"
+        );
         assert_eq!(
             envelope["payload"]["configuration"]["executed_prefix_expected_digest"],
             "prefix-expected"
