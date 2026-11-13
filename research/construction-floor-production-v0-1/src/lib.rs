@@ -177,7 +177,10 @@ pub enum LedgerError {
     TaskContextMismatch,
     TaskIdAlreadyAssigned(String),
     AttemptNumberOverflow,
-    AttemptNumberMismatch { expected: u32, received: u32 },
+    AttemptNumberMismatch {
+        expected: u32,
+        received: u32,
+    },
     PriorAttemptNotTerminal,
     PriorAttemptAlreadyAccepted,
     MissingReworkAuthorization,
@@ -186,11 +189,20 @@ pub enum LedgerError {
     AttemptAuthorizationConflict(String),
     TaskConfigurationChanged(String),
     ConflictingAttemptSnapshot(String),
-    InvalidStateProgression { from: TaskState, to: TaskState },
+    InvalidStateProgression {
+        from: TaskState,
+        to: TaskState,
+    },
     MissingAcceptanceEvidence,
     DuplicateCostEntry(String),
-    CurrencyMismatch { expected: String, received: String },
-    ScenarioMismatch { early: String, deferred: String },
+    CurrencyMismatch {
+        expected: String,
+        received: String,
+    },
+    ScenarioMismatch {
+        early: String,
+        deferred: String,
+    },
     UnknownTask(String),
     DuplicateLabourSlice(String),
     InvalidLabourInterval,
@@ -256,9 +268,7 @@ impl FloorLedger {
     }
 
     pub fn acceptance_contract_ref(&self, work_unit_id: &str) -> Option<&str> {
-        self.required_units
-            .get(work_unit_id)
-            .map(String::as_str)
+        self.required_units.get(work_unit_id).map(String::as_str)
     }
 
     /// Observe the authoritative state of an existing lifecycle TaskMachine.
@@ -279,12 +289,17 @@ impl FloorLedger {
         if !self.binding.matches_task(&task.binding) {
             return Err(LedgerError::TaskContextMismatch);
         }
-        if matches!(&task.state, TaskState::IndependentlyAccepted | TaskState::IndependentlyRejected)
-            && (task.output_evidence_ref.as_deref().is_none_or(str::is_empty)
-                || task
-                    .acceptance_receipt_ref
-                    .as_deref()
-                    .is_none_or(str::is_empty))
+        if matches!(
+            &task.state,
+            TaskState::IndependentlyAccepted | TaskState::IndependentlyRejected
+        ) && (task
+            .output_evidence_ref
+            .as_deref()
+            .is_none_or(str::is_empty)
+            || task
+                .acceptance_receipt_ref
+                .as_deref()
+                .is_none_or(str::is_empty))
         {
             return Err(LedgerError::MissingAcceptanceEvidence);
         }
@@ -477,8 +492,7 @@ impl FloorLedger {
                         .expect("non-empty history has a last attempt")
                         .state
                         .clone();
-                    let finally_accepted_for_unit =
-                        final_state == TaskState::IndependentlyAccepted;
+                    let finally_accepted_for_unit = final_state == TaskState::IndependentlyAccepted;
                     if finally_accepted_for_unit {
                         finally_accepted = checked_add(finally_accepted, 1)?;
                     } else {
@@ -497,9 +511,9 @@ impl FloorLedger {
                             .required_units
                             .get(&attempt.work_unit_id)
                             .cloned()
-                            .ok_or_else(|| LedgerError::UnknownWorkUnit(
-                                attempt.work_unit_id.clone(),
-                            ))?;
+                            .ok_or_else(|| {
+                                LedgerError::UnknownWorkUnit(attempt.work_unit_id.clone())
+                            })?;
                         attempts.push(AttemptReport {
                             work_unit_id: attempt.work_unit_id.clone(),
                             acceptance_contract_ref,
@@ -558,8 +572,7 @@ impl FloorLedger {
             numerator_minor_units: total_cost,
             denominator_accepted_units: finally_accepted,
         });
-        let accepted_floor_cost = (finally_accepted == required_units)
-            .then_some(total_cost);
+        let accepted_floor_cost = (finally_accepted == required_units).then_some(total_cost);
 
         Ok(FloorReport {
             floor_id: self.binding.floor_id.clone(),
@@ -598,7 +611,8 @@ pub fn reserve_for_floor(
     if request.site_epoch != floor.site_epoch {
         return Err(LedgerError::StaleResourceEpoch);
     }
-    book.reserve(request, now_ms).map_err(LedgerError::Reservation)
+    book.reserve(request, now_ms)
+        .map_err(LedgerError::Reservation)
 }
 
 /// A paired deterministic counterfactual for the value of an observation.
@@ -670,8 +684,7 @@ pub fn compare_observation_arms(
         currency_code: early.currency_code.clone(),
         early_total_cost_minor_units: early_cost,
         deferred_total_cost_minor_units: deferred_cost,
-        early_cost_advantage_minor_units: i128::from(deferred_cost)
-            - i128::from(early_cost),
+        early_cost_advantage_minor_units: i128::from(deferred_cost) - i128::from(early_cost),
         early_crew_minutes_saved: i128::from(deferred.crew_minutes)
             - i128::from(early.crew_minutes),
     })
@@ -763,7 +776,8 @@ fn require_non_empty(name: &'static str, value: &str) -> Result<(), LedgerError>
 }
 
 fn checked_add(left: u64, right: u64) -> Result<u64, LedgerError> {
-    left.checked_add(right).ok_or(LedgerError::ArithmeticOverflow)
+    left.checked_add(right)
+        .ok_or(LedgerError::ArithmeticOverflow)
 }
 
 #[cfg(test)]
@@ -840,8 +854,13 @@ mod tests {
             },
         )
         .expect("executor complete");
-        send(&mut machine, &actor, 4, TransitionKind::SubmitForMeasurement)
-            .expect("submit measurement");
+        send(
+            &mut machine,
+            &actor,
+            4,
+            TransitionKind::SubmitForMeasurement,
+        )
+        .expect("submit measurement");
         let receipt = AcceptanceReceipt {
             receipt_ref: format!("receipt:{task_id}"),
             task_id: task_id.to_owned(),
@@ -958,10 +977,13 @@ mod tests {
         assert_eq!(missing_unit.final_state, None);
         assert!(!report.floor_accepted());
         assert_eq!(report.accepted_floor_cost_minor_units, None);
-        assert_eq!(report.cost_per_accepted_unit, Some(MoneyPerUnit {
-            numerator_minor_units: 5_000,
-            denominator_accepted_units: 1,
-        }));
+        assert_eq!(
+            report.cost_per_accepted_unit,
+            Some(MoneyPerUnit {
+                numerator_minor_units: 5_000,
+                denominator_accepted_units: 1,
+            })
+        );
     }
 
     #[test]
@@ -989,11 +1011,7 @@ mod tests {
             Err(LedgerError::MissingReworkAuthorization)
         );
         assert_eq!(
-            ledger.observe_attempt(
-                "unit-1",
-                &accepted,
-                Some("corrective-work-order-1")
-            ),
+            ledger.observe_attempt("unit-1", &accepted, Some("corrective-work-order-1")),
             Ok(ObserveOutcome::Recorded)
         );
     }
@@ -1160,12 +1178,7 @@ mod tests {
         );
     }
 
-    fn reservation(
-        id: &str,
-        task: &str,
-        start: u64,
-        end: u64,
-    ) -> ReservationRequest {
+    fn reservation(id: &str, task: &str, start: u64, end: u64) -> ReservationRequest {
         ReservationRequest {
             reservation_id: id.to_owned(),
             resource_id: "HOIST-1".to_owned(),
@@ -1184,8 +1197,8 @@ mod tests {
     #[test]
     fn floor_adapter_reuses_existing_resource_reservation_owner() {
         let floor = floor_binding();
-        let mut book = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
-            .expect("reservation book");
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
         book.register_resource("HOIST-1", 1).expect("resource");
         assert_eq!(
             reserve_for_floor(&floor, &mut book, reservation("r1", "task-1", 10, 20), 0),
@@ -1193,15 +1206,12 @@ mod tests {
         );
         assert!(matches!(
             reserve_for_floor(&floor, &mut book, reservation("r2", "task-2", 15, 25), 0),
-            Err(LedgerError::Reservation(ReservationError::CapacityExceeded { .. }))
+            Err(LedgerError::Reservation(
+                ReservationError::CapacityExceeded { .. }
+            ))
         ));
         assert_eq!(
-            reserve_for_floor(
-                &floor,
-                &mut book,
-                reservation("r3", "task-3", 20, 30),
-                0
-            ),
+            reserve_for_floor(&floor, &mut book, reservation("r3", "task-3", 20, 30), 0),
             Ok(ReservationOutcome::Granted)
         );
     }
@@ -1215,7 +1225,12 @@ mod tests {
         book.register_resource("PUMP-1", 1).expect("pump");
 
         assert_eq!(
-            reserve_for_floor(&floor, &mut book, reservation("hoist-r1", "task-1", 10, 20), 0),
+            reserve_for_floor(
+                &floor,
+                &mut book,
+                reservation("hoist-r1", "task-1", 10, 20),
+                0
+            ),
             Ok(ReservationOutcome::Granted)
         );
         let mut pump_request = reservation("pump-r1", "task-2", 10, 20);
@@ -1310,7 +1325,8 @@ mod tests {
         let right_machine = completed_machine("task-1", true);
         left.observe_attempt("unit-1", &left_machine, None)
             .expect("left attempt");
-        right.observe_attempt("unit-1", &right_machine, None)
+        right
+            .observe_attempt("unit-1", &right_machine, None)
             .expect("right attempt");
         for item in [&mut left, &mut right] {
             item.add_cost(CostEntry {
@@ -1366,11 +1382,15 @@ mod tests {
         let report = ledger.report().expect("report");
         assert_eq!(report.total_cost_minor_units, 1_000);
         assert_eq!(
-            report.costs_by_category_minor_units.get(&CostCategory::RobotOperation),
+            report
+                .costs_by_category_minor_units
+                .get(&CostCategory::RobotOperation),
             Some(&300)
         );
         assert_eq!(
-            report.costs_by_category_minor_units.get(&CostCategory::Rework),
+            report
+                .costs_by_category_minor_units
+                .get(&CostCategory::Rework),
             Some(&700)
         );
     }
