@@ -768,6 +768,18 @@ mod tests {
         )
     }
 
+    fn higher_value_query(query_id: &str, kind: QueryKind, latency: u64) -> QueryCandidate {
+        candidate(
+            query_id,
+            kind,
+            latency,
+            1_500,
+            4,
+            0,
+            vec![outcome(500_000, 5, 95), outcome(500_000, 95, 5)],
+        )
+    }
+
     fn rejection(report: &DecisionReport, query_id: &str, expected: RejectionReason) -> bool {
         report
             .candidates
@@ -809,7 +821,7 @@ mod tests {
             report.recommended_query_id.as_deref(),
             Some("reacquire-front-camera")
         );
-        assert_eq!(report.candidates[0].expected_decision_loss_reduction_units, Some(15));
+        assert_eq!(report.candidates[0].expected_decision_loss_reduction_units, Some(30));
         assert_eq!(report.candidates[0].predicted_best_action_change_probability_ppm, 500_000);
     }
 
@@ -937,7 +949,7 @@ mod tests {
             0,
             vec![outcome(500_000, 20, 80), outcome(500_000, 80, 20)],
         );
-        let valuable = beneficial_query(
+        let valuable = higher_value_query(
             "slower-higher-value",
             QueryKind::CounterfactualSimulation,
             20_000,
@@ -960,7 +972,7 @@ mod tests {
     #[test]
     fn explicit_preference_selects_only_among_pareto_options() {
         let mut request = base_request(vec![
-            beneficial_query("slow-high-benefit", QueryKind::CounterfactualSimulation, 20_000),
+            higher_value_query("slow-high-benefit", QueryKind::CounterfactualSimulation, 20_000),
             candidate(
                 "fast-low-cost",
                 QueryKind::SensorReacquisition,
