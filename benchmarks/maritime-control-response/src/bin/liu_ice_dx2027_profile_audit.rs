@@ -4,6 +4,7 @@
 //! This binary intentionally does not inspect or invent archive contents.
 
 use serde_json::Value;
+use sha2::Digest;
 use std::error::Error;
 use std::fs;
 
@@ -151,7 +152,7 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
     }
 
     let labels = string_array(dataset, "fault_labels_as_published")?;
-    if labels != ["f_pic", "y_pim", "y_waf", "f_iml"] {
+    if labels != vec!["f_pic".to_owned(), "y_pim".to_owned(), "y_waf".to_owned(), "f_iml".to_owned()] {
         return Err("published fault-label spellings changed; refresh the crosswalk".into());
     }
     let crosswalk = dataset
@@ -179,12 +180,10 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
     require_str(interface, "input_method", "Input(sample)")?;
     require_bool(interface, "one_output_per_sample", true)?;
     require_bool(interface, "historical_outputs_may_be_revised", false)?;
-    require_bool(interface, "detection_type", true).or_else(|_| {
-        require_str(interface, "detection_type", "boolean")
-    })?;
+    require_str(interface, "detection_type", "boolean")?;
     require_u64(interface, "isolation_vector_length", 5)?;
     if string_array(interface, "isolation_class_order")?
-        != ["f_pic", "f_pim", "f_waf", "f_iml", "f_x"]
+        != vec!["f_pic".to_owned(), "f_pim".to_owned(), "f_waf".to_owned(), "f_iml".to_owned(), "f_x".to_owned()]
     {
         return Err("five-way isolation class order changed".into());
     }
@@ -247,7 +246,9 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let profile: Value = serde_json::from_str(PROFILE)?;
-    validate_profile(&profile).map_err(|message| format!("profile rejected: {message}"))?;
+    validate_profile(&profile).map_err(|message| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, format!("profile rejected: {message}"))
+    })?;
     let bytes = serde_json::to_vec(&profile)?;
     let digest = format!("{:x}", sha2::Sha256::digest(&bytes));
     println!(
@@ -274,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn 2026_and_2027_recording_counts_are_not_interchangeable() {
+    fn dx2026_and_dx2027_recording_counts_are_not_interchangeable() {
         let mut profile = fixture();
         profile["dataset"]["training_dataset_count_reported"] = 26.into();
         assert!(validate_profile(&profile).is_err());
