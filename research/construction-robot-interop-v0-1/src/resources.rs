@@ -3,7 +3,12 @@
 //! This is scheduling semantics only. A granted reservation is not a safety permit,
 //! clearance, motion authorization, or proof that a physical work zone is safe.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Temporal broad-phase cell width. This is an index parameter, not a scheduling tolerance.
+const RESERVATION_TIME_BUCKET_MS: u64 = 60_000;
+/// Very long reservations use a per-resource fallback rather than allocating thousands of buckets.
+const MAX_RESERVATION_TIME_BUCKETS: u64 = 4_096;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,6 +67,7 @@ pub enum ReservationError {
     CapacityExceeded { capacity: u32, requested_total: u32 },
     CapacityOverflow,
     ReservationNotActive,
+    IndexInconsistent(String),
 }
 
 impl fmt::Display for ReservationError {
@@ -85,6 +91,9 @@ pub struct ReservationBook {
     max_clock_uncertainty_ms: u64,
     resources: BTreeMap<String, u32>,
     reservations: BTreeMap<String, ReservationRecord>,
+    active_by_resource: BTreeMap<String, BTreeSet<String>>,
+    time_buckets: BTreeMap<(String, u64), BTreeSet<String>>,
+    global_by_resource: BTreeMap<String, BTreeSet<String>>,
 }
 
 impl ReservationBook {
@@ -104,6 +113,9 @@ impl ReservationBook {
             max_clock_uncertainty_ms,
             resources: BTreeMap::new(),
             reservations: BTreeMap::new(),
+            active_by_resource: BTreeMap::new(),
+            time_buckets: BTreeMap::new(),
+            global_by_resource: BTreeMap::new(),
         })
     }
 
@@ -128,6 +140,127 @@ impl ReservationBook {
 
         self.resources.insert(resource_id, capacity);
         Ok(())
+    }
+
+    fn index_active_reservation(&mut self, request: &ReservationRequest) {
+        let id = request.reservation_id.clone();
+        let resource_id = request.resource_id.clone();
+        self.active_by_resource
+            .entry(resource_id.clone())
+            .or_default()
+            .insert(id.clone());
+
+        let start = request
+            .interval_start_ms
+            .saturating_sub(request.clock_uncertainty_ms);
+        let end = request
+            .interval_end_ms
+            .saturating_add(request.clock_uncertainty_ms);
+
+        match reservation_time_buckets(start, end) {
+            Some(buckets) => {
+                for bucket in buckets {
+                    self.time_buckets
+                        .entry((resource_id.clone(), bucket))
+                        .or_default()
+                        .insert(id.clone());
+                }
+            }
+            None => {
+                self.global_by_resource
+                    .entry(resource_id)
+                    .or_default()
+                    .insert(id);
+            }
+        }
+    }
+
+    fn unindex_active_reservation(&mut self, request: &ReservationRequest) {
+        let id = request.reservation_id.as_str();
+        let resource_id = request.resource_id.as_str();
+
+        if let Some(ids) = self.active_by_resource.get_mut(resource_id) {
+            ids.remove(id);
+            if ids.is_empty() {
+                self.active_by_resource.remove(resource_id);
+            }
+        }
+
+        let start = request
+            .interval_start_ms
+            .saturating_sub(request.clock_uncertainty_ms);
+        let end = request
+            .interval_end_ms
+            .saturating_add(request.clock_uncertainty_ms);
+
+        match reservation_time_buckets(start, end) {
+            Some(buckets) => {
+                for bucket in buckets {
+                    let key = (resource_id.to_owned(), bucket);
+                    if let Some(ids) = self.time_buckets.get_mut(&key) {
+                        ids.remove(id);
+                        if ids.is_empty() {
+                            self.time_buckets.remove(&key);
+                        }
+                    }
+                }
+            }
+            None => {
+                if let Some(ids) = self.global_by_resource.get_mut(resource_id) {
+                    ids.remove(id);
+                    if ids.is_empty() {
+                        self.global_by_resource.remove(resource_id);
+                    }
+                }
+            }
+        }
+    }
+
+    fn candidate_reservation_ids(
+        &self,
+        resource_id: &str,
+        start_ms: u64,
+        end_ms: u64,
+    ) -> BTreeSet<String> {
+        let Some(buckets) = reservation_time_buckets(start_ms, end_ms) else {
+            return self
+                .active_by_resource
+                .get(resource_id)
+                .cloned()
+                .unwrap_or_default();
+        };
+
+        let mut candidates = self
+            .global_by_resource
+            .get(resource_id)
+            .cloned()
+            .unwrap_or_default();
+        for bucket in buckets {
+            if let Some(ids) = self.time_buckets.get(&(resource_id.to_owned(), bucket)) {
+                candidates.extend(ids.iter().cloned());
+            }
+        }
+        candidates
+    }
+
+    /// Diagnostic broad-phase candidate count for one resource and uncertainty-expanded
+    /// half-open interval. Exact capacity semantics are still checked by `reserve`.
+    pub fn candidate_count_for_interval(
+        &self,
+        resource_id: &str,
+        start_ms: u64,
+        end_ms: u64,
+    ) -> Result<usize, ReservationError> {
+        require_non_empty("resource_id", resource_id)?;
+        if start_ms >= end_ms {
+            return Err(ReservationError::InvalidInterval);
+        }
+        if !self.resources.contains_key(resource_id) {
+            return Err(ReservationError::UnknownResource);
+        }
+        Ok(self
+            .candidate_reservation_ids(resource_id, start_ms, end_ms)
+            .len())
     }
 
     /// Reserve capacity in a declared clock domain and current site epoch.
@@ -185,11 +318,17 @@ impl ReservationBook {
         }
 
         let mut occupancy_events: Vec<(u64, bool, u64)> = Vec::new();
-        for existing in self.reservations.values() {
+        let candidate_ids =
+            self.candidate_reservation_ids(&request.resource_id, earliest_start, latest_end);
+        for existing_id in candidate_ids {
+            let existing = self
+                .reservations
+                .get(&existing_id)
+                .ok_or_else(|| ReservationError::IndexInconsistent(existing_id.clone()))?;
             if existing.state != ReservationState::Active
                 || existing.request.resource_id != request.resource_id
             {
-                continue;
+                return Err(ReservationError::IndexInconsistent(existing_id));
             }
 
             let existing_start = existing
@@ -235,6 +374,7 @@ impl ReservationBook {
             });
         }
 
+        let indexed_request = request.clone();
         self.reservations.insert(
             request.reservation_id.clone(),
             ReservationRecord {
@@ -242,6 +382,7 @@ impl ReservationBook {
                 state: ReservationState::Active,
             },
         );
+        self.index_active_reservation(&indexed_request);
         Ok(ReservationOutcome::Granted)
     }
 
@@ -262,16 +403,20 @@ impl ReservationBook {
             return Err(ReservationError::WrongOwner);
         }
 
-        match record.state {
+        let (outcome, request_to_unindex) = match record.state {
             ReservationState::Active => {
                 record.state = ReservationState::Released;
-                Ok(ReleaseOutcome::Released)
+                (Ok(ReleaseOutcome::Released), Some(record.request.clone()))
             }
-            ReservationState::Released => Ok(ReleaseOutcome::AlreadyReleased),
+            ReservationState::Released => (Ok(ReleaseOutcome::AlreadyReleased), None),
             ReservationState::Expired | ReservationState::Invalidated => {
-                Err(ReservationError::ReservationNotActive)
+                (Err(ReservationError::ReservationNotActive), None)
             }
+        };
+        if let Some(request) = request_to_unindex {
+            self.unindex_active_reservation(&request);
         }
+        outcome
     }
 
     /// Invalidate every active reservation when the authoritative site epoch changes.
@@ -292,25 +437,35 @@ impl ReservationBook {
                 record.state = ReservationState::Invalidated;
             }
         }
+        self.active_by_resource.clear();
+        self.time_buckets.clear();
+        self.global_by_resource.clear();
         Ok(())
     }
 
     /// Mark expired reservations as historical records. Their IDs remain consumed.
     pub fn expire(&mut self, now_ms: u64) -> usize {
-        let mut expired = 0;
-        for record in self.reservations.values_mut() {
-            if record.state == ReservationState::Active
-                && record
-                    .request
-                    .expires_at_ms
-                    .saturating_sub(record.request.clock_uncertainty_ms)
-                    <= now_ms
-            {
+        let expired_requests: Vec<ReservationRequest> = self
+            .reservations
+            .values()
+            .filter(|record| {
+                record.state == ReservationState::Active
+                    && record
+                        .request
+                        .expires_at_ms
+                        .saturating_sub(record.request.clock_uncertainty_ms)
+                        <= now_ms
+            })
+            .map(|record| record.request.clone())
+            .collect();
+
+        for request in &expired_requests {
+            self.unindex_active_reservation(request);
+            if let Some(record) = self.reservations.get_mut(&request.reservation_id) {
                 record.state = ReservationState::Expired;
-                expired += 1;
             }
         }
-        expired
+        expired_requests.len()
     }
 
     pub fn state(&self, reservation_id: &str) -> Option<ReservationState> {
@@ -322,6 +477,23 @@ impl ReservationBook {
     pub fn current_site_epoch(&self) -> &str {
         &self.current_site_epoch
     }
+}
+
+/// Conservative inclusive broad-phase buckets for an uncertainty-expanded
+/// half-open interval. Including the end bucket may add candidates at exact boundaries;
+/// the final `overlaps` predicate still enforces half-open semantics.
+fn reservation_time_buckets(start_ms: u64, end_ms: u64) -> Option<Vec<u64>> {
+    if start_ms >= end_ms {
+        return None;
+    }
+    let first = start_ms / RESERVATION_TIME_BUCKET_MS;
+    let last = end_ms / RESERVATION_TIME_BUCKET_MS;
+    let count = last.checked_sub(first)?.checked_add(1)?;
+    if count > MAX_RESERVATION_TIME_BUCKETS {
+        return None;
+    }
+    let capacity = usize::try_from(count).ok()?;
+    Some((first..=last).collect::<Vec<_>>().into_iter().take(capacity).collect())
 }
 
 fn validate_request(request: &ReservationRequest) -> Result<(), ReservationError> {
