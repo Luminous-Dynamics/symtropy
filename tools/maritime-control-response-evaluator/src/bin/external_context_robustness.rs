@@ -7,6 +7,7 @@ use std::{
 };
 
 const VERSION: &str = "0.1.0";
+#[cfg(test)]
 const FIXTURE: &str = include_str!(
     "../../../../benchmarks/maritime-control-response/environment-context-robustness-v0.1.json"
 );
