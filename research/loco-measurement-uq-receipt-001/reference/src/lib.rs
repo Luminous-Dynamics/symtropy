@@ -695,7 +695,7 @@ fn validate_derived_result(
     match measurements.get(derived.output_measurement_id.as_str()) {
         Some(output) => {
             if !matches!(
-                output.kind,
+                &output.kind,
                 MeasurementKind::DerivedElectricalEnergy
                     | MeasurementKind::DerivedShaftWork
                     | MeasurementKind::DerivedEnergyResidual
@@ -704,6 +704,16 @@ fn validate_derived_result(
                     report,
                     EvidenceDisposition::Rejected,
                     "DERIVED_OUTPUT_KIND_MISMATCH",
+                    identity,
+                );
+            }
+            if derived.result_id != derived.output_measurement_id
+                || derived.output_result_digest != output.measurement_artifact_digest
+            {
+                push(
+                    report,
+                    EvidenceDisposition::Rejected,
+                    "DERIVED_OUTPUT_IDENTITY_MISMATCH",
                     identity,
                 );
             }
@@ -1139,14 +1149,14 @@ mod tests {
         audit.uncertainty_receipts
             .push(uncertainty("uq-energy-001", "energy-001"));
         audit.derived_results.push(DerivedResultReceipt {
-            result_id: "energy-result-001".into(),
+            result_id: "energy-001".into(),
             output_measurement_id: "energy-001".into(),
             input_measurement_ids: vec!["torque-001".into(), "voltage-001".into()],
             input_uncertainty_receipt_ids: vec![
                 "uq-torque-001".into(),
                 "uq-voltage-001".into(),
             ],
-            output_result_digest: "energy-output-digest".into(),
+            output_result_digest: "artifact-energy-001".into(),
             output_uncertainty_receipt_id: "uq-energy-001".into(),
             upstream_disposition: EvidenceDisposition::Qualified,
         });
