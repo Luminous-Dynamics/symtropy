@@ -35,16 +35,8 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Apply pinned Rust formatting for repair capture
-        run: cargo fmt --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all
-
-      - name: Capture pinned rustfmt source output
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustfmt-tandem
-          path: crates/tools/shipyard-tandem-gmaw-admission/src/main.rs
-          if-no-files-found: error
-          retention-days: 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all -- --check
 
       - name: Run metadata admission verifier tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
