@@ -16,7 +16,8 @@
     "scoring",
     "edition_comparison",
     "source_ambiguities",
-    "claim_ceiling"
+    "claim_ceiling",
+    "calibration_feasibility"
   ],
   "properties": {
     "schema_version": {
@@ -443,6 +444,56 @@
         },
         "cross_engine_transfer_claim_allowed": {
           "const": false
+        }
+      }
+    },
+    "calibration_feasibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_calibration_unit",
+        "reported_max_recordings_per_known_fault_family",
+        "required_independent_episodes_for_split_conformal_coverage",
+        "per_fault_90pct_split_conformal_feasible_from_reported_training_count",
+        "pooled_marginal_coverage_claims_per_fault_coverage",
+        "claim_note"
+      ],
+      "properties": {
+        "independent_calibration_unit": {
+          "const": "recording"
+        },
+        "reported_max_recordings_per_known_fault_family": {
+          "const": 7
+        },
+        "required_independent_episodes_for_split_conformal_coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "0.90",
+            "0.95",
+            "0.99"
+          ],
+          "properties": {
+            "0.90": {
+              "const": 9
+            },
+            "0.95": {
+              "const": 19
+            },
+            "0.99": {
+              "const": 99
+            }
+          }
+        },
+        "per_fault_90pct_split_conformal_feasible_from_reported_training_count": {
+          "const": false
+        },
+        "pooled_marginal_coverage_claims_per_fault_coverage": {
+          "const": false
+        },
+        "claim_note": {
+          "type": "string",
+          "minLength": 40
         }
       }
     }
