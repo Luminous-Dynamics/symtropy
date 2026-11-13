@@ -174,11 +174,13 @@ fn observation_age(captured: u64, decision: u64, maximum: u64) -> Result<(), Abs
 }
 
 fn checked_add_u128(left: u128, right: u128) -> Result<u128, AbstainReason> {
-    left.checked_add(right).ok_or(AbstainReason::NumericOverflow)
+    left.checked_add(right)
+        .ok_or(AbstainReason::NumericOverflow)
 }
 
 fn checked_mul_u128(left: u128, right: u128) -> Result<u128, AbstainReason> {
-    left.checked_mul(right).ok_or(AbstainReason::NumericOverflow)
+    left.checked_mul(right)
+        .ok_or(AbstainReason::NumericOverflow)
 }
 
 fn round_div_nearest(numerator: u128, denominator: u128) -> Result<u128, AbstainReason> {
@@ -369,10 +371,8 @@ fn station_is_measured(
     observed: &ProfilePoint,
     maximum_uncertainty_um: u64,
 ) -> Result<bool, AbstainReason> {
-    let reference_measured =
-        validate_point_measurement(reference, maximum_uncertainty_um)?;
-    let observed_measured =
-        validate_point_measurement(observed, maximum_uncertainty_um)?;
+    let reference_measured = validate_point_measurement(reference, maximum_uncertainty_um)?;
+    let observed_measured = validate_point_measurement(observed, maximum_uncertainty_um)?;
     Ok(reference_measured && observed_measured)
 }
 
@@ -413,9 +413,7 @@ fn compare_profiles_inner(
         return Err(AbstainReason::RegionNotExactlyCovered);
     }
 
-    for (reference_point, observed_point) in
-        reference.points.iter().zip(observed.points.iter())
-    {
+    for (reference_point, observed_point) in reference.points.iter().zip(observed.points.iter()) {
         if reference_point.x_um != observed_point.x_um {
             return Err(AbstainReason::StationGridMismatch);
         }
@@ -465,12 +463,24 @@ fn compare_profiles_inner(
         current_unsupported_gap = 0;
         covered_length = checked_add_u128(covered_length, u128::from(width))?;
 
-        let left_difference =
-            i128::from(left_observed.z_um.ok_or(AbstainReason::MissingPointUncertainty)?)
-                - i128::from(left_reference.z_um.ok_or(AbstainReason::MissingPointUncertainty)?);
-        let right_difference =
-            i128::from(right_observed.z_um.ok_or(AbstainReason::MissingPointUncertainty)?)
-                - i128::from(right_reference.z_um.ok_or(AbstainReason::MissingPointUncertainty)?);
+        let left_difference = i128::from(
+            left_observed
+                .z_um
+                .ok_or(AbstainReason::MissingPointUncertainty)?,
+        ) - i128::from(
+            left_reference
+                .z_um
+                .ok_or(AbstainReason::MissingPointUncertainty)?,
+        );
+        let right_difference = i128::from(
+            right_observed
+                .z_um
+                .ok_or(AbstainReason::MissingPointUncertainty)?,
+        ) - i128::from(
+            right_reference
+                .z_um
+                .ok_or(AbstainReason::MissingPointUncertainty)?,
+        );
 
         maximum_absolute_deviation = maximum_absolute_deviation
             .max(left_difference.unsigned_abs())
@@ -483,15 +493,31 @@ fn compare_profiles_inner(
 
         let left_uncertainty = checked_add_u128(
             checked_add_u128(
-                u128::from(left_reference.uncertainty_um.ok_or(AbstainReason::MissingPointUncertainty)?),
-                u128::from(left_observed.uncertainty_um.ok_or(AbstainReason::MissingPointUncertainty)?),
+                u128::from(
+                    left_reference
+                        .uncertainty_um
+                        .ok_or(AbstainReason::MissingPointUncertainty)?,
+                ),
+                u128::from(
+                    left_observed
+                        .uncertainty_um
+                        .ok_or(AbstainReason::MissingPointUncertainty)?,
+                ),
             )?,
             u128::from(request.registration.maximum_residual_um),
         )?;
         let right_uncertainty = checked_add_u128(
             checked_add_u128(
-                u128::from(right_reference.uncertainty_um.ok_or(AbstainReason::MissingPointUncertainty)?),
-                u128::from(right_observed.uncertainty_um.ok_or(AbstainReason::MissingPointUncertainty)?),
+                u128::from(
+                    right_reference
+                        .uncertainty_um
+                        .ok_or(AbstainReason::MissingPointUncertainty)?,
+                ),
+                u128::from(
+                    right_observed
+                        .uncertainty_um
+                        .ok_or(AbstainReason::MissingPointUncertainty)?,
+                ),
             )?,
             u128::from(request.registration.maximum_residual_um),
         )?;
@@ -505,10 +531,9 @@ fn compare_profiles_inner(
     if maximum_unsupported_gap > limits.maximum_unsupported_gap_um {
         return Err(AbstainReason::UnsupportedGapTooLarge);
     }
-    let region_length = u128::try_from(
-        i128::from(limits.region_end_um) - i128::from(limits.region_start_um),
-    )
-    .map_err(|_| AbstainReason::NumericOverflow)?;
+    let region_length =
+        u128::try_from(i128::from(limits.region_end_um) - i128::from(limits.region_start_um))
+            .map_err(|_| AbstainReason::NumericOverflow)?;
     let coverage_numerator = checked_mul_u128(covered_length, 1_000)?;
     let coverage_permille = round_div_nearest(coverage_numerator, region_length)?;
     let coverage_permille =
@@ -527,10 +552,8 @@ fn compare_profiles_inner(
         .map_err(|_| AbstainReason::NumericOverflow)?
         - i128::try_from(removed_area2).map_err(|_| AbstainReason::NumericOverflow)?;
     let absolute_change_area2 = checked_add_u128(added_area2, removed_area2)?;
-    let mean_deviation = round_div_nearest(
-        absolute_change_area2,
-        checked_mul_u128(covered_length, 2)?,
-    )?;
+    let mean_deviation =
+        round_div_nearest(absolute_change_area2, checked_mul_u128(covered_length, 2)?)?;
     let maximum_absolute_deviation_um =
         u64::try_from(maximum_absolute_deviation).map_err(|_| AbstainReason::NumericOverflow)?;
     let mean_absolute_deviation_um =
@@ -664,7 +687,10 @@ mod tests {
     }
 
     fn abstains(request: &ComparisonRequest, expected: AbstainReason) {
-        assert_eq!(compare_profiles(request), ComparisonDecision::Abstain(expected));
+        assert_eq!(
+            compare_profiles(request),
+            ComparisonDecision::Abstain(expected)
+        );
     }
 
     #[test]
@@ -674,12 +700,18 @@ mod tests {
         assert_eq!(result.metrics.signed_net_area2_um2, 0);
         assert_eq!(result.metrics.absolute_change_area2_um2, 0);
         assert_eq!(result.metrics.coverage_permille, 1_000);
-        assert_eq!(result.metrics.integrated_uncertainty_bound_area2_um2, 24_000);
+        assert_eq!(
+            result.metrics.integrated_uncertainty_bound_area2_um2,
+            24_000
+        );
     }
 
     #[test]
     fn constant_positive_offset_has_exact_area_and_mean_deviation() {
-        let request = base_request(&[Some(0), Some(0), Some(0)], &[Some(1_000), Some(1_000), Some(1_000)]);
+        let request = base_request(
+            &[Some(0), Some(0), Some(0)],
+            &[Some(1_000), Some(1_000), Some(1_000)],
+        );
         let result = qualified(&request);
         assert_eq!(result.metrics.signed_net_area2_um2, 4_000_000);
         assert_eq!(result.metrics.added_area2_um2, 4_000_000);
@@ -705,7 +737,10 @@ mod tests {
 
     #[test]
     fn constant_negative_offset_is_reported_as_removed_area() {
-        let request = base_request(&[Some(0), Some(0), Some(0)], &[Some(-500), Some(-500), Some(-500)]);
+        let request = base_request(
+            &[Some(0), Some(0), Some(0)],
+            &[Some(-500), Some(-500), Some(-500)],
+        );
         let result = qualified(&request);
         assert_eq!(result.metrics.added_area2_um2, 0);
         assert_eq!(result.metrics.removed_area2_um2, 2_000_000);
@@ -734,16 +769,14 @@ mod tests {
 
     #[test]
     fn present_observation_without_uncertainty_is_rejected_when_reference_is_missing() {
-        let mut request =
-            base_request(&[Some(0), None, Some(0)], &[Some(0), Some(0), Some(0)]);
+        let mut request = base_request(&[Some(0), None, Some(0)], &[Some(0), Some(0), Some(0)]);
         request.observed.points[1].uncertainty_um = None;
         abstains(&request, AbstainReason::MissingPointUncertainty);
     }
 
     #[test]
     fn missing_measurement_cannot_carry_an_uncertainty_value() {
-        let mut request =
-            base_request(&[Some(0), None, Some(0)], &[Some(0), None, Some(0)]);
+        let mut request = base_request(&[Some(0), None, Some(0)], &[Some(0), None, Some(0)]);
         request.reference.points[1].uncertainty_um = Some(1);
         abstains(&request, AbstainReason::UncertaintyWithoutMeasurement);
     }
@@ -956,12 +989,10 @@ mod tests {
 
     #[test]
     fn arithmetic_overflow_abstains_instead_of_wrapping() {
-        let mut request =
-            base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         let xs = [i64::MIN, i64::MAX];
         request.reference.points = points(&xs, &[Some(0), Some(0)], Some(1));
-        request.observed.points =
-            points(&xs, &[Some(i64::MAX), Some(i64::MIN)], Some(1));
+        request.observed.points = points(&xs, &[Some(i64::MAX), Some(i64::MIN)], Some(1));
         request.limits.region_start_um = i64::MIN;
         request.limits.region_end_um = i64::MAX;
         request.limits.maximum_unsupported_gap_um = u64::MAX;
