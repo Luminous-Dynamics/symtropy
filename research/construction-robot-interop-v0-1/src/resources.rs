@@ -94,6 +94,7 @@ pub struct ReservationBook {
     active_by_resource: BTreeMap<String, BTreeSet<String>>,
     time_buckets: BTreeMap<(String, u64), BTreeSet<String>>,
     global_by_resource: BTreeMap<String, BTreeSet<String>>,
+    expiry_index: BTreeMap<u64, BTreeSet<String>>,
 }
 
 impl ReservationBook {
@@ -116,6 +117,7 @@ impl ReservationBook {
             active_by_resource: BTreeMap::new(),
             time_buckets: BTreeMap::new(),
             global_by_resource: BTreeMap::new(),
+            expiry_index: BTreeMap::new(),
         })
     }
 
@@ -156,6 +158,13 @@ impl ReservationBook {
         let end = request
             .interval_end_ms
             .saturating_add(request.clock_uncertainty_ms);
+        let earliest_expiry = request
+            .expires_at_ms
+            .saturating_sub(request.clock_uncertainty_ms);
+        self.expiry_index
+            .entry(earliest_expiry)
+            .or_default()
+            .insert(id.clone());
 
         match reservation_time_buckets(start, end) {
             Some(buckets) => {
@@ -183,6 +192,16 @@ impl ReservationBook {
             ids.remove(id);
             if ids.is_empty() {
                 self.active_by_resource.remove(resource_id);
+            }
+        }
+
+        let earliest_expiry = request
+            .expires_at_ms
+            .saturating_sub(request.clock_uncertainty_ms);
+        if let Some(ids) = self.expiry_index.get_mut(&earliest_expiry) {
+            ids.remove(id);
+            if ids.is_empty() {
+                self.expiry_index.remove(&earliest_expiry);
             }
         }
 
@@ -440,23 +459,26 @@ impl ReservationBook {
         self.active_by_resource.clear();
         self.time_buckets.clear();
         self.global_by_resource.clear();
+        self.expiry_index.clear();
         Ok(())
     }
 
     /// Mark expired reservations as historical records. Their IDs remain consumed.
     pub fn expire(&mut self, now_ms: u64) -> usize {
-        let expired_requests: Vec<ReservationRequest> = self
-            .reservations
-            .values()
-            .filter(|record| {
-                record.state == ReservationState::Active
-                    && record
-                        .request
-                        .expires_at_ms
-                        .saturating_sub(record.request.clock_uncertainty_ms)
-                        <= now_ms
+        let due_reservation_ids: Vec<String> = self
+            .expiry_index
+            .range(..=now_ms)
+            .flat_map(|(_, reservation_ids)| reservation_ids.iter().cloned())
+            .collect();
+
+        let expired_requests: Vec<ReservationRequest> = due_reservation_ids
+            .iter()
+            .filter_map(|reservation_id| {
+                self.reservations
+                    .get(reservation_id)
+                    .filter(|record| record.state == ReservationState::Active)
+                    .map(|record| record.request.clone())
             })
-            .map(|record| record.request.clone())
             .collect();
 
         for request in &expired_requests {
@@ -492,8 +514,8 @@ fn reservation_time_buckets(start_ms: u64, end_ms: u64) -> Option<Vec<u64>> {
     if count > MAX_RESERVATION_TIME_BUCKETS {
         return None;
     }
-    let capacity = usize::try_from(count).ok()?;
-    Some((first..=last).collect::<Vec<_>>().into_iter().take(capacity).collect())
+    let _capacity = usize::try_from(count).ok()?;
+    Some((first..=last).collect())
 }
 
 fn validate_request(request: &ReservationRequest) -> Result<(), ReservationError> {
