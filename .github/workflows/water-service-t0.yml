@@ -325,6 +325,235 @@ jobs:
             research/water-service-engineering/membrane-ro-m0b-regression.schema.json \
             research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json \
             artifacts/membrane-ro-m0b-regression/receipt.json
+      - name: Independently replay membrane measurement-integrity M1 cases
+        id: membrane_measurement_integrity_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          import statistics
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-measurement-integrity.schema.json").read_text())
+          inputs = json.loads((root / "membrane-measurement-integrity-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "membrane-measurement-integrity-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-measurement-integrity-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_M1_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          if inputs["sampling_interval_seconds"] != 300 or manifest["case_count"] != 8:
+              raise SystemExit("MEMBRANE_M1_MANIFEST_OR_CADENCE_FAIL")
+          oracle_by_id = {row["case_id"]: row["expected"] for row in oracle["cases"]}
+          case_ids = [row["case_id"] for row in inputs["cases"]]
+          if len(case_ids) != 8 or len(set(case_ids)) != 8 or len(oracle_by_id) != 8:
+              raise SystemExit("MEMBRANE_M1_CASE_IDENTITY_FAIL")
+          if sorted(case_ids) != sorted(oracle_by_id):
+              raise SystemExit("MEMBRANE_M1_INPUT_ORACLE_ID_MISMATCH")
+
+          policy = inputs["policy"]
+          names = ["flux_l_m2_h", "tmp_bar", "permeability_l_m2_h_bar"]
+
+          def relative_range(values):
+              present = [value for value in values if value is not None]
+              if not present:
+                  return 0.0
+              mean = sum(present) / len(present)
+              return (max(present) - min(present)) / abs(mean) if abs(mean) > 1e-12 else 0.0
+
+          def longest_flatline(values, epsilon):
+              longest = run = 0
+              previous = None
+              for value in values:
+                  if value is None:
+                      run = 0
+                      previous = None
+                  else:
+                      run = run + 1 if previous is not None and abs(value - previous) <= epsilon else 1
+                      longest = max(longest, run)
+                      previous = value
+              return longest
+
+          def close(a, b):
+              return math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-12)
+
+          def same(actual, expected, path=""):
+              if isinstance(actual, bool) or isinstance(expected, bool):
+                  return actual == expected
+              if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+                  return close(float(actual), float(expected))
+              if isinstance(actual, dict) and isinstance(expected, dict):
+                  return actual.keys() == expected.keys() and all(
+                      same(actual[key], expected[key], f"{path}/{key}") for key in actual
+                  )
+              if isinstance(actual, list) and isinstance(expected, list):
+                  return len(actual) == len(expected) and all(
+                      same(a, b, f"{path}/{index}") for index, (a, b) in enumerate(zip(actual, expected))
+                  )
+              return actual == expected
+
+          for case in inputs["cases"]:
+              times = case["sample_times_seconds"]
+              if len(times) < 5 or any(b - a != 300 for a, b in zip(times, times[1:])):
+                  raise SystemExit(f"MEMBRANE_M1_TIMEBASE_FAIL: {case['case_id']}")
+              channels = case["channels"]
+              for name in names:
+                  if len(channels[name]) != len(times):
+                      raise SystemExit(f"MEMBRANE_M1_CHANNEL_LENGTH_FAIL: {case['case_id']} {name}")
+
+              missing = {}
+              flat = {}
+              ranges = {}
+              outside = []
+              for name in names:
+                  values = channels[name]
+                  present = [value for value in values if value is not None]
+                  mean = sum(present) / len(present) if present else 0.0
+                  missing[name] = (len(values) - len(present)) / len(values)
+                  flat[name] = longest_flatline(
+                      values, max(1e-12, abs(mean) * policy["flatline_epsilon_fraction"])
+                  )
+                  ranges[name] = relative_range(values)
+                  bounds = case["declared_envelopes"][name]
+                  if any(value < bounds["min"] or value > bounds["max"] for value in present):
+                      outside.append(name)
+
+              all_gap = [
+                  all(channels[name][index] is None for name in names)
+                  for index in range(len(times))
+              ]
+              common_gap = run = 0
+              for value in all_gap:
+                  run = run + 1 if value else 0
+                  common_gap = max(common_gap, run)
+
+              missing_names = [
+                  name for name in names
+                  if missing[name] > policy["max_missing_fraction"]
+              ]
+              stuck = []
+              for name in names:
+                  if flat[name] >= policy["min_stuck_run"]:
+                      peers = [peer for peer in names if peer != name]
+                      if any(ranges[peer] >= policy["peer_variation_fraction"] for peer in peers):
+                          stuck.append(name)
+
+              residuals = []
+              for flux, tmp, permeability in zip(
+                  channels["flux_l_m2_h"],
+                  channels["tmp_bar"],
+                  channels["permeability_l_m2_h_bar"],
+              ):
+                  if flux is not None and tmp is not None and permeability is not None and tmp > 0:
+                      residuals.append(abs(flux / tmp - permeability) / max(abs(permeability), 1e-9))
+              max_residual = max(residuals) if residuals else None
+              median_residual = statistics.median(residuals) if residuals else None
+              inconsistent = (
+                  len(residuals) >= policy["min_consistency_points"]
+                  and median_residual > policy["consistency_relative_error_limit"]
+              )
+
+              deltas = {}
+              for name in names:
+                  values = [value for value in channels[name] if value is not None]
+                  deltas[name] = (
+                      (values[-1] - values[0]) / max(abs(values[0]), 1e-9)
+                      if len(values) >= 2 else 0.0
+                  )
+              tmp_rise = deltas["tmp_bar"]
+              flux_drop = -deltas["flux_l_m2_h"]
+              permeability_drop = -deltas["permeability_l_m2_h_bar"]
+              process_shift = (
+                  tmp_rise >= policy["process_tmp_rise_fraction"]
+                  and flux_drop >= policy["process_flux_drop_fraction"]
+                  and permeability_drop >= policy["process_flux_drop_fraction"]
+              )
+
+              flags = []
+              if outside:
+                  flags.append("OUTSIDE_DECLARED_SYNTHETIC_ENVELOPE")
+              if common_gap >= 2:
+                  flags.append("COMMON_HISTORIAN_GAP")
+              if missing_names:
+                  flags.append("CHANNEL_MISSINGNESS")
+              if stuck:
+                  flags.append("STUCK_AT_WITH_PEER_MOVEMENT")
+              if inconsistent:
+                  flags.append("CROSS_CHANNEL_CONSISTENCY_RESIDUAL")
+              if process_shift:
+                  flags.append("COHERENT_HYDRAULIC_PROCESS_SHIFT")
+
+              if outside:
+                  state = "OUT_OF_DOMAIN_ABSTAIN"
+              elif common_gap >= 2:
+                  state = "HISTORIAN_OUTAGE"
+              elif stuck and missing_names:
+                  state = "INDETERMINATE"
+              elif missing_names:
+                  state = "CHANNEL_DATA_GAP"
+              elif stuck:
+                  state = "STUCK_SENSOR_SUSPECTED"
+              elif inconsistent:
+                  state = "CROSS_CHANNEL_INCONSISTENCY"
+              elif process_shift:
+                  state = "PROCESS_SHIFT_COHERENT"
+              else:
+                  state = "HEALTHY_STABLE"
+
+              suspects = stuck if stuck else (
+                  ["permeability_l_m2_h_bar"] if inconsistent else []
+              )
+              actual = {
+                  "state": state,
+                  "suspect_channels": suspects,
+                  "flags": flags,
+                  "missing_fraction_by_channel": missing,
+                  "longest_flatline_run_by_channel": flat,
+                  "range_fraction_by_channel": ranges,
+                  "max_consistency_relative_error": max_residual,
+                  "median_consistency_relative_error": median_residual,
+                  "coherent_process_deltas": {
+                      "tmp_rise_fraction": tmp_rise,
+                      "flux_drop_fraction": flux_drop,
+                      "permeability_drop_fraction": permeability_drop,
+                  },
+                  "common_historian_gap_max_samples": common_gap,
+                  "fouling_mechanism": "NOT_IDENTIFIED",
+              }
+              expected = oracle_by_id[case["case_id"]]
+              if not same(actual, expected):
+                  raise SystemExit(f"MEMBRANE_M1_ORACLE_MISMATCH: {case['case_id']}")
+
+          process_case = oracle_by_id["MI-M1-002-coherent-process-shift"]
+          ambiguous_case = oracle_by_id["MI-M1-008-ambiguous-stuck-plus-peer-dropout"]
+          if process_case["state"] != "PROCESS_SHIFT_COHERENT" or process_case["fouling_mechanism"] != "NOT_IDENTIFIED":
+              raise SystemExit("MEMBRANE_M1_PROCESS_NOT_FOULING_NEGATIVE_CONTROL_FAIL")
+          if ambiguous_case["state"] != "INDETERMINATE":
+              raise SystemExit("MEMBRANE_M1_AMBIGUOUS_ABSTENTION_FAIL")
+          print("MEMBRANE_MEASUREMENT_INTEGRITY_M1_PASS: 8 synthetic cases; process/sensor separation, historian gaps and abstention matched independent oracle")
+          PY
+      - name: Evaluate membrane measurement integrity M1 at exact revision
+        id: membrane_measurement_integrity
+        env:
+          MEMBRANE_MEASUREMENT_INTEGRITY_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin membrane-measurement-integrity -- \
+            research/water-service-engineering/membrane-measurement-integrity-cases-v0.1.json \
+            research/water-service-engineering/membrane-measurement-integrity-oracle-v0.1.json \
+            research/water-service-engineering/membrane-measurement-integrity.schema.json \
+            research/water-service-engineering/membrane-measurement-integrity-manifest-v0.1.json \
+            artifacts/membrane-measurement-integrity/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -354,6 +583,12 @@ jobs:
             research/water-service-engineering/membrane-ro-m0b-regression.schema.json
             research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json
             artifacts/membrane-ro-m0b-regression/receipt.json
+            research/water-service-engineering/MEMBRANE_MEASUREMENT_INTEGRITY_PROTOCOL_V0_1.md
+            research/water-service-engineering/membrane-measurement-integrity-cases-v0.1.json
+            research/water-service-engineering/membrane-measurement-integrity-oracle-v0.1.json
+            research/water-service-engineering/membrane-measurement-integrity.schema.json
+            research/water-service-engineering/membrane-measurement-integrity-manifest-v0.1.json
+            artifacts/membrane-measurement-integrity/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -364,6 +599,8 @@ jobs:
           MEMBRANE_WQ_M2_OUTCOME: ${{ steps.membrane_wq_m2.outcome }}
           MEMBRANE_RO_M0B_CONTRACTS_OUTCOME: ${{ steps.membrane_ro_m0b_contracts.outcome }}
           MEMBRANE_RO_M0B_OUTCOME: ${{ steps.membrane_ro_m0b.outcome }}
+          MEMBRANE_MEASUREMENT_INTEGRITY_OUTCOME: ${{ steps.membrane_measurement_integrity_contracts.outcome }}
+          MEMBRANE_MEASUREMENT_INTEGRITY_RUST_OUTCOME: ${{ steps.membrane_measurement_integrity.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
@@ -371,3 +608,5 @@ jobs:
           test "$MEMBRANE_WQ_M2_OUTCOME" = "success"
           test "$MEMBRANE_RO_M0B_CONTRACTS_OUTCOME" = "success"
           test "$MEMBRANE_RO_M0B_OUTCOME" = "success"
+          test "$MEMBRANE_MEASUREMENT_INTEGRITY_OUTCOME" = "success"
+          test "$MEMBRANE_MEASUREMENT_INTEGRITY_RUST_OUTCOME" = "success"
