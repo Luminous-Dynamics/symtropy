@@ -106,3 +106,27 @@ All v0.1 measurements and identities in the companion packet are synthetic known
 ### Machine-readable mutation oracles
 
 `fixtures/mutations_v0_1.json` contains 13 synthetic mutation cases and `fixtures/mutations_v0_1.schema.json` is its strict Draft 2020-12 schema. They cover identity and calibration drift, timestamp inversion, executed-prefix mismatch, thermal-history mismatch, incomplete energy, missing thermal coverage, decision expiry, terminal reserve mismatch, unsupported version, payload tampering, unknown clock relation and duplicate JSON object keys. The expected reason codes are proposed stable contract codes; they are **not yet emitted by the Rust producer/consumer**. The mutation corpus is authored test data, not executed Rust evidence.
+
+
+## 6. Executable Rust wire-integrity reference
+
+The isolated dependency-pinned Rust crate is at \`reference/\`. It adds the missing executable integrity layer alongside the existing Draft 2020-12 schema and semantic preflight:
+
+- strict recursive JSON parsing rejects duplicate object keys before canonicalization;
+- v0.1 numeric profile rejects all floating-point numbers and numeric integers outside the IEEE-754 safe-integer range; wide values stay decimal strings;
+- JCS object-member ordering uses UTF-16 code units, not Rust UTF-8 byte ordering;
+- string escaping, nested arrays/objects and compact UTF-8 serialization are deterministic;
+- SHA-256 is recomputed over the entire top-level packet with only the complete \`integrity\` member removed;
+- protocol ID, schema version, canonicalization profile, digest scope and \`actuation_authorized: false\` are checked.
+
+This Rust reference does **not** duplicate the full JSON Schema validator or the producer's physical normalization. The existing Python 3.12 workflow continues to perform the closed Draft 2020-12 schema and golden-packet semantic checks; the Rust job independently exercises the JCS/SHA-256 and parser contract.
+
+Run:
+
+    cargo fmt --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml -- --check
+    cargo test --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml
+    cargo clippy --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml --all-targets -- -D warnings
+
+The golden fixture must produce SHA-256 \`cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8\`. The test corpus also verifies duplicate-key rejection, float / unsafe-integer rejection, UTF-16 property ordering, digest tampering, integrity-member exclusion and no-actuation-authority behavior.
+
+This remains synthetic wire-integrity qualification; it does not serialize the live \`AdapterReport\`, consume the receipt in Symthaea, authenticate the producer, validate measurements, or establish a physical joint result.
