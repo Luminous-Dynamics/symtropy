@@ -79,6 +79,7 @@ impl ClockTransform {
         let total_uncertainty = (self.calibration_uncertainty_ns as u128)
             .checked_add(source_uncertainty_ns as u128)
             .and_then(|value| value.checked_add(drift_uncertainty))
+            .and_then(|value| value.checked_add(1))
             .ok_or(AbstainReason::ArithmeticOverflow)?;
         let uncertainty_ns =
             u64::try_from(total_uncertainty).map_err(|_| AbstainReason::ArithmeticOverflow)?;
@@ -689,7 +690,7 @@ mod tests {
         let receipt = align_stream(&event(), &input, DECISION).expect("alignment");
         assert_eq!(receipt.included_sample_count, 10);
         assert_eq!(receipt.coverage_permille, 1_000);
-        assert_eq!(receipt.maximum_mapping_uncertainty_ns, 101);
+        assert_eq!(receipt.maximum_mapping_uncertainty_ns, 102);
         assert_eq!(receipt.claim_ceiling, "TEMPORAL_ALIGNMENT_ONLY");
     }
 
@@ -712,7 +713,7 @@ mod tests {
             .expect("multirate event alignment");
         assert_eq!(receipt.stream_receipts.len(), 3);
         assert_eq!(receipt.stream_receipts[0].stream_id, "OPCUA-01");
-        assert_eq!(receipt.stream_receipts[0].included_sample_count, 1);
+        assert_eq!(receipt.stream_receipts[0].included_sample_count, 5);
         assert_eq!(receipt.stream_receipts[1].included_sample_count, 13);
         assert_eq!(receipt.stream_receipts[2].included_sample_count, 1_000);
     }
@@ -737,6 +738,7 @@ mod tests {
     fn positive_drift_is_applied_in_parts_per_billion() {
         let mut t = stream("DRIFT", 10_000_000, 10).transform;
         t.drift_ppb = 1_000_000;
+        t.valid_until_source_ns = 20_000_000_000;
         let (mapped, _) = t.map_timestamp(1_000_000_000, 50).expect("map");
         assert_eq!(mapped, 1_001_000_000);
     }
@@ -745,6 +747,7 @@ mod tests {
     fn negative_drift_is_applied_in_parts_per_billion() {
         let mut t = stream("DRIFT", 10_000_000, 10).transform;
         t.drift_ppb = -1_000_000;
+        t.valid_until_source_ns = 20_000_000_000;
         let (mapped, _) = t.map_timestamp(1_000_000_000, 50).expect("map");
         assert_eq!(mapped, 999_000_000);
     }
@@ -753,6 +756,7 @@ mod tests {
     fn drift_uncertainty_grows_with_distance_from_reference_epoch() {
         let mut t = stream("DRIFT", 10_000_000, 10).transform;
         t.drift_uncertainty_ppb = 10;
+        t.valid_until_source_ns = 20_000_000_000;
         let (_, near) = t.map_timestamp(1_000_000_000, 50).expect("near");
         let (_, far) = t.map_timestamp(10_000_000_000, 50).expect("far");
         assert!(far > near);
