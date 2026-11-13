@@ -693,7 +693,10 @@ pub fn integrate_constant_tidal_symplectic(
 
 #[cfg(test)]
 mod tests {
-    use super::{BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap};
+    use super::{
+        integrate_constant_tidal_fixed_step, integrate_constant_tidal_symplectic,
+        BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap,
+    };
     use crate::{
         MassKg, SchwarzschildBlackHole,
         connection::{LeviCivitaConnection4, MetricDerivatives4},
