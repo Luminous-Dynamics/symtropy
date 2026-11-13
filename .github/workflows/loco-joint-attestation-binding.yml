@@ -1,0 +1,35 @@
+name: LOCO Joint Attestation Binding
+
+on:
+  push:
+    branches:
+      - research/loco-joint-attestation-001
+    paths:
+      - "research/loco-joint-attestation-001/**"
+      - ".github/workflows/loco-joint-attestation-binding.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/loco-joint-attestation-001/**"
+      - ".github/workflows/loco-joint-attestation-binding.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  attestation-binding:
+    name: Rust 1.96 format, tests and strict Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-joint-attestation-001/reference/Cargo.toml -- --check
+      - name: Run deterministic tests
+        run: cargo test --locked --manifest-path research/loco-joint-attestation-001/reference/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/loco-joint-attestation-001/reference/Cargo.toml --all-targets -- -D warnings
