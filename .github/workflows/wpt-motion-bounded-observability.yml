@@ -1,0 +1,36 @@
+name: WPT Motion-Bounded Observability
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/wpt-motion-bounded-observability-v0/**"
+      - "tools/wpt-motion-bounded-observability/**"
+      - ".github/workflows/wpt-motion-bounded-observability.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/wpt-motion-bounded-observability-v0/**"
+      - "tools/wpt-motion-bounded-observability/**"
+      - ".github/workflows/wpt-motion-bounded-observability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test motion-bounded observability solver
+        run: cargo test --locked --manifest-path tools/wpt-motion-bounded-observability/Cargo.toml
+      - name: Evaluate stationary known-truth fixture
+        run: cargo run --locked --manifest-path tools/wpt-motion-bounded-observability/Cargo.toml -- research/wpt-motion-bounded-observability-v0/stationary-identity.tsv
+      - name: Evaluate moving known-truth fixture
+        run: cargo run --locked --manifest-path tools/wpt-motion-bounded-observability/Cargo.toml -- research/wpt-motion-bounded-observability-v0/moving-ambiguity.tsv
