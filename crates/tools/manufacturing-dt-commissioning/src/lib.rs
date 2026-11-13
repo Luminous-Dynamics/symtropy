@@ -890,10 +890,12 @@ mod tests {
         components[0].clock_mapping_receipt_sha256 = None;
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::MissingClockMappingReceipt));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::MissingClockMappingReceipt)
+        );
     }
 
     #[test]
@@ -915,10 +917,12 @@ mod tests {
         components[0].clock_mapping_receipt_sha256 = Some([0x55; 32]);
         let receipt = evaluate_readiness(&profile, &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::ClockUncertaintyLimitMissing));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::ClockUncertaintyLimitMissing)
+        );
     }
 
     #[test]
@@ -927,10 +931,12 @@ mod tests {
         profile.profile_sha256 = [0; 32];
         let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::MissingProfileDigest));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::MissingProfileDigest)
+        );
     }
 
     #[test]
