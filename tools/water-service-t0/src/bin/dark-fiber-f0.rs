@@ -13,8 +13,7 @@ fn sha256(bytes: &[u8]) -> String {
 }
 
 fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
-    let bytes = fs::read(path)
-        .map_err(|error| format!("read {}: {error}", path.display()))?;
+    let bytes = fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
     let value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("parse {}: {error}", path.display()))?;
     Ok((bytes, value))
@@ -31,30 +30,26 @@ fn run() -> Result<i32, String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() > 5 {
         return Err(
-            "usage: dark-fiber-f0 [INPUTS] [ORACLE] [SCHEMA] [MANIFEST] [RECEIPT]"
-                .to_owned(),
+            "usage: dark-fiber-f0 [INPUTS] [ORACLE] [SCHEMA] [MANIFEST] [RECEIPT]".to_owned(),
         );
     }
-    let input_path = PathBuf::from(
-        args.first().map(String::as_str).unwrap_or(
+    let input_path =
+        PathBuf::from(args.first().map(String::as_str).unwrap_or(
             "research/water-service-engineering/dark-fiber-observability-cases-v0.1.json",
-        ),
-    );
-    let oracle_path = PathBuf::from(
-        args.get(1).map(String::as_str).unwrap_or(
+        ));
+    let oracle_path =
+        PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
             "research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json",
-        ),
-    );
+        ));
     let schema_path = PathBuf::from(
-        args.get(2).map(String::as_str).unwrap_or(
-            "research/water-service-engineering/dark-fiber-observability.schema.json",
-        ),
+        args.get(2)
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/dark-fiber-observability.schema.json"),
     );
-    let manifest_path = PathBuf::from(
-        args.get(3).map(String::as_str).unwrap_or(
+    let manifest_path =
+        PathBuf::from(args.get(3).map(String::as_str).unwrap_or(
             "research/water-service-engineering/dark-fiber-benchmark-manifest-v0.1.json",
-        ),
-    );
+        ));
     let receipt_path = PathBuf::from(
         args.get(4)
             .map(String::as_str)
@@ -72,7 +67,9 @@ fn run() -> Result<i32, String> {
             != "no_detector_or_fibre_route_or_leak_or_water_saving_qualified"
         || schema["$schema"] != "https://json-schema.org/draft/2020-12/schema"
     {
-        return Err("dark-fibre F0 schema/manifest identity or evidence ceiling mismatch".to_owned());
+        return Err(
+            "dark-fibre F0 schema/manifest identity or evidence ceiling mismatch".to_owned(),
+        );
     }
 
     let evaluation = evaluate_dark_fiber_f0(&inputs, &oracle)?;
@@ -83,8 +80,7 @@ fn run() -> Result<i32, String> {
         .is_some_and(Vec::is_empty);
     let success = total == 10 && matched == 10 && no_mismatches;
 
-    let lock_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
+    let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
     let lock_bytes =
         fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
 
