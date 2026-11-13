@@ -74,6 +74,10 @@
         {
           "area_id": "DMA-B",
           "disposition": "indeterminate"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
         }
       ],
       "aggregate_can_override_area_floor": false,
@@ -170,6 +174,10 @@
         {
           "area_id": "DMA-B",
           "disposition": "invalid"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
         }
       ],
       "aggregate_can_override_area_floor": false,
@@ -186,6 +194,10 @@
         {
           "area_id": "DMA-B",
           "disposition": "invalid"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
         }
       ],
       "aggregate_can_override_area_floor": false,
@@ -202,6 +214,10 @@
         {
           "area_id": "DMA-B",
           "disposition": "invalid"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
         }
       ],
       "aggregate_can_override_area_floor": false,
