@@ -32,6 +32,10 @@ pub enum CoverageError {
     EventIdentitiesWithoutTruth,
     /// False-alarm episode identities were supplied without independent background truth.
     FalseAlarmEpisodesWithoutTruth,
+    /// A probability argument is outside the open interval (0, 1).
+    InvalidProbabilityInput(&'static str),
+    /// A sample-size result exceeds the representable integer range.
+    SampleSizeOverflow,
     /// Event trials were declared but no observable exposure exists.
     TrialsWithoutObservableExposure,
 }
@@ -66,6 +70,10 @@ impl fmt::Display for CoverageError {
             Self::FalseAlarmEpisodesWithoutTruth => {
                 write!(f, "false-alarm episode identities require independent background truth")
             }
+            Self::InvalidProbabilityInput(name) => {
+                write!(f, "{name} must be a finite probability strictly between zero and one")
+            }
+            Self::SampleSizeOverflow => write!(f, "required sample size exceeds u64 capacity"),
             Self::TrialsWithoutObservableExposure => {
                 write!(
                     f,
@@ -430,6 +438,33 @@ impl EventConditionedCoverageInput {
     }
 }
 
+/// Minimum independent physical-event trials needed so that, after observing
+/// zero misses, the exact one-sided binomial upper confidence bound on the
+/// miss probability is no greater than `maximum_miss_probability`.
+///
+/// `alpha` is the one-sided tail probability (for example, 0.05 for a 95%
+/// upper confidence bound). This calculation assumes independent Bernoulli
+/// trials in one frozen event-class/magnitude/profile stratum. Repeated windows,
+/// crops or observations from one physical event do not satisfy that assumption.
+pub fn zero_miss_trials_for_upper_bound(
+    maximum_miss_probability: f64,
+    alpha: f64,
+) -> CoverageResult<u64> {
+    for (name, value) in [
+        ("maximum_miss_probability", maximum_miss_probability),
+        ("alpha", alpha),
+    ] {
+        if !value.is_finite() || value <= 0.0 || value >= 1.0 {
+            return Err(CoverageError::InvalidProbabilityInput(name));
+        }
+    }
+    let required = (alpha.ln() / (1.0 - maximum_miss_probability).ln()).ceil();
+    if !required.is_finite() || required > u64::MAX as f64 {
+        return Err(CoverageError::SampleSizeOverflow);
+    }
+    Ok(required.max(1.0) as u64)
+}
+
 fn validate_unique_event_ids(ids: &[String]) -> CoverageResult<()> {
     for (index, id) in ids.iter().enumerate() {
         if id.trim().is_empty() {
@@ -511,6 +546,24 @@ mod tests {
             detected_event_ids: (0..8).map(|index| format!("physical-event-{index}")).collect(),
             false_alarm_episode_ids: (0..3).map(|index| format!("false-alarm-episode-{index}")).collect(),
         }
+    }
+
+    #[test]
+    fn zero_miss_sample_size_for_one_percent_upper_bound_at_95_percent_is_299() {
+        assert_eq!(zero_miss_trials_for_upper_bound(0.01, 0.05), Ok(299));
+        assert_eq!(zero_miss_trials_for_upper_bound(0.05, 0.05), Ok(59));
+    }
+
+    #[test]
+    fn zero_miss_sample_size_rejects_invalid_probabilities() {
+        assert_eq!(
+            zero_miss_trials_for_upper_bound(0.0, 0.05),
+            Err(CoverageError::InvalidProbabilityInput("maximum_miss_probability"))
+        );
+        assert_eq!(
+            zero_miss_trials_for_upper_bound(0.01, 1.0),
+            Err(CoverageError::InvalidProbabilityInput("alpha"))
+        );
     }
 
     #[test]
