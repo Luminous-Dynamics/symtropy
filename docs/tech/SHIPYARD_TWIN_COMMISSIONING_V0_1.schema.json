@@ -138,8 +138,6 @@
         "maximum_uncertainty_permille",
         "composition_schema_id",
         "sample_interval_us",
-        "max_sample_interval_us",
-        "sample_interval_us",
         "max_sample_interval_us"
       ],
       "properties": {
