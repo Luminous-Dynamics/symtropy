@@ -236,7 +236,9 @@ fn cholesky<const N: usize>(
             }
             if row == column {
                 if value <= pivot_threshold {
-                    return Err(RobustConstraintErrorV1::NonPositiveDefiniteMassMetric { pivot: row });
+                    return Err(RobustConstraintErrorV1::NonPositiveDefiniteMassMetric {
+                        pivot: row,
+                    });
                 }
                 lower[row][column] = value.sqrt();
             } else {
@@ -287,7 +289,11 @@ fn inverse<const N: usize>(
     });
     for pivot_column in 0..N {
         let pivot_row = (pivot_column..N)
-            .max_by(|a, b| left[*a][pivot_column].abs().total_cmp(&left[*b][pivot_column].abs()))
+            .max_by(|a, b| {
+                left[*a][pivot_column]
+                    .abs()
+                    .total_cmp(&left[*b][pivot_column].abs())
+            })
             .ok_or(RobustConstraintErrorV1::ZeroDimension)?;
         let pivot = left[pivot_row][pivot_column].abs();
         if !pivot.is_finite() || pivot <= threshold {
@@ -388,7 +394,9 @@ fn symmetric_min_eigenvalue<const K: usize>(
         }
     }
 
-    let minimum = (0..K).map(|index| a[index][index]).fold(f64::INFINITY, f64::min);
+    let minimum = (0..K)
+        .map(|index| a[index][index])
+        .fold(f64::INFINITY, f64::min);
     if !minimum.is_finite() {
         Err(RobustConstraintErrorV1::NonFiniteIntermediate)
     } else {
@@ -404,7 +412,10 @@ impl<Frame, const N: usize> Tangent<Frame, N> {
         if components.iter().any(|value| !value.is_finite()) {
             return Err(RobustConstraintErrorV1::NonFiniteInput);
         }
-        Ok(Self { components, frame: PhantomData })
+        Ok(Self {
+            components,
+            frame: PhantomData,
+        })
     }
     pub fn components(&self) -> &Vector<N> {
         &self.components
@@ -427,7 +438,10 @@ impl<Frame, const N: usize> Covector<Frame, N> {
 }
 
 impl<Frame, const N: usize> Metric<Frame, N> {
-    pub fn new(matrix: Matrix<N>, profile: RobustConstraintProfileV1) -> Result<Self, RobustConstraintErrorV1> {
+    pub fn new(
+        matrix: Matrix<N>,
+        profile: RobustConstraintProfileV1,
+    ) -> Result<Self, RobustConstraintErrorV1> {
         let lower = cholesky(&matrix, profile)?;
         let mut effective = matrix;
         for row in 0..N {
@@ -437,7 +451,12 @@ impl<Frame, const N: usize> Metric<Frame, N> {
                 effective[column][row] = average;
             }
         }
-        Ok(Self { matrix: effective, lower, profile, frame: PhantomData })
+        Ok(Self {
+            matrix: effective,
+            lower,
+            profile,
+            frame: PhantomData,
+        })
     }
     pub fn matrix(&self) -> &Matrix<N> {
         &self.matrix
@@ -445,10 +464,16 @@ impl<Frame, const N: usize> Metric<Frame, N> {
     pub fn lower(&self) -> &Matrix<N> {
         &self.lower
     }
-    pub fn whiten_covector(&self, covector: &Covector<Frame, N>) -> Result<Vector<N>, RobustConstraintErrorV1> {
+    pub fn whiten_covector(
+        &self,
+        covector: &Covector<Frame, N>,
+    ) -> Result<Vector<N>, RobustConstraintErrorV1> {
         solve_lower(&self.lower, &covector.components)
     }
-    pub fn solve(&self, covector: &Covector<Frame, N>) -> Result<Tangent<Frame, N>, RobustConstraintErrorV1> {
+    pub fn solve(
+        &self,
+        covector: &Covector<Frame, N>,
+    ) -> Result<Tangent<Frame, N>, RobustConstraintErrorV1> {
         let intermediate = solve_lower(&self.lower, &covector.components)?;
         let transposed = transpose(&self.lower);
         let mut solution = intermediate;
@@ -463,7 +488,10 @@ impl<Frame, const N: usize> Metric<Frame, N> {
         }
         Tangent::new(solution)
     }
-    pub fn tangent_norm(&self, tangent: &Tangent<Frame, N>) -> Result<f64, RobustConstraintErrorV1> {
+    pub fn tangent_norm(
+        &self,
+        tangent: &Tangent<Frame, N>,
+    ) -> Result<f64, RobustConstraintErrorV1> {
         let applied = apply(&self.matrix, &tangent.components);
         let squared = dot(&tangent.components, &applied);
         if !squared.is_finite() || squared < 0.0 {
@@ -480,16 +508,25 @@ impl<From, To, const N: usize> CoordinateRebase<From, To, N> {
     ) -> Result<Self, RobustConstraintErrorV1> {
         validate_profile(profile)?;
         let target_from_source = inverse(&source_from_target, profile)?;
-        let condition_inf_estimate = matrix_inf(&source_from_target) * matrix_inf(&target_from_source);
+        let condition_inf_estimate =
+            matrix_inf(&source_from_target) * matrix_inf(&target_from_source);
         if !condition_inf_estimate.is_finite() {
             return Err(RobustConstraintErrorV1::NonFiniteIntermediate);
         }
-        Ok(Self { source_from_target, target_from_source, condition_inf_estimate, frames: PhantomData })
+        Ok(Self {
+            source_from_target,
+            target_from_source,
+            condition_inf_estimate,
+            frames: PhantomData,
+        })
     }
     pub fn condition_inf_estimate(&self) -> f64 {
         self.condition_inf_estimate
     }
-    pub fn metric_to_target(&self, metric: &Metric<From, N>) -> Result<Metric<To, N>, RobustConstraintErrorV1> {
+    pub fn metric_to_target(
+        &self,
+        metric: &Metric<From, N>,
+    ) -> Result<Metric<To, N>, RobustConstraintErrorV1> {
         let transformed = multiply(
             &multiply(&transpose(&self.source_from_target), &metric.matrix),
             &self.source_from_target,
@@ -600,11 +637,12 @@ pub fn estimate_robust_delassus<const K: usize, Frame, const N: usize>(
         return Err(RobustConstraintErrorV1::NonFiniteIntermediate);
     }
     let lower = nominal_minimum_eigenvalue - epsilon;
-    let inverse_sensitivity = if epsilon < nominal_minimum_eigenvalue && nominal_minimum_eigenvalue > 0.0 {
-        Some(epsilon / (nominal_minimum_eigenvalue * (nominal_minimum_eigenvalue - epsilon)))
-    } else {
-        None
-    };
+    let inverse_sensitivity =
+        if epsilon < nominal_minimum_eigenvalue && nominal_minimum_eigenvalue > 0.0 {
+            Some(epsilon / (nominal_minimum_eigenvalue * (nominal_minimum_eigenvalue - epsilon)))
+        } else {
+            None
+        };
     let status = if lower <= profile.minimum_delassus_eigenvalue {
         RobustConstraintStatusV1::ConstraintRankInconclusive
     } else if epsilon / nominal_minimum_eigenvalue > profile.maximum_informative_relative_bound {
@@ -642,7 +680,10 @@ impl<Frame, const N: usize> Metric<Frame, N> {
         for row in 0..N {
             for column in (row + 1)..N {
                 if (perturbation[row][column] - perturbation[column][row]).abs() > threshold {
-                    return Err(RobustConstraintErrorV1::AsymmetricMassPerturbation { row, column });
+                    return Err(RobustConstraintErrorV1::AsymmetricMassPerturbation {
+                        row,
+                        column,
+                    });
                 }
                 let average = 0.5 * perturbation[row][column] + 0.5 * perturbation[column][row];
                 effective[row][column] = average;
@@ -714,15 +755,26 @@ mod tests {
         )
         .unwrap();
         let jacobian = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
-        let mass_perturbation = [[0.01, 0.002, 0.0], [0.002, -0.015, 0.001], [0.0, 0.001, 0.02]];
+        let mass_perturbation = [
+            [0.01, 0.002, 0.0],
+            [0.002, -0.015, 0.001],
+            [0.0, 0.001, 0.02],
+        ];
         let jacobian_perturbation = [[0.001, -0.002, 0.001], [0.0, 0.002, -0.001]];
-        (metric, rebase, jacobian, mass_perturbation, jacobian_perturbation)
+        (
+            metric,
+            rebase,
+            jacobian,
+            mass_perturbation,
+            jacobian_perturbation,
+        )
     }
 
     #[test]
     fn robust_delassus_envelope_covers_explicit_perturbed_operator() {
         let (metric, _, jacobian, delta_mass, delta_jacobian) = fixture();
-        let envelope = estimate_robust_delassus(&metric, &jacobian, &delta_mass, &delta_jacobian).unwrap();
+        let envelope =
+            estimate_robust_delassus(&metric, &jacobian, &delta_mass, &delta_jacobian).unwrap();
         assert!(matches!(
             envelope.status,
             RobustConstraintStatusV1::AdmittedByNumericalEnvelope
@@ -764,12 +816,10 @@ mod tests {
                 .unwrap();
 
         assert!(
-            (envelope_q.rho_mass_perturbation - envelope_y.rho_mass_perturbation).abs()
-                < 2.0e-12
+            (envelope_q.rho_mass_perturbation - envelope_y.rho_mass_perturbation).abs() < 2.0e-12
         );
         assert!(
-            (envelope_q.delta_jacobian_perturbation - envelope_y.delta_jacobian_perturbation)
-                .abs()
+            (envelope_q.delta_jacobian_perturbation - envelope_y.delta_jacobian_perturbation).abs()
                 < 2.0e-12
         );
         assert!(
@@ -793,15 +843,16 @@ mod tests {
         .unwrap();
         let jacobian = [[1.0, 0.0, 0.0], [1.0, 1.0e-4, 0.0]];
         let delta_jacobian = [[0.0, 0.0, 0.0], [0.0, -1.0e-4, 0.0]];
-        let envelope = estimate_robust_delassus(
-            &metric,
-            &jacobian,
-            &[[0.0; 3]; 3],
-            &delta_jacobian,
-        )
-        .unwrap();
-        assert_eq!(envelope.status, RobustConstraintStatusV1::ConstraintRankInconclusive);
-        assert!(envelope.robust_minimum_eigenvalue_lower_bound <= profile().minimum_delassus_eigenvalue);
+        let envelope =
+            estimate_robust_delassus(&metric, &jacobian, &[[0.0; 3]; 3], &delta_jacobian).unwrap();
+        assert_eq!(
+            envelope.status,
+            RobustConstraintStatusV1::ConstraintRankInconclusive
+        );
+        assert!(
+            envelope.robust_minimum_eigenvalue_lower_bound
+                <= profile().minimum_delassus_eigenvalue
+        );
     }
 
     #[test]
@@ -831,12 +882,7 @@ mod tests {
         let metric = Metric::<CartesianFrame, 2>::new([[1.0, 0.0], [0.0, 1.0]], profile()).unwrap();
         let jacobian = [[1.0, 0.0]];
         assert!(matches!(
-            estimate_robust_delassus(
-                &metric,
-                &jacobian,
-                &[[0.0, 0.1], [0.0, 0.0]],
-                &[[0.0, 0.0]]
-            ),
+            estimate_robust_delassus(&metric, &jacobian, &[[0.0, 0.1], [0.0, 0.0]], &[[0.0, 0.0]]),
             Err(RobustConstraintErrorV1::AsymmetricMassPerturbation { .. })
         ));
     }
@@ -844,7 +890,9 @@ mod tests {
     #[test]
     fn wrong_jacobian_rebasis_law_changes_envelope() {
         let (metric_q, rebase, jacobian_q, delta_mass_q, delta_jacobian_q) = fixture();
-        let nominal = estimate_robust_delassus(&metric_q, &jacobian_q, &delta_mass_q, &delta_jacobian_q).unwrap();
+        let nominal =
+            estimate_robust_delassus(&metric_q, &jacobian_q, &delta_mass_q, &delta_jacobian_q)
+                .unwrap();
 
         let metric_y = rebase.metric_to_target(&metric_q).unwrap();
         let wrong_jacobian = jacobian_q; // Deliberately omitted J_y = J_q S.
@@ -854,9 +902,11 @@ mod tests {
             &wrong_jacobian,
             &rebase.mass_perturbation_to_target(&delta_mass_q).unwrap(),
             &wrong_delta_jacobian,
-        ).unwrap();
+        )
+        .unwrap();
         assert!(
-            (nominal.delassus_perturbation_bound - wrong.delassus_perturbation_bound).abs() > 1.0e-3
+            (nominal.delassus_perturbation_bound - wrong.delassus_perturbation_bound).abs()
+                > 1.0e-3
         );
     }
 }
