@@ -162,7 +162,7 @@ impl IntervalV1 {
     }
 
     pub fn sqrt_upper(self) -> Result<f64, IntervalErrorV1> {
-        if self.lower < 0.0 || self.upper < 0.0 {
+        if self.upper < 0.0 {
             return Err(IntervalErrorV1::NegativeSquareRoot);
         }
         let upper = self.upper.sqrt().next_up();
@@ -683,9 +683,18 @@ pub fn certify_midpoint_step(
             InconclusiveReasonV1::DerivativeIntervalContainsZero,
         ));
     }
-    let interval_newton_image = match point_lambda
-        .sub(residual_at_candidate.div(derivative_on_starting_interval).unwrap())
-    {
+    let residual_over_derivative =
+        match residual_at_candidate.div(derivative_on_starting_interval) {
+            Ok(value) => value,
+            Err(error) => {
+                return Ok(inconclusive(
+                    candidate_multiplier,
+                    starting_interval,
+                    InconclusiveReasonV1::IntervalArithmeticFailure(error),
+                ));
+            }
+        };
+    let interval_newton_image = match point_lambda.sub(residual_over_derivative) {
         Ok(value) => value,
         Err(error) => {
             return Ok(inconclusive(
@@ -702,9 +711,14 @@ pub fn certify_midpoint_step(
             InconclusiveReasonV1::NewtonImageNotStrictlyInside,
         ));
     }
-    let certified_root_interval = interval_newton_image
-        .intersection(&starting_interval)
-        .expect("strictly contained interval must intersect");
+    let Some(certified_root_interval) = interval_newton_image.intersection(&starting_interval)
+    else {
+        return Ok(inconclusive(
+            candidate_multiplier,
+            starting_interval,
+            InconclusiveReasonV1::NewtonImageNotStrictlyInside,
+        ));
+    };
 
     let root = RootCertificateV1 {
         candidate_multiplier,
@@ -803,6 +817,28 @@ mod tests {
     }
 
     #[test]
+    fn interval_linear_solve_encloses_non_diagonal_rational_solution() {
+        let matrix_values = [[2.0, 1.0, 0.0], [1.0, 3.0, 1.0], [0.0, 1.0, 2.0]];
+        let rhs_values = [1.0, 2.0, 3.0];
+        let matrix = std::array::from_fn(|row| {
+            std::array::from_fn(|column| IntervalV1::point(matrix_values[row][column]).unwrap())
+        });
+        let rhs = std::array::from_fn(|index| IntervalV1::point(rhs_values[index]).unwrap());
+        let solution = interval_solve3(&matrix, &rhs).unwrap();
+        let exact = [0.5, 0.0, 1.5];
+        for index in 0..3 {
+            assert!(solution[index].contains(exact[index]));
+        }
+    }
+
+    #[test]
+    fn outward_square_root_accepts_zero_lower_bound_inflation() {
+        let widened_zero = IntervalV1::point(0.0).unwrap().mul(IntervalV1::point(0.0).unwrap()).unwrap();
+        assert!(widened_zero.lower < 0.0);
+        assert!(widened_zero.sqrt_upper().is_ok());
+    }
+
+    #[test]
     fn interval_newton_certifies_unique_midpoint_multiplier_root() {
         let problem = fixture();
         let candidate = -0.1 / (0.01 * 1.5);
@@ -811,7 +847,26 @@ mod tests {
             panic!("expected an interval-Newton unique-root certificate, got {outcome:?}");
         };
 
-        assert!(root.certified_root_interval.contains(candidate));
+        let analytic_root = IntervalV1::point(
+            problem.initial_relative_position[0] - problem.free_relative_position[0],
+        )
+        .unwrap()
+        .div(
+            IntervalV1::point(problem.time_step)
+                .unwrap()
+                .mul(IntervalV1::point(problem.time_step).unwrap())
+                .unwrap()
+                .div(IntervalV1::point(4.0).unwrap())
+                .unwrap()
+                .mul(IntervalV1::point(problem.delassus[0][0]).unwrap())
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(
+            root.certified_root_interval
+                .intersection(&analytic_root)
+                .is_some()
+        );
         assert!(root.interval_newton_image.strictly_inside(&root.starting_interval));
         assert!(!root.derivative_on_starting_interval.contains_zero());
         assert!(root.certified_root_interval.upper - root.certified_root_interval.lower
