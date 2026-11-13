@@ -101,6 +101,11 @@ fn evaluate_area(area: &Value, profile: &Value, context: &str, errors: &mut Vec<
         },
     };
 
+    if matches!((lower, upper), (Some(lower), Some(upper)) if lower > upper) {
+        push(errors, context, "lower observation bound exceeds upper bound");
+        return "invalid".to_owned();
+    }
+
     let complete_coverage = denominator.is_some_and(|value| numerator == value);
     if evidence_state != "observed_current"
         || !complete_coverage
@@ -114,10 +119,6 @@ fn evaluate_area(area: &Value, profile: &Value, context: &str, errors: &mut Vec<
 
     let lower = lower.unwrap_or(f64::NAN);
     let upper = upper.unwrap_or(f64::NAN);
-    if lower > upper {
-        push(errors, context, "lower observation bound exceeds upper bound");
-        return "invalid".to_owned();
-    }
     if lower >= floor {
         "meets_floor".to_owned()
     } else if upper < floor {
@@ -281,8 +282,16 @@ pub fn evaluate(
         .map(str::to_owned)
         .collect();
     let required_set: BTreeSet<String> = required_areas.iter().cloned().collect();
-    if required_areas.len() != 3 || required_set.len() != required_areas.len() {
-        push(&mut errors, "profile", "exactly three unique required area IDs are required in v0.1");
+    let canonical_areas = BTreeSet::from([
+        "DMA-A".to_owned(),
+        "DMA-B".to_owned(),
+        "DMA-C".to_owned(),
+    ]);
+    if required_areas.len() != 3
+        || required_set.len() != required_areas.len()
+        || required_set != canonical_areas
+    {
+        push(&mut errors, "profile", "required area IDs must be exactly DMA-A, DMA-B and DMA-C in v0.1");
     }
 
     let cases = scenarios.get("scenarios").and_then(Value::as_array);
@@ -659,6 +668,25 @@ mod tests {
         let errors = evaluate(&scenarios, &schema, &oracle)
             .expect_err("stale evidence cannot contribute to a positive aggregate diagnostic");
         assert!(errors.iter().any(|e| e.contains("weighted average must not use stale")));
+    }
+
+    #[test]
+    fn required_area_population_is_frozen_in_v0_1() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["profile"]["required_area_ids"] = json!(["DMA-X", "DMA-Y", "DMA-Z"]);
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("changed required area population must fail");
+        assert!(errors.iter().any(|e| e.contains("exactly DMA-A, DMA-B and DMA-C")));
+    }
+
+    #[test]
+    fn inverted_interval_is_invalid_even_if_evidence_is_stale() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][4]["areas"][2]["observation_lower_bound"] = json!(0.95);
+        scenarios["scenarios"][4]["areas"][2]["observation_upper_bound"] = json!(0.70);
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("inverted bounds must not be hidden as stale/indeterminate");
+        assert!(errors.iter().any(|e| e.contains("lower observation bound exceeds upper bound")));
     }
 
 }
