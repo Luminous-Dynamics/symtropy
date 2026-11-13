@@ -143,7 +143,8 @@
         "trailing_power",
         "leading_wire_feed",
         "trailing_wire_feed",
-        "uncertainty"
+        "uncertainty",
+        "sampling_qualification_receipt_sha256"
       ],
       "properties": {
         "workpiece_id": {
@@ -218,6 +219,10 @@
         },
         "uncertainty": {
           "$ref": "#/$defs/uncertainty"
+        },
+        "sampling_qualification_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
