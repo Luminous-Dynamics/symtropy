@@ -1,0 +1,9 @@
+[package]
+name = "road-exo-coupling-fixtures"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Standalone conformance fixtures for cross-world stochastic event identity"
+
+[workspace]
