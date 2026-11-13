@@ -752,6 +752,40 @@ mod tests {
     }
 
     #[test]
+    fn independent_scaleout_oracle_reproduces_n5_and_n100() {
+        let manifest: Manifest = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let report = audit_manifest_json(FIXTURE).expect("fixture audit");
+        let reference = manifest
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.id == manifest.scaleout_reference_scenario_id)
+            .expect("reference scenario");
+        let q_one = reference.cells[0].accepted_service;
+
+        for (scenario_id, expected) in [
+            ("scale-n5-linear", 0.96_f64),
+            ("scale-n100-isolated-failure", 0.9405_f64),
+        ] {
+            let scenario = manifest
+                .scenarios
+                .iter()
+                .find(|scenario| scenario.id == scenario_id)
+                .expect("scale-out scenario");
+            let q_n = scenario.cells.iter().map(|cell| cell.accepted_service).sum::<f64>();
+            let n = scenario.cells.len() as f64;
+            let oracle = q_n / (n * q_one);
+            let observed = report
+                .results
+                .iter()
+                .find(|result| result.id == scenario_id)
+                .and_then(|result| result.scaleout_efficiency)
+                .expect("derived scale-out efficiency");
+            assert!(close_enough(oracle, expected));
+            assert!(close_enough(observed, oracle));
+        }
+    }
+
+    #[test]
     fn incomplete_energy_boundary_has_no_scoreable_energy_intensity() {
         let report = audit_manifest_json(FIXTURE).expect("fixture parses");
         assert_eq!(report.results[7].disposition, "BLOCKED");
