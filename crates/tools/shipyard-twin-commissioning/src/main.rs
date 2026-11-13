@@ -527,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn BAM_like_interpass_streams_have_distinct_sampling_and_update_contracts() {
+    fn bam_like_interpass_streams_have_distinct_sampling_and_update_contracts() {
         let mut corpus = corpus_value();
         let case = case_named(&mut corpus, "DTC-001");
         let interface = &mut case["interfaces"][0];
