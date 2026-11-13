@@ -1,0 +1,417 @@
+{
+  "schema_version": "suf.multiutility_urban_das_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "workstream": "MULTIUTILITY-URBAN-DAS-QUAL-001",
+  "claim_ceiling": "Synthetic campaign plan only. No multi-utility deployment, defect detector, field POD or commercial service is qualified.",
+  "products": [
+    "H_HYDRAULIC_SEWER_ANOMALY",
+    "P_PIPE_STRUCTURAL_SCREENING",
+    "T_TRAFFIC_OBSERVATION",
+    "G_SUBSURFACE_GEOPHYSICAL_IMAGING",
+    "F_CROSS_MODAL_INVESTIGATION_FUSION"
+  ],
+  "methods": [
+    "H1_PASSIVE_DAS_HYDRAULIC_FEATURES",
+    "H2_PSD_SCREENING",
+    "P1_VFWD_ACTIVE_IMPACT_DAS",
+    "T1_SUPERLET_TRAJECTORY_SEGMENTATION",
+    "G1_PASSIVE_AMBIENT_INTERFEROMETRY",
+    "F1_DAS_DTS_FLOW_CCTV_FUSION",
+    "B0_CCTV_FLOW_LEVEL_POINT_SENSOR_BASELINE"
+  ],
+  "metrics": [
+    "hydraulic_pod_by_mechanism_activation",
+    "hydraulic_false_alarms_per_observable_sewer_km_day",
+    "silent_defect_false_negative_rate",
+    "candidate_segment_precision_recall",
+    "CCTV_confirmation_rate",
+    "pipe_structural_precision_recall_by_severity",
+    "active_impact_energy_detection_curve",
+    "pipe_segment_localization_error",
+    "traffic_iou_dice_track_f1",
+    "speed_classification_error",
+    "trajectory_false_connection_rate",
+    "subsurface_depth_lateral_error",
+    "geophysical_resolution",
+    "uncertainty_coverage_90_95",
+    "blind_degraded_length_time",
+    "incremental_evidence_value_per_product",
+    "cost_per_qualified_observable_km_year",
+    "cost_per_confirmed_actionable_defect",
+    "human_review_minutes",
+    "common_cause_outage_exposure"
+  ],
+  "scenarios": [
+    {
+      "id": "MUD-001",
+      "scenario_type": "FIBRE_SHARED_MULTIPRODUCT",
+      "name": "One sewer-mounted fibre supports several sensing products",
+      "expected_disposition": "Accepted",
+      "conditions": "One source stream is shared across independently qualified hydraulic, traffic and geophysical processing products.",
+      "perturbations": [
+        "fibre_shared_multiproduct"
+      ],
+      "oracle_requirement": "Maintain separate truth, outputs, metrics, rights and claim boundaries per product."
+    },
+    {
+      "id": "MUD-002",
+      "scenario_type": "ACTIVE_INTRUSION_LAB",
+      "name": "Controlled hydraulic intrusion produces localized transient response",
+      "expected_disposition": "Accepted",
+      "conditions": "Contained laboratory/mock sewer with measured flow, fall height, water level and independent event time/location.",
+      "perturbations": [
+        "active_intrusion_lab"
+      ],
+      "oracle_requirement": "Evaluate time/frequency signature and manhole/segment localization under the tested flow envelope."
+    },
+    {
+      "id": "MUD-003",
+      "scenario_type": "EXFILTRATION_PSD_SIGNATURE",
+      "name": "Controlled exfiltration produces band-limited PSD signature",
+      "expected_disposition": "Accepted",
+      "conditions": "Contained test pipe with known leak and independent hydraulic flow/pressure truth.",
+      "perturbations": [
+        "exfiltration_psd_signature"
+      ],
+      "oracle_requirement": "Evaluate paper-specific PSD feature in frozen profile; do not elevate 20–30 Hz to universal threshold."
+    },
+    {
+      "id": "MUD-004",
+      "scenario_type": "SILENT_STRUCTURAL_DEFECT",
+      "name": "Structural defect exists but no water exchange or activation occurs",
+      "expected_disposition": "Unsupported",
+      "conditions": "CCTV/inspection truth confirms defect but hydraulic conditions produce no flow-induced vibration.",
+      "perturbations": [
+        "silent_structural_defect"
+      ],
+      "oracle_requirement": "Do not assert DAS can identify all structural defects; record modality boundary and silent period."
+    },
+    {
+      "id": "MUD-005",
+      "scenario_type": "800M_FIELD_CANDIDATE",
+      "name": "Urban field PSD screen finds candidate segments",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Operational 800 m sewer under traffic noise; field PSD candidate later examined by CCTV.",
+      "perturbations": [
+        "800m_field_candidate"
+      ],
+      "oracle_requirement": "Keep candidate count separate from confirmed mechanism-specific truth; quantify denominators in future studies."
+    },
+    {
+      "id": "MUD-006",
+      "scenario_type": "CCTV_CONFIRMATION",
+      "name": "DAS candidate segment is confirmed by independent CCTV",
+      "expected_disposition": "Accepted",
+      "conditions": "CCTV reviewer and segment mapping are independent of DAS algorithm development.",
+      "perturbations": [
+        "cctv_confirmation"
+      ],
+      "oracle_requirement": "Record confirmation rate and exact pipe segment, but do not generalize from two cases."
+    },
+    {
+      "id": "MUD-007",
+      "scenario_type": "CCTV_NEGATIVE",
+      "name": "DAS candidate has no corresponding visible defect on CCTV",
+      "expected_disposition": "Rejected",
+      "conditions": "CCTV coverage/quality is adequate and independent adjudication finds no defect in the candidate segment.",
+      "perturbations": [
+        "cctv_negative"
+      ],
+      "oracle_requirement": "Count as false candidate under the CCTV-visible defect taxonomy; preserve uncertainty for non-visible mechanisms."
+    },
+    {
+      "id": "MUD-008",
+      "scenario_type": "TRAFFIC_DOMINATED_PSD",
+      "name": "Traffic produces stronger vibration than hydraulically active defect",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Urban traffic overlaps the signal and elevates high-energy PSD bins.",
+      "perturbations": [
+        "traffic_dominated_psd"
+      ],
+      "oracle_requirement": "Use persistence/spatiotemporal cues and independent traffic data; amplitude threshold alone fails."
+    },
+    {
+      "id": "MUD-009",
+      "scenario_type": "WATER_LEVEL_SHIFT",
+      "name": "Sewer water level changes fluid–structure coupling",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Same defect/flow event measured at varying water depths and levels.",
+      "perturbations": [
+        "water_level_shift"
+      ],
+      "oracle_requirement": "Stratify performance by water level and update observability state."
+    },
+    {
+      "id": "MUD-010",
+      "scenario_type": "FLOW_ACTIVATION_WINDOW",
+      "name": "Defect emits signal only during specific flow/groundwater periods",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Hydraulic truth logs show event-dependent activation and silent intervals.",
+      "perturbations": [
+        "flow_activation_window"
+      ],
+      "oracle_requirement": "Condition POD on activation state; report silent exposure as a separate intrinsic limitation."
+    },
+    {
+      "id": "MUD-011",
+      "scenario_type": "PIPE_MATERIAL_SHIFT",
+      "name": "Model transfers from PVC to concrete/reinforced concrete",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Training and target pipe materials have different stiffness, damping and joint structure.",
+      "perturbations": [
+        "pipe_material_shift"
+      ],
+      "oracle_requirement": "Do not pool results without held-out material qualification."
+    },
+    {
+      "id": "MUD-012",
+      "scenario_type": "BURIAL_AND_BACKFILL_SHIFT",
+      "name": "Burial depth/backfill changes signal attenuation",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Same reference event under different burial/backfill and soil profiles.",
+      "perturbations": [
+        "burial_and_backfill_shift"
+      ],
+      "oracle_requirement": "Measure coupling transfer and spatial localization by profile."
+    },
+    {
+      "id": "MUD-013",
+      "scenario_type": "VFWD_CONTROLLED_IMPACT",
+      "name": "Controlled external impact excites buried concrete pipe",
+      "expected_disposition": "Accepted",
+      "conditions": "Non-live approved testbed; impact energy/location, pipe response and independent defect truth are recorded.",
+      "perturbations": [
+        "vfwd_controlled_impact"
+      ],
+      "oracle_requirement": "Evaluate active-excitation structural screening precision/recall by defect severity."
+    },
+    {
+      "id": "MUD-014",
+      "scenario_type": "ACTIVE_VS_PASSIVE_CONFUSION",
+      "name": "Active impact result is presented as passive monitoring performance",
+      "expected_disposition": "Rejected",
+      "conditions": "Training/evaluation includes VFWD/external impact but product claim states continuous passive detection.",
+      "perturbations": [
+        "active_vs_passive_confusion"
+      ],
+      "oracle_requirement": "Separate active excitation benchmark and passive monitoring benchmark."
+    },
+    {
+      "id": "MUD-015",
+      "scenario_type": "PIPELINE_BEND_REFLECTION",
+      "name": "Pipe bends/joints/supports create structural reflections",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Known geometry and defect-free bends/joints produce confounding response.",
+      "perturbations": [
+        "pipeline_bend_reflection"
+      ],
+      "oracle_requirement": "Measure false positive by bend, joint and support; include geometry-aware controls."
+    },
+    {
+      "id": "MUD-016",
+      "scenario_type": "CLEAN_PIPE_NEGATIVE",
+      "name": "No-defect pipe under ordinary flow/traffic",
+      "expected_disposition": "Accepted",
+      "conditions": "Independent inspection shows no defect and sufficient background exposure exists.",
+      "perturbations": [
+        "clean_pipe_negative"
+      ],
+      "oracle_requirement": "Measure false alarms per observable pipe-km-day."
+    },
+    {
+      "id": "MUD-017",
+      "scenario_type": "SUPERLET_TRAFFIC_SEGMENT",
+      "name": "Superlet-enhanced traffic trajectory segmentation",
+      "expected_disposition": "Accepted",
+      "conditions": "Real-world traffic reference with synchronized video/GNSS and held-out sessions.",
+      "perturbations": [
+        "superlet_traffic_segment"
+      ],
+      "oracle_requirement": "Compare IoU/Dice and trajectory quality on the same task; not a sewer defect metric."
+    },
+    {
+      "id": "MUD-018",
+      "scenario_type": "TRAFFIC_GNSS_TIME_OFFSET",
+      "name": "Traffic reference timebase is offset from DAS",
+      "expected_disposition": "Rejected",
+      "conditions": "Offset/drift exceeds frozen synchronization tolerance.",
+      "perturbations": [
+        "traffic_gnss_time_offset"
+      ],
+      "oracle_requirement": "Reject trajectory-to-DAS association until independently corrected."
+    },
+    {
+      "id": "MUD-019",
+      "scenario_type": "ROAD_PIPE_DIVERGENCE",
+      "name": "Road centreline and sewer alignment diverge",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Vehicle trajectory follows road but sewer is offset, curved or crosses laterally.",
+      "perturbations": [
+        "road_pipe_divergence"
+      ],
+      "oracle_requirement": "Do not map road track directly to pipe chainage; require survey transform."
+    },
+    {
+      "id": "MUD-020",
+      "scenario_type": "OVERLAPPING_TRAFFIC",
+      "name": "Multiple vehicles create overlapping trajectory signatures",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Independent video truth confirms overlapping vehicles and tracks.",
+      "perturbations": [
+        "overlapping_traffic"
+      ],
+      "oracle_requirement": "Preserve multiple track hypotheses/abstain; report identity association error."
+    },
+    {
+      "id": "MUD-021",
+      "scenario_type": "SUBSURFACE_KNOWN_TARGET",
+      "name": "Geophysical inversion recovers a known test anomaly",
+      "expected_disposition": "Accepted",
+      "conditions": "Non-live geophysical testbed or independently surveyed known target with blind control points.",
+      "perturbations": [
+        "subsurface_known_target"
+      ],
+      "oracle_requirement": "Measure depth/lateral resolution and coverage, not merely visual resemblance."
+    },
+    {
+      "id": "MUD-022",
+      "scenario_type": "SUBSURFACE_FALSE_ANOMALY",
+      "name": "Traffic/noise/coupling creates spurious subsurface inversion anomaly",
+      "expected_disposition": "Rejected",
+      "conditions": "Independent geophysical control finds no target anomaly.",
+      "perturbations": [
+        "subsurface_false_anomaly"
+      ],
+      "oracle_requirement": "Count false geophysical anomaly and preserve inversion uncertainty."
+    },
+    {
+      "id": "MUD-023",
+      "scenario_type": "CROSS_MODAL_DAS_DTS",
+      "name": "DAS anomaly and DTS thermal signature are fused",
+      "expected_disposition": "Accepted",
+      "conditions": "Separate calibrated temperature and strain/acoustic channels have synchronized clocks and independent truth.",
+      "perturbations": [
+        "cross_modal_das_dts"
+      ],
+      "oracle_requirement": "Test incremental defect-type discrimination; preserve modality-specific uncertainty."
+    },
+    {
+      "id": "MUD-024",
+      "scenario_type": "CROSS_MODAL_FLOW_LEVEL",
+      "name": "DAS anomaly corroborated with flow/level measurements",
+      "expected_disposition": "Accepted",
+      "conditions": "Independent flow/level sensor is calibrated and its data is not derived from the DAS signal.",
+      "perturbations": [
+        "cross_modal_flow_level"
+      ],
+      "oracle_requirement": "Measure decision improvement and discordant-sensor handling."
+    },
+    {
+      "id": "MUD-025",
+      "scenario_type": "CONCRETE_PIPE_FIELD_BASELINE",
+      "name": "Active impact method tested on real concrete drainage pipes",
+      "expected_disposition": "Accepted",
+      "conditions": "Independent field study reports 12 pipes and 402 m with its own impact protocol and validation truth.",
+      "perturbations": [
+        "concrete_pipe_field_baseline"
+      ],
+      "oracle_requirement": "Treat 88.9% precision and 85.5% recall as paper-specific baseline only."
+    },
+    {
+      "id": "MUD-026",
+      "scenario_type": "DATASET_LEAKAGE_WINDOWS",
+      "name": "Overlapping waveform windows from one physical event split across folds",
+      "expected_disposition": "Rejected",
+      "conditions": "One physical event generates multiple crops or windows placed in train and test.",
+      "perturbations": [
+        "dataset_leakage_windows"
+      ],
+      "oracle_requirement": "Group split by event/session/site; reject headline score if leakage occurs."
+    },
+    {
+      "id": "MUD-027",
+      "scenario_type": "NO_OWNER_PERMISSION",
+      "name": "Fibre/pipe/traffic data lacks owner permission or data rights",
+      "expected_disposition": "Rejected",
+      "conditions": "Technical connectivity exists but permission/purpose authority is absent.",
+      "perturbations": [
+        "no_owner_permission"
+      ],
+      "oracle_requirement": "No acquisition or processing; use synthetic/non-sensitive alternative."
+    },
+    {
+      "id": "MUD-028",
+      "scenario_type": "UNSAFE_LIVE_IMPACT",
+      "name": "Active impact or hydraulic induction is proposed on operational pipe without approved method",
+      "expected_disposition": "Rejected",
+      "conditions": "Plan could damage or disrupt live wastewater/civil infrastructure or expose staff to hazards.",
+      "perturbations": [
+        "unsafe_live_impact"
+      ],
+      "oracle_requirement": "Reject; use non-live/test rig or explicit engineering-approved safe plan."
+    },
+    {
+      "id": "MUD-029",
+      "scenario_type": "SHARED_FIBRE_ECONOMICS",
+      "name": "Second/third sensing product adds no material decision value",
+      "expected_disposition": "DoNotAcquire",
+      "conditions": "Marginal product has high processing/retention/access cost but does not change investigation decisions.",
+      "perturbations": [
+        "shared_fibre_economics"
+      ],
+      "oracle_requirement": "Do not add the product solely because the fibre is already available."
+    },
+    {
+      "id": "MUD-030",
+      "scenario_type": "COMMON_CAUSE_FIBRE_OUTAGE",
+      "name": "One cut or sewer-access closure removes all shared sensing products",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Multiple output services depend on the same fibre, interrogator, power and access point.",
+      "perturbations": [
+        "common_cause_fibre_outage"
+      ],
+      "oracle_requirement": "Model shared failure and residual observability; no false redundancy claim."
+    },
+    {
+      "id": "MUD-031",
+      "scenario_type": "MANHOLE_ACCESS_RIGHTS",
+      "name": "Monitoring requires chamber access but permit is absent",
+      "expected_disposition": "Rejected",
+      "conditions": "Chamber/fibre access is not authorized or safe.",
+      "perturbations": [
+        "manhole_access_rights"
+      ],
+      "oracle_requirement": "No entry or field work; retain remote-only or unobserved status."
+    },
+    {
+      "id": "MUD-032",
+      "scenario_type": "HELD_OUT_SEWER_SITE",
+      "name": "Multi-utility model evaluated on a new sewer/pipe site",
+      "expected_disposition": "Accepted",
+      "conditions": "Complete route/site and event sessions are held out without target adaptation.",
+      "perturbations": [
+        "held_out_sewer_site"
+      ],
+      "oracle_requirement": "Report per-product transfer and abstention; no pooled accuracy claim."
+    }
+  ],
+  "global_controls": [
+    "Hydraulic, structural, traffic and geophysical observables have separate truth and metrics.",
+    "Active impact excitation and passive continuous observation are separate methods.",
+    "Structural defect presence does not imply hydraulically active DAS signature.",
+    "Paper-specific PSD bands and thresholds are not universal production thresholds.",
+    "Candidate field anomalies and independently CCTV-confirmed defects are separate counts.",
+    "Physical event IDs, not windows or crops, define independent event trials.",
+    "All evaluation splits are grouped by site, route, physical specimen, session and event.",
+    "Material, burial, water level, fluid–structure coupling and urban noise are explicit strata.",
+    "Road traffic location is not pipe chainage or sewer asset location.",
+    "Geophysical inversion anomalies are not asset identity.",
+    "Every product has separate observable/degraded/unobserved coverage and uncertainty.",
+    "Active tests occur only on safe approved non-live or specifically engineered testbeds.",
+    "No intentional fault, blockage, leak, exfiltration or damage is induced on live assets.",
+    "Owner rights, privacy and critical-geometry restrictions are hard constraints.",
+    "Shared fibre failure is treated as common cause across all dependent products.",
+    "Incremental product is not adopted unless its value exceeds added lifecycle cost."
+  ]
+}
