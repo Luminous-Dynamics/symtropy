@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic RO M0 transport calculation cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "model",
+    "units",
+    "formulas",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-ro-m0-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_transport_arithmetic"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_transport_arithmetic_only_no_empirical_RO_performance_or_fouling_claim"
+    },
+    "model": {
+      "const": "solution_diffusion_with_film_concentration_polarization"
+    },
+    "units": {
+      "type": "object",
+      "required": [
+        "flux",
+        "pressure",
+        "osmotic_pressure",
+        "mass_transfer_coefficient",
+        "rejection"
+      ]
+    },
+    "formulas": {
+      "type": "object",
+      "required": [
+        "net_driving_pressure_bar",
+        "concentration_polarization_modulus",
+        "water_permeance_reference",
+        "water_permeance_pressure_only",
+        "solute_permeance_reference",
+        "solute_permeance_no_concentration_polarization",
+        "percent_error"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MRO-M0-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flux_l_m2_h",
+              "delta_pressure_bar",
+              "osmotic_pressure_wall_bar",
+              "osmotic_pressure_permeate_bar",
+              "rejection_fraction",
+              "mass_transfer_coefficient_l_m2_h"
+            ],
+            "properties": {
+              "flux_l_m2_h": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "delta_pressure_bar": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "osmotic_pressure_wall_bar": {
+                "type": "number",
+                "minimum": 0
+              },
+              "osmotic_pressure_permeate_bar": {
+                "type": "number",
+                "minimum": 0
+              },
+              "rejection_fraction": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "mass_transfer_coefficient_l_m2_h": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
