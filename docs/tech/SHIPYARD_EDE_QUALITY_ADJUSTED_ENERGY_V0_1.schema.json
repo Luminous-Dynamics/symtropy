@@ -1,27 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Synthetic tandem-GMAW EDE integration contract",
+  "title": "Synthetic tandem-GMAW EDE known-answer corpus",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "benchmark_id",
     "claim_ceiling",
-    "workpiece_id",
-    "pass_id",
-    "start_time_ns",
-    "end_time_ns",
-    "maximum_sample_gap_ns",
-    "weld_length_m",
-    "density_kg_per_m3",
-    "wire_diameter_m",
-    "source_trace_sha256",
-    "alignment_receipt_sha256",
-    "leading_power",
-    "trailing_power",
-    "leading_wire_feed",
-    "trailing_wire_feed",
-    "uncertainty"
+    "cases"
   ],
   "properties": {
     "schema_version": {
@@ -33,78 +19,12 @@
     "claim_ceiling": {
       "const": "SYNTHETIC_EDE_CALCULATION_ONLY"
     },
-    "workpiece_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "pass_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "start_time_ns": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "end_time_ns": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "maximum_sample_gap_ns": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "weld_length_m": {
-      "type": "number",
-      "exclusiveMinimum": 0
-    },
-    "density_kg_per_m3": {
-      "type": "number",
-      "minimum": 1000,
-      "maximum": 30000
-    },
-    "wire_diameter_m": {
-      "type": "number",
-      "minimum": 0.0001,
-      "maximum": 0.02
-    },
-    "source_trace_sha256": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
-    },
-    "alignment_receipt_sha256": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
-    },
-    "leading_power": {
+    "cases": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 1,
       "items": {
-        "$ref": "#/$defs/power_sample"
+        "$ref": "#/$defs/case"
       }
-    },
-    "trailing_power": {
-      "type": "array",
-      "minItems": 2,
-      "items": {
-        "$ref": "#/$defs/power_sample"
-      }
-    },
-    "leading_wire_feed": {
-      "type": "array",
-      "minItems": 2,
-      "items": {
-        "$ref": "#/$defs/feed_sample"
-      }
-    },
-    "trailing_wire_feed": {
-      "type": "array",
-      "minItems": 2,
-      "items": {
-        "$ref": "#/$defs/feed_sample"
-      }
-    },
-    "uncertainty": {
-      "$ref": "#/$defs/uncertainty"
     }
   },
   "$defs": {
@@ -202,6 +122,187 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 999999
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "pass_id",
+        "start_time_ns",
+        "end_time_ns",
+        "maximum_sample_gap_ns",
+        "weld_length_m",
+        "density_kg_per_m3",
+        "wire_diameter_m",
+        "source_trace_sha256",
+        "alignment_receipt_sha256",
+        "leading_power",
+        "trailing_power",
+        "leading_wire_feed",
+        "trailing_wire_feed",
+        "uncertainty"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_time_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_sample_gap_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "weld_length_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "density_kg_per_m3": {
+          "type": "number",
+          "minimum": 1000,
+          "maximum": 30000
+        },
+        "wire_diameter_m": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 0.02
+        },
+        "source_trace_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "alignment_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "leading_power": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/power_sample"
+          }
+        },
+        "trailing_power": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/power_sample"
+          }
+        },
+        "leading_wire_feed": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/feed_sample"
+          }
+        },
+        "trailing_wire_feed": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/feed_sample"
+          }
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/uncertainty"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "leading_arc_energy_j",
+        "trailing_arc_energy_j",
+        "total_arc_energy_j",
+        "leading_wire_length_m",
+        "trailing_wire_length_m",
+        "leading_estimated_mass_g",
+        "trailing_estimated_mass_g",
+        "total_estimated_mass_g",
+        "energy_kwh",
+        "ede_g_per_kwh",
+        "ede_lower_g_per_kwh",
+        "ede_upper_g_per_kwh",
+        "energy_per_length_kj_per_mm"
+      ],
+      "properties": {
+        "leading_arc_energy_j": {
+          "type": "number"
+        },
+        "trailing_arc_energy_j": {
+          "type": "number"
+        },
+        "total_arc_energy_j": {
+          "type": "number"
+        },
+        "leading_wire_length_m": {
+          "type": "number"
+        },
+        "trailing_wire_length_m": {
+          "type": "number"
+        },
+        "leading_estimated_mass_g": {
+          "type": "number"
+        },
+        "trailing_estimated_mass_g": {
+          "type": "number"
+        },
+        "total_estimated_mass_g": {
+          "type": "number"
+        },
+        "energy_kwh": {
+          "type": "number"
+        },
+        "ede_g_per_kwh": {
+          "type": "number"
+        },
+        "ede_lower_g_per_kwh": {
+          "type": "number"
+        },
+        "ede_upper_g_per_kwh": {
+          "type": "number"
+        },
+        "energy_per_length_kj_per_mm": {
+          "type": "number"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "evidence_class",
+        "input",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "const": "synthetic"
+        },
+        "input": {
+          "$ref": "#/$defs/input"
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
         }
       }
     }
