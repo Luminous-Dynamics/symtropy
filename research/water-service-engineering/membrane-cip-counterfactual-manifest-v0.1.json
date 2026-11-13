@@ -94,5 +94,17 @@
     "no_unsupported_off_policy_extrapolation",
     "no_quality_or_integrity_tradeoff_hidden_by_flux_gain",
     "no_claim_of_causal_benefit_from_post_CIP_TMP_drop_alone"
-  ]
+  ],
+  "quality_evidence_contract": {
+    "parent_contract": "research/water-service-engineering/membrane-wq-sample-manifest-v0.1.json",
+    "status": "six_synthetic_M2_fixtures_in_parent_dataset_crosswalk_branch",
+    "rules": [
+      "sample_time_location_analyte_only",
+      "no_post_sample_telemetry_features",
+      "below_LOD_LOQ_is_not_zero",
+      "rejected_lab_QC_not_training_label",
+      "same_time_different_location_remains_distinct"
+    ],
+    "no_actual_lab_sample_values": true
+  }
 }
