@@ -9,7 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Broad-phase cell edge. This is an acceleration parameter, not a clearance rule.
-const SPATIAL_CELL_SIZE_MM: i64 = 10_000;
+const SPATIAL_CELL_SIZE_MM: i64 = 1_000;
 /// Oversized envelopes use a conservative global candidate bucket.
 const MAX_GRID_CELLS_PER_OCCUPANCY: u128 = 4_096;
 
