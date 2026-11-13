@@ -243,7 +243,7 @@ jobs:
             .publication.doi == "10.1038/s41597-026-07924-7" and
             .publication.dataset_license == "not_verified_from_accessible_record" and
             .reported_dataset.load_range_percent == [25, 100] and
-            .reported_dataset.source_domains | length == 4
+            (.reported_dataset.source_domains | length == 4)
           ' benchmarks/maritime-control-response/multi-source-virtual-real-transfer-v0.1.json >/dev/null
 
           jq -e '
