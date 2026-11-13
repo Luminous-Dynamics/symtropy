@@ -49,6 +49,9 @@ impl fmt::Display for SourceEnvelopeError {
             Self::DerivativeMarkedNative => {
                 write!(f, "a derived artifact cannot be marked vendor-native")
             }
+            Self::UnsupportedPhenomenon => {
+                write!(f, "phenomenon is not supported by this DAS source-observation profile")
+            }
         }
     }
 }
@@ -191,6 +194,9 @@ impl ObservedQuantity {
     /// Validate quantity declarations while keeping channel pitch and resolution
     /// as separate source fields.
     pub fn validate(&self) -> SourceEnvelopeResult<()> {
+        if !matches!(self.phenomenon.as_str(), "axial_strain" | "strain_rate" | "phase" | "amplitude" | "other") {
+            return Err(SourceEnvelopeError::UnsupportedPhenomenon);
+        }
         for (name, value) in [
             ("observed_property.phenomenon", self.phenomenon.as_str()),
             ("observed_property.unit", self.unit.as_str()),
@@ -425,6 +431,20 @@ mod tests {
             value.validate(),
             Err(SourceEnvelopeError::InvalidSha256("source_artifact.sha256"))
         );
+    }
+
+    #[test]
+    fn rejects_electrical_current_as_a_das_phenomenon() {
+        let mut value = envelope();
+        value.observed_quantity.phenomenon = "electrical_current".to_owned();
+        assert_eq!(value.validate(), Err(SourceEnvelopeError::UnsupportedPhenomenon));
+    }
+
+    #[test]
+    fn rejects_temperature_as_a_das_phenomenon() {
+        let mut value = envelope();
+        value.observed_quantity.phenomenon = "temperature".to_owned();
+        assert_eq!(value.validate(), Err(SourceEnvelopeError::UnsupportedPhenomenon));
     }
 
     #[test]
