@@ -284,10 +284,7 @@ fn standard_requires_owner(standard: StandardId) -> EvidenceOwner {
     }
 }
 
-fn require_nonempty(
-    field: &'static str,
-    value: &str,
-) -> Result<(), CrosswalkError> {
+fn require_nonempty(field: &'static str, value: &str) -> Result<(), CrosswalkError> {
     if value.trim().is_empty() {
         return Err(CrosswalkError::EmptyIdentity(field));
     }
@@ -296,7 +293,10 @@ fn require_nonempty(
 
 fn validate_scope(scope: &ClaimScope) -> Result<(), CrosswalkError> {
     for (field, value) in [
-        ("robot_identity_digest", scope.robot_identity_digest.as_str()),
+        (
+            "robot_identity_digest",
+            scope.robot_identity_digest.as_str(),
+        ),
         (
             "robot_configuration_digest",
             scope.robot_configuration_digest.as_str(),
@@ -342,7 +342,9 @@ fn validate_profile(profile: &StandardsEvidenceProfile) -> Result<(), CrosswalkE
             ),
         ] {
             if value.trim().is_empty() {
-                return Err(CrosswalkError::IncompleteApplicabilityRecord(record.standard));
+                return Err(CrosswalkError::IncompleteApplicabilityRecord(
+                    record.standard,
+                ));
             }
             let _ = field;
         }
@@ -393,7 +395,9 @@ fn validate_profile(profile: &StandardsEvidenceProfile) -> Result<(), CrosswalkE
             });
         }
         if receipt.applicability_receipt_digest != record.applicability_receipt_digest {
-            return Err(CrosswalkError::ApplicabilityReceiptMismatch(receipt.standard));
+            return Err(CrosswalkError::ApplicabilityReceiptMismatch(
+                receipt.standard,
+            ));
         }
         for (field, observed, expected) in [
             (
@@ -471,10 +475,9 @@ pub fn assess_standards_evidence(
         match &record.disposition {
             ApplicabilityDisposition::Applicable => {
                 for domain in standard_domains(record.standard) {
-                    let receipt = profile
-                        .evidence
-                        .iter()
-                        .find(|receipt| receipt.standard == record.standard && receipt.domain == *domain);
+                    let receipt = profile.evidence.iter().find(|receipt| {
+                        receipt.standard == record.standard && receipt.domain == *domain
+                    });
                     match receipt {
                         Some(receipt)
                             if receipt.disposition == EvidenceDisposition::Qualified
@@ -758,7 +761,9 @@ mod tests {
     #[test]
     fn missing_applicable_domain_receipt_is_not_assessed() {
         let mut audit = profile();
-        audit.evidence.retain(|receipt| receipt.standard != StandardId::Iso21423_2026);
+        audit
+            .evidence
+            .retain(|receipt| receipt.standard != StandardId::Iso21423_2026);
         let report = assess_standards_evidence(&audit).unwrap();
         assert!(!report.complete_within_declared_scope);
         let interop = report
