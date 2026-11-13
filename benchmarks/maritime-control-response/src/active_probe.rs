@@ -1971,6 +1971,34 @@ mod tests {
     }
 
     #[test]
+    fn baseline_replays_eligibility_and_rejects_forged_assessment_flags() {
+        let candidates = vec![
+            candidate(
+                "controlled_perturbation",
+                ProbeClass::ControlledPerturbation,
+                ProbeAuthorization::HumanAuthorized,
+                true,
+            ),
+        ];
+        let policy = ProbeSelectionPolicy::conservative_read_only();
+        let mut portfolio = rank_diagnostic_probes(&hypotheses(), &candidates, &policy).unwrap();
+        assert!(!portfolio.assessments[0].eligible);
+        portfolio.assessments[0].eligible = true;
+        portfolio.assessments[0].rejection_reasons.clear();
+
+        assert_eq!(
+            select_probe_baseline(
+                &portfolio,
+                &candidates,
+                ProbeBaseline::CheapestEligible,
+                None,
+                policy.cost_penalty_scale_seconds
+            ),
+            Err(ProbeError::SelectionReplayMismatch)
+        );
+    }
+
+    #[test]
     fn tampered_candidate_manifest_fails_before_ranking() {
         let mut tampered = candidate(
             "pressure_observation",
