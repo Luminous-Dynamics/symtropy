@@ -436,10 +436,10 @@ impl FloorLedger {
                 received: entry.currency_code,
             });
         }
-        if let Some(task_id) = entry.task_id.as_deref() {
-            if !self.task_owners.contains_key(task_id) {
-                return Err(LedgerError::UnknownTask(task_id.to_owned()));
-            }
+        if let Some(task_id) = entry.task_id.as_deref()
+            && !self.task_owners.contains_key(task_id)
+        {
+            return Err(LedgerError::UnknownTask(task_id.to_owned()));
         }
         if self.costs.contains_key(&entry.entry_id) {
             return Err(LedgerError::DuplicateCostEntry(entry.entry_id));
@@ -459,10 +459,10 @@ impl FloorLedger {
         if self.labour.contains_key(&slice.slice_id) {
             return Err(LedgerError::DuplicateLabourSlice(slice.slice_id));
         }
-        if let Some(task_id) = slice.task_id.as_deref() {
-            if !self.task_owners.contains_key(task_id) {
-                return Err(LedgerError::UnknownTask(task_id.to_owned()));
-            }
+        if let Some(task_id) = slice.task_id.as_deref()
+            && !self.task_owners.contains_key(task_id)
+        {
+            return Err(LedgerError::UnknownTask(task_id.to_owned()));
         }
 
         for existing in self.labour.values() {
