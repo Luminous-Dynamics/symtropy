@@ -7,6 +7,8 @@
 //! This crate deliberately does not perform asset attribution, datum conversion,
 //! geodetic projection, DAS event detection, or physical qualification.
 
+pub mod decision;
+
 use core::fmt;
 
 /// Result type used throughout the calibration kernel.
