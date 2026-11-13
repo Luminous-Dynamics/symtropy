@@ -1,0 +1,146 @@
+{
+  "schema_version": "symtropy-marine-multisource-virtual-real-transfer-v0.1",
+  "status": "published_dataset_reference_access_not_yet_audited",
+  "publication": {
+    "doi": "10.1038/s41597-026-07924-7",
+    "title": "Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines",
+    "journal": "Scientific Data",
+    "published_date": "2026-08-22",
+    "article_url": "https://www.nature.com/articles/s41597-026-07924-7",
+    "authors": [
+      "Zaimi Xie",
+      "Chunmei Mo",
+      "Baozhu Jia"
+    ],
+    "article_license": "CC-BY-4.0",
+    "dataset_license": "not_verified_from_accessible_record",
+    "data_access_url": null,
+    "data_repository_identifier": null,
+    "data_access_status": "No direct dataset repository or archive download was identified in the accessible public metadata. Request the data package and its license/manifest from the authors before attempting a score reproduction."
+  },
+  "reported_dataset": {
+    "load_range_percent": [
+      25,
+      100
+    ],
+    "signal_representation": "24-dimensional high-frequency transient gas-path parameters plus in-cylinder steady-state performance indicators",
+    "health_states": {
+      "healthy": 1,
+      "representative_thermal_fault_modes": 10,
+      "fault_systems": [
+        "turbochargers",
+        "intercoolers",
+        "intake_manifolds",
+        "exhaust_manifolds",
+        "fuel_injectors"
+      ]
+    },
+    "source_domains": [
+      {
+        "id": "calibrated_simulation",
+        "role": "noise-free thermodynamic baseline",
+        "physical_status": "simulation"
+      },
+      {
+        "id": "bench_measured",
+        "role": "engine test-bench measurements including industrial background noise",
+        "physical_status": "physical test-bench"
+      },
+      {
+        "id": "real_vessel_telemetry",
+        "role": "real-vessel telemetry with wave-induced load fluctuations and engine-room interference",
+        "physical_status": "field telemetry"
+      },
+      {
+        "id": "virtual_real_fault_fusion",
+        "role": "superimposed fault data produced through virtual-real fusion to represent severe sea-state effects",
+        "physical_status": "synthetic/virtual-real composite, not an observed shipboard fault event"
+      }
+    ],
+    "published_transfer_result": {
+      "metric": "accuracy",
+      "value_percent": 70.18,
+      "task": "reported zero-shot virtual-to-real transfer",
+      "protocol_detail_status": "full split, class counts, per-domain membership and uncertainty have not yet been independently audited",
+      "status": "published_reference_not_reproduced"
+    }
+  },
+  "benchmark_tracks": [
+    {
+      "id": "simulation_to_bench_zero_shot",
+      "source_domain": "calibrated_simulation",
+      "target_domain": "bench_measured",
+      "adaptation": "none",
+      "primary_question": "How much transfer degrades when calibrated simulation meets industrial measurement noise?",
+      "status": "requires_dataset_access_and_domain_manifest"
+    },
+    {
+      "id": "simulation_to_vessel_zero_shot",
+      "source_domain": "calibrated_simulation",
+      "target_domain": "real_vessel_telemetry",
+      "adaptation": "none",
+      "primary_question": "Can known operating-state representation transfer to real telemetry without target labels?",
+      "status": "published_reference_70_18_percent_not_reproduced"
+    },
+    {
+      "id": "bench_to_vessel_zero_shot",
+      "source_domain": "bench_measured",
+      "target_domain": "real_vessel_telemetry",
+      "adaptation": "none",
+      "primary_question": "Does measured test-bench knowledge transfer to wave/noise-rich ship telemetry?",
+      "status": "requires_dataset_access_and_domain_manifest"
+    },
+    {
+      "id": "multi_source_to_vessel",
+      "source_domain": "calibrated_simulation_plus_bench_measured",
+      "target_domain": "real_vessel_telemetry",
+      "adaptation": "declared_unsupervised_or_semi_supervised_variants_only",
+      "primary_question": "Can source selection avoid negative transfer while preserving known-class performance?",
+      "status": "requires_dataset_access_and_domain_manifest"
+    },
+    {
+      "id": "virtual_real_fault_fusion",
+      "source_domain": "virtual_real_fault_fusion",
+      "target_domain": "real_vessel_telemetry",
+      "adaptation": "separate_test_only_track",
+      "primary_question": "Do fault signatures learned on superimposed faults match independently observed field fault signatures?",
+      "status": "not_qualified_until_real_vessel_fault_ground_truth_exists"
+    }
+  ],
+  "hard_gates": [
+    "each domain has a separate immutable recording manifest and source digest",
+    "all real-vessel recording and voyage identities remain disjoint from fit, calibration and test",
+    "zero-shot tracks use no target labels, target feature selection or target threshold tuning",
+    "unsupervised adaptation and semi-supervised adaptation are reported as separate tracks with exact target-data access limits",
+    "synthetic/virtual-real superimposed fault data are never described as physically observed vessel fault events",
+    "real-vessel healthy telemetry is not a substitute for independent field fault labels",
+    "all source-domain models and calibrators are frozen before target confirmatory evaluation",
+    "report per-fault macro recall, balanced accuracy, event metrics, calibration, false-known and OOD risk-coverage",
+    "report the exact independent vessel/engine/voyage count and cluster uncertainty",
+    "cross-engine and fleet claims require more than one independent engine identity",
+    "published 70.18% zero-shot accuracy is a literature reference, not a benchmark pass or Symtropy result"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "zero_shot_transfer",
+      "target": "Reproduce the paper's 70.18% zero-shot virtual-to-real accuracy under its exact published domain split before comparing new methods.",
+      "status": "aspirational"
+    },
+    {
+      "id": "domain_robustness",
+      "target": "Exceed the reproduced zero-shot baseline in balanced accuracy and worst-domain macro recall, with independent recording/voyage uncertainty and no target-label access.",
+      "status": "aspirational"
+    },
+    {
+      "id": "negative_transfer_control",
+      "target": "Demonstrate source selection does not worsen held-out real-vessel risk versus the best single-source baseline on any preregistered regime.",
+      "status": "aspirational"
+    },
+    {
+      "id": "field_fault_validity",
+      "target": "Make no real-vessel fault-diagnosis claim until independent field fault annotations or permissioned fault-event records exist.",
+      "status": "gate_not_performance_target"
+    }
+  ],
+  "claim_ceiling": "Published metadata and reported zero-shot result only. Dataset bytes, license, splits and the reported 70.18% result have not been independently audited or reproduced."
+}
