@@ -374,7 +374,7 @@ impl RouteGeometry {
                 let easting = left.easting_m + fraction * (right.easting_m - left.easting_m);
                 let northing = left.northing_m + fraction * (right.northing_m - left.northing_m);
                 if !easting.is_finite() || !northing.is_finite() {
-                    return Err(CalibrationError::NonFinite("interpolated geographic position"));
+                    return Err(CalibrationError::NonFinite("interpolated projected position"));
                 }
                 return Ok((easting, northing));
             }
@@ -452,6 +452,10 @@ pub struct FibreObservation {
     pub interrogator_config_revision: String,
     /// Direction of the optical path.
     pub direction: FibreDirection,
+    /// Physical endpoint at which this observation's optical path begins.
+    pub endpoint_from_id: String,
+    /// Physical endpoint at which this observation's optical path ends.
+    pub endpoint_to_id: String,
     /// Optical range emitted by the interrogator, in metres.
     pub optical_range_m: f64,
     /// SHA-256 digest of the exact acquired source artifact.
@@ -574,6 +578,16 @@ impl CalibrationModel {
         }
         if observation.direction != self.binding.direction {
             return Err(CalibrationError::BindingMismatch("direction"));
+        }
+        let (expected_from, expected_to) = match self.binding.direction {
+            FibreDirection::AToB => (&self.binding.endpoint_a_id, &self.binding.endpoint_b_id),
+            FibreDirection::BToA => (&self.binding.endpoint_b_id, &self.binding.endpoint_a_id),
+        };
+        if &observation.endpoint_from_id != expected_from {
+            return Err(CalibrationError::BindingMismatch("endpoint_from_id"));
+        }
+        if &observation.endpoint_to_id != expected_to {
+            return Err(CalibrationError::BindingMismatch("endpoint_to_id"));
         }
         validate_sha256(&observation.source_sha256)?;
 
@@ -698,6 +712,8 @@ mod tests {
             route_revision: "route-r7".to_owned(),
             interrogator_config_revision: "interrogator-config-3".to_owned(),
             direction: FibreDirection::AToB,
+            endpoint_from_id: "chamber-A".to_owned(),
+            endpoint_to_id: "chamber-B".to_owned(),
             optical_range_m: 60.0,
             source_sha256: DIGEST.to_owned(),
         }
@@ -768,6 +784,17 @@ mod tests {
                 ..observation()
             }),
             Err(CalibrationError::BindingMismatch("interrogator_config_revision"))
+        );
+    }
+
+    #[test]
+    fn rejects_endpoint_identity_mismatch_even_when_direction_label_matches() {
+        assert_eq!(
+            model().locate(&FibreObservation {
+                endpoint_from_id: "unknown-chamber".to_owned(),
+                ..observation()
+            }),
+            Err(CalibrationError::BindingMismatch("endpoint_from_id"))
         );
     }
 
