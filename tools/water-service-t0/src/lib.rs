@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const INPUT_CASE_COUNT: usize = 23;
@@ -10,9 +10,9 @@ fn at<'a>(value: &'a Value, path: &[&str]) -> Result<&'a Value, String> {
     let mut current = value;
     for key in path {
         current = if let Some(array) = current.as_array() {
-            let index = key.parse::<usize>().map_err(|_| {
-                format!("expected numeric array index at {}", path.join("."))
-            })?;
+            let index = key
+                .parse::<usize>()
+                .map_err(|_| format!("expected numeric array index at {}", path.join(".")))?;
             array.get(index)
         } else {
             current.get(*key)
@@ -61,10 +61,8 @@ fn compare_json(actual: &Value, expected: &Value) -> bool {
         }
         (Value::Object(a), Value::Object(b)) => {
             a.len() == b.len()
-                && a.iter().all(|(key, value)| {
-                    b.get(key)
-                        .is_some_and(|other| compare_json(value, other))
-                })
+                && a.iter()
+                    .all(|(key, value)| b.get(key).is_some_and(|other| compare_json(value, other)))
         }
         _ => actual == expected,
     }
@@ -73,7 +71,6 @@ fn compare_json(actual: &Value, expected: &Value) -> bool {
 fn case_id(case: &Value) -> Result<String, String> {
     string(case, &["case_id"])
 }
-
 
 fn compute_pump(case: &Value) -> Result<Value, String> {
     let id = case_id(case)?;
@@ -222,7 +219,10 @@ fn compute_pump(case: &Value) -> Result<Value, String> {
             let static_head = number(i, &["static_head_m"])?;
             let system_k = number(i, &["system_loss_coefficient_m_per_m6"])?;
             let h0 = number(i, &["fixed_speed_pump_curve", "shutoff_head_m"])?;
-            let pump_k = number(i, &["fixed_speed_pump_curve", "quadratic_coefficient_m_per_m6"])?;
+            let pump_k = number(
+                i,
+                &["fixed_speed_pump_curve", "quadratic_coefficient_m_per_m6"],
+            )?;
             let vfd_h0 = number(i, &["vfd_curve", "reference_speed_shutoff_head_m"])?;
             let vfd_k = number(i, &["vfd_curve", "quadratic_coefficient_m_per_m6"])?;
             let eta = number(i, &["assumed_total_wire_to_water_efficiency_both_modes"])?;
@@ -539,7 +539,10 @@ pub fn evaluate(
     )?;
     validate_ids(
         &diagnostic_ids,
-        &string_ids(manifest, &["pressurized_leak_diagnostics", "proposed_case_ids"])?,
+        &string_ids(
+            manifest,
+            &["pressurized_leak_diagnostics", "proposed_case_ids"],
+        )?,
         "pressurized diagnostics",
     )?;
     validate_ids(
@@ -703,10 +706,7 @@ mod tests {
     fn duplicate_input_id_fails_before_evaluation() {
         let mut inputs = load("inputs");
         let first = inputs["pump_cases"][0].clone();
-        inputs["pump_cases"]
-            .as_array_mut()
-            .unwrap()
-            .push(first);
+        inputs["pump_cases"].as_array_mut().unwrap().push(first);
         let result = evaluate(
             &inputs,
             &load("manifest"),
@@ -753,7 +753,11 @@ mod tests {
         let case = load("inputs")["network_diagnostics_cases"][3].clone();
         let output = compute_diagnostics(&case).expect("diagnostic calculation");
         assert_eq!(output["diagnostic_disposition"], "INDETERMINATE");
-        assert!(output["sensor_consensus_is_not_independent"].as_bool().unwrap());
+        assert!(
+            output["sensor_consensus_is_not_independent"]
+                .as_bool()
+                .unwrap()
+        );
     }
 
     #[test]
