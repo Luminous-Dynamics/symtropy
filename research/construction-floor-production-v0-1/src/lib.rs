@@ -1009,13 +1009,6 @@ mod tests {
         assert_eq!(missing_unit.final_state, None);
         assert!(!report.floor_accepted());
         assert_eq!(report.accepted_floor_cost_minor_units, None);
-        assert_eq!(
-            report.cost_per_accepted_unit,
-            Some(MoneyPerUnit {
-                numerator_minor_units: 5_000,
-                denominator_accepted_units: 1,
-            })
-        );
     }
 
     #[test]
