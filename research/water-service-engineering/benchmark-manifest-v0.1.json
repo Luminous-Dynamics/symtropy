@@ -177,5 +177,24 @@
     ],
     "status": "synthetic_scenario_contract_only_no_controller_reproduction_or_physical_qualification",
     "hard_gate": "stale_conflicting_or_unobservable_critical_state_requires_abstention_or_independent_local_safety_policy"
+  },
+  "community_service_floor_benchmark": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5027",
+    "protocol": "research/water-service-engineering/community-service-floors/COMMUNITY_SERVICE_FLOOR_BENCHMARK_V0_1.md",
+    "scenarios": "research/water-service-engineering/community-service-floors/scenarios-v0.1.json",
+    "schema": "research/water-service-engineering/community-service-floors/scenarios-v0.1.schema.json",
+    "oracle": "research/water-service-engineering/community-service-floors/disposition-oracle-v0.1.json",
+    "scenario_count": 12,
+    "required_areas_per_scenario": 3,
+    "dispositions": [
+      "meets_all_floors",
+      "breached_floor",
+      "indeterminate",
+      "breached_with_indeterminate",
+      "invalid"
+    ],
+    "evidence_class": "synthetic_design_only",
+    "aggregation_authority": "diagnostic_only_never_overrides_area_floor",
+    "status": "scenario_contract_only_no_hydraulic_or_field_qualification"
   }
 }
