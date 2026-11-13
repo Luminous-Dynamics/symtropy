@@ -1,0 +1,17 @@
+[package]
+name = "nonlinear-midpoint-error-envelope"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Newton-Kantorovich residual-to-state envelope for a nonlinear constrained midpoint KKT fixture"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "kkt_condition_ladder"
+path = "examples/kkt_condition_ladder.rs"
+
+[workspace]
