@@ -335,8 +335,7 @@ impl CanonicalCovariantEndpointMap {
                 let mut metric_derivative_term = 0.0;
                 for nu in 0..BLOCK_DIMENSION {
                     for rho in 0..BLOCK_DIMENSION {
-                        metric_derivative_term +=
-                            inverse[mu][nu] * d[beta][nu][rho] * tangent[rho];
+                        metric_derivative_term += inverse[mu][nu] * d[beta][nu][rho] * tangent[rho];
                     }
                 }
 
@@ -352,14 +351,15 @@ impl CanonicalCovariantEndpointMap {
                     inverse[index][momentum_index];
             }
             for position_index in 0..BLOCK_DIMENSION {
-                matrix[index + BLOCK_DIMENSION][position_index] =
-                    lower_left[index][position_index];
+                matrix[index + BLOCK_DIMENSION][position_index] = lower_left[index][position_index];
             }
         }
 
         for row in &matrix {
             if row.iter().any(|value| !value.is_finite()) {
-                return Err(BilocalOperatorError::NonFinite("endpoint conversion matrix"));
+                return Err(BilocalOperatorError::NonFinite(
+                    "endpoint conversion matrix",
+                ));
             }
         }
 
@@ -386,7 +386,8 @@ impl CanonicalCovariantEndpointMap {
         let mut covariant = [0.0; STATE_DIMENSION];
         for row in 0..STATE_DIMENSION {
             for column in 0..STATE_DIMENSION {
-                covariant[row] = self.matrix[row][column].mul_add(canonical[column], covariant[row]);
+                covariant[row] =
+                    self.matrix[row][column].mul_add(canonical[column], covariant[row]);
             }
         }
         if covariant.iter().any(|value| !value.is_finite()) {
@@ -441,7 +442,9 @@ impl CanonicalCovariantEndpointMap {
     ) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
         for row in &canonical_flow {
             if row.iter().any(|value| !value.is_finite()) {
-                return Err(BilocalOperatorError::NonFinite("canonical fundamental matrix"));
+                return Err(BilocalOperatorError::NonFinite(
+                    "canonical fundamental matrix",
+                ));
             }
         }
 
@@ -470,9 +473,7 @@ impl CanonicalCovariantEndpointMap {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap,
-    };
+    use super::{BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap};
     use crate::{
         MassKg, SchwarzschildBlackHole,
         connection::{LeviCivitaConnection4, MetricDerivatives4},
@@ -600,8 +601,7 @@ mod tests {
         let radius = 4.0 * hole.gravitational_radius_m();
         let theta = 1.1;
         let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
-        let derivatives =
-            MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let derivatives = MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
         let connection =
             LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
         let lapse_squared = 1.0 - hole.horizon_radius_m() / radius;
@@ -659,9 +659,7 @@ mod tests {
             &endpoint,
         )
         .unwrap();
-        assert!(
-            transformed.max_abs_difference(&BilocalGeodesicOperator::identity()) <= TOLERANCE
-        );
+        assert!(transformed.max_abs_difference(&BilocalGeodesicOperator::identity()) <= TOLERANCE);
     }
 
     #[test]
@@ -698,5 +696,4 @@ mod tests {
             Err(BilocalOperatorError::NonFinite("canonical variation"))
         ));
     }
-
 }
