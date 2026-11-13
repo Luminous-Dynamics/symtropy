@@ -1,0 +1,286 @@
+{
+  "schema_version": "membrane-measurement-integrity-oracle-v0.1",
+  "evidence_class": "synthetic_measurement_integrity",
+  "evidence_ceiling": "synthetic_signal_diagnostics_only_no_real_sensor_or_fouling_claim",
+  "cases": [
+    {
+      "case_id": "MI-M1-001-healthy-stable",
+      "expected": {
+        "state": "HEALTHY_STABLE",
+        "suspect_channels": [],
+        "flags": [],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0,
+          "permeability_l_m2_h_bar": 0
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 1,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 2
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0.014978601997146965,
+          "tmp_bar": 0.013976041072447248,
+          "permeability_l_m2_h_bar": 0.011003143755358793
+        },
+        "max_consistency_relative_error": 0.000023952669524867005,
+        "median_consistency_relative_error": 0,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0,
+          "flux_drop_fraction": 0,
+          "permeability_drop_fraction": 0
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-002-coherent-process-shift",
+      "expected": {
+        "state": "PROCESS_SHIFT_COHERENT",
+        "suspect_channels": [],
+        "flags": [
+          "COHERENT_HYDRAULIC_PROCESS_SHIFT"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0,
+          "permeability_l_m2_h_bar": 0
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 1,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 1
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0.19718309859154934,
+          "tmp_bar": 0.3073170731707318,
+          "permeability_l_m2_h_bar": 0.5001738368454198
+        },
+        "max_consistency_relative_error": 2.4489796409541222e-9,
+        "median_consistency_relative_error": 1.7582417678891665e-9,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0.3600000000000001,
+          "flux_drop_fraction": 0.18000000000000008,
+          "permeability_drop_fraction": 0.39705882499999995
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-003-stuck-flux-peer-channels-moving",
+      "expected": {
+        "state": "STUCK_SENSOR_SUSPECTED",
+        "suspect_channels": [
+          "flux_l_m2_h"
+        ],
+        "flags": [
+          "STUCK_AT_WITH_PEER_MOVEMENT"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0,
+          "permeability_l_m2_h_bar": 0
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 7,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 1
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0.30508474576271194,
+          "permeability_l_m2_h_bar": 0.3090972064849085
+        },
+        "max_consistency_relative_error": 3.2000000484717935e-9,
+        "median_consistency_relative_error": 2.400000135973471e-9,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0.3600000000000001,
+          "flux_drop_fraction": 0,
+          "permeability_drop_fraction": 0.26470588
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-004-channel-dropout",
+      "expected": {
+        "state": "CHANNEL_DATA_GAP",
+        "suspect_channels": [],
+        "flags": [
+          "CHANNEL_MISSINGNESS"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0.2857142857142857,
+          "tmp_bar": 0,
+          "permeability_l_m2_h_bar": 0
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 1,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 2
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0.011980830670926439,
+          "tmp_bar": 0.013976041072447248,
+          "permeability_l_m2_h_bar": 0.011003143755358793
+        },
+        "max_consistency_relative_error": 0.001972103124226528,
+        "median_consistency_relative_error": 0,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0,
+          "flux_drop_fraction": 0,
+          "permeability_drop_fraction": 0
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-005-common-historian-outage",
+      "expected": {
+        "state": "HISTORIAN_OUTAGE",
+        "suspect_channels": [],
+        "flags": [
+          "COMMON_HISTORIAN_GAP",
+          "CHANNEL_MISSINGNESS"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0.2857142857142857,
+          "tmp_bar": 0.2857142857142857,
+          "permeability_l_m2_h_bar": 0.2857142857142857
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 1,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 2
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0.011980830670926439,
+          "tmp_bar": 0.013977635782747615,
+          "permeability_l_m2_h_bar": 0.009996001599360219
+        },
+        "max_consistency_relative_error": 0.001972103124226528,
+        "median_consistency_relative_error": 0,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0,
+          "flux_drop_fraction": 0,
+          "permeability_drop_fraction": 0
+        },
+        "common_historian_gap_max_samples": 2,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-006-cross-channel-measurement-bias",
+      "expected": {
+        "state": "CROSS_CHANNEL_INCONSISTENCY",
+        "suspect_channels": [
+          "permeability_l_m2_h_bar"
+        ],
+        "flags": [
+          "CROSS_CHANNEL_CONSISTENCY_RESIDUAL"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0,
+          "permeability_l_m2_h_bar": 0
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 1,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 2
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0.014978601997146965,
+          "tmp_bar": 0.013976041072447248,
+          "permeability_l_m2_h_bar": 0.009998571632623816
+        },
+        "max_consistency_relative_error": 0.3440535689853601,
+        "median_consistency_relative_error": 0.33333333333333315,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0,
+          "flux_drop_fraction": 0,
+          "permeability_drop_fraction": 0
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-007-outside-declared-envelope",
+      "expected": {
+        "state": "OUT_OF_DOMAIN_ABSTAIN",
+        "suspect_channels": [],
+        "flags": [
+          "OUTSIDE_DECLARED_SYNTHETIC_ENVELOPE",
+          "COHERENT_HYDRAULIC_PROCESS_SHIFT"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0,
+          "permeability_l_m2_h_bar": 0
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 1,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 1
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0.19718309859154934,
+          "tmp_bar": 1.0381355932203389,
+          "permeability_l_m2_h_bar": 0.8435930659092139
+        },
+        "max_consistency_relative_error": 4.395604427252386e-9,
+        "median_consistency_relative_error": 1.764705910310437e-9,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0.3600000000000001,
+          "flux_drop_fraction": 0.18000000000000008,
+          "permeability_drop_fraction": 0.39705882499999995
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    },
+    {
+      "case_id": "MI-M1-008-ambiguous-stuck-plus-peer-dropout",
+      "expected": {
+        "state": "INDETERMINATE",
+        "suspect_channels": [
+          "flux_l_m2_h"
+        ],
+        "flags": [
+          "CHANNEL_MISSINGNESS",
+          "STUCK_AT_WITH_PEER_MOVEMENT"
+        ],
+        "missing_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0.2857142857142857,
+          "permeability_l_m2_h_bar": 0.2857142857142857
+        },
+        "longest_flatline_run_by_channel": {
+          "flux_l_m2_h": 7,
+          "tmp_bar": 1,
+          "permeability_l_m2_h_bar": 1
+        },
+        "range_fraction_by_channel": {
+          "flux_l_m2_h": 0,
+          "tmp_bar": 0.390625,
+          "permeability_l_m2_h_bar": 0.4183908065338407
+        },
+        "max_consistency_relative_error": 2.5000000798741647e-9,
+        "median_consistency_relative_error": 1.0000000550950184e-9,
+        "coherent_process_deltas": {
+          "tmp_rise_fraction": 0.5,
+          "flux_drop_fraction": 0,
+          "permeability_drop_fraction": 0.333333335
+        },
+        "common_historian_gap_max_samples": 0,
+        "fouling_mechanism": "NOT_IDENTIFIED"
+      }
+    }
+  ]
+}
