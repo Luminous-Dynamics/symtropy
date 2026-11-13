@@ -1287,6 +1287,54 @@
         "Use as a matched baseline for target-free open-set domain generalization and physics-informed feature constraints.",
         "Report known-fault accuracy and unknown rejection separately, together with H-score, false-known rate and calibration."
       ]
+    },
+    {
+      "id": "geometric-behavioural-set-fault-diagnosis-review-2026",
+      "title": "Fault Diagnosis in Dynamical Systems: Geometric Interpretation and Tractable Algorithms",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-05",
+      "publication_date_precision": "month",
+      "source_url": "https://doi.org/10.1146/annurev-control-030123-015422",
+      "data_domain": "General linear and nonlinear dynamical systems, with model-based and data-driven diagnosis methods and real-world industrial applications; not a marine-engine dataset.",
+      "task": "Review geometric interpretations of fault-diagnosis filters through behavioural sets, robust residual generation and estimation under uncertainty, and passive/active diagnosis methods.",
+      "reported_metrics": [
+        {
+          "metric": "bibliographic_references",
+          "value": 142,
+          "unit": "references",
+          "context": "Publisher page lists 142 references. This is review scope metadata, not an experimental benchmark score.",
+          "source_location": "Publisher article page, Literature Cited"
+        },
+        {
+          "metric": "dynamical_system_classes_reviewed",
+          "value": "linear and nonlinear",
+          "unit": "system_scope",
+          "context": "The review covers diagnosis for both linear and nonlinear dynamical systems.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "diagnosis_method_families_reviewed",
+          "value": "model-based, data-driven, passive and active",
+          "unit": "method_scope",
+          "context": "The review surveys model-based/data-driven diagnosis and passive detection/estimation alongside active diagnosis.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Literature review; no single dataset, train/test split, fault taxonomy or common leaderboard score. Individual cited methods require protocol-specific reproduction.",
+      "reported_limitations": [
+        "This is a general dynamical-systems review, not a marine-engine study or vessel validation.",
+        "It does not report one common diagnostic accuracy, false-alarm rate or calibration score that can be compared directly with the marine datasets.",
+        "The article has a publisher erratum published 5 June 2026: https://doi.org/10.1146/annurev-as-09-060526-200001. Consult the corrected record before detailed reproduction; the erratum landing page has no abstract.",
+        "Behavioural-set and active-diagnosis methods require explicit model, uncertainty and operational-authority assumptions before transfer to maritime machinery."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Volume 9 publication date is May 2026; publisher states first published as Review in Advance on 10 December 2025.",
+        "This review motivates the next set-valued diagnosability workstream: compare admissible output-behaviour sets under bounded parameter, disturbance and measurement uncertainty.",
+        "A disjointness certificate between conservative outer bounds can prove separation; overlap of outer bounds alone does not prove a true intersection.",
+        "Use as a theory/method comparator, not as a marine-engine SOTA result."
+      ]
     }
   ]
 }
