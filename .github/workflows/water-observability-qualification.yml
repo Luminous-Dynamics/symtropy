@@ -1,0 +1,59 @@
+name: Water network observability qualification
+
+on:
+  push:
+    paths:
+      - "tools/water-service-t0/**"
+      - "research/water-service-engineering/observability-qualification/**"
+      - ".github/workflows/water-observability-qualification.yml"
+  pull_request:
+    paths:
+      - "tools/water-service-t0/**"
+      - "research/water-service-engineering/observability-qualification/**"
+      - ".github/workflows/water-observability-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-observability-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust, rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --package water-service-t0 -- --check
+      - name: Run observability adversarial and oracle tests
+        run: cargo test --locked --package water-service-t0 --bin water-observability-qualification
+      - name: Run strict Clippy
+        run: cargo clippy --locked --package water-service-t0 --bin water-observability-qualification -- -D warnings
+      - name: Evaluate exact checked-out corpus
+        env:
+          WATER_OBSERVABILITY_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-observability-qualification -- \
+            research/water-service-engineering/observability-qualification/scenarios-v0.1.json \
+            research/water-service-engineering/observability-qualification/scenarios-v0.1.schema.json \
+            research/water-service-engineering/observability-qualification/disposition-oracle-v0.1.json \
+            artifacts/water-observability-qualification/receipt.json
+      - name: Upload exact-head inputs, lockfile and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-observability-qualification-exact-head-evidence
+          path: |
+            research/water-service-engineering/observability-qualification/scenarios-v0.1.json
+            research/water-service-engineering/observability-qualification/scenarios-v0.1.schema.json
+            research/water-service-engineering/observability-qualification/disposition-oracle-v0.1.json
+            Cargo.lock
+            artifacts/water-observability-qualification/receipt.json
+          if-no-files-found: warn
