@@ -1,5 +1,5 @@
 {
-  "schema_version": "liu-ice-active-evidence-selection-v0.6",
+  "schema_version": "liu-ice-active-evidence-selection-v0.7",
   "status": "protocol_only_not_executed",
   "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
   "method": {
@@ -77,6 +77,18 @@
         "realized_joint_kl_divergence"
       ],
       "claim_ceiling": "One fixed candidate/scenario catalogue only; does not authenticate sensor receipts or validate likelihood scenario coverage."
+    },
+    "portfolio_replay": {
+      "status": "source_contract_implemented_ci_pending",
+      "frozen_inputs": [
+        "exact sorted prior distribution",
+        "complete candidate catalogue with candidate manifest digests",
+        "full frozen ProbeSelectionPolicy including cost/delay/risk limits and utility scales"
+      ],
+      "replay_rule": "select_probe_baseline reruns rank_diagnostic_probes from the stored prior, exact candidate catalogue and retained policy, then compares the complete resulting portfolio before selecting any baseline.",
+      "forged_assessment_control": "Caller-edited eligibility flags, rejection reasons, ranking or assessment metrics are rejected with SelectionReplayMismatch.",
+      "purpose": "Prevent a caller from mutating a rejected candidate into the eligible set or manipulating baseline selection after the original risk/authority/calibration gates ran.",
+      "limitation": "Deterministic replay demonstrates internal consistency against the supplied source/policy; it does not authenticate source code, policy issuer, authority signer or physical evidence."
     }
   },
   "candidate_classes": {
@@ -156,7 +168,9 @@
     "hypothesis_space_sha256",
     "minimum_pairwise_chernoff_information_nats",
     "worst_case_pairwise_chernoff_information_nats",
-    "chernoff_discretization_intervals"
+    "chernoff_discretization_intervals",
+    "portfolio_replay_match",
+    "portfolio_replay_mismatch_rejection_count"
   ],
   "hard_gates": [
     "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
@@ -220,7 +234,9 @@
     "posterior scenario probabilities are updated after each observation and carried into the next ledger state",
     "one joint posterior ledger is bound to one immutable selected candidate, hypothesis space, scenario set and calibration manifest",
     "every sequential observation appends a unique receipt digest and parent-ledger digest in order",
-    "candidate, channel, likelihood model, calibration or scenario-set changes require a new selection decision and ledger"
+    "candidate, channel, likelihood model, calibration or scenario-set changes require a new selection decision and ledger",
+    "every baseline selection replays the complete probe portfolio from the exact frozen prior, candidate manifests and full policy before using eligibility flags",
+    "tampering with an assessment eligibility flag, rejection list, ranking or metric must fail with SelectionReplayMismatch"
   ],
   "research_targets_not_achieved": [
     {
@@ -286,6 +302,11 @@
     {
       "id": "joint_posterior_vs_remarginalized_baseline",
       "target": "On repeated evidence under a synthetic persistent calibration scenario, the joint posterior must outperform the intentionally incorrect per-observation re-marginalization comparator on posterior calibration and evidence replay.",
+      "status": "aspirational"
+    },
+    {
+      "id": "portfolio_replay_integrity",
+      "target": "Every baseline decision is reproducibly derived from the exact frozen candidate catalogue, posterior and policy; all eligibility-tampering negative controls are rejected.",
       "status": "aspirational"
     }
   ],
