@@ -24,6 +24,8 @@ pub struct Profile {
     pub evidence_class: EvidenceClass,
     pub workpiece_id: String,
     pub joint_revision: String,
+    pub layer_id: String,
+    pub predecessor_pass_id: String,
     pub transition_id: String,
     pub scan_id: String,
     pub scan_sha256: String,
@@ -75,6 +77,8 @@ pub enum AbstainReason {
     PhysicalEvidenceNotAdmitted,
     WorkpieceMismatch,
     JointRevisionMismatch,
+    LayerMismatch,
+    PredecessorPassMismatch,
     TransitionMismatch,
     ScanIdentityMismatch,
     CoordinateFrameMismatch,
@@ -123,6 +127,8 @@ pub struct GeometryMetrics {
 pub struct QualifiedComparison {
     pub workpiece_id: String,
     pub joint_revision: String,
+    pub layer_id: String,
+    pub predecessor_pass_id: String,
     pub transition_id: String,
     pub reference_scan_sha256: String,
     pub observed_scan_sha256: String,
@@ -236,6 +242,8 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
     let identities = [
         reference.workpiece_id.as_str(),
         reference.joint_revision.as_str(),
+        reference.layer_id.as_str(),
+        reference.predecessor_pass_id.as_str(),
         reference.transition_id.as_str(),
         reference.scan_id.as_str(),
         reference.coordinate_frame.as_str(),
@@ -243,6 +251,8 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
         observed.x_grid_sha256.as_str(),
         observed.workpiece_id.as_str(),
         observed.joint_revision.as_str(),
+        observed.layer_id.as_str(),
+        observed.predecessor_pass_id.as_str(),
         observed.transition_id.as_str(),
         observed.scan_id.as_str(),
         observed.coordinate_frame.as_str(),
@@ -275,6 +285,12 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
     }
     if reference.joint_revision != observed.joint_revision {
         return Err(AbstainReason::JointRevisionMismatch);
+    }
+    if reference.layer_id != observed.layer_id {
+        return Err(AbstainReason::LayerMismatch);
+    }
+    if reference.predecessor_pass_id != observed.predecessor_pass_id {
+        return Err(AbstainReason::PredecessorPassMismatch);
     }
     if reference.transition_id != observed.transition_id {
         return Err(AbstainReason::TransitionMismatch);
@@ -527,6 +543,8 @@ fn compare_profiles_inner(
     Ok(QualifiedComparison {
         workpiece_id: reference.workpiece_id.clone(),
         joint_revision: reference.joint_revision.clone(),
+        layer_id: reference.layer_id.clone(),
+        predecessor_pass_id: reference.predecessor_pass_id.clone(),
         transition_id: reference.transition_id.clone(),
         reference_scan_sha256: reference.scan_sha256.clone(),
         observed_scan_sha256: observed.scan_sha256.clone(),
@@ -585,6 +603,8 @@ mod tests {
             evidence_class: EvidenceClass::SyntheticContractOnly,
             workpiece_id: "WID-SYNTH-01".to_owned(),
             joint_revision: "JOINT-R1".to_owned(),
+            layer_id: "LAYER-02".to_owned(),
+            predecessor_pass_id: "PASS-03".to_owned(),
             transition_id: "LAYER-02-AFTER-PASS-03".to_owned(),
             scan_id: "SCAN-BEFORE".to_owned(),
             scan_sha256: reference_sha.clone(),
@@ -597,6 +617,8 @@ mod tests {
             evidence_class: EvidenceClass::SyntheticContractOnly,
             workpiece_id: "WID-SYNTH-01".to_owned(),
             joint_revision: "JOINT-R1".to_owned(),
+            layer_id: "LAYER-02".to_owned(),
+            predecessor_pass_id: "PASS-03".to_owned(),
             transition_id: "LAYER-02-AFTER-PASS-03".to_owned(),
             scan_id: "SCAN-AFTER".to_owned(),
             scan_sha256: observed_sha.clone(),
@@ -809,6 +831,20 @@ mod tests {
         let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         request.observed.workpiece_id = "WID-SYNTH-02".to_owned();
         abstains(&request, AbstainReason::WorkpieceMismatch);
+    }
+
+    #[test]
+    fn layer_identity_mismatch_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.layer_id = "LAYER-03".to_owned();
+        abstains(&request, AbstainReason::LayerMismatch);
+    }
+
+    #[test]
+    fn predecessor_pass_mismatch_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.predecessor_pass_id = "PASS-02".to_owned();
+        abstains(&request, AbstainReason::PredecessorPassMismatch);
     }
 
     #[test]
