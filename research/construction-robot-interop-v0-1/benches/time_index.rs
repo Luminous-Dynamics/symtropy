@@ -268,11 +268,11 @@ fn expiry_run(size: u64) {
     }
 
     let full_scan = measure_query(|| {
-        black_box(book.reference_due_count_at(20_000));
+        black_box(book.reference_due_count_at(20_100));
     });
-    let expected_due = book.reference_due_count_at(20_000);
+    let expected_due = book.reference_due_count_at(20_100);
     let start = Instant::now();
-    let expired = book.expire(20_000);
+    let expired = book.expire(20_100);
     let elapsed = start.elapsed();
     let remaining = book
         .active_reservation_count_for_resource("expiry-load")
