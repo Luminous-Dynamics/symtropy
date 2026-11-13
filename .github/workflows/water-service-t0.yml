@@ -63,6 +63,39 @@ jobs:
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
           if-no-files-found: warn
+      - name: Set up Python for JSON Schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate water-network dataset admission register and Draft 2020-12 schema
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "wdn-dataset-admission.schema.json").read_text())
+          register = json.loads((root / "wdn-dataset-admission-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(register),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"WDN_DATASET_ADMISSION_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+          datasets = register["datasets"]
+          if len(datasets) != 8:
+              raise SystemExit(f"WDN_DATASET_COUNT_FAIL: expected 8, got {len(datasets)}")
+          if any(row["intake"]["files_acquired"] for row in datasets):
+              raise SystemExit("WDN_DATASET_UNVERIFIED_BYTES_MUST_NOT_BE_MARKED_ACQUIRED")
+          print("WDN_DATASET_ADMISSION_SCHEMA_PASS: 8 metadata-only records; no hashes or splits fabricated")
+          PY
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
