@@ -431,7 +431,7 @@
       "required": [
         "identity", "configuration", "clock_relation", "timestamp_intervals",
         "decision_input", "thermal_input", "energy_input", "sampling_input",
-        "terminal_safe_stop_qualified", "report"
+        "terminal_safe_stop_qualified", "terminal_reserve_state_digest", "report"
       ],
       "properties": {
         "identity": {"$ref": "#/$defs/identity"},
