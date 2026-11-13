@@ -112,5 +112,113 @@
     "class_prevalence_baselines_matching_tolerance_and_operational_denominators",
     "detection_localization_uncertainty_abstention_and_robustness_metrics",
     "reproducibility_receipt_and_exact_implementation_revision"
+  ],
+  "dataset_populations": [
+    {
+      "id": "DITEC_WDN",
+      "track": "P0",
+      "evidence": "synthetic_normal_hydraulic_state",
+      "eligible": [
+        "hydraulic_state_modelling",
+        "forecasting",
+        "residual_calibration"
+      ],
+      "not_eligible": [
+        "leak_positive_ground_truth_without_label_audit"
+      ]
+    },
+    {
+      "id": "LEAKDB",
+      "track": "P1",
+      "evidence": "synthetic_leak_scenarios",
+      "eligible": [
+        "synthetic_detection",
+        "synthetic_localization_if_native_labelled"
+      ],
+      "not_eligible": [
+        "field_accuracy"
+      ]
+    },
+    {
+      "id": "WDSEVENTDB",
+      "track": "P2",
+      "evidence": "sensor_instrumented_testbed",
+      "eligible": [
+        "multi_event_diagnosis_after_label_and_rights_audit"
+      ],
+      "not_eligible": [
+        "utility_scale_transfer_claim"
+      ]
+    },
+    {
+      "id": "LEAKTESTBED_AGHASHASHI_2023",
+      "track": "P2",
+      "evidence": "physical_laboratory_pipe_loop",
+      "eligible": [
+        "sensor_ablation",
+        "leak_detection",
+        "localization"
+      ],
+      "not_eligible": [
+        "municipal_field_generalization"
+      ]
+    },
+    {
+      "id": "SLOVAK_UTILITY_SCADA_2026",
+      "track": "P3",
+      "evidence": "real_single_zone_hourly_utility_data",
+      "eligible": [
+        "single_zone_retrospective",
+        "temporal_holdout"
+      ],
+      "not_eligible": [
+        "subhour_transient_or_acoustic_claims",
+        "multi_utility_transfer"
+      ]
+    },
+    {
+      "id": "BATTLEDIM_L_TOWN",
+      "track": "P3",
+      "evidence": "competition_scada_and_network_model",
+      "eligible": [
+        "benchmark_reproduction",
+        "detection_localization_economic_metric"
+      ],
+      "not_eligible": [
+        "live_utility_field_claim"
+      ]
+    },
+    {
+      "id": "NET3_47K_PAPER_CORPUS",
+      "track": "P1",
+      "evidence": "paper_reported_synthetic_benchmark_artifacts_not_recovered",
+      "eligible": [
+        "reproduction_after_artifact_recovery"
+      ],
+      "not_eligible": [
+        "claiming_exact_reproduction_from_abstract"
+      ]
+    }
+  ],
+  "review_task_coverage": {
+    "review_doi": "10.3390/w18212797",
+    "review_date": "2026-11-09",
+    "primary_studies": 70,
+    "detection_t1": 67,
+    "localization_t2": 32,
+    "characterization_t3": 10,
+    "note": "Multi-label task counts, not mutually exclusive. The benchmark must report T1/T2/T3 separately and not infer model maturity from detection-only results."
+  },
+  "dataset_reporting_gates": [
+    "source_version_and_exact_record",
+    "rights_and_license_decision_before_redistribution",
+    "raw_archive_and_unpacked_file_sha256",
+    "native_time_resolution_and_sensor_profile",
+    "event_label_provenance_and_ground_truth",
+    "whole_event_and_whole_network_or_site_split",
+    "T1_detection_T2_localization_T3_characterization_reported_separately",
+    "synthetic_lab_hil_utility_field_evidence_classes_kept_separate",
+    "target_population_transfer_performance_reported_separately",
+    "abstention_missingness_and_unobserved_network_exposure"
   ]
 }
