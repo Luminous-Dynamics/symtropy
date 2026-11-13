@@ -14,7 +14,8 @@
     "maximum_interval_width": 0.2,
     "minimum_calibration_samples": 200,
     "maximum_condition_number": 1000000,
-    "values_are_normative": false
+    "values_are_normative": false,
+    "maximum_estimator_coverage": 0.95
   },
   "scenarios": [
     {
