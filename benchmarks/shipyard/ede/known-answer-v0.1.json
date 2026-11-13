@@ -101,8 +101,8 @@
         "total_estimated_mass_g": 5.682010136988642,
         "energy_kwh": 0.005688888888888889,
         "ede_g_per_kwh": 998.7908443925346,
-        "ede_lower_g_per_kwh": 967.5481200322598,
-        "ede_upper_g_per_kwh": 1031.504567033846,
+        "ede_lower_g_per_kwh": 966.5717848960013,
+        "ede_upper_g_per_kwh": 1032.5268708663868,
         "energy_per_length_kj_per_mm": 0.06826666666666667
       }
     }
