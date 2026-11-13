@@ -1,0 +1,16 @@
+[package]
+name = "shipyard-multirate-event-time"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Uncertainty-bounded integer event-time alignment for multimodal shipyard observations"
+
+[dependencies]
+serde_json = "1.0"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard multirate event-time alignment input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "source_scope",
+    "raw_bam_files_downloaded",
+    "clock_model",
+    "channel_profiles",
+    "event_window",
+    "stream",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-MULTIRATE-EVENT-TIME-QUAL-001"
+    },
+    "source_scope": {
+      "const": "synthetic_only"
+    },
+    "raw_bam_files_downloaded": {
+      "const": false
+    },
+    "clock_model": {
+      "$ref": "#/$defs/clock_model"
+    },
+    "channel_profiles": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    },
+    "event_window": {
+      "$ref": "#/$defs/event_window"
+    },
+    "stream": {
+      "$ref": "#/$defs/stream"
+    },
+    "claim_ceiling": {
+      "const": "TEMPORAL_ALIGNMENT_ONLY"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^(?!0{64}$)[0-9a-f]{64}$"
+    },
+    "clock_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp_unit",
+        "arithmetic",
+        "drift_unit",
+        "rounding",
+        "event_boundary_convention"
+      ],
+      "properties": {
+        "timestamp_unit": {
+          "const": "integer_nanoseconds"
+        },
+        "arithmetic": {
+          "const": "checked_i128_intermediates"
+        },
+        "drift_unit": {
+          "const": "parts_per_billion"
+        },
+        "rounding": {
+          "const": "nearest_ties_away_from_zero"
+        },
+        "event_boundary_convention": {
+          "const": "half_open_start_inclusive_end_exclusive"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "nominal_period_ns",
+        "maximum_jitter_ns",
+        "description"
+      ],
+      "properties": {
+        "channel_id": {
+          "enum": [
+            "process_current_voltage",
+            "robot_tcp_coordinates",
+            "power_source_opcua",
+            "control_power_gas_thermocouple",
+            "laser_scan_profile_trigger",
+            "video_frame_trigger"
+          ]
+        },
+        "nominal_period_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_jitter_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "clock_transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_clock_id",
+        "master_clock_id",
+        "reference_source_ns",
+        "reference_master_ns",
+        "drift_ppb",
+        "drift_uncertainty_ppb",
+        "calibration_uncertainty_ns",
+        "valid_from_source_ns",
+        "valid_until_source_ns",
+        "source_sha256",
+        "calibration_receipt_sha256"
+      ],
+      "properties": {
+        "source_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_source_ns": {
+          "type": "integer"
+        },
+        "reference_master_ns": {
+          "type": "integer"
+        },
+        "drift_ppb": {
+          "type": "integer"
+        },
+        "drift_uncertainty_ppb": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "calibration_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "valid_from_source_ns": {
+          "type": "integer"
+        },
+        "valid_until_source_ns": {
+          "type": "integer"
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "calibration_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "event_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_type",
+        "workpiece_id",
+        "joint_revision",
+        "pass_id",
+        "master_clock_id",
+        "start_ns",
+        "end_ns",
+        "start_uncertainty_ns",
+        "end_uncertainty_ns"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "master_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_ns": {
+          "type": "integer"
+        },
+        "end_ns": {
+          "type": "integer"
+        },
+        "start_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "source_timestamp_ns",
+        "timestamp_uncertainty_ns",
+        "received_master_ns",
+        "quality"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_timestamp_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "timestamp_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "received_master_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "quality": {
+          "enum": [
+            "valid",
+            "clipped",
+            "dropped",
+            "invalid",
+            "missing"
+          ]
+        }
+      }
+    },
+    "stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "workpiece_id",
+        "joint_revision",
+        "pass_id",
+        "source_clock_id",
+        "source_sha256",
+        "transform",
+        "nominal_period_ns",
+        "allowed_jitter_ns",
+        "maximum_gap_ns",
+        "maximum_sample_age_ns",
+        "maximum_lateness_ns",
+        "maximum_mapping_uncertainty_ns",
+        "minimum_coverage_permille",
+        "samples"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "transform": {
+          "$ref": "#/$defs/clock_transform"
+        },
+        "nominal_period_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allowed_jitter_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_gap_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_sample_age_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_lateness_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_mapping_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        }
+      }
+    }
+  }
+}
