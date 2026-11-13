@@ -84,6 +84,37 @@
             "properties": {
               "type": {
                 "type": "string"
+              },
+              "record_version": {
+                "type": "string"
+              },
+              "file_listing": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "size_bytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "record_size_bytes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "record_md5": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{32}$"
+                    }
+                  },
+                  "additionalProperties": true
+                }
               }
             },
             "additionalProperties": true
@@ -145,16 +176,71 @@
                 "type": "string"
               },
               "files_acquired": {
-                "const": false
+                "type": "boolean"
               },
               "sha256": {
-                "maxItems": 0
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
               },
               "split_manifest": {
-                "type": "null"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
-            "additionalProperties": true
+            "additionalProperties": true,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "files_acquired": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "files_acquired"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "sha256": {
+                      "maxItems": 0
+                    },
+                    "split_manifest": {
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "files_acquired": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "files_acquired"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "sha256": {
+                      "minItems": 1
+                    },
+                    "split_manifest": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            ]
           },
           "evidence_limit": {
             "type": "string",
