@@ -1,0 +1,48 @@
+name: Kerr BGO Minkowski kernel audit
+
+on:
+  push:
+    branches:
+      - research/kerr-bgo-minkowski-kernel-20261113
+    paths:
+      - crates/domains/symtropy-relativity/src/bilocal.rs
+      - crates/domains/symtropy-relativity/src/lib.rs
+      - crates/domains/symtropy-relativity/Cargo.toml
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-bgo-minkowski.yml
+  pull_request:
+    branches:
+      - research/kerr-bgo-crossvalidation-20261113
+    paths:
+      - crates/domains/symtropy-relativity/src/bilocal.rs
+      - crates/domains/symtropy-relativity/src/lib.rs
+      - crates/domains/symtropy-relativity/Cargo.toml
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-bgo-minkowski.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kerr-bgo-minkowski-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: BGO-0 Minkowski kernel (Linux, Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml -- --check
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --all-targets -- -D warnings
+      - name: Run crate tests
+        run: cargo test --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --lib
