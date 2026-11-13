@@ -237,7 +237,10 @@ impl SpatialOccupancyBook {
         })
     }
 
-    pub fn insert(&mut self, occupancy: SpatialOccupancy) -> Result<InsertOutcome, SpatialError> {
+    fn validate_occupancy(
+        &self,
+        occupancy: &SpatialOccupancy,
+    ) -> Result<Bounds3Mm, SpatialError> {
         require_non_empty("occupancy_id", &occupancy.occupancy_id)?;
         require_non_empty("task_id", &occupancy.task_id)?;
         require_non_empty("reservation_id", &occupancy.reservation.reservation_id)?;
@@ -254,7 +257,7 @@ impl SpatialOccupancyBook {
         )?;
 
         occupancy.bounds.validate()?;
-        let expanded_candidate = occupancy.bounds.expanded(
+        let expanded = occupancy.bounds.expanded(
             occupancy.uncertainty_margin_mm,
             occupancy.clearance_margin_mm,
         )?;
@@ -283,15 +286,16 @@ impl SpatialOccupancyBook {
             return Err(SpatialError::InvalidReservationInterval);
         }
 
-        if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
-            return if previous == &occupancy {
-                Ok(InsertOutcome::Duplicate)
-            } else {
-                Err(SpatialError::OccupancyIdConflict(occupancy.occupancy_id))
-            };
-        }
+        Ok(expanded)
+    }
 
+    fn find_conflicts_validated(
+        &self,
+        occupancy: &SpatialOccupancy,
+        expanded_candidate: Bounds3Mm,
+    ) -> Result<Vec<ConflictRecord>, SpatialError> {
         let (candidate_start, candidate_end) = expanded_time_interval(&occupancy.reservation)?;
+        let mut conflicts = Vec::new();
 
         for existing in self.occupancies.values() {
             let (existing_start, existing_end) = expanded_time_interval(&existing.reservation)?;
@@ -307,7 +311,7 @@ impl SpatialOccupancyBook {
             if let Some(overlap_bounds_mm) =
                 expanded_candidate.intersection_closed(&expanded_existing)
             {
-                return Err(SpatialError::PotentialConflict(Box::new(ConflictRecord {
+                conflicts.push(ConflictRecord {
                     existing_occupancy_id: existing.occupancy_id.clone(),
                     candidate_occupancy_id: occupancy.occupancy_id.clone(),
                     existing_task_id: existing.task_id.clone(),
@@ -318,8 +322,55 @@ impl SpatialOccupancyBook {
                     overlap_start_ms: overlap_start,
                     overlap_end_ms: overlap_end,
                     clock_domain_id: self.clock_domain_id.clone(),
-                })));
+                });
             }
+        }
+
+        Ok(conflicts)
+    }
+
+    /// Return every conservative space-time conflict against the current index
+    /// without mutating it. This is the planning query; callers can compare a full
+    /// conflict set before choosing a different sequence or resource assignment.
+    pub fn conflicts_for(
+        &self,
+        occupancy: &SpatialOccupancy,
+    ) -> Result<Vec<ConflictRecord>, SpatialError> {
+        let expanded_candidate = self.validate_occupancy(occupancy)?;
+        if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
+            return if previous == occupancy {
+                Ok(Vec::new())
+            } else {
+                Err(SpatialError::OccupancyIdConflict(
+                    occupancy.occupancy_id.clone(),
+                ))
+            };
+        }
+
+        self.find_conflicts_validated(occupancy, expanded_candidate)
+    }
+
+    /// Insert a planned occupancy after its corresponding time/resource request has
+    /// been admitted by the existing reservation owner. This method checks the exact
+    /// declared reservation fields for task, site epoch, clock domain and interval.
+    /// It cannot prove that a caller actually obtained a grant from ReservationBook.
+    pub fn insert(&mut self, occupancy: SpatialOccupancy) -> Result<InsertOutcome, SpatialError> {
+        let expanded_candidate = self.validate_occupancy(&occupancy)?;
+
+        if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
+            return if previous == &occupancy {
+                Ok(InsertOutcome::Duplicate)
+            } else {
+                Err(SpatialError::OccupancyIdConflict(occupancy.occupancy_id))
+            };
+        }
+
+        if let Some(conflict) = self
+            .find_conflicts_validated(&occupancy, expanded_candidate)?
+            .into_iter()
+            .next()
+        {
+            return Err(SpatialError::PotentialConflict(Box::new(conflict)));
         }
 
         self.occupancies
@@ -478,6 +529,51 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn conflict_query_returns_all_overlaps_without_mutating_the_index() {
+        let mut book = book();
+        let first = occupancy(
+            "zone-left",
+            "task-left",
+            OccupancyKind::Workface,
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+        );
+        let second = occupancy(
+            "zone-right",
+            "task-right",
+            OccupancyKind::MaterialStaging,
+            bounds([2_000, 0, 0], [3_000, 1_000, 1_000]),
+            0,
+            100,
+        );
+        let candidate = occupancy(
+            "wide-workface",
+            "task-candidate",
+            OccupancyKind::RobotOperatingEnvelope,
+            bounds([500, 0, 0], [2_500, 1_000, 1_000]),
+            10,
+            90,
+        );
+
+        book.insert(first).expect("left occupancy");
+        book.insert(second).expect("right occupancy");
+        let conflicts = book
+            .conflicts_for(&candidate)
+            .expect("query candidate conflicts");
+
+        assert_eq!(conflicts.len(), 2);
+        assert_eq!(
+            conflicts
+                .iter()
+                .map(|conflict| conflict.existing_occupancy_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["zone-left", "zone-right"]
+        );
+        assert_eq!(book.occupancy_count(), 2);
     }
 
     #[test]
