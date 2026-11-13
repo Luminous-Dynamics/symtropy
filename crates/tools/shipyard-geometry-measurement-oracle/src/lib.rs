@@ -784,11 +784,15 @@ mod tests {
 
     #[test]
     fn arithmetic_overflow_abstains_instead_of_wrapping() {
-        let mut request = base_request(&[Some(i64::MIN), Some(i64::MIN), Some(i64::MIN)], &[Some(i64::MAX), Some(i64::MAX), Some(i64::MAX)]);
-        request.limits.maximum_point_uncertainty_um = u64::MAX;
-        request.limits.maximum_registration_residual_um = u64::MAX;
-        request.registration.maximum_residual_um = u64::MAX;
-        request.registration.declared_residual_limit_um = u64::MAX;
+        let mut request =
+            base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        let xs = [i64::MIN, i64::MAX];
+        request.reference.points = points(&xs, &[Some(0), Some(0)], Some(1));
+        request.observed.points =
+            points(&xs, &[Some(i64::MAX), Some(i64::MIN)], Some(1));
+        request.limits.region_start_um = i64::MIN;
+        request.limits.region_end_um = i64::MAX;
+        request.limits.maximum_unsupported_gap_um = u64::MAX;
         request.limits.maximum_integrated_uncertainty_area2_um2 = u128::MAX;
         abstains(&request, AbstainReason::NumericOverflow);
     }
