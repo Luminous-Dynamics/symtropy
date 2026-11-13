@@ -173,6 +173,8 @@ pub struct JointTrace {
     pub energy: EnergyEvidence,
     pub sampling: SamplingEvidence,
     pub terminal_safe_stop_qualified: bool,
+    /// Terminal physical reserve-state digest bound to the safe-stop receipt.
+    pub terminal_reserve_state_digest: String,
 }
 
 /// An elapsed-time interval whose bounds include timestamp uncertainty.
@@ -935,6 +937,7 @@ pub(crate) mod tests {
                 specification_qualified: true,
             },
             terminal_safe_stop_qualified: true,
+            terminal_reserve_state_digest: "thermal-1".into(),
         }
     }
 
