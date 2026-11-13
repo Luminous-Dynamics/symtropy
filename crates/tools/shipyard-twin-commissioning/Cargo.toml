@@ -1,0 +1,16 @@
+[package]
+name = "shipyard-twin-commissioning"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic digital-twin composition and commissioning verifier"
+
+[dependencies]
+serde_json = "1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[workspace]
