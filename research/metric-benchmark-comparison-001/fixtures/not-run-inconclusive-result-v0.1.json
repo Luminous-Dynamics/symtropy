@@ -7,7 +7,12 @@
     "repository": "Luminous-Dynamics/symtropy",
     "commit_sha": "b9fcf688b502d602eac91297880bf3a3e484545f",
     "path": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.json",
-    "git_blob_sha": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284"
+    "git_blob_sha": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284",
+    "coordinate_family": {
+      "family": 0,
+      "basis_condition_2": 387.32736441766446,
+      "transformed_mass_condition_2": 206371.94480768955
+    }
   },
   "implementation": {
     "backend_id": "drake",
