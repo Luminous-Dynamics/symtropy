@@ -247,6 +247,21 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
         }
     }
 
+    if let (Some(action), Some(inspection)) = (
+        record.action_evidence.as_ref(),
+        record.post_inspection.as_ref(),
+    ) && matches!(
+        record.outcome,
+        RemovalOutcome::Removed | RemovalOutcome::Partial
+    ) && action.evidence_id == inspection.evidence_id
+    {
+        add(
+            &mut findings,
+            "ACTION_AND_INSPECTION_REUSE_EVIDENCE",
+            "physical removal action and independent post-inspection must use distinct evidence references",
+        );
+    }
+
     if record.task.join_method == JoinMethod::Unknown
         && record.execution_state == ExecutionState::Executed
     {
@@ -430,6 +445,15 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
                         &mut findings,
                         "MISSING_FORCE_CALIBRATION",
                         "physical peak force must bind to a calibration profile",
+                    );
+                }
+                if record.force_calibration_id.as_deref()
+                    != action.calibration_id.as_deref()
+                {
+                    add(
+                        &mut findings,
+                        "FORCE_CALIBRATION_MISMATCH",
+                        "force observation calibration must match the physical action evidence calibration",
                     );
                 }
                 if matches!(
@@ -707,6 +731,33 @@ mod tests {
                 .iter()
                 .any(|item| { item.code == "UNEXECUTED_POSITIVE_OUTPUT" })
         );
+    }
+
+    #[test]
+    fn physical_removal_rejects_mismatched_force_calibration_identity() {
+        let mut record = physical_removed();
+        record.force_calibration_id = Some("different-calibration".to_owned());
+        let report = validate(&record);
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| item.code == "FORCE_CALIBRATION_MISMATCH")
+        );
+    }
+
+    #[test]
+    fn physical_removal_rejects_reused_action_and_inspection_evidence_reference() {
+        let mut record = physical_removed();
+        record.post_inspection = record.action_evidence.clone();
+        let report = validate(&record);
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| item.code == "ACTION_AND_INSPECTION_REUSE_EVIDENCE")
+        );
+        assert_eq!(report.evidence_ceiling, EvidenceCeiling::ContractOnly);
     }
 
     #[test]
