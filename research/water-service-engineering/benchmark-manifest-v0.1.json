@@ -203,6 +203,25 @@
       "indeterminate_evidence"
     ],
     "owner_issue": 4006,
-    "status": "synthetic_qualification_contract_only_no_sensor_placement_optimization_or_physical_qualification"
+    "status": "synthetic_qualification_contract_only_no_sensor_placement_optimization_or_physical_qualification",
+    "evaluator": {
+      "package": "tools/water-service-t0",
+      "library_module": "tools/water-service-t0/src/water_observability_qualification.rs",
+      "binary": "water-observability-qualification",
+      "binary_source": "tools/water-service-t0/src/bin/water-observability-qualification.rs",
+      "workflow": ".github/workflows/water-observability-qualification.yml",
+      "authored_unit_tests": 24,
+      "status": "source_authored_native_rust_tests_and_hosted_ci_unverified",
+      "receipt": "artifacts/water-observability-qualification/receipt.json",
+      "receipt_binds": [
+        "scenarios_sha256",
+        "schema_sha256",
+        "oracle_sha256",
+        "cargo_manifest_sha256",
+        "cargo_lock_sha256",
+        "implementation_revision"
+      ],
+      "qualification_status": "NotRun"
+    }
   }
 }
