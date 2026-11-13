@@ -418,7 +418,7 @@ fn area_disposition(
     let area_id = required_string(area, "area_id", scenario_context)?;
     let context = format!("{scenario_context}/{area_id}");
 
-    if required_bool(area, "required", &context)? != true {
+    if !required_bool(area, "required", &context)? {
         return Err(format!("{context}: every profile area must remain required"));
     }
 
@@ -504,8 +504,7 @@ fn area_disposition(
         count_independent_paths(&paths, active_failed_domains);
     let stable_dwell = unsigned_integer(area, "stable_dwell_seconds", &context)?;
 
-    let mut disposition = "indeterminate";
-    if binding_status != "current"
+    let disposition = if binding_status != "current"
         || evidence_state != "observed_current"
         || coverage_denominator.is_none()
         || coverage_denominator != Some(coverage_numerator)
@@ -515,19 +514,19 @@ fn area_disposition(
         || observation_ref.is_none()
         || validity_ref.is_none()
     {
-        disposition = "indeterminate";
+        "indeterminate"
     } else if upper.is_some_and(|value| value < profile.minimum_floor) {
-        disposition = "breached_floor";
+        "breached_floor"
     } else if lower.is_some_and(|value| value < profile.minimum_floor) {
-        disposition = "indeterminate";
+        "indeterminate"
     } else if independent_pair_count == 0
         || independent_path_count < profile.minimum_independent_paths
         || stable_dwell < profile.minimum_stable_dwell_seconds
     {
-        disposition = "candidate_restored";
+        "candidate_restored"
     } else {
-        disposition = "meets_floor";
-    }
+        "meets_floor"
+    };
 
     Ok(AreaResult {
         area_id,
