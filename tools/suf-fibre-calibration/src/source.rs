@@ -40,19 +40,28 @@ impl fmt::Display for SourceEnvelopeError {
             Self::InvalidNumber(name) => write!(f, "invalid numeric source field: {name}"),
             Self::AxisUnitMismatch => write!(f, "spatial axis kind and unit disagree"),
             Self::MissingCalibrationReference => {
-                write!(f, "physical fibre chainage requires a calibration reference")
+                write!(
+                    f,
+                    "physical fibre chainage requires a calibration reference"
+                )
             }
             Self::InvalidRawLineage => {
                 write!(f, "raw vendor-native artifacts cannot have derived parents")
             }
             Self::IncompleteDerivativeLineage => {
-                write!(f, "derived artifact requires parent digest, method and parameter digest")
+                write!(
+                    f,
+                    "derived artifact requires parent digest, method and parameter digest"
+                )
             }
             Self::DerivativeMarkedNative => {
                 write!(f, "a derived artifact cannot be marked vendor-native")
             }
             Self::UnsupportedPhenomenon => {
-                write!(f, "phenomenon is not supported by this DAS source-observation profile")
+                write!(
+                    f,
+                    "phenomenon is not supported by this DAS source-observation profile"
+                )
             }
         }
     }
@@ -157,7 +166,9 @@ impl SampleAxis {
             return Err(SourceEnvelopeError::InvalidNumber("spatial_axis.step"));
         }
         if self.sample_count == 0 {
-            return Err(SourceEnvelopeError::InvalidNumber("spatial_axis.sample_count"));
+            return Err(SourceEnvelopeError::InvalidNumber(
+                "spatial_axis.sample_count",
+            ));
         }
         match (self.kind, self.unit) {
             (SampleAxisKind::VendorChannelIndex, SampleAxisUnit::ChannelIndex) => {}
@@ -196,13 +207,19 @@ impl ObservedQuantity {
     /// Validate quantity declarations while keeping channel pitch and resolution
     /// as separate source fields.
     pub fn validate(&self) -> SourceEnvelopeResult<()> {
-        if !matches!(self.phenomenon.as_str(), "axial_strain" | "strain_rate" | "phase" | "amplitude" | "other") {
+        if !matches!(
+            self.phenomenon.as_str(),
+            "axial_strain" | "strain_rate" | "phase" | "amplitude" | "other"
+        ) {
             return Err(SourceEnvelopeError::UnsupportedPhenomenon);
         }
         for (name, value) in [
             ("observed_property.phenomenon", self.phenomenon.as_str()),
             ("observed_property.unit", self.unit.as_str()),
-            ("observed_property.quantity_semantics", self.quantity_semantics.as_str()),
+            (
+                "observed_property.quantity_semantics",
+                self.quantity_semantics.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 return Err(SourceEnvelopeError::EmptyField(name));
@@ -251,7 +268,10 @@ impl ArtifactLineage {
                     return Err(SourceEnvelopeError::DerivativeMarkedNative);
                 }
                 if self.parent_sha256.is_empty()
-                    || self.method_revision.as_ref().is_none_or(|value| value.trim().is_empty())
+                    || self
+                        .method_revision
+                        .as_ref()
+                        .is_none_or(|value| value.trim().is_empty())
                 {
                     return Err(SourceEnvelopeError::IncompleteDerivativeLineage);
                 }
@@ -383,7 +403,10 @@ mod tests {
     fn rejects_raw_source_with_parent_artifacts() {
         let mut value = envelope();
         value.lineage.parent_sha256.push(DIGEST.to_owned());
-        assert_eq!(value.validate(), Err(SourceEnvelopeError::InvalidRawLineage));
+        assert_eq!(
+            value.validate(),
+            Err(SourceEnvelopeError::InvalidRawLineage)
+        );
     }
 
     #[test]
@@ -439,14 +462,20 @@ mod tests {
     fn rejects_electrical_current_as_a_das_phenomenon() {
         let mut value = envelope();
         value.observed_quantity.phenomenon = "electrical_current".to_owned();
-        assert_eq!(value.validate(), Err(SourceEnvelopeError::UnsupportedPhenomenon));
+        assert_eq!(
+            value.validate(),
+            Err(SourceEnvelopeError::UnsupportedPhenomenon)
+        );
     }
 
     #[test]
     fn rejects_temperature_as_a_das_phenomenon() {
         let mut value = envelope();
         value.observed_quantity.phenomenon = "temperature".to_owned();
-        assert_eq!(value.validate(), Err(SourceEnvelopeError::UnsupportedPhenomenon));
+        assert_eq!(
+            value.validate(),
+            Err(SourceEnvelopeError::UnsupportedPhenomenon)
+        );
     }
 
     #[test]
