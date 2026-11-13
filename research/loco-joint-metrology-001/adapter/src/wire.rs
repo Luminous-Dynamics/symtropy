@@ -18,6 +18,10 @@ pub const RECEIPT_CANONICALIZATION: &str = "ld-json-integer-canonical-v1";
 pub enum WireReceiptError {
     /// Adapter output does not refer to the supplied trace.
     ReportBindingMismatch(&'static str),
+    /// Caller-supplied adapter report differs from deterministic replay of its trace.
+    ReportDoesNotMatchTrace,
+    /// Input trace failed its structural validation.
+    InvalidInputTrace,
     /// A retrospective evidence report must never authorize actuation.
     ActuationAuthorityMustBeFalse,
     /// Receipt JSON is malformed or lacks its required envelope structure.
@@ -508,6 +512,10 @@ pub fn build_normalized_receipt(
     trace: &JointTrace,
     report: &AdapterReport,
 ) -> Result<String, WireReceiptError> {
+    let replayed = adapt_joint_trace(trace).map_err(|_| WireReceiptError::InvalidInputTrace)?;
+    if &replayed != report {
+        return Err(WireReceiptError::ReportDoesNotMatchTrace);
+    }
     validate_trace_report_binding(trace, report)?;
     let payload = json!({
         "identity": identity_value(&trace.identity),
@@ -834,6 +842,17 @@ mod tests {
         assert_eq!(
             verify_normalized_receipt(&mutated),
             Err(WireReceiptError::PayloadDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn modified_adapter_report_cannot_be_bound_to_a_different_input_trace() {
+        let trace = reference_trace();
+        let mut report = adapt_joint_trace(&trace).unwrap();
+        report.source_to_actuator_aoi = Evidence::Unknown(UnknownReason::ClockRelationUnavailable);
+        assert_eq!(
+            build_normalized_receipt(&trace, &report),
+            Err(WireReceiptError::ReportDoesNotMatchTrace)
         );
     }
 
