@@ -115,17 +115,11 @@ impl IntervalV1 {
     }
 
     pub fn add(self, other: Self) -> Result<Self, IntervalErrorV1> {
-        Self::outward(
-            self.lower + other.lower,
-            self.upper + other.upper,
-        )
+        Self::outward(self.lower + other.lower, self.upper + other.upper)
     }
 
     pub fn sub(self, other: Self) -> Result<Self, IntervalErrorV1> {
-        Self::outward(
-            self.lower - other.upper,
-            self.upper - other.lower,
-        )
+        Self::outward(self.lower - other.upper, self.upper - other.lower)
     }
 
     pub fn mul(self, other: Self) -> Result<Self, IntervalErrorV1> {
@@ -139,10 +133,7 @@ impl IntervalV1 {
             return Err(IntervalErrorV1::NonFiniteResult);
         }
         let lower = products.iter().copied().fold(f64::INFINITY, f64::min);
-        let upper = products
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let upper = products.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         Self::outward(lower, upper)
     }
 
@@ -401,9 +392,8 @@ fn interval_matrix_vector3(
     let mut result = [IntervalV1::point(0.0)?; 3];
     for row in 0..3 {
         for column in 0..3 {
-            result[row] = result[row].add(
-                IntervalV1::point(matrix[row][column])?.mul(vector[column])?,
-            )?;
+            result[row] =
+                result[row].add(IntervalV1::point(matrix[row][column])?.mul(vector[column])?)?;
         }
     }
     Ok(result)
@@ -420,7 +410,8 @@ fn reduced_system(
     for row in 0..3 {
         for column in 0..3 {
             let identity = IntervalV1::point(if row == column { 1.0 } else { 0.0 })?;
-            let correction = scaled_lambda.mul(IntervalV1::point(problem.delassus[row][column])?)?;
+            let correction =
+                scaled_lambda.mul(IntervalV1::point(problem.delassus[row][column])?)?;
             matrix[row][column] = identity.sub(correction)?;
         }
     }
@@ -464,12 +455,17 @@ fn evaluate_reduced_equation(
         coefficient.mul(relative_prime_unscaled[2])?,
     ];
     let twice_relative_minus_initial = [
-        relative_midpoint[0].add(relative_midpoint[0])?.sub(initial[0])?,
-        relative_midpoint[1].add(relative_midpoint[1])?.sub(initial[1])?,
-        relative_midpoint[2].add(relative_midpoint[2])?.sub(initial[2])?,
+        relative_midpoint[0]
+            .add(relative_midpoint[0])?
+            .sub(initial[0])?,
+        relative_midpoint[1]
+            .add(relative_midpoint[1])?
+            .sub(initial[1])?,
+        relative_midpoint[2]
+            .add(relative_midpoint[2])?
+            .sub(initial[2])?,
     ];
-    let derivative_scale = IntervalV1::point(2.0)?
-        .div(IntervalV1::point(problem.time_step)?)?;
+    let derivative_scale = IntervalV1::point(2.0)?.div(IntervalV1::point(problem.time_step)?)?;
     let derivative = derivative_scale.mul(interval_dot3(
         &relative_prime,
         &twice_relative_minus_initial,
@@ -478,10 +474,7 @@ fn evaluate_reduced_equation(
     Ok((residual, derivative, relative_midpoint))
 }
 
-fn cholesky_check<const N: usize>(
-    matrix: &[[f64; N]; N],
-    symmetry_tolerance: f64,
-) -> bool {
+fn cholesky_check<const N: usize>(matrix: &[[f64; N]; N], symmetry_tolerance: f64) -> bool {
     let mut scale = 0.0_f64;
     for row in 0..N {
         for column in 0..N {
@@ -582,11 +575,7 @@ fn solve3_point(matrix: &Matrix3, rhs: &Vector3) -> Result<Vector3, IntervalErro
             }
         }
     }
-    let result = [
-        augmented[0][3],
-        augmented[1][3],
-        augmented[2][3],
-    ];
+    let result = [augmented[0][3], augmented[1][3], augmented[2][3]];
     if result.iter().any(|value| !value.is_finite()) {
         return Err(IntervalErrorV1::NonFiniteResult);
     }
@@ -619,7 +608,11 @@ fn candidate_step(
     let velocity_next = std::array::from_fn(|index| {
         2.0 * midpoint_velocity[index] - problem.initial_velocity[index]
     });
-    if position_next.iter().chain(velocity_next.iter()).any(|x| !x.is_finite()) {
+    if position_next
+        .iter()
+        .chain(velocity_next.iter())
+        .any(|x| !x.is_finite())
+    {
         return Err(IntervalErrorV1::NonFiniteResult);
     }
     Ok((position_next, velocity_next))
@@ -662,10 +655,7 @@ fn euclidean_radius_upper(radii: &Vector6) -> Result<f64, IntervalErrorV1> {
     squared.sqrt_upper()
 }
 
-fn mass_metric_radius_upper(
-    metric: &Matrix6,
-    radii: &Vector6,
-) -> Result<f64, IntervalErrorV1> {
+fn mass_metric_radius_upper(metric: &Matrix6, radii: &Vector6) -> Result<f64, IntervalErrorV1> {
     let mut upper = IntervalV1::point(0.0)?;
     for row in 0..6 {
         for column in 0..6 {
@@ -712,19 +702,19 @@ pub fn certify_midpoint_step(
         return Err(ProblemErrorV1::NonFiniteInput);
     }
 
-    let initial_interval = IntervalV1::point(candidate_multiplier)
-        .and_then(|center| {
-            let width = IntervalV1::point(radius)?;
-            let lower = center.sub(width)?;
-            let upper = center.add(width)?;
-            IntervalV1::new(lower.lower, upper.upper)
-        });
+    let initial_interval = IntervalV1::point(candidate_multiplier).and_then(|center| {
+        let width = IntervalV1::point(radius)?;
+        let lower = center.sub(width)?;
+        let upper = center.add(width)?;
+        IntervalV1::new(lower.lower, upper.upper)
+    });
     let starting_interval = match initial_interval {
         Ok(interval) => interval,
         Err(error) => {
             return Ok(inconclusive(
                 candidate_multiplier,
-                IntervalV1::point(candidate_multiplier).map_err(|_| ProblemErrorV1::NonFiniteInput)?,
+                IntervalV1::point(candidate_multiplier)
+                    .map_err(|_| ProblemErrorV1::NonFiniteInput)?,
                 InconclusiveReasonV1::IntervalArithmeticFailure(error),
             ));
         }
@@ -740,17 +730,16 @@ pub fn certify_midpoint_step(
             ));
         }
     };
-    let (residual_at_candidate, _, _) =
-        match evaluate_reduced_equation(problem, point_lambda) {
-            Ok(value) => value,
-            Err(error) => {
-                return Ok(inconclusive(
-                    candidate_multiplier,
-                    starting_interval,
-                    InconclusiveReasonV1::IntervalArithmeticFailure(error),
-                ));
-            }
-        };
+    let (residual_at_candidate, _, _) = match evaluate_reduced_equation(problem, point_lambda) {
+        Ok(value) => value,
+        Err(error) => {
+            return Ok(inconclusive(
+                candidate_multiplier,
+                starting_interval,
+                InconclusiveReasonV1::IntervalArithmeticFailure(error),
+            ));
+        }
+    };
     let (_, derivative_on_starting_interval, _) =
         match evaluate_reduced_equation(problem, starting_interval) {
             Ok(value) => value,
@@ -770,17 +759,17 @@ pub fn certify_midpoint_step(
             InconclusiveReasonV1::DerivativeIntervalContainsZero,
         ));
     }
-    let residual_over_derivative =
-        match residual_at_candidate.div(derivative_on_starting_interval) {
-            Ok(value) => value,
-            Err(error) => {
-                return Ok(inconclusive(
-                    candidate_multiplier,
-                    starting_interval,
-                    InconclusiveReasonV1::IntervalArithmeticFailure(error),
-                ));
-            }
-        };
+    let residual_over_derivative = match residual_at_candidate.div(derivative_on_starting_interval)
+    {
+        Ok(value) => value,
+        Err(error) => {
+            return Ok(inconclusive(
+                candidate_multiplier,
+                starting_interval,
+                InconclusiveReasonV1::IntervalArithmeticFailure(error),
+            ));
+        }
+    };
     let interval_newton_image = match point_lambda.sub(residual_over_derivative) {
         Ok(value) => value,
         Err(error) => {
@@ -826,22 +815,28 @@ pub fn certify_step_error_bounds(
     if !same_problem_bits(problem, &root.problem_binding) {
         return Err(IntervalErrorV1::ProblemBindingMismatch);
     }
-    problem.validate().map_err(|_| IntervalErrorV1::ProblemBindingMismatch)?;
+    problem
+        .validate()
+        .map_err(|_| IntervalErrorV1::ProblemBindingMismatch)?;
     let (returned_position_next, returned_velocity_next) =
         candidate_step(problem, root.candidate_multiplier)?;
     let (position_next_interval, velocity_next_interval) =
         interval_step(problem, root.certified_root_interval)?;
-    let position_radii =
-        interval_error_radii(&position_next_interval, &returned_position_next)?;
-    let velocity_radii =
-        interval_error_radii(&velocity_next_interval, &returned_velocity_next)?;
+    let position_radii = interval_error_radii(&position_next_interval, &returned_position_next)?;
+    let velocity_radii = interval_error_radii(&velocity_next_interval, &returned_velocity_next)?;
     let error_bounds = StepErrorBoundsV1 {
         position_componentwise_radius: position_radii,
         velocity_componentwise_radius: velocity_radii,
         position_euclidean_upper: euclidean_radius_upper(&position_radii)?,
         velocity_euclidean_upper: euclidean_radius_upper(&velocity_radii)?,
-        position_mass_metric_upper: mass_metric_radius_upper(&problem.mass_metric, &position_radii)?,
-        velocity_kinetic_metric_upper: mass_metric_radius_upper(&problem.mass_metric, &velocity_radii)?,
+        position_mass_metric_upper: mass_metric_radius_upper(
+            &problem.mass_metric,
+            &position_radii,
+        )?,
+        velocity_kinetic_metric_upper: mass_metric_radius_upper(
+            &problem.mass_metric,
+            &velocity_radii,
+        )?,
     };
 
     Ok(StepCertificateV1 {
@@ -870,11 +865,7 @@ mod tests {
             time_step: 0.2,
             initial_relative_position: [1.0, 0.0, 0.0],
             free_relative_position: [1.1, 0.0, 0.0],
-            delassus: [
-                [1.5, 0.0, 0.0],
-                [0.0, 1.5, 0.0],
-                [0.0, 0.0, 1.5],
-            ],
+            delassus: [[1.5, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.5]],
             initial_position: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             initial_velocity: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             free_midpoint_velocity: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
@@ -903,7 +894,9 @@ mod tests {
         assert!(quotient.contains(16.0));
 
         assert_eq!(
-            IntervalV1::new(-1.0, 1.0).unwrap().div(IntervalV1::new(-0.1, 0.2).unwrap()),
+            IntervalV1::new(-1.0, 1.0)
+                .unwrap()
+                .div(IntervalV1::new(-0.1, 0.2).unwrap()),
             Err(IntervalErrorV1::DivisionByZeroInterval)
         );
     }
@@ -925,7 +918,10 @@ mod tests {
 
     #[test]
     fn outward_square_root_accepts_zero_lower_bound_inflation() {
-        let widened_zero = IntervalV1::point(0.0).unwrap().mul(IntervalV1::point(0.0).unwrap()).unwrap();
+        let widened_zero = IntervalV1::point(0.0)
+            .unwrap()
+            .mul(IntervalV1::point(0.0).unwrap())
+            .unwrap();
         assert!(widened_zero.lower < 0.0);
         assert!(widened_zero.sqrt_upper().is_ok());
     }
@@ -959,10 +955,15 @@ mod tests {
                 .intersection(&analytic_root)
                 .is_some()
         );
-        assert!(root.interval_newton_image.strictly_inside(&root.starting_interval));
+        assert!(
+            root.interval_newton_image
+                .strictly_inside(&root.starting_interval)
+        );
         assert!(!root.derivative_on_starting_interval.contains_zero());
-        assert!(root.certified_root_interval.upper - root.certified_root_interval.lower
-            < root.starting_interval.upper - root.starting_interval.lower);
+        assert!(
+            root.certified_root_interval.upper - root.certified_root_interval.lower
+                < root.starting_interval.upper - root.starting_interval.lower
+        );
     }
 
     #[test]
@@ -975,10 +976,30 @@ mod tests {
         };
         let certificate = certify_step_error_bounds(&problem, &root).unwrap();
 
-        assert!(certificate.error_bounds.position_euclidean_upper.is_finite());
-        assert!(certificate.error_bounds.velocity_euclidean_upper.is_finite());
-        assert!(certificate.error_bounds.position_mass_metric_upper.is_finite());
-        assert!(certificate.error_bounds.velocity_kinetic_metric_upper.is_finite());
+        assert!(
+            certificate
+                .error_bounds
+                .position_euclidean_upper
+                .is_finite()
+        );
+        assert!(
+            certificate
+                .error_bounds
+                .velocity_euclidean_upper
+                .is_finite()
+        );
+        assert!(
+            certificate
+                .error_bounds
+                .position_mass_metric_upper
+                .is_finite()
+        );
+        assert!(
+            certificate
+                .error_bounds
+                .velocity_kinetic_metric_upper
+                .is_finite()
+        );
         assert!(certificate.error_bounds.position_mass_metric_upper > 0.0);
         assert!(certificate.error_bounds.velocity_kinetic_metric_upper > 0.0);
 
@@ -992,18 +1013,10 @@ mod tests {
                 <= root.certified_root_interval.upper - root.certified_root_interval.lower
                     + 2.0e-14
         );
-        assert!(
-            certificate.position_next_interval[0].contains(0.13333333333333344)
-        );
-        assert!(
-            certificate.position_next_interval[3].contains(1.1333333333333333)
-        );
-        assert!(
-            certificate.velocity_next_interval[0].contains(1.3333333333333344)
-        );
-        assert!(
-            certificate.velocity_next_interval[3].contains(0.33333333333333276)
-        );
+        assert!(certificate.position_next_interval[0].contains(0.13333333333333344));
+        assert!(certificate.position_next_interval[3].contains(1.1333333333333333));
+        assert!(certificate.velocity_next_interval[0].contains(1.3333333333333344));
+        assert!(certificate.velocity_next_interval[3].contains(0.33333333333333276));
     }
 
     #[test]
