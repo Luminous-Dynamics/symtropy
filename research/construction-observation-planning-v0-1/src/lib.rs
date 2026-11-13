@@ -92,6 +92,28 @@ pub struct TargetedPlan {
     pub irrelevant_action_ids: Vec<String>,
 }
 
+/// Fixed-checklist baseline: evaluate exactly the named action and do not substitute
+/// a different action when it conflicts or covers no current work need.
+pub fn choose_fixed_observation(
+    action_id: &str,
+    actions: &[ObservationAction],
+    work_needs: &[WorkNeed],
+    occupancy_book: &SpatialOccupancyBook,
+) -> Result<TargetedPlan, ObservationPlanError> {
+    require_non_empty("fixed_action_id", action_id)?;
+    let mut matches = actions
+        .iter()
+        .filter(|action| action.action_id == action_id);
+    let action = matches
+        .next()
+        .ok_or_else(|| ObservationPlanError::UnknownAction(action_id.to_owned()))?;
+    if matches.next().is_some() {
+        return Err(ObservationPlanError::DuplicateAction(action_id.to_owned()));
+    }
+
+    choose_targeted_observation(std::slice::from_ref(action), work_needs, occupancy_book)
+}
+
 /// Select one observation without access to hidden scenario truth.
 ///
 /// Policy is deterministic and lexicographic:
@@ -296,6 +318,9 @@ pub struct ObservationEvaluation {
     pub work_disposition: WorkDisposition,
     pub no_observation_loss_minor_units: u64,
     pub observation_cost_minor_units: u64,
+    pub observation_duration_minutes: u64,
+    pub observation_crew_minutes: u64,
+    pub observation_energy_wh: u64,
     pub residual_loss_minor_units: u64,
     /// no-observation loss - (observation cost + residual loss).
     /// Positive is beneficial in this scenario; negative is harmful.
@@ -314,6 +339,9 @@ pub fn evaluate_no_observation(
         work_disposition: WorkDisposition::HeldUnknown,
         no_observation_loss_minor_units: scenario.no_observation_loss_minor_units,
         observation_cost_minor_units: 0,
+        observation_duration_minutes: 0,
+        observation_crew_minutes: 0,
+        observation_energy_wh: 0,
         residual_loss_minor_units: scenario.no_observation_loss_minor_units,
         net_voi_minor_units: 0,
     })
@@ -359,6 +387,9 @@ pub fn evaluate_observation(
         work_disposition,
         no_observation_loss_minor_units: scenario.no_observation_loss_minor_units,
         observation_cost_minor_units: action.cost_minor_units,
+        observation_duration_minutes: action.duration_minutes,
+        observation_crew_minutes: action.crew_minutes,
+        observation_energy_wh: action.energy_wh,
         residual_loss_minor_units: result.residual_loss_minor_units,
         net_voi_minor_units,
     })
@@ -371,6 +402,7 @@ pub enum ObservationPlanError {
     NoCoveredRegions,
     DuplicateAction(String),
     DuplicateWorkUnit(String),
+    UnknownAction(String),
     MissingScenarioActionResult(String),
     Spatial(SpatialError),
 }
@@ -552,6 +584,91 @@ mod tests {
         );
         assert_eq!(plan.irrelevant_action_ids, vec!["survey-irrelevant"]);
         assert!(plan.rejected_conflicts.is_empty());
+    }
+
+    #[test]
+    fn fixed_checklist_baseline_uses_only_the_named_action() {
+        let actions = vec![
+            action(
+                "fixed-survey",
+                &["region-a"],
+                bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+                0,
+                100,
+                10,
+                200,
+            ),
+            action(
+                "better-targeted-survey",
+                &["region-a", "region-b"],
+                bounds([3_000, 0, 0], [4_000, 1_000, 1_000]),
+                0,
+                100,
+                10,
+                200,
+            ),
+        ];
+        let needs = vec![
+            WorkNeed {
+                work_unit_id: "unit-a".to_owned(),
+                region_id: "region-a".to_owned(),
+            },
+            WorkNeed {
+                work_unit_id: "unit-b".to_owned(),
+                region_id: "region-b".to_owned(),
+            },
+        ];
+
+        let plan = choose_fixed_observation("fixed-survey", &actions, &needs, &book())
+            .expect("fixed plan");
+        assert_eq!(
+            plan.selected.expect("fixed action selected").action_id,
+            "fixed-survey"
+        );
+    }
+
+    #[test]
+    fn fixed_checklist_does_not_silently_substitute_after_conflict() {
+        let mut index = book();
+        index
+            .insert(occupancy(
+                "active-workface",
+                "task-active",
+                bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+                0,
+                100,
+            ))
+            .expect("active workface");
+        let actions = vec![
+            action(
+                "fixed-survey",
+                &["region-a"],
+                bounds([500, 500, 0], [1_500, 1_500, 1_000]),
+                50,
+                150,
+                5,
+                100,
+            ),
+            action(
+                "alternate-survey",
+                &["region-a"],
+                bounds([3_000, 0, 0], [4_000, 1_000, 1_000]),
+                50,
+                150,
+                10,
+                150,
+            ),
+        ];
+        let needs = vec![WorkNeed {
+            work_unit_id: "unit-a".to_owned(),
+            region_id: "region-a".to_owned(),
+        }];
+
+        let plan = choose_fixed_observation("fixed-survey", &actions, &needs, &index)
+            .expect("fixed baseline");
+        assert!(plan.selected.is_none());
+        assert_eq!(plan.rejected_conflicts.len(), 1);
+        assert_eq!(plan.rejected_conflicts[0].action_id, "fixed-survey");
     }
 
     #[test]
