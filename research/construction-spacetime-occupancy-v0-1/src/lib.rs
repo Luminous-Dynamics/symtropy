@@ -803,10 +803,7 @@ mod tests {
                     } else {
                         10_001
                     };
-                    boxes.push(bounds(
-                        [*x, y, z],
-                        [*x + width, y + width, z + width],
-                    ));
+                    boxes.push(bounds([*x, y, z], [*x + width, y + width, z + width]));
                 }
             }
         }
@@ -839,7 +836,10 @@ mod tests {
 
     #[test]
     fn extreme_coordinate_span_uses_global_fallback() {
-        let giant = bounds([i64::MIN, i64::MIN, i64::MIN], [i64::MAX, i64::MAX, i64::MAX]);
+        let giant = bounds(
+            [i64::MIN, i64::MIN, i64::MIN],
+            [i64::MAX, i64::MAX, i64::MAX],
+        );
         assert!(grid_cells(&giant).is_none());
     }
 
