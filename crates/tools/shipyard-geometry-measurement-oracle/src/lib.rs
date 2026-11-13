@@ -163,10 +163,6 @@ fn rounded_ratio(numerator: u128, denominator: u128) -> Result<u128, BlockReason
         .ok_or(BlockReason::NumericOverflow)
 }
 
-fn absolute_delta(left: i64, right: i64) -> u128 {
-    (i128::from(left) - i128::from(right)).unsigned_abs()
-}
-
 fn checked_mul(left: u128, right: u128) -> Result<u128, BlockReason> {
     left.checked_mul(right).ok_or(BlockReason::NumericOverflow)
 }
@@ -217,10 +213,10 @@ fn validate_profile_points(
     }
     let mut previous_x = None;
     for point in points {
-        if let Some(previous) = previous_x {
-            if point.x_um <= previous {
-                return Err(BlockReason::NonMonotonicStations);
-            }
+        if let Some(previous) = previous_x
+            && point.x_um <= previous
+        {
+            return Err(BlockReason::NonMonotonicStations);
         }
         previous_x = Some(point.x_um);
         if point.x_um < domain.x_min_um || point.x_um > domain.x_max_um {
