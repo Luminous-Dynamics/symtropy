@@ -15,7 +15,9 @@
     "recoverable_experience_benchmark": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
     "decision_sensitive_experience_selector": "https://github.com/Luminous-Dynamics/symtropy/pull/4575",
     "anytime_imagination_allocator": "https://github.com/Luminous-Dynamics/symtropy/pull/4581",
-    "jurisdictional_driving_transfer": "https://github.com/Luminous-Dynamics/symtropy/issues/4774"
+    "jurisdictional_driving_transfer": "https://github.com/Luminous-Dynamics/symtropy/issues/4774",
+    "observability_guided_driving": "https://github.com/Luminous-Dynamics/symtropy/pull/4983",
+    "selective_driving": "https://github.com/Luminous-Dynamics/symtropy/pull/4942"
   },
   "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
   "hypotheses": [
@@ -23,7 +25,8 @@
     "Action-conditioned latent prediction can improve closed-loop decision quality only when trained/evaluated on action-observation transitions under matched data and compute.",
     "Decision-sensitive experience selection can reach a frozen competence gate with fewer simulator transitions or human intervention minutes than uniform sampling without worsening worst-family constraints.",
     "At matched experience and human-label budgets, decision-sensitive experience selection (#4575) can reduce transitions/interventions per frozen skill gate compared with uniform, rarity, entropy and prediction-error baselines.",
-    "At a fixed inference compute and deadline budget, anytime imagination allocation (#4581) can improve decision quality by spending additional rollouts only where marginal regret reduction is positive and the actuation/recovery reserve remains intact."
+    "At a fixed inference compute and deadline budget, anytime imagination allocation (#4581) can improve decision quality by spending additional rollouts only where marginal regret reduction is positive and the actuation/recovery reserve remains intact.",
+    "A compact fast path plus selectively invoked slow reasoning/active observation can improve the risk–coverage–resource frontier over always-on reasoning, provided fallback coverage and deadline guarantees are evaluated separately."
   ],
   "comparison_views": [
     {
@@ -107,6 +110,38 @@
       "temporal_core": "human driver",
       "training": "reference distribution only; not an autonomous policy",
       "status": "planned"
+    },
+    {
+      "id": "I",
+      "name": "tieriv_autoe2e_reactive_compact_baseline",
+      "input": "the exact policy-visible sensor profile supported by the released AutoE2E reactive component; pin any optional sensors",
+      "temporal_core": "TIER IV Fast–Slow architecture; compare the released reactive component only until World Model and Reasoning components are available",
+      "training": "external checkpoint/dataset/evaluator access; record exact release, licences, hardware, data and labels",
+      "status": "availability_dependent"
+    },
+    {
+      "id": "J",
+      "name": "tieriv_meteor_compact_bev_baseline",
+      "input": "one-to-eight camera configuration, with optional LiDAR/radar, pinned per run",
+      "temporal_core": "16M-parameter CNN/BEV mapless METEOR",
+      "training": "external checkpoint and supported runtime; count all camera preprocessing/sensor fusion/host costs",
+      "status": "availability_dependent"
+    },
+    {
+      "id": "K",
+      "name": "risk_constrained_observability_policy",
+      "input": "same visual/vehicle observation interface as E/F plus explicit measurement availability",
+      "temporal_core": "active observation action selector with risk-constrained VOI, compared to passive observation at identical decision boundaries",
+      "training": "paired passive/active interventions; account sensor request/reposition time, energy and residual risk",
+      "status": "planned"
+    },
+    {
+      "id": "L",
+      "name": "selective_risk_coverage_and_abstention",
+      "input": "same frozen model predictions and uncertainty/decision trace as the matched policy",
+      "temporal_core": "selective action/abstention gate plus separately measured fallback",
+      "training": "frozen predictions and outcomes; report risk–coverage curves, bootstrap intervals and fallback evidence",
+      "status": "reference_evaluator_in_progress"
     }
   ],
   "comparator_register": [
@@ -731,6 +766,41 @@
         "worst_work_zone_scenario_family",
         "jurisdiction_profile_source_validity"
       ]
+    },
+    {
+      "id": "tieriv_compact_baseline_reproduction",
+      "priority": 11,
+      "task": "reproduce AutoE2E reactive and METEOR model configs where weights, licences and sensor profiles permit; keep their native task metric separate",
+      "metric_family": [
+        "native_trajectory_prediction_metrics",
+        "native_closed_loop_task_metrics_if_available",
+        "full_stack_latency_energy_memory"
+      ]
+    },
+    {
+      "id": "observability_voi",
+      "priority": 12,
+      "task": "paired passive versus active sensor acquisition/reposition at identical frozen decision boundaries, with risk-constrained action costs",
+      "metric_family": [
+        "brier_and_log_loss",
+        "ece_and_calibration",
+        "additional_entropy_reduction",
+        "decision_change_and_regret",
+        "information_action_duration_energy_risk"
+      ]
+    },
+    {
+      "id": "selective_risk_coverage",
+      "priority": 13,
+      "task": "selective risk-coverage evaluation on frozen policy outputs with explicit fallback and human intervention evidence",
+      "metric_family": [
+        "risk_coverage_area_failure_rate",
+        "fixed_coverage_risk",
+        "actual_autonomy_coverage",
+        "abstention_rate",
+        "fallback_success_and_latency",
+        "episode_cluster_bootstrap_intervals"
+      ]
     }
   ],
   "budget_dimensions": [
@@ -772,7 +842,10 @@
     "jurisdiction_profile_revision_and_rule_bundle_digest",
     "region_specific_training_examples_and_human_legal_review_hours",
     "jurisdiction_adaptation_examples_and_intervention_minutes",
-    "rule_source_verification_and_content_digest_coverage"
+    "rule_source_verification_and_content_digest_coverage",
+    "active_observation_time_energy_and_residual_risk",
+    "abstention_fallback_duration_and_human_intervention_minutes",
+    "model_checkpoint_and_preprocessing_revision_for_external_compact_baselines"
   ],
   "outcome_families": [
     "native_benchmark_metrics",
@@ -816,7 +889,10 @@
     "legal_source_provenance_coverage_and_profile_eligibility",
     "temporary_traffic_control_compliance_by_sign_and_channelization_family",
     "work_zone_boundary_entry_and_safe_reroute_outcomes",
-    "temporary_rule_change_detection_latency"
+    "temporary_rule_change_detection_latency",
+    "risk_coverage_area_failure_rate_and_fixed_coverage_risk",
+    "autonomy_coverage_abstention_rate_and_fallback_success",
+    "active_observation_value_of_information_and_action_cost"
   ],
   "prospective_targets": {
     "status": "not_measured",
