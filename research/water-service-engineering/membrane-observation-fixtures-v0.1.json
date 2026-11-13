@@ -453,6 +453,62 @@
         },
         "lab": null
       }
+    },
+    {
+      "case_id": "OBS-009-numeric-value-without-unit",
+      "expected_valid": false,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-009",
+        "evidence_class": "RAW_INSTANT_MEASUREMENT",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp.no-unit",
+        "value": 0.52,
+        "unit": null,
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:00:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "SENSOR",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": {
+          "instrument_id": "SYN-PT-01",
+          "tag_id": "PT_001"
+        },
+        "calibration": {
+          "status": "CALIBRATED",
+          "calibration_record_id": "CAL-SYN-001",
+          "last_calibrated_at": "2030-01-01T00:00:00Z"
+        },
+        "aggregation": {
+          "method": "INSTANT",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
     }
   ]
 }
