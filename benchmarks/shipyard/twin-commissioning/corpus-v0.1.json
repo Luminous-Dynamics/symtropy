@@ -77,7 +77,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-001-process-cell",
@@ -106,7 +108,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "READY",
@@ -186,7 +190,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-002-process-cell",
@@ -215,7 +221,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "READY",
@@ -295,7 +303,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-003-process-cell",
@@ -324,7 +334,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "READY",
@@ -404,7 +416,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-004-process-cell",
@@ -433,7 +447,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "READY",
@@ -513,7 +529,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-005-process-cell",
@@ -542,7 +560,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -624,7 +644,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-006-process-cell",
@@ -653,7 +675,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -735,7 +759,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-007-process-cell",
@@ -764,7 +790,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -846,7 +874,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-008-process-cell",
@@ -875,7 +905,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -957,7 +989,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-009-process-cell",
@@ -986,7 +1020,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -1068,7 +1104,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-010-process-cell",
@@ -1097,7 +1135,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -1179,7 +1219,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-011-process-cell",
@@ -1208,7 +1250,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -1290,7 +1334,9 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 180,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": "shipyard.manufacturing.common.v1"
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         },
         {
           "interface_id": "DTC-012-process-cell",
@@ -1319,12 +1365,129 @@
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
           "maximum_uncertainty_permille": 100,
-          "composition_schema_id": null
+          "composition_schema_id": null,
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
         }
       ],
       "expected_readiness": "NOT_READY",
       "expected_failures": [
         "UNCERTAINTY_LIMIT"
+      ]
+    },
+    {
+      "case_id": "DTC-013",
+      "purpose_id": "INTERPASS_GEOMETRY_MEDIUM",
+      "operational_purpose": "Inter-pass geometry composition must preserve sensor acquisition resolution independently from interface update cadence.",
+      "composition_mode": "integrated",
+      "components": [
+        {
+          "component_id": "DTC-001-asset",
+          "role": "structural_asset",
+          "owner_system": "asset-owner",
+          "source_system": "asset-registry",
+          "schema_id": "shipyard.manufacturing.common.v1",
+          "schema_revision": "1.0.0",
+          "source_revision": "DTC-001-source-r1",
+          "digital_thread_uri": "urn:luminous:shipyard:DTC-001:asset",
+          "digital_thread_revision": "r1",
+          "authority_mode": "source_verified",
+          "source_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000001"
+        },
+        {
+          "component_id": "DTC-001-process",
+          "role": "welding_process",
+          "owner_system": "process-owner",
+          "source_system": "weld-controller",
+          "schema_id": "shipyard.manufacturing.common.v1",
+          "schema_revision": "1.0.0",
+          "source_revision": "DTC-001-source-r2",
+          "digital_thread_uri": "urn:luminous:shipyard:DTC-001:process",
+          "digital_thread_revision": "r2",
+          "authority_mode": "source_verified",
+          "source_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000002"
+        },
+        {
+          "component_id": "DTC-001-cell",
+          "role": "robot_cell",
+          "owner_system": "cell-owner",
+          "source_system": "robot-cell-controller",
+          "schema_id": "shipyard.manufacturing.common.v1",
+          "schema_revision": "1.0.0",
+          "source_revision": "DTC-001-source-r3",
+          "digital_thread_uri": "urn:luminous:shipyard:DTC-001:cell",
+          "digital_thread_revision": "r3",
+          "authority_mode": "source_verified",
+          "source_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000003"
+        }
+      ],
+      "interfaces": [
+        {
+          "interface_id": "DTC-001-asset-process",
+          "from_component": "DTC-001-asset",
+          "to_component": "DTC-001-process",
+          "mapping_mode": "integrated",
+          "required": true,
+          "source_event_id": "DTC-001-event-1",
+          "source_revision": "DTC-001-source-r1",
+          "source_sha256": "0000000000000000000000000000000000000000000000000000000000000065",
+          "mapping_sha256": "00000000000000000000000000000000000000000000000000000000000000c9",
+          "clock_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012d",
+          "peer_identity_sha256": null,
+          "authority_mode": "source_verified",
+          "update_interval_ms": 100,
+          "max_update_interval_ms": 250,
+          "jitter_p95_ms": 10,
+          "max_jitter_p95_ms": 25,
+          "latency_p95_ms": 80,
+          "max_latency_p95_ms": 150,
+          "data_age_ms": 120,
+          "max_data_age_ms": 300,
+          "semantic_fidelity_permille": 995,
+          "minimum_semantic_fidelity_permille": 980,
+          "clock_offset_abs_us": 3,
+          "maximum_clock_offset_us": 20,
+          "uncertainty_permille": 20,
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 50000,
+          "max_sample_interval_us": 10000
+        },
+        {
+          "interface_id": "DTC-001-process-cell",
+          "from_component": "DTC-001-process",
+          "to_component": "DTC-001-cell",
+          "mapping_mode": "integrated",
+          "required": true,
+          "source_event_id": "DTC-001-event-2",
+          "source_revision": "DTC-001-source-r2",
+          "source_sha256": "0000000000000000000000000000000000000000000000000000000000000066",
+          "mapping_sha256": "00000000000000000000000000000000000000000000000000000000000000ca",
+          "clock_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000012e",
+          "peer_identity_sha256": null,
+          "authority_mode": "source_verified",
+          "update_interval_ms": 100,
+          "max_update_interval_ms": 250,
+          "jitter_p95_ms": 10,
+          "max_jitter_p95_ms": 25,
+          "latency_p95_ms": 80,
+          "max_latency_p95_ms": 150,
+          "data_age_ms": 120,
+          "max_data_age_ms": 300,
+          "semantic_fidelity_permille": 995,
+          "minimum_semantic_fidelity_permille": 980,
+          "clock_offset_abs_us": 3,
+          "maximum_clock_offset_us": 20,
+          "uncertainty_permille": 20,
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1",
+          "sample_interval_us": 5000,
+          "max_sample_interval_us": 10000
+        }
+      ],
+      "expected_readiness": "NOT_READY",
+      "expected_failures": [
+        "SAMPLE_FREQUENCY"
       ]
     }
   ]
