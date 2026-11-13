@@ -159,3 +159,8 @@ No raw archive from any of these datasets has been acquired or hashed in this br
 ## M0 methodology caveat and next increment
 
 Armstrong et al. calculate their reported reference water permeance as the slope of permeate flux versus net driving pressure across the full pressure series, with the intercept fixed at zero. The current five synthetic M0 cases verify pointwise J/NDP arithmetic only; they do not reproduce the multi-pressure fitted reference-A procedure. Exact reproduction remains blocked until the authorized OSF workbook is acquired and the replicate series are grouped. The next M0B task is a grouped through-origin regression with replicate-level uncertainty. Source: https://doi.org/10.1016/j.dib.2022.108538.
+
+
+## M0B grouped multi-pressure regression
+
+The M0B synthetic benchmark now tests through-origin least-squares slope fitting per replicate, with replicate-level residual RMSE and sample SD. It uses synthetic pressure/flux series and does not reproduce Armstrong's raw workbook. Exact replication of the published reference-A calculations still requires the authorized OSF workbook, fitted mass-transfer coefficient values, replicate groups and full pressure series. The separate M0 pointwise formula check remains useful but is not a substitute for that grouped regression.
