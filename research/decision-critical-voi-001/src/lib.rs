@@ -265,13 +265,16 @@ fn unique_action_map(
 
 fn argmin_action(estimates: &[ActionEstimate]) -> Result<(String, u64), Vec<RejectionReason>> {
     let map = unique_action_map(estimates)?;
-    map.into_iter()
-        .min_by(|left, right| {
-            left.1
-                .cmp(&right.1)
-                .then_with(|| left.0.cmp(&right.0))
-        })
-        .ok_or_else(|| vec![RejectionReason::EmptyOutcomeActionSet])
+    let mut best: Option<(String, u64)> = None;
+    for (action_id, loss) in map {
+        let replace = best.as_ref().is_none_or(|(best_id, best_loss)| {
+            loss < *best_loss || (loss == *best_loss && action_id.as_str() < best_id.as_str())
+        });
+        if replace {
+            best = Some((action_id, loss));
+        }
+    }
+    best.ok_or_else(|| vec![RejectionReason::EmptyOutcomeActionSet])
 }
 
 fn checked_latest_completion(context: &DecisionContext) -> Result<u64, RejectionReason> {
@@ -481,10 +484,13 @@ fn validate_request(request: &DecisionRequest) -> Result<(String, u64, u64), Vec
             request.context.decision_timestamp_us
         }
     };
-    let best_current = current_map
-        .iter()
-        .min_by(|left, right| left.1.cmp(right.1).then_with(|| left.0.cmp(right.0)))
-        .map(|(action_id, loss)| (action_id.clone(), *loss));
+    let best_current = match argmin_action(&request.context.current_action_estimates) {
+        Ok(best) => Some(best),
+        Err(errors) => {
+            reasons.extend(errors);
+            None
+        }
+    };
     if let Some((best_action_id, _)) = &best_current {
         if best_action_id != &request.context.current_action_id {
             reasons.insert(RejectionReason::CurrentActionNotBestEstimate);
