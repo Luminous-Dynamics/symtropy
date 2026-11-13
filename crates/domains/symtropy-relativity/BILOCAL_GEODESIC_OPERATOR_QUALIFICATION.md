@@ -80,6 +80,17 @@ For BGO-0 in Minkowski spacetime, the exact transfer over affine interval \(\Del
 | BGO-7 | External point-to-point reproduction | Matched source/observer geometry and image branch from the October 2026 EMRI Kerr self-lensing preprint |
 | BGO-8 | Cost to qualified result | Wall time, peak memory and energy (if measured) at matched map, delay and caustic error |
 
+
+## Constant-tide numerical transport kernel
+
+A fixed-step RK4 kernel is now authored in `src/bilocal.rs` for the first-order system `d(xi)/dλ=ell`, `d(ell)/dλ=T xi` in a declared parallel orthonormal frame with a constant symmetric 4×4 tidal matrix. Its tests include:
+- Zero tide reduces to the exact Minkowski transfer.
+- Isotropic negative tide matches analytic oscillator blocks.
+- An anisotropic constant-tide transfer composes across step-refined intervals.
+- Non-symmetric, non-finite tidal input and zero step count are rejected.
+
+This is a numerical transport-kernel control, not a curvature-derived Schwarzschild or Kerr result. Exact-head Rust validation is pending. The next physical step remains to derive T from the source Riemann tensor along an actual null geodesic and to parallel-transport the frame.
+
 ## Prospective acceptance targets
 
 These are goals for well-conditioned cases, not claims about the current implementation and not universal tolerances for near-caustic configurations:
