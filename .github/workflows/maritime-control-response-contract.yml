@@ -176,13 +176,13 @@ jobs:
           jq -e '
             .schema_version == "symtropy-joint-hypothesis-scenario-posterior-v0.1" and
             .status == "source_authored_ci_pending" and
-            (.scope.genesis_assumption | contains("p(H,S)=p(H)*p(S)")) and
-            (.scope.scenario_space | contains("identical outcome ID set")) and
+            (.scope.prior | contains("p(H,S)=p(H)*p(S)")) and
+            (.scope.scenario_space | contains("identical outcome ID space")) and
             (.ledger.binds | index("parent ledger digest") != null) and
             (.hard_gates | length >= 15) and
             (.comparators | length == 3) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
-            (.claim_ceiling | contains("independent mathematical review"))
+            (.limitations.claim_ceiling | contains("independent mathematical review"))
           ' benchmarks/maritime-control-response/joint-scenario-posterior-v0.1.json >/dev/null
 
           jq -e '
