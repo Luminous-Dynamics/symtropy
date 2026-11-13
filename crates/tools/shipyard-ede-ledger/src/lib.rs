@@ -532,6 +532,75 @@ mod tests {
     }
 
     #[test]
+    fn swapping_leading_and_trailing_streams_preserves_combined_ede() {
+        let original = calculate_ede(&base_input()).expect("baseline");
+        let mut input = base_input();
+        std::mem::swap(&mut input.leading_power, &mut input.trailing_power);
+        std::mem::swap(&mut input.leading_wire_feed, &mut input.trailing_wire_feed);
+        let swapped = calculate_ede(&input).expect("swapped streams");
+        assert!((swapped.total_arc_energy_j - original.total_arc_energy_j).abs() < 1e-9);
+        assert!((swapped.total_estimated_mass_g - original.total_estimated_mass_g).abs() < 1e-12);
+        assert!((swapped.ede_g_per_kwh - original.ede_g_per_kwh).abs() < 1e-9);
+    }
+
+    #[test]
+    fn doubling_both_wire_feed_rates_doubles_mass_and_ede() {
+        let baseline = calculate_ede(&base_input()).expect("baseline");
+        let mut input = base_input();
+        for sample in &mut input.leading_wire_feed {
+            sample.speed_m_per_s *= 2.0;
+        }
+        for sample in &mut input.trailing_wire_feed {
+            sample.speed_m_per_s *= 2.0;
+        }
+        let doubled = calculate_ede(&input).expect("doubled feed");
+        assert!((doubled.total_arc_energy_j - baseline.total_arc_energy_j).abs() < 1e-9);
+        assert!((doubled.total_estimated_mass_g - 2.0 * baseline.total_estimated_mass_g).abs() < 1e-12);
+        assert!((doubled.ede_g_per_kwh - 2.0 * baseline.ede_g_per_kwh).abs() < 1e-9);
+    }
+
+    #[test]
+    fn doubling_both_wire_voltages_doubles_energy_and_halves_ede() {
+        let baseline = calculate_ede(&base_input()).expect("baseline");
+        let mut input = base_input();
+        for sample in &mut input.leading_power {
+            sample.voltage_v *= 2.0;
+        }
+        for sample in &mut input.trailing_power {
+            sample.voltage_v *= 2.0;
+        }
+        let doubled_voltage = calculate_ede(&input).expect("doubled voltage");
+        assert!((doubled_voltage.total_arc_energy_j - 2.0 * baseline.total_arc_energy_j).abs() < 1e-9);
+        assert!((doubled_voltage.total_estimated_mass_g - baseline.total_estimated_mass_g).abs() < 1e-12);
+        assert!((doubled_voltage.ede_g_per_kwh - 0.5 * baseline.ede_g_per_kwh).abs() < 1e-9);
+    }
+
+    #[test]
+    fn stretching_the_observation_window_preserves_ede_when_energy_and_feed_scale() {
+        let baseline = calculate_ede(&base_input()).expect("baseline");
+        let mut input = base_input();
+        input.start_time_ns *= 2;
+        input.end_time_ns *= 2;
+        input.maximum_sample_gap_ns *= 2;
+        for sample in &mut input.leading_power {
+            sample.timestamp_ns *= 2;
+        }
+        for sample in &mut input.trailing_power {
+            sample.timestamp_ns *= 2;
+        }
+        for sample in &mut input.leading_wire_feed {
+            sample.timestamp_ns *= 2;
+        }
+        for sample in &mut input.trailing_wire_feed {
+            sample.timestamp_ns *= 2;
+        }
+        let stretched = calculate_ede(&input).expect("stretched observation window");
+        assert!((stretched.total_arc_energy_j - 2.0 * baseline.total_arc_energy_j).abs() < 1e-9);
+        assert!((stretched.total_estimated_mass_g - 2.0 * baseline.total_estimated_mass_g).abs() < 1e-12);
+        assert!((stretched.ede_g_per_kwh - baseline.ede_g_per_kwh).abs() < 1e-9);
+    }
+
+    #[test]
     fn integration_uses_sampled_voltage_times_current() {
         let result = calculate_ede(&base_input()).expect("synthetic case is valid");
         let mean_v = (30.0 + 32.0 + 30.0) / 3.0;
