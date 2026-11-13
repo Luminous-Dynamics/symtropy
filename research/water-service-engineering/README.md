@@ -123,3 +123,6 @@ The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](.
 ## Counterfactual membrane-cleaning qualification
 
 The separate [MEMBRANE-CIP-COUNTERFACTUAL-001 #5012](https://github.com/Luminous-Dynamics/symtropy/issues/5012) workstream now has a target-trial protocol and machine-readable manifest. It evaluates whether a cleaning policy improves profile-conforming permeate, membrane integrity and lifecycle cost under causal-identification and safety constraints. It is not a cleaning recipe or actuation authority.
+
+
+The parent membrane dataset workstream also now has a sample-time-only water-quality label contract at [MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md](./MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md), including six synthetic fixtures and a required workflow gate. A cleaning policy comparison must use actual sample-time/location/analyte outcomes only; it must not invent continuous quality labels between lab samples.
