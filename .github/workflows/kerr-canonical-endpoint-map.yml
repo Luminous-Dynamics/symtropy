@@ -1,0 +1,52 @@
+name: Kerr canonical endpoint map audit
+
+on:
+  push:
+    branches:
+      - research/kerr-canonical-endpoint-map-20261113
+    paths:
+      - crates/domains/symtropy-relativity/src/bilocal.rs
+      - crates/domains/symtropy-relativity/src/lib.rs
+      - crates/domains/symtropy-relativity/src/metric.rs
+      - crates/domains/symtropy-relativity/src/connection.rs
+      - crates/domains/symtropy-relativity/Cargo.toml
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-canonical-endpoint-map.yml
+  pull_request:
+    branches:
+      - research/kerr-bgo-minkowski-kernel-20261113
+    paths:
+      - crates/domains/symtropy-relativity/src/bilocal.rs
+      - crates/domains/symtropy-relativity/src/lib.rs
+      - crates/domains/symtropy-relativity/src/metric.rs
+      - crates/domains/symtropy-relativity/src/connection.rs
+      - crates/domains/symtropy-relativity/Cargo.toml
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-canonical-endpoint-map.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kerr-canonical-endpoint-map-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Canonical-to-covariant endpoint map (Linux, Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml -- --check
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --all-targets -- -D warnings
+      - name: Run crate tests
+        run: cargo test --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --lib
