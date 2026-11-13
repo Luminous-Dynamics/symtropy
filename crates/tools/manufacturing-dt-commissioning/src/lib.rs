@@ -30,6 +30,9 @@ pub enum FailureReason {
     InvalidComponentIdentity,
     MissingSourceDigest,
     MissingTransformReceipt,
+    MissingProfileDigest,
+    MissingClockMappingReceipt,
+    ClockUncertaintyLimitMissing,
     OwnerMismatch,
     ComponentRevisionMismatch,
     AuthorityMismatch,
@@ -72,6 +75,7 @@ pub struct ComponentEvidence {
     pub output_scope: String,
     pub source_sha256: [u8; 32],
     pub transform_receipt_sha256: [u8; 32],
+    pub clock_mapping_receipt_sha256: Option<[u8; 32]>,
     pub clock_domain: String,
     pub observed_at_ns: Option<u64>,
     pub sample_interval_ns: Option<u64>,
@@ -110,6 +114,7 @@ pub struct ComponentRequirement {
 pub struct TaskProfile {
     pub task_id: String,
     pub revision: String,
+    pub profile_sha256: [u8; 32],
     pub clock_domain: String,
     pub supported: bool,
     pub independent_sources_required: bool,
@@ -209,6 +214,28 @@ fn check_component(
     }
     if !nonempty(&component.clock_domain) {
         add_failure(failures, id, FailureReason::ClockDomainMissing, required);
+    }
+    if component.clock_domain != profile.clock_domain {
+        if requirement.maximum_clock_uncertainty_ns.is_none() {
+            add_failure(
+                failures,
+                id,
+                FailureReason::ClockUncertaintyLimitMissing,
+                required,
+            );
+        }
+        if component
+            .clock_mapping_receipt_sha256
+            .as_ref()
+            .is_none_or(missing_or_zero_digest)
+        {
+            add_failure(
+                failures,
+                id,
+                FailureReason::MissingClockMappingReceipt,
+                required,
+            );
+        }
     }
 
     if let Some(observed_at_ns) = component.observed_at_ns {
@@ -427,6 +454,14 @@ pub fn evaluate_readiness(
             true,
         );
     }
+    if missing_or_zero_digest(&profile.profile_sha256) {
+        add_failure(
+            &mut failures,
+            "__profile__",
+            FailureReason::MissingProfileDigest,
+            true,
+        );
+    }
     if !profile.supported {
         add_failure(
             &mut failures,
@@ -530,6 +565,7 @@ pub fn evaluate_readiness(
     let fingerprint = readiness_fingerprint(
         &profile.task_id,
         &profile.revision,
+        &profile.profile_sha256,
         evaluated_at_ns,
         status,
         &evaluated_components,
@@ -551,6 +587,7 @@ pub fn evaluate_readiness(
 fn readiness_fingerprint(
     task_id: &str,
     profile_revision: &str,
+    profile_sha256: &[u8; 32],
     evaluated_at_ns: u64,
     status: ReadinessStatus,
     evaluated_components: &[String],
@@ -571,6 +608,7 @@ fn readiness_fingerprint(
 
     feed(task_id.as_bytes());
     feed(profile_revision.as_bytes());
+    feed(profile_sha256);
     feed(&evaluated_at_ns.to_le_bytes());
     let status_bytes: &[u8] = match status {
         ReadinessStatus::Ready => b"READY",
@@ -592,8 +630,46 @@ fn readiness_fingerprint(
     for component in ordered_components {
         feed(component.component_id.as_bytes());
         feed(component.revision.as_bytes());
+        feed(component.owner.as_bytes());
+        feed(component.authority.as_bytes());
+        feed(component.output_scope.as_bytes());
         feed(&component.source_sha256);
         feed(&component.transform_receipt_sha256);
+        feed(component.clock_domain.as_bytes());
+        if let Some(clock_mapping_digest) = component.clock_mapping_receipt_sha256 {
+            feed(&[1]);
+            feed(&clock_mapping_digest);
+        } else {
+            feed(&[0]);
+        }
+        let mut feed_optional_u64 = |value: Option<u64>| {
+            if let Some(value) = value {
+                feed(&[1]);
+                feed(&value.to_le_bytes());
+            } else {
+                feed(&[0]);
+            }
+        };
+        feed_optional_u64(component.observed_at_ns);
+        feed_optional_u64(component.sample_interval_ns);
+        feed_optional_u64(component.update_interval_ns);
+        feed_optional_u64(component.p99_latency_ns);
+        feed_optional_u64(component.clock_mapping_uncertainty_ns);
+        feed_optional_u64(component.registration_error_um);
+        feed_optional_u64(component.coverage_permille.map(u64::from));
+        feed_optional_u64(component.occlusion_permille.map(u64::from));
+        feed_optional_u64(component.fidelity_error_units);
+        if let Some(frame) = &component.coordinate_frame {
+            feed(&[1]);
+            feed(frame.as_bytes());
+        } else {
+            feed(&[0]);
+        }
+        let mut common_causes = component.common_cause_domains.clone();
+        common_causes.sort();
+        for domain in common_causes {
+            feed(domain.as_bytes());
+        }
     }
 
     hash
@@ -622,6 +698,7 @@ mod tests {
             output_scope: output_scope.to_owned(),
             source_sha256: [0x11; 32],
             transform_receipt_sha256: [0x22; 32],
+            clock_mapping_receipt_sha256: None,
             clock_domain: "TwinCAT3_EtherCAT".to_owned(),
             observed_at_ns: Some(NOW - 100_000_000),
             sample_interval_ns: Some(sample_interval_ns),
@@ -683,6 +760,7 @@ mod tests {
         TaskProfile {
             task_id: "INTERPASS_GEOMETRY".to_owned(),
             revision: "PROFILE-R1".to_owned(),
+            profile_sha256: [0x33; 32],
             clock_domain: "TwinCAT3_EtherCAT".to_owned(),
             supported: true,
             independent_sources_required: false,
@@ -802,6 +880,68 @@ mod tests {
                 .iter()
                 .any(|failure| failure.reason == FailureReason::SampleTooSlow)
         );
+    }
+
+    #[test]
+    fn cross_clock_component_requires_an_explicit_mapping_receipt() {
+        let mut components = interpass_components();
+        components[0].clock_domain = "robot-clock".to_owned();
+        components[0].clock_mapping_uncertainty_ns = Some(1_000);
+        components[0].clock_mapping_receipt_sha256 = None;
+        let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
+        assert_eq!(receipt.status, ReadinessStatus::NotReady);
+        assert!(receipt
+            .failures
+            .iter()
+            .any(|failure| failure.reason == FailureReason::MissingClockMappingReceipt));
+    }
+
+    #[test]
+    fn cross_clock_component_is_accepted_with_receipt_and_bounded_uncertainty() {
+        let mut components = interpass_components();
+        components[0].clock_domain = "robot-clock".to_owned();
+        components[0].clock_mapping_uncertainty_ns = Some(1_000);
+        components[0].clock_mapping_receipt_sha256 = Some([0x55; 32]);
+        let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
+        assert_eq!(receipt.status, ReadinessStatus::Ready);
+    }
+
+    #[test]
+    fn cross_clock_component_requires_an_uncertainty_limit() {
+        let mut profile = interpass_profile();
+        profile.requirements[0].maximum_clock_uncertainty_ns = None;
+        let mut components = interpass_components();
+        components[0].clock_domain = "robot-clock".to_owned();
+        components[0].clock_mapping_receipt_sha256 = Some([0x55; 32]);
+        let receipt = evaluate_readiness(&profile, &components, NOW);
+        assert_eq!(receipt.status, ReadinessStatus::NotReady);
+        assert!(receipt
+            .failures
+            .iter()
+            .any(|failure| failure.reason == FailureReason::ClockUncertaintyLimitMissing));
+    }
+
+    #[test]
+    fn missing_task_profile_digest_causes_not_ready() {
+        let mut profile = interpass_profile();
+        profile.profile_sha256 = [0; 32];
+        let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
+        assert_eq!(receipt.status, ReadinessStatus::NotReady);
+        assert!(receipt
+            .failures
+            .iter()
+            .any(|failure| failure.reason == FailureReason::MissingProfileDigest));
+    }
+
+    #[test]
+    fn changing_measurement_values_changes_receipt_fingerprint() {
+        let profile = interpass_profile();
+        let mut components = interpass_components();
+        let first = evaluate_readiness(&profile, &components, NOW);
+        components[0].coverage_permille = Some(990);
+        let second = evaluate_readiness(&profile, &components, NOW);
+        assert_eq!(first.status, second.status);
+        assert_ne!(first.fingerprint, second.fingerprint);
     }
 
     #[test]
@@ -1048,6 +1188,7 @@ mod tests {
         let first_profile = interpass_profile();
         let mut second_profile = interpass_profile();
         second_profile.revision = "PROFILE-R2".to_owned();
+        second_profile.profile_sha256 = [0x44; 32];
         let first = evaluate_readiness(&first_profile, &components, NOW);
         let second = evaluate_readiness(&second_profile, &components, NOW);
         assert_ne!(first.fingerprint, second.fingerprint);
