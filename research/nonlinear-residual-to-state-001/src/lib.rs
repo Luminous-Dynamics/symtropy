@@ -210,9 +210,7 @@ pub fn evaluate_kantorovich_envelope(
     };
 
     let claim_tier = match status {
-        EnvelopeStatusV1::ConservativeBoundQualified => {
-            ClaimTierV1::ConditionalKantorovichBall
-        }
+        EnvelopeStatusV1::ConservativeBoundQualified => ClaimTierV1::ConditionalKantorovichBall,
         EnvelopeStatusV1::NumericallyEstimated
         | EnvelopeStatusV1::Inconclusive
         | EnvelopeStatusV1::OutOfProfile => ClaimTierV1::DiagnosticOnly,
