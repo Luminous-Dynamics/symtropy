@@ -21,10 +21,11 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 - Closed spatial-boundary policy: touching after expansion is a potential conflict.
 - Idempotent repeated occupancy IDs; conflicting reuse is rejected.
 - A non-mutating `conflicts_for` query returns the complete conservative conflict set for a candidate, so planners can compare multiple blockers before choosing a schedule repair.
-- A deterministic 10 m uniform-grid broad phase narrows spatial candidate pairs. Expanded AABBs are indexed into every grid cell they touch; boundaries are inclusive for broad-phase purposes.
+- A deterministic 1 m uniform-grid broad phase narrows spatial candidate pairs. Expanded AABBs are indexed into every grid cell they touch; boundaries are inclusive for broad-phase purposes.
 - Envelopes spanning more than 4,096 cells enter a global fallback bucket and are checked against every candidate, preventing large platforms/swept outer bounds from being silently dropped.
 - The exact uncertainty/clearance-expanded AABB intersection remains authoritative; the grid cannot declare a conflict or clear a conflict by itself.
 - `candidate_count_for` exposes the broad-phase candidate count for benchmarking; `conflicts_for` then applies exact space/time tests.
+- The benchmark now separates sparse distributed workfaces from a dense cluster of 1,000 disjoint small envelopes packed into one 10 m cube. The dense workload is deliberately adversarial for uniform grids and quantifies local over-candidate behaviour.
 - `insert` remains fail-closed and rejects admission if any conflict exists.
 - A combined admission helper evaluates the #3644 resource reservation and spatial occupancy against cloned in-memory owners, committing both only when both accept.
 - If spatial occupancy rejects, the tentative reservation is not committed; if the resource calendar rejects, the tentative occupancy is not committed.
@@ -70,4 +71,4 @@ A reported overlap is a potential conflict under the declared conservative bound
 
 The combined admission helper is a single-process in-memory transaction pattern. It is not a distributed transaction, durable commit or multi-controller serialization protocol. The cross-layer test uses synthetic fixtures and structural receipt references; it is not physical inspection evidence or an authenticated acceptance authority.
 
-The v0.1 AABB model is a deterministic broad-phase research reference only. The grid is an acceleration index; 10 m cell size and 4,096-cell fallback threshold are implementation parameters, not construction tolerances. False positives are allowed and must remain visible. A later narrow-phase geometry implementation needs an independent reference oracle and independently measured/as-built envelopes before any physical claim.
+The v0.1 AABB model is a deterministic broad-phase research reference only. The grid is an acceleration index; 1 m cell size and 4,096-cell fallback threshold are implementation parameters, not construction tolerances. False positives are allowed and must remain visible. A later narrow-phase geometry implementation needs an independent reference oracle and independently measured/as-built envelopes before any physical claim.
