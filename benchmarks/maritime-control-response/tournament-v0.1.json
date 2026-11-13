@@ -738,14 +738,14 @@
       "publisher_reported_recording_data_csv_count": 16,
       "archive_csv_entry_count": 18,
       "metadata_csv_artifact_count": 2,
-      "audit_status": "completed_by_exact_head_rust_csv_auditor",
-      "claim_ceiling": "The Rust audit receipt verifies archive bytes and 16 recording CSVs (one baseline plus fifteen scenarios) with role-specific time columns and metadata hashes. It does not validate physical root causes or model accuracy.",
+      "audit_status": "completed_by_exact_head_rust_csv_auditor_run_43377608370",
+      "claim_ceiling": "The current exact-head Rust audit receipt verifies archive bytes, 16 recording CSVs, baseline/scenario schemas, time columns and metadata hashes. It does not validate publisher labels, physical root causes or model accuracy.",
       "recording_files": 16,
       "baseline_files": 1,
       "scenario_files": 15,
       "archive_csv_entries": 18,
       "metadata_csv_artifacts": 2,
-      "archive_audit_receipt_id": 13986307496,
+      "archive_audit_receipt_id": 14014574182,
       "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b"
     },
     "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
@@ -762,17 +762,20 @@
       }
     },
     "audit_receipt": {
-      "run_id": 43312150806,
-      "run_number": 131,
-      "head_sha": "076350d5eea003ecb38a8eb5bb782787d608d2bc",
-      "job_id": 131510695601,
-      "artifact_id": 13986307496,
-      "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43312150806/artifacts/13986307496",
+      "run_id": 43377608370,
+      "run_number": 168,
+      "head_sha": "153250ea314270f955c77dd1c8801ddf4af04615",
+      "job_id": 131727651115,
+      "artifact_id": 14014574182,
+      "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182",
       "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
-      "rust_tests_passed": 114,
+      "recording_csv_files": 16,
+      "baseline_files": 1,
+      "scenario_files": 15,
+      "rust_tests_passed": 121,
       "rust_tests_failed": 0
     },
-    "claim_ceiling": "Archive SHA-256, publisher checksum, recording-file inventory, role-specific time schema and raw CSV syntax have been independently verified by a Rust audit receipt. No model has been trained or scored; no physical root-cause, cross-engine or fleet validation claim."
+    "claim_ceiling": "Archive SHA-256, publisher checksum, recording-file inventory, role-specific time schema and raw CSV syntax were verified by successful exact-head Rust audit run 43377608370 (#168), artifact 14014574182. No model has been trained or scored; no physical root-cause, cross-engine or fleet validation claim."
   },
   "published_comparator_reference": {
     "path": "published-six-solution-baselines-v0.1.json",
