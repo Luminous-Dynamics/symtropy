@@ -725,7 +725,9 @@ mod tests {
             book.reserve(item, 0).expect("reference reservation");
         }
 
-        for start in [0_u64, 50, 100, 59_800, 59_999, 60_000, 60_200, 119_999, 180_000] {
+        for start in [
+            0_u64, 50, 100, 59_800, 59_999, 60_000, 60_200, 119_999, 180_000,
+        ] {
             for end in [start + 1, start + 50, start + 500, start + 2_000] {
                 let indexed = book.candidate_reservation_ids("work-zone-A", start, end);
                 let reference = book
@@ -748,8 +750,7 @@ mod tests {
                             .request
                             .interval_end_ms
                             .saturating_add(record.request.clock_uncertainty_ms);
-                        overlaps(start, end, existing_start, existing_end)
-                            .then(|| id.clone())
+                        overlaps(start, end, existing_start, existing_end).then(|| id.clone())
                     })
                     .collect();
                 assert_eq!(reference, exact_ids.len());
