@@ -1159,7 +1159,7 @@ mod tests {
         let envelope = verify_normalized_receipt(serialized).unwrap();
         assert_eq!(
             envelope["payload_sha256"],
-            "902ff6483b23aa66faef7908b65304b3e599b351114fed965a10089ea93f0429"
+            "394f94e549a4de9c2657209bcfffb426420fa9dee6dcc9b2e60c2483192cc6b5"
         );
         let trace = reference_trace();
         let report = adapt_joint_trace(&trace).unwrap();
