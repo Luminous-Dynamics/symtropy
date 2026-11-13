@@ -1,0 +1,123 @@
+name: AER-01 inspection observability oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-inspection-observability.yml"
+      - "tools/civil-aero-benchmark/inspection-observability/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-inspection-observability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record exact toolchain and runner identity
+        run: |
+          {
+            echo "rust-toolchain.toml:"
+            cat rust-toolchain.toml
+            echo
+            echo "rustc:"
+            rustc --version --verbose
+            echo
+            echo "cargo:"
+            cargo --version
+            echo
+            echo "python:"
+            python3 --version
+            echo
+            echo "runner:"
+            printf 'RUNNER_OS=%s\n' "${RUNNER_OS:-unknown}"
+            printf 'RUNNER_ARCH=%s\n' "${RUNNER_ARCH:-unknown}"
+            printf 'ImageOS=%s\n' "${ImageOS:-unknown}"
+            printf 'ImageVersion=%s\n' "${ImageVersion:-unknown}"
+            uname -a
+          } | tee inspection-observability-environment.txt
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
+
+      - name: Run known-answer and hostile tests
+        run: cargo test --locked --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+
+      - name: Run Rust observability evaluator
+        run: cargo run --locked --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-result.json
+
+      - name: Independently recompute rank, Fisher information and selections in Python
+        run: python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py --rust-output inspection-observability-result.json
+
+      - name: Create exact source, execution and output digest receipts
+        run: |
+          subject_sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          workflow_blob=$(git rev-parse "${subject_sha}:.github/workflows/aero-inspection-observability.yml")
+          printf 'subject_commit=%s\nevent_commit=%s\nworkflow_ref=%s\nworkflow_blob=%s\nrun_id=%s\nrun_attempt=%s\n' \
+            "$subject_sha" "$GITHUB_SHA" "$GITHUB_WORKFLOW_REF" "$workflow_blob" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" \
+            > inspection-observability-run-manifest.txt
+          sha256sum rust-toolchain.toml > inspection-observability-toolchain.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-cargo-manifest.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/Cargo.lock > inspection-observability-lock.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/src/main.rs > inspection-observability-rust-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/verify_independent.py > inspection-observability-python-source.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/README.md > inspection-observability-readme.sha256
+          sha256sum .github/workflows/aero-inspection-observability.yml > inspection-observability-workflow.sha256
+          sha256sum tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json > inspection-observability-source.sha256
+          sha256sum inspection-observability-environment.txt > inspection-observability-environment.sha256
+          sha256sum inspection-observability-result.json > inspection-observability-result.sha256
+          sha256sum inspection-observability-run-manifest.txt > inspection-observability-run-manifest.sha256
+
+      - name: Retain source-complete execution and digest receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-inspection-observability-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            rust-toolchain.toml
+            .github/workflows/aero-inspection-observability.yml
+            tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+            tools/civil-aero-benchmark/inspection-observability/Cargo.lock
+            tools/civil-aero-benchmark/inspection-observability/README.md
+            tools/civil-aero-benchmark/inspection-observability/src/main.rs
+            tools/civil-aero-benchmark/inspection-observability/verify_independent.py
+            tools/civil-aero-benchmark/inspection-observability/fixtures/known-answer-observability-v0.1.json
+            inspection-observability-result.json
+            inspection-observability-environment.txt
+            inspection-observability-run-manifest.txt
+            inspection-observability-toolchain.sha256
+            inspection-observability-cargo-manifest.sha256
+            inspection-observability-lock.sha256
+            inspection-observability-rust-source.sha256
+            inspection-observability-python-source.sha256
+            inspection-observability-readme.sha256
+            inspection-observability-workflow.sha256
+            inspection-observability-source.sha256
+            inspection-observability-environment.sha256
+            inspection-observability-result.sha256
+            inspection-observability-run-manifest.sha256
+          if-no-files-found: error
+          retention-days: 90

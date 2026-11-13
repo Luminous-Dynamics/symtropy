@@ -1,0 +1,17 @@
+{
+  "schema_version": "aero-inspection-observability/0.1.0",
+  "model_id": "synthetic-two-parameter-wing-observation-v0.1",
+  "model_scope": "synthetic_local_linear_observation",
+  "noise_model": "independent_variance_per_sensor",
+  "parameters": [
+    {"id": "theta_1", "scale": 1.0},
+    {"id": "theta_2", "scale": 1.0}
+  ],
+  "sensors": [
+    {"id": "S_A", "observation_row": [1.0, 0.0], "variance": 1.0},
+    {"id": "S_B", "observation_row": [0.0, 1.0], "variance": 4.0},
+    {"id": "S_C", "observation_row": [1.0, 1.0], "variance": 1.0},
+    {"id": "S_D", "observation_row": [1.0, -1.0], "variance": 9.0}
+  ],
+  "select_count": 2
+}
