@@ -386,42 +386,6 @@ fn evaluate_scenario(
         }
     }
 
-    if let Some(expected) = &scenario.expected_metrics {
-        match expected.scaleout_efficiency.as_ref() {
-            Some(value) => match value.as_f64() {
-                Some(expected_value) if scaleout_efficiency.is_some_and(|actual| close_enough(actual, expected_value)) => {}
-                _ => reject("scale-out efficiency does not match the frozen independent expected metric", &mut rejected),
-            },
-            None if scaleout_efficiency.is_none() => {}
-            None => reject("frozen expected metrics omit a computed scale-out efficiency", &mut rejected),
-        }
-
-        match expected.active_cell_cv.as_ref() {
-            None if active_cell_cv.is_none() => {}
-            None => reject("expected null active-cell CV but evaluator computed a value", &mut rejected),
-            Some(value) => {
-                if let Some(expected_value) = value.as_f64() {
-                    if !active_cell_cv.is_some_and(|actual| close_enough(actual, expected_value)) {
-                        reject("active-cell CV does not match the frozen independent expected metric", &mut rejected);
-                    }
-                } else if value.as_str() == Some("computed_from_cells") {
-                    if active_cell_cv.is_none() {
-                        reject("active-cell CV was expected to be computed from cells but is undefined", &mut rejected);
-                    }
-                } else {
-                    reject("unsupported expected active-cell CV representation", &mut rejected);
-                }
-            }
-        }
-
-        if let Some(expected_retention) = expected.service_retention {
-            if !faulted_service_retention
-                .is_some_and(|actual| close_enough(actual, expected_retention))
-            {
-                reject("faulted service retention does not match the frozen expected metric", &mut rejected);
-            }
-        }
-    }
 
     let energy_boundary_complete = scenario.energy.boundary_complete
         && !scenario.energy.meter_ids.is_empty()
@@ -465,6 +429,44 @@ fn evaluate_scenario(
             _ => block("failed-cell scenario lacks a valid service floor/reference", &mut blocked),
         }
     }
+
+    if let Some(expected) = &scenario.expected_metrics {
+        match expected.scaleout_efficiency.as_ref() {
+            Some(value) => match value.as_f64() {
+                Some(expected_value) if scaleout_efficiency.is_some_and(|actual| close_enough(actual, expected_value)) => {}
+                _ => reject("scale-out efficiency does not match the frozen independent expected metric", &mut rejected),
+            },
+            None if scaleout_efficiency.is_none() => {}
+            None => reject("frozen expected metrics omit a computed scale-out efficiency", &mut rejected),
+        }
+
+        match expected.active_cell_cv.as_ref() {
+            None if active_cell_cv.is_none() => {}
+            None => reject("expected null active-cell CV but evaluator computed a value", &mut rejected),
+            Some(value) => {
+                if let Some(expected_value) = value.as_f64() {
+                    if !active_cell_cv.is_some_and(|actual| close_enough(actual, expected_value)) {
+                        reject("active-cell CV does not match the frozen independent expected metric", &mut rejected);
+                    }
+                } else if value.as_str() == Some("computed_from_cells") {
+                    if active_cell_cv.is_none() {
+                        reject("active-cell CV was expected to be computed from cells but is undefined", &mut rejected);
+                    }
+                } else {
+                    reject("unsupported expected active-cell CV representation", &mut rejected);
+                }
+            }
+        }
+
+        if let Some(expected_retention) = expected.service_retention {
+            if !faulted_service_retention
+                .is_some_and(|actual| close_enough(actual, expected_retention))
+            {
+                reject("faulted service retention does not match the frozen expected metric", &mut rejected);
+            }
+        }
+    }
+
 
     let (disposition, reasons) = if !rejected.is_empty() {
         ("REJECTED".to_owned(), rejected)
