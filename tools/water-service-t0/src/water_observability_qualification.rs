@@ -373,6 +373,7 @@ fn estimator_qualified_scope(
 }
 
 fn topology_is_valid(topology: &Value, errors: &mut Vec<String>, context: &str) -> bool {
+    let _topology_ref = required_str(topology, "topology_ref", context, errors);
     let topology_revision = required_str(topology, "topology_revision", context, errors);
     let topology_digest = required_str(topology, "topology_digest", context, errors);
     let certificate_revision = required_str(topology, "certificate_topology_revision", context, errors);
@@ -583,6 +584,31 @@ pub fn evaluate(
             errors.push(format!("schema root must require {key}"));
         }
     }
+    let scenario_required: BTreeSet<&str> = schema
+        .get("properties")
+        .and_then(|value| value.get("scenarios"))
+        .and_then(|value| value.get("items"))
+        .and_then(|value| value.get("required"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    for key in [
+        "scenario_id",
+        "scenario_class",
+        "required_state_ids",
+        "topology",
+        "sensors",
+        "failed_domains",
+        "structural_observability",
+        "numerical_estimator",
+        "note",
+    ] {
+        if !scenario_required.contains(key) {
+            errors.push(format!("schema scenario item must require {key}"));
+        }
+    }
 
     let profile = scenarios.get("profile").unwrap_or(&Value::Null);
     if get_str(profile, "profile_id") != Some("SYNTHETIC-OBSERVABILITY-PROFILE-V0")
@@ -685,6 +711,16 @@ pub fn evaluate(
             &context,
             &mut errors,
         );
+        if let Some(estimator) = estimator.as_ref() {
+            let covered: BTreeSet<String> =
+                estimator.covered_state_ids.iter().cloned().collect();
+            if covered.len() != estimator.covered_state_ids.len() {
+                errors.push(format!("{context}: estimator covered_state_ids contains duplicates"));
+            }
+            if covered.iter().any(|state_id| !required_set.contains(state_id)) {
+                errors.push(format!("{context}: estimator scope references a non-required state"));
+            }
+        }
         let estimator_qualified_states = estimator.as_ref().map_or_else(
             BTreeSet::new,
             |estimator| {
@@ -1085,6 +1121,25 @@ mod tests {
         assert!(errors
             .iter()
             .any(|error| error.contains("not_used estimator must have an empty covered_state_ids set")));
+    }
+
+    #[test]
+    fn estimator_scope_cannot_name_a_non_required_state_even_when_not_used() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][0]["numerical_estimator"]["covered_state_ids"] =
+            json!(["unregistered_state"]);
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("estimator scope must be part of the required state universe");
+        assert!(errors.iter().any(|error| error.contains("non-required state")));
+    }
+
+    #[test]
+    fn missing_topology_identity_is_rejected() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][0]["topology"]["topology_ref"] = Value::Null;
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("topology identity is mandatory");
+        assert!(errors.iter().any(|error| error.contains("topology_ref")));
     }
 
 }
