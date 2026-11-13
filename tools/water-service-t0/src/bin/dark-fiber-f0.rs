@@ -83,6 +83,11 @@ fn run() -> Result<i32, String> {
         .is_some_and(Vec::is_empty);
     let success = total == 10 && matched == 10 && no_mismatches;
 
+    let lock_path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+
     let raw_revision = env::var("DARK_FIBER_F0_REVISION")
         .or_else(|_| env::var("GITHUB_SHA"))
         .ok();
@@ -102,6 +107,7 @@ fn run() -> Result<i32, String> {
         "oracle_sha256": sha256(&oracle_bytes),
         "schema_sha256": sha256(&schema_bytes),
         "manifest_sha256": sha256(&manifest_bytes),
+        "cargo_lock_sha256": sha256(&lock_bytes),
         "result_count": total,
         "matched_case_count": matched,
         "mismatches": evaluation["mismatches"].clone(),
