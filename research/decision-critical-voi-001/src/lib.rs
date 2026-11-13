@@ -285,6 +285,7 @@ fn checked_latest_completion(context: &DecisionContext) -> Result<u64, Rejection
 fn expected_loss_after(
     candidate: &QueryCandidate,
     current_action_ids: &BTreeSet<String>,
+    current_best_action_id: &str,
 ) -> Result<(u128, u64, u64), Vec<RejectionReason>> {
     if candidate.outcomes.is_empty() {
         return Err(vec![RejectionReason::EmptyOutcomeDistribution]);
@@ -308,6 +309,11 @@ fn expected_loss_after(
                     .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?,
             )
             .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
+        if best_action != current_best_action_id {
+            action_change_probability = action_change_probability
+                .checked_add(u64::from(outcome.probability_ppm))
+                .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])?;
+        }
     }
     if probability_total != PROBABILITY_SCALE_PPM {
         return Err(vec![RejectionReason::InvalidProbabilityMass]);
@@ -318,28 +324,7 @@ fn expected_loss_after(
         / u128::from(PROBABILITY_SCALE_PPM);
     let expected_loss_units =
         u64::try_from(rounded_up).map_err(|_| vec![RejectionReason::ArithmeticOverflow])?;
-    // The probability of an action change is a separate diagnostic. It is
-    // reconstructed from the same outcome distribution by the caller.
-    let _ = current_action_ids;
     Ok((loss_numerator, expected_loss_units, action_change_probability))
-}
-
-fn action_change_probability_ppm(
-    candidate: &QueryCandidate,
-    current_best_action_id: &str,
-) -> Result<u64, Vec<RejectionReason>> {
-    candidate
-        .outcomes
-        .iter()
-        .try_fold(0_u64, |sum, outcome| {
-            let (best_action, _) = argmin_action(&outcome.action_estimates)?;
-            if best_action == current_best_action_id {
-                Ok(sum)
-            } else {
-                sum.checked_add(u64::from(outcome.probability_ppm))
-                    .ok_or_else(|| vec![RejectionReason::ArithmeticOverflow])
-            }
-        })
 }
 
 fn candidate_reasons(
@@ -536,12 +521,18 @@ pub fn allocate(request: &DecisionRequest) -> Result<DecisionReport, Vec<Rejecti
             reasons.insert(RejectionReason::DuplicateQueryId);
         }
 
-        let expected = expected_loss_after(candidate, &current_actions);
-        let (loss_numerator, expected_after) = match expected {
-            Ok((numerator, after, _)) => (Some(numerator), Some(after)),
+        let expected = expected_loss_after(
+            candidate,
+            &current_actions,
+            &baseline_best_action_id,
+        );
+        let (loss_numerator, expected_after, change_probability) = match expected {
+            Ok((numerator, after, change_probability)) => {
+                (Some(numerator), Some(after), change_probability)
+            }
             Err(errors) => {
                 reasons.extend(errors);
-                (None, None)
+                (None, None, 0)
             }
         };
         if expected_after.is_some_and(|after| after >= baseline_loss) {
@@ -551,16 +542,6 @@ pub fn allocate(request: &DecisionRequest) -> Result<DecisionReport, Vec<Rejecti
         if reduction == Some(0) {
             reasons.insert(RejectionReason::ZeroDecisionValue);
         }
-        let change_probability = match action_change_probability_ppm(
-            candidate,
-            &baseline_best_action_id,
-        ) {
-            Ok(value) => value,
-            Err(errors) => {
-                reasons.extend(errors);
-                0
-            }
-        };
         let completion = context
             .decision_timestamp_us
             .checked_add(candidate.latency_bound_us);
