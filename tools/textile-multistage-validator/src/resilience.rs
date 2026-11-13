@@ -693,6 +693,7 @@ mod tests {
         UtilityConsumerKey, UtilityConsumerKind, UtilityConsumerProfile, UtilityEnvelope,
         UtilityEvidenceKind, UtilityRate,
     };
+    use crate::{Operator, SetupReservation, SetupRule};
 
     fn basis(id: &str) -> UtilityEvidenceBasis {
         UtilityEvidenceBasis {
@@ -702,6 +703,69 @@ mod tests {
             method_ref: "synthetic-test-method-v1".to_owned(),
             calibration_id: None,
         }
+    }
+
+    fn setup_in_progress_case() -> (Problem, Schedule) {
+        let (mut problem, mut schedule) = two_job_four_stage_case();
+
+        for operation in &mut problem.operations {
+            if operation.job_id == "job-b" {
+                operation.product_family = "cotton".to_owned();
+            }
+        }
+
+        for machine in &mut problem.machines {
+            let is_cutter = machine.id == "cut-line";
+            machine.setup_rules.push(SetupRule {
+                from_family: "woven".to_owned(),
+                to_family: "cotton".to_owned(),
+                duration_ticks: if is_cutter { 2 } else { 0 },
+                required_operator_skill: is_cutter.then(|| "changeover".to_owned()),
+                required_operator_certification: is_cutter
+                    .then(|| "changeover-qualified".to_owned()),
+            });
+        }
+
+        problem.operators.push(Operator {
+            id: "setup-tech".to_owned(),
+            skills: ["changeover".to_owned()].into_iter().map(str::to_owned).collect(),
+            certifications: ["changeover-qualified".to_owned()]
+                .into_iter()
+                .map(str::to_owned)
+                .collect(),
+            availability: vec![Interval {
+                start_tick: 0,
+                end_tick: 30,
+            }],
+        });
+
+        for (operation_id, start_tick, finish_tick) in [
+            ("cut-b", 7, 9),
+            ("sew-b", 9, 13),
+            ("finish-b", 13, 15),
+            ("inspect-b", 15, 16),
+        ] {
+            let assignment = schedule
+                .assignments
+                .iter_mut()
+                .find(|assignment| assignment.operation_id == operation_id)
+                .unwrap();
+            assignment.start_tick = start_tick;
+            assignment.finish_tick = finish_tick;
+        }
+
+        schedule.setup_reservations.push(SetupReservation {
+            machine_id: "cut-line".to_owned(),
+            from_family: "woven".to_owned(),
+            to_family: "cotton".to_owned(),
+            predecessor_operation_id: Some("cut-a".to_owned()),
+            next_operation_id: "cut-b".to_owned(),
+            operator_id: "setup-tech".to_owned(),
+            start_tick: 3,
+            finish_tick: 5,
+        });
+
+        (problem, schedule)
     }
 
     fn full_utility_model() -> UtilityModel {
@@ -1087,6 +1151,57 @@ mod tests {
         assert_eq!(
             error,
             ResilienceError::DisruptionInterruptsInProgressOperation("cut-b".to_owned())
+        );
+    }
+
+    #[test]
+    fn machine_or_operator_disruption_cannot_erase_started_setup_reservation() {
+        let (problem, baseline) = setup_in_progress_case();
+
+        let machine_error = evaluate_replan(
+            &problem,
+            &baseline,
+            &baseline,
+            &DisruptionScenario {
+                scenario_id: "machine-outage-during-setup".to_owned(),
+                observed_at_tick: 4,
+                events: vec![Disruption::MachineUnavailable {
+                    machine_id: "cut-line".to_owned(),
+                    interval: Interval {
+                        start_tick: 4,
+                        end_tick: 6,
+                    },
+                }],
+            },
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(
+            machine_error,
+            ResilienceError::DisruptionInterruptsInProgressSetup("cut-b".to_owned())
+        );
+
+        let operator_error = evaluate_replan(
+            &problem,
+            &baseline,
+            &baseline,
+            &DisruptionScenario {
+                scenario_id: "setup-operator-absence".to_owned(),
+                observed_at_tick: 4,
+                events: vec![Disruption::OperatorUnavailable {
+                    operator_id: "setup-tech".to_owned(),
+                    interval: Interval {
+                        start_tick: 4,
+                        end_tick: 6,
+                    },
+                }],
+            },
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(
+            operator_error,
+            ResilienceError::DisruptionInterruptsInProgressSetup("cut-b".to_owned())
         );
     }
 
