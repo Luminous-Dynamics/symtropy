@@ -1,0 +1,201 @@
+{
+  "schema_version": "suf.fibre_chainage_calibration_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "claim_ceiling": "Synthetic calibration campaign plan only. No physical survey, calibration implementation, field route, DAS reproduction or measured accuracy is claimed.",
+  "coordinate_axes": [
+    "optical_range_m",
+    "physical_fibre_chainage_m",
+    "route_station_m",
+    "geographic_position",
+    "asset_attribution"
+  ],
+  "scenarios": [
+    {
+      "id": "FCAL-001",
+      "scenario_type": "KNOWN_OPTICAL_PATH",
+      "name": "Known lab path with independent length reference",
+      "expected_disposition": "Accepted",
+      "conditions": "Known endpoint, measured patch leads, known physical fibre path and independent length truth.",
+      "perturbations": [
+        "known_optical_path"
+      ],
+      "oracle_requirement": "Compare optical range and physical fibre chainage; preserve residuals and uncertainty."
+    },
+    {
+      "id": "FCAL-002",
+      "scenario_type": "SURVEYED_ROUTE_ANCHORS",
+      "name": "Surveyed route anchors with declared CRS",
+      "expected_disposition": "Accepted",
+      "conditions": "Known fibre route; independently surveyed tie points; declared horizontal CRS and vertical datum status.",
+      "perturbations": [
+        "surveyed_route_anchors"
+      ],
+      "oracle_requirement": "Calculate route-station and geographic residuals against independent survey truth."
+    },
+    {
+      "id": "FCAL-003",
+      "scenario_type": "PATCH_LEAD_OFFSET",
+      "name": "Patch lead and launch offset not represented",
+      "expected_disposition": "Rejected",
+      "conditions": "Interrogator reports optical range but input omits known patch/launch lead offset.",
+      "perturbations": [
+        "patch_lead_offset"
+      ],
+      "oracle_requirement": "Do not issue physical fibre chainage or geography until the offset is accounted for."
+    },
+    {
+      "id": "FCAL-004",
+      "scenario_type": "SLACK_AND_COILS",
+      "name": "Slack loops and service coils",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Fibre includes unmeasured slack loops and coils that decouple optical length from route distance.",
+      "perturbations": [
+        "slack_and_coils"
+      ],
+      "oracle_requirement": "Preserve alternative path-length hypotheses and require a measurement or bound before high-confidence placement."
+    },
+    {
+      "id": "FCAL-005",
+      "scenario_type": "ENDPOINT_REVERSAL",
+      "name": "Fibre endpoint direction reversed",
+      "expected_disposition": "Rejected",
+      "conditions": "Calibration expects endpoint A to B but the actual interrogator path is reversed.",
+      "perturbations": [
+        "endpoint_reversal"
+      ],
+      "oracle_requirement": "Reject the geographic transform and preserve the raw chainage reference only."
+    },
+    {
+      "id": "FCAL-006",
+      "scenario_type": "STALE_SPLICE_TOPOLOGY",
+      "name": "Splice changed after approved calibration",
+      "expected_disposition": "Rejected",
+      "conditions": "A splice or reroute changed physical optical path while an older calibration remains referenced.",
+      "perturbations": [
+        "stale_splice_topology"
+      ],
+      "oracle_requirement": "Invalidate all dependent transforms and observations for geographic use; retain old revision for replay."
+    },
+    {
+      "id": "FCAL-007",
+      "scenario_type": "BRANCHED_PATH",
+      "name": "Branched or multiplexed optical topology",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Several fibre spans or branches share an interrogator path and mapping is not unique.",
+      "perturbations": [
+        "branched_path"
+      ],
+      "oracle_requirement": "Retain candidate span/path alternatives; do not invent a single physical route."
+    },
+    {
+      "id": "FCAL-008",
+      "scenario_type": "MISSING_CRS",
+      "name": "Missing horizontal CRS or axis-order metadata",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Survey coordinates exist but CRS or axis-order metadata is absent.",
+      "perturbations": [
+        "missing_crs"
+      ],
+      "oracle_requirement": "Allow fibre-relative or survey-local result only; no geographic coordinate."
+    },
+    {
+      "id": "FCAL-009",
+      "scenario_type": "AXIS_SWAP",
+      "name": "Latitude/longitude or easting/northing axis swap",
+      "expected_disposition": "Rejected",
+      "conditions": "Input geometry axis order conflicts with declared CRS and known control points.",
+      "perturbations": [
+        "axis_swap"
+      ],
+      "oracle_requirement": "Detect the mismatch with independent control; reject transform rather than silently swapping values."
+    },
+    {
+      "id": "FCAL-010",
+      "scenario_type": "VERTICAL_DATUM_MISMATCH",
+      "name": "Incompatible vertical datum or coordinate epoch",
+      "expected_disposition": "Indeterminate",
+      "conditions": "3D geometry combines incompatible vertical reference or coordinate epoch without a verified transform.",
+      "perturbations": [
+        "vertical_datum_mismatch"
+      ],
+      "oracle_requirement": "Do not present a 3D position as comparable; require appropriate datum/epoch transformation."
+    },
+    {
+      "id": "FCAL-011",
+      "scenario_type": "SPARSE_ANCHORS",
+      "name": "Insufficient survey anchors for route curvature",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Sparse tie points do not constrain a curved or multi-turn route to the claimed uncertainty.",
+      "perturbations": [
+        "sparse_anchors"
+      ],
+      "oracle_requirement": "Widen uncertainty or request additional anchors; do not extrapolate an unjustified precision."
+    },
+    {
+      "id": "FCAL-012",
+      "scenario_type": "SELF_NEAR_ROUTE",
+      "name": "Self-near or overlapping route geometry",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Two route sections are geographically close but distinct in topology and chainage.",
+      "perturbations": [
+        "self_near_route"
+      ],
+      "oracle_requirement": "Use route topology and independent identity; spatial proximity alone cannot identify the correct span."
+    },
+    {
+      "id": "FCAL-013",
+      "scenario_type": "REPAIRED_AND_RECALIBRATED",
+      "name": "Repair with new as-built and new calibration",
+      "expected_disposition": "Accepted",
+      "conditions": "A repair changes fibre path; new as-built survey, endpoint identity, route revision and calibration receipt are present.",
+      "perturbations": [
+        "repaired_and_recalibrated"
+      ],
+      "oracle_requirement": "Accept only against the new revision; preserve explicit supersession and independent check."
+    },
+    {
+      "id": "FCAL-014",
+      "scenario_type": "UNKNOWN_ASSET_IDENTITY",
+      "name": "Route position known but owner asset unresolved",
+      "expected_disposition": "Unsupported",
+      "conditions": "Geographic location is calibrated but no owner-issued identity or permitted asset association exists.",
+      "perturbations": [
+        "unknown_asset_identity"
+      ],
+      "oracle_requirement": "Report geographic observation without attributing it to a specific cable, duct or owner asset."
+    },
+    {
+      "id": "FCAL-015",
+      "scenario_type": "UNCERTAINTY_UNDERCOVERAGE",
+      "name": "Nominal uncertainty intervals under-cover independent truth",
+      "expected_disposition": "Rejected",
+      "conditions": "Held-out independent control points fall outside claimed 95 percent intervals more often than allowed by pre-registered acceptance criteria.",
+      "perturbations": [
+        "uncertainty_undercoverage"
+      ],
+      "oracle_requirement": "Fail uncertainty qualification; do not make high-confidence geography claims."
+    },
+    {
+      "id": "FCAL-016",
+      "scenario_type": "FIBRE_ID_COLLISION",
+      "name": "Same chainage value from different fibre identities",
+      "expected_disposition": "Rejected",
+      "conditions": "Two distinct fibre IDs produce the same numeric chainage and one is incorrectly selected by value alone.",
+      "perturbations": [
+        "fibre_id_collision"
+      ],
+      "oracle_requirement": "Require exact fibre identity and revision binding; chainage is not globally unique."
+    }
+  ],
+  "global_controls": [
+    "Optical range, physical fibre chainage, route station, geographic position and asset attribution are distinct claims.",
+    "Every transform is bound to exact fibre identity, route revision, interrogator configuration, endpoint and direction.",
+    "A missing, stale or incompatible transform cannot yield a high-confidence geographic coordinate.",
+    "Independent truth must not be generated by the candidate calibration algorithm.",
+    "Route topology and asset identity cannot be inferred from geometric proximity alone.",
+    "Superseded transformations remain immutable and are retained for replay.",
+    "Uncertainty and calibration interval coverage are evaluated on held-out independent controls.",
+    "Synthetic campaign plans are not measured observations or field survey results."
+  ]
+}
