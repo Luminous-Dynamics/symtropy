@@ -26,7 +26,16 @@
     "repair_recalibration_downtime",
     "cost_per_qualified_observable_km_year",
     "cost_per_accepted_actionable_event",
-    "common_cause_recovery"
+    "common_cause_recovery",
+    "failure_domain_independence",
+    "common_cause_cut_set_coverage",
+    "calibration_gauge_freedom_detection",
+    "as_built_reconciliation_time",
+    "rights_revocation_response",
+    "discounted_lifecycle_cost",
+    "capex_opex_separation",
+    "requalification_impact_completeness",
+    "evsi_per_survey_anchor"
   ],
   "scenarios": [
     {
@@ -248,6 +257,94 @@
         "public_geometry_disclosure"
       ],
       "oracle_requirement": "Return generalized output and deny restricted geometry."
+    },
+    {
+      "id": "OBD-021",
+      "scenario_type": "COMMON_CAUSE_CLOCK_FAILURE",
+      "name": "Redundant sensors share one failed clock",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Two sensing paths share a clock source that loses synchronization or drifts beyond the allowed bound.",
+      "perturbations": [
+        "common_clock_failure"
+      ],
+      "oracle_requirement": "Expose temporal-association degradation; do not count same-clock channels as independent evidence."
+    },
+    {
+      "id": "OBD-022",
+      "scenario_type": "AS_BUILT_DRIFT",
+      "name": "Installed route differs from the planned CAD/BIM geometry",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Construction as-built differs from the design geometry and no post-install survey has reconciled it.",
+      "perturbations": [
+        "as_built_drift"
+      ],
+      "oracle_requirement": "Require independent as-built survey/control before accepting the route calibration."
+    },
+    {
+      "id": "OBD-023",
+      "scenario_type": "REPAIR_INVALIDATION",
+      "name": "Repair changes splice, endpoint or fibre route",
+      "expected_disposition": "Accepted",
+      "conditions": "Change record is complete and identifies affected fibre, route and interrogator revisions.",
+      "perturbations": [
+        "repair_invalidation"
+      ],
+      "oracle_requirement": "Invalidate dependent transforms and restore only after a new accepted calibration receipt."
+    },
+    {
+      "id": "OBD-024",
+      "scenario_type": "NO_COMMON_COST_UNIT",
+      "name": "Economic cost and residual risk have incomparable units",
+      "expected_disposition": "Unsupported",
+      "conditions": "Design cost is expressed in currency while consequence/risk lacks an agreed conversion or utility function.",
+      "perturbations": [
+        "incomparable_cost_units"
+      ],
+      "oracle_requirement": "Show separate cost, risk and Pareto dimensions; suppress a scalar net-value ranking."
+    },
+    {
+      "id": "OBD-025",
+      "scenario_type": "COMMON_CAUSE_FLOODING",
+      "name": "Flood disables fibre, access node and local power together",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Nominally separate sensing components share a flood exposure and no independent backup exists.",
+      "perturbations": [
+        "common_cause_flooding"
+      ],
+      "oracle_requirement": "Model common-cause loss and blind duration rather than assuming independent sensor availability."
+    },
+    {
+      "id": "OBD-026",
+      "scenario_type": "CALIBRATION_ANCHOR_GAUGE_FREEDOM",
+      "name": "Anchor geometry leaves rotation or scale unresolved",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Available control points are collinear, clustered or insufficient for the transform being estimated.",
+      "perturbations": [
+        "anchor_gauge_freedom"
+      ],
+      "oracle_requirement": "Expose rank deficiency or multiple solutions and request an informative independent anchor."
+    },
+    {
+      "id": "OBD-027",
+      "scenario_type": "POINT_SENSOR_WINS",
+      "name": "Point-sensor alternative meets requirements at lower lifecycle cost",
+      "expected_disposition": "Accepted",
+      "conditions": "A matched independent trial shows point sensors meet the event-class service requirement and DAS adds no material decision value.",
+      "perturbations": [
+        "point_sensor_wins"
+      ],
+      "oracle_requirement": "Allow A4/A5 or conventional design to dominate DAS alternatives in the Pareto comparison."
+    },
+    {
+      "id": "OBD-028",
+      "scenario_type": "OWNER_RIGHTS_CHANGE",
+      "name": "Fibre access rights are revoked during lifecycle",
+      "expected_disposition": "Rejected",
+      "conditions": "Owner revokes access or changes permitted purpose while the platform still holds technical connectivity.",
+      "perturbations": [
+        "owner_rights_revoked"
+      ],
+      "oracle_requirement": "Stop acquisition/serving immediately under policy and preserve a bounded audit record without continuing data collection."
     }
   ],
   "global_controls": [
