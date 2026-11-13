@@ -1,0 +1,36 @@
+name: WPT Pose Set Calibration
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/wpt-pose-calibration-v0/**"
+      - "tools/wpt-pose-calibration/**"
+      - ".github/workflows/wpt-pose-calibration.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/wpt-pose-calibration-v0/**"
+      - "tools/wpt-pose-calibration/**"
+      - ".github/workflows/wpt-pose-calibration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test finite-sample pose-set calibration
+        run: cargo test --locked --manifest-path tools/wpt-pose-calibration/Cargo.toml
+      - name: Evaluate V-guide contact-stratum calibration
+        run: cargo run --locked --manifest-path tools/wpt-pose-calibration/Cargo.toml -- research/wpt-pose-calibration-v0/v-guide-calibration.tsv research/wpt-pose-calibration-v0/v-guide-inference.tsv
+      - name: Evaluate shift-detected negative control
+        run: cargo run --locked --manifest-path tools/wpt-pose-calibration/Cargo.toml -- research/wpt-pose-calibration-v0/v-guide-calibration.tsv research/wpt-pose-calibration-v0/shift-detected-inference.tsv
