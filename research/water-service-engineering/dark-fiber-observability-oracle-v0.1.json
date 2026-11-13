@@ -1,0 +1,129 @@
+{
+  "schema_version": "dark-fiber-observability-oracle-v0.1",
+  "evidence_class": "synthetic_geometry_only",
+  "evidence_ceiling": "route_geometry_screening_only_no_sensing_sensitivity_or_leak_detection_claim",
+  "independently_reviewed_expected_outputs": true,
+  "cases": [
+    {
+      "case_id": "DF0-001-clear-geometric-candidate",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 1000,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "COUPLING_NOT_QUALIFIED",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-002-outside-geometric-screen",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "OUTSIDE_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 0,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "COUPLING_NOT_QUALIFIED",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-003-uncertainty-crosses-screen",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "INDETERMINATE_GEOMETRY",
+        "geometric_candidate_length_m": 0,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "COUPLING_NOT_QUALIFIED",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-004-fibre-offline",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 500,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "UNOBSERVED_FIBRE_OFFLINE",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-005-route-map-missing",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "INDETERMINATE_GEOMETRY",
+        "geometric_candidate_length_m": 0,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "UNOBSERVED_ROUTE_MAPPING_MISSING",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-006-shared-corridor-asset-ambiguity",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 1200,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": true,
+        "route_status": "ASSET_ATTRIBUTION_AMBIGUOUS",
+        "leak_absence_claim_allowed": false,
+        "unique_asset_localization_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-007-geometric-candidate-but-coupling-unqualified",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 900,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "COUPLING_NOT_QUALIFIED",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-008-valid-geometry-and-coupling-but-no-acquisition",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 600,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": true,
+        "route_status": "NO_CURRENT_MEASUREMENT_ACQUISITION",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-009-valid-geometry-coupling-and-acquisition",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 300,
+        "observed_sensing_length_m": 300,
+        "physical_sensing_qualified": true,
+        "route_status": "OBSERVED_WITHIN_PROFILE",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "DF0-010-rayleigh-fading-or-interrogator-quality-fault",
+      "family": "F0_ROUTE_GEOMETRY",
+      "expected": {
+        "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
+        "geometric_candidate_length_m": 400,
+        "observed_sensing_length_m": 0,
+        "physical_sensing_qualified": false,
+        "route_status": "UNOBSERVED_SIGNAL_QUALITY_FAULT",
+        "leak_absence_claim_allowed": false
+      }
+    }
+  ]
+}
