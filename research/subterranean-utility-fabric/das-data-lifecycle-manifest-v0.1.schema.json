@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/das-data-lifecycle-manifest-v0.1.schema.json",
+  "title": "SUF DAS data-lifecycle scenario manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_date",
+    "workstream",
+    "claim_ceiling",
+    "strategies",
+    "metrics",
+    "scenarios",
+    "global_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.das_data_lifecycle_manifest.v0.1"
+    },
+    "status": {
+      "const": "synthetic_campaign_plan_only"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "workstream": {
+      "const": "DAS-DATA-LIFECYCLE-QUAL-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "strategies": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "scenario_type",
+          "name",
+          "expected_disposition",
+          "conditions",
+          "perturbations",
+          "oracle_requirement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DLC-[0-9]{3}$"
+          },
+          "scenario_type": {
+            "type": "string",
+            "minLength": 3
+          },
+          "name": {
+            "type": "string",
+            "minLength": 5
+          },
+          "expected_disposition": {
+            "enum": [
+              "Accepted",
+              "Rejected",
+              "Indeterminate",
+              "Unsupported"
+            ]
+          },
+          "conditions": {
+            "type": "string",
+            "minLength": 10
+          },
+          "perturbations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "oracle_requirement": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "global_controls": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    }
+  }
+}
