@@ -309,7 +309,17 @@ pub fn payload_sha256(input: &[u8]) -> Result<String, WireError> {
     let value = parse_strict_json(input)?;
     let payload = canonical_payload_bytes(&value)?;
     let digest = Sha256::digest(payload);
-    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+    Ok(lowercase_hex(&digest))
+}
+
+fn lowercase_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
 }
 
 fn integrity_digest<'a>(integrity: &'a [(String, JsonValue)]) -> Result<&'a str, WireError> {
@@ -368,10 +378,7 @@ pub fn validate_receipt(input: &[u8]) -> Result<ValidatedReceipt, WireError> {
     }
     let expected = integrity_digest(integrity)?.to_owned();
     let payload = canonical_payload_bytes(&value)?;
-    let observed = Sha256::digest(payload)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
+    let observed = lowercase_hex(&Sha256::digest(payload));
     if observed != expected {
         return Err(WireError::DigestMismatch {
             expected,
