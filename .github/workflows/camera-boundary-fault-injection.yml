@@ -44,8 +44,30 @@ jobs:
           ref: dcac610924970a4f22af1d6644c9835285056714
           path: symthaea
 
-      - name: Build the pinned Symthaea camera-driving bridge
+      - name: Build the pinned Symthaea camera-driving bridge (strict lockfile gate)
         run: cargo build --locked --manifest-path symthaea/crates/bridges/symthaea-camera-driving-bridge/Cargo.toml --bin camera-driving-bridge
+
+      # Diagnostic only: preserve the strict --locked failure above, then let
+      # Cargo produce an ephemeral lockfile delta for reconciliation into the
+      # pinned Symthaea PR. This step cannot turn a failed lock gate green.
+      - name: Diagnose pinned Symthaea lockfile drift without weakening the gate
+        if: failure()
+        continue-on-error: true
+        run: |
+          cargo build --manifest-path symthaea/crates/bridges/symthaea-camera-driving-bridge/Cargo.toml --bin camera-driving-bridge
+          git -C symthaea diff -- Cargo.lock > "${RUNNER_TEMP}/symthaea-Cargo.lock.diff"
+          cp symthaea/Cargo.lock "${RUNNER_TEMP}/symthaea-Cargo.lock.regenerated"
+
+      - name: Preserve lockfile diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: symthaea-lockfile-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/symthaea-Cargo.lock.diff
+            ${{ runner.temp }}/symthaea-Cargo.lock.regenerated
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Download immutable #4618 renderer-to-bridge source episode
         uses: actions/download-artifact@v4
