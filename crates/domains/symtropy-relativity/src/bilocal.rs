@@ -481,7 +481,6 @@ impl CanonicalCovariantEndpointMap {
     }
 }
 
-
 /// Integrate the first-order BGO equation for a constant symmetric tidal matrix.
 ///
 /// The frame is declared orthonormal and parallel-propagated, the state is
@@ -550,8 +549,7 @@ pub fn integrate_constant_tidal_fixed_step(
         let mut result = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
         for row in 0..STATE_DIMENSION {
             for column in 0..STATE_DIMENSION {
-                result[row][column] =
-                    derivative[row][column].mul_add(scale, state[row][column]);
+                result[row][column] = derivative[row][column].mul_add(scale, state[row][column]);
             }
         }
         result
