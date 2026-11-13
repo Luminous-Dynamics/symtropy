@@ -72,7 +72,7 @@ A direct state is only credited when at least one channel is available, correctl
 
 A structural result may be used only when the certificate's topology revision and digest match the scenario exactly and the required state mapping is complete.
 
-An estimator may be labelled `synthetic_qualified_contract` only with explicit model scope, calibration, holdout and OOD references, plus the v0.1 synthetic thresholds:
+An estimator may be labelled `synthetic_qualified_contract` only with explicit model scope, calibration, holdout and OOD references, plus an explicit list of state IDs covered by the estimator and the v0.1 synthetic thresholds:
 - empirical interval coverage at least 0.85 and no more than 0.95;
 - at least 200 calibration/held-out samples in the fixture;
 - maximum interval width no greater than 0.20;
