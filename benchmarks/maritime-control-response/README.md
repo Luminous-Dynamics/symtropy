@@ -259,7 +259,7 @@ These are better than aggregate SOTA labels: they are exact test cells where a n
 
 The preregistered targets are: at least **+2.00 absolute official-score points over 88.01%** on a matched protocol, while keeping FAR at or below 7.86%; p95 event confirmation latency at or below 0.50 seconds at the same false-alarm budget; and zero startup-fault episodes absorbed into the healthy baseline. These are ambitions, not measured results. All 12 per-condition cells must be reported so that an aggregate score cannot conceal failures like the published `f_pim -10%` and `f_pic +8%` cases.
 
-## ## Published DX2026 boundary red-team suite
+## Published DX2026 boundary red-team suite
 
 The publication's overall 88.01% score hides condition-specific failures. The new [dx2026-boundary-falsification-v0.1.json](dx2026-boundary-falsification-v0.1.json) turns the three most informative published cells into source-bound *synthetic envelope counterexamples*:
 
@@ -284,6 +284,8 @@ The 90-second adaptation warm-up exposes a structural conflict: a system needs t
 5. **Separate activation authority:** this module has no baseline-commit or activation function. Replacing the live reference requires a separate owner decision, rollback evidence and full prior-regime regression tests.
 
 The default stress protocol uses 1,800 samples (90 seconds at 20 Hz) but unlike a blind warm-up, the old detector remains live for the entire period. This is a shadow evidence-acquisition window, not a diagnosis blackout. The v2 shadow receipt digest now covers baseline/model/regime identity, sample and input receipt, residual, regime/signal/command/timing decisions, dependency-health state and digest, all known/unknown/ambiguous alarms, and the previous receipt link. `validate_shadow_receipt_chain` replays the complete content and ordering; field changes are reported as digest failures before semantic admission checks. The digest still does not authenticate upstream issuers or prove physical health. The current code and synthetic tests are authored but have not been compiled or physically validated.
+
+The joint hypothesis-scenario posterior constructor also binds the separately supplied candidate to the exact candidate manifest in the replayed selected catalogue, rather than trusting matching candidate IDs. A synthetic regression case rejects a same-ID candidate whose manifest differs; the source change still awaits exact-head compilation.
 ## Report beyond the leaderboard
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
@@ -294,8 +296,9 @@ A test bench with one engine supports within-engine drive-cycle/magnitude genera
 
 ## Claim boundaries and next steps
 
-- The LiU-ICE training ZIP has not been retrieved or audited here. The Marine Engine Fault ZIP was downloaded by GitHub Actions, its publisher-reported size and MD5 were matched, and its 18 CSV entries were safely extracted. The exact file audit and machine-readable receipt are still pending. No trained model score, competition score or external-dataset validation score is claimed.
-- The LiU-ICE public landing page does not establish an archive redistribution licence. The Marine Engine Fault Zenodo record lists CC BY 4.0, but archive notices and bytes remain unaudited. Do not redistribute either archive until the applicable source terms are checked.
+- The LiU-ICE training ZIP has not been retrieved or audited in this workstream. No LiU-ICE archive SHA, trained model score or competition score is claimed.
+- The Marine Engine Fault archive **was** audited successfully by exact-head GitHub Actions run [43377608370](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370) (#168) at source commit `153250ea314270f955c77dd1c8801ddf4af04615`. That run verified the publisher-reported 26,538,633-byte size and MD5, computed SHA-256 `3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b`, safely extracted the archive without executing publisher scripts, parsed all 16 recording CSVs, verified baseline/scenario 70/73-column schemas and strictly increasing time in seconds, and recorded five runs with two absent channels. It also ran 121 Rust tests with 0 failures at that earlier commit. The audit artifact is [14014574182](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182). The current PR head is 17 commits after that audit commit; `src/csv_audit.rs` and the archive-audit package configuration were unchanged in that interval, but other Rust modules and protocol code did change. The earlier audit is therefore archive-payload evidence, **not** an exact-current-head build/test pass.
+- The Zenodo record lists the archive under CC BY 4.0. Preserve the source and attribution terms for any redistribution; do not assume that the separate LiU-ICE archive has the same licence. No model has been trained or scored on the Marine Engine Fault data; the six subsequent evaluation tracks remain unexecuted.
 - Inspect the archive, variable dictionary, sampling/time semantics, data completeness and fault-label rules before freezing feature and split manifests.
 - Compare published baselines only under a recovered, matched protocol. Mark unreproduced paper scores as literature references.
 - Physical validation requires permissioned synchronized controller intent, independently measured actuator feedback and physical plant response from an engine testbed, with an independently reviewed I/O map.
