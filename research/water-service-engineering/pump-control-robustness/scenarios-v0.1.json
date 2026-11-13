@@ -40,7 +40,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Nominal fully observed synthetic run."
+      "note": "Nominal fully observed synthetic run.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-001",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-002",
@@ -64,7 +90,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Demand increases by 25% within the illustrative synthetic operating envelope."
+      "note": "Demand increases by 25% within the illustrative synthetic operating envelope.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-002",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-003",
@@ -72,8 +124,8 @@
       "measurement_state": "partial_with_qualified_estimator",
       "direct_state_coverage_fraction": 0.5,
       "unobserved_critical_variables": [
-        "junction_pressure_2",
-        "tank_level_2"
+        "tank_level_2",
+        "junction_pressure_2"
       ],
       "demand_peak_factor": 1,
       "disturbances": [
@@ -91,7 +143,31 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Half of regulated state variables lack direct sensors; a separately qualified estimator supplies conservative bounds."
+      "note": "Half of regulated state variables lack direct sensors; a separately qualified estimator supplies conservative bounds.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "junction_pressure_1"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "synthetic_contract_only",
+        "estimator_ref": "SYNTHETIC-ESTIMATOR-WCR-003",
+        "calibration_ref": "SYNTHETIC-CALIBRATION-RECEIPT-WCR-003",
+        "uncertainty_profile_ref": "SYNTHETIC-UNCERTAINTY-PROFILE-WCR-003",
+        "validity_scope": "single_scenario_fixture_only",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-003",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-004",
@@ -99,16 +175,16 @@
       "measurement_state": "partial_unqualified",
       "direct_state_coverage_fraction": 0.5,
       "unobserved_critical_variables": [
-        "junction_pressure_2",
-        "tank_level_2"
+        "tank_level_2",
+        "junction_pressure_2"
       ],
       "demand_peak_factor": 1,
       "disturbances": [],
-      "expected_disposition": "abstain_or_local_fallback",
+      "expected_disposition": "abstain_supervisory",
       "required_behaviors": [
         "mark critical state as unknown or degraded",
-        "do not issue a new supervisory command from untrusted state",
-        "invoke only separately qualified local policy or interlock"
+        "do not issue a new supervisory command",
+        "preserve independently available local protection without claiming it is qualified in physical hardware"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -116,7 +192,31 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Critical variables are unobserved and no qualified estimator evidence is available."
+      "note": "Critical variables are unobserved and no qualified estimator evidence is available.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "junction_pressure_1"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "unverified",
+        "local_interlock_ref": null,
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-005",
@@ -143,7 +243,32 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "One critical pressure channel is missing; fallback estimation must carry a bound and freshness receipt."
+      "note": "One critical pressure channel is missing; fallback estimation must carry a bound and freshness receipt.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "synthetic_contract_only",
+        "estimator_ref": "SYNTHETIC-ESTIMATOR-WCR-005",
+        "calibration_ref": "SYNTHETIC-CALIBRATION-RECEIPT-WCR-005",
+        "uncertainty_profile_ref": "SYNTHETIC-UNCERTAINTY-PROFILE-WCR-005",
+        "validity_scope": "single_scenario_fixture_only",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-005",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-006",
@@ -155,11 +280,11 @@
       "disturbances": [
         "pressure_sensor_bias_plus_5_percent_full_scale"
       ],
-      "expected_disposition": "abstain_or_local_fallback",
+      "expected_disposition": "abstain_supervisory",
       "required_behaviors": [
         "mark critical state as unknown or degraded",
-        "do not issue a new supervisory command from untrusted state",
-        "invoke only separately qualified local policy or interlock"
+        "do not issue a new supervisory command",
+        "preserve independently available local protection without claiming it is qualified in physical hardware"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -167,7 +292,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "One pressure sensor is biased by +5% full scale; independent cross-check or qualified fault detection is required."
+      "note": "One pressure sensor is biased by +5% full scale; independent cross-check or qualified fault detection is required.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-006",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-007",
@@ -179,11 +330,11 @@
       "disturbances": [
         "common_mode_pressure_bias_plus_3_percent_full_scale"
       ],
-      "expected_disposition": "abstain_or_local_fallback",
+      "expected_disposition": "abstain_supervisory",
       "required_behaviors": [
         "mark critical state as unknown or degraded",
-        "do not issue a new supervisory command from untrusted state",
-        "invoke only separately qualified local policy or interlock"
+        "do not issue a new supervisory command",
+        "preserve independently available local protection without claiming it is qualified in physical hardware"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -191,7 +342,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "All pressure channels share a +3% full-scale bias; majority voting cannot detect this common-cause fault."
+      "note": "All pressure channels share a +3% full-scale bias; majority voting cannot detect this common-cause fault.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-007",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-008",
@@ -203,11 +380,11 @@
       "disturbances": [
         "redundant_pressure_disagreement_10_percent_full_scale"
       ],
-      "expected_disposition": "abstain_or_local_fallback",
+      "expected_disposition": "abstain_supervisory",
       "required_behaviors": [
         "mark critical state as unknown or degraded",
-        "do not issue a new supervisory command from untrusted state",
-        "invoke only separately qualified local policy or interlock"
+        "do not issue a new supervisory command",
+        "preserve independently available local protection without claiming it is qualified in physical hardware"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -215,7 +392,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Redundant pressure measurements disagree beyond the declared consistency tolerance."
+      "note": "Redundant pressure measurements disagree beyond the declared consistency tolerance.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-008",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-009",
@@ -228,11 +431,11 @@
         "telemetry_age_120_seconds",
         "control_period_60_seconds"
       ],
-      "expected_disposition": "abstain_or_local_fallback",
+      "expected_disposition": "abstain_supervisory",
       "required_behaviors": [
         "mark critical state as unknown or degraded",
-        "do not issue a new supervisory command from untrusted state",
-        "invoke only separately qualified local policy or interlock"
+        "do not issue a new supervisory command",
+        "preserve independently available local protection without claiming it is qualified in physical hardware"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -240,7 +443,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Critical telemetry is two control periods old or has unresolved time synchronization."
+      "note": "Critical telemetry is two control periods old or has unresolved time synchronization.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-009",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-010",
@@ -256,8 +485,8 @@
       "expected_disposition": "stop_and_reconcile",
       "required_behaviors": [
         "stop issuing supervisory proposals",
-        "preserve all conflicting evidence and controller state",
-        "require explicit topology/actuator/timebase reconciliation"
+        "preserve conflicting evidence and controller state",
+        "require explicit topology, actuator, timebase and protection reconciliation"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -265,7 +494,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "A valve state/topology revision mismatch invalidates the frozen controller context."
+      "note": "A valve state/topology revision mismatch invalidates the frozen controller context.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "unverified_after_topology_change",
+        "local_interlock_ref": null,
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-011",
@@ -280,8 +535,8 @@
       ],
       "expected_disposition": "local_safety_only",
       "required_behaviors": [
-        "keep supervisory controller out of authority path",
-        "preserve independent local equipment protections",
+        "keep the supervisory controller out of the authority path",
+        "use only the separately identified synthetic local protection path in this fixture",
         "reconcile plant, sensor and actuator state before supervisory resume"
       ],
       "prohibited_behaviors": [
@@ -290,7 +545,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Pump 2 becomes unavailable during peak demand; only verified remaining capacity and independent interlocks may support a new strategy."
+      "note": "Pump 2 becomes unavailable during peak demand; only verified remaining capacity and independent interlocks may support a new strategy.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-011",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-012",
@@ -305,8 +586,8 @@
       ],
       "expected_disposition": "local_safety_only",
       "required_behaviors": [
-        "keep supervisory controller out of authority path",
-        "preserve independent local equipment protections",
+        "keep the supervisory controller out of the authority path",
+        "use only the separately identified synthetic local protection path in this fixture",
         "reconcile plant, sensor and actuator state before supervisory resume"
       ],
       "prohibited_behaviors": [
@@ -315,7 +596,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Source/suction state crosses the declared bound or its measurement is not trustworthy."
+      "note": "Source/suction state crosses the declared bound or its measurement is not trustworthy.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-012",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-013",
@@ -328,11 +635,11 @@
         "power_loss_900_seconds",
         "controlled_restart"
       ],
-      "expected_disposition": "local_safety_only",
+      "expected_disposition": "stop_and_reconcile",
       "required_behaviors": [
-        "keep supervisory controller out of authority path",
-        "preserve independent local equipment protections",
-        "reconcile plant, sensor and actuator state before supervisory resume"
+        "stop issuing supervisory proposals",
+        "preserve conflicting evidence and controller state",
+        "require explicit topology, actuator, timebase and protection reconciliation"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -340,7 +647,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Power is lost for 15 minutes; restart requires a separately qualified local sequence and reconciled state."
+      "note": "Power is lost for 15 minutes; restart requires a separately qualified local sequence and reconciled state.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "unavailable_during_power_loss",
+        "local_interlock_ref": null,
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-014",
@@ -355,8 +688,8 @@
       ],
       "expected_disposition": "local_safety_only",
       "required_behaviors": [
-        "keep supervisory controller out of authority path",
-        "preserve independent local equipment protections",
+        "keep the supervisory controller out of the authority path",
+        "use only the separately identified synthetic local protection path in this fixture",
         "reconcile plant, sensor and actuator state before supervisory resume"
       ],
       "prohibited_behaviors": [
@@ -365,7 +698,33 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Supervisory communication is lost while the independent local safety system remains available."
+      "note": "Supervisory communication is lost while the independent local safety system remains available.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "synthetic_interlock_available",
+        "local_interlock_ref": "SYNTHETIC-LOCAL-INTERLOCK-WCR-014",
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     },
     {
       "scenario_id": "WCR-015",
@@ -373,8 +732,8 @@
       "measurement_state": "out_of_domain",
       "direct_state_coverage_fraction": 0.5,
       "unobserved_critical_variables": [
-        "junction_pressure_2",
-        "tank_level_2"
+        "tank_level_2",
+        "junction_pressure_2"
       ],
       "demand_peak_factor": 1.4,
       "disturbances": [
@@ -386,8 +745,8 @@
       "expected_disposition": "stop_and_reconcile",
       "required_behaviors": [
         "stop issuing supervisory proposals",
-        "preserve all conflicting evidence and controller state",
-        "require explicit topology/actuator/timebase reconciliation"
+        "preserve conflicting evidence and controller state",
+        "require explicit topology, actuator, timebase and protection reconciliation"
       ],
       "prohibited_behaviors": [
         "treat missing, stale, biased or unobservable state as nominal",
@@ -395,7 +754,31 @@
         "claim safe control from controller self-assessment alone",
         "convert a synthetic result into a physical or utility performance claim"
       ],
-      "note": "Multiple concurrent faults invalidate normal estimator and control assumptions."
+      "note": "Multiple concurrent faults invalidate normal estimator and control assumptions.",
+      "required_critical_variables": [
+        "tank_level_1",
+        "tank_level_2",
+        "junction_pressure_1",
+        "junction_pressure_2"
+      ],
+      "directly_measured_critical_variables": [
+        "tank_level_1",
+        "junction_pressure_1"
+      ],
+      "estimator_evidence": {
+        "fixture_disposition": "not_used",
+        "estimator_ref": null,
+        "calibration_ref": null,
+        "uncertainty_profile_ref": null,
+        "validity_scope": "none",
+        "actual_qualification_claimed": false
+      },
+      "independent_protection": {
+        "status": "unverified_under_compound_fault",
+        "local_interlock_ref": null,
+        "test_only": true,
+        "authority_scope": "local_protection_only_no_supervisory_actuation"
+      }
     }
   ],
   "interpretation_rules": [
