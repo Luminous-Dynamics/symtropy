@@ -827,8 +827,7 @@ pub fn evaluate_membrane_ro_m0(inputs: &Value, oracle: &Value) -> Result<Value, 
 
 pub fn evaluate_membrane_ro_m0b(inputs: &Value, oracle: &Value) -> Result<Value, String> {
     const EXPECTED_CASES: usize = 3;
-    const CEILING: &str =
-        "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim";
+    const CEILING: &str = "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim";
 
     if string(inputs, &["schema_version"])? != "membrane-ro-m0b-regression-cases-v0.1"
         || string(inputs, &["evidence_class"])? != "synthetic_multi_pressure_regression"
@@ -837,7 +836,9 @@ pub fn evaluate_membrane_ro_m0b(inputs: &Value, oracle: &Value) -> Result<Value,
         || string(oracle, &["evidence_class"])? != "synthetic_multi_pressure_regression"
         || string(oracle, &["evidence_ceiling"])? != CEILING
     {
-        return Err("membrane RO M0B input/oracle identity or evidence ceiling mismatch".to_owned());
+        return Err(
+            "membrane RO M0B input/oracle identity or evidence ceiling mismatch".to_owned(),
+        );
     }
 
     let cases = at(inputs, &["cases"])?
@@ -891,7 +892,9 @@ pub fn evaluate_membrane_ro_m0b(inputs: &Value, oracle: &Value) -> Result<Value,
                 .as_array()
                 .ok_or_else(|| format!("{id}/{replicate_id}: points must be an array"))?;
             if points.len() < 3 {
-                return Err(format!("{id}/{replicate_id}: at least three pressure points are required"));
+                return Err(format!(
+                    "{id}/{replicate_id}: at least three pressure points are required"
+                ));
             }
 
             let mut rows = Vec::with_capacity(points.len());
@@ -912,7 +915,9 @@ pub fn evaluate_membrane_ro_m0b(inputs: &Value, oracle: &Value) -> Result<Value,
             let denominator = rows.iter().map(|(x, _)| x * x).sum::<f64>();
             let numerator = rows.iter().map(|(x, y)| x * y).sum::<f64>();
             if !denominator.is_finite() || denominator <= 0.0 {
-                return Err(format!("{id}/{replicate_id}: invalid regression denominator"));
+                return Err(format!(
+                    "{id}/{replicate_id}: invalid regression denominator"
+                ));
             }
             let slope = numerator / denominator;
             let residual_rmse = (rows
@@ -1054,11 +1059,9 @@ mod tests {
 
     #[test]
     fn all_three_membrane_ro_m0b_groups_match_separate_oracle() {
-        let result = evaluate_membrane_ro_m0b(
-            &load("membrane_m0b_inputs"),
-            &load("membrane_m0b_oracle"),
-        )
-        .expect("M0B regression must evaluate");
+        let result =
+            evaluate_membrane_ro_m0b(&load("membrane_m0b_inputs"), &load("membrane_m0b_oracle"))
+                .expect("M0B regression must evaluate");
         assert_eq!(result["result_count"], 3);
         assert_eq!(result["matched_case_count"], 3);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
@@ -1067,11 +1070,9 @@ mod tests {
 
     #[test]
     fn membrane_ro_m0b_uses_grouped_replicates_not_a_flat_point_pool() {
-        let result = evaluate_membrane_ro_m0b(
-            &load("membrane_m0b_inputs"),
-            &load("membrane_m0b_oracle"),
-        )
-        .expect("M0B regression must evaluate");
+        let result =
+            evaluate_membrane_ro_m0b(&load("membrane_m0b_inputs"), &load("membrane_m0b_oracle"))
+                .expect("M0B regression must evaluate");
         let row = result["results"]
             .as_array()
             .unwrap()
@@ -1079,14 +1080,18 @@ mod tests {
             .find(|row| row["case_id"] == "MRO-M0B-003-heteroscedastic-noise-three-replicates")
             .unwrap();
         assert_eq!(row["computed"]["replicate_count"], 3);
-        assert!(row["computed"]["sample_sd_of_replicate_slopes_l_m2_h_bar"].as_f64().unwrap() > 0.0);
+        assert!(
+            row["computed"]["sample_sd_of_replicate_slopes_l_m2_h_bar"]
+                .as_f64()
+                .unwrap()
+                > 0.0
+        );
     }
 
     #[test]
     fn membrane_ro_m0b_rejects_nonpositive_net_driving_pressure() {
         let mut inputs = load("membrane_m0b_inputs");
-        inputs["cases"][0]["replicates"][0]["points"][0]["osmotic_pressure_wall_bar"] =
-            json!(30.0);
+        inputs["cases"][0]["replicates"][0]["points"][0]["osmotic_pressure_wall_bar"] = json!(30.0);
         assert!(evaluate_membrane_ro_m0b(&inputs, &load("membrane_m0b_oracle")).is_err());
     }
 
