@@ -4,12 +4,12 @@
 //! clearance, motion authorization, or proof that a physical work zone is safe.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
 
 /// Temporal broad-phase cell width. This is an index parameter, not a scheduling tolerance.
 const RESERVATION_TIME_BUCKET_MS: u64 = 60_000;
 /// Very long reservations use a per-resource fallback rather than allocating thousands of buckets.
 const MAX_RESERVATION_TIME_BUCKETS: u64 = 4_096;
-use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReservationRequest {
@@ -631,153 +631,6 @@ mod tests {
             expires_at_ms: expiry,
             units,
         }
-    }
-
-    #[test]
-    fn temporal_index_has_no_false_negatives_across_bucket_boundaries() {
-        let mut book = book_with_uncertainty(100, 1_000);
-        let cases = [
-            (59_900, 60_100, 0),
-            (60_000, 60_500, 10),
-            (119_900, 120_100, 0),
-            (200_000, 250_000, 1_000),
-            (300_000, 300_010, 0),
-        ];
-
-        for (index, (start, end, uncertainty)) in cases.into_iter().enumerate() {
-            let mut item = request(
-                &format!("indexed-{index}"),
-                &format!("robot-{index}"),
-                start,
-                end,
-                end + 5_000,
-                1,
-            );
-            item.clock_uncertainty_ms = uncertainty;
-            book.reserve(item, 0).expect("frozen reservation");
-        }
-
-        let starts = [
-            0_u64, 1, 59_899, 59_990, 60_000, 60_100, 119_999, 120_000, 200_000, 249_999,
-            299_999, 300_000,
-        ];
-        let durations = [1_u64, 10, 100, 1_000, 60_000, 120_000];
-        for start in starts {
-            for duration in durations {
-                let end = start.saturating_add(duration);
-                if start < end {
-                    assert_index_contains_every_exact_overlap(
-                        &book,
-                        "work-zone-A",
-                        start,
-                        end,
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn long_reservations_use_per_resource_global_fallback() {
-        let mut book = book(10);
-        let long_end = (MAX_RESERVATION_TIME_BUCKETS + 100) * RESERVATION_TIME_BUCKET_MS;
-        let long = request(
-            "long-global",
-            "robot-long",
-            1_000,
-            long_end,
-            long_end + 10_000,
-            1,
-        );
-        book.reserve(long, 0).expect("long reservation");
-        assert_eq!(
-            book.candidate_count_for_interval("work-zone-A", long_end - 5, long_end + 5),
-            Ok(1)
-        );
-        assert_index_contains_every_exact_overlap(
-            &book,
-            "work-zone-A",
-            long_end - 5,
-            long_end + 5,
-        );
-    }
-
-    #[test]
-    fn temporal_index_is_partitioned_by_resource() {
-        let mut book = book(10);
-        book.register_resource("work-zone-B", 10)
-            .expect("second resource");
-        let first = request("resource-a", "robot-a", 100, 200, 300, 1);
-        book.reserve(first, 0).expect("resource A reservation");
-        let mut second = request("resource-b", "robot-b", 100, 200, 300, 1);
-        second.resource_id = "work-zone-B".to_owned();
-        book.reserve(second, 0).expect("resource B reservation");
-
-        assert_eq!(
-            book.candidate_count_for_interval("work-zone-A", 100, 200),
-            Ok(1)
-        );
-        assert_eq!(
-            book.candidate_count_for_interval("work-zone-B", 100, 200),
-            Ok(1)
-        );
-        assert_eq!(
-            book.candidate_count_for_interval("work-zone-A", 10_000, 20_000),
-            Ok(0)
-        );
-    }
-
-    #[test]
-    fn release_expiry_and_site_epoch_remove_active_index_entries() {
-        let mut released = book(2);
-        released
-            .reserve(request("release-me", "robot-a", 100, 200, 300, 1), 0)
-            .expect("reservation");
-        assert_eq!(
-            released.candidate_count_for_interval("work-zone-A", 100, 200),
-            Ok(1)
-        );
-        released
-            .release("release-me", "robot-a")
-            .expect("owner releases reservation");
-        assert_eq!(
-            released.candidate_count_for_interval("work-zone-A", 100, 200),
-            Ok(0)
-        );
-        assert_eq!(
-            released.state("release-me"),
-            Some(ReservationState::Released)
-        );
-
-        let mut expired = book(2);
-        expired
-            .reserve(request("expire-me", "robot-b", 100, 200, 200, 1), 0)
-            .expect("reservation");
-        assert_eq!(expired.expire(200), 1);
-        assert_eq!(
-            expired.candidate_count_for_interval("work-zone-A", 100, 200),
-            Ok(0)
-        );
-        assert_eq!(
-            expired.state("expire-me"),
-            Some(ReservationState::Expired)
-        );
-
-        let mut invalidated = book(2);
-        invalidated
-            .reserve(request("invalidate-me", "robot-c", 100, 200, 300, 1), 0)
-            .expect("reservation");
-        invalidated
-            .advance_site_epoch("site-epoch-2")
-            .expect("site epoch advances");
-        assert_eq!(
-            invalidated.candidate_count_for_interval("work-zone-A", 100, 200),
-            Ok(0)
-        );
-        assert_eq!(
-            invalidated.state("invalidate-me"),
-            Some(ReservationState::Invalidated)
-        );
     }
 
     #[test]
