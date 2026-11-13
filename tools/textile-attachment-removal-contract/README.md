@@ -61,3 +61,22 @@ attempt requires the named specimen, calibrated force observation, independent
 post-inspection, damage record and closed mass balance. Neither outcome proves
 industrial disassembly throughput, downstream fibre quality, environmental
 benefit or commercial readiness.
+
+## Research protocol and challenge corpus
+
+- Human baseline: `research/textile-attachment-removal/HUMAN_BASELINE_PROTOCOL_V0_1.md`
+- JSON Schema: `research/textile-attachment-removal/attachment-removal-corpus.schema.json`
+- Synthetic adversarial corpus: `research/textile-attachment-removal/attachment-removal-adversarial-corpus-v0.1.json`
+
+The corpus contains positive and negative reference cases for inspected physical removal,
+inspected partial removal, force-calibration mismatch, action/inspection evidence reuse,
+unknown joining construction, missing partial-removal measurements and force-limit breach.
+The JSON files are versioned research fixtures; the current Rust unit tests remain the
+executable contract gate. The corpus is not a physical dataset and is not evidence of
+recycling acceptance.
+
+The validator also requires the force-observation calibration identity to match the
+calibration bound by physical action evidence. Independently inspected physical removal
+and partial removal require distinct evidence IDs and byte digests for the action and
+inspection references. This is a reference-separation check, not authentication of
+the evidence source or reviewer independence.
