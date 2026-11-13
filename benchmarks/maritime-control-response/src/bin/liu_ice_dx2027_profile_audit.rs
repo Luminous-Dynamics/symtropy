@@ -93,6 +93,32 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
         return Err("unacquired archive must not claim hashes or an inventory".into());
     }
 
+    let calibration = profile
+        .get("calibration_feasibility")
+        .ok_or("calibration_feasibility is required")?;
+    require_str(calibration, "independent_calibration_unit", "recording")?;
+    require_u64(
+        calibration,
+        "reported_max_recordings_per_known_fault_family",
+        7,
+    )?;
+    let required = calibration
+        .get("required_independent_episodes_for_split_conformal_coverage")
+        .ok_or("required calibration episode counts are required")?;
+    require_u64(required, "0.90", 9)?;
+    require_u64(required, "0.95", 19)?;
+    require_u64(required, "0.99", 99)?;
+    require_bool(
+        calibration,
+        "per_fault_90pct_split_conformal_feasible_from_reported_training_count",
+        false,
+    )?;
+    require_bool(
+        calibration,
+        "pooled_marginal_coverage_claims_per_fault_coverage",
+        false,
+    )?;
+
     let dataset = profile.get("dataset").ok_or("dataset is required")?;
     require_u64(dataset, "training_dataset_count_reported", 41)?;
     require_u64(dataset, "sample_rate_hz", 20)?;
@@ -324,6 +350,28 @@ mod tests {
         let mut profile = fixture();
         profile["source_ambiguities"] = serde_json::json!([]);
         assert!(validate_profile(&profile).is_err());
+    }
+
+    #[test]
+    fn per_fault_90_percent_calibration_is_not_claimed_from_at_most_seven_runs() {
+        let profile = fixture();
+        assert_eq!(
+            profile["calibration_feasibility"]["reported_max_recordings_per_known_fault_family"],
+            7
+        );
+        assert_eq!(
+            profile["calibration_feasibility"]["required_independent_episodes_for_split_conformal_coverage"]["0.90"],
+            9
+        );
+        assert_eq!(
+            profile["calibration_feasibility"]["per_fault_90pct_split_conformal_feasible_from_reported_training_count"],
+            false
+        );
+        assert_eq!(
+            profile["calibration_feasibility"]["pooled_marginal_coverage_claims_per_fault_coverage"],
+            false
+        );
+        assert!(validate_profile(&profile).is_ok());
     }
 
     #[test]
