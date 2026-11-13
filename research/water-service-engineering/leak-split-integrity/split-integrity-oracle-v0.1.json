@@ -1,0 +1,100 @@
+{
+  "schema_version": "0.1.0",
+  "oracle_id": "water-leak-split-integrity-oracle-v0.1",
+  "corpus_id": "water-leak-split-integrity-v0.1",
+  "results": [
+    {
+      "dataset_id": "SPLIT-001-temporal-clean",
+      "expected_disposition": "valid_for_declared_protocol",
+      "expected_violation_kinds": [],
+      "sealed_holdout_status": "established"
+    },
+    {
+      "dataset_id": "SPLIT-002-event-leak",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "source_event_cross_split"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-003-scenario-seed-leak",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "scenario_group_cross_split",
+        "source_event_cross_split"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-004-augmentation-leak",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "augmentation_cross_split",
+        "source_event_cross_split"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-005-network-clean",
+      "expected_disposition": "valid_for_declared_protocol",
+      "expected_violation_kinds": [],
+      "sealed_holdout_status": "established"
+    },
+    {
+      "dataset_id": "SPLIT-006-network-leak",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "network_cross_split"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-007-physical-run-leak",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "physical_run_cross_split"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-008-stream-overlap",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "sensor_stream_window_overlap"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-009-provenance-unknown",
+      "expected_disposition": "indeterminate_independence",
+      "expected_violation_kinds": [
+        "missing_independent_group_provenance"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-010-pretraining-unknown",
+      "expected_disposition": "valid_for_declared_protocol",
+      "expected_violation_kinds": [],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-011-test-label-tuning",
+      "expected_disposition": "leakage_detected",
+      "expected_violation_kinds": [
+        "test_labels_used_for_selection"
+      ],
+      "sealed_holdout_status": "not_established"
+    },
+    {
+      "dataset_id": "SPLIT-012-invalid-window",
+      "expected_disposition": "invalid_manifest",
+      "expected_violation_kinds": [
+        "invalid_time_window"
+      ],
+      "sealed_holdout_status": "not_established"
+    }
+  ],
+  "interpretation": "Expected metadata-level split dispositions only. No model score or performance result is encoded."
+}
