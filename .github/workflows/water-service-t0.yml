@@ -63,6 +63,10 @@ jobs:
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
           if-no-files-found: warn
+      - name: Set up Python for JSON Schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Validate water-network dataset admission register and Draft 2020-12 schema
         run: |
           set -euo pipefail
