@@ -540,7 +540,7 @@ mod tests {
             .map(|(x_um, z_um)| ProfilePoint {
                 x_um: *x_um,
                 z_um: *z_um,
-                uncertainty_um: z_um.map(|_| uncertainty).unwrap_or(None),
+                uncertainty_um: if z_um.is_some() { uncertainty } else { None },
             })
             .collect()
     }
@@ -780,6 +780,85 @@ mod tests {
         let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         request.registration.target_frame = "OTHER-FRAME".to_owned();
         abstains(&request, AbstainReason::CoordinateFrameMismatch);
+    }
+
+    #[test]
+    fn joint_revision_mismatch_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.joint_revision = "JOINT-R2".to_owned();
+        abstains(&request, AbstainReason::JointRevisionMismatch);
+    }
+
+    #[test]
+    fn malformed_registration_receipt_digest_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.registration.receipt_sha256 = "bad".to_owned();
+        abstains(&request, AbstainReason::InvalidDigest);
+    }
+
+    #[test]
+    fn registration_receipt_reference_scan_mismatch_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.registration.reference_scan_sha256 = digest('d');
+        abstains(&request, AbstainReason::ScanIdentityMismatch);
+    }
+
+    #[test]
+    fn identical_scan_ids_are_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.scan_id = request.reference.scan_id.clone();
+        abstains(&request, AbstainReason::ScanIdentityMismatch);
+    }
+
+    #[test]
+    fn profile_must_cover_the_declared_region_exactly() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.reference.points[0].x_um = 1;
+        request.observed.points[0].x_um = 1;
+        abstains(&request, AbstainReason::RegionNotExactlyCovered);
+    }
+
+    #[test]
+    fn coverage_below_minimum_is_rejected_without_gap_bridging() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.reference.points[1].z_um = None;
+        request.observed.points[1].z_um = None;
+        request.limits.maximum_unsupported_gap_um = 2_000;
+        request.limits.minimum_coverage_permille = 750;
+        abstains(&request, AbstainReason::CoverageBelowMinimum);
+    }
+
+    #[test]
+    fn zero_minimum_coverage_is_an_invalid_limit() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.limits.minimum_coverage_permille = 0;
+        abstains(&request, AbstainReason::InvalidCoverageLimit);
+    }
+
+    #[test]
+    fn invalid_region_and_zero_gap_limits_abstain() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.limits.region_start_um = request.limits.region_end_um;
+        abstains(&request, AbstainReason::InvalidRegion);
+
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.limits.maximum_unsupported_gap_um = 0;
+        abstains(&request, AbstainReason::InvalidGapLimit);
+    }
+
+    #[test]
+    fn empty_scan_identity_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.reference.scan_id.clear();
+        abstains(&request, AbstainReason::EmptyIdentity);
+    }
+
+    #[test]
+    fn a_single_profile_station_is_not_a_comparison() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.reference.points.truncate(1);
+        request.observed.points.truncate(1);
+        abstains(&request, AbstainReason::ProfileTooShort);
     }
 
     #[test]
