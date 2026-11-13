@@ -566,3 +566,209 @@ These independent numerical calculations are formula checks, not compilation or 
 The ingoing Kerr chart avoids the Boyer-Lindquist horizon coordinate singularity. Its metric includes the expected (dv,dr), (dr,d\phi), and (dv,d\phi) couplings; its determinant is (-\Sigma^2\sin^2\theta). AD-generated curvature tests check the vacuum and Kretschmann identities at the horizon and inside it, and compare the scalar invariant against Boyer-Lindquist coordinates outside the horizon.
 
 This is a significant coordinate-invariance check, but it is not yet a general coordinate-transform engine or a full regularity proof for every component / tetrad at all limiting points.
+
+
+## Consolidated implementation update — 2026-11-07
+
+The clean successor PR now combines the Schwarzschild/Kerr analytic geometry, AD curvature work, reproducible manifests, and the stronger Schwarzschild geodesic follow-on.
+
+### Current source scope in `symtropy-relativity`
+
+- **Analytic stationary geometry:** validated SI mass/spin, Schwarzschild radii/redshift/Kretschmann, Kerr horizons, ergosurface, horizon angular velocity, surface gravity, and sample-preserving Kerr posterior mapping.
+- **Metric charts:** Schwarzschild and Kerr exterior charts; ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr charts.
+- **Differential geometry:** explicit Levi-Civita connection and a normalized metric-compatibility diagnostic.
+- **Curvature:** mixed Riemann, Ricci, scalar curvature, Einstein tensor, Kretschmann contraction, algebraic Riemann symmetries and first-Bianchi residuals; explicit second-derivative and second-order AD paths.
+- **Automatic differentiation:** fixed-size second-order forward-mode Jet2 metric values, gradients and Hessians for Schwarzschild/Kerr and ingoing charts.
+- **Geodesics (Schwarzschild exterior only):** second-order Christoffel RK4 and first-order canonical Hamiltonian RK4; step-doubling adaptive control for the coordinate formulation; component-wise dimensional tolerances; normalization, Killing energy, axial angular momentum, and Hamiltonian diagnostics.
+- **Numerical hardening:** rationalized Kerr inner horizon for small spin; dimensionless surface-gravity expression near extremality; factored Kerr `Delta=(r-r_+)(r-r_-)` near the exterior horizon.
+
+The integrated source currently has **63 authored Rust tests**:
+- 15 scalar/parameter/horizon physics;
+- 11 metric and matrix tests;
+- 6 connection and metric-compatibility tests;
+- 6 curvature tests;
+- 12 AD/chart tests;
+- 9 Schwarzschild geodesic tests;
+- 4 posterior mapping tests.
+
+These tests are **not executed** in the editing environment because `rustc` and `cargo` are unavailable. No build, test, CI, performance, waveform, or observational reproduction pass is claimed.
+
+### Machine-readable benchmark manifests
+
+The clean PR now carries five JSON manifests:
+1. `analytic_reference_cases.json` — SI-valued Schwarzschild/Kerr parameter and horizon-observable reference grid.
+2. `direct_wave_sxs_spin_sweep.json` — 10 high-spin SXS cases plus the 168-system / 13 CCE broader catalog manifest, competing horizon/News/BOB/light-ring/QNM/noise predictors and filter-artifact controls.
+3. `geodesic_reference_cases.json` — Schwarzschild circular timelike and radial null fixtures, parameterization, conserved quantities, and reference endpoints.
+4. `waveform_surrogate_baselines.json` — current NR surrogate, EOB, BOB, eccentric and SpEC accuracy literature comparators.
+5. `waveform_surrogate_certification_v1.json` — leakage-resistant validation splits, calibrated waveform error, posterior coverage, OOD abstention and active NR-selection protocol.
+
+All registries are specifications or source-pinned literature records. They are not execution results.
+
+### Geodesic limitations and next gates
+
+The new geodesic engine deliberately remains Schwarzschild-only and exterior-chart-only. It does not yet support Kerr geodesics, Carter-constant conservation, horizon crossing in ingoing charts, a symplectic integrator, or an adaptive Hamiltonian path. Its adaptive step-doubling controller estimates local error; it is not a rigorous global error bound.
+
+Next:
+- run the exact PR-head build/tests when a Rust toolchain is available;
+- independently review the geodesic equations, Hamiltonian sign, units, and chart-domain handling;
+- compare fixed-step vs adaptive convergence and invariant drift on held-out circular, radial, and near-critical trajectories;
+- then implement Kerr equatorial geodesics and the Carter constant, followed by inclined Kerr orbits;
+- maintain external NR / waveform comparisons as separate workstreams—this crate is not a numerical-relativity solver.
+
+### PR consolidation
+
+The older v3 draft supplied the adaptive / Hamiltonian Schwarzschild geodesic implementation and its reference manifest. Those are now carried into the clean successor PR, together with its analytic-reference and surrogate-certification manifests. The clean PR is the single continuation target; parallel earlier drafts are retained only as historical records and should not be merged independently.
+
+
+## New implementation slice — noise-weighted waveform comparison (2026-11-07)
+
+The clean branch now includes `crates/domains/symtropy-relativity/src/waveform_metrics.rs` and exports it from the crate.
+
+The implementation provides:
+- discrete one-sided PSD inner product (4\Delta f\sum_k \overline{h_{\rm ref}}h_{\rm cand}/S_n(f_k));
+- constant-phase-maximized overlap / mismatch, with the best constant phase offset returned explicitly;
+- separate PSD-weighted relative-amplitude L2 error;
+- reference-amplitude / PSD-weighted frequency-dependent phase residual RMS and per-bin diagnostics;
+- strict finite, positive-PSD, uniform-grid and identical reference/candidate/PSD frequency-grid validation;
+- no hidden time maximization, interpolation, resampling, whitening, windowing or PSD estimation.
+
+The caller must pre-align waveforms under a pinned procedure. The metric deliberately does not hide time alignment, because doing so can disguise phase/model errors. A manual adversarial review caught and corrected a missing candidate-grid comparison before the branch was updated.
+
+Ten synthetic Rust tests are authored for identical waveforms, constant phase rotation, amplitude rescaling, frequency-dependent phase error, PSD weighting, mismatched / nonuniform grids, invalid PSD, zero reference norm, and invalid frequency bands. The total suite is now **73 authored tests** (63 previous plus 10 waveform-metric tests). They remain unexecuted because the current editing environment has no `rustc` or `cargo`.
+
+The waveform surrogate certification manifest now points to this implementation and specifies the next validation steps: independent NumPy formula comparison, a pinned SXS waveform pair, PSD/alignment sensitivity, and posterior-recovery injection with propagated model discrepancy. No real waveform comparison or surrogate result has yet been produced.
+
+Dedicated work item: [BH-WAVEFORM-METRICS-001 #4048](https://github.com/Luminous-Dynamics/symtropy/issues/4048).
+
+## New nonlinear ringdown axis — quadratic QNM coupling (2026-11-07)
+
+Yang, Shi & Hu, *Constraining the Quadratic-mode Amplitude Coupling in GW250114*, arXiv:2609.28953 (submitted 2026-09-24): https://arxiv.org/abs/2609.28953.
+
+The preprint analyzes the 220 fundamental, 221 first overtone, and a 220×220 quadratic mode. It infers a mode-specific amplitude-coupling coefficient and reports consistency with NR-fit / second-order perturbation predictions within 1.3 sigma, while noting that current data cannot distinguish the spin-dependent predictions.
+
+This creates a fourth distinct GW250114 ringdown test axis:
+1. linear QNM basis inference (ordinary / orthonormalized);
+2. direct-wave residual extraction and its contested physical interpretation;
+3. linear perturbation-equation / beyond-Teukolsky effective-potential deviations;
+4. nonlinear second-order quadratic-mode amplitude coupling.
+
+Do not conflate a quadratic model term with an independently resolved nonlinear mode. Required controls include extra linear overtones, mode mixing, flexible residuals, noise/transients, no-quadratic injections, parent-amplitude-product scaling, spin dependence, start-time stability, prior sensitivity and calibrated posterior coverage.
+
+Dedicated execution item: [Symthaea BH-NONLINEAR-RINGDOWN-001 #10908](https://github.com/Luminous-Dynamics/symthaea/issues/10908). Mycelix and Sol Atlas provenance/display requirements are recorded in #5903 and #586.
+
+
+
+## Eikonal QNMs, local light-ring geometry, and prior identifiability (2026-11-07)
+
+De Simone, Völkel & Kokkotas, arXiv:2609.24824 (2026-09-21), “Constraining the geometry of rotating black holes with eikonal QNMs,” compares a global metric-specific Konoplya–Rezzolla–Zhidenko parameterization with a metric-agnostic representation of local metric values and radial derivatives at the light ring.
+
+Important reported lessons:
+- Uniform priors on global metric coefficients can induce strongly nonuniform and skewed priors on local light-ring quantities.
+- One-parameter analyses can fail to recover injected local deviations and can bias global metric reconstruction.
+- Multiparameter analyses are more robust to injections but expose substantial degeneracies in marginalized parameters.
+- Their application to approximate GW250114 ringdown posteriors is consistent with Kerr within the declared model families.
+
+Reference: [De Simone et al., arXiv:2609.24824](https://arxiv.org/abs/2609.24824).
+
+This suggests an important paradigm shift: infer local physically observable quantities first, then reconstruct global metric families only where identifiable. A global model prior should not silently dictate a highly structured prior on the local geometry being tested.
+
+Albuquerque & Völkel, arXiv:2608.01061, “Optimal frequency scales for probing black-hole geometries,” studies an information-theoretic tradeoff in a controlled scattering experiment: very short high-frequency pulses resolve small scales but transmit through the potential barrier; broad pulses reflect efficiently but resolve poorly. Their model finds an optimal pulse width set approximately by the inverse square root of the potential peak. This is a model-specific result, not a universal frequency prescription. Reference: [arXiv:2608.01061](https://arxiv.org/abs/2608.01061).
+
+### Symtropy equatorial Kerr light-ring reference implementation
+
+The clean branch now includes `src/light_ring.rs`, exported by the crate. It computes:
+- prograde/retrograde equatorial Kerr photon-orbit radius using the closed-form solution;
+- signed coordinate angular frequency in rad/s;
+- impact parameter (b=L/E);
+- local metric null-condition and radial circularity residuals;
+- coordinate-time radial Lyapunov exponent from the equatorial null radial potential;
+- explicit extremal-prograde horizon-limit status, where Boyer–Lindquist impact/Lyapunov values are unavailable rather than fabricated.
+
+The Lyapunov calculation uses the (E=1) equatorial Kerr null radial potential
+(R(r)=[r^2+a^2-ab]^2-\Delta(b-a)^2), including a factorized (\Delta=(r-r_+)(r-r_-)) for near-horizon stability. The eikonal interpretation remains asymptotic in angular mode number; these quantities are not exact finite-(\ell) QNM eigenfrequencies.
+
+Eight Rust tests are authored for the Schwarzschild limit ((r_{ph}=3r_g), (lambda_{ph}=|\Omega_{ph}|)), orientation, prograde/retrograde ordering, local circular-null residuals, extremal retrograde limit, extremal prograde horizon limit, and near-extremal finite behavior. A 20-case independently generated reference grid is in `benchmarks/light_ring_reference_cases.json`. Total authored tests are **81**; all remain unexecuted because no Rust toolchain is available in this environment.
+
+Dedicated work:
+- [Symtropy BH-LIGHTRING-001 #4051](https://github.com/Luminous-Dynamics/symtropy/issues/4051)
+- [Symthaea BH-EIKONAL-GEOMETRY-001 #10909](https://github.com/Luminous-Dynamics/symthaea/issues/10909)
+
+### Time-domain perturbation theory as an independent validation axis
+
+The frequency-domain QNM/eigenvalue description should not be the sole reference for ringdown science. Recent work provides complementary time-domain methods:
+
+- De Simone et al., *Parametrized beyond-Teukolsky framework in the time domain*, PRD 114, 064060 (2026-09-15), DOI [10.1103/93dw-jlcg](https://doi.org/10.1103/93dw-jlcg), performs 2+1D Gaussian-wavepacket scattering and follows prompt response, ringdown and late-time tails. The paper reports good agreement with frequency-domain eigenvalues at low azimuthal number, but mode mixing limits higher-m extraction; near-horizon potential deformations can change amplitude/phase and the onset of tail behavior.
+- De Simone, *Discrete symmetries of modified Teukolsky equations*, PRD 114, 084063 (2026-10-21), DOI [10.1103/dbzz-jhjb](https://doi.org/10.1103/dbzz-jhjb), studies how potential deformations change discrete symmetries, break an (m=0) QNM degeneracy, and can introduce nonphysical branches if frequency-domain modified potentials are naively evolved in time.
+- Vaswani et al., *Time-domain framework for the Teukolsky equation with a particle source using comoving hyperboloidal coordinates*, PRD 114, 084073 (2026-10-23), DOI [10.1103/2t8s-g9h3](https://doi.org/10.1103/2t8s-g9h3), develops a 1+1D time-domain particle-source implementation with comoving spatially compactified hyperboloidal coordinates and jump conditions. It reports avoiding nonphysical growing modes in its tests and includes an (s=-2) Teukolsky test implementation.
+
+The important capability gap is not “we need a production Teukolsky solver immediately.” It is a benchmarked bridge between:
+1. stationary Kerr geometry and light-ring references;
+2. frequency-domain eigenvalue/QNM predictions;
+3. time-domain wave-packet / particle-source evolution;
+4. the extracted prompt, ringdown, and tail signals;
+5. observation-space likelihood and uncertainty.
+
+Do not treat a discretized frequency-domain potential evolved in time as automatically physical. Symmetry constraints, boundary conditions, hyperboloidal compactification, spurious-mode detection and cross-checks against eigenvalue solutions must be explicit acceptance tests.
+
+Related Symthaea work: [BH-TEUKOLSKY-001 #10874](https://github.com/Luminous-Dynamics/symthaea/issues/10874), with eikonal-prior/identifiability work in #10909. The external time-domain studies are reference systems; no Teukolsky evolution solver is implemented by this PR.
+
+
+
+### New staged implementation issue — hyperboloidal time-domain perturbations
+
+The external-method reproduction and solver-validation work is now tracked in [Symtropy BH-TEUKOLSKY-TD-001 #4052](https://github.com/Luminous-Dynamics/symtropy/issues/4052). It is staged as coordinate-contract validation, scalar-field vacuum/source tests, the declared s=-2 test problem, and only then modified-potential / beyond-Teukolsky evolution. Its acceptance gates include long-time growing-mode suppression, boundary and source-jump validation, frequency-domain cross-checks, mode-mixing diagnostics and late-time tail behavior.
+
+The reference paper states that implementation code is included, but no source repository has been independently pinned in this programme yet. Do not invent a GitHub code URL or treat the paper's abstract as a reproducible software artifact.
+
+
+
+### Light-ring validation hardening — normalized radial-potential residuals
+
+The Kerr light-ring module now reports normalized residuals for both (R=0) and (R'=0) from the equatorial null radial potential, in addition to metric null and radial circularity residuals. The normalization uses the magnitudes of the corresponding analytic terms, so near-extremal cancellation is visible and can be given a separate, explicit tolerance. This is an internal analytic consistency check, not an independent QNM validation.
+
+
+
+## New execution workstream — posterior-calibrated waveform discrepancy (2026-11-07)
+
+A new machine-readable protocol is now in `crates/domains/symtropy-relativity/benchmarks/waveform_discrepancy_calibration_v1.json`, linked to [Symthaea BH-WAVEFORM-DISCREPANCY-001 #10944](https://github.com/Luminous-Dynamics/symthaea/issues/10944).
+
+The research rationale is concrete:
+- Hoy et al., Nature Astronomy (2025), DOI 10.1038/s41550-025-02579-7, propose accuracy-informed Bayesian model combination and report lower compute cost / more faithful recovery on their simulated comparison.
+- Bachhar et al., PRD 111, 084050 (2025), DOI 10.1103/PhysRevD.111.084050, use GPR for frequency-domain amplitude/phase residuals and marginalize waveform uncertainty.
+- Kumar et al., PRD 112, 104071 (2025), DOI 10.1103/nkq9-zh2y, parameterize amplitude/phase error priors and show that small phase errors can bias parameters.
+- Mezzasoma et al., PRD 113, 124043 (2026), DOI 10.1103/y6lc-fr77, show NR calibration error can create false pPE deviations in simulated high-SNR signals and that their uncertainty-aware calibration protects the GR-consistent result in the studied setup.
+
+The proposed extension is not “use GPs” as a novel claim. It is a joint, parameter-dependent discrepancy model that preserves cross-frequency, cross-mode, and source-parameter covariance; separates detector noise/calibration from NR truncation, surrogate interpolation, approximant model-form error, missing modes/domain shift and algorithmic precision; and propagates the resulting discrepancy through posterior inference.
+
+Primary evaluation is posterior calibration (50/90/95% coverage with confidence intervals), posterior bias and sharpness, proper scoring rules, residual checks, false-positive rate for GR deviations, OOD abstention, and time-to-posterior-accuracy. The manifest defines whole-simulation train/test grouping, untouched test IDs, blind injections across SNR 10–330, adversarial model errors and active-NR acquisition baselines.
+
+**Execution status:** manifest specification only. No discrepancy process has been fitted, no posterior injection campaign has been run, and no improved calibration result is claimed.
+
+
+### Independent formula-level light-ring cross-check — 2026-11-07
+
+A separate V8 calculation re-evaluated all 20 cases in `light_ring_reference_cases.json`: it recomputed the closed-form Kerr equatorial photon radius and signed coordinate frequency, then reconstructed (b=L/E), the null radial potential (R), (R'), (R''), and the coordinate-time radial Lyapunov exponent from the metric / geodesic first integrals.
+
+Results against the checked-in reference grid:
+- maximum relative difference in radius: 0 at the stored precision;
+- maximum relative difference in signed angular frequency: 0 at the stored precision;
+- maximum relative difference in impact parameter: 0 at the stored precision;
+- maximum relative difference in radial Lyapunov exponent: (3.3\times10^{-11});
+- maximum normalized (R) residual: (1.5\times10^{-9}), at the near-extremal prograde case (|\chi|=0.999999);
+- maximum normalized (R') residual: below the displayed precision of the independent calculation.
+
+This is a formula-level reimplementation / reference-grid cross-check, **not** execution of the Rust tests, an external numerical-relativity comparison, or a finite-(\ell) QNM validation. The near-extremal residual is an explicit conditioning signal and should remain separately tracked rather than hidden behind a global tolerance.
+
+
+## New horizon-semantics workstream — 2026-11-07
+
+A typed horizon contract is now specified in `crates/domains/symtropy-relativity/benchmarks/horizon_object_contract_v1.json`, tracked by [Symtropy BH-HORIZON-SEMANTICS-001 #4071](https://github.com/Luminous-Dynamics/symtropy/issues/4071).
+
+The contract distinguishes stationary Kerr event/Killing horizons, retrospective event-horizon reconstructions, MOTSs, apparent horizons, marginally trapped tubes, dynamical horizons, isolated horizons and unsupported/ambiguous outcomes. It requires the relevant Cauchy slice, future extent, null-normal orientation/normalization, expansion residuals, foliation/branch lineage, signature, area/flux data and finder provenance.
+
+Scientific motivation:
+- Ashtekar & Krishnan's 2025 Living Reviews article explains why event horizons are teleological and why quasi-local horizons are more useful during numerical evolution.
+- Event-horizon finders require the future spacetime development; apparent horizons are found on specified Cauchy slices.
+- External reference implementations such as BHaHAHA and SpECTRE horizon tracking should be interoperated with before a bespoke surface finder is considered.
+
+This is a semantics/schema protocol only. It does not implement an apparent-horizon finder, event-horizon reconstruction engine, dynamical-horizon flux solver, or a merger-horizon result. No such scientific claim is made.

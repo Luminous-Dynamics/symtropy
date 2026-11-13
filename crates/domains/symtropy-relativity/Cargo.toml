@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-relativity"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Analytic Lorentzian spacetime and black-hole reference calculations for Symtropy"
+
+[lib]
+path = "src/lib.rs"

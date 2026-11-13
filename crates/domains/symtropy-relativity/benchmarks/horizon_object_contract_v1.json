@@ -1,0 +1,238 @@
+{
+  "schema": "luminous.black-hole-horizon-object",
+  "schema_version": 1,
+  "artifact_id": "symtropy.black_hole.horizon_object_contract.v1",
+  "created_utc": "2026-11-07",
+  "status": "semantic_and_validation_protocol_only",
+  "objective": "Prevent scientific and visualization code from treating event horizons, apparent horizons, MOTSs, marginally trapped tubes, dynamical horizons and isolated horizons as interchangeable.",
+  "primary_references": [
+    {
+      "title": "Quasi-local black hole horizons: recent advances",
+      "authors": "Ashtekar and Krishnan",
+      "journal": "Living Reviews in Relativity 28 (2025)",
+      "doi": "10.1007/s41114-025-00061-4",
+      "arxiv": "2502.11825",
+      "url": "https://arxiv.org/abs/2502.11825"
+    },
+    {
+      "title": "Event and Apparent Horizon Finders for 3+1 Numerical Relativity",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5660890/",
+      "relevance": "Global event-horizon reconstruction requires knowledge of the future spacetime; apparent horizons are found on Cauchy slices."
+    },
+    {
+      "title": "BHaHAHA: A Fast, Robust Apparent Horizon Finder Library for Numerical Relativity",
+      "arxiv": "2505.15912",
+      "url": "https://arxiv.org/abs/2505.15912"
+    },
+    {
+      "title": "Horizon tracking for asynchronous parallel black hole simulations",
+      "arxiv": "2508.08408",
+      "url": "https://arxiv.org/abs/2508.08408"
+    }
+  ],
+  "invariants": [
+    "A stationary Kerr r_plus formula is an analytic event/Killing-horizon property of the stationary solution, not a merger apparent-horizon finder.",
+    "An event horizon is a global causal boundary; its reconstruction depends on the future development and declared asymptotic/final boundary conditions.",
+    "An apparent horizon is slice-dependent and is normally the outermost MOTS on a declared Cauchy slice.",
+    "A MOTS is a two-surface satisfying a marginal null-expansion condition; it is not automatically an event horizon or a proven outermost apparent horizon.",
+    "A marginally trapped tube is a worldtube foliated by marginal surfaces; its branch and topology metadata are required.",
+    "Dynamical and isolated horizon classifications have distinct causal signatures and physical regimes.",
+    "Coordinate radii and visualization mesh geometry are not invariant surface observables; area and declared intrinsic multipoles are preferable for cross-chart comparisons."
+  ],
+  "object_types": {
+    "stationary_kerr_event_horizon": {
+      "required": [
+        "spacetime_solution_id",
+        "mass_kg",
+        "dimensionless_spin",
+        "spin_axis_convention",
+        "outer_horizon_radius_m",
+        "coordinate_chart",
+        "metric_revision"
+      ],
+      "valid_sources": [
+        "analytic_stationary_solution"
+      ],
+      "caveats": [
+        "Only claims the stationary Kerr solution property.",
+        "Does not describe a binary-merger horizon finder output."
+      ]
+    },
+    "reconstructed_event_horizon": {
+      "required": [
+        "spacetime_solution_id",
+        "future_evolution_extent",
+        "final_boundary_condition",
+        "reconstruction_method",
+        "metric_data_revision",
+        "integration_resolution",
+        "causal_residuals"
+      ],
+      "valid_sources": [
+        "completed_numerical_spacetime_reconstruction"
+      ],
+      "caveats": [
+        "Must include the future-time extent and the final boundary assumption.",
+        "A partial simulation cannot establish a complete global event horizon."
+      ]
+    },
+    "marginally_outer_trapped_surface": {
+      "required": [
+        "spacetime_solution_id",
+        "cauchy_slice_id",
+        "slice_time",
+        "embedding",
+        "outgoing_null_normal_convention",
+        "incoming_null_normal_convention",
+        "outgoing_expansion_residual",
+        "incoming_expansion_sign",
+        "surface_area_m2",
+        "finder_revision"
+      ],
+      "validation": [
+        "outgoing null expansion is zero within a declared numerical tolerance",
+        "incoming null expansion has the declared negative sign",
+        "null-normal orientation and normalization are recorded",
+        "surface topology and branch identity are recorded"
+      ],
+      "caveats": [
+        "A MOTS does not by itself establish outermost status or event-horizon identity."
+      ]
+    },
+    "apparent_horizon": {
+      "required": [
+        "spacetime_solution_id",
+        "cauchy_slice_id",
+        "slice_time",
+        "mots_id",
+        "outermost_status",
+        "finder_revision",
+        "surface_area_m2"
+      ],
+      "validation": [
+        "linked MOTS exists on the declared slice",
+        "outermost status is either independently established or explicitly unknown"
+      ],
+      "caveats": [
+        "Slice dependence must be displayed; do not infer a global causal boundary."
+      ]
+    },
+    "marginally_trapped_tube": {
+      "required": [
+        "spacetime_solution_id",
+        "leaf_ids",
+        "slice_ids",
+        "time_parameterization",
+        "branch_lineage",
+        "topology_history",
+        "signature_history",
+        "finder_revision"
+      ],
+      "validation": [
+        "leaf continuity / branch transitions are recorded",
+        "topology changes are explicit",
+        "worldtube signature is evaluated along the tube"
+      ],
+      "caveats": [
+        "Do not assume a smooth pair-of-pants topology or a single branch without verification."
+      ]
+    },
+    "dynamical_horizon_segment": {
+      "required": [
+        "spacetime_solution_id",
+        "marginally_trapped_tube_id",
+        "signature",
+        "foliation",
+        "area_flux_data",
+        "flux_balance_residual",
+        "time_interval"
+      ],
+      "validation": [
+        "spacelike signature on the declared segment",
+        "area/flux balance convention and residual are recorded"
+      ],
+      "caveats": [
+        "Area increase is local and flux-related under the stated conditions; do not infer fluxes from area alone."
+      ]
+    },
+    "isolated_horizon": {
+      "required": [
+        "spacetime_solution_id",
+        "null_boundary_embedding",
+        "intrinsic_metric_revision",
+        "connection_data",
+        "isolated_horizon_conditions",
+        "equilibrium_interval"
+      ],
+      "validation": [
+        "null signature",
+        "declared non-expansion / intrinsic invariance conditions"
+      ],
+      "caveats": [
+        "This is a quasi-local equilibrium boundary structure; it need not imply a global Killing symmetry throughout the exterior."
+      ]
+    },
+    "unsupported_or_ambiguous": {
+      "required": [
+        "spacetime_solution_id",
+        "reason_code",
+        "missing_evidence",
+        "attempted_method"
+      ],
+      "valid_reasons": [
+        "incomplete_future_development",
+        "multiple_unresolved_branches",
+        "topology_change_unresolved",
+        "null_normal_orientation_unknown",
+        "surface_not_converged",
+        "coordinate_chart_invalid",
+        "finder_status_unknown"
+      ],
+      "policy": "Do not silently coerce this state to apparent_horizon or event_horizon."
+    }
+  },
+  "shared_provenance_fields": [
+    "spacetime_solution_id",
+    "source_code_repository_and_commit",
+    "metric_and_gauge_revision",
+    "cauchy_slice_id_and_time_if_applicable",
+    "coordinate_chart_and_units",
+    "surface_finder_name_version_and_configuration",
+    "resolution_and_interpolation_metadata",
+    "surface_file_digest",
+    "convergence_and_error_estimate",
+    "review_or_independent_verification_receipt"
+  ],
+  "invariant_comparisons": [
+    "surface_area_m2",
+    "irreducible_mass_kg",
+    "intrinsic_multipole_moments_with_convention",
+    "null_expansion_residuals",
+    "signature_and_flux_balance",
+    "causal_relation_to_future_null_infinity_where_event_horizon_is_claimed"
+  ],
+  "negative_controls": [
+    "label a single-slice MOTS as an event horizon",
+    "omit Cauchy slice identity from an apparent-horizon record",
+    "omit future extent/final condition from an event-horizon reconstruction",
+    "flip outgoing/incoming null normals or metric signature",
+    "claim outermost status when multiple MOTSs exist",
+    "merge separate horizon branches across a topology change",
+    "compare coordinate radii across different charts as invariant areas",
+    "claim dynamical-horizon flux balance using an area time series alone"
+  ],
+  "execution_state": {
+    "status": "schema_and_validation_contract_only",
+    "not_implemented": [
+      "apparent_horizon_surface_finder",
+      "event_horizon_reconstruction_engine",
+      "dynamical_horizon_flux_solver"
+    ],
+    "not_claimed": [
+      "event_horizon_detection_in_NR",
+      "merger_horizon_reconstruction",
+      "horizon_flux_measurement",
+      "benchmark_performance"
+    ]
+  }
+}
