@@ -37,7 +37,7 @@ The reference validates evidence identity/completeness only. It does not validat
     cargo test --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml
     cargo clippy --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml --all-targets -- -D warnings
 
-The 16 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
+The 17 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
 
 ## Research basis
 
