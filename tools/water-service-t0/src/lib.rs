@@ -1099,7 +1099,7 @@ pub fn evaluate_membrane_observability_f0(
     let mut false_cip_recommendations = 0_u64;
 
     for scenario in scenarios {
-        let id = case_id(scenario)?;
+        let id = string(scenario, &["scenario_id"])?;
         if !seen.insert(id.clone()) {
             return Err(format!("membrane observability F0 duplicate scenario ID: {id}"));
         }
