@@ -178,8 +178,7 @@ fn segment_absolute_area(
 ) -> Result<u128, BlockReason> {
     let left_abs = left_delta.unsigned_abs();
     let right_abs = right_delta.unsigned_abs();
-    let crosses_zero = (left_delta < 0 && right_delta > 0)
-        || (left_delta > 0 && right_delta < 0);
+    let crosses_zero = (left_delta < 0 && right_delta > 0) || (left_delta > 0 && right_delta < 0);
 
     if crosses_zero {
         let left_sq = checked_mul(left_abs, left_abs)?;
