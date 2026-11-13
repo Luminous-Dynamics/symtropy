@@ -90,7 +90,7 @@ impl DecisionProblem {
             return Err(DecisionError::DimensionMismatch("posterior hypotheses"));
         }
         let minimum = self.loss_by_decision.iter().map(|row| {
-            row.iter().zip(probabilities).map(|(loss, probability)| loss * probability).sum::<f64>()
+            row.iter().zip(probabilities).map(|(loss, probability)| *loss * *probability).sum::<f64>()
         }).fold(f64::INFINITY, f64::min);
         if minimum.is_finite() {
             Ok(minimum)
@@ -198,7 +198,7 @@ impl DecisionProblem {
 
         for (outcome_index, _) in action.outcome_ids.iter().enumerate() {
             let weighted: Vec<f64> = self.prior.iter().enumerate()
-                .map(|(h, prior)| prior * action.likelihoods[h][outcome_index])
+                .map(|(h, prior)| *prior * action.likelihoods[h][outcome_index])
                 .collect();
             let outcome_probability: f64 = weighted.iter().sum();
             if outcome_probability <= f64::EPSILON {
@@ -278,7 +278,7 @@ fn validate_distribution(values: &[f64], field: &'static str) -> DecisionResult<
 }
 
 fn entropy_bits(probabilities: &[f64]) -> f64 {
-    probabilities.iter().filter(|p| **p > 0.0).map(|p| -p * p.log2()).sum()
+    probabilities.iter().filter(|p| **p > 0.0).map(|p| -*p * p.log2()).sum()
 }
 
 #[cfg(test)]
