@@ -35,16 +35,8 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Apply pinned Rust formatting for repair capture
-        run: cargo fmt --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all
-
-      - name: Capture pinned rustfmt source output
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustfmt-weld-physics
-          path: crates/tools/shipyard-weld-physics-vvuq/src/main.rs
-          if-no-files-found: error
-          retention-days: 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all -- --check
 
 
       - name: Run independent manifest verifier tests
