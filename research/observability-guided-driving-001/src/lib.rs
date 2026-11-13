@@ -293,16 +293,12 @@ fn is_sha256_hex(value: &str) -> bool {
 }
 
 fn validate_belief(belief: &BinaryBelief, findings: &mut BTreeSet<Finding>) {
-    for probability in [
-        belief.actor_present_ppm,
-        belief.crosses_within_horizon_ppm,
-    ] {
+    for probability in [belief.actor_present_ppm, belief.crosses_within_horizon_ppm] {
         if probability > 1_000_000 {
             findings.insert(Finding::InvalidProbability);
         }
     }
-    if belief.epistemic_uncertainty_ppm > 1_000_000
-        || belief.aleatoric_uncertainty_ppm > 1_000_000
+    if belief.epistemic_uncertainty_ppm > 1_000_000 || belief.aleatoric_uncertainty_ppm > 1_000_000
     {
         findings.insert(Finding::InvalidUncertainty);
     }
@@ -335,8 +331,7 @@ fn calibration_metrics(samples: &[CalibrationSample]) -> CalibrationMetrics {
     const BIN_COUNT: usize = 10;
     let mut bins: Vec<Vec<CalibrationSample>> = vec![Vec::new(); BIN_COUNT];
     for sample in samples {
-        let index = ((sample.probability_ppm as usize) / 100_000)
-            .min(BIN_COUNT - 1);
+        let index = ((sample.probability_ppm as usize) / 100_000).min(BIN_COUNT - 1);
         bins[index].push(*sample);
     }
 
@@ -364,13 +359,11 @@ fn calibration_metrics(samples: &[CalibrationSample]) -> CalibrationMetrics {
         let observed_frequency = if count == 0 {
             None
         } else {
-            Some(
-                values.iter().filter(|item| item.outcome).count() as f64 / count as f64,
-            )
+            Some(values.iter().filter(|item| item.outcome).count() as f64 / count as f64)
         };
         if let (Some(confidence), Some(frequency)) = (mean_confidence, observed_frequency) {
-            calibration_error += count as f64 / samples.len().max(1) as f64
-                * (confidence - frequency).abs();
+            calibration_error +=
+                count as f64 / samples.len().max(1) as f64 * (confidence - frequency).abs();
         }
         reliability_bins.push(CalibrationBin {
             lower_bound_ppm: lower,
@@ -418,10 +411,7 @@ fn calibration_metrics(samples: &[CalibrationSample]) -> CalibrationMetrics {
     let observed_frequency = if sample_count == 0 {
         None
     } else {
-        Some(
-            samples.iter().filter(|sample| sample.outcome).count() as f64
-                / sample_count as f64,
-        )
+        Some(samples.iter().filter(|sample| sample.outcome).count() as f64 / sample_count as f64)
     };
 
     CalibrationMetrics {
@@ -637,13 +627,18 @@ fn entropy_reduction(branch: &BranchTrace) -> f64 {
 }
 
 fn pair_value_metrics(pair: &PairedDecision) -> PairValueMetrics {
-    let y = pair.active_observation.evaluator_outcome.crosses_within_horizon;
+    let y = pair
+        .active_observation
+        .evaluator_outcome
+        .crosses_within_horizon;
     let passive = brier(
         pair.passive_control.belief_after.crosses_within_horizon_ppm,
         y,
     );
     let active = brier(
-        pair.active_observation.belief_after.crosses_within_horizon_ppm,
+        pair.active_observation
+            .belief_after
+            .crosses_within_horizon_ppm,
         y,
     );
     PairValueMetrics {
@@ -686,9 +681,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
             findings.insert(Finding::EmptyIdentity);
         }
     }
-    if campaign.model_status == ModelStatus::TrainedPolicy
-        && campaign.checkpoint_sha256.is_none()
-    {
+    if campaign.model_status == ModelStatus::TrainedPolicy && campaign.checkpoint_sha256.is_none() {
         findings.insert(Finding::MissingCheckpointForTrainedPolicy);
     }
     if campaign
@@ -758,7 +751,10 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
             matches!(
                 pair.active_observation.information_action,
                 InformationActionKind::SensorRequest | InformationActionKind::SafeReposition
-            ) && (pair.active_observation.action_cost.estimated_residual_risk_ppm
+            ) && (pair
+                .active_observation
+                .action_cost
+                .estimated_residual_risk_ppm
                 > pair.active_observation.action_cost.max_admissible_risk_ppm
                 || !pair
                     .active_observation
@@ -783,7 +779,9 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         .pairs
         .iter()
         .filter(|pair| {
-            pair.active_observation.evaluator_outcome.contact_or_collision
+            pair.active_observation
+                .evaluator_outcome
+                .contact_or_collision
                 || pair.passive_control.evaluator_outcome.contact_or_collision
         })
         .count() as u64;
@@ -791,19 +789,33 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         .pairs
         .iter()
         .filter(|pair| {
-            pair.active_observation.evaluator_outcome.conflict_boundary_encroached
-                || pair.passive_control.evaluator_outcome.conflict_boundary_encroached
+            pair.active_observation
+                .evaluator_outcome
+                .conflict_boundary_encroached
+                || pair
+                    .passive_control
+                    .evaluator_outcome
+                    .conflict_boundary_encroached
         })
         .count() as u64;
     let rule_violation_count = campaign
         .pairs
         .iter()
         .filter(|pair| {
-            pair.active_observation.evaluator_outcome.traffic_rule_violation
-                || pair.passive_control.evaluator_outcome.traffic_rule_violation
+            pair.active_observation
+                .evaluator_outcome
+                .traffic_rule_violation
+                || pair
+                    .passive_control
+                    .evaluator_outcome
+                    .traffic_rule_violation
         })
         .count() as u64;
-    let pair_metrics = campaign.pairs.iter().map(pair_value_metrics).collect::<Vec<_>>();
+    let pair_metrics = campaign
+        .pairs
+        .iter()
+        .map(pair_value_metrics)
+        .collect::<Vec<_>>();
 
     let passive_control = branch_calibration(&campaign.pairs, BranchRole::PassiveControl);
     let active_observation = branch_calibration(&campaign.pairs, BranchRole::ActiveObservation);
@@ -903,7 +915,11 @@ mod tests {
             decision_after,
             belief_before: belief(500_000, before, 500_000, 100_000),
             belief_after: belief(
-                if actor_present { after } else { 1_000_000 - after },
+                if actor_present {
+                    after
+                } else {
+                    1_000_000 - after
+                },
                 if crosses { after } else { 1_000_000 - after },
                 100_000,
                 100_000,
@@ -977,10 +993,7 @@ mod tests {
             inference_precision: "not-measured".into(),
             power_profile: "not-measured".into(),
             energy_measurement_method: "synthetic-fixture-values".into(),
-            policy_visible_field_ids: vec![
-                "front-camera-rgb".into(),
-                "ego-proprioception".into(),
-            ],
+            policy_visible_field_ids: vec!["front-camera-rgb".into(), "ego-proprioception".into()],
             evaluator_only_field_ids: vec![
                 "hidden-pedestrian-presence".into(),
                 "hidden-pedestrian-intent".into(),
@@ -1050,8 +1063,7 @@ mod tests {
     #[test]
     fn no_safe_information_action_must_not_reposition_or_request_sensor() {
         let mut input = campaign();
-        input.pairs[1].active_observation.information_action =
-            InformationActionKind::SensorRequest;
+        input.pairs[1].active_observation.information_action = InformationActionKind::SensorRequest;
         input.pairs[1].active_observation.action_cost = cost(InformationActionKind::SensorRequest);
         let report = audit_campaign(&input);
         assert!(has(&report, "no_safe_action_violation"));
@@ -1060,7 +1072,9 @@ mod tests {
     #[test]
     fn hidden_evaluator_fields_must_not_leak_to_policy() {
         let mut input = campaign();
-        input.policy_visible_field_ids.push("hidden-pedestrian-intent".into());
+        input
+            .policy_visible_field_ids
+            .push("hidden-pedestrian-intent".into());
         let report = audit_campaign(&input);
         assert!(has(&report, "hidden_field_leak"));
     }
@@ -1068,8 +1082,14 @@ mod tests {
     #[test]
     fn a_safe_reposition_must_respect_risk_and_conflict_boundary() {
         let mut input = campaign();
-        input.pairs[0].active_observation.action_cost.estimated_residual_risk_ppm = 200_000;
-        input.pairs[0].active_observation.evaluator_outcome.conflict_boundary_encroached = true;
+        input.pairs[0]
+            .active_observation
+            .action_cost
+            .estimated_residual_risk_ppm = 200_000;
+        input.pairs[0]
+            .active_observation
+            .evaluator_outcome
+            .conflict_boundary_encroached = true;
         let report = audit_campaign(&input);
         assert!(has(&report, "risk_budget_exceeded"));
         assert!(has(&report, "unsafe_information_seeking"));
@@ -1091,7 +1111,10 @@ mod tests {
     #[test]
     fn hidden_outcome_labels_must_match_across_paired_branches() {
         let mut input = campaign();
-        input.pairs[0].active_observation.evaluator_outcome.crosses_within_horizon = false;
+        input.pairs[0]
+            .active_observation
+            .evaluator_outcome
+            .crosses_within_horizon = false;
         let report = audit_campaign(&input);
         assert!(has(&report, "hidden_outcome_mismatch"));
     }
@@ -1129,16 +1152,35 @@ mod tests {
     #[test]
     fn reliability_bins_include_probability_one_in_the_final_bin() {
         let samples = vec![
-            CalibrationSample { probability_ppm: 0, outcome: false },
-            CalibrationSample { probability_ppm: 100_000, outcome: false },
-            CalibrationSample { probability_ppm: 999_999, outcome: true },
-            CalibrationSample { probability_ppm: 1_000_000, outcome: true },
+            CalibrationSample {
+                probability_ppm: 0,
+                outcome: false,
+            },
+            CalibrationSample {
+                probability_ppm: 100_000,
+                outcome: false,
+            },
+            CalibrationSample {
+                probability_ppm: 999_999,
+                outcome: true,
+            },
+            CalibrationSample {
+                probability_ppm: 1_000_000,
+                outcome: true,
+            },
         ];
         let metrics = calibration_metrics(&samples);
         assert_eq!(metrics.reliability_bins[0].sample_count, 1);
         assert_eq!(metrics.reliability_bins[1].sample_count, 1);
         assert_eq!(metrics.reliability_bins[9].sample_count, 2);
-        assert_eq!(metrics.reliability_bins.iter().map(|bin| bin.sample_count).sum::<usize>(), 4);
+        assert_eq!(
+            metrics
+                .reliability_bins
+                .iter()
+                .map(|bin| bin.sample_count)
+                .sum::<usize>(),
+            4
+        );
     }
 
     #[test]
@@ -1164,7 +1206,10 @@ mod tests {
     #[test]
     fn uncertainty_components_are_bounded_independently() {
         let mut input = campaign();
-        input.pairs[0].active_observation.belief_after.epistemic_uncertainty_ppm = 1_000_001;
+        input.pairs[0]
+            .active_observation
+            .belief_after
+            .epistemic_uncertainty_ppm = 1_000_001;
         let report = audit_campaign(&input);
         assert!(has(&report, "invalid_uncertainty"));
     }
@@ -1172,7 +1217,10 @@ mod tests {
     #[test]
     fn invalid_probabilities_are_rejected() {
         let mut input = campaign();
-        input.pairs[0].active_observation.belief_after.crosses_within_horizon_ppm = 1_000_001;
+        input.pairs[0]
+            .active_observation
+            .belief_after
+            .crosses_within_horizon_ppm = 1_000_001;
         let report = audit_campaign(&input);
         assert!(has(&report, "invalid_probability"));
     }
@@ -1189,7 +1237,9 @@ mod tests {
     #[test]
     fn repeated_policy_and_evaluator_field_ids_are_rejected() {
         let mut input = campaign();
-        input.evaluator_only_field_ids.push("ego-proprioception".into());
+        input
+            .evaluator_only_field_ids
+            .push("ego-proprioception".into());
         let report = audit_campaign(&input);
         assert!(has(&report, "duplicate_field_id"));
     }
