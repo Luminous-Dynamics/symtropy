@@ -172,7 +172,7 @@ jobs:
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema, format_checker=FormatChecker())
 
-          if len(fixtures["cases"]) != 5 or manifest["case_count"] != 5:
+          if len(fixtures["cases"]) != 6 or manifest["case_count"] != 5:
               raise SystemExit("MEMBRANE_WQ_M2_CASE_COUNT_FAIL")
           ids = [case["case_id"] for case in fixtures["cases"]]
           if len(set(ids)) != 5:
