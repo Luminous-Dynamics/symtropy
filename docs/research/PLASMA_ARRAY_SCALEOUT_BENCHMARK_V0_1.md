@@ -127,7 +127,7 @@ These are falsifiable programme targets. They should be revised if calibration u
 
 ## 6. Synthetic scenario ladder
 
-The accompanying `benchmarks/plasma/plasma-array-scaleout-v0.json` freezes ten solver-free cases at N = 1, 5, 43 and 100. N=1 is the reference; N=5 corresponds to the published individually controlled RF architecture; N=43 corresponds to the published LTCC array; N=100 is a prospective stress case, not a published demonstration.
+The accompanying `benchmarks/plasma/plasma-array-scaleout-v0.json` freezes twelve solver-free cases at N = 1, 5, 43 and 100. N=1 is the reference; N=5 corresponds to the published individually controlled RF architecture; N=43 corresponds to the published LTCC array; N=100 is a prospective stress case, not a published demonstration.
 
 The fixture includes:
 - ideal linear scale-out;
@@ -141,7 +141,7 @@ The fixture includes:
 - stale geometry/configuration identity;
 - zero-output and missing failure-denominator cases.
 
-All fixture values are artificial and marked synthetic. Expected dispositions are explicit: synthetic pass, blocked, or rejected. A fixture pass only validates the benchmark contract and arithmetic, not plasma physics.
+All fixture values are artificial and marked synthetic. Expected dispositions are explicit: synthetic pass, blocked, or rejected. The current frozen fixture has one SYNTHETIC_PASS, four BLOCKED and seven REJECTED dispositions. In particular, the five-cell linear and 100-cell isolated-failure scenarios retain their useful-service arithmetic but are BLOCKED because cross-talk coverage is not measured. A fixture pass only validates the benchmark contract and arithmetic, not plasma physics.
 
 ## 7. Reproducibility and admission contract
 
@@ -176,3 +176,33 @@ Related:
 - Symtropy [PLASMA-ARRAY-SCALEOUT-001 #4926](https://github.com/Luminous-Dynamics/symtropy/issues/4926)
 - Symthaea [MICROPLASMA-001 #11780](https://github.com/Luminous-Dynamics/symthaea/issues/11780)
 - Symthaea [PLASMA-ENERGY-001 #11718](https://github.com/Luminous-Dynamics/symthaea/issues/11718)
+
+## 10. Cross-talk is a measured coverage contract, not an empty-list default
+
+The evaluator distinguishes three statuses:
+- `NOT_APPLICABLE`: only for the one-cell reference, with no pair/edge records;
+- `NOT_MEASURED`: there is no admitted cross-talk observation; for N>1 this blocks array qualification;
+- `COMPLETE`: an explicit sampling-plan ID, required neighbour-pair IDs, observed pair IDs and an edge record for every declared sampled pair are present.
+
+An empty edge list must never mean measured zero cross-talk. A finite empty sample is not a null effect. For each observed edge, preserve the signed neighbour-output delta but threshold its absolute magnitude, because both an increase and a decrease in neighbour output indicate coupling.
+
+The v0.1 fixture currently has only one explicit synthetic neighbour-pair observation (scale-n5-cross-talk), deliberately above the 5% limit. Other multi-cell cases have NOT_MEASURED coverage and cannot qualify as cross-talk-free. Later physical qualification must define the topology and sampling design from the real hardware architecture, including common-manifold and common-supply coupling, not assume that a one-edge synthetic example covers a real array.
+
+## 11. Expected metrics and energy-score gating
+
+The evaluator now consumes the frozen expected_metrics object:
+- numeric scale-out efficiency is checked against the independently derived G_N;
+- numeric CV is checked against the derived sample CV;
+- computed_from_cells requires a valid cell-derived CV;
+- a null CV requires an undefined result (e.g. N=1);
+- faulted-service retention is checked against the declared reference.
+
+A result cannot be called internally consistent solely because its terminal disposition matches if its expected numeric metric is wrong.
+
+Grid-energy-per-service is only emitted when the full declared boundary is complete, its utility flags and meter identities are present and gas accounting is valid. A blocked boundary produces None, not a scoreable partial SEC. The one-cell reference scenario is itself run through the same evaluator before it can normalize any array candidate.
+
+The Rust evaluator also rejects unknown fields at the schema boundary. This prevents silent typos in frozen scenario data from disappearing during deserialization.
+
+**Current S0 read-back:** the 12-scenario JSON was independently replayed from the fetched branch: 1 SYNTHETIC_PASS, 4 BLOCKED, 7 REJECTED; 12/12 expected dispositions matched. The independent formula oracle gives G_5=0.96 and G_100=0.9405. These are synthetic scenario calculations, not physical array results.
+
+**Execution status:** 21 Rust tests are authored, including explicit unknown/unmeasured cross-talk, signed-delta, expected-metric, incomplete-energy, reference-validity and independent G_N oracle tests. They have not been compiled or executed in the current environment; no CI pass is claimed.
