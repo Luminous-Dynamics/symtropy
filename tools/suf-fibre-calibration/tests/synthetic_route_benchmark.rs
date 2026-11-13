@@ -57,8 +57,8 @@ fn benchmark_model() -> CalibrationModel {
     CalibrationModel::new(
         binding,
         FibreTopology::SingleSpan,
-        identity_map(&[(0.0, 5.0), (400.0, 405.0), (1_000.0, 1_010.0)]),
-        identity_map(&[(5.0, 0.0), (505.0, 500.0), (1_010.0, 1_000.0)]),
+        identity_map(&[(0.0, 5.0), (400.0, 405.0), (1_000.0, 1_005.0)]),
+        identity_map(&[(5.0, 0.0), (405.0, 400.0), (1_005.0, 1_000.0)]),
         route,
         UncertaintyBudget {
             // These are already horizontal-equivalent upper bounds for this
