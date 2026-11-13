@@ -2700,7 +2700,7 @@ mod tests {
             serde_json::from_str(include_str!("../active-evidence-selection-v0.1.json")).unwrap();
         assert_eq!(
             protocol["schema_version"],
-            "liu-ice-active-evidence-selection-v0.6"
+            "liu-ice-active-evidence-selection-v0.7"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert!(
@@ -2736,6 +2736,16 @@ mod tests {
         assert_eq!(
             protocol["method"]["sequential_update_policy"]["status"],
             "joint_hypothesis_scenario_ledger_supported"
+        );
+        assert_eq!(
+            protocol["method"]["portfolio_replay"]["status"],
+            "source_contract_implemented_ci_pending"
+        );
+        assert!(
+            protocol["method"]["portfolio_replay"]["replay_rule"]
+                .as_str()
+                .unwrap()
+                .contains("reruns rank_diagnostic_probes")
         );
         assert_eq!(
             protocol["method"]["sequential_update_policy"]["no_silent_fallback"],
