@@ -736,13 +736,14 @@ pub fn evaluate_membrane_ro_m0(inputs: &Value, oracle: &Value) -> Result<Value, 
 
         let cp_exponent = (flux / mass_transfer).exp();
         if !cp_exponent.is_finite() {
-            return Err(format!("{id}: concentration-polarization exponential overflow"));
+            return Err(format!(
+                "{id}: concentration-polarization exponential overflow"
+            ));
         }
         let cp_modulus = (1.0 - rejection) + rejection * cp_exponent;
         let water_permeance_reference = flux / net_driving_pressure;
         let water_permeance_pressure_only = flux / delta_pressure;
-        let solute_permeance_reference =
-            flux * (1.0 - rejection) / (rejection * cp_exponent);
+        let solute_permeance_reference = flux * (1.0 - rejection) / (rejection * cp_exponent);
         let solute_permeance_no_cp = flux * (1.0 - rejection) / rejection;
         if !cp_modulus.is_finite()
             || !water_permeance_reference.is_finite()
@@ -855,11 +856,9 @@ mod tests {
 
     #[test]
     fn all_five_membrane_ro_m0_cases_match_separate_oracle() {
-        let result = evaluate_membrane_ro_m0(
-            &load("membrane_m0_inputs"),
-            &load("membrane_m0_oracle"),
-        )
-        .expect("M0 transport calculations must evaluate");
+        let result =
+            evaluate_membrane_ro_m0(&load("membrane_m0_inputs"), &load("membrane_m0_oracle"))
+                .expect("M0 transport calculations must evaluate");
         assert_eq!(result["result_count"], 5);
         assert_eq!(result["matched_case_count"], 5);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
@@ -879,7 +878,12 @@ mod tests {
             .iter()
             .find(|row| row["case_id"] == "MRO-M0-001-high-rejection-moderate-CP")
             .unwrap();
-        assert!(row["computed"]["net_driving_pressure_bar"].as_f64().unwrap() < 20.0);
+        assert!(
+            row["computed"]["net_driving_pressure_bar"]
+                .as_f64()
+                .unwrap()
+                < 20.0
+        );
         assert!(
             row["computed"]["water_permeance_reference_l_m2_h_bar"]
                 .as_f64()
@@ -924,8 +928,7 @@ mod tests {
     #[test]
     fn membrane_ro_m0_oracle_mismatch_is_reported_not_hidden() {
         let mut oracle = load("membrane_m0_oracle");
-        oracle["cases"][0]["expected"]["water_permeance_reference_l_m2_h_bar"] =
-            json!(999.0);
+        oracle["cases"][0]["expected"]["water_permeance_reference_l_m2_h_bar"] = json!(999.0);
         let result = evaluate_membrane_ro_m0(&load("membrane_m0_inputs"), &oracle)
             .expect("mismatch should produce an evaluation result");
         assert_eq!(result["verification_state"], "OracleMismatch");
