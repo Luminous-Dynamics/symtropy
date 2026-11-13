@@ -2505,11 +2505,11 @@
       "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
-      "case_id": "prediction_timestamp_interval_overflow",
+      "case_id": "command_timestamp_interval_underflow",
       "asset_configuration_id": "engine-config-a",
       "regime_id": "steady-load",
       "regime_qualified": true,
-      "prediction_time_ms": 18446744073709552000,
+      "prediction_time_ms": 1000,
       "command": {
         "signal_id": "fuel_index_command",
         "role": "CONTROL_INTENT",
@@ -2521,7 +2521,7 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0,
+        "timestamp_uncertainty_ms": 901,
         "timestamp_evidence_id": "synthetic-path-fuel_index_command",
         "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "timestamp_capture_point": "CONTROLLER_SCAN",

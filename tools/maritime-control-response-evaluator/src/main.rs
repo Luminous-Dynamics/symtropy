@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -1155,7 +1156,7 @@ mod tests {
         serde_json::from_str(FROZEN).expect("frozen fixture JSON")
     }
     #[test]
-    fn all_twenty_five_synthetic_cases_match_known_truth() {
+    fn all_frozen_synthetic_cases_match_known_truth() {
         let c = corpus();
         let items = c["cases"].as_array().expect("cases");
         assert_eq!(items.len(), 30);
