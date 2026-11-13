@@ -179,10 +179,18 @@ fn segment_absolute_area(
     if crosses_zero {
         let left_sq = checked_mul(left_abs, left_abs)?;
         let right_sq = checked_mul(right_abs, right_abs)?;
-        let numerator = checked_mul(dx_um, left_sq.checked_add(right_sq)
-            .ok_or(BlockReason::NumericOverflow)?)?;
-        let denominator = checked_mul(2, left_abs.checked_add(right_abs)
-            .ok_or(BlockReason::NumericOverflow)?)?;
+        let numerator = checked_mul(
+            dx_um,
+            left_sq
+                .checked_add(right_sq)
+                .ok_or(BlockReason::NumericOverflow)?,
+        )?;
+        let denominator = checked_mul(
+            2,
+            left_abs
+                .checked_add(right_abs)
+                .ok_or(BlockReason::NumericOverflow)?,
+        )?;
         rounded_ratio(numerator, denominator)
     } else {
         let height_sum = left_abs
@@ -246,8 +254,7 @@ fn coverage_metrics(
     let mut maximum_gap = 0u128;
     let mut covered = 0u128;
 
-    let left_gap = (i128::from(points[0].x_um) - i128::from(domain.x_min_um))
-        .unsigned_abs();
+    let left_gap = (i128::from(points[0].x_um) - i128::from(domain.x_min_um)).unsigned_abs();
     maximum_gap = maximum_gap.max(left_gap);
     if left_gap <= coverage_gap_threshold {
         covered = covered
@@ -256,16 +263,17 @@ fn coverage_metrics(
     }
 
     for pair in points.windows(2) {
-        let gap = (i128::from(pair[1].x_um) - i128::from(pair[0].x_um))
-            .unsigned_abs();
+        let gap = (i128::from(pair[1].x_um) - i128::from(pair[0].x_um)).unsigned_abs();
         maximum_gap = maximum_gap.max(gap);
         if gap <= coverage_gap_threshold {
-            covered = covered.checked_add(gap).ok_or(BlockReason::NumericOverflow)?;
+            covered = covered
+                .checked_add(gap)
+                .ok_or(BlockReason::NumericOverflow)?;
         }
     }
 
-    let right_gap = (i128::from(domain.x_max_um) - i128::from(points[points.len() - 1].x_um))
-        .unsigned_abs();
+    let right_gap =
+        (i128::from(domain.x_max_um) - i128::from(points[points.len() - 1].x_um)).unsigned_abs();
     maximum_gap = maximum_gap.max(right_gap);
     if right_gap <= coverage_gap_threshold {
         covered = covered
@@ -273,10 +281,7 @@ fn coverage_metrics(
             .ok_or(BlockReason::NumericOverflow)?;
     }
 
-    let coverage = rounded_ratio(
-        checked_mul(covered, 1_000)?,
-        domain_width as u128,
-    )?;
+    let coverage = rounded_ratio(checked_mul(covered, 1_000)?, domain_width as u128)?;
     if maximum_gap > max_allowed {
         return Err(BlockReason::GapTooLarge);
     }
@@ -395,8 +400,8 @@ fn assess_inner(baseline: &Baseline) -> Result<Metrics, BlockReason> {
         let reference_right = &baseline.reference_points[index + 1];
         let observed_left = &baseline.observed_points[index];
         let observed_right = &baseline.observed_points[index + 1];
-        let dx = (i128::from(reference_right.x_um) - i128::from(reference_left.x_um))
-            .unsigned_abs();
+        let dx =
+            (i128::from(reference_right.x_um) - i128::from(reference_left.x_um)).unsigned_abs();
         let left_delta = i128::from(observed_left.z_um) - i128::from(reference_left.z_um);
         let right_delta = i128::from(observed_right.z_um) - i128::from(reference_right.z_um);
 
@@ -435,10 +440,7 @@ fn assess_inner(baseline: &Baseline) -> Result<Metrics, BlockReason> {
     })
 }
 
-fn apply_mutation(
-    baseline: &Baseline,
-    mutation: &str,
-) -> Result<Baseline, String> {
+fn apply_mutation(baseline: &Baseline, mutation: &str) -> Result<Baseline, String> {
     let mut input = baseline.clone();
     match mutation {
         "none" => {}
@@ -472,33 +474,48 @@ fn apply_mutation(
             input.registration.receipt_sha256 = "d".repeat(64);
         }
         "registration_residual_over_limit" => {
-            input.registration.residual_um =
-                input.limits.maximum_registration_residual_um.saturating_add(1);
+            input.registration.residual_um = input
+                .limits
+                .maximum_registration_residual_um
+                .saturating_add(1);
         }
         "point_uncertainty_over_limit" => {
-            let point = input.observed_points.get_mut(1)
+            let point = input
+                .observed_points
+                .get_mut(1)
                 .ok_or_else(|| "uncertainty fixture requires a middle point".to_owned())?;
             point.uncertainty_um = input.limits.maximum_point_uncertainty_um.saturating_add(1);
         }
         "duplicate_x_station" => {
-            let x = input.observed_points.first()
-                .ok_or_else(|| "duplicate fixture has no first point".to_owned())?.x_um;
-            let point = input.observed_points.get_mut(1)
+            let x = input
+                .observed_points
+                .first()
+                .ok_or_else(|| "duplicate fixture has no first point".to_owned())?
+                .x_um;
+            let point = input
+                .observed_points
+                .get_mut(1)
                 .ok_or_else(|| "duplicate fixture has no second point".to_owned())?;
             point.x_um = x;
         }
         "non_monotonic_x_station" => {
-            let point = input.observed_points.get_mut(1)
+            let point = input
+                .observed_points
+                .get_mut(1)
                 .ok_or_else(|| "non-monotonic fixture has no middle point".to_owned())?;
             point.x_um = input.domain.x_max_um;
         }
         "station_grid_mismatch" => {
-            let point = input.observed_points.get_mut(1)
+            let point = input
+                .observed_points
+                .get_mut(1)
                 .ok_or_else(|| "station mismatch fixture has no middle point".to_owned())?;
             point.x_um = point.x_um.saturating_add(1);
         }
         "zero_point_uncertainty" => {
-            let point = input.observed_points.get_mut(1)
+            let point = input
+                .observed_points
+                .get_mut(1)
                 .ok_or_else(|| "zero uncertainty fixture has no middle point".to_owned())?;
             point.uncertainty_um = 0;
         }
@@ -506,12 +523,16 @@ fn apply_mutation(
             input.domain.x_max_um = input.domain.x_min_um;
         }
         "coverage_below_minimum" => {
-            let point = input.observed_points.get_mut(1)
+            let point = input
+                .observed_points
+                .get_mut(1)
                 .ok_or_else(|| "coverage fixture has no middle point".to_owned())?;
             point.x_um = input.domain.x_min_um.saturating_add(1_150);
         }
         "point_outside_domain" => {
-            let point = input.observed_points.last_mut()
+            let point = input
+                .observed_points
+                .last_mut()
                 .ok_or_else(|| "domain fixture has no final point".to_owned())?;
             point.x_um = input.domain.x_max_um.saturating_add(1);
         }
@@ -567,7 +588,10 @@ pub fn verify_corpus(corpus: &Corpus) -> Result<CorpusSummary, Vec<String>> {
                     errors.push(format!("{}: known-answer metrics mismatch", case.case_id));
                 }
                 if case.expected_reason.is_some() {
-                    errors.push(format!("{}: positive case must not declare a block reason", case.case_id));
+                    errors.push(format!(
+                        "{}: positive case must not declare a block reason",
+                        case.case_id
+                    ));
                 }
             }
             Assessment::Blocked(reason) => {
@@ -583,7 +607,10 @@ pub fn verify_corpus(corpus: &Corpus) -> Result<CorpusSummary, Vec<String>> {
                     errors.push(format!("{}: expected_reason mismatch", case.case_id));
                 }
                 if case.expected_metrics.is_some() {
-                    errors.push(format!("{}: blocked case must not declare metrics", case.case_id));
+                    errors.push(format!(
+                        "{}: blocked case must not declare metrics",
+                        case.case_id
+                    ));
                 }
             }
         }
@@ -634,9 +661,9 @@ mod tests {
     #[test]
     fn exact_match_has_zero_observed_area_and_bounded_uncertainty_area() {
         let corpus = corpus();
-        let Assessment::Qualified(metrics) = assess(
-            &apply_mutation(&corpus.baseline, "none").expect("baseline mutation"),
-        ) else {
+        let Assessment::Qualified(metrics) =
+            assess(&apply_mutation(&corpus.baseline, "none").expect("baseline mutation"))
+        else {
             panic!("exact match should qualify");
         };
         assert_eq!(metrics.maximum_absolute_deviation_um, 0);
@@ -649,8 +676,7 @@ mod tests {
     fn uniform_offset_has_exact_area_answer() {
         let corpus = corpus();
         let Assessment::Qualified(metrics) = assess(
-            &apply_mutation(&corpus.baseline, "uniform_offset_1000_um")
-                .expect("offset mutation"),
+            &apply_mutation(&corpus.baseline, "uniform_offset_1000_um").expect("offset mutation"),
         ) else {
             panic!("uniform offset should qualify");
         };
@@ -664,8 +690,7 @@ mod tests {
     fn sign_crossing_integrates_two_triangles() {
         let corpus = corpus();
         let Assessment::Qualified(metrics) = assess(
-            &apply_mutation(&corpus.baseline, "sign_crossing_100_um")
-                .expect("crossing mutation"),
+            &apply_mutation(&corpus.baseline, "sign_crossing_100_um").expect("crossing mutation"),
         ) else {
             panic!("sign crossing should qualify");
         };
@@ -678,17 +703,22 @@ mod tests {
     #[test]
     fn long_internal_gap_is_not_hidden_by_point_count() {
         let corpus = corpus();
-        let input = apply_mutation(&corpus.baseline, "long_internal_gap")
-            .expect("gap mutation");
-        assert_eq!(assess(&input), Assessment::Blocked(BlockReason::GapTooLarge));
+        let input = apply_mutation(&corpus.baseline, "long_internal_gap").expect("gap mutation");
+        assert_eq!(
+            assess(&input),
+            Assessment::Blocked(BlockReason::GapTooLarge)
+        );
     }
 
     #[test]
     fn scan_digest_must_match_registration_receipt() {
         let corpus = corpus();
-        let input = apply_mutation(&corpus.baseline, "scan_digest_mismatch")
-            .expect("digest mutation");
-        assert_eq!(assess(&input), Assessment::Blocked(BlockReason::ScanDigestMismatch));
+        let input =
+            apply_mutation(&corpus.baseline, "scan_digest_mismatch").expect("digest mutation");
+        assert_eq!(
+            assess(&input),
+            Assessment::Blocked(BlockReason::ScanDigestMismatch)
+        );
     }
 
     #[test]
@@ -750,25 +780,33 @@ mod tests {
     #[test]
     fn wrong_frame_is_rejected_before_geometry_scoring() {
         let corpus = corpus();
-        let input = apply_mutation(&corpus.baseline, "wrong_coordinate_frame")
-            .expect("frame mutation");
-        assert_eq!(assess(&input), Assessment::Blocked(BlockReason::FrameMismatch));
+        let input =
+            apply_mutation(&corpus.baseline, "wrong_coordinate_frame").expect("frame mutation");
+        assert_eq!(
+            assess(&input),
+            Assessment::Blocked(BlockReason::FrameMismatch)
+        );
     }
 
     #[test]
     fn nonpositive_domain_is_rejected() {
         let corpus = corpus();
-        let input = apply_mutation(&corpus.baseline, "invalid_domain")
-            .expect("domain mutation");
-        assert_eq!(assess(&input), Assessment::Blocked(BlockReason::InvalidDomain));
+        let input = apply_mutation(&corpus.baseline, "invalid_domain").expect("domain mutation");
+        assert_eq!(
+            assess(&input),
+            Assessment::Blocked(BlockReason::InvalidDomain)
+        );
     }
 
     #[test]
     fn aggregate_coverage_has_a_threshold_distinct_from_maximum_gap() {
         let corpus = corpus();
-        let input = apply_mutation(&corpus.baseline, "coverage_below_minimum")
-            .expect("coverage mutation");
-        assert_eq!(assess(&input), Assessment::Blocked(BlockReason::CoverageTooLow));
+        let input =
+            apply_mutation(&corpus.baseline, "coverage_below_minimum").expect("coverage mutation");
+        assert_eq!(
+            assess(&input),
+            Assessment::Blocked(BlockReason::CoverageTooLow)
+        );
     }
 
     #[test]
