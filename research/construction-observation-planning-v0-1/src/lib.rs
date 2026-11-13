@@ -10,6 +10,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use construction_robot_interop_core::resources::{
+    ReservationBook, ReservationError, ReservationOutcome,
+};
 use construction_spacetime_occupancy_core::{
     ConflictRecord, SpatialError, SpatialOccupancy, SpatialOccupancyBook,
 };
@@ -75,6 +78,9 @@ impl ObservationAction {
 pub struct RejectedCandidate {
     pub action_id: String,
     pub conflicts: Vec<ConflictRecord>,
+    /// Exact resource-calendar rejection, if spatial admission passed but the
+    /// existing reservation owner could not admit the required capacity.
+    pub reservation_error: Option<ReservationError>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -85,6 +91,9 @@ pub struct ObservationChoice {
     pub crew_minutes: u64,
     pub cost_minor_units: u64,
     pub energy_wh: u64,
+    /// None for the geometry-only baseline; otherwise the read-only result from
+    /// the existing resource owner. Duplicate means the identical booking is active.
+    pub reservation_outcome: Option<ReservationOutcome>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -96,7 +105,9 @@ pub struct TargetedPlan {
 }
 
 /// Fixed-checklist baseline: evaluate exactly the named action and do not substitute
-/// a different action when it conflicts or covers no current work need.
+/// a different action when it conflicts or covers no current work need. This baseline
+/// checks spatial conflicts only; use `choose_fixed_observation_with_resources` for
+/// resource-capacity-aware planning.
 pub fn choose_fixed_observation(
     action_id: &str,
     actions: &[ObservationAction],
@@ -104,17 +115,41 @@ pub fn choose_fixed_observation(
     occupancy_book: &SpatialOccupancyBook,
 ) -> Result<TargetedPlan, ObservationPlanError> {
     require_non_empty("fixed_action_id", action_id)?;
-    let mut matches = actions
-        .iter()
-        .filter(|action| action.action_id == action_id);
+    let action = find_unique_action(action_id, actions)?;
+    choose_targeted_observation(std::slice::from_ref(action), work_needs, occupancy_book)
+}
+
+pub fn choose_fixed_observation_with_resources(
+    action_id: &str,
+    actions: &[ObservationAction],
+    work_needs: &[WorkNeed],
+    occupancy_book: &SpatialOccupancyBook,
+    reservation_book: &ReservationBook,
+    now_ms: u64,
+) -> Result<TargetedPlan, ObservationPlanError> {
+    require_non_empty("fixed_action_id", action_id)?;
+    let action = find_unique_action(action_id, actions)?;
+    choose_targeted_observation_with_resources(
+        std::slice::from_ref(action),
+        work_needs,
+        occupancy_book,
+        reservation_book,
+        now_ms,
+    )
+}
+
+fn find_unique_action<'a>(
+    action_id: &str,
+    actions: &'a [ObservationAction],
+) -> Result<&'a ObservationAction, ObservationPlanError> {
+    let mut matches = actions.iter().filter(|action| action.action_id == action_id);
     let action = matches
         .next()
         .ok_or_else(|| ObservationPlanError::UnknownAction(action_id.to_owned()))?;
     if matches.next().is_some() {
         return Err(ObservationPlanError::DuplicateAction(action_id.to_owned()));
     }
-
-    choose_targeted_observation(std::slice::from_ref(action), work_needs, occupancy_book)
+    Ok(action)
 }
 
 /// Threshold-triggered baseline: only work needs whose declared uncertainty bound
@@ -150,6 +185,46 @@ pub fn choose_threshold_observation(
     choose_targeted_observation(actions, &triggered_needs, occupancy_book)
 }
 
+/// Resource-aware threshold baseline. Every need is validated; only above-threshold
+/// needs become observation targets. Resource previews are read-only and use the
+/// same current clock value for every candidate.
+pub fn choose_threshold_observation_with_resources(
+    actions: &[ObservationAction],
+    work_needs: &[WorkNeed],
+    threshold_mm: [u64; 3],
+    occupancy_book: &SpatialOccupancyBook,
+    reservation_book: &ReservationBook,
+    now_ms: u64,
+) -> Result<TargetedPlan, ObservationPlanError> {
+    let mut seen_work_units = BTreeSet::new();
+    for need in work_needs {
+        need.validate()?;
+        if !seen_work_units.insert(need.work_unit_id.as_str()) {
+            return Err(ObservationPlanError::DuplicateWorkUnit(
+                need.work_unit_id.clone(),
+            ));
+        }
+    }
+    let triggered_needs: Vec<WorkNeed> = work_needs
+        .iter()
+        .filter(|need| {
+            need.uncertainty_bound_mm
+                .iter()
+                .zip(threshold_mm.iter())
+                .any(|(uncertainty, threshold)| uncertainty > threshold)
+        })
+        .cloned()
+        .collect();
+
+    choose_targeted_observation_with_resources(
+        actions,
+        &triggered_needs,
+        occupancy_book,
+        reservation_book,
+        now_ms,
+    )
+}
+
 /// Select one observation without access to hidden scenario truth.
 ///
 /// Policy is deterministic and lexicographic:
@@ -165,6 +240,35 @@ pub fn choose_targeted_observation(
     actions: &[ObservationAction],
     work_needs: &[WorkNeed],
     occupancy_book: &SpatialOccupancyBook,
+) -> Result<TargetedPlan, ObservationPlanError> {
+    choose_targeted_observation_inner(actions, work_needs, occupancy_book, None, 0)
+}
+
+/// Select a targeted observation using both existing spatial occupancy and the
+/// existing time/capacity reservation owner. Resource feasibility is previewed
+/// without mutating the reservation book; only an explicit later commit may reserve.
+pub fn choose_targeted_observation_with_resources(
+    actions: &[ObservationAction],
+    work_needs: &[WorkNeed],
+    occupancy_book: &SpatialOccupancyBook,
+    reservation_book: &ReservationBook,
+    now_ms: u64,
+) -> Result<TargetedPlan, ObservationPlanError> {
+    choose_targeted_observation_inner(
+        actions,
+        work_needs,
+        occupancy_book,
+        Some(reservation_book),
+        now_ms,
+    )
+}
+
+fn choose_targeted_observation_inner<'a>(
+    actions: &'a [ObservationAction],
+    work_needs: &[WorkNeed],
+    occupancy_book: &SpatialOccupancyBook,
+    reservation_book: Option<&ReservationBook>,
+    now_ms: u64,
 ) -> Result<TargetedPlan, ObservationPlanError> {
     let mut seen_actions = BTreeSet::new();
     let mut seen_work = BTreeSet::new();
@@ -210,14 +314,31 @@ pub fn choose_targeted_observation(
             rejected_conflicts.push(RejectedCandidate {
                 action_id: action.action_id.clone(),
                 conflicts,
+                reservation_error: None,
             });
             continue;
         }
 
-        candidates.push((action, covered_work_unit_ids));
+        let reservation_outcome = if let Some(reservation_book) = reservation_book {
+            match reservation_book.preview_reservation(&action.occupancy.reservation, now_ms) {
+                Ok(outcome) => Some(outcome),
+                Err(error) => {
+                    rejected_conflicts.push(RejectedCandidate {
+                        action_id: action.action_id.clone(),
+                        conflicts: Vec::new(),
+                        reservation_error: Some(error),
+                    });
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+
+        candidates.push((action, covered_work_unit_ids, reservation_outcome));
     }
 
-    candidates.sort_by(|(left, left_coverage), (right, right_coverage)| {
+    candidates.sort_by(|(left, left_coverage, _), (right, right_coverage, _)| {
         right_coverage
             .len()
             .cmp(&left_coverage.len())
@@ -227,14 +348,17 @@ pub fn choose_targeted_observation(
             .then_with(|| left.action_id.cmp(&right.action_id))
     });
 
-    let selected = candidates.first().map(|(action, covered)| ObservationChoice {
-        action_id: action.action_id.clone(),
-        covered_work_unit_ids: covered.clone(),
-        duration_minutes: action.duration_minutes,
-        crew_minutes: action.crew_minutes,
-        cost_minor_units: action.cost_minor_units,
-        energy_wh: action.energy_wh,
-    });
+    let selected = candidates
+        .first()
+        .map(|(action, covered, reservation_outcome)| ObservationChoice {
+            action_id: action.action_id.clone(),
+            covered_work_unit_ids: covered.clone(),
+            duration_minutes: action.duration_minutes,
+            crew_minutes: action.crew_minutes,
+            cost_minor_units: action.cost_minor_units,
+            energy_wh: action.energy_wh,
+            reservation_outcome: *reservation_outcome,
+        });
 
     rejected_conflicts.sort_by(|left, right| left.action_id.cmp(&right.action_id));
     irrelevant_action_ids.sort();
