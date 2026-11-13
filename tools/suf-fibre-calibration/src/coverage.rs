@@ -184,12 +184,12 @@ pub struct CoverageAssessment {
     pub observable_exposure_km_days: f64,
     /// Degraded exposure in km-days, reported separately.
     pub degraded_exposure_km_days: f64,
-    /// Eligible event trials.
-    pub eligible_event_trials: u64,
-    /// Detected event count.
-    pub detected_events: u64,
-    /// Critical miss count for the declared event class.
-    pub missed_events: u64,
+    /// Eligible event trials, absent when independent event truth is unavailable.
+    pub eligible_event_trials: Option<u64>,
+    /// Detected event count, absent when independent event truth is unavailable.
+    pub detected_events: Option<u64>,
+    /// Critical miss count, absent when independent event truth is unavailable.
+    pub missed_events: Option<u64>,
     /// POD point estimate. None when independent truth or trials are absent.
     pub probability_of_detection: Option<f64>,
     /// 95% Wilson interval for POD, when estimable.
@@ -280,7 +280,10 @@ impl EventConditionedCoverageInput {
             .unwrap_or(0.0);
         let observable_length_fraction = observable_length_km / self.total_route_length_km;
 
-        if self.eligible_event_trials > 0 && observable_exposure_km_days <= 0.0 {
+        if self.independent_event_truth_available
+            && self.eligible_event_trials > 0
+            && observable_exposure_km_days <= 0.0
+        {
             return Err(CoverageError::TrialsWithoutObservableExposure);
         }
 
@@ -337,9 +340,10 @@ impl EventConditionedCoverageInput {
             observable_length_fraction,
             observable_exposure_km_days,
             degraded_exposure_km_days,
-            eligible_event_trials: self.eligible_event_trials,
-            detected_events: self.detected_events,
-            missed_events: self.eligible_event_trials - self.detected_events,
+            eligible_event_trials: self.independent_event_truth_available.then_some(self.eligible_event_trials),
+            detected_events: self.independent_event_truth_available.then_some(self.detected_events),
+            missed_events: self.independent_event_truth_available
+                .then_some(self.eligible_event_trials - self.detected_events),
             probability_of_detection: pod,
             pod_95_interval,
             false_alarms_per_observable_km_day,
@@ -408,7 +412,9 @@ mod tests {
         assert!((report.observable_exposure_km_days - 6.0).abs() < 1e-12);
         assert!((report.degraded_exposure_km_days - 2.0).abs() < 1e-12);
         assert!((report.false_alarms_per_observable_km_day.expect("false alarm rate") - 0.5).abs() < 1e-12);
-        assert_eq!(report.missed_events, 2);
+        assert_eq!(report.eligible_event_trials, Some(10));
+        assert_eq!(report.detected_events, Some(8));
+        assert_eq!(report.missed_events, Some(2));
     }
 
     #[test]
@@ -422,6 +428,9 @@ mod tests {
         assert_eq!(report.false_alarm_disposition, CoverageDisposition::Qualified);
         assert!(report.probability_of_detection.is_none());
         assert!(report.pod_95_interval.is_none());
+        assert!(report.eligible_event_trials.is_none());
+        assert!(report.detected_events.is_none());
+        assert!(report.missed_events.is_none());
         assert!(report.false_alarms_per_observable_km_day.is_some());
     }
 
