@@ -42,6 +42,15 @@ jobs:
             crates/tools/shipyard-geometry-measurement-oracle/src/main.rs
           if-no-files-found: error
 
+      - name: Emit canonical formatted source for exact-head repair
+        run: |
+          echo '===BEGIN_LIB_SOURCE==='
+          cat crates/tools/shipyard-geometry-measurement-oracle/src/lib.rs
+          echo '===END_LIB_SOURCE==='
+          echo '===BEGIN_MAIN_SOURCE==='
+          cat crates/tools/shipyard-geometry-measurement-oracle/src/main.rs
+          echo '===END_MAIN_SOURCE==='
+
       - name: Run geometry oracle mutation tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-geometry-measurement-oracle/Cargo.toml
 
