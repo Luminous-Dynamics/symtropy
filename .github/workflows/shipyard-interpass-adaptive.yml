@@ -29,16 +29,8 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
 
-      - name: Apply pinned Rust formatting for repair capture
-        run: cargo fmt --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml --all
-
-      - name: Capture pinned rustfmt source output
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustfmt-interpass
-          path: crates/tools/shipyard-interpass-adaptive/src/lib.rs
-          if-no-files-found: error
-          retention-days: 1
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml --all -- --check
 
       - name: Run offline planner contract tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml
