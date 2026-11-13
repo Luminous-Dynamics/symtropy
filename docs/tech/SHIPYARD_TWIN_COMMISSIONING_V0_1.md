@@ -86,3 +86,18 @@ The BAM companion article provides an explicit example of heterogeneous source c
 Every interface now declares a source sampling interval in microseconds and a separate interface update interval in milliseconds. They are different properties: an adapter may publish a value frequently even though the underlying sensor acquired it less frequently. A compliant update cadence cannot compensate for insufficient sampling resolution.
 
 The BAM Tandem-GMAW paper describes current/voltage sampled every 0.1 ms (100 µs), robot TCP coordinates every 8 ms (8,000 µs) and power-source OPC-UA variables every 100 ms (100,000 µs). These rates are preserved per modality; they are not collapsed into one update rate. DTC-013 is the negative control: the interface update interval passes, but the source sample interval exceeds its task limit, so the evaluator must report only `SAMPLE_FREQUENCY`.
+
+
+## Continuous commissioning lifecycle — 2026-11-13
+
+Commissioning is now a revocable runtime state, not a permanent green badge. The frozen corpus includes eight exact lifecycle scenarios and the Rust verifier checks every transition:
+
+- `UNCONFIGURED → CANDIDATE → COMMISSIONED` only after configuration and passed commissioning evidence;
+- optional interface budget failure moves `COMMISSIONED → DEGRADED`;
+- a critical budget failure moves `COMMISSIONED/DEGRADED → SUSPENDED`;
+- a source, clock, calibration, transform, model, procedure or digital-thread revision change moves an operating twin to `REQUALIFICATION_REQUIRED`;
+- a degraded twin can enter a fresh candidate commissioning cycle;
+- a suspended twin must clear into `REQUALIFICATION_REQUIRED`, then enter `CANDIDATE` and pass fresh commissioning before becoming `COMMISSIONED`;
+- `DECOMMISSIONED` is terminal.
+
+There is no direct `SUSPENDED → COMMISSIONED` or `REQUALIFICATION_REQUIRED → COMMISSIONED` transition. Unknown or illegal transitions fail closed. This complements the purpose-scoped READY / READY_LIMITED / NOT_READY decision: commissioning state is the lifecycle authority, while readiness is the current interface/purpose result. The additional eight Rust lifecycle tests bring the suite from 19 to 27 tests. These remain synthetic state-machine tests, not ISO certification or a live physical twin.
