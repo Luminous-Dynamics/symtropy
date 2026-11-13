@@ -1,0 +1,48 @@
+name: Construction Robot Trial Receipt V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-robot-trial-receipt-v0-1/**"
+      - ".github/workflows/construction-robot-trial-receipt-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-robot-trial-receipt-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Trial receipt schema and semantic fixtures (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Resolve lockfile for initial review artifact
+        run: cargo generate-lockfile --manifest-path research/construction-robot-trial-receipt-v0-1/Cargo.toml
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/construction-robot-trial-receipt-v0-1/Cargo.toml -- --check
+      - name: Run schema and semantic fixture tests
+        run: cargo test --manifest-path research/construction-robot-trial-receipt-v0-1/Cargo.toml --locked
+      - name: Run deterministic fixture oracle
+        run: cargo run --manifest-path research/construction-robot-trial-receipt-v0-1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-robot-trial-receipt-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Export resolved Cargo lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: construction-robot-trial-receipt-cargo-lock-${{ matrix.os }}
+          path: research/construction-robot-trial-receipt-v0-1/Cargo.lock
+          if-no-files-found: error
+          retention-days: 7
