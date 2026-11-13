@@ -588,6 +588,111 @@ pub fn integrate_constant_tidal_fixed_step(
     BilocalGeodesicOperator::from_matrix(state)
 }
 
+
+
+/// Integrate constant symmetric optical tides with the symplectic
+/// kick-drift-kick (Störmer-Verlet) method.
+///
+/// For xi' = ell, ell' = T xi, symmetric T defines a quadratic
+/// Hamiltonian system. Each half-kick and drift is a symplectic shear, so
+/// their composition preserves the canonical Wronskian up to floating-point
+/// roundoff. The method is second-order accurate and time-reversible for a
+/// fixed step. Unlike the RK4 reference kernel, it is structure-preserving by
+/// construction.
+///
+/// The frame is a declared parallel-propagated orthonormal frame. This remains
+/// a constant-tide numerical model, not a curvature-derived Schwarzschild/Kerr
+/// propagation result.
+pub fn integrate_constant_tidal_symplectic(
+    tidal: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    affine_interval: f64,
+    steps: usize,
+    symmetry_tolerance: f64,
+) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
+    if !affine_interval.is_finite() {
+        return Err(BilocalOperatorError::NonFinite("affine interval"));
+    }
+    if !symmetry_tolerance.is_finite() || symmetry_tolerance <= 0.0 {
+        return Err(BilocalOperatorError::InvalidTolerance(symmetry_tolerance));
+    }
+    if steps == 0 {
+        return Err(BilocalOperatorError::InvalidStepCount);
+    }
+
+    let mut symmetry_residual: f64 = 0.0;
+    for row in 0..BLOCK_DIMENSION {
+        for column in 0..BLOCK_DIMENSION {
+            if !tidal[row][column].is_finite() {
+                return Err(BilocalOperatorError::NonFinite("optical tidal matrix"));
+            }
+            symmetry_residual =
+                symmetry_residual.max((tidal[row][column] - tidal[column][row]).abs());
+        }
+    }
+    if symmetry_residual > symmetry_tolerance {
+        return Err(BilocalOperatorError::TidalSymmetryResidual {
+            residual: symmetry_residual,
+            tolerance: symmetry_tolerance,
+        });
+    }
+
+    let mut state = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+    for index in 0..STATE_DIMENSION {
+        state[index][index] = 1.0;
+    }
+    let step = affine_interval / steps as f64;
+    let half_step = 0.5 * step;
+
+    for _ in 0..steps {
+        // Half kick: ell_(n+1/2) = ell_n + h/2 T xi_n.
+        let mut half_kicked = state;
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                let mut acceleration = 0.0;
+                for inner in 0..BLOCK_DIMENSION {
+                    acceleration =
+                        tidal[row][inner].mul_add(state[inner][column], acceleration);
+                }
+                half_kicked[row + BLOCK_DIMENSION][column] =
+                    half_step.mul_add(acceleration, state[row + BLOCK_DIMENSION][column]);
+            }
+        }
+
+        // Drift: xi_(n+1) = xi_n + h ell_(n+1/2).
+        let mut next = half_kicked;
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                next[row][column] =
+                    step.mul_add(half_kicked[row + BLOCK_DIMENSION][column], state[row][column]);
+            }
+        }
+
+        // Second half kick: ell_(n+1) = ell_(n+1/2) + h/2 T xi_(n+1).
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                let mut acceleration = 0.0;
+                for inner in 0..BLOCK_DIMENSION {
+                    acceleration = tidal[row][inner].mul_add(next[inner][column], acceleration);
+                }
+                next[row + BLOCK_DIMENSION][column] = half_step
+                    .mul_add(acceleration, half_kicked[row + BLOCK_DIMENSION][column]);
+            }
+        }
+
+        for row in &next {
+            if row.iter().any(|value| !value.is_finite()) {
+                return Err(BilocalOperatorError::NonFinite(
+                    "constant-tide symplectic integration",
+                ));
+            }
+        }
+        state = next;
+    }
+
+    BilocalGeodesicOperator::from_matrix(state)
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::{BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap};
@@ -881,4 +986,74 @@ mod tests {
             Err(BilocalOperatorError::InvalidStepCount)
         );
     }
+
+    #[test]
+    fn symplectic_constant_zero_tide_reduces_to_exact_minkowski_transfer() {
+        let integrated =
+            integrate_constant_tidal_symplectic([[0.0; 4]; 4], 2.5, 17, TOLERANCE).unwrap();
+        let exact = BilocalGeodesicOperator::minkowski(2.5).unwrap();
+        assert!(integrated.max_abs_difference(&exact) <= TOLERANCE);
+        assert!(integrated.symplectic_residual() <= TOLERANCE);
+    }
+
+    #[test]
+    fn symplectic_constant_tide_is_wronskian_preserving_and_second_order() {
+        let omega: f64 = 0.7;
+        let interval: f64 = 1.1;
+        let mut tidal = [[0.0; 4]; 4];
+        for index in 0..4 {
+            tidal[index][index] = -omega * omega;
+        }
+
+        let coarse =
+            integrate_constant_tidal_symplectic(tidal, interval, 64, TOLERANCE).unwrap();
+        let fine =
+            integrate_constant_tidal_symplectic(tidal, interval, 128, TOLERANCE).unwrap();
+        let cosine = (omega * interval).cos();
+        let sine = (omega * interval).sin();
+
+        let coarse_error = (coarse.matrix()[0][0] - cosine).abs();
+        let fine_error = (fine.matrix()[0][0] - cosine).abs();
+        assert!(coarse_error / fine_error > 3.6);
+        assert!(coarse_error / fine_error < 4.4);
+        assert!(fine.symplectic_residual() <= 1.0e-12);
+        assert!((fine.matrix()[0][0] - cosine).abs() < 1.0e-4);
+        assert!((fine.matrix()[0][4] - sine / omega).abs() < 1.0e-4);
+    }
+
+    #[test]
+    fn symplectic_constant_tide_composes_for_equal_fixed_step_intervals() {
+        let mut tidal = [[0.0; 4]; 4];
+        tidal[0][0] = -0.49;
+        tidal[1][1] = -0.25;
+        tidal[2][2] = 0.16;
+        tidal[3][3] = 0.04;
+        let first = integrate_constant_tidal_symplectic(tidal, 0.35, 128, TOLERANCE).unwrap();
+        let second = integrate_constant_tidal_symplectic(tidal, 0.35, 128, TOLERANCE).unwrap();
+        let combined = second.compose(&first).unwrap();
+        let direct = integrate_constant_tidal_symplectic(tidal, 0.7, 256, TOLERANCE).unwrap();
+        assert!(combined.max_abs_difference(&direct) <= 1.0e-12);
+        assert!(direct.symplectic_residual() <= 1.0e-12);
+    }
+
+    #[test]
+    fn symplectic_constant_tide_rejects_asymmetry_nonfinite_and_zero_steps() {
+        let mut asymmetric = [[0.0; 4]; 4];
+        asymmetric[0][1] = 0.1;
+        assert!(matches!(
+            integrate_constant_tidal_symplectic(asymmetric, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::TidalSymmetryResidual { .. })
+        ));
+        let mut nonfinite = [[0.0; 4]; 4];
+        nonfinite[0][0] = f64::NAN;
+        assert_eq!(
+            integrate_constant_tidal_symplectic(nonfinite, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::NonFinite("optical tidal matrix"))
+        );
+        assert_eq!(
+            integrate_constant_tidal_symplectic([[0.0; 4]; 4], 1.0, 0, TOLERANCE),
+            Err(BilocalOperatorError::InvalidStepCount)
+        );
+    }
+
 }
