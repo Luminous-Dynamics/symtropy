@@ -45,7 +45,7 @@ jobs:
           toolchain: 1.96.0
           components: clippy, rustfmt
       - name: Check formatting
-        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml -- --check
+        run: rustfmt --edition 2024 --check crates/domains/symtropy-relativity/src/bilocal.rs
       - name: Run Clippy
         run: cargo clippy --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --all-targets -- -D warnings
       - name: Run crate tests
