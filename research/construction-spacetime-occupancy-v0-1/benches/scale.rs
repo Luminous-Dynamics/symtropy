@@ -66,6 +66,9 @@ fn main() {
         query.task_id = format!("query-task-{size}");
         query.reservation.task_id = query.task_id.clone();
 
+        let candidate_pairs = book
+            .candidate_count_for(black_box(&query))
+            .expect("valid candidate query");
         let query_start = Instant::now();
         let conflicts = book
             .conflicts_for(black_box(&query))
@@ -73,7 +76,7 @@ fn main() {
         let query_elapsed = query_start.elapsed();
 
         println!(
-            "records={size} inserted={} insert_ms={:.3} query_ms={:.3} query_conflicts={}",
+            "records={size} inserted={} insert_ms={:.3} query_ms={:.3} candidate_pairs={candidate_pairs} query_conflicts={}",
             book.occupancy_count(),
             insert_elapsed.as_secs_f64() * 1_000.0,
             query_elapsed.as_secs_f64() * 1_000.0,
