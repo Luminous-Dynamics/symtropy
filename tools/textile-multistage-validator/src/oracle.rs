@@ -72,7 +72,10 @@ impl Search<'_> {
         if self.assignments.len() == self.problem.operations.len() {
             let mut assignments = self.assignments.clone();
             assignments.sort_by(|left, right| left.operation_id.cmp(&right.operation_id));
-            self.result = Some(Schedule { assignments });
+            self.result = Some(Schedule {
+                assignments,
+                setup_reservations: Vec::new(),
+            });
             return;
         }
 
