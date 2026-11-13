@@ -73,7 +73,7 @@ The JSON corpus defines:
 - 25 additional named negative controls;
 - 30 total cases (4 positive / 26 negative).
 
-The Rust library has 22 unit/mutation tests. A separate JavaScript replay should reproduce the four numeric positive controls and the negative-gap outcome. All quantities are synthetic; they are not scanner calibration or physical weld observations.
+The Rust library has 32 unit/mutation tests. A separate JavaScript replay should reproduce the four numeric positive controls and the negative-gap outcome. All quantities are synthetic; they are not scanner calibration or physical weld observations.
 
 ## Benchmark targets
 
