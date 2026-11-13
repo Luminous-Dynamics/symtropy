@@ -137,6 +137,61 @@
         "Penetration labels are macrographic/destructive section measurements, not NDT",
         "Not a shipyard multi-pass T-GMAW domain"
       ]
+    },
+    {
+      "dataset_id": "bam-scientific-tool-use-v0.1.0",
+      "title": "BAM Scientific Tool Use v0.1.0",
+      "source_uri": "https://huggingface.co/datasets/harrrshall/bam-scientific-tool-use",
+      "doi": null,
+      "version": "0.1.0; repository revision 51e0e9a",
+      "domain": "scientific_tool_use_for_welding_measurement_files",
+      "publisher": "Independently prepared Hugging Face dataset derivative",
+      "access_mode": "public_dataset_card_and_parquet; rights_reconciliation_required_for_raw_source_subset",
+      "raw_file_license": "DERIVATIVE_CLAIMS_CC-BY-4.0; OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD",
+      "rights_status": "RIGHTS_RECONCILIATION_REQUIRED",
+      "article_doi": "10.1177/13621718261472548",
+      "article_license": "OPEN_ACCESS_ARTICLE; VERIFY_EXACT_REUSE_TERMS",
+      "article_license_scope": "published_article_text_only; does_not_clear_zenodo_raw_archive",
+      "raw_files_downloaded": false,
+      "raw_files_vendored": false,
+      "reported_size_gb": 0.400184634,
+      "independent_unit": "workpiece_id",
+      "independent_unit_count": 5,
+      "grouping_field": "workpiece_id",
+      "sessions_or_runs": 30,
+      "sample_count_label": "160 raw-file tasks across 30 passes and 5 WIDs (130 answerable; 30 constructed withheld-file); 480 introductory evidence-summary examples; independent unit remains workpiece",
+      "modality_classes": [
+        "selected_NetCDF_HDF5_robot_process_power_source_arrays",
+        "task_prompts_and_response_schemas",
+        "deterministic_reference_responses",
+        "no_video_in_release"
+      ],
+      "modalities_have_distinct_sample_rates": true,
+      "label_authority_classes": [
+        "process_observation",
+        "derived_numerical_reference",
+        "constructed_missing_file_control"
+      ],
+      "verified_ndt_labels_present": false,
+      "expert_defect_labels_present": false,
+      "label_count": 160,
+      "task_count": 160,
+      "answerable_task_count": 130,
+      "constructed_withheld_task_count": 30,
+      "introductory_sft_example_count": 480,
+      "heldout_test_workpiece_count": 1,
+      "published_models_all_solved_test_ceiling": true,
+      "known_limitations": [
+        "Derivative bundles 60 original NetCDF/HDF5 measurement files (about 400,184,634 bytes) from source Zenodo record 10.5281/zenodo.21824586.",
+        "Derivative card states CC BY 4.0 for source and derivative, but official Zenodo record currently shows Rights: Copyright (C) 2026 The Authors and a blank License field; source rights conflict is unresolved.",
+        "No raw source bytes may be copied, downloaded, trained on or redistributed through this repository until BAM/authors confirm the exact licence and derivative rights in writing.",
+        "Only five independent physical workpieces; the train/validation/test splits have three/one/one WIDs respectively.",
+        "The 160 task rows are not 160 independent experiments; the 32-task test partition contains a single WID.",
+        "Three models report 32/32 on each of three test repeats, indicating an observed score ceiling rather than a frontier-hard benchmark.",
+        "Thirty withheld-file cases are constructed file-availability controls, not a measured natural missing-data prevalence.",
+        "Tasks cover six numerical/file-analysis families but provide no expert defect labels, mechanical outcomes, NDT acceptance, registered geometry changes or robot control policies.",
+        "The 480 introductory evidence-summary examples are a separate SFT subset and must not be mixed with raw-file scientific-task scores."
+      ]
     }
   ],
   "split_policy": {
@@ -441,6 +496,41 @@
       "expected_disposition": "BLOCK_LICENSE_SCOPE",
       "mutation": "Transfer an Intel non-commercial trained model into a commercial use case without a distinct permission basis.",
       "rationale": "Commercial downstream rights are not granted by the Intel research licence."
+    },
+    {
+      "control_id": "WDINT-042",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DERIVATIVE_RIGHTS",
+      "mutation": "Treat the derivative dataset card's CC BY 4.0 assertion as proof that the original Zenodo raw files are CC BY 4.0 despite the official record's blank License field and copyright notice.",
+      "rationale": "Derivative attribution does not override or independently resolve the source record's rights metadata."
+    },
+    {
+      "control_id": "WDINT-043",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_FRONTIER_SCORE_CEILING",
+      "mutation": "Present the reported 32/32 test score for three models over three repeats as evidence that the task set is frontier-hard or that the models outperform industry.",
+      "rationale": "The dataset card itself identifies the held-out score ceiling; it is a regression/reference suite, not a discriminative SOTA leaderboard."
+    },
+    {
+      "control_id": "WDINT-044",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TASK_PSEUDOREPLICATION",
+      "mutation": "Report 160 task rows as 160 independent physical validation specimens.",
+      "rationale": "The independent experimental unit remains five workpieces; the 32-task test partition contains a single WID."
+    },
+    {
+      "control_id": "WDINT-045",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MISSINGNESS_GENERALIZATION",
+      "mutation": "Interpret 30 constructed withheld-file cases as an estimate of natural industrial file-missingness prevalence.",
+      "rationale": "The missing cases are synthetic availability controls created by withholding a required file."
+    },
+    {
+      "control_id": "WDINT-046",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SFT_TEST_LEAKAGE",
+      "mutation": "Mix the 480 introductory SFT examples or their validation/test answers with the 160 raw-file scientific-task score.",
+      "rationale": "Introductory SFT is a separate configuration; task answers/reference traces must remain outside model inputs."
     }
   ]
 }
