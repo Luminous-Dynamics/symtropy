@@ -570,10 +570,10 @@ jobs:
           manifest = json.loads((root / "membrane-observation-manifest-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
           validator = Draft202012Validator(schema, format_checker=FormatChecker())
-          if len(fixtures["cases"]) != 8 or manifest["case_count"] != 8:
+          if len(fixtures["cases"]) != 9 or manifest["case_count"] != 8:
               raise SystemExit("MEMBRANE_OBSERVATION_CASE_COUNT_FAIL")
           ids = [case["case_id"] for case in fixtures["cases"]]
-          if len(set(ids)) != 8:
+          if len(set(ids)) != 9:
               raise SystemExit("MEMBRANE_OBSERVATION_DUPLICATE_CASE_ID")
 
           for case in fixtures["cases"]:
@@ -608,7 +608,7 @@ jobs:
               if record["evidence_class"] == "LAB_SAMPLE" and record["time"]["semantics"] != "SAMPLE_COLLECTION":
                   raise SystemExit(f"MEMBRANE_OBSERVATION_LAB_TIME_SCOPE_FAIL: {case['case_id']}")
 
-          print("MEMBRANE_OBSERVATION_SEMANTICS_PASS: 8 positive/negative fixtures; evidence class, aggregation, lineage and missingness enforced")
+          print("MEMBRANE_OBSERVATION_SEMANTICS_PASS: 9 positive/negative fixtures; evidence class, aggregation, lineage and missingness enforced")
           PY
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
