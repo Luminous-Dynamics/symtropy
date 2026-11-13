@@ -40,3 +40,4 @@ This adapter records references and consumes the occupancy index. It does not co
 ## Claim ceiling
 
 V0.1 establishes only deterministic synthetic policy semantics. It does not establish real sensor performance, survey accuracy, safety, inspection validity, access authorization, construction productivity, cost savings or suitability for a real site.
+
