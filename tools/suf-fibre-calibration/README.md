@@ -17,7 +17,7 @@ A dependency-free Rust reference implementation for the **single, already-disamb
 - Includes an event-conditioned coverage evaluator with complete route-length partitioning, separate independent event/background truth gates, unique physical-event and false-alarm episode IDs, 95% Wilson POD intervals and false alarms per observable fibre-km-day.
 - Includes a deterministic integration benchmark with 10,000 seeded samples over a bent projected route, independent oracle equations, endpoint checks and monotonicity checks.
 
-Each eligible event ID must represent one independent physical event (not a crop, frame, overlapping window or repeated observation); detected event IDs must be a subset of eligible IDs. False-alarm episode IDs similarly deduplicate overlapping alarm windows. The evaluator rejects duplicates and withholds numerators/denominators when their independent truth source is absent.
+Each eligible event ID must represent one independent physical event (not a crop, frame, overlapping window or repeated observation); detected event IDs must be a subset of eligible IDs. False-alarm episode IDs similarly deduplicate overlapping alarm windows. The evaluator rejects duplicates and withholds numerators/denominators when their independent truth source is absent. The coverage module also provides an idealized zero-miss binomial sample-size function; 299 independent trials are needed for a one-sided 95% upper miss-probability bound of 1% when no misses are observed.
 
 ## Decision-value evaluator
 
