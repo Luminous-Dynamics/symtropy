@@ -753,7 +753,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                 &mut findings,
                 "UNKNOWN_SETUP_MACHINE",
                 &reservation.next_operation_id,
-                format!("setup reservation references unknown machine {}", reservation.machine_id),
+                format!(
+                    "setup reservation references unknown machine {}",
+                    reservation.machine_id
+                ),
             );
         }
 
@@ -799,7 +802,10 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                 &mut findings,
                 "UNKNOWN_SETUP_OPERATOR",
                 &reservation.next_operation_id,
-                format!("setup reservation references unknown operator {}", reservation.operator_id),
+                format!(
+                    "setup reservation references unknown operator {}",
+                    reservation.operator_id
+                ),
             );
         }
 
