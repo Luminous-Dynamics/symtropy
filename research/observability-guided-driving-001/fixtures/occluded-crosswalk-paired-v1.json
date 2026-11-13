@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "campaign_id": "observability-occluded-crosswalk-fixture-v1",
+  "benchmark_revision": "observability-guided-driving-v0.1",
+  "evaluator_revision": "proper-score-auditor-v1",
+  "model_id": "synthetic-visibility-belief-reference",
+  "model_status": "synthetic_reference",
+  "model_revision": "reference-v1",
+  "checkpoint_sha256": null,
+  "hardware_id": "synthetic-fixture-host-not-measured",
+  "inference_precision": "not-measured-fixture",
+  "power_profile": "not-measured-fixture",
+  "energy_measurement_method": "synthetic-fixture-values-not-hardware-measurement",
+  "policy_visible_field_ids": [
+    "front-camera-rgb",
+    "ego-proprioception"
+  ],
+  "evaluator_only_field_ids": [
+    "hidden-pedestrian-presence",
+    "hidden-pedestrian-intent"
+  ],
+  "expected_pair_count": 2,
+  "action_budget": {
+    "maximum_duration_us": 2000000,
+    "maximum_energy_uj": 500,
+    "maximum_maneuver_distance_mm": 5000,
+    "maximum_residual_risk_ppm": 100000
+  },
+  "pairs": [
+    {
+      "pair_id": "occluded-pedestrian-present",
+      "scenario_id": "occluded-crosswalk-parked-van-v1",
+      "decision_tick": 12,
+      "initial_world_snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scenario_seed_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exogenous_randomness_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "causal_branch_audit_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "no_safe_information_action_available": false,
+      "passive_control": {
+        "branch_id": "occluded-pedestrian-present-passive",
+        "role": "passive_control",
+        "information_action": "none",
+        "decision_before": "wait",
+        "decision_after": "wait",
+        "belief_before": {
+          "actor_present_ppm": 500000,
+          "crosses_within_horizon_ppm": 450000,
+          "epistemic_uncertainty_ppm": 500000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "belief_after": {
+          "actor_present_ppm": 900000,
+          "crosses_within_horizon_ppm": 600000,
+          "epistemic_uncertainty_ppm": 100000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "action_cost": {
+          "duration_us": 0,
+          "energy_uj": 0,
+          "maneuver_distance_mm": 0,
+          "estimated_residual_risk_ppm": 0,
+          "max_admissible_risk_ppm": 100000,
+          "expected_information_gain_milli_nats": 0,
+          "admissible_under_policy_constraints": true
+        },
+        "evaluator_outcome": {
+          "actor_present": true,
+          "crosses_within_horizon": true,
+          "conflict_boundary_encroached": false,
+          "contact_or_collision": false,
+          "traffic_rule_violation": false,
+          "minimum_clearance_mm": 2000
+        }
+      },
+      "active_observation": {
+        "branch_id": "occluded-pedestrian-present-active",
+        "role": "active_observation",
+        "information_action": "safe_reposition",
+        "decision_before": "wait",
+        "decision_after": "yield",
+        "belief_before": {
+          "actor_present_ppm": 500000,
+          "crosses_within_horizon_ppm": 450000,
+          "epistemic_uncertainty_ppm": 500000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "belief_after": {
+          "actor_present_ppm": 900000,
+          "crosses_within_horizon_ppm": 900000,
+          "epistemic_uncertainty_ppm": 100000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "action_cost": {
+          "duration_us": 500000,
+          "energy_uj": 120,
+          "maneuver_distance_mm": 2000,
+          "estimated_residual_risk_ppm": 50000,
+          "max_admissible_risk_ppm": 100000,
+          "expected_information_gain_milli_nats": 400,
+          "admissible_under_policy_constraints": true
+        },
+        "evaluator_outcome": {
+          "actor_present": true,
+          "crosses_within_horizon": true,
+          "conflict_boundary_encroached": false,
+          "contact_or_collision": false,
+          "traffic_rule_violation": false,
+          "minimum_clearance_mm": 2000
+        }
+      }
+    },
+    {
+      "pair_id": "no-safe-information-action",
+      "scenario_id": "occluded-crosswalk-parked-van-v1",
+      "decision_tick": 12,
+      "initial_world_snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "scenario_seed_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "exogenous_randomness_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "causal_branch_audit_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "no_safe_information_action_available": true,
+      "passive_control": {
+        "branch_id": "no-safe-information-action-passive",
+        "role": "passive_control",
+        "information_action": "none",
+        "decision_before": "wait",
+        "decision_after": "wait",
+        "belief_before": {
+          "actor_present_ppm": 500000,
+          "crosses_within_horizon_ppm": 450000,
+          "epistemic_uncertainty_ppm": 500000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "belief_after": {
+          "actor_present_ppm": 900000,
+          "crosses_within_horizon_ppm": 500000,
+          "epistemic_uncertainty_ppm": 100000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "action_cost": {
+          "duration_us": 0,
+          "energy_uj": 0,
+          "maneuver_distance_mm": 0,
+          "estimated_residual_risk_ppm": 0,
+          "max_admissible_risk_ppm": 100000,
+          "expected_information_gain_milli_nats": 0,
+          "admissible_under_policy_constraints": true
+        },
+        "evaluator_outcome": {
+          "actor_present": true,
+          "crosses_within_horizon": true,
+          "conflict_boundary_encroached": false,
+          "contact_or_collision": false,
+          "traffic_rule_violation": false,
+          "minimum_clearance_mm": 2000
+        }
+      },
+      "active_observation": {
+        "branch_id": "no-safe-information-action-active",
+        "role": "active_observation",
+        "information_action": "none",
+        "decision_before": "wait",
+        "decision_after": "yield",
+        "belief_before": {
+          "actor_present_ppm": 500000,
+          "crosses_within_horizon_ppm": 450000,
+          "epistemic_uncertainty_ppm": 500000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "belief_after": {
+          "actor_present_ppm": 900000,
+          "crosses_within_horizon_ppm": 500000,
+          "epistemic_uncertainty_ppm": 100000,
+          "aleatoric_uncertainty_ppm": 100000
+        },
+        "action_cost": {
+          "duration_us": 0,
+          "energy_uj": 0,
+          "maneuver_distance_mm": 0,
+          "estimated_residual_risk_ppm": 0,
+          "max_admissible_risk_ppm": 100000,
+          "expected_information_gain_milli_nats": 0,
+          "admissible_under_policy_constraints": true
+        },
+        "evaluator_outcome": {
+          "actor_present": true,
+          "crosses_within_horizon": true,
+          "conflict_boundary_encroached": false,
+          "contact_or_collision": false,
+          "traffic_rule_violation": false,
+          "minimum_clearance_mm": 2000
+        }
+      }
+    }
+  ]
+}
