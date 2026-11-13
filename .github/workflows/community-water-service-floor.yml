@@ -1,0 +1,59 @@
+name: Community water service floor evaluator
+
+on:
+  push:
+    paths:
+      - "tools/community-water-service-floor-validator/**"
+      - "research/water-service-engineering/community-service-floors/**"
+      - ".github/workflows/community-water-service-floor.yml"
+  pull_request:
+    paths:
+      - "tools/community-water-service-floor-validator/**"
+      - "research/water-service-engineering/community-service-floors/**"
+      - ".github/workflows/community-water-service-floor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: community-water-service-floor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semantic-evaluation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust, rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/community-water-service-floor-validator/Cargo.toml --all -- --check
+      - name: Run adversarial and frozen-oracle tests
+        run: cargo test --manifest-path tools/community-water-service-floor-validator/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/community-water-service-floor-validator/Cargo.toml --all-targets -- -D warnings
+      - name: Evaluate exact checked-out corpus
+        env:
+          COMMUNITY_SERVICE_FLOOR_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --manifest-path tools/community-water-service-floor-validator/Cargo.toml -- \
+            research/water-service-engineering/community-service-floors/scenarios-v0.1.json \
+            research/water-service-engineering/community-service-floors/scenarios-v0.1.schema.json \
+            research/water-service-engineering/community-service-floors/disposition-oracle-v0.1.json \
+            artifacts/community-water-service-floor/receipt.json
+      - name: Upload exact-head corpus, lockfile and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-water-service-floor-exact-head-evidence
+          path: |
+            research/water-service-engineering/community-service-floors/scenarios-v0.1.json
+            research/water-service-engineering/community-service-floors/scenarios-v0.1.schema.json
+            research/water-service-engineering/community-service-floors/disposition-oracle-v0.1.json
+            tools/community-water-service-floor-validator/Cargo.lock
+            artifacts/community-water-service-floor/receipt.json
+          if-no-files-found: warn
