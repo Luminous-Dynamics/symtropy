@@ -226,8 +226,7 @@ pub fn new_joint_scenario_posterior_ledger(
         .iter()
         .find(|item| item.candidate_id == candidate.candidate_id)
         .ok_or(JointPosteriorError::CandidateNotSelected)?;
-    if selected_catalogue_candidate.candidate_manifest_sha256
-        != candidate.candidate_manifest_sha256
+    if selected_catalogue_candidate.candidate_manifest_sha256 != candidate.candidate_manifest_sha256
         || candidate_manifest_sha256(selected_catalogue_candidate)
             .map_err(|_| JointPosteriorError::CandidateManifestMismatch)?
             != selected_catalogue_candidate.candidate_manifest_sha256
@@ -917,8 +916,7 @@ mod tests {
         let selected = candidate();
         let mut substituted = selected.clone();
         substituted.expected_cost_seconds += 1.0;
-        substituted.candidate_manifest_sha256 =
-            candidate_manifest_sha256(&substituted).unwrap();
+        substituted.candidate_manifest_sha256 = candidate_manifest_sha256(&substituted).unwrap();
 
         let hypotheses = hypotheses();
         let candidates = vec![selected];
