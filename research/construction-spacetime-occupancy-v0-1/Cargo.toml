@@ -1,0 +1,10 @@
+[package]
+name = "construction-spacetime-occupancy-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+construction-robot-interop-core = { path = "../construction-robot-interop-v0-1" }
+
+[workspace]
