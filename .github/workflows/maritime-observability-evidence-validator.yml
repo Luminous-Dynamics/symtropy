@@ -75,6 +75,8 @@ jobs:
             and .unaffected_qualification_count == 2
             and .impact_path_count == 12
             and (.impact_paths | length == 12)
+            and (.impact_traversal_state_count > 0 and .impact_traversal_state_count < 250000)
+            and (.max_impact_path_depth <= 512)
             and (.impacted_qualifications | all(.impact_path_count > 0))
             and (.unaffected_qualifications | all(.impact_path_count == 0))
             and .mutation_performed == false

@@ -498,9 +498,12 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
     // validated DAG. This preserves converging causes instead of only counting
     // the reachable qualification once. A hard cap makes path explosion fail closed.
     const MAX_IMPACT_PATHS: usize = 100_000;
+    const MAX_IMPACT_TRAVERSAL_STATES: usize = 250_000;
+    const MAX_IMPACT_PATH_DEPTH: usize = 512;
     let mut impacted_nodes = BTreeSet::new();
     let mut traversed_edges = BTreeSet::new();
     let mut impact_paths: Vec<Value> = Vec::new();
+    let mut impact_traversal_state_count = 0usize;
 
     for change in &change_records {
         let source_id = change["node_id"].as_str().expect("validated changed node");
@@ -512,6 +515,15 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
         )];
 
         while let Some((current, node_path, edge_path)) = stack.pop() {
+            impact_traversal_state_count += 1;
+            if impact_traversal_state_count > MAX_IMPACT_TRAVERSAL_STATES {
+                violations.push(json!({
+                    "code": "IMPACT_TRAVERSAL_STATE_LIMIT",
+                    "path": "$.dependency_edges",
+                    "detail": format!("more than {MAX_IMPACT_TRAVERSAL_STATES} path states; qualify a narrower dependency scope")
+                }));
+                return Err(violations);
+            }
             if let Some(dependents) = dependents_by_prerequisite.get(&current) {
                 for dependent in dependents.iter().rev() {
                     if node_path.iter().any(|visited| visited == dependent) {
@@ -526,6 +538,14 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
 
                     let mut next_nodes = node_path.clone();
                     next_nodes.push(dependent.clone());
+                    if next_nodes.len() > MAX_IMPACT_PATH_DEPTH + 1 {
+                        violations.push(json!({
+                            "code": "IMPACT_PATH_DEPTH_LIMIT",
+                            "path": "$.dependency_edges",
+                            "detail": format!("impact path exceeds {MAX_IMPACT_PATH_DEPTH} edges")
+                        }));
+                        return Err(violations);
+                    }
                     let mut next_edges = edge_path.clone();
                     next_edges.push(json!({
                         "from": current,
@@ -560,6 +580,12 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
             }
         }
     }
+
+    let max_impact_path_depth = impact_paths
+        .iter()
+        .filter_map(|path| path["edge_count"].as_u64())
+        .max()
+        .unwrap_or(0);
 
     impact_paths.sort_by(|a, b| {
         (
@@ -639,7 +665,9 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
         "unaffected_qualification_count": unaffected_qualifications.len(),
         "impact_traversal_node_count": impacted_nodes.len(),
         "impact_traversal_edge_count": traversed_edges.len(),
+        "impact_traversal_state_count": impact_traversal_state_count,
         "impact_path_count": impact_paths.len(),
+        "max_impact_path_depth": max_impact_path_depth,
         "impact_paths": impact_paths,
         "impacted_qualifications": impacted_qualifications,
         "unaffected_qualifications": unaffected_qualifications,
