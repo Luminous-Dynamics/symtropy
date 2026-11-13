@@ -193,7 +193,9 @@ fn validate_lifecycle_scenarios(corpus: &Value) -> Result<usize, Vec<String>> {
         if expected_states.len() != events.len() + 1
             || expected_states.first().and_then(Value::as_str) != Some(state.as_str())
         {
-            errors.push(format!("{id}: expected_states must include the initial state and every transition"));
+            errors.push(format!(
+                "{id}: expected_states must include the initial state and every transition"
+            ));
             continue;
         }
         for (step, event_value) in events.iter().enumerate() {
