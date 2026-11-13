@@ -289,7 +289,7 @@ mod tests {
         assert_eq!(receipt.claim_tier, ClaimTierV1::ConditionalKantorovichBall);
         let actual_error = 2.0_f64.sqrt() * (1.5 - 1.4);
         assert!(actual_error <= receipt.state_error_radius.unwrap());
-        assert!(receipt.kantovich_product <= 0.5);
+        assert!(receipt.kantorovich_product <= 0.5);
     }
 
     #[test]
