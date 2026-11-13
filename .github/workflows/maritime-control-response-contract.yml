@@ -112,7 +112,7 @@ jobs:
             (.dx2026_boundary_falsification.schema_version == "liu-ice-dx2026-boundary-falsification-v0.1") and
             (.dx2026_boundary_falsification.status == "protocol_only_not_executed") and
             (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.2") and
-            (.sequential_evidence.status == "protocol_only_not_executed")
+            (.sequential_evidence.status == "protocol_only_not_executed") and
             (.sequential_evidence.model.evidence_unit_kind == "non_overlapping_calibrated_block") and
             (.sequential_evidence.protocol_constraints.raw_sample_pseudoreplication_prohibited == true) and
             (.sequential_evidence.protocol_constraints.non_overlapping_blocks == true) and
@@ -303,6 +303,12 @@ jobs:
             (.properties.protocol.required | index("deployability_assessment") != null) and
             (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
             (.properties.protocol.required | index("sequential_evidence") != null) and
+            (.properties.protocol.properties.sequential_evidence.properties.schema_version.const == "symtropy-sequential-evidence-v0.2") and
+            (.properties.protocol.properties.sequential_evidence.required | index("evidence_unit_kind") != null) and
+            (.properties.protocol.properties.sequential_evidence.required | index("block_aggregation_protocol_sha256") != null) and
+            (.properties.protocol.properties.sequential_evidence.required | index("dependence_review_receipt_sha256") != null) and
+            (.properties.protocol.properties.sequential_evidence.properties.evidence_unit_kind.enum | index("non_overlapping_calibrated_block") != null) and
+            (.properties.protocol.properties.sequential_evidence.properties.independent_evidence_block_count.minimum == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.7") and
             (.properties.protocol.properties.active_evidence_selection.required | index("portfolio_replay_match") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.portfolio_replay_match.type == "boolean") and
