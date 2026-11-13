@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-EDE-QUALITY-ADJUSTED-ENERGY-001",
+  "claim_ceiling": "SYNTHETIC_EDE_CALCULATION_ONLY",
+  "cases": [
+    {
+      "case_id": "EDE-KNOWN-001",
+      "evidence_class": "synthetic",
+      "workpiece_id": "WID-SYNTH-01",
+      "pass_id": "PASS-SYNTH-03",
+      "start_time_ns": 0,
+      "end_time_ns": 2000000000,
+      "maximum_sample_gap_ns": 1000000000,
+      "weld_length_m": 0.3,
+      "density_kg_per_m3": 7850,
+      "wire_diameter_m": 0.0012,
+      "source_trace_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "alignment_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "leading_power": [
+        {
+          "timestamp_ns": 0,
+          "voltage_v": 30,
+          "current_a": 200
+        },
+        {
+          "timestamp_ns": 1000000000,
+          "voltage_v": 32,
+          "current_a": 210
+        },
+        {
+          "timestamp_ns": 2000000000,
+          "voltage_v": 30,
+          "current_a": 200
+        }
+      ],
+      "trailing_power": [
+        {
+          "timestamp_ns": 0,
+          "voltage_v": 24,
+          "current_a": 150
+        },
+        {
+          "timestamp_ns": 1000000000,
+          "voltage_v": 26,
+          "current_a": 160
+        },
+        {
+          "timestamp_ns": 2000000000,
+          "voltage_v": 24,
+          "current_a": 150
+        }
+      ],
+      "leading_wire_feed": [
+        {
+          "timestamp_ns": 0,
+          "speed_m_per_s": 0.19
+        },
+        {
+          "timestamp_ns": 1000000000,
+          "speed_m_per_s": 0.21
+        },
+        {
+          "timestamp_ns": 2000000000,
+          "speed_m_per_s": 0.19
+        }
+      ],
+      "trailing_wire_feed": [
+        {
+          "timestamp_ns": 0,
+          "speed_m_per_s": 0.11
+        },
+        {
+          "timestamp_ns": 1000000000,
+          "speed_m_per_s": 0.13
+        },
+        {
+          "timestamp_ns": 2000000000,
+          "speed_m_per_s": 0.11
+        }
+      ],
+      "uncertainty": {
+        "voltage": 10000,
+        "current": 10000,
+        "wire_feed": 5000,
+        "density": 1000,
+        "wire_diameter": 1000,
+        "power_quadrature": 2000,
+        "feed_quadrature": 1000,
+        "clock_alignment": 1000
+      },
+      "expected": {
+        "leading_arc_energy_j": 12720,
+        "trailing_arc_energy_j": 7760,
+        "total_arc_energy_j": 20480,
+        "leading_wire_length_m": 0.4,
+        "trailing_wire_length_m": 0.24,
+        "leading_estimated_mass_g": 3.5512563356179014,
+        "trailing_estimated_mass_g": 2.1307538013707408,
+        "total_estimated_mass_g": 5.682010136988642,
+        "energy_kwh": 0.005688888888888889,
+        "ede_g_per_kwh": 998.7908443925346,
+        "ede_lower_g_per_kwh": 967.5481200322598,
+        "ede_upper_g_per_kwh": 1031.504567033846,
+        "energy_per_length_kj_per_mm": 0.06826666666666667
+      }
+    }
+  ]
+}
