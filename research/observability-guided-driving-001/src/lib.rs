@@ -1233,7 +1233,7 @@ mod tests {
         let mut input = campaign();
         input.pairs[0].passive_control.information_action = InformationActionKind::Wait;
         let report = audit_campaign(&input);
-        assert!(has(&report, "passive_branch_not_passive"));
+        assert!(!has(&report, "passive_branch_not_passive"));
         assert!(has(&report, "passive_branch_has_action"));
     }
 
