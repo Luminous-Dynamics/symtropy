@@ -237,10 +237,7 @@ impl SpatialOccupancyBook {
         })
     }
 
-    fn validate_occupancy(
-        &self,
-        occupancy: &SpatialOccupancy,
-    ) -> Result<Bounds3Mm, SpatialError> {
+    fn validate_occupancy(&self, occupancy: &SpatialOccupancy) -> Result<Bounds3Mm, SpatialError> {
         require_non_empty("occupancy_id", &occupancy.occupancy_id)?;
         require_non_empty("task_id", &occupancy.task_id)?;
         require_non_empty("reservation_id", &occupancy.reservation.reservation_id)?;
