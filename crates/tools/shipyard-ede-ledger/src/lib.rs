@@ -200,8 +200,7 @@ fn integrate_power(
         // power products. It does not multiply separately averaged V and I.
         let left_power_w = pair[0].voltage_v * pair[0].current_a;
         let right_power_w = pair[1].voltage_v * pair[1].current_a;
-        let delta_s = (pair[1].timestamp_ns - pair[0].timestamp_ns) as f64
-            / NANOS_PER_SECOND;
+        let delta_s = (pair[1].timestamp_ns - pair[0].timestamp_ns) as f64 / NANOS_PER_SECOND;
         energy_j += (left_power_w + right_power_w) * 0.5 * delta_s;
     }
     if !energy_j.is_finite() {
@@ -239,10 +238,8 @@ fn integrate_wire_feed(
                 return Err(EdeError::NegativeWireFeed);
             }
         }
-        let delta_s = (pair[1].timestamp_ns - pair[0].timestamp_ns) as f64
-            / NANOS_PER_SECOND;
-        wire_length_m +=
-            (pair[0].speed_m_per_s + pair[1].speed_m_per_s) * 0.5 * delta_s;
+        let delta_s = (pair[1].timestamp_ns - pair[0].timestamp_ns) as f64 / NANOS_PER_SECOND;
+        wire_length_m += (pair[0].speed_m_per_s + pair[1].speed_m_per_s) * 0.5 * delta_s;
     }
     if !wire_length_m.is_finite() {
         return Err(EdeError::NonFiniteIntegration);
@@ -282,9 +279,7 @@ fn validate_input(input: &EdeInput) -> Result<(), EdeError> {
     {
         return Err(EdeError::InvalidDensity);
     }
-    if !input.wire_diameter_m.is_finite()
-        || !(0.0001..=0.02).contains(&input.wire_diameter_m)
-    {
+    if !input.wire_diameter_m.is_finite() || !(0.0001..=0.02).contains(&input.wire_diameter_m) {
         return Err(EdeError::InvalidWireDiameter);
     }
     Ok(())
@@ -336,16 +331,14 @@ pub fn calculate_ede(input: &EdeInput) -> Result<EdeResult, EdeError> {
         return Err(EdeError::ZeroWireFeed);
     }
 
-    let cross_section_area_m2 =
-        PI * input.wire_diameter_m * input.wire_diameter_m * 0.25;
+    let cross_section_area_m2 = PI * input.wire_diameter_m * input.wire_diameter_m * 0.25;
     let grams_per_m = input.density_kg_per_m3 * cross_section_area_m2 * GRAMS_PER_KG;
     let leading_mass_g = grams_per_m * leading_feed.integral;
     let trailing_mass_g = grams_per_m * trailing_feed.integral;
     let total_mass_g = leading_mass_g + trailing_mass_g;
     let energy_kwh = total_energy_j / JOULES_PER_KWH;
     let ede = total_mass_g / energy_kwh;
-    let duration_s =
-        (input.end_time_ns - input.start_time_ns) as f64 / NANOS_PER_SECOND;
+    let duration_s = (input.end_time_ns - input.start_time_ns) as f64 / NANOS_PER_SECOND;
     let energy_per_length = total_energy_j / 1_000_000.0 / input.weld_length_m;
 
     if !cross_section_area_m2.is_finite()
@@ -362,7 +355,10 @@ pub fn calculate_ede(input: &EdeInput) -> Result<EdeResult, EdeError> {
     let uncertainty = input.uncertainty;
     let mass_uncertainty_ppm = add_ppm(&[
         uncertainty.density,
-        uncertainty.diameter.checked_mul(2).ok_or(EdeError::UncertaintySumOverflow)?,
+        uncertainty
+            .diameter
+            .checked_mul(2)
+            .ok_or(EdeError::UncertaintySumOverflow)?,
         uncertainty.wire_feed,
         uncertainty.feed_quadrature,
         uncertainty.clock_alignment,
@@ -445,24 +441,66 @@ mod tests {
             alignment_receipt_sha256: [0x22; 32],
             sampling_qualification_receipt_sha256: [0x33; 32],
             leading_power: vec![
-                PowerSample { timestamp_ns: start, voltage_v: 30.0, current_a: 200.0 },
-                PowerSample { timestamp_ns: middle, voltage_v: 32.0, current_a: 210.0 },
-                PowerSample { timestamp_ns: end, voltage_v: 30.0, current_a: 200.0 },
+                PowerSample {
+                    timestamp_ns: start,
+                    voltage_v: 30.0,
+                    current_a: 200.0,
+                },
+                PowerSample {
+                    timestamp_ns: middle,
+                    voltage_v: 32.0,
+                    current_a: 210.0,
+                },
+                PowerSample {
+                    timestamp_ns: end,
+                    voltage_v: 30.0,
+                    current_a: 200.0,
+                },
             ],
             trailing_power: vec![
-                PowerSample { timestamp_ns: start, voltage_v: 24.0, current_a: 150.0 },
-                PowerSample { timestamp_ns: middle, voltage_v: 26.0, current_a: 160.0 },
-                PowerSample { timestamp_ns: end, voltage_v: 24.0, current_a: 150.0 },
+                PowerSample {
+                    timestamp_ns: start,
+                    voltage_v: 24.0,
+                    current_a: 150.0,
+                },
+                PowerSample {
+                    timestamp_ns: middle,
+                    voltage_v: 26.0,
+                    current_a: 160.0,
+                },
+                PowerSample {
+                    timestamp_ns: end,
+                    voltage_v: 24.0,
+                    current_a: 150.0,
+                },
             ],
             leading_wire_feed: vec![
-                WireFeedSample { timestamp_ns: start, speed_m_per_s: 0.19 },
-                WireFeedSample { timestamp_ns: middle, speed_m_per_s: 0.21 },
-                WireFeedSample { timestamp_ns: end, speed_m_per_s: 0.19 },
+                WireFeedSample {
+                    timestamp_ns: start,
+                    speed_m_per_s: 0.19,
+                },
+                WireFeedSample {
+                    timestamp_ns: middle,
+                    speed_m_per_s: 0.21,
+                },
+                WireFeedSample {
+                    timestamp_ns: end,
+                    speed_m_per_s: 0.19,
+                },
             ],
             trailing_wire_feed: vec![
-                WireFeedSample { timestamp_ns: start, speed_m_per_s: 0.11 },
-                WireFeedSample { timestamp_ns: middle, speed_m_per_s: 0.13 },
-                WireFeedSample { timestamp_ns: end, speed_m_per_s: 0.11 },
+                WireFeedSample {
+                    timestamp_ns: start,
+                    speed_m_per_s: 0.11,
+                },
+                WireFeedSample {
+                    timestamp_ns: middle,
+                    speed_m_per_s: 0.13,
+                },
+                WireFeedSample {
+                    timestamp_ns: end,
+                    speed_m_per_s: 0.11,
+                },
             ],
             uncertainty: RelativeUncertaintyPpm {
                 voltage: 10_000,
@@ -517,15 +555,36 @@ mod tests {
     fn irregular_native_cadences_are_not_forced_onto_one_grid() {
         let mut input = base_input();
         input.trailing_power = vec![
-            PowerSample { timestamp_ns: 0, voltage_v: 24.0, current_a: 150.0 },
-            PowerSample { timestamp_ns: 500_000_000, voltage_v: 26.0, current_a: 160.0 },
-            PowerSample { timestamp_ns: 2_000_000_000, voltage_v: 24.0, current_a: 150.0 },
+            PowerSample {
+                timestamp_ns: 0,
+                voltage_v: 24.0,
+                current_a: 150.0,
+            },
+            PowerSample {
+                timestamp_ns: 500_000_000,
+                voltage_v: 26.0,
+                current_a: 160.0,
+            },
+            PowerSample {
+                timestamp_ns: 2_000_000_000,
+                voltage_v: 24.0,
+                current_a: 150.0,
+            },
         ];
         input.maximum_sample_gap_ns = 2_000_000_000;
         input.trailing_wire_feed = vec![
-            WireFeedSample { timestamp_ns: 0, speed_m_per_s: 0.11 },
-            WireFeedSample { timestamp_ns: 250_000_000, speed_m_per_s: 0.12 },
-            WireFeedSample { timestamp_ns: 2_000_000_000, speed_m_per_s: 0.11 },
+            WireFeedSample {
+                timestamp_ns: 0,
+                speed_m_per_s: 0.11,
+            },
+            WireFeedSample {
+                timestamp_ns: 250_000_000,
+                speed_m_per_s: 0.12,
+            },
+            WireFeedSample {
+                timestamp_ns: 2_000_000_000,
+                speed_m_per_s: 0.11,
+            },
         ];
         let result = calculate_ede(&input).expect("native cadences can differ");
         assert_eq!(result.trailing_power_sample_count, 3);
@@ -536,14 +595,20 @@ mod tests {
     fn missing_source_trace_digest_is_rejected() {
         let mut input = base_input();
         input.source_trace_sha256 = [0; 32];
-        assert_eq!(calculate_ede(&input), Err(EdeError::MissingSourceTraceDigest));
+        assert_eq!(
+            calculate_ede(&input),
+            Err(EdeError::MissingSourceTraceDigest)
+        );
     }
 
     #[test]
     fn missing_alignment_receipt_digest_is_rejected() {
         let mut input = base_input();
         input.alignment_receipt_sha256 = [0; 32];
-        assert_eq!(calculate_ede(&input), Err(EdeError::MissingAlignmentReceiptDigest));
+        assert_eq!(
+            calculate_ede(&input),
+            Err(EdeError::MissingAlignmentReceiptDigest)
+        );
     }
 
     #[test]
@@ -602,7 +667,10 @@ mod tests {
     fn zero_maximum_gap_policy_is_rejected() {
         let mut input = base_input();
         input.maximum_sample_gap_ns = 0;
-        assert_eq!(calculate_ede(&input), Err(EdeError::InvalidMaximumSampleGap));
+        assert_eq!(
+            calculate_ede(&input),
+            Err(EdeError::InvalidMaximumSampleGap)
+        );
     }
 
     #[test]
@@ -682,7 +750,10 @@ mod tests {
     fn unbounded_energy_uncertainty_is_rejected() {
         let mut input = base_input();
         input.uncertainty.voltage = 1_000_000;
-        assert_eq!(calculate_ede(&input), Err(EdeError::InvalidEnergyUncertainty));
+        assert_eq!(
+            calculate_ede(&input),
+            Err(EdeError::InvalidEnergyUncertainty)
+        );
     }
 
     #[test]
