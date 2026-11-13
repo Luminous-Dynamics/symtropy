@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/membrane-dataset-admission.schema.json",
+  "title": "Membrane dataset admission register v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "programme",
+    "tracking_issue",
+    "parent_issue",
+    "status",
+    "evidence_ceiling",
+    "attribution_requirements",
+    "intake_rules",
+    "datasets"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-dataset-admission-v0.1"
+    },
+    "programme": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tracking_issue": {
+      "type": "string"
+    },
+    "parent_issue": {
+      "type": "string"
+    },
+    "status": {
+      "const": "metadata_crosswalk_only_no_raw_dataset_files_acquired"
+    },
+    "evidence_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attribution_requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "intake_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dataset_id",
+          "title",
+          "creators",
+          "publication",
+          "source",
+          "rights",
+          "profile",
+          "tasks",
+          "intake",
+          "evidence_limit"
+        ],
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "creators": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "publication": {
+            "type": "object",
+            "required": [
+              "doi",
+              "url"
+            ],
+            "properties": {
+              "doi": {
+                "type": "string",
+                "minLength": 1
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "source": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "rights": {
+            "type": "object",
+            "required": [
+              "status",
+              "license"
+            ],
+            "properties": {
+              "status": {
+                "type": "string"
+              },
+              "license": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": true
+          },
+          "profile": {
+            "type": "object"
+          },
+          "tasks": {
+            "type": "object",
+            "required": [
+              "eligible",
+              "not_eligible"
+            ],
+            "properties": {
+              "eligible": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "not_eligible": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "intake": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "files_acquired",
+              "archive_sha256",
+              "file_inventory",
+              "split_manifest"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "catalogued_metadata_only",
+                  "paper_reference_only_request_required"
+                ]
+              },
+              "files_acquired": {
+                "const": false
+              },
+              "archive_sha256": {
+                "type": "null"
+              },
+              "file_inventory": {
+                "type": "array",
+                "maxItems": 0
+              },
+              "split_manifest": {
+                "type": "null"
+              }
+            }
+          },
+          "evidence_limit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
