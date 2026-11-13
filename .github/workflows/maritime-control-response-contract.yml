@@ -111,8 +111,13 @@ jobs:
             (.startup_adaptation_guard.status == "protocol_only_not_executed") and
             (.dx2026_boundary_falsification.schema_version == "liu-ice-dx2026-boundary-falsification-v0.1") and
             (.dx2026_boundary_falsification.status == "protocol_only_not_executed") and
-            (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.1") and
+            (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.2") and
             (.sequential_evidence.status == "protocol_only_not_executed")
+            (.sequential_evidence.model.evidence_unit_kind == "non_overlapping_calibrated_block") and
+            (.sequential_evidence.protocol_constraints.raw_sample_pseudoreplication_prohibited == true) and
+            (.sequential_evidence.protocol_constraints.non_overlapping_blocks == true) and
+            (.sequential_evidence.protocol_constraints.minimum_block_separation_required == true) and
+            (.sequential_evidence.validity_conditions.dependence | contains("not proof of independence"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate standalone shift matrix
@@ -178,11 +183,11 @@ jobs:
           ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
 
           jq -e '
-            .schema_version == "symtropy-sequential-evidence-v0.1" and
+            .schema_version == "symtropy-sequential-evidence-v0.2" and
             .status == "protocol_only_not_executed" and
             (.familywise_control != null) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
-          ' benchmarks/maritime-control-response/sequential-evidence-v0.1.json >/dev/null
+          ' benchmarks/maritime-control-response/sequential-evidence-v0.2.json >/dev/null
 
           jq -e '
             .schema_version == "symtropy-joint-hypothesis-scenario-posterior-v0.1" and
