@@ -135,6 +135,10 @@ Preserve all scenario failures, including incomplete, rejected and indeterminate
 - Demonstrate increased useful observability per dollar through adaptive calibration, fibre selection and targeted independent measurements.
 - Demonstrate cross-site transfer without hidden fine-tuning on held-out site labels. A transfer failure is reported as a domain boundary, not patched away.
 
-## 8. Claim ceiling
+## 8. Executable reference evaluator
+
+The standalone Rust package implements the finite-cell arithmetic in `tools/suf-fibre-calibration/src/coverage.rs`. It requires every in-scope segment length to be allocated exactly once across observable, degraded, unobserved, unusable, unavailable, not-assessed and unknown states. It reports POD only when independent truth and eligible event trials exist, emits a 95% Wilson interval, and computes false alarms only per fully observable fibre-km-day. Degraded and blind exposure remain separate. These are calculation/contract tests, not field measurements.
+
+## 9. Claim ceiling
 
 This is a proposed benchmark contract. It contains no observed POD, field coverage, false-alarm, localization or cost result. Passing a synthetic integrity corpus does not establish physical DAS performance. Vendor claims and literature-specific metrics remain separate from Luminous measurements.
