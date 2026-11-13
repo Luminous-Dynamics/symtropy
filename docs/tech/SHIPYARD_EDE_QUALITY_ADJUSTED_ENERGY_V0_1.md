@@ -73,3 +73,14 @@ A high-EDE option that violates geometry, fusion, thermal, procedure or quality 
 The Rust suite covers sampled V*I rather than product-of-means, independent leading/trailing streams, irregular native cadence, source/alignment digests, exact window endpoints, timestamp ordering, maximum gaps, missing/non-finite/negative values, density/diameter unit mistakes, zero energy/feed, uncertainty bounds and identity. The crate is dependency-free and has its own nested Cargo workspace/lockfile.
 
 A PASS proves the declared synthetic calculator and interval rules only. It does not prove physical source calibration, raw BAM access rights, measured EDE on a BAM pass, retained filler mass, weld quality, NDT acceptance, procedure qualification, reduced carbon footprint or improved shipyard productivity.
+
+
+## Metamorphic properties
+
+The Rust suite includes four dimensional/metamorphic controls in addition to the frozen numeric known answer:
+- swapping leading and trailing stream identities preserves total energy, total estimated mass and EDE;
+- doubling both wire-feed speeds doubles estimated filler mass and EDE while leaving electrical energy unchanged;
+- doubling both wire voltages doubles energy and halves EDE while leaving estimated mass unchanged;
+- stretching all stream timestamps and the maximum-gap window by the same factor doubles integrated energy and feed mass but preserves EDE.
+
+These checks detect wire-role asymmetry, double counting and unit/time scaling errors without requiring a second physical dataset. They are software invariants, not claims about real process behaviour outside the declared calculation model.
