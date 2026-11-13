@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/observability-guided-driving-report-v1.schema.json",
+  "title": "Observability-guided driving audit report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "disposition",
+    "claim_ceiling",
+    "expected_pair_count",
+    "observed_pair_count",
+    "active_information_action_count",
+    "decision_change_count",
+    "unsafe_information_action_count",
+    "no_safe_action_violations",
+    "collision_or_contact_count",
+    "conflict_boundary_encroachment_count",
+    "traffic_rule_violation_count",
+    "passive_control",
+    "active_observation",
+    "active_minus_passive_crossing_brier",
+    "active_minus_passive_crossing_log_loss",
+    "passive_cost",
+    "active_cost",
+    "pair_metrics",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "campaign_id": {
+      "type": "string"
+    },
+    "disposition": {
+      "enum": [
+        "valid",
+        "rejected"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "expected_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observed_pair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "active_information_action_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_change_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unsafe_information_action_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "no_safe_action_violations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "collision_or_contact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "conflict_boundary_encroachment_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "traffic_rule_violation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "passive_control": {
+      "$ref": "#/$defs/branch_calibration"
+    },
+    "active_observation": {
+      "$ref": "#/$defs/branch_calibration"
+    },
+    "active_minus_passive_crossing_brier": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "active_minus_passive_crossing_log_loss": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "passive_cost": {
+      "$ref": "#/$defs/cost"
+    },
+    "active_cost": {
+      "$ref": "#/$defs/cost"
+    },
+    "pair_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "calibration": {
+      "type": "object",
+      "required": [
+        "sample_count",
+        "brier_score",
+        "log_loss",
+        "expected_calibration_error",
+        "mean_confidence",
+        "observed_frequency",
+        "reliability_bins"
+      ],
+      "properties": {
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "brier_score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "log_loss": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "expected_calibration_error": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mean_confidence": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "observed_frequency": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reliability_bins": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "branch_calibration": {
+      "type": "object",
+      "required": [
+        "role",
+        "actor_presence_before",
+        "actor_presence_after",
+        "crossing_before",
+        "crossing_after"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "passive_control",
+            "active_observation"
+          ]
+        },
+        "actor_presence_before": {
+          "$ref": "#/$defs/calibration"
+        },
+        "actor_presence_after": {
+          "$ref": "#/$defs/calibration"
+        },
+        "crossing_before": {
+          "$ref": "#/$defs/calibration"
+        },
+        "crossing_after": {
+          "$ref": "#/$defs/calibration"
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "required": [
+        "action_count",
+        "total_duration_us",
+        "total_energy_uj",
+        "total_maneuver_distance_mm",
+        "maximum_estimated_residual_risk_ppm"
+      ],
+      "properties": {
+        "action_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_duration_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_energy_uj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_maneuver_distance_mm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_estimated_residual_risk_ppm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "No composite observability score is produced.",
+    "A valid report is finite declared-record conformance only."
+  ]
+}
