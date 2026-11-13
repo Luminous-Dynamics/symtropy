@@ -1,0 +1,255 @@
+{
+  "schema_version": "suf.das_observability_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "claim_ceiling": "Synthetic campaign plan only. No DAS raw traces, validated optical interrogator model, published-paper reproduction, operational fibre integration or tamper-detection performance.",
+  "tracks": [
+    "DAS_EVENT_SCREENING",
+    "FIBRE_ROUTE_GEOLOCALIZATION",
+    "DISTURBANCE_HYPOTHESIS"
+  ],
+  "profile_factors": [
+    "direct_buried_fibre",
+    "fibre_in_conduit",
+    "shared_trench_coupling",
+    "slack_and_microbend",
+    "soil_moisture_and_compaction",
+    "depth_and_surface_cover",
+    "traffic_type_and_road_surface",
+    "interrogator_gauge_length_and_pulse_rate",
+    "timebase_and_channel_health"
+  ],
+  "metrics": [
+    "event_detection_probability_by_class",
+    "critical_false_negative_rate",
+    "false_alarms_per_fibre_km_day",
+    "event_chainage_p50_p95_max",
+    "alarm_latency",
+    "snr_distribution_and_repeatability",
+    "cross_track_error_p50_p95_max",
+    "along_route_geometry_error",
+    "nominal_90_95_interval_coverage",
+    "observable_and_blind_length_fraction",
+    "route_completeness",
+    "cost_per_accepted_mapped_km"
+  ],
+  "scenarios": [
+    {
+      "id": "DAS-001",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "Direct-buried coupled fibre with seeded periodic event",
+      "conditions": [
+        "direct-buried sensing fibre",
+        "known route calibration",
+        "independent trigger and surveyed chainage"
+      ],
+      "perturbations": [
+        "controlled event sequence",
+        "stable optical access"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Independent trigger and surveyed chainage agree with the event report within frozen tolerance; record SNR and latency."
+    },
+    {
+      "id": "DAS-002",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "Conduit-installed fibre with interface damping",
+      "conditions": [
+        "fibre in conduit",
+        "matched interrogator settings"
+      ],
+      "perturbations": [
+        "reduced coupling",
+        "interface damping"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Expose reduced observability and do not transfer direct-burial sensitivity to conduit installation."
+    },
+    {
+      "id": "DAS-003",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "Shared-trench adjacent cable event",
+      "conditions": [
+        "fibre and target cable in shared trench",
+        "known lateral separation"
+      ],
+      "perturbations": [
+        "variable backfill coupling",
+        "uncertain event propagation"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Do not assert cable fault origin from chainage alone; require independent classification and route separation evidence."
+    },
+    {
+      "id": "DAS-004",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "No event on an unobservable segment",
+      "conditions": [
+        "known blind or decoupled section",
+        "no usable trace"
+      ],
+      "perturbations": [
+        "signal below declared threshold"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Preserve the section as unobserved or unobservable; missing signal is not proof of no event."
+    },
+    {
+      "id": "DAS-005",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "Periodic electrical transient in controlled fixture",
+      "conditions": [
+        "controlled non-live surrogate",
+        "known three-second reference"
+      ],
+      "perturbations": [
+        "periodic impulsive vibration"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Independent trigger confirms periodicity; alert remains advisory and cannot operate protection."
+    },
+    {
+      "id": "DAS-006",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "Clock or interrogator configuration mismatch",
+      "conditions": [
+        "DAS trace",
+        "known configuration registry"
+      ],
+      "perturbations": [
+        "stale calibration",
+        "timebase offset",
+        "wrong gauge length metadata"
+      ],
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Reject incompatible configuration; do not silently repair timing or interrogator metadata."
+    },
+    {
+      "id": "DAS-007",
+      "track": "FIBRE_ROUTE_GEOLOCALIZATION",
+      "name": "Traffic-induced route geolocation with surveyed truth",
+      "conditions": [
+        "one endpoint accessible",
+        "vehicle GPS/video trajectory",
+        "surveyed exposed anchors"
+      ],
+      "perturbations": [
+        "bounded vehicle path uncertainty"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Report cross-track and along-route errors separately; compare against independent survey truth."
+    },
+    {
+      "id": "DAS-008",
+      "track": "FIBRE_ROUTE_GEOLOCALIZATION",
+      "name": "Wrong route endpoint or direction",
+      "conditions": [
+        "DAS chainage output",
+        "route calibration model"
+      ],
+      "perturbations": [
+        "wrong fibre endpoint",
+        "reversed orientation"
+      ],
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Reject geographic placement; chainage may be reported only relative to unresolved endpoint."
+    },
+    {
+      "id": "DAS-009",
+      "track": "FIBRE_ROUTE_GEOLOCALIZATION",
+      "name": "Multiple plausible route alignments",
+      "conditions": [
+        "traffic DAS observations",
+        "several candidate road/fibre alignments"
+      ],
+      "perturbations": [
+        "similar strain-map fit"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Retain alternative alignments; no single high-confidence geometry until independently disambiguated."
+    },
+    {
+      "id": "DAS-010",
+      "track": "FIBRE_ROUTE_GEOLOCALIZATION",
+      "name": "Fibre geometry changed after repair",
+      "conditions": [
+        "prior approved calibration",
+        "new as-built revision"
+      ],
+      "perturbations": [
+        "splice or reroute",
+        "stale geometry still referenced"
+      ],
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Supersede old calibration and bind placements to new exact as-built evidence."
+    },
+    {
+      "id": "DAS-011",
+      "track": "DISTURBANCE_HYPOTHESIS",
+      "name": "Benign traffic vs roadworks-like vibration",
+      "conditions": [
+        "separately labelled traffic",
+        "controlled non-critical disturbance surrogate"
+      ],
+      "perturbations": [
+        "overlapping spectral content",
+        "variable traffic density"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Do not claim tamper classification until independent labels and class-specific metrics exist."
+    },
+    {
+      "id": "DAS-012",
+      "track": "DISTURBANCE_HYPOTHESIS",
+      "name": "Rainfall and water-flow confounder",
+      "conditions": [
+        "controlled benign environmental recording",
+        "known rainfall/water reference"
+      ],
+      "perturbations": [
+        "broadband vibration",
+        "changed fibre/soil coupling"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Expose environmental confounding; abstain outside the declared classifier profile."
+    },
+    {
+      "id": "DAS-013",
+      "track": "DAS_EVENT_SCREENING",
+      "name": "Interrogator outage and partial channel loss",
+      "conditions": [
+        "multi-channel fibre trace"
+      ],
+      "perturbations": [
+        "temporary outage",
+        "partial channel dropout"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Account for missing length/time; no global coverage claim during outage."
+    },
+    {
+      "id": "DAS-014",
+      "track": "FIBRE_ROUTE_GEOLOCALIZATION",
+      "name": "Known chainage but missing geographic datum",
+      "conditions": [
+        "DAS chainage",
+        "no compatible CRS or surveyed tie points"
+      ],
+      "perturbations": [
+        "missing frame metadata"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Report fibre-relative chainage only; no geographic coordinate without versioned transform and uncertainty."
+    }
+  ],
+  "global_controls": [
+    "DAS event chainage and geographic fibre location are distinct claims.",
+    "Fault/event screening and route geolocalization are separate populations.",
+    "Direct burial and conduit coupling must be separate strata.",
+    "Missing DAS event is not proof of no event where observability is absent.",
+    "Every result binds fibre revision, interrogator, calibration, gauge length, sample rate, clock and route model.",
+    "Operational fibre tests require owner approval and a non-interference plan.",
+    "DAS alerts cannot authorize protection, isolation, dispatch, excavation or repair.",
+    "Tamper detection remains a hypothesis until an independent labelled corpus exists."
+  ]
+}

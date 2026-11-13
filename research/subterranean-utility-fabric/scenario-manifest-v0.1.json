@@ -1,0 +1,657 @@
+{
+  "schema_version": "suf.scenario_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-12",
+  "claim_ceiling": "This manifest defines a research campaign and abstract scenario archetypes only. It contains no site measurements, approved engineering design, local price data, real utility routes, or field performance claims.",
+  "dispositions": [
+    "Accepted",
+    "Rejected",
+    "Indeterminate",
+    "Unsupported"
+  ],
+  "architecture_candidates": [
+    {
+      "id": "A0",
+      "name": "Observed local practice",
+      "description": "Capture the actual route-specific utility, protection, maintenance and restoration workflow as the baseline; do not replace observations with an idealized textbook baseline.",
+      "candidate_status": "baseline_to_measure"
+    },
+    {
+      "id": "A1",
+      "name": "Protected overhead or exposed route",
+      "description": "Evaluate targeted physical hardening, access control, tamper detection and response while retaining an overhead or exposed asset route.",
+      "candidate_status": "research_candidate"
+    },
+    {
+      "id": "A2",
+      "name": "Conventional single-utility underground",
+      "description": "Evaluate a buried single-utility installation using conventional access, inspection and repair practices.",
+      "candidate_status": "research_candidate"
+    },
+    {
+      "id": "A3",
+      "name": "Shared partitioned duct bank",
+      "description": "Evaluate co-ordinated installation of physically segregated utility ducts with conventional maintenance access.",
+      "candidate_status": "research_candidate"
+    },
+    {
+      "id": "A4",
+      "name": "Robot-first duct bank and service nodes",
+      "description": "Evaluate standardized robot-accessible routes, modular components, docking, inspection and pull-through replacement subject to exact physical qualification.",
+      "candidate_status": "research_candidate"
+    },
+    {
+      "id": "A5",
+      "name": "Accessible mini-gallery or multi-utility tunnel",
+      "description": "Evaluate an accessible service gallery only where utility density, criticality and repeat intervention frequency may justify its added capital and operating requirements.",
+      "candidate_status": "research_candidate"
+    },
+    {
+      "id": "A6",
+      "name": "Existing corridor or brownfield reuse",
+      "description": "Evaluate reuse or refurbishment of existing conduits, tunnels or brownfield assets after geotechnical, hydrogeological, environmental, legal and serviceability gates.",
+      "candidate_status": "reuse_candidate"
+    },
+    {
+      "id": "A7",
+      "name": "No-build, repair-only or targeted hardening",
+      "description": "Retain no-build and limited intervention as valid outcomes when new underground infrastructure is ineligible or not economically justified.",
+      "candidate_status": "valid_fallback"
+    }
+  ],
+  "site_archetypes": [
+    {
+      "id": "SA_URBAN_FEEDER",
+      "name": "High-risk urban feeder corridor",
+      "location_status": "abstract_non_geospatial",
+      "evidence_class": "scenario_assumption",
+      "characteristics": [
+        "mixed existing utility families",
+        "high service criticality",
+        "frequent third-party works",
+        "constrained access and restoration windows",
+        "potentially elevated theft exposure"
+      ],
+      "explicit_unknowns": [
+        "actual route geometry",
+        "utility survey quality",
+        "geology and groundwater",
+        "incident exposure rate",
+        "local construction quotations",
+        "utility owner and wayleave constraints"
+      ],
+      "not_a_real_site": true
+    },
+    {
+      "id": "SA_INDUSTRIAL_PRECINCT",
+      "name": "Multi-tenant industrial precinct",
+      "location_status": "abstract_non_geospatial",
+      "evidence_class": "scenario_assumption",
+      "characteristics": [
+        "concentrated multi-tenant service demand",
+        "repeat maintenance and expansion opportunities",
+        "potential shared-corridor operator",
+        "measurable service availability and economic throughput"
+      ],
+      "explicit_unknowns": [
+        "tenant demand profile",
+        "route density",
+        "service-level requirements",
+        "asset ownership boundaries",
+        "connection capacity",
+        "capital and operating cost data"
+      ],
+      "not_a_real_site": true
+    },
+    {
+      "id": "SA_SETTLEMENT_EXPANSION_EDGE",
+      "name": "Developing settlement and expansion edge",
+      "location_status": "abstract_non_geospatial",
+      "evidence_class": "scenario_assumption",
+      "characteristics": [
+        "phased demand growth",
+        "incomplete legacy records",
+        "affordability and connection-access constraints",
+        "need for incremental deployment and local maintenance capability"
+      ],
+      "explicit_unknowns": [
+        "future connection uptake",
+        "household and enterprise service requirements",
+        "existing utility positions",
+        "ground conditions",
+        "rights-of-way and community approvals",
+        "funding and affordability envelope"
+      ],
+      "not_a_real_site": true
+    }
+  ],
+  "benchmark_suites": [
+    {
+      "id": "B1_SPATIAL_EVIDENCE",
+      "name": "Spatial evidence and conflict discovery",
+      "purpose": "Measure whether route geometry, utility identity, coordinate reference, source quality and unknown extents are preserved and correctly used.",
+      "metrics": [
+        "horizontal and vertical geometry error against surveyed or exposed truth",
+        "route coverage and unknown extent",
+        "critical crossing detection and false-clear rate",
+        "CRS datum unit and epoch mismatch rejection",
+        "uncertainty interval coverage",
+        "cost and time per accepted metre mapped"
+      ],
+      "adversarial_cases": [
+        "legacy drawing presented as verified as-built",
+        "GPR indication without corroborating evidence",
+        "wrong coordinate reference or vertical datum",
+        "stale asset revision",
+        "missing utility record silently treated as empty corridor"
+      ]
+    },
+    {
+      "id": "B2_CONSTRUCTION",
+      "name": "Construction and installation",
+      "purpose": "Compare eligible construction methods on accepted work and whole-workflow cost, not nominal machine production.",
+      "metrics": [
+        "accepted installed metres per shift",
+        "total cost per accepted metre",
+        "utility strikes and settlement",
+        "mobilization traffic spoil and reinstatement cost",
+        "service interruption and rework",
+        "as-built discrepancy and completeness"
+      ],
+      "adversarial_cases": [
+        "unknown utility crossing",
+        "unsuitable or uncharacterized ground",
+        "groundwater outside declared method envelope",
+        "work window or access restriction",
+        "unverified machine capability"
+      ]
+    },
+    {
+      "id": "B3_ROBOTIC_MAINTENANCE",
+      "name": "Robotic inspection and maintenance",
+      "purpose": "Qualify robot coverage, localization, observation quality, inspection outputs, safe recovery and independently accepted maintenance.",
+      "metrics": [
+        "observed unobserved unusable and not-reached route length",
+        "position and chainage P50 P95 and maximum error",
+        "per-class precision recall and critical-defect false-negative rate",
+        "defect dimensional error and uncertainty calibration",
+        "mission completion and safe return",
+        "energy per metre and human review minutes",
+        "first-pass repair acceptance and rework"
+      ],
+      "adversarial_cases": [
+        "sensor fouling and low visibility",
+        "localization drift or branch confusion",
+        "robot cannot turn or be retrieved",
+        "battery reserve failure",
+        "communications loss",
+        "stale calibration",
+        "unknown defect or out-of-domain material"
+      ]
+    },
+    {
+      "id": "B4_THEFT_RESILIENCE",
+      "name": "Theft and tamper resilience",
+      "purpose": "Measure exposure-normalized theft, attempted tampering, detection, service impact, response and residual risk across physical architectures.",
+      "metrics": [
+        "theft and attempted tamper per kilometre-year",
+        "direct loss and consequential service-hours lost",
+        "detection lead time and false alarms per kilometre-month",
+        "tamper localization error and response time",
+        "sectional isolation and restoration time",
+        "recurrence after intervention",
+        "lawful material recovery traceability"
+      ],
+      "adversarial_cases": [
+        "forced chamber access",
+        "sensor or communications tampering",
+        "insider / contractor collusion",
+        "theft shifting to another material or asset class",
+        "flood or fire disables multiple protection layers",
+        "alarm occurs but no responder is available"
+      ]
+    },
+    {
+      "id": "B5_LIFECYCLE_ECONOMICS",
+      "name": "Lifecycle economics and public value",
+      "purpose": "Compare whole-life cost and delivered service under identical boundaries while accounting for uncertainty and local economic participation.",
+      "metrics": [
+        "10 20 and 30 year discounted NPV",
+        "equivalent annual cost",
+        "cost per accepted service-unit-year",
+        "break-even corridor occupancy and repeat-work frequency",
+        "P50 and P90 lifecycle cost",
+        "local labour hours wages supplier spend SME participation and training"
+      ],
+      "adversarial_cases": [
+        "missing or mismatched price year",
+        "unpriced outage consequences",
+        "correlated theft and outage losses omitted",
+        "repeat excavation benefits double counted",
+        "local employment claimed without paid-hour evidence",
+        "provider exit with no maintenance capability"
+      ]
+    },
+    {
+      "id": "B6_ASSURANCE_INTEROPERABILITY",
+      "name": "Assurance and interoperability",
+      "purpose": "Verify exact inputs, source ownership, decision dispositions, independent oracle agreement and authority boundaries.",
+      "metrics": [
+        "false acceptance of seeded hard constraints",
+        "unknown-to-clear promotion count",
+        "stale authority reuse count",
+        "claim-to-input-revision traceability",
+        "independent oracle agreement",
+        "silent coverage-gap count"
+      ],
+      "adversarial_cases": [
+        "duplicate asset identity",
+        "self-asserted verification",
+        "stale approval or contractor credential",
+        "simulation PASS promoted to construction approval",
+        "repair marked complete without independent observation",
+        "candidate generator also supplies its own reference answer"
+      ]
+    },
+    {
+      "id": "B7_WAYLEAVE_COORDINATION",
+      "name": "Wayleave and utility-owner coordination",
+      "purpose": "Measure the evidence and elapsed-time performance of the real authority process without granting the software permission to approve work.",
+      "metrics": [
+        "elapsed time for service inquiry service-owner response cross-cut planning wayleave decision and authorization",
+        "service-owner identification coverage before excavation",
+        "cross-cut confirmation / unresolved yield",
+        "design iteration count from previously unknown or conflicting services",
+        "utility strike near-miss damage and reinstatement defect rates",
+        "permit correction or rejection reasons",
+        "time from completion to accepted as-built",
+        "repeat road cuts avoided with verified work-order comparison"
+      ],
+      "adversarial_cases": [
+        "municipality-specific rule applied to another municipality",
+        "draft by-law mistaken for enacted rule",
+        "missing or expired wayleave treated as approval",
+        "service-owner response omitted or stale",
+        "cross-cut result not tied to surveyed location and coordinate frame",
+        "approved design revision differs from constructed revision",
+        "work performed outside permitted time or location"
+      ]
+    },
+    {
+      "id": "B8_CABLE_DUCT_ROBOT",
+      "name": "Utility cable-duct robot traversal and maintenance tooling",
+      "purpose": "Qualify inspection, route localization, draw-rope placement, inert dummy-cable pull-through and safe recovery on exact non-energized duct profiles; do not transfer sewer-crawler metrics.",
+      "metrics": [
+        "profile-specific route reachability and complete observation disposition",
+        "chainage P50 P95 and maximum error against rig truth",
+        "per-class obstruction detection and critical-blockage false-negative rate",
+        "dummy cable peak and integrated pulling force and bend-radius compliance",
+        "duct and dummy-cable pre/post damage findings",
+        "safe retrieval and recovery success within declared laboratory envelope",
+        "energy per accepted metre and human operator interventions"
+      ],
+      "adversarial_cases": [
+        "compound bend or coupling step outside tool envelope",
+        "occluded or fouled sensor surface",
+        "tether snag or excess pull tension",
+        "robot immobilization in a non-retrievable location",
+        "flooded or debris-filled segment",
+        "communications loss or controller restart",
+        "stale calibration or wrong duct-profile revision",
+        "dummy cable has unknown mechanical limits"
+      ]
+    }
+  ],
+  "quantitative_inputs_required": [
+    {
+      "key": "route_geometry",
+      "unit_or_representation": "versioned 2D/3D geometry with CRS, datum, epoch and uncertainty",
+      "evidence_required": "utility-owner records plus survey evidence; critical conflicts escalated to suitable investigation and physical confirmation",
+      "used_for": [
+        "spatial eligibility",
+        "construction method selection",
+        "robot navigation",
+        "as-built verification"
+      ]
+    },
+    {
+      "key": "service_requirement",
+      "unit_or_representation": "service-specific time series and quality / availability floor",
+      "evidence_required": "utility owner or customer requirement with boundary, timebase and acceptance method",
+      "used_for": [
+        "architecture comparison",
+        "capacity and redundancy",
+        "lifecycle value"
+      ]
+    },
+    {
+      "key": "ground_and_water_conditions",
+      "unit_or_representation": "geotechnical and hydrogeological observations with units, depth and uncertainty",
+      "evidence_required": "site investigation and qualified interpretation for the selected method",
+      "used_for": [
+        "construction eligibility",
+        "settlement and groundwater risk",
+        "structural design"
+      ]
+    },
+    {
+      "key": "asset_inventory_and_condition",
+      "unit_or_representation": "asset IDs, revisions, type, material, dimensions, age and condition evidence",
+      "evidence_required": "owner-issued asset records and inspections with quality state",
+      "used_for": [
+        "brownfield reuse",
+        "maintenance strategy",
+        "route conflict checks"
+      ]
+    },
+    {
+      "key": "theft_and_tamper_exposure",
+      "unit_or_representation": "incident counts and exposure time normalized by asset length or asset-years",
+      "evidence_required": "utility security logs with incident definition, attempted/completed status, location precision and time window",
+      "used_for": [
+        "threat model",
+        "expected loss",
+        "before/after or matched-control effect estimates"
+      ]
+    },
+    {
+      "key": "restoration_and_outage_cost",
+      "unit_or_representation": "local currency, price year, duration and affected service units",
+      "evidence_required": "work orders, materials, labour, contractor costs and service-impact records",
+      "used_for": [
+        "whole-life economics",
+        "response and restoration comparison"
+      ]
+    },
+    {
+      "key": "construction_unit_costs",
+      "unit_or_representation": "local currency per accepted service unit with price year and route stratum",
+      "evidence_required": "current South African quotations or tender records broken down by method, geology, diameter, access and reinstatement",
+      "used_for": [
+        "CAPEX",
+        "break-even analysis",
+        "P50/P90 lifecycle cost"
+      ]
+    },
+    {
+      "key": "robot_capability_profile",
+      "unit_or_representation": "versioned reach, geometry, load, speed, power, localization, environment and retrieval envelope",
+      "evidence_required": "vendor claim separated from calibrated bench result and independently qualified capability",
+      "used_for": [
+        "robot task compatibility",
+        "mission energy",
+        "safe recovery"
+      ]
+    },
+    {
+      "key": "material_and_cable_profile",
+      "unit_or_representation": "electrical ratings, geometry, joint types, thermal and mechanical limits, mass and lifecycle data",
+      "evidence_required": "manufacturer data plus applicable type tests, design calculation and utility acceptance",
+      "used_for": [
+        "conductor comparison",
+        "thermal and installation constraints",
+        "theft attractiveness"
+      ]
+    },
+    {
+      "key": "corridor_operator_model",
+      "unit_or_representation": "capacity, occupancy, access rights, tariffs, service levels and cost allocation",
+      "evidence_required": "proposed contracts and independently reviewable governance / financial model",
+      "used_for": [
+        "shared capacity revenue",
+        "provider risk",
+        "affordability and contestability"
+      ]
+    }
+  ],
+  "comparison_rules": [
+    "Compare the same required delivered service, quality, availability and route boundary.",
+    "Freeze cost year, currency, discount rate, financing assumptions, design life and replacement policy before ranking.",
+    "Report capital, operating, maintenance, theft, outage, restoration and decommissioning costs separately before calculating totals.",
+    "Run only physically and legally eligible candidates through economic ranking; unresolved hard constraints remain Indeterminate.",
+    "Use the same exogenous disturbance traces and resource budgets across paired candidate architectures.",
+    "Keep no-build, targeted hardening and conventional installation as valid outcomes.",
+    "Do not transfer sewer-robot results to cable ducts, water pipes or electrical networks without a matched evaluation.",
+    "Do not transfer historical UK multi-utility-tunnel or US trenchless unit costs directly to current South African projects.",
+    "Report uncertainty, denominator, rejected cases and unsupported cases; do not hide trade-offs in a single readiness score."
+  ],
+  "references": [
+    {
+      "id": "ASCE38_22_FHWA",
+      "title": "FHWA Subsurface Utility Engineering and ASCE 38-22 / 75-22 guidance",
+      "url": "https://www.fhwa.dot.gov/innovation/everydaycounts/edc_8/subsurface_utility_engineering.cfm",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "ASCE_UESI_PUBLICATIONS",
+      "title": "ASCE UESI utility data and investigation publications",
+      "url": "https://www.asce.org/communities/institutes-and-technical-groups/utility-engineering-and-surveying-institute/publications",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "NASSCO_PACP",
+      "title": "NASSCO CCTV inspection quality and PACP operator practice",
+      "url": "https://www.nassco.org/resource/cctv-inspection-quality-in-sewer-cleaning",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "RGBD_SEWER_ROBOT_2025",
+      "title": "An RGBD fused real time defect detection and size estimation method for sewer robots",
+      "url": "https://doi.org/10.1016/j.measurement.2025.119694",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "SEWER_ROBOT_REVIEW_2026",
+      "title": "Robotic technologies for sewer inspection: From automated assessment to explainable AI-enabled solutions",
+      "url": "https://doi.org/10.1016/j.aei.2026.104605",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "FHWA_TRENCHLESS",
+      "title": "FHWA reducing pavement cuts using trenchless technology",
+      "url": "https://www.fhwa.dot.gov/utilities/utilitycuts/man04.cfm",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "MULTI_UTILITY_TUNNEL_ECONOMICS",
+      "title": "Sustainable utility placement via Multi-Utility Tunnels",
+      "url": "https://doi.org/10.1016/j.tust.2012.02.001",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "ESKOM_FY2025",
+      "title": "Eskom Integrated Report 2025",
+      "url": "https://www.eskom.co.za/wp-content/uploads/2025/09/Eskom-integrated-report-2025.pdf",
+      "source_role": "government_source"
+    },
+    {
+      "id": "ESKOM_FY2026",
+      "title": "Eskom FY2026 annual results and physical-security summary",
+      "url": "https://www.eskom.co.za/eskom-reports-second-consecutive-profitable-year-as-turnaround-strategy-execution-strengthens-operational-recovery-energy-security-and-financial-sustainability/",
+      "source_role": "government_source"
+    },
+    {
+      "id": "ITAC_SCRAP_GUIDELINES_2025",
+      "title": "ITAC amended scrap metal export-control guidelines",
+      "url": "https://www.gov.za/sites/default/files/gcis_document/202510/53605gen3579.pdf",
+      "source_role": "government_source"
+    },
+    {
+      "id": "SYMTROPY_ISSUE_1732",
+      "title": "Synthetic road-drainage-utility corridor verifier",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/1732",
+      "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "SYMTROPY_ISSUE_1834",
+      "title": "Construction robot capability envelopes",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/1834",
+      "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "SYMTROPY_ISSUE_3765",
+      "title": "Trenchless pipeline renewal and underground utility method selection",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/3765",
+      "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "SYMTROPY_ISSUE_4905",
+      "title": "Robotic sewer inspection qualification",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4905",
+      "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "SYMTROPY_ISSUE_4910",
+      "title": "Subterranean Utility Fabric programme issue",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4910",
+      "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "COTO_SA_ROAD_AUTHORITY",
+      "title": "Department of Transport COTO Standard Specifications (October 2020 DS)",
+      "url": "https://www.transport.gov.za/?page_id=1155",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "SANRAL_COTO_DOWNLOADS",
+      "title": "SANRAL COTO Standard Specification downloads",
+      "url": "https://www.nra.co.za/sanral-downloads/detail/coto-standard-specifications",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "TSHWANE_WAYLEAVECENTRAL",
+      "title": "City of Tshwane WayleaveCentral process and service coordination",
+      "url": "https://wayleave.tshwane.gov.za/",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "CAPE_TOWN_RIM_WAYLEAVE",
+      "title": "City of Cape Town Road Reserves Wayleave Process and Standards",
+      "url": "https://resource.capetown.gov.za/documentcentre/Documents/Procedures%2C%20guidelines%20and%20regulations/Road_reserves_Wayleave_Process_and_Standards.pdf",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "CITY_POWER_CP_TSSTAN_144",
+      "title": "City Power Standard for New Service Connections and Metering Labour Contracts CP_TSSTAN_144 Rev 0",
+      "url": "https://www.etenders.gov.za/home/Download/?blobName=5457f91a-bbf2-4d68-b392-c92165f72887.pdf&downloadedFileName=CP_TSSTAN_144_New+Service+Connections+and+Metering+Labour+Contract_REV+0_Upload.pdf",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "JOHANNESBURG_DRAFT_WAYLEAVE",
+      "title": "City of Johannesburg Draft Wayleave By-law (2022; draft status)",
+      "url": "https://joburg.org.za/documents_/Documents/By-Laws/2022/CoJ_Draft%20Wayleave%20bylaw.pdf",
+      "source_role": "government_source"
+    },
+    {
+      "id": "SANS_10198_DISCOVERY",
+      "title": "SANS 10198 electric power cable standard family; confirm current part editions with SABS",
+      "url": "https://store.sabs.co.za/",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "SYMTROPY_ISSUE_4913",
+      "title": "Cable-duct robot inspection and draw-tool qualification",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4913",
+      "source_role": "existing_luminous_workstream"
+    },
+    {
+      "id": "IEC_63439_1_1_2025",
+      "title": "IEC 63439-1-1:2025 power robot terminology",
+      "url": "https://webstore.iec.ch/en/publication/72749",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "IEC_TR_63439_1_2_2026",
+      "title": "IEC TR 63439-1-2:2026 state of the art and standardization roadmap for power-system robots",
+      "url": "https://webstore.iec.ch/en/publication/109098",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "IEC_63439_3_31_WORK_ITEM",
+      "title": "IEC 63439-3-31 land cable tunnel inspection robot general requirements work item (in development)",
+      "url": "https://standardsdevelopment.bsigroup.com/projects/9025-12660",
+      "source_role": "industry_standard"
+    },
+    {
+      "id": "CABLE_TRENCH_ROBOT_2022",
+      "title": "Condition Assessment of the Cable Trench Based on an Intelligent Inspection Robot",
+      "url": "https://www.frontiersin.org/journals/energy-research/articles/10.3389/fenrg.2022.860461/full",
+      "source_role": "research_baseline"
+    },
+    {
+      "id": "REDZONE_SOLO_PIPE_ROBOT",
+      "title": "RedZone SOLO autonomous sewer pipe inspection robot product profile",
+      "url": "https://redzone.com/our-technology/solo/",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "FOA_MICRODUCT_INSTALLATION",
+      "title": "FOA outside plant fibre underground installation and air-assisted microcable jetting",
+      "url": "https://www.thefoa.org/tech/ref/OSP_Construction/Underground_Installation.html",
+      "source_role": "industry_practice"
+    },
+    {
+      "id": "OFS_IP055_MICROCABLE",
+      "title": "OFS IP-055 microcable installation practice and pre-installation slip test",
+      "url": "https://www.ofsoptics.com/wp-content/uploads/IP055-MicroCable-Installation-Oct-2019.pdf",
+      "source_role": "industry_practice"
+    }
+  ],
+  "jurisdictional_profiles": [
+    {
+      "profile_id": "ZA_NATIONAL_COTO_ROAD_WORKS",
+      "authority": "Department of Transport / COTO / SANRAL",
+      "status": "published_draft_standard",
+      "scope": "COTO October 2020 Draft Standard road and bridge works documents; check road-authority and project-contract applicability.",
+      "reference_ids": [
+        "COTO_SA_ROAD_AUTHORITY",
+        "SANRAL_COTO_DOWNLOADS"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_OF_TSHWANE_WAYLEAVE",
+      "authority": "City of Tshwane",
+      "status": "current_portal_process_reference",
+      "scope": "Current portal process example covering service inquiry, cross-cut and wayleave stages; not a universal municipal workflow.",
+      "reference_ids": [
+        "TSHWANE_WAYLEAVECENTRAL"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_OF_CAPE_TOWN_ROAD_RESERVE",
+      "authority": "City of Cape Town",
+      "status": "municipality_specific_standard",
+      "scope": "Road-reserve wayleave method, dilapidation and reinstatement conditions; do not project these rules to Gauteng.",
+      "reference_ids": [
+        "CAPE_TOWN_RIM_WAYLEAVE"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_OF_JOHANNESBURG_WAYLEAVE",
+      "authority": "City of Johannesburg",
+      "status": "draft_reference_only",
+      "scope": "The retrieved 2022 by-law document is explicitly a draft and is not evidence of the live enacted by-law.",
+      "reference_ids": [
+        "JOHANNESBURG_DRAFT_WAYLEAVE"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_POWER_CONTRACT_SPEC",
+      "authority": "City Power / eTenders contract document",
+      "status": "contract_spec_revision_to_verify",
+      "scope": "CP_TSSTAN_144 Rev 0; aluminium conductor and concrete theft-protection provisions occur in defined contract contexts only.",
+      "reference_ids": [
+        "CITY_POWER_CP_TSSTAN_144"
+      ]
+    },
+    {
+      "profile_id": "ZA_SANS_10198",
+      "authority": "South African Bureau of Standards",
+      "status": "edition_and_part_scope_to_verify",
+      "scope": "SANS 10198 power-cable standards family; exact current part editions, amendments and utility requirements must be verified directly with SABS.",
+      "reference_ids": [
+        "SANS_10198_DISCOVERY"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "schema_version": "suf.acoustic_motion_manifest.v0.1",
+  "status": "policy_level_synthetic_campaign_plan_only",
+  "created_date": "2026-11-12",
+  "claim_ceiling": "This manifest defines 14 deterministic policy-level synthetic sensing scenarios. It contains no real acoustic waveforms, no propagation model validated against experiment, no published-paper reproduction and no robot qualification.",
+  "populations": [
+    "pipe_chainage_1d",
+    "acoustic_feature_localization",
+    "cable_duct_target_profile"
+  ],
+  "method_families": [
+    "manual_proving_baseline",
+    "stationary_direct_acoustic_visual",
+    "moving_circular_array_phase_compensated",
+    "moving_linear_array_sparse_beamforming",
+    "dual_resolution_acoustic",
+    "event_triggered_policy",
+    "multimodal_factor_graph",
+    "topology_anchor_ablation"
+  ],
+  "actions": [
+    "CONTINUE_MOVING",
+    "SLOW_AND_SAMPLE",
+    "PAUSE_AND_CHIRP",
+    "CHANGE_EXCITATION",
+    "REVERSE_VIEW",
+    "DEFER_OR_ABSTAIN"
+  ],
+  "metrics": [
+    "chainage_p50_p95_max",
+    "feature_distance_and_direction_error_paper_defined",
+    "wrong_branch_or_anchor_rate",
+    "false_high_confidence_location_rate",
+    "uncertainty_interval_coverage",
+    "stationary_dwell_time",
+    "mission_time_per_accepted_point",
+    "energy_per_accepted_metre",
+    "excitation_and_processing_latency",
+    "operator_interventions",
+    "safe_retrieval_and_post_run_damage",
+    "independent_maintenance_point_relocation"
+  ],
+  "scenarios": [
+    {
+      "id": "AM-001",
+      "name": "Clean moving pass with informative echoes",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "moving circular microphone array",
+        "synchronized channels",
+        "known exact route and acoustic feature truth"
+      ],
+      "perturbations": [
+        "low noise",
+        "no echo alias",
+        "within declared speed envelope"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Independent chainage and feature truth must agree within frozen task tolerances; report acquisition and motion overhead.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "The moving array is within its calibrated envelope and the oracle predicts an informative observation without a pause."
+    },
+    {
+      "id": "AM-002",
+      "name": "Stationary direct acoustic stop-go baseline",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "fixed cadence direct acoustic pulse",
+        "visual odometry",
+        "known route truth"
+      ],
+      "perturbations": [
+        "periodic stationary pauses",
+        "known observation cadence"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Preserve each stationary dwell and processing interval in total mission time; no pauses are omitted from the denominator.",
+      "expected_action": "PAUSE_AND_CHIRP",
+      "oracle_action_reason": "This is the fixed stationary reference workflow; retain its entire dwell and processing cost."
+    },
+    {
+      "id": "AM-003",
+      "name": "Moving-array phase compensation within envelope",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "moving microphone array",
+        "declared speed and phase model"
+      ],
+      "perturbations": [
+        "bounded robot velocity",
+        "known excitation timing"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Accept only if phase/motion compensation revision and time alignment are exact and error is independently within tolerance.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "Motion and phase compensation are within the declared supported envelope."
+    },
+    {
+      "id": "AM-004",
+      "name": "Robot speed exceeds phase-compensation envelope",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "moving microphone array"
+      ],
+      "perturbations": [
+        "velocity above calibrated maximum",
+        "phase drift beyond declared model"
+      ],
+      "expected_disposition": "Unsupported",
+      "oracle_requirement": "The candidate must abstain or identify unsupported conditions; no high-confidence defect position is allowed.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Speed exceeds the calibration envelope; no supported phase correction is available."
+    },
+    {
+      "id": "AM-005",
+      "name": "Repeated joints create overlapping acoustic aliases",
+      "population": "acoustic_feature_localization",
+      "conditions": [
+        "acoustic array",
+        "repeated joint geometry"
+      ],
+      "perturbations": [
+        "two echo hypotheses have similar likelihood",
+        "visual features are sparse"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Preserve multiple hypotheses; a single confident location is a false acceptance.",
+      "expected_action": "REVERSE_VIEW",
+      "oracle_action_reason": "A safe independent viewpoint is the prescribed disambiguation action; retain multiple hypotheses until then."
+    },
+    {
+      "id": "AM-006",
+      "name": "Excitation duration too short for target range",
+      "population": "acoustic_feature_localization",
+      "conditions": [
+        "short chirp",
+        "long sensing range"
+      ],
+      "perturbations": [
+        "insufficient signal integration time",
+        "low signal-to-noise"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Do not infer a precise absence or feature distance from an inadequate observation.",
+      "expected_action": "CHANGE_EXCITATION",
+      "oracle_action_reason": "The current excitation is inadequate; select a longer signal only if its declared time and energy budget remains valid."
+    },
+    {
+      "id": "AM-007",
+      "name": "Excitation duration too long for throughput budget",
+      "population": "acoustic_feature_localization",
+      "conditions": [
+        "long chirp",
+        "high signal quality"
+      ],
+      "perturbations": [
+        "stationary dwell or compute exceeds task budget"
+      ],
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Reject an action policy that exceeds frozen time/energy budgets without a sufficient decision-quality gain.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "The longer excitation has negative net decision value under the frozen time budget."
+    },
+    {
+      "id": "AM-008",
+      "name": "Channel dropout and array geometry drift",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "multi-channel acoustic array"
+      ],
+      "perturbations": [
+        "one or more channels missing",
+        "array geometry calibration stale"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Expose channel health and calibration incompatibility; do not claim nominal array observability.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Array geometry or channel integrity is not established; no nominal acoustic localization claim is admissible."
+    },
+    {
+      "id": "AM-009",
+      "name": "Motor noise and vibration contamination",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "moving robot",
+        "acoustic acquisition active"
+      ],
+      "perturbations": [
+        "motor harmonics overlap useful band",
+        "wheel vibration"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Flag contamination or adapt only within a prequalified noise model; never silently accept corrupted samples.",
+      "expected_action": "SLOW_AND_SAMPLE",
+      "oracle_action_reason": "Reduce motion-related contamination and reassess signal quality only within the calibrated speed/noise envelope."
+    },
+    {
+      "id": "AM-010",
+      "name": "Water/debris and cable occupancy domain shift",
+      "population": "cable_duct_target_profile",
+      "conditions": [
+        "occupied duct",
+        "water film or debris"
+      ],
+      "perturbations": [
+        "changed acoustic propagation",
+        "attenuation and reverberation shift"
+      ],
+      "expected_disposition": "Unsupported",
+      "oracle_requirement": "A model trained on a different pipe population cannot claim cable-duct localization without target-profile qualification.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "The cable-duct occupancy and water/debris profile is outside the qualified population."
+    },
+    {
+      "id": "AM-011",
+      "name": "Timebase mismatch between motion and acoustic channels",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "acoustic array",
+        "wheel/IMU motion estimate"
+      ],
+      "perturbations": [
+        "clock offset above declared limit",
+        "out-of-order samples"
+      ],
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Reject incompatible time alignment rather than silently correcting timestamps or fusing invalid observations.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Motion and acoustic timebases are incompatible; do not fuse misaligned observations."
+    },
+    {
+      "id": "AM-012",
+      "name": "False feature association across a branch",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "acoustic array",
+        "route topology"
+      ],
+      "perturbations": [
+        "repeated echo appears on another branch",
+        "wrong branch hypothesis"
+      ],
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Local feature detection may be retained, but branch/network association must be rejected unless independent anchor evidence supports it.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Branch association is unresolved and the available evidence does not establish a safe disambiguating route."
+    },
+    {
+      "id": "AM-013",
+      "name": "No positive-value sensing action",
+      "population": "pipe_chainage_1d",
+      "conditions": [
+        "all available sensor actions"
+      ],
+      "perturbations": [
+        "expected accuracy gain is smaller than time/energy/disruption cost"
+      ],
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Select continue or stop according to the frozen loss/cost policy; no action may be selected solely for higher signal-to-noise ratio.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "No candidate measurement has positive net value after time, energy and disruption costs."
+    },
+    {
+      "id": "AM-014",
+      "name": "Unobservable interval with no independent ground truth",
+      "population": "cable_duct_target_profile",
+      "conditions": [
+        "unobserved route segment",
+        "no independent surveyed anchor"
+      ],
+      "perturbations": [
+        "acoustic and visual measurements absent or unusable"
+      ],
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Preserve unobserved extent and refuse a precise feature or chainage claim across the interval.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "The interval is unobserved and has no independent reference; preserve Indeterminate."
+    }
+  ],
+  "global_controls": [
+    "The manifest is a deterministic policy-level plan, not an acoustic propagation simulation.",
+    "No published method is marked reproduced unless its source data/code and evaluation protocol are available and faithfully used.",
+    "Every failed, aborted, paused and manually recovered run remains in mission-time and energy denominators.",
+    "Feature distance/direction, robot chainage and pipe-condition classification remain distinct outputs.",
+    "No high-confidence location may be returned for a scenario whose independent oracle is ambiguous, unsupported or unobservable.",
+    "Task tolerance and budget are frozen before evaluating candidate sensing policies.",
+    "All results bind exact fixture, method, calibration, timing and configuration revisions."
+  ]
+}

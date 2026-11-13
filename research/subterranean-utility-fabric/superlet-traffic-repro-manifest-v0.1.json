@@ -1,0 +1,285 @@
+{
+  "schema_version": "suf.superlet_traffic_repro_manifest.v0.1",
+  "status": "public_source_audit_only",
+  "created_date": "2026-11-13",
+  "workstream": "SUPERLET-TRAFFIC-REPRO-QUAL-001",
+  "claim_ceiling": "Metadata/source audit only. No code execution, data acquisition or metric reproduction has occurred.",
+  "reference_paper_doi": "10.1016/j.optlastec.2026.115310",
+  "public_repository": "https://github.com/sqs1212/Traffic-flow-monitoring-based-on-distributed-acoustic-sensing-DAS",
+  "observed_split_summary": {
+    "train_rows": 12111,
+    "train_unique": 12111,
+    "val_rows": 2332,
+    "val_unique": 2332,
+    "overlap": 0,
+    "train_labels": {
+      "1": 2603,
+      "2": 3000,
+      "3": 2367,
+      "4": 1355,
+      "-1": 2786
+    },
+    "val_labels": {
+      "1": 663,
+      "2": 742,
+      "3": 593,
+      "4": 334
+    }
+  },
+  "scenarios": [
+    {
+      "id": "STR-001",
+      "scenario_type": "SOFTWARE_RIGHTS",
+      "name": "No explicit software licence is visible",
+      "expected_disposition": "Blocked",
+      "conditions": "Default branch has no LICENSE file.",
+      "perturbations": [
+        "software_rights"
+      ],
+      "oracle_requirement": "Obtain a software licence or written permission before reuse."
+    },
+    {
+      "id": "STR-002",
+      "scenario_type": "DATASET_RIGHTS",
+      "name": "External dataset link has no visible rights terms",
+      "expected_disposition": "Blocked",
+      "conditions": "README links a Baidu download but no dataset licence is stated.",
+      "perturbations": [
+        "dataset_rights"
+      ],
+      "oracle_requirement": "Confirm rights before download or derivative use."
+    },
+    {
+      "id": "STR-003",
+      "scenario_type": "README_MISMATCH",
+      "name": "README describes absent package/scripts/config files",
+      "expected_disposition": "Rejected",
+      "conditions": "Observed default-branch tree lacks the documented layout and scripts.",
+      "perturbations": [
+        "readme_mismatch"
+      ],
+      "oracle_requirement": "Reconcile source inventory before claiming installability."
+    },
+    {
+      "id": "STR-004",
+      "scenario_type": "TRAINING_PIPELINE_MISSING",
+      "name": "End-to-end training code is absent",
+      "expected_disposition": "Blocked",
+      "conditions": "Models and split lists exist but no visible train scripts or objective.",
+      "perturbations": [
+        "training_pipeline_missing"
+      ],
+      "oracle_requirement": "Obtain exact training configuration."
+    },
+    {
+      "id": "STR-005",
+      "scenario_type": "EXTRACTION_STUB",
+      "name": "Vehicle signal extraction file is a stub",
+      "expected_disposition": "Rejected",
+      "conditions": "File contains only a docstring.",
+      "perturbations": [
+        "extraction_stub"
+      ],
+      "oracle_requirement": "Do not claim complete classifier pipeline."
+    },
+    {
+      "id": "STR-006",
+      "scenario_type": "METRICS_STUB",
+      "name": "Classifier metric module is a stub",
+      "expected_disposition": "Rejected",
+      "conditions": "File contains only a docstring.",
+      "perturbations": [
+        "metrics_stub"
+      ],
+      "oracle_requirement": "Obtain exact evaluation implementation."
+    },
+    {
+      "id": "STR-007",
+      "scenario_type": "SUPERLET_DEPENDENCY",
+      "name": "Superlet import falls back to developer path",
+      "expected_disposition": "Rejected",
+      "conditions": "superletcx is absent and an absolute developer path is attempted.",
+      "perturbations": [
+        "superlet_dependency"
+      ],
+      "oracle_requirement": "Pin portable dependency source, version and licence."
+    },
+    {
+      "id": "STR-008",
+      "scenario_type": "DENOISED_RESULT_UNUSED",
+      "name": "Main path discards computed denoised array",
+      "expected_disposition": "Rejected",
+      "conditions": "run_das_pcse passes raw data to frontend after denoised data is computed.",
+      "perturbations": [
+        "denoised_result_unused"
+      ],
+      "oracle_requirement": "Resolve author-exact pipeline dataflow."
+    },
+    {
+      "id": "STR-009",
+      "scenario_type": "UNLABELED_ROWS",
+      "name": "Training split includes label -1",
+      "expected_disposition": "Indeterminate",
+      "conditions": "2,786 rows are unlabeled in training; no -1 rows in validation.",
+      "perturbations": [
+        "unlabeled_rows"
+      ],
+      "oracle_requirement": "Clarify semisupervised/unlabeled treatment and loss."
+    },
+    {
+      "id": "STR-010",
+      "scenario_type": "SPLIT_FILE_OVERLAP",
+      "name": "Train and validation sample paths overlap",
+      "expected_disposition": "Rejected",
+      "conditions": "Any common path appears in both lists.",
+      "perturbations": [
+        "split_file_overlap"
+      ],
+      "oracle_requirement": "Reject reproduction until split is reconciled."
+    },
+    {
+      "id": "STR-011",
+      "scenario_type": "GROUPING_METADATA",
+      "name": "Physical-event/session grouping is missing",
+      "expected_disposition": "Indeterminate",
+      "conditions": "File paths are disjoint but group identity is unavailable.",
+      "perturbations": [
+        "grouping_metadata"
+      ],
+      "oracle_requirement": "Do not claim event/site-independent validation."
+    },
+    {
+      "id": "STR-012",
+      "scenario_type": "LABEL_MAPPING",
+      "name": "Five-output classifier and 1–4/-1 labels lack visible mapping",
+      "expected_disposition": "Indeterminate",
+      "conditions": "No public train entry point explains class remapping/ignore handling.",
+      "perturbations": [
+        "label_mapping"
+      ],
+      "oracle_requirement": "Obtain label dictionary and loss-target convention."
+    },
+    {
+      "id": "STR-013",
+      "scenario_type": "ACQUISITION_METADATA_MISMATCH",
+      "name": "Files in a stacked run have mixed acquisition parameters",
+      "expected_disposition": "Rejected",
+      "conditions": "Sample rate, channel count, spatial interval or clock metadata differ.",
+      "perturbations": [
+        "acquisition_metadata_mismatch"
+      ],
+      "oracle_requirement": "Reject stack or split into homogeneous profiles."
+    },
+    {
+      "id": "STR-014",
+      "scenario_type": "TIMESTAMP_ORDER",
+      "name": "Filename timestamp cannot be parsed",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Sorter assigns datetime.min to the invalid name.",
+      "perturbations": [
+        "timestamp_order"
+      ],
+      "oracle_requirement": "Use authoritative timestamps or preserve unknown ordering."
+    },
+    {
+      "id": "STR-015",
+      "scenario_type": "EMPTY_SPATIAL_REGION",
+      "name": "Spatial selection contains no complete averaging block",
+      "expected_disposition": "Rejected",
+      "conditions": "Selected interval yields zero samples/channels.",
+      "perturbations": [
+        "empty_spatial_region"
+      ],
+      "oracle_requirement": "Reject empty window and preserve channel-distance mapping."
+    },
+    {
+      "id": "STR-016",
+      "scenario_type": "AMPLITUDE_NORMALIZATION",
+      "name": "Per-sample min-max removes absolute amplitude",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Classifier may rely on physical amplitude cues.",
+      "perturbations": [
+        "amplitude_normalization"
+      ],
+      "oracle_requirement": "Compare normalized, calibrated and raw ablations."
+    },
+    {
+      "id": "STR-017",
+      "scenario_type": "ENVIRONMENT_LOCK_MISSING",
+      "name": "No dependency/environment lock is present",
+      "expected_disposition": "Blocked",
+      "conditions": "No pyproject or requirements file in observed tree.",
+      "perturbations": [
+        "environment_lock_missing"
+      ],
+      "oracle_requirement": "Record exact runtime/dependency versions."
+    },
+    {
+      "id": "STR-018",
+      "scenario_type": "PAPER_METRIC_REPRODUCTION",
+      "name": "Author metric reproduction under exact setup",
+      "expected_disposition": "Accepted",
+      "conditions": "Lawful data, complete source and split/config are available.",
+      "perturbations": [
+        "paper_metric_reproduction"
+      ],
+      "oracle_requirement": "Reproduce IoU/accuracy/latency and confusion matrix."
+    },
+    {
+      "id": "STR-019",
+      "scenario_type": "SITE_HELD_OUT_TRANSFER",
+      "name": "New road/site held out for transfer testing",
+      "expected_disposition": "Accepted",
+      "conditions": "Whole site/session and event groups are withheld.",
+      "perturbations": [
+        "site_held_out_transfer"
+      ],
+      "oracle_requirement": "Report transfer, uncertainty and abstention."
+    },
+    {
+      "id": "STR-020",
+      "scenario_type": "EVENT_PRESERVATION",
+      "name": "Denoiser removes a short event while raising SNR",
+      "expected_disposition": "Rejected",
+      "conditions": "Independent truth shows critical transient/timing loss.",
+      "perturbations": [
+        "event_preservation"
+      ],
+      "oracle_requirement": "Fail preservation gate despite SNR improvement."
+    },
+    {
+      "id": "STR-021",
+      "scenario_type": "AUTHORIZED_FIXTURE",
+      "name": "Small sample acquired under explicit permission",
+      "expected_disposition": "Accepted",
+      "conditions": "Rights and purpose allow the exact fixture use.",
+      "perturbations": [
+        "authorized_fixture"
+      ],
+      "oracle_requirement": "Record hash, bytes, metadata and scope."
+    },
+    {
+      "id": "STR-022",
+      "scenario_type": "REIMPLEMENTATION_EARLY",
+      "name": "New implementation precedes faithful reproduction",
+      "expected_disposition": "Rejected",
+      "conditions": "Reference dependency/training behavior is not yet pinned.",
+      "perturbations": [
+        "reimplementation_early"
+      ],
+      "oracle_requirement": "Call it a candidate method, not reproduction."
+    }
+  ],
+  "global_controls": [
+    "Public source visibility does not establish software or dataset licence.",
+    "Paper results remain attached to the authors' own data and exact evaluation setup.",
+    "Preprocessing dataflow is checked from source code, not inferred from README wording.",
+    "Unlabeled rows require a documented training objective and policy.",
+    "Disjoint filenames do not establish physical-event/session/site independence.",
+    "Source data remain immutable and are digested after authorized acquisition.",
+    "Every preprocessing operation carries a method/version/parameter record.",
+    "Traffic classification and trajectory metrics are not utility-fault POD or route geolocation.",
+    "Faithful reproduction requires author-exact behavior and complete source/configuration.",
+    "Any implementation built before baseline reproduction is labelled a separate candidate method."
+  ]
+}

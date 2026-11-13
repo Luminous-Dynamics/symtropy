@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/das-public-corpus-manifest-v0.1.schema.json",
+  "title": "SUF public DAS corpus metadata manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_date",
+    "workstream",
+    "claim_ceiling",
+    "datasets",
+    "global_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.das_public_corpus_manifest.v0.1"
+    },
+    "status": {
+      "const": "metadata_audit_no_bulk_download"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "workstream": {
+      "const": "DAS-PUBLIC-CORPUS-QUAL-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "datasets": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "publisher",
+          "doi",
+          "published_date",
+          "collection_profile",
+          "reported_volume",
+          "rights_state",
+          "license",
+          "known_caveats",
+          "suitable_tasks",
+          "unsuitable_claims",
+          "next_step"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^C[1-9][0-9]*$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 4
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 2
+          },
+          "doi": {
+            "type": "string",
+            "minLength": 8
+          },
+          "published_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "collection_profile": {
+            "type": "string",
+            "minLength": 10
+          },
+          "reported_volume": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rights_state": {
+            "enum": [
+              "commercial_use_not_cleared",
+              "unknown_permission_check_required",
+              "commercially_permitted",
+              "research_only",
+              "public_domain"
+            ]
+          },
+          "license": {
+            "type": "string",
+            "minLength": 3
+          },
+          "known_caveats": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "suitable_tasks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "unsuitable_claims": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_step": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
+      }
+    },
+    "global_controls": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 12
+      }
+    }
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/acoustic-motion-scenario-manifest-v0.1.schema.json",
+  "title": "SUF acoustic motion scenario manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_date",
+    "claim_ceiling",
+    "populations",
+    "method_families",
+    "actions",
+    "metrics",
+    "scenarios",
+    "global_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.acoustic_motion_manifest.v0.1"
+    },
+    "status": {
+      "enum": [
+        "policy_level_synthetic_campaign_plan_only",
+        "synthetic_fixture",
+        "laboratory_profile"
+      ]
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "populations": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string"
+      }
+    },
+    "method_families": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "population",
+          "conditions",
+          "perturbations",
+          "expected_disposition",
+          "oracle_requirement",
+          "expected_action",
+          "oracle_action_reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^AM-[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 4
+          },
+          "population": {
+            "type": "string"
+          },
+          "conditions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "perturbations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "Accepted",
+              "Rejected",
+              "Indeterminate",
+              "Unsupported"
+            ]
+          },
+          "oracle_requirement": {
+            "type": "string",
+            "minLength": 12
+          },
+          "expected_action": {
+            "enum": [
+              "CONTINUE_MOVING",
+              "SLOW_AND_SAMPLE",
+              "PAUSE_AND_CHIRP",
+              "CHANGE_EXCITATION",
+              "REVERSE_VIEW",
+              "DEFER_OR_ABSTAIN"
+            ]
+          },
+          "oracle_action_reason": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "global_controls": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

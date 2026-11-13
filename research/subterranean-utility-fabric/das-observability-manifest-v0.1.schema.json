@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/das-observability-manifest-v0.1.schema.json",
+  "title": "SUF DAS observability scenario manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_date",
+    "claim_ceiling",
+    "tracks",
+    "profile_factors",
+    "metrics",
+    "scenarios",
+    "global_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.das_observability_manifest.v0.1"
+    },
+    "status": {
+      "enum": [
+        "synthetic_campaign_plan_only",
+        "authorized_data_reproduction",
+        "non_live_lab_profile"
+      ]
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "tracks": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "DAS_EVENT_SCREENING",
+          "FIBRE_ROUTE_GEOLOCALIZATION",
+          "DISTURBANCE_HYPOTHESIS"
+        ]
+      }
+    },
+    "profile_factors": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "track",
+          "name",
+          "conditions",
+          "perturbations",
+          "expected_disposition",
+          "oracle_requirement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DAS-[0-9]{3}$"
+          },
+          "track": {
+            "enum": [
+              "DAS_EVENT_SCREENING",
+              "FIBRE_ROUTE_GEOLOCALIZATION",
+              "DISTURBANCE_HYPOTHESIS"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 4
+          },
+          "conditions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "perturbations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "Accepted",
+              "Rejected",
+              "Indeterminate",
+              "Unsupported"
+            ]
+          },
+          "oracle_requirement": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "global_controls": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

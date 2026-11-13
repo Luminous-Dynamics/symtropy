@@ -1,0 +1,308 @@
+{
+  "schema_version": "suf.localization_manifest.v0.1",
+  "status": "campaign_plan_only",
+  "created_date": "2026-11-12",
+  "claim_ceiling": "Campaign plan only. This manifest contains no raw acoustic or visual measurements, no reproduced paper data, no physical duct measurements and no robot qualification.",
+  "evaluation_scope": {
+    "population": "synthetic_1d_only",
+    "state_dimension": "chainage_1d",
+    "unit": "metre",
+    "paper_comparison_threshold_m": 0.5,
+    "task_tolerance_policy": "freeze_per_application_before_evaluation; never infer from the paper threshold",
+    "ground_truth": {
+      "method": "Analytic deterministic trajectory truth for L1; independent metrology or surveyed encoder for later rig profiles.",
+      "independence": "The reference oracle is separate from candidate estimator output and does not consume its asserted position or confidence.",
+      "uncertainty_required": true
+    }
+  },
+  "method_families": [
+    "TETHER_WHEEL",
+    "WHEEL_IMU",
+    "VISION_ONLY",
+    "ACOUSTIC_DIRECT_ONLY",
+    "ACOUSTIC_VISUAL_PF",
+    "ACOUSTIC_VISUAL_PGO",
+    "MULTIMODAL_TOPOLOGY_AIDED"
+  ],
+  "metrics": [
+    "chainage_absolute_error_p50_p95_max",
+    "fraction_above_frozen_task_tolerance",
+    "endpoint_error_and_drift_per_metre",
+    "wrong_anchor_segment_or_branch_rate",
+    "localization_outage_and_reacquisition_time",
+    "nominal_50_90_95_percent_interval_coverage",
+    "high_confidence_wrong_location_and_abstention_rate",
+    "sensor_dropout_and_correlated_degradation_performance",
+    "latency_energy_and_stationary_sampling_overhead",
+    "independent_maintenance_point_relocation_success"
+  ],
+  "scenarios": [
+    {
+      "id": "LOC-001",
+      "name": "Clean monotonic motion with adequate anchors",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "wheel_odometry",
+        "tether_encoder",
+        "route_anchor"
+      ],
+      "perturbations": [
+        "low-noise observations",
+        "synchronized clocks",
+        "correct initial segment and anchor"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Accept only when the independent chainage oracle and all required sensor/anchor revisions agree within the preregistered tolerance."
+    },
+    {
+      "id": "LOC-002",
+      "name": "Visual drift corrected by intermittent acoustic observations",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "tether_encoder",
+        "route_anchor"
+      ],
+      "perturbations": [
+        "controlled visual odometry drift",
+        "periodic acoustic updates",
+        "known acoustic ambiguity bounds"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Compare all ablations against exact truth; preserve acoustic update timing and do not treat a fused estimate as truth."
+    },
+    {
+      "id": "LOC-003",
+      "name": "Repeated-joint acoustic alias",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "route_anchor"
+      ],
+      "perturbations": [
+        "multiple similar echo patterns at distinct chainages",
+        "one deliberately ambiguous correlation peak"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "The verifier must detect that multiple locations remain plausible; a single confident point estimate is rejected."
+    },
+    {
+      "id": "LOC-004",
+      "name": "Feature-sparse visual stream",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "tether_encoder"
+      ],
+      "perturbations": [
+        "low visual texture",
+        "blur interval",
+        "controlled optic-flow outliers"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Accepted",
+      "oracle_requirement": "Report modality-specific degradation and show whether independent acoustic/odometric observations restore the task tolerance."
+    },
+    {
+      "id": "LOC-005",
+      "name": "Acoustic dropout with inertial bias and wheel slip",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "wheel_odometry"
+      ],
+      "perturbations": [
+        "temporary acoustic sensor loss",
+        "bounded IMU bias",
+        "wheel slip interval"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "No overconfident extrapolation during the unobservable interval; measure drift and reacquisition after recovery."
+    },
+    {
+      "id": "LOC-006",
+      "name": "Sensor timebase mismatch",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "wheel_odometry"
+      ],
+      "perturbations": [
+        "stale calibration timestamp",
+        "deliberate clock offset beyond declared tolerance",
+        "out-of-order observations"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Reject incompatible or stale synchronization evidence; do not repair timestamps silently."
+    },
+    {
+      "id": "LOC-007",
+      "name": "Wrong or stale route anchor",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "route_anchor"
+      ],
+      "perturbations": [
+        "anchor belongs to another route segment",
+        "map generation is superseded"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Local chainage may remain reportable, but global placement must be rejected and route authority preserved."
+    },
+    {
+      "id": "LOC-008",
+      "name": "Unobserved segment with no independent reference",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic"
+      ],
+      "perturbations": [
+        "sensor observations absent in a bounded interval",
+        "no surveyed anchor spans the interval"
+      ],
+      "ground_truth_kind": "unavailable",
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Preserve the unobserved interval and refuse to make a precise location claim across it."
+    },
+    {
+      "id": "LOC-009",
+      "name": "Cable-duct domain shift: material and occupancy",
+      "profile_population": "cable_duct_target_profile",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "tether_encoder"
+      ],
+      "perturbations": [
+        "cable or draw-rope occupancy",
+        "different duct wall material",
+        "changed diameter and coupling profile"
+      ],
+      "ground_truth_kind": "independent_fixture_metrology",
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Treat as an unqualified population until measurements and calibration are collected on this exact duct profile."
+    },
+    {
+      "id": "LOC-010",
+      "name": "Wet and debris-contaminated cable-duct profile",
+      "profile_population": "cable_duct_target_profile",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "wheel_odometry"
+      ],
+      "perturbations": [
+        "controlled water film or pooled water",
+        "silt/debris",
+        "sensor-window fouling"
+      ],
+      "ground_truth_kind": "independent_fixture_metrology",
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Do not transfer clean/dry results; preserve invalid visibility and acoustic-quality states."
+    },
+    {
+      "id": "LOC-011",
+      "name": "False loop closure and direction reversal",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu",
+        "wheel_odometry",
+        "route_anchor"
+      ],
+      "perturbations": [
+        "repeated route signature",
+        "reverse traversal",
+        "false loop-closure proposal"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Rejected",
+      "oracle_requirement": "Independent chronology and topology checks must reject an impossible route transition or unsupported loop closure."
+    },
+    {
+      "id": "LOC-012",
+      "name": "Correlated multi-sensor degradation",
+      "profile_population": "synthetic_1d_only",
+      "sensor_conditions": [
+        "vision",
+        "acoustic",
+        "imu"
+      ],
+      "perturbations": [
+        "water and fouling jointly degrade acoustic and visual channels",
+        "shared power/clock fault"
+      ],
+      "ground_truth_kind": "analytic_exact",
+      "expected_disposition": "Indeterminate",
+      "oracle_requirement": "Do not multiply independent sensor reliabilities when a common cause invalidates multiple modalities."
+    }
+  ],
+  "global_controls": [
+    "Every estimate binds exact input, sensor, calibration, firmware, route-anchor and fixture revisions.",
+    "No unknown, unobserved or unusable interval may be promoted to a clear location claim.",
+    "All failed, aborted and manually recovered trials remain in the denominator.",
+    "A 1D chainage estimate never implies 2D or 3D pose accuracy.",
+    "The independent oracle does not consume the candidate estimator's asserted position or confidence.",
+    "The 0.5 m paper comparison threshold is not a universal cable-duct acceptance threshold."
+  ],
+  "data_rights": {
+    "paper_data_status": "request_required",
+    "redistribution_status": "not_authorized",
+    "required_action": "Request the author's data and record the response, permitted uses, attribution terms and redistribution constraints before reproduction or publication."
+  },
+  "references": [
+    {
+      "id": "WORLEY_2026_AV_PIPE_LOC",
+      "title": "Acoustic–Visual Sensor Fusion for Robot Localization in Buried Pipes (2026)",
+      "url": "https://doi.org/10.1002/rob.70368",
+      "role": "research_baseline"
+    },
+    {
+      "id": "IEC_TR_63439_1_2_2026",
+      "title": "IEC TR 63439-1-2:2026 power-system robotics state-of-the-art and standardization roadmap",
+      "url": "https://webstore.iec.ch/en/publication/109098",
+      "role": "standardization_roadmap"
+    },
+    {
+      "id": "FHWA_SUE_ASCE_38_22_75_22",
+      "title": "FHWA Subsurface Utility Engineering and ASCE quality-level guidance",
+      "url": "https://www.fhwa.dot.gov/innovation/everydaycounts/edc_8/subsurface_utility_engineering.cfm",
+      "role": "subsurface_evidence_guidance"
+    },
+    {
+      "id": "SYMTROPY_4913",
+      "title": "Cable-duct robot qualification owner",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4913",
+      "role": "existing_luminous_owner"
+    },
+    {
+      "id": "SYMTROPY_4925",
+      "title": "Duct localization qualification workstream",
+      "url": "https://github.com/Luminous-Dynamics/symtropy/issues/4925",
+      "role": "existing_luminous_owner"
+    }
+  ]
+}

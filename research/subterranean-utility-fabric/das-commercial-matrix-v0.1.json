@@ -1,0 +1,160 @@
+{
+  "schema_version": "suf.das_commercial_matrix.v0.1",
+  "snapshot_date": "2026-11-13",
+  "status": "vendor_literature_inventory_not_independently_measured",
+  "claim_ceiling": "Manufacturer descriptions and a published literature review only. No Luminous measurements, procurement prices, independent vendor tests or proven competitive superiority.",
+  "comparators": [
+    {
+      "id": "V1_AP_SENSING_DAS",
+      "name": "AP Sensing Distributed Acoustic Sensing",
+      "category": "DAS_interrogator_and_monitoring_family",
+      "capabilities": [
+        "power_cable_monitoring",
+        "pipeline_monitoring",
+        "well_reservoir_monitoring",
+        "event_detection_localization_claims"
+      ],
+      "evidence_type": "manufacturer_product_overview",
+      "source": "https://www.apsensing.com/en/technology-and-products/distributed-acoustic-sensing",
+      "limits": [
+        "not_an_independent_benchmark",
+        "exact_interrogator_model_and_revision_must_be_frozen",
+        "event_detection_claims_require_matched_fibre_profile"
+      ]
+    },
+    {
+      "id": "V2_OPTASENSE_ATLAS",
+      "name": "OptaSense ATLAS",
+      "category": "DAS_interrogator",
+      "capabilities": [
+        "quantitative_phase_and_amplitude",
+        "up_to_four_fibres",
+        "permanent_asset_monitoring"
+      ],
+      "vendor_claims": {
+        "coverage_km": 190,
+        "fibres": 4
+      },
+      "evidence_type": "manufacturer_product_page",
+      "source": "https://www.optasense.com/technology/atlas-das-interrogator-unit/",
+      "limits": [
+        "maximum_nominal_range_not_equal_to_qualified_sensitivity",
+        "exact_optical_budget_and_profile_must_be_matched",
+        "vendor_claim_not_independently_measured"
+      ]
+    },
+    {
+      "id": "V3_OPTASENSE_ODHF",
+      "name": "OptaSense ODHF",
+      "category": "DAS_interrogator",
+      "capabilities": [
+        "quantitative_phase_mode",
+        "intensity_only_mode",
+        "multiplexing"
+      ],
+      "vendor_claims": {
+        "quantitative_range_km": 10,
+        "intensity_range_km": 50,
+        "max_ping_rate_khz": 50,
+        "spatial_resolution_m": [
+          1.3,
+          35
+        ],
+        "fibres": 4
+      },
+      "evidence_type": "manufacturer_product_page",
+      "source": "https://www.optasense.com/technology/odhf/",
+      "limits": [
+        "quantitative_and_intensity_modes_must_be_separated",
+        "settings_and_output_spatial_resolution_are_not_interchangeable",
+        "vendor_claim_not_independently_measured"
+      ]
+    },
+    {
+      "id": "V4_OPTASENSE_QUANTX",
+      "name": "OptaSense QuantX",
+      "category": "DAS_interrogator",
+      "capabilities": [
+        "quantitative_data",
+        "long_range_monitoring",
+        "buried_and_seabed_cable_monitoring_claims"
+      ],
+      "vendor_claims": {
+        "range_km": 100,
+        "channels": 50000,
+        "channel_pitch_m": 2
+      },
+      "evidence_type": "manufacturer_product_page",
+      "source": "https://www.optasense.com/technology/quantx/",
+      "limits": [
+        "2m_channel_pitch_is_not_2m_spatial_resolution",
+        "range_is_not_equal_to_sensitivity_throughout_route",
+        "vendor_claim_not_independently_measured"
+      ]
+    },
+    {
+      "id": "V5_AP_SENSING_CAMOS",
+      "name": "AP Sensing CAMOS",
+      "category": "power_cable_current_monitoring_complement",
+      "capabilities": [
+        "sheath_current_monitoring",
+        "bonding_fault_detection_claims",
+        "link_box_flooding_detection_claims",
+        "integration_with_DTS_DAS_DTSS_portfolio"
+      ],
+      "vendor_claims": {},
+      "evidence_type": "manufacturer_product_page",
+      "source": "https://www.apsensing.com/en/products/camos",
+      "limits": [
+        "not_a_DAS_interrogator",
+        "electrical_current_sensing_is_a_distinct_modality",
+        "not_a_protection_relay_or_switching_authority"
+      ]
+    },
+    {
+      "id": "R1_IEEE_DAS_HV_REVIEW_2025",
+      "name": "Review of DAS for high-voltage power-cable fault monitoring",
+      "category": "peer_reviewed_literature_review",
+      "capabilities": [
+        "source_modulation_review",
+        "channel_multiplexing_review",
+        "coupling_review",
+        "partial_discharge_monitoring_landscape"
+      ],
+      "reported_literature_trends": {
+        "minimum_detectable_charge_pC": "tens_of_pC_in_specialized_reports",
+        "monitoring_range_km": "tens_of_km_in_specialized_reports",
+        "spatial_resolution": "sub_metre_in_specialized_reports"
+      },
+      "evidence_type": "peer_reviewed_review",
+      "source": "https://doi.org/10.1109/ICSMD67131.2025.11365326",
+      "limits": [
+        "literature_trends_not_one_device_guarantee",
+        "specialized_configurations_not_directly_comparable",
+        "coupling_fading_low_SNR_and_bandwidth_range_tradeoffs_remain"
+      ]
+    }
+  ],
+  "matched_metrics": [
+    "false_alarms_per_fibre_km_day",
+    "critical_event_miss_rate",
+    "event_chainage_p50_p95_max",
+    "alarm_latency",
+    "snr_distribution",
+    "observable_length_fraction",
+    "blind_length",
+    "uptime",
+    "fibre_coupling_profile",
+    "integration_cost",
+    "whole_life_cost"
+  ],
+  "luminous_position": [
+    "vendor_neutral_DAS_intake",
+    "versioned_fibre_identity_and_route_calibration",
+    "geographic_route_uncertainty",
+    "coupling_observability_maps",
+    "independent_event_replay_and_acceptance",
+    "MUDDI_SOSA_PROV_interoperability",
+    "targeted_robot_or_human_verification"
+  ]
+}

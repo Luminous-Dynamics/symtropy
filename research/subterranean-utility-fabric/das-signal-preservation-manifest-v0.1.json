@@ -1,0 +1,266 @@
+{
+  "schema_version": "suf.das_signal_preservation_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "workstream": "DAS-SIGNAL-PRESERVATION-QUAL-001",
+  "claim_ceiling": "Synthetic campaign plan only. No Luminous denoiser, event preservation result or physical qualification is claimed.",
+  "methods": [
+    "D0_RAW_REFERENCE",
+    "D1_BUTTERWORTH_BANDPASS",
+    "D2_SVD_NLM",
+    "D3_WAVELET_FREQUENCY_DECOUPLING",
+    "D4_TOPOLOGY_AWARE_TRAJECTORY",
+    "D5_LUMINOUS_CANDIDATE_AFTER_REPRODUCTION"
+  ],
+  "metrics": [
+    "pod_by_event_class_and_magnitude",
+    "critical_miss_rate",
+    "false_alarms_per_observable_fibre_km_day",
+    "event_onset_shift_ms",
+    "periodicity_error",
+    "chainage_error_p50_p95",
+    "route_error_p50_p95_after_calibration",
+    "trajectory_miou_dice_f1",
+    "topological_continuity",
+    "interval_coverage_90_95",
+    "interval_width",
+    "hallucinated_event_rate",
+    "bytes_retained",
+    "latency_p95",
+    "cpu_gpu_energy"
+  ],
+  "scenarios": [
+    {
+      "id": "DSP-001",
+      "scenario_type": "RAW_REFERENCE",
+      "name": "Raw source reference",
+      "expected_disposition": "Accepted",
+      "conditions": "Immutable acquired source and independent event/reference truth are available.",
+      "perturbations": [
+        "raw_reference"
+      ],
+      "oracle_requirement": "Preserve exact bytes and establish baseline event/time/chainage outputs."
+    },
+    {
+      "id": "DSP-002",
+      "scenario_type": "LOW_AMPLITUDE_TRANSIENT",
+      "name": "Denoiser attenuates a rare low-amplitude transient",
+      "expected_disposition": "Rejected",
+      "conditions": "Target transient is close to background noise and carries critical event information.",
+      "perturbations": [
+        "low_amplitude_transient"
+      ],
+      "oracle_requirement": "Fail if downstream detection misses the event beyond the pre-registered margin."
+    },
+    {
+      "id": "DSP-003",
+      "scenario_type": "SHORT_IMPULSE_SMEAR",
+      "name": "Short transient is spread across time",
+      "expected_disposition": "Rejected",
+      "conditions": "Denoising kernel introduces temporal smoothing and broadens event onset.",
+      "perturbations": [
+        "short_impulse_smear"
+      ],
+      "oracle_requirement": "Measure onset shift and morphology; reject when event timing/location budget is exceeded."
+    },
+    {
+      "id": "DSP-004",
+      "scenario_type": "PERIODICITY_PHASE_SHIFT",
+      "name": "Periodic event phase is shifted",
+      "expected_disposition": "Rejected",
+      "conditions": "Filter/transform changes phase or periodicity used for independent event confirmation.",
+      "perturbations": [
+        "periodicity_phase_shift"
+      ],
+      "oracle_requirement": "Reject if periodicity evidence is distorted beyond frozen tolerance."
+    },
+    {
+      "id": "DSP-005",
+      "scenario_type": "FALSE_RIDGE_HALLUCINATION",
+      "name": "Denoiser creates a trajectory-like ridge on no-event background",
+      "expected_disposition": "Rejected",
+      "conditions": "Noise suppression creates a structured feature not present in reference truth.",
+      "perturbations": [
+        "false_ridge_hallucination"
+      ],
+      "oracle_requirement": "Count hallucinated events/trajectories and fail the false-positive budget."
+    },
+    {
+      "id": "DSP-006",
+      "scenario_type": "OVERLAPPING_TRAFFIC",
+      "name": "Two vehicle trajectories overlap in the spatiotemporal image",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Method returns one merged trajectory or uncertain association.",
+      "perturbations": [
+        "overlapping_traffic"
+      ],
+      "oracle_requirement": "Preserve multiple hypotheses/abstain; do not invent a single continuous path."
+    },
+    {
+      "id": "DSP-007",
+      "scenario_type": "LOW_SNR_FRAGMENTED_TRACK",
+      "name": "Trajectory segments fragment under low SNR",
+      "expected_disposition": "Accepted",
+      "conditions": "Independent video/trajectory truth exists and segmentation labels are held out.",
+      "perturbations": [
+        "low_snr_fragmented_track"
+      ],
+      "oracle_requirement": "Compare segmentation/continuity metrics on the same task and split."
+    },
+    {
+      "id": "DSP-008",
+      "scenario_type": "CONDUIT_PROFILE_SHIFT",
+      "name": "Denoiser trained on direct burial applied to conduit coupling",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Conduit attenuation changes signal/noise profile outside training support.",
+      "perturbations": [
+        "conduit_profile_shift"
+      ],
+      "oracle_requirement": "Expose OOD/degraded state and abstain or qualify a separate profile."
+    },
+    {
+      "id": "DSP-009",
+      "scenario_type": "FADING_NOISE",
+      "name": "Spatial fading noise reduces apparent signal strength",
+      "expected_disposition": "Accepted",
+      "conditions": "Fading profile and reference event traces are independently known.",
+      "perturbations": [
+        "fading_noise"
+      ],
+      "oracle_requirement": "Compare raw, fixed filter and SVD-NLM with downstream event/chainage guardrails."
+    },
+    {
+      "id": "DSP-010",
+      "scenario_type": "STRUCTURED_OCCLUSION",
+      "name": "A traffic/event signature is partially occluded by concurrent activity",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Noisy/overlapping signal supports more than one reconstruction.",
+      "perturbations": [
+        "structured_occlusion"
+      ],
+      "oracle_requirement": "Retain alternative tracks or abstain; report coverage/uncertainty."
+    },
+    {
+      "id": "DSP-011",
+      "scenario_type": "LOW_FREQUENCY_BACKGROUND",
+      "name": "Slow background trend contaminates high-frequency event content",
+      "expected_disposition": "Accepted",
+      "conditions": "Signal contains separable low/high frequency components and independent truth.",
+      "perturbations": [
+        "low_frequency_background"
+      ],
+      "oracle_requirement": "Compare wavelet frequency decoupling with D0/D1 using downstream event preservation."
+    },
+    {
+      "id": "DSP-012",
+      "scenario_type": "EVENT_EDGE_RINGING",
+      "name": "Filter creates ringing around a sharp event",
+      "expected_disposition": "Rejected",
+      "conditions": "Processing introduces oscillations that resemble repeated impulses.",
+      "perturbations": [
+        "event_edge_ringing"
+      ],
+      "oracle_requirement": "Reject if false event candidates or periodicity are introduced."
+    },
+    {
+      "id": "DSP-013",
+      "scenario_type": "CHANNEL_MISALIGNMENT",
+      "name": "Spatial channels shift during processing",
+      "expected_disposition": "Rejected",
+      "conditions": "Denoiser/downsampling reorders or interpolates channels without a mapping receipt.",
+      "perturbations": [
+        "channel_misalignment"
+      ],
+      "oracle_requirement": "Reject chainage/route results; preserve source axis and transform lineage."
+    },
+    {
+      "id": "DSP-014",
+      "scenario_type": "TIMEBASE_GAP",
+      "name": "Missing time samples are interpolated as continuous data",
+      "expected_disposition": "Rejected",
+      "conditions": "Acquisition has a real clock/sample gap.",
+      "perturbations": [
+        "timebase_gap"
+      ],
+      "oracle_requirement": "Keep explicit gap; no event-negative claim across missing samples."
+    },
+    {
+      "id": "DSP-015",
+      "scenario_type": "HELD_OUT_SITE",
+      "name": "Denoiser evaluated on a new site/corridor",
+      "expected_disposition": "Accepted",
+      "conditions": "Site, day and event sessions are held out from training and tuning.",
+      "perturbations": [
+        "held_out_site"
+      ],
+      "oracle_requirement": "Report transfer, calibration, abstention and performance delta without target fine-tuning."
+    },
+    {
+      "id": "DSP-016",
+      "scenario_type": "COMPRESSION_INTERACTION",
+      "name": "Denoising occurs after lossy compression",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Compression distortion and denoising interact, source is separately retained.",
+      "perturbations": [
+        "compression_interaction"
+      ],
+      "oracle_requirement": "Evaluate both transforms and combined chain against raw reference; record both digests."
+    },
+    {
+      "id": "DSP-017",
+      "scenario_type": "UNCERTAINTY_UNDERCOVERAGE",
+      "name": "Enhanced signal produces overconfident position intervals",
+      "expected_disposition": "Rejected",
+      "conditions": "Held-out surveyed truth falls outside the nominal interval too often.",
+      "perturbations": [
+        "uncertainty_undercoverage"
+      ],
+      "oracle_requirement": "Fail uncertainty coverage regardless of average error or image quality."
+    },
+    {
+      "id": "DSP-018",
+      "scenario_type": "CRITICAL_POD_NONINFERIORITY",
+      "name": "Candidate preserves critical event POD",
+      "expected_disposition": "Accepted",
+      "conditions": "Same event population and truth; pre-registered non-inferiority margin.",
+      "perturbations": [
+        "critical_pod_noninferiority"
+      ],
+      "oracle_requirement": "Accept only if confidence interval satisfies the frozen margin."
+    },
+    {
+      "id": "DSP-019",
+      "scenario_type": "DUPLICATE_WINDOW_LEAKAGE",
+      "name": "Adjacent overlapping windows split across train/test",
+      "expected_disposition": "Rejected",
+      "conditions": "Same acquisition/event appears on both sides of the split.",
+      "perturbations": [
+        "duplicate_window_leakage"
+      ],
+      "oracle_requirement": "Reject headline result; regroup by source event/session/site."
+    },
+    {
+      "id": "DSP-020",
+      "scenario_type": "RESOURCE_BUDGET_EXCEEDED",
+      "name": "Denoiser improves image quality but misses latency/compute budget",
+      "expected_disposition": "Rejected",
+      "conditions": "Inference exceeds the declared resource/latency envelope.",
+      "perturbations": [
+        "resource_budget_exceeded"
+      ],
+      "oracle_requirement": "Reject deployment suitability; report compute/energy per fibre-km-day."
+    }
+  ],
+  "global_controls": [
+    "Raw source artifacts are immutable and replayable.",
+    "Every denoised artifact binds parent digest, algorithm/method revision and parameter digest.",
+    "PSNR, SSIM and SNR are supplemental and cannot substitute for event POD/localization.",
+    "Overlapping windows and augmentations from one source event remain in one split.",
+    "Every event class/magnitude and no-event background is reported separately.",
+    "Unknown or degraded observability is not a clean negative observation.",
+    "Geographic route error is evaluated only after independent route calibration.",
+    "Signal timing and spatial/channel alignment changes require explicit transformation receipts.",
+    "Cross-site transfer requires held-out sites/campaigns without hidden target adaptation.",
+    "Compression and denoising transforms are tested separately and jointly against raw source."
+  ]
+}

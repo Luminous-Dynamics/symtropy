@@ -1,0 +1,139 @@
+{
+  "schema_version": "suf.das.source_observation.v0.1",
+  "status": "metadata_envelope_only",
+  "claim_ceiling": "Synthetic metadata fixture only. No vendor waveform bytes, live interrogator observation, calibration or event detection is included.",
+  "observation_id": "synthetic-das-processed-observation-0001",
+  "source_artifact": {
+    "artifact_uri": "urn:example:suf:artifact:synthetic-das-processed-0001",
+    "media_type": "application/vnd.example.das-waveform",
+    "byte_length": 1024,
+    "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "binding_state": "scenario_assumption",
+    "source_native": false
+  },
+  "sensor": {
+    "owner_namespace": "example-utility",
+    "source_system": "synthetic-interrogator-system",
+    "thing_id": "interrogator-site-a",
+    "sensor_id": "das-sensor-01",
+    "datastream_id": "strain-rate-stream-01",
+    "vendor": "Example Vendor (synthetic)",
+    "model": "Example DAS Model (synthetic)",
+    "firmware_revision": {
+      "state": "present",
+      "value": "fw-1.0-synthetic"
+    },
+    "interrogator_config_revision": "cfg-r1",
+    "optical_path_id": "optical-path-a-b",
+    "sample_rate_hz": {
+      "state": "present",
+      "value": 5000
+    },
+    "gauge_length_m": {
+      "state": "present",
+      "value": 10
+    },
+    "channel_pitch_m": {
+      "state": "present",
+      "value": 1
+    },
+    "declared_spatial_resolution_m": {
+      "state": "unknown",
+      "reason": "Not supplied by the synthetic source metadata; do not infer from channel pitch."
+    }
+  },
+  "observed_property": {
+    "identifier": "https://example.org/observed-property/strain-rate",
+    "phenomenon": "strain_rate",
+    "unit": "microstrain/second",
+    "quantity_semantics": "synthetic unit declaration for a source-native DAS strain-rate channel"
+  },
+  "time": {
+    "phenomenon_start": "2026-11-13T08:00:00Z",
+    "phenomenon_end": "2026-11-13T08:00:10Z",
+    "result_time": "2026-11-13T08:00:11Z",
+    "clock_source": {
+      "state": "present",
+      "value": "synthetic-ptp-grandmaster"
+    },
+    "synchronization_state": "bounded_offset",
+    "max_clock_offset_ms": 2
+  },
+  "spatial_axis": {
+    "axis_kind": "optical_range",
+    "unit": "m",
+    "start": 0,
+    "step": 1,
+    "sample_count": 1000,
+    "direction": "endpoint_a_to_b"
+  },
+  "fibre_reference": {
+    "identity_state": "identified",
+    "fibre_id": {
+      "state": "present",
+      "value": "example-utility:fibre-001"
+    },
+    "fibre_revision": {
+      "state": "present",
+      "value": "fibre-r1"
+    },
+    "endpoint_from_id": {
+      "state": "present",
+      "value": "chamber-a"
+    },
+    "endpoint_to_id": {
+      "state": "present",
+      "value": "chamber-b"
+    },
+    "route_revision": {
+      "state": "present",
+      "value": "route-r1"
+    }
+  },
+  "processing": {
+    "stage": "processed_derivative",
+    "method_id": {
+      "state": "present",
+      "value": "butterworth-bandpass"
+    },
+    "method_revision": {
+      "state": "present",
+      "value": "bandpass-4th-order-v1"
+    },
+    "parent_artifact_sha256": [
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    ],
+    "parameters_sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+  },
+  "quality": {
+    "epistemic_state": "scenario_assumption",
+    "availability_state": "available",
+    "quality_state": "valid",
+    "coverage_state": "not_assessed",
+    "review_state": "unreviewed"
+  },
+  "rights": {
+    "rights_state": "permission_required",
+    "permitted_purposes": [
+      "synthetic_contract_validation"
+    ],
+    "custodian": {
+      "state": "present",
+      "value": "Luminous synthetic fixture"
+    },
+    "license_or_permission_reference": {
+      "state": "unknown",
+      "reason": "No real dataset licence applies to this synthetic example."
+    }
+  },
+  "disclosure": {
+    "classification": "public_aggregate",
+    "audience": [
+      "public"
+    ],
+    "purpose_ref": {
+      "state": "present",
+      "value": "schema-example-only"
+    }
+  }
+}

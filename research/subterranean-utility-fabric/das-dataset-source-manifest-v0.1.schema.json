@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/das-dataset-source-manifest-v0.1.schema.json",
+  "title": "SUF DAS dataset source manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_date",
+    "global_rule",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.das_dataset_source_manifest.v0.1"
+    },
+    "status": {
+      "const": "metadata_inventory_only"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "global_rule": {
+      "type": "string",
+      "minLength": 50
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "population",
+          "version_or_doi",
+          "source_url",
+          "data_status",
+          "rights_status",
+          "allowed_current_actions",
+          "not_yet_allowed",
+          "benchmark_roles",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 5
+          },
+          "population": {
+            "type": "string",
+            "minLength": 5
+          },
+          "version_or_doi": {
+            "type": "string",
+            "minLength": 5
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "data_status": {
+            "enum": [
+              "author_request_required",
+              "application_required",
+              "record_open_file_scope_to_verify",
+              "external_data_endpoint_public_terms_to_verify"
+            ]
+          },
+          "rights_status": {
+            "enum": [
+              "permission_and_terms_required",
+              "conflicting_license_metadata",
+              "license_field_not_visible_in_record_extract",
+              "license_and_endpoint_terms_to_verify"
+            ]
+          },
+          "allowed_current_actions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "not_yet_allowed": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "benchmark_roles": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 40
+          }
+        }
+      }
+    }
+  }
+}

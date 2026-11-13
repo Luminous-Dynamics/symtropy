@@ -1,0 +1,127 @@
+{
+  "schema_version": "suf.das_public_corpus_manifest.v0.1",
+  "status": "metadata_audit_no_bulk_download",
+  "created_date": "2026-11-13",
+  "workstream": "DAS-PUBLIC-CORPUS-QUAL-001",
+  "claim_ceiling": "Metadata and rights-readiness audit only. No raw data acquisition, baseline reproduction or utility field qualification has been performed.",
+  "datasets": [
+    {
+      "id": "C1",
+      "title": "Comprehensive DAS event-classification dataset",
+      "publisher": "Scientific Data / Figshare",
+      "doi": "10.1038/s41597-025-05088-4",
+      "published_date": "2025-05-14",
+      "collection_profile": "Campus DAS; HDF5 waveforms with JSON annotations and NumPy event-window masks; nine classes; 324465 reported event/window samples in 14 HDF5 files.",
+      "reported_volume": "47.1 GB on a community mirror; official Figshare record must be checked before retrieval.",
+      "rights_state": "commercial_use_not_cleared",
+      "license": "CC BY-NC-ND 4.0",
+      "known_caveats": [
+        "non-commercial restriction",
+        "no-derivatives restriction",
+        "class imbalance: regular/background 210023 of 324465 reported samples",
+        "campus population not utility corridor"
+      ],
+      "suitable_tasks": [
+        "exact published nine-class reproduction subject to permission",
+        "classification benchmark research after rights clearance"
+      ],
+      "unsuitable_claims": [
+        "commercial product training/evaluation without separate written permission",
+        "terrestrial utility fault detection",
+        "fibre-to-asset geolocation"
+      ],
+      "next_step": "Obtain written commercial permission or exclude from company-controlled commercial research; audit Figshare official record."
+    },
+    {
+      "id": "C2",
+      "title": "Trondheim ship arrival and localization DAS corpus",
+      "publisher": "Zenodo / NTNU and collaborators",
+      "doi": "10.5281/zenodo.18851481",
+      "published_date": "2026-03-17",
+      "collection_profile": "Subsea fibre in Trondheimsfjord; acquired 2020-03-03; ship-noise/event-arrival DAS data.",
+      "reported_volume": "63.5 GB",
+      "rights_state": "unknown_permission_check_required",
+      "license": "not visible in record audit",
+      "known_caveats": [
+        "marine subsea population",
+        "rights/licence unresolved",
+        "not terrestrial utility event truth"
+      ],
+      "suitable_tasks": [
+        "ship-arrival temporal detection",
+        "subsea event localization",
+        "persistent-homology baseline reproduction after rights clearance"
+      ],
+      "unsuitable_claims": [
+        "terrestrial buried utility fault POD",
+        "utility route mapping"
+      ],
+      "next_step": "Check licence and data owner/cable permissions before sample acquisition."
+    },
+    {
+      "id": "C3",
+      "title": "OOI RCA 2025-2026 OptoDAS data",
+      "publisher": "Zenodo / University of Washington",
+      "doi": "10.5281/zenodo.19930457",
+      "published_date": "2026-04-30",
+      "collection_profile": "South OOI RCA cable; HDF5; approximately 8 Hz; 2025-11-12 to 2026-01-28; temporal/spatial settings vary.",
+      "reported_volume": "1.2 TB external OOI data",
+      "rights_state": "unknown_permission_check_required",
+      "license": "not visible in record audit",
+      "known_caveats": [
+        "outage 2025-11-27 to 2025-12-05",
+        "authors report significant calibration problems",
+        "40 m gauge length appears highest quality",
+        "marine subsea setting"
+      ],
+      "suitable_tasks": [
+        "streaming/range retrieval",
+        "time-gap and calibration-quality stress tests",
+        "multiresolution ingestion/replay"
+      ],
+      "unsuitable_claims": [
+        "clean route-geolocation ground truth",
+        "terrestrial utility-fault performance"
+      ],
+      "next_step": "Verify rights and acquire only a small read-range sample."
+    },
+    {
+      "id": "C4",
+      "title": "OOI RCA 2025-2026 Nokia multi-span DAS",
+      "publisher": "Zenodo / University of Washington and Nokia Bell Labs",
+      "doi": "10.5281/zenodo.19930402",
+      "published_date": "2026-04-30",
+      "collection_profile": "North and south OOI subsea cables; multi-span binary files with arrays and metadata; approximately 8 Hz; 10-200 m variable channel spacing.",
+      "reported_volume": "3.9 TB external OOI data",
+      "rights_state": "unknown_permission_check_required",
+      "license": "not visible in record audit",
+      "known_caveats": [
+        "outages 2025-11-12 to 2025-11-18, 2025-12-08 to 2025-12-09, and 2025-12-17 to 2025-12-23",
+        "authors report nonlinearities and cross-phase modulation",
+        "spatial masking applied; residual non-physical noise remains",
+        "absolute timestamps delayed by several seconds"
+      ],
+      "suitable_tasks": [
+        "multi-span identity and metadata parsing",
+        "clock delay/outage handling",
+        "masking and data-lifecycle stress"
+      ],
+      "unsuitable_claims": [
+        "physical cable-event truth across all spans",
+        "terrestrial utility event detection",
+        "claim that raw dataset is fully physically accurate"
+      ],
+      "next_step": "Verify rights and use only documented masked/sample subsets for initial parser tests."
+    }
+  ],
+  "global_controls": [
+    "No bulk download until rights, use purpose, data readiness and storage budget are verified.",
+    "Public accessibility does not imply commercial-use or derivative-redistribution permission.",
+    "Every acquired byte stream receives a new SHA-256 digest and byte-length record.",
+    "Publisher metadata, Zenodo DOI, mirror MD5 and derived artifact digest are distinct evidence fields.",
+    "Site/day/session/event leakage is prohibited in generalization splits.",
+    "Marine, campus, laboratory, synthetic, operational utility and independently surveyed evidence remain separate populations.",
+    "Known calibration problems, outages, non-physical noise, masks and time delays are recorded rather than silently repaired.",
+    "Dataset accuracy scores remain linked to author task and split; no cross-task leaderboard."
+  ]
+}

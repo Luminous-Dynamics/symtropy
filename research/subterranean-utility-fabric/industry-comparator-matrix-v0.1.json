@@ -1,0 +1,271 @@
+{
+  "schema_version": "suf.industry_comparator_matrix.v0.1",
+  "snapshot_date": "2026-11-12",
+  "status": "research_inventory_vendor_claims_separated_from_measurement",
+  "claim_ceiling": "This matrix records manufacturer, institutional and standards references. It does not represent independent Luminous performance measurements, procurement quotations, field qualification, or proven superiority.",
+  "comparators": [
+    {
+      "id": "C1_REDZONE_SOLO",
+      "name": "RedZone SOLO",
+      "category": "commercial_sewer_robot",
+      "population": "200_300_mm_sewer",
+      "capabilities": [
+        "autonomous_traversal",
+        "autonomous_return",
+        "360_degree_panorama"
+      ],
+      "reported_specs": {
+        "pipe_diameter_mm": [
+          200,
+          300
+        ],
+        "deployment_time_minutes": [
+          10,
+          15
+        ],
+        "crew_output_ft_per_day": 4500,
+        "crew_output_condition": "multiple units per crew"
+      },
+      "evidence_type": "manufacturer_reported",
+      "source_urls": [
+        "https://redzone.com/our-technology/solo/"
+      ],
+      "limits": [
+        "sewer_specific",
+        "not_cable_microduct_qualified",
+        "crew_output_not_single_robot_output",
+        "throughput_claim_not_independently_reproduced"
+      ]
+    },
+    {
+      "id": "C2_REDZONE_MDPROFILER",
+      "name": "RedZone MDProfiler and multi-sensor platforms",
+      "category": "commercial_multisensor_pipeline_inspection",
+      "population": "500_915_mm_pipe_profile",
+      "capabilities": [
+        "laser_profiling",
+        "sonar",
+        "CCTV",
+        "long_distance_inspection"
+      ],
+      "reported_specs": {
+        "pipe_diameter_mm": [
+          500,
+          915
+        ]
+      },
+      "evidence_type": "manufacturer_reported",
+      "source_urls": [
+        "https://redzone.com/our-technology/"
+      ],
+      "limits": [
+        "exact_platform_configuration_must_be_frozen",
+        "sensor_performance_requires_matched_test",
+        "not_cable_microduct_qualified",
+        "manufacturer_claim_not_independently_measured"
+      ]
+    },
+    {
+      "id": "C3_DEEP_X30_SPOCK",
+      "name": "DEEP Robotics X30 adapted as SPock",
+      "category": "commercial_power_tunnel_quadruped_pilot",
+      "population": "walkable_power_cable_tunnel",
+      "capabilities": [
+        "visual_inspection",
+        "thermal_inspection",
+        "autonomous_patrol"
+      ],
+      "reported_specs": {
+        "tunnel_network_reference_km": 40,
+        "deployment_status": "reported_pilot_in_sections"
+      },
+      "evidence_type": "manufacturer_case_study",
+      "source_urls": [
+        "https://www.deeprobotics.us/news/deep-robotics-x30-robot-dog-leads-smart-inspection-in-singapores-power-cable-tunnels/"
+      ],
+      "limits": [
+        "case_study_not_independent_benchmark",
+        "walkable_tunnel_not_duct",
+        "coverage_fraction_not_established_by_source"
+      ]
+    },
+    {
+      "id": "C4_COOLIGHT_CL803D",
+      "name": "Coolight CL803D dual-rail inspection robot",
+      "category": "rail_mounted_utility_tunnel_robot",
+      "population": "walkable_cable_utility_tunnel",
+      "capabilities": [
+        "IR_temperature",
+        "gas_monitoring",
+        "water_leak_monitoring",
+        "obstacle_avoidance",
+        "offline_autonomous_patrol"
+      ],
+      "reported_specs": {
+        "ingress_protection": "IP66",
+        "mass_kg": "less_than_30_claimed"
+      },
+      "evidence_type": "manufacturer_reported",
+      "source_urls": [
+        "https://sdkulai.com/en/tdlasjiguangguangpushiyanpingtaixilie/322.html"
+      ],
+      "limits": [
+        "vendor_claims_not_independently_tested",
+        "rail_infrastructure_cost_and_constraints_must_be_counted",
+        "not_small_duct_robot"
+      ]
+    },
+    {
+      "id": "C5_FIBRE_JETTING",
+      "name": "Commercial fibre blowing and jetting equipment",
+      "category": "specialist_fibre_installation_tooling",
+      "population": "fibre_microduct",
+      "capabilities": [
+        "air_assisted_cable_installation",
+        "force_limited_installation"
+      ],
+      "reported_specs": {},
+      "evidence_type": "industry_practice",
+      "source_urls": [
+        "https://www.thefoa.org/tech/ref/OSP_Construction/Underground_Installation.html",
+        "https://www.ofsoptics.com/wp-content/uploads/IP055-MicroCable-Installation-Oct-2019.pdf"
+      ],
+      "limits": [
+        "manufacturer_limits_are_product_specific",
+        "robot_should_not_replace_specialist_tool_without_evidence",
+        "cable_product_and_duct_profile_must_be_frozen"
+      ]
+    },
+    {
+      "id": "C6_REDZONE_INTEGRITY",
+      "name": "RedZone Integrity",
+      "category": "commercial_pipeline_asset_management_software",
+      "population": "sewer_asset_management",
+      "capabilities": [
+        "GIS_linked_inspection_data",
+        "condition_reports",
+        "assessment_workflows"
+      ],
+      "reported_specs": {},
+      "evidence_type": "manufacturer_reported",
+      "source_urls": [
+        "https://redzone.com/our-technology/"
+      ],
+      "limits": [
+        "not_a_neutral_interoperability_test",
+        "specific product capabilities need exact version review",
+        "manufacturer_claim_not_independently_measured"
+      ]
+    },
+    {
+      "id": "C7_NASSCO_PACP",
+      "name": "NASSCO PACP/MACP",
+      "category": "inspection_coding_and_reporting_standard",
+      "population": "sewer_CCTV_inspection",
+      "capabilities": [
+        "condition_coding",
+        "human_adjudication",
+        "standardized_reporting"
+      ],
+      "reported_specs": {},
+      "evidence_type": "industry_standard",
+      "source_urls": [
+        "https://www.nassco.org/resource/cctv-inspection-quality-in-sewer-cleaning"
+      ],
+      "limits": [
+        "sewer_specific",
+        "not_cable_duct_qualification",
+        "not_robot_motion_or_localization_standard"
+      ]
+    },
+    {
+      "id": "C8_PAS128_2022",
+      "name": "PAS 128:2022",
+      "category": "subsurface_utility_survey_quality_specification",
+      "population": "underground_utility_detection_verification_location",
+      "capabilities": [
+        "survey_planning",
+        "quality_levels",
+        "detection",
+        "verification",
+        "location"
+      ],
+      "reported_specs": {},
+      "evidence_type": "published_specification",
+      "source_urls": [
+        "https://accord-checkout.bsigroup.com/products/pas-128-underground-utility-detection-verification-and-location-specification"
+      ],
+      "limits": [
+        "uk_pas_not_south_african_law",
+        "does_not_replace_utility_owner_or_local_statutory_requirements"
+      ]
+    },
+    {
+      "id": "C9_IEC_63439",
+      "name": "IEC 63439 power-system robot standards family",
+      "category": "robotics_standardization",
+      "population": "electric_power_system_robotics",
+      "capabilities": [
+        "robot_terminology",
+        "state_of_art_roadmap",
+        "testing_and_reliability_topics"
+      ],
+      "reported_specs": {
+        "iec_tr_63439_1_2_2026_publication_date": "2026-06-02",
+        "iec_63439_3_31_status": "in_development"
+      },
+      "evidence_type": "standardization_reference",
+      "source_urls": [
+        "https://webstore.iec.ch/en/publication/109098",
+        "https://standardsdevelopment.bsigroup.com/projects/9025-12660"
+      ],
+      "limits": [
+        "technical_report_is_not_product_certification",
+        "3_31_not_published_compliance_standard_in_snapshot",
+        "do_not_assume_microduct_scope"
+      ]
+    },
+    {
+      "id": "C10_OGC_MUDDI",
+      "name": "OGC MUDDI Part 1 v1.0",
+      "category": "underground_data_interoperability_model",
+      "population": "underground_assets_spaces_events_observations",
+      "capabilities": [
+        "core_underground_object_model",
+        "observation_traceability_concept",
+        "interoperability_framework"
+      ],
+      "reported_specs": {
+        "version": "1.0",
+        "approval_date": "2024-06-07",
+        "publication_date": "2024-07-05"
+      },
+      "evidence_type": "approved_conceptual_standard",
+      "source_urls": [
+        "https://docs.ogc.org/is/23-024/23-024.html"
+      ],
+      "limits": [
+        "conceptual_model_not_drop_in_schema",
+        "logical_model_and_concrete_geometry_types_required",
+        "security_is_implementation_responsibility"
+      ]
+    }
+  ],
+  "comparison_protocol": [
+    "Freeze model/firmware/payload/calibration/documentation revision.",
+    "Match geometry, route length, occupancy, environment, access and seeded defects.",
+    "Use independent physical ground truth and preregister acceptance tolerances.",
+    "Include setup, cleaning, calibration, charging, retrieval, maintenance, human review and failed/aborted trials.",
+    "Separate vendor claims from independent measurements.",
+    "Compare accepted outputs and complete workflow cost, not nominal speed.",
+    "Keep sewer, cable microduct, water pipe, walkable tunnel and utility corridor populations separate."
+  ],
+  "luminous_research_targets": [
+    "At least three vendor/tool classes integrated through vendor-neutral evidence interfaces.",
+    "Zero false clearances in the frozen synthetic hostile corpus.",
+    "100% traceability for counted pilot assets and independently accepted repairs.",
+    "Zero unauthorized disclosure in the finite restricted-geometry access-control corpus.",
+    "At least 25% lower active-sensing dwell at non-inferior localization task performance, after matched testing.",
+    "Prove economic or service superiority against the best eligible local baseline in at least one real site stratum before claiming it."
+  ]
+}

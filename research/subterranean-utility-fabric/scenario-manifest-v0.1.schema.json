@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/scenario-manifest-v0.1.schema.json",
+  "title": "Subterranean Utility Fabric Scenario Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "created_date",
+    "claim_ceiling",
+    "dispositions",
+    "architecture_candidates",
+    "site_archetypes",
+    "benchmark_suites",
+    "quantitative_inputs_required",
+    "comparison_rules",
+    "references",
+    "jurisdictional_profiles"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.scenario_manifest.v0.1"
+    },
+    "status": {
+      "enum": [
+        "synthetic_campaign_plan_only",
+        "synthetic_fixture",
+        "field_profile"
+      ]
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "Accepted",
+          "Rejected",
+          "Indeterminate",
+          "Unsupported"
+        ]
+      }
+    },
+    "architecture_candidates": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "description",
+          "candidate_status"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "A0",
+              "A1",
+              "A2",
+              "A3",
+              "A4",
+              "A5",
+              "A6",
+              "A7"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "candidate_status": {
+            "enum": [
+              "baseline_to_measure",
+              "research_candidate",
+              "valid_fallback",
+              "reuse_candidate"
+            ]
+          }
+        }
+      }
+    },
+    "site_archetypes": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "location_status",
+          "evidence_class",
+          "characteristics",
+          "explicit_unknowns",
+          "not_a_real_site"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "SA_URBAN_FEEDER",
+              "SA_INDUSTRIAL_PRECINCT",
+              "SA_SETTLEMENT_EXPANSION_EDGE"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "location_status": {
+            "const": "abstract_non_geospatial"
+          },
+          "evidence_class": {
+            "const": "scenario_assumption"
+          },
+          "characteristics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "explicit_unknowns": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "not_a_real_site": {
+            "const": true
+          }
+        }
+      }
+    },
+    "benchmark_suites": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "purpose",
+          "metrics",
+          "adversarial_cases"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "B1_SPATIAL_EVIDENCE",
+              "B2_CONSTRUCTION",
+              "B3_ROBOTIC_MAINTENANCE",
+              "B4_THEFT_RESILIENCE",
+              "B5_LIFECYCLE_ECONOMICS",
+              "B6_ASSURANCE_INTEROPERABILITY",
+              "B7_WAYLEAVE_COORDINATION",
+              "B8_CABLE_DUCT_ROBOT"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 10
+          },
+          "metrics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "adversarial_cases": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "quantitative_inputs_required": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "unit_or_representation",
+          "evidence_required",
+          "used_for"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "unit_or_representation": {
+            "type": "string"
+          },
+          "evidence_required": {
+            "type": "string"
+          },
+          "used_for": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "comparison_rules": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "url",
+          "source_role"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_role": {
+            "enum": [
+              "industry_standard",
+              "industry_practice",
+              "research_baseline",
+              "government_source",
+              "existing_luminous_workstream"
+            ]
+          }
+        }
+      }
+    },
+    "jurisdictional_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "authority",
+          "status",
+          "scope",
+          "reference_ids"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "minLength": 2
+          },
+          "authority": {
+            "type": "string",
+            "minLength": 2
+          },
+          "status": {
+            "enum": [
+              "published_draft_standard",
+              "current_portal_process_reference",
+              "municipality_specific_standard",
+              "draft_reference_only",
+              "contract_spec_revision_to_verify",
+              "edition_and_part_scope_to_verify"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 10
+          },
+          "reference_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
