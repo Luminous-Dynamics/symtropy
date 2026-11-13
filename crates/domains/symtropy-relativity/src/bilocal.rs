@@ -48,8 +48,14 @@ impl fmt::Display for BilocalOperatorError {
                 "bilocal transfer is singular at pivot {pivot} (scaled magnitude {scaled_magnitude})"
             ),
             Self::InvalidGeometry(name) => write!(f, "cannot construct endpoint map: {name}"),
-            Self::InvalidStepCount => write!(f, "constant-tidal BGO integration requires at least one step"),
-            Self::TidalSymmetryResidual { residual, tolerance } => write!(
+            Self::InvalidStepCount => write!(
+                f,
+                "constant-tidal BGO integration requires at least one step"
+            ),
+            Self::TidalSymmetryResidual {
+                residual,
+                tolerance,
+            } => write!(
                 f,
                 "optical tidal matrix symmetry residual {residual} exceeds {tolerance}"
             ),
@@ -476,7 +482,6 @@ impl CanonicalCovariantEndpointMap {
 }
 
 
-
 /// Integrate the first-order BGO equation for a constant symmetric tidal matrix.
 ///
 /// The frame is declared orthonormal and parallel-propagated, the state is
@@ -584,7 +589,6 @@ pub fn integrate_constant_tidal_fixed_step(
 
     BilocalGeodesicOperator::from_matrix(state)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -815,8 +819,7 @@ mod tests {
     #[test]
     fn constant_zero_tidal_integrator_reduces_to_exact_minkowski_transfer() {
         let zero = [[0.0; 4]; 4];
-        let integrated =
-            integrate_constant_tidal_fixed_step(zero, 1.25, 7, TOLERANCE).unwrap();
+        let integrated = integrate_constant_tidal_fixed_step(zero, 1.25, 7, TOLERANCE).unwrap();
         let exact = BilocalGeodesicOperator::minkowski(1.25).unwrap();
         assert!(integrated.max_abs_difference(&exact) <= TOLERANCE);
         assert!(integrated.symplectic_residual() <= TOLERANCE);
@@ -837,12 +840,8 @@ mod tests {
         let sine = (omega * interval).sin();
         for index in 0..4 {
             assert!((integrated.matrix()[index][index] - cosine).abs() <= 1.0e-10);
-            assert!(
-                (integrated.matrix()[index][index + 4] - sine / omega).abs() <= 1.0e-10
-            );
-            assert!(
-                (integrated.matrix()[index + 4][index] + omega * sine).abs() <= 1.0e-10
-            );
+            assert!((integrated.matrix()[index][index + 4] - sine / omega).abs() <= 1.0e-10);
+            assert!((integrated.matrix()[index + 4][index] + omega * sine).abs() <= 1.0e-10);
             assert!((integrated.matrix()[index + 4][index + 4] - cosine).abs() <= 1.0e-10);
         }
         assert!(integrated.symplectic_residual() <= 1.0e-10);
@@ -884,5 +883,4 @@ mod tests {
             Err(BilocalOperatorError::InvalidStepCount)
         );
     }
-
 }
