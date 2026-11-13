@@ -215,5 +215,16 @@
     "manifest": "research/water-service-engineering/membrane-observability-fault-manifest-v0.1.json",
     "cli": "tools/water-service-t0/src/bin/membrane-observability-fault-f0.rs",
     "status": "synthetic_residual_rule_baseline_only_no_real_diagnosis"
+  },
+  "membrane_sota_comparison": {
+    "document": "research/water-service-engineering/MEMBRANE_SOTA_COMPARISON_AND_BENCHMARK_TARGETS_V0_1.md",
+    "status": "literature_synthesis_with_task_mismatch_caveats",
+    "references": [
+      "10.1016/j.watres.2026.126904",
+      "10.1016/j.clwat.2026.100247",
+      "10.1016/j.jwpe.2026.110543",
+      "10.3389/frwa.2026.1863523"
+    ],
+    "key_gate": "chronological_and_regime_holdout_required_before_any_SOTA_claim"
   }
 }
