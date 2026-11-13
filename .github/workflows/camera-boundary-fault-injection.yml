@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Luminous-Dynamics/symthaea
-          ref: 6463ad7cc790c3b085f46b6a23de2e81c8b32419
+          ref: 4917ba2dc16c72425452458b46a93fc1cc1966e5
           path: symthaea
 
       - name: Build the pinned Symthaea camera-driving bridge (strict lockfile gate)
