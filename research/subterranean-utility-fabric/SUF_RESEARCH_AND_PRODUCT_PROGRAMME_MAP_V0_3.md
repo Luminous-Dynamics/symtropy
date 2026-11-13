@@ -53,6 +53,7 @@ Each arrow is a separate qualification boundary. A downstream transform cannot p
 | W09 | Terrestrial utility field corpus | Symtropy #5025 | Safe tiered collection protocol, independent truth and split requirements | Proposed acquisition protocol; no site/partner secured | Identify a non-live terrestrial testbed and independent survey partner |
 | W10 | Spatial evidence interoperability | Sol-Atlas #755 / PR #757 | MUDDI/SensorThings profile, authorization/query boundaries | Profile proposal, not conformance | Add implementation-level conformance tests on an actual service |
 | W11 | Owner authority, custody and acceptance | Mycelix existing workstreams | Existing authorization/provenance infrastructure to compose | Separate owner/ledger qualification | Bind gateway receipts to owner-issued authority without self-authorizing assets or journals |
+| W12 | Multi-utility urban DAS | Symtropy #5033 | 32-case / five-product benchmark across sewer hydraulics, pipe structure, traffic, geophysics and fusion | Research protocol; no multi-utility deployment | Reproduce one rights-cleared sewer or traffic baseline and identify a non-live testbed |
 
 ## 4. Executable engineering already present
 
@@ -148,5 +149,23 @@ Keep separate states for:
 A green CI result is not physical qualification. A source digest is not source authenticity. A calibration is not survey truth. A geographic coordinate is not asset attribution. An alarm is not an engineering diagnosis. An evidence receipt is not proof that physical work was correct.
 
 ## 9. Claim ceiling
+
+This programme map documents public research and executable reference components. It does not assert a production gateway, vendor adapter, utility partner, live pilot, field result, cost saving, commercial deployment, engineering approval or autonomous operational authority.
+
+
+## 10. Multi-utility opportunity
+
+The 2026 sewer and urban-DAS literature expands SUF beyond telecom fibre along roads. One fibre routed inside an existing urban sewer may support several services: hydraulically active sewer anomaly screening, pipe structural response, surface traffic trajectories and shallow subsurface imaging. These are separate products and require separate calibration, truth and uncertainty.
+
+The initial benchmark protocol is `MULTIUTILITY_URBAN_DAS_BENCHMARK_V0_1.md` and issue #5033. Its core controls are:
+- no inference that every structural defect produces an active DAS signature;
+- no universal use of the paper-specific 20–30 Hz PSD band;
+- active VFWD impact tests are not passive continuous monitoring;
+- traffic trajectory scores are not defect POD;
+- subsurface inversion anomalies are not asset identity;
+- shared fibre failure is a common cause across all dependent products;
+- each additional product must justify its marginal acquisition, processing, retention and human-review cost.
+
+## 11. Claim ceiling
 
 This programme map documents public research and executable reference components. It does not assert a production gateway, vendor adapter, utility partner, live pilot, field result, cost saving, commercial deployment, engineering approval or autonomous operational authority.
