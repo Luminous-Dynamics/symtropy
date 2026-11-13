@@ -24,6 +24,10 @@ The validator checks:
 - machine and operator non-overlap;
 - explicit sequence-dependent machine setup transitions, including explicit
   zero-duration rules;
+- separate setup reservations that bind a positive-duration machine transition
+  to a qualified operator, exact time interval and machine availability;
+- setup-operator skill/certification, availability and non-overlap with both
+  production operations and other setup reservations;
 - precedence and minimum-lag constraints;
 - deterministic, sorted findings for reproducible comparison.
 
@@ -63,9 +67,12 @@ v0.1 scope is deliberately limited to explicit zero-duration setup transitions;
 nonzero setup models are rejected as unsupported. It is an oracle for small
 instances, not a production scheduler.
 
-The next benchmark increment should add time-indexed utility envelopes and
-setup-labor reservations. Observed production receipts and worker-approved
-constraints remain independent evidence gates.
+The validator can now check explicit setup-labor reservations, but its bounded
+exact oracle deliberately continues to reject nonzero setup durations. It does
+not yet search for setup operators or setup intervals. The next benchmark
+increment should add time-indexed electricity/steam/water envelopes and then
+robust disruption/replanning scenarios. Observed production receipts and
+worker-approved constraints remain independent evidence gates.
 
 ## Claim ceiling
 
