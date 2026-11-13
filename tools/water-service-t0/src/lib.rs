@@ -174,7 +174,11 @@ fn compute_pump(case: &Value) -> Result<Value, String> {
             let pressure_missing = at(i, &["measured_delivery_pressure"])?.is_null();
             let feasible = !pressure_missing;
             Ok(json!({
-                "service_disposition": if pressure_missing { "INDETERMINATE" } else { "ASSESSABLE" },
+                "service_disposition": if pressure_missing {
+                    "INDETERMINATE"
+                } else {
+                    "ASSESSABLE"
+                },
                 "schedule_feasible": feasible
             }))
         }
@@ -411,7 +415,11 @@ fn compute_diagnostics(case: &Value) -> Result<Value, String> {
             let sensors = number(i, &["independent_sensor_count"])?;
             let indeterminate = ambiguous || sensors < 2.0;
             Ok(json!({
-                "localization_disposition": if indeterminate { "INDETERMINATE" } else { "ASSESSABLE" },
+                "localization_disposition": if indeterminate {
+                    "INDETERMINATE"
+                } else {
+                    "ASSESSABLE"
+                },
                 "high_confidence_location_allowed": !indeterminate
             }))
         }
@@ -568,9 +576,21 @@ pub fn evaluate(
     let mut mismatches = Vec::new();
 
     for (family, cases, compute) in [
-        ("pump_cases", pump, compute_pump as fn(&Value) -> Result<Value, String>),
-        ("potable_treatment_cases", potable, compute_potable as fn(&Value) -> Result<Value, String>),
-        ("network_diagnostics_cases", diagnostics, compute_diagnostics as fn(&Value) -> Result<Value, String>),
+        (
+            "pump_cases",
+            pump,
+            compute_pump as fn(&Value) -> Result<Value, String>,
+        ),
+        (
+            "potable_treatment_cases",
+            potable,
+            compute_potable as fn(&Value) -> Result<Value, String>,
+        ),
+        (
+            "network_diagnostics_cases",
+            diagnostics,
+            compute_diagnostics as fn(&Value) -> Result<Value, String>,
+        ),
     ] {
         for case in cases {
             let id = case_id(case)?;
