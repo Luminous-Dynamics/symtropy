@@ -589,7 +589,6 @@ pub fn integrate_constant_tidal_fixed_step(
 }
 
 
-
 /// Integrate constant symmetric optical tides with the symplectic
 /// kick-drift-kick (Störmer-Verlet) method.
 ///
@@ -650,8 +649,7 @@ pub fn integrate_constant_tidal_symplectic(
             for column in 0..STATE_DIMENSION {
                 let mut acceleration = 0.0;
                 for inner in 0..BLOCK_DIMENSION {
-                    acceleration =
-                        tidal[row][inner].mul_add(state[inner][column], acceleration);
+                    acceleration = tidal[row][inner].mul_add(state[inner][column], acceleration);
                 }
                 half_kicked[row + BLOCK_DIMENSION][column] =
                     half_step.mul_add(acceleration, state[row + BLOCK_DIMENSION][column]);
@@ -662,8 +660,10 @@ pub fn integrate_constant_tidal_symplectic(
         let mut next = half_kicked;
         for row in 0..BLOCK_DIMENSION {
             for column in 0..STATE_DIMENSION {
-                next[row][column] =
-                    step.mul_add(half_kicked[row + BLOCK_DIMENSION][column], state[row][column]);
+                next[row][column] = step.mul_add(
+                    half_kicked[row + BLOCK_DIMENSION][column],
+                    state[row][column],
+                );
             }
         }
 
@@ -674,8 +674,8 @@ pub fn integrate_constant_tidal_symplectic(
                 for inner in 0..BLOCK_DIMENSION {
                     acceleration = tidal[row][inner].mul_add(next[inner][column], acceleration);
                 }
-                next[row + BLOCK_DIMENSION][column] = half_step
-                    .mul_add(acceleration, half_kicked[row + BLOCK_DIMENSION][column]);
+                next[row + BLOCK_DIMENSION][column] =
+                    half_step.mul_add(acceleration, half_kicked[row + BLOCK_DIMENSION][column]);
             }
         }
 
@@ -691,7 +691,6 @@ pub fn integrate_constant_tidal_symplectic(
 
     BilocalGeodesicOperator::from_matrix(state)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -1005,10 +1004,8 @@ mod tests {
             tidal[index][index] = -omega * omega;
         }
 
-        let coarse =
-            integrate_constant_tidal_symplectic(tidal, interval, 64, TOLERANCE).unwrap();
-        let fine =
-            integrate_constant_tidal_symplectic(tidal, interval, 128, TOLERANCE).unwrap();
+        let coarse = integrate_constant_tidal_symplectic(tidal, interval, 64, TOLERANCE).unwrap();
+        let fine = integrate_constant_tidal_symplectic(tidal, interval, 128, TOLERANCE).unwrap();
         let cosine = (omega * interval).cos();
         let sine = (omega * interval).sin();
 
@@ -1055,5 +1052,4 @@ mod tests {
             Err(BilocalOperatorError::InvalidStepCount)
         );
     }
-
 }
