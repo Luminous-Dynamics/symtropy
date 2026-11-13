@@ -42,6 +42,37 @@ pub struct UtilityConsumerKey {
     pub id: String,
 }
 
+/// Provenance class for a utility-demand or capacity assumption.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum UtilityEvidenceKind {
+    /// Calibrated meter observation over a declared interval.
+    MeterObservation,
+    /// Calibrated physical process trial on an identified machine/task.
+    ProcessTrialMeasurement,
+    /// Manufacturer or machine-builder nameplate/rating data.
+    MachineNameplate,
+    /// Human-authored engineering estimate; never equivalent to a measurement.
+    EngineeringEstimate,
+}
+
+/// Source-bound provenance for utility demand/capacity values.
+///
+/// The digest and IDs are structurally checked, not authenticated here. The
+/// exact source bytes must be independently retained and verified upstream.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UtilityEvidenceBasis {
+    /// How the numeric value or completeness assertion was obtained.
+    pub kind: UtilityEvidenceKind,
+    /// Stable source/evidence identifier.
+    pub evidence_id: String,
+    /// SHA-256 of the exact source artifact bytes, lowercase hexadecimal.
+    pub sha256: String,
+    /// Method, meter definition or estimation method and version.
+    pub method_ref: String,
+    /// Required for measured observations/trials; absent for nameplate/estimates.
+    pub calibration_id: Option<String>,
+}
+
 /// One declared time-invariant demand rate for a consumer and metric.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UtilityRate {
@@ -59,6 +90,8 @@ pub struct UtilityConsumerProfile {
     /// True only when every relevant utility demand for this task is declared.
     /// If complete, omitted metrics are explicitly zero for this task.
     pub complete: bool,
+    /// Provenance for the demand rates and complete/partial declaration.
+    pub demand_basis: UtilityEvidenceBasis,
     /// Declared metric demand rates.
     pub rates: Vec<UtilityRate>,
 }
@@ -72,6 +105,8 @@ pub struct UtilityEnvelope {
     pub interval: crate::Interval,
     /// Known capacity per tick; None is an explicit unknown meter/capacity.
     pub capacity_units_per_tick: Option<u64>,
+    /// Provenance for known capacity; unknown capacity carries no basis.
+    pub capacity_basis: Option<UtilityEvidenceBasis>,
 }
 
 /// Declared utility model for one scheduling horizon.
@@ -109,6 +144,8 @@ pub struct UtilityReport {
     pub operation_consumers: usize,
     /// Number of setup reservations inspected.
     pub setup_consumers: usize,
+    /// Number of valid source references by declared provenance class.
+    pub evidence_basis_counts: BTreeMap<UtilityEvidenceKind, usize>,
     /// Deterministically ordered findings.
     pub findings: Vec<UtilityFinding>,
 }
@@ -131,6 +168,30 @@ fn add(
         entity_id: entity_id.into(),
         message: message.into(),
     });
+}
+
+fn valid_utility_basis(basis: &UtilityEvidenceBasis) -> bool {
+    let valid_digest = basis.sha256.len() == 64
+        && basis
+            .sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
+    if !valid_digest
+        || basis.evidence_id.trim().is_empty()
+        || basis.method_ref.trim().is_empty()
+    {
+        return false;
+    }
+    match basis.kind {
+        UtilityEvidenceKind::MeterObservation
+        | UtilityEvidenceKind::ProcessTrialMeasurement => basis
+            .calibration_id
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        UtilityEvidenceKind::MachineNameplate | UtilityEvidenceKind::EngineeringEstimate => {
+            basis.calibration_id.is_none()
+        }
+    }
 }
 
 fn metric_name(metric: UtilityMetric) -> &'static str {
@@ -219,8 +280,23 @@ pub fn validate_utilities(
         });
     }
 
+    let mut evidence_basis_counts =
+        BTreeMap::<UtilityEvidenceKind, usize>::new();
+
     let mut profiles = BTreeMap::<UtilityConsumerKey, &UtilityConsumerProfile>::new();
     for profile in &model.profiles {
+        if valid_utility_basis(&profile.demand_basis) {
+            *evidence_basis_counts
+                .entry(profile.demand_basis.kind)
+                .or_default() += 1;
+        } else {
+            add(
+                &mut findings,
+                "UTILITY_EVIDENCE_BASIS_INVALID",
+                &profile.consumer.id,
+                "demand profile needs a valid source digest, evidence ID, method and calibration binding for measured sources",
+            );
+        }
         if profiles.insert(profile.consumer.clone(), profile).is_some() {
             add(
                 &mut findings,
@@ -259,6 +335,24 @@ pub fn validate_utilities(
 
     let mut envelope_by_metric = BTreeMap::<UtilityMetric, Vec<&UtilityEnvelope>>::new();
     for envelope in &model.envelopes {
+        match (envelope.capacity_units_per_tick, envelope.capacity_basis.as_ref()) {
+            (Some(_), Some(basis)) if valid_utility_basis(basis) => {
+                *evidence_basis_counts.entry(basis.kind).or_default() += 1;
+            }
+            (Some(_), _) => add(
+                &mut findings,
+                "UTILITY_CAPACITY_BASIS_MISSING",
+                metric_name(envelope.metric),
+                "known capacity must bind to a valid source artifact and method",
+            ),
+            (None, Some(_)) => add(
+                &mut findings,
+                "UTILITY_UNKNOWN_CAPACITY_HAS_BASIS",
+                metric_name(envelope.metric),
+                "unknown capacity cannot be represented as a measured numeric envelope",
+            ),
+            (None, None) => {}
+        }
         if envelope.interval.start_tick >= envelope.interval.end_tick {
             add(
                 &mut findings,
@@ -452,6 +546,7 @@ pub fn validate_utilities(
         tick_unit: model.tick_unit.clone(),
         operation_consumers,
         setup_consumers,
+        evidence_basis_counts,
         findings,
     }
 }
@@ -521,7 +616,26 @@ mod tests {
                 id: id.to_owned(),
             },
             complete,
+            demand_basis: basis(
+                &format!("DEMAND-{id}"),
+                UtilityEvidenceKind::EngineeringEstimate,
+                None,
+            ),
             rates,
+        }
+    }
+
+    fn basis(
+        id: &str,
+        kind: UtilityEvidenceKind,
+        calibration_id: Option<&str>,
+    ) -> UtilityEvidenceBasis {
+        UtilityEvidenceBasis {
+            kind,
+            evidence_id: id.to_owned(),
+            sha256: "a".repeat(64),
+            method_ref: "UTILITY-METHOD-V1".to_owned(),
+            calibration_id: calibration_id.map(str::to_owned),
         }
     }
 
@@ -545,6 +659,13 @@ mod tests {
                 end_tick: end,
             },
             capacity_units_per_tick: capacity,
+            capacity_basis: capacity.map(|_| {
+                basis(
+                    &format!("CAPACITY-{}", metric_name(metric)),
+                    UtilityEvidenceKind::EngineeringEstimate,
+                    None,
+                )
+            }),
         }
     }
 
@@ -561,6 +682,81 @@ mod tests {
 
     fn has(report: &UtilityReport, code: &str) -> bool {
         report.findings.iter().any(|finding| finding.code == code)
+    }
+
+    #[test]
+    fn calibrated_utility_profile_requires_a_calibration_identity() {
+        let mut model = model(
+            vec![profile(
+                UtilityConsumerKind::Operation,
+                "op-a",
+                true,
+                vec![rate(UtilityMetric::ElectricalPowerW, Some(800))],
+            )],
+            vec![envelope(UtilityMetric::ElectricalPowerW, 0, 5, Some(1_000))],
+        );
+        model.profiles[0].demand_basis.kind = UtilityEvidenceKind::MeterObservation;
+        model.profiles[0].demand_basis.calibration_id = None;
+        let report = validate_utilities(&problem(), &schedule(), &model);
+        assert!(has(&report, "UTILITY_EVIDENCE_BASIS_INVALID"));
+    }
+
+    #[test]
+    fn malformed_demand_digest_and_missing_capacity_basis_block_qualification() {
+        let mut demand = model(
+            vec![profile(
+                UtilityConsumerKind::Operation,
+                "op-a",
+                true,
+                vec![rate(UtilityMetric::ElectricalPowerW, Some(800))],
+            )],
+            vec![envelope(UtilityMetric::ElectricalPowerW, 0, 5, Some(1_000))],
+        );
+        demand.profiles[0].demand_basis.sha256 = "not-a-digest".to_owned();
+        assert!(has(
+            &validate_utilities(&problem(), &schedule(), &demand),
+            "UTILITY_EVIDENCE_BASIS_INVALID"
+        ));
+
+        let mut capacity = model(
+            vec![profile(
+                UtilityConsumerKind::Operation,
+                "op-a",
+                true,
+                vec![rate(UtilityMetric::ElectricalPowerW, Some(800))],
+            )],
+            vec![envelope(UtilityMetric::ElectricalPowerW, 0, 5, Some(1_000))],
+        );
+        capacity.envelopes[0].capacity_basis = None;
+        assert!(has(
+            &validate_utilities(&problem(), &schedule(), &capacity),
+            "UTILITY_CAPACITY_BASIS_MISSING"
+        ));
+    }
+
+    #[test]
+    fn report_keeps_metered_and_estimated_utility_evidence_distinct() {
+        let mut model = model(
+            vec![profile(
+                UtilityConsumerKind::Operation,
+                "op-a",
+                true,
+                vec![rate(UtilityMetric::ElectricalPowerW, Some(800))],
+            )],
+            vec![envelope(UtilityMetric::ElectricalPowerW, 0, 5, Some(1_000))],
+        );
+        model.profiles[0].demand_basis.kind = UtilityEvidenceKind::MeterObservation;
+        model.profiles[0].demand_basis.calibration_id = Some("CAL-POWER-01".to_owned());
+        let report = validate_utilities(&problem(), &schedule(), &model);
+        assert!(report.valid, "{:#?}", report.findings);
+        assert_eq!(
+            report.evidence_basis_counts.get(&UtilityEvidenceKind::MeterObservation),
+            Some(&1)
+        );
+        assert_eq!(
+            report.evidence_basis_counts.get(&UtilityEvidenceKind::EngineeringEstimate),
+            Some(&1)
+        );
     }
 
     #[test]
