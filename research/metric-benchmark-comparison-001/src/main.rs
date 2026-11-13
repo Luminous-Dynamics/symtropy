@@ -15,7 +15,7 @@ use std::fs;
 use std::hint::black_box;
 use std::io;
 use std::process::Command;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use metric_induced_error_envelope_reference::{
     CartesianQ, Cotangent, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent, Vector,
@@ -417,7 +417,7 @@ struct RunInput<'a> {
 fn run_metrics(input: RunInput<'_>) -> Result<RunMetrics, Box<dyn Error>> {
     let RunInput {
         backend,
-        family,
+        family: _,
         profile,
         metric_q,
         rebasis,
