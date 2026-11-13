@@ -74,6 +74,7 @@ pub enum RankErrorV1 {
         cutoff: f64,
     },
     InvalidExactRankWitness,
+    ExactWitnessArithmeticOverflow,
 }
 
 impl fmt::Display for RankErrorV1 {
@@ -148,7 +149,7 @@ fn dot<const N: usize>(a: &Vector<N>, b: &Vector<N>) -> f64 {
     a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
 }
 fn norm<const N: usize>(a: &Vector<N>) -> f64 {
-    dot(a, a).sqrt()
+    a.iter().fold(0.0_f64, |accumulator, value| accumulator.hypot(*value))
 }
 fn matrix_max_abs<const R: usize, const C: usize>(a: &Matrix<R, C>) -> f64 {
     a.iter().flatten().map(|x| x.abs()).fold(0.0_f64, f64::max)
@@ -245,6 +246,7 @@ fn solve<const N: usize>(
     Ok(x)
 }
 
+#[cfg(test)]
 fn inverse<const N: usize>(
     a: &Matrix<N, N>,
     profile: RankProfileV1,
@@ -259,10 +261,6 @@ fn inverse<const N: usize>(
         }
     }
     Ok(out)
-}
-
-fn mat_vec_square<const N: usize>(a: &Matrix<N, N>, x: &Vector<N>) -> Vector<N> {
-    mat_vec(a, x)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -282,10 +280,10 @@ impl<const N: usize> SpdMetricV1<N> {
         if !finite_matrix(&matrix) {
             return Err(RankErrorV1::NonFiniteInput);
         }
-        for i in 0..N {
-            for j in (i + 1)..N {
-                let defect = (matrix[i][j] - matrix[j][i]).abs();
-                let scale = 1.0_f64.max(matrix[i][j].abs()).max(matrix[j][i].abs());
+        for (i, row) in matrix.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                let defect = (*value - matrix[j][i]).abs();
+                let scale = 1.0_f64.max(value.abs()).max(matrix[j][i].abs());
                 if defect > symmetry_tolerance * scale {
                     return Err(RankErrorV1::NonSymmetric {
                         row: i,
@@ -330,17 +328,20 @@ fn jacobi_eigen<const K: usize>(
     for (i, row) in vectors.iter_mut().enumerate() {
         row[i] = 1.0;
     }
-    let scale = matrix_max_abs(matrix).max(1.0);
+    // Use the operator's actual scale. A unit floor makes the Jacobi stopping
+    // rule representation-dependent for small but otherwise well-scaled PSD
+    // operators, and can falsely declare their off-diagonal terms converged.
+    let scale = matrix_max_abs(matrix);
     let convergence_threshold = 32.0 * f64::EPSILON * scale;
     let mut residual = f64::INFINITY;
     for _ in 0..profile.jacobi_max_sweeps.saturating_mul(K.max(1)) {
         let mut p = 0usize;
         let mut q = 0usize;
         let mut largest = 0.0_f64;
-        for i in 0..K {
-            for j in (i + 1)..K {
-                if a[i][j].abs() > largest {
-                    largest = a[i][j].abs();
+        for (i, row) in a.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                if value.abs() > largest {
+                    largest = value.abs();
                     p = i;
                     q = j;
                 }
@@ -493,10 +494,10 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         let mut delassus = [[0.0; K]; K];
         // Column j of J^T is row j of J, with N generalized-velocity
         // components. Solve M x_j = J_j^T before forming J_i x_j.
-        for column in 0..K {
-            let mass_inverse_jt_column = solve(&mass.matrix, &jacobian[column], profile)?;
-            for row in 0..K {
-                delassus[row][column] = dot(&jacobian[row], &mass_inverse_jt_column);
+        for (column, constraint_row) in jacobian.iter().enumerate() {
+            let mass_inverse_jt_column = solve(&mass.matrix, constraint_row, profile)?;
+            for (row, row_values) in jacobian.iter().enumerate() {
+                delassus[row][column] = dot(row_values, &mass_inverse_jt_column);
             }
         }
         // Measure symmetry defect before canonicalization; never silently
@@ -504,9 +505,9 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         let delassus_scale = matrix_max_abs(&delassus);
         let mut delassus_symmetry_defect = 0.0_f64;
         let mut defect_pair = (0usize, 0usize);
-        for i in 0..K {
-            for j in (i + 1)..K {
-                let defect = (delassus[i][j] - delassus[j][i]).abs();
+        for (i, row) in delassus.iter().enumerate() {
+            for (j, value) in row.iter().enumerate().skip(i + 1) {
+                let defect = (*value - delassus[j][i]).abs();
                 if defect > delassus_symmetry_defect {
                     delassus_symmetry_defect = defect;
                     defect_pair = (i, j);
@@ -522,13 +523,16 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
                 defect: delassus_symmetry_defect,
             });
         }
-        for i in 0..K {
-            for j in (i + 1)..K {
-                let mean = 0.5 * (delassus[i][j] + delassus[j][i]);
-                delassus[i][j] = mean;
-                delassus[j][i] = mean;
-            }
-        }
+        let symmetric_delassus = std::array::from_fn(|i| {
+            std::array::from_fn(|j| {
+                if i == j {
+                    delassus[i][i]
+                } else {
+                    0.5 * (delassus[i][j] + delassus[j][i])
+                }
+            })
+        });
+        delassus = symmetric_delassus;
         if !finite_matrix(&delassus) {
             return Err(RankErrorV1::NonFiniteIntermediate);
         }
@@ -539,13 +543,16 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         if !finite_matrix(&normalized_delassus) {
             return Err(RankErrorV1::NonFiniteIntermediate);
         }
-        for i in 0..K {
-            for j in (i + 1)..K {
-                let mean = 0.5 * (normalized_delassus[i][j] + normalized_delassus[j][i]);
-                normalized_delassus[i][j] = mean;
-                normalized_delassus[j][i] = mean;
-            }
-        }
+        let symmetric_normalized = std::array::from_fn(|i| {
+            std::array::from_fn(|j| {
+                if i == j {
+                    normalized_delassus[i][i]
+                } else {
+                    0.5 * (normalized_delassus[i][j] + normalized_delassus[j][i])
+                }
+            })
+        });
+        normalized_delassus = symmetric_normalized;
         let eigen = jacobi_eigen(&normalized_delassus, profile)?;
         let max_eigen = eigen.values.iter().map(|x| x.abs()).fold(0.0_f64, f64::max);
         let rank_cutoff =
@@ -689,15 +696,20 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
 
         let mut coefficients = [0.0; K];
         let mut range_residual_hat = [0.0; K];
-        for eig_index in 0..K {
-            let mut coefficient = 0.0;
-            for row in 0..K {
-                coefficient += self.eigen.vectors[row][eig_index] * rhs_hat[row];
-            }
-            coefficients[eig_index] = coefficient;
+        for (eig_index, coefficient_out) in coefficients.iter_mut().enumerate() {
+            let coefficient = self
+                .eigen
+                .vectors
+                .iter()
+                .zip(rhs_hat.iter())
+                .map(|(basis_row, rhs_component)| basis_row[eig_index] * rhs_component)
+                .sum::<f64>();
+            *coefficient_out = coefficient;
             if !self.active[eig_index] {
-                for row in 0..K {
-                    range_residual_hat[row] += coefficient * self.eigen.vectors[row][eig_index];
+                for (residual_component, basis_row) in
+                    range_residual_hat.iter_mut().zip(self.eigen.vectors.iter())
+                {
+                    *residual_component += coefficient * basis_row[eig_index];
                 }
             }
         }
@@ -723,15 +735,19 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         let mut lambda_hat = [0.0; K];
         let mut nullspace_hat = [[0.0; K]; K];
         let mut nullity = 0usize;
-        for eig_index in 0..K {
+        for (eig_index, coefficient) in coefficients.iter().enumerate() {
             if self.active[eig_index] {
-                let scale = coefficients[eig_index] / self.eigen.values[eig_index];
-                for row in 0..K {
-                    lambda_hat[row] += scale * self.eigen.vectors[row][eig_index];
+                let scale = *coefficient / self.eigen.values[eig_index];
+                for (lambda_component, basis_row) in
+                    lambda_hat.iter_mut().zip(self.eigen.vectors.iter())
+                {
+                    *lambda_component += scale * basis_row[eig_index];
                 }
             } else {
-                for row in 0..K {
-                    nullspace_hat[row][nullity] = self.eigen.vectors[row][eig_index];
+                for (nullspace_row, basis_row) in
+                    nullspace_hat.iter_mut().zip(self.eigen.vectors.iter())
+                {
+                    nullspace_row[nullity] = basis_row[eig_index];
                 }
                 nullity += 1;
             }
@@ -782,13 +798,29 @@ impl ExactRankTwoWitnessV1 {
         if n.iter().all(|value| *value == 0) {
             return Err(RankErrorV1::InvalidExactRankWitness);
         }
-        for col in 0..3 {
-            let value = n[0] * j[0][col] + n[1] * j[1][col] + n[2] * j[2][col];
+        for (col, _) in j[0].iter().enumerate() {
+            let mut value = 0_i64;
+            for (row, coefficient) in j.iter().zip(n.iter()) {
+                let term = coefficient
+                    .checked_mul(row[col])
+                    .ok_or(RankErrorV1::ExactWitnessArithmeticOverflow)?;
+                value = value
+                    .checked_add(term)
+                    .ok_or(RankErrorV1::ExactWitnessArithmeticOverflow)?;
+            }
             if value != 0 {
                 return Err(RankErrorV1::InvalidExactRankWitness);
             }
         }
-        let determinant = j[0][0] * j[1][1] - j[0][1] * j[1][0];
+        let left = j[0][0]
+            .checked_mul(j[1][1])
+            .ok_or(RankErrorV1::ExactWitnessArithmeticOverflow)?;
+        let right = j[0][1]
+            .checked_mul(j[1][0])
+            .ok_or(RankErrorV1::ExactWitnessArithmeticOverflow)?;
+        let determinant = left
+            .checked_sub(right)
+            .ok_or(RankErrorV1::ExactWitnessArithmeticOverflow)?;
         if determinant == 0 || determinant != self.independent_minor_determinant {
             return Err(RankErrorV1::InvalidExactRankWitness);
         }
@@ -854,9 +886,9 @@ mod tests {
         assert!(receipt.condition_nonzero_spectrum.unwrap().is_finite());
 
         let expected = [[1.0, 0.0, 1.0], [0.0, 0.5, 0.5], [1.0, 0.5, 1.5]];
-        for i in 0..3 {
-            for j in 0..3 {
-                close(operator.delassus()[i][j], expected[i][j], 1.0e-14);
+        for (i, row) in expected.iter().enumerate() {
+            for (j, expected_value) in row.iter().enumerate() {
+                close(operator.delassus()[i][j], *expected_value, 1.0e-14);
             }
         }
     }
@@ -974,9 +1006,9 @@ mod tests {
         let g_new = SpdMetricV1::new(g_new_matrix, 1.0e-10).unwrap();
         let op_new = RankAwareDelassusV1::new(mass, j_new, g_new, profile()).unwrap();
 
-        for i in 0..3 {
-            for j in 0..3 {
-                close(op_new.delassus()[i][j], w_new_expected[i][j], 2.0e-12);
+        for (i, expected_row) in w_new_expected.iter().enumerate() {
+            for (j, expected_value) in expected_row.iter().enumerate() {
+                close(op_new.delassus()[i][j], *expected_value, 2.0e-12);
             }
             close(
                 op_old.rank_receipt().eigenvalues[i],
@@ -997,10 +1029,10 @@ mod tests {
             &transpose(&transform_inv),
             &old_receipt.canonical_multiplier,
         );
-        for i in 0..3 {
+        for (i, expected_multiplier) in expected_lambda_new.iter().enumerate() {
             close(
                 new_receipt.canonical_multiplier[i],
-                expected_lambda_new[i],
+                *expected_multiplier,
                 5.0e-10,
             );
             close(
@@ -1037,6 +1069,39 @@ mod tests {
             outcome,
             ConstraintSolveOutcomeV1::Inconclusive { .. }
         ));
+    }
+
+    #[test]
+    fn jacobi_rank_classification_is_invariant_under_small_operator_scaling() {
+        let mut exact_relative_profile = profile();
+        exact_relative_profile.absolute_rank_tolerance = 0.0;
+        exact_relative_profile.absolute_psd_tolerance = 0.0;
+        let base = RankAwareDelassusV1::new(
+            mass(),
+            redundant_j(),
+            identity_constraint_metric(),
+            exact_relative_profile,
+        )
+        .unwrap();
+        let scale = 1.0e-9;
+        let scaled_jacobian = redundant_j().map(|row| row.map(|value| value * scale));
+        let scaled = RankAwareDelassusV1::new(
+            mass(),
+            scaled_jacobian,
+            identity_constraint_metric(),
+            exact_relative_profile,
+        )
+        .unwrap();
+
+        assert_eq!(base.rank_receipt().status, RankStatusV1::RankDeficient);
+        assert_eq!(scaled.rank_receipt().status, RankStatusV1::RankDeficient);
+        assert_eq!(base.rank_receipt().rank, scaled.rank_receipt().rank);
+        assert_eq!(base.rank_receipt().nullity, scaled.rank_receipt().nullity);
+        close(
+            base.rank_receipt().condition_nonzero_spectrum.unwrap(),
+            scaled.rank_receipt().condition_nonzero_spectrum.unwrap(),
+            2.0e-10,
+        );
     }
 
     #[test]
