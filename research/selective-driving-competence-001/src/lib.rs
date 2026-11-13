@@ -259,7 +259,8 @@ impl EvaluationInput {
         if self
             .expected_episode_ids
             .iter()
-            .any(|id| id.trim().is_empty()) {
+            .any(|id| id.trim().is_empty())
+        {
             findings.push("expected_episode_ids contains an empty identity".to_string());
         }
         if self
@@ -392,13 +393,19 @@ impl EvaluationInput {
                         decision.decision_id
                     ));
                 }
-                if decision.abstention_timestamp_us.is_some_and(|timestamp| timestamp < decision.prediction_timestamp_us) {
+                if decision
+                    .abstention_timestamp_us
+                    .is_some_and(|timestamp| timestamp < decision.prediction_timestamp_us)
+                {
                     findings.push(format!(
                         "abstained decision {:?} has abstention timestamp before prediction",
                         decision.decision_id
                     ));
                 }
-                if decision.decision_deadline_us.is_some_and(|deadline| deadline < decision.prediction_timestamp_us) {
+                if decision
+                    .decision_deadline_us
+                    .is_some_and(|deadline| deadline < decision.prediction_timestamp_us)
+                {
                     findings.push(format!(
                         "abstained decision {:?} has decision deadline before prediction",
                         decision.decision_id
@@ -905,11 +912,11 @@ fn fallback_metrics(decisions: &[DecisionRecord]) -> FallbackMetrics {
     let late = abstained
         .iter()
         .filter(|decision| {
-        matches!(
-            (decision.abstention_timestamp_us, decision.decision_deadline_us),
-            (Some(timestamp), Some(deadline)) if timestamp > deadline
-        )
-    })
+            matches!(
+                (decision.abstention_timestamp_us, decision.decision_deadline_us),
+                (Some(timestamp), Some(deadline)) if timestamp > deadline
+            )
+        })
         .count();
     FallbackMetrics {
         abstained_decisions: abstained.len(),
@@ -993,13 +1000,7 @@ fn mean(values: impl Iterator<Item = f64>) -> f64 {
 mod tests {
     use super::*;
 
-    fn record(
-        id: &str,
-        family: &str,
-        probability: f64,
-        failed: bool,
-        loss: f64,
-    ) -> DecisionRecord {
+    fn record(id: &str, family: &str, probability: f64, failed: bool, loss: f64) -> DecisionRecord {
         DecisionRecord {
             decision_id: id.to_string(),
             episode_id: format!("episode-{id}"),
@@ -1057,7 +1058,9 @@ mod tests {
             record("b", "urban", 0.02, false, 0.0),
             record("c", "urban", 0.8, true, 1.0),
             record("d", "urban", 0.9, true, 1.0),
-        ]).evaluate().unwrap();
+        ])
+        .evaluate()
+        .unwrap();
         assert!((result.risk_coverage_area_failure_rate - 0.20833333333333331).abs() < 1e-12);
         assert_eq!(result.risk_coverage_curve[0].failure_rate, 0.0);
         assert_eq!(result.risk_coverage_curve.last().unwrap().failure_rate, 0.5);
@@ -1070,13 +1073,17 @@ mod tests {
             record("b", "urban", 0.02, false, 0.0),
             record("c", "urban", 0.8, true, 1.0),
             record("d", "urban", 0.9, true, 1.0),
-        ]).evaluate().unwrap();
+        ])
+        .evaluate()
+        .unwrap();
         let bad = input(vec![
             record("a", "urban", 0.9, false, 0.0),
             record("b", "urban", 0.8, false, 0.0),
             record("c", "urban", 0.02, true, 1.0),
             record("d", "urban", 0.01, true, 1.0),
-        ]).evaluate().unwrap();
+        ])
+        .evaluate()
+        .unwrap();
         assert!(bad.risk_coverage_area_failure_rate > good.risk_coverage_area_failure_rate);
     }
 
@@ -1086,7 +1093,9 @@ mod tests {
             record("a", "urban", 0.1, false, 0.0),
             record("b", "urban", 0.1, true, 1.0),
             record("c", "urban", 0.9, false, 0.0),
-        ]).evaluate().unwrap();
+        ])
+        .evaluate()
+        .unwrap();
         assert_eq!(result.risk_coverage_curve.len(), 2);
         assert_eq!(result.risk_coverage_curve[0].accepted_decisions, 2);
         assert!((result.risk_coverage_curve[0].coverage - 2.0 / 3.0).abs() < 1e-12);
