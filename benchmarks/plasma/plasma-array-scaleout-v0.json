@@ -56,7 +56,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_APPLICABLE",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -139,7 +143,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -148,8 +156,10 @@
         "failed_included_in_denominator": true
       },
       "expected": {
-        "disposition": "SYNTHETIC_PASS",
-        "reasons": []
+        "disposition": "BLOCKED",
+        "reasons": [
+          "cross-talk coverage has not been measured for the declared multi-cell topology"
+        ]
       },
       "expected_metrics": {
         "scaleout_efficiency": 0.96,
@@ -450,7 +460,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -535,7 +549,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1190,7 +1208,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1199,9 +1221,9 @@
         "failed_included_in_denominator": true
       },
       "expected": {
-        "disposition": "SYNTHETIC_PASS",
+        "disposition": "BLOCKED",
         "reasons": [
-          "one failed cell is isolated; 94.05 accepted units remain above synthetic floor 90"
+          "failed-cell service floor passes in the synthetic case, but cross-talk coverage is not measured"
         ]
       },
       "expected_metrics": {
@@ -1281,8 +1303,17 @@
             "from": "cell-001",
             "to": "cell-002",
             "intervention": "synthetic_ignite",
-            "neighbor_output_delta_fraction": 0.12
+            "neighbor_output_delta_fraction": 0.12,
+            "pair_id": "cell-001--cell-002"
           }
+        ],
+        "coverage_status": "COMPLETE",
+        "sampling_plan_id": "synthetic-neighbor-pair-v0",
+        "required_pair_ids": [
+          "cell-001--cell-002"
+        ],
+        "observed_pair_ids": [
+          "cell-001--cell-002"
         ]
       },
       "attempts": {
@@ -1365,7 +1396,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1447,7 +1482,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1529,7 +1568,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1611,7 +1654,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1693,7 +1740,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 1,
@@ -1775,7 +1826,11 @@
       },
       "cross_talk": {
         "max_allowed_fraction": 0.05,
-        "edges": []
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
       },
       "attempts": {
         "attempted": 10,
