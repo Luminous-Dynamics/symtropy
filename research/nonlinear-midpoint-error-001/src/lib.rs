@@ -70,14 +70,10 @@ impl MidpointKktStateV1 {
         let q1 = 2.0 - parameters.q0;
         let v1 = 2.0 * (q1 - parameters.q0) / parameters.time_step - parameters.v0;
         let q_mid = 0.5 * (parameters.q0 + q1);
-        let multiplier =
-            (parameters.mass * (v1 - parameters.v0) - parameters.time_step * parameters.applied_force)
-                / (2.0 * q_mid);
-        Self {
-            q1,
-            v1,
-            multiplier,
-        }
+        let multiplier = (parameters.mass * (v1 - parameters.v0)
+            - parameters.time_step * parameters.applied_force)
+            / (2.0 * q_mid);
+        Self { q1, v1, multiplier }
     }
 }
 
@@ -235,10 +231,7 @@ fn matrix_inf(matrix: &Matrix3) -> f64 {
         .fold(0.0, f64::max)
 }
 
-fn inverse_3x3(
-    matrix: &Matrix3,
-    relative_pivot_tolerance: f64,
-) -> Result<Matrix3, KktErrorV1> {
+fn inverse_3x3(matrix: &Matrix3, relative_pivot_tolerance: f64) -> Result<Matrix3, KktErrorV1> {
     if matrix.iter().flatten().any(|value| !value.is_finite()) {
         return Err(KktErrorV1::NonFiniteIntermediate);
     }
@@ -377,9 +370,7 @@ pub fn qualify_midpoint_state_v1(
     } else if kantorovich_product > profile.maximum_kantorovich_product
         || kantorovich_product >= 0.5
     {
-        QualificationStatusV1::Inconclusive(
-            InconclusiveReasonV1::KantorovichProductTooLarge,
-        )
+        QualificationStatusV1::Inconclusive(InconclusiveReasonV1::KantorovichProductTooLarge)
     } else {
         QualificationStatusV1::AdmissibleLocalRootEstimate
     };
@@ -403,9 +394,7 @@ pub fn qualify_midpoint_state_v1(
         QualificationStatusV1::AdmissibleLocalRootEstimate
             if local_radius_estimate > profile.maximum_radius =>
         {
-            QualificationStatusV1::Inconclusive(
-                InconclusiveReasonV1::CandidateRadiusExceedsProfile,
-            )
+            QualificationStatusV1::Inconclusive(InconclusiveReasonV1::CandidateRadiusExceedsProfile)
         }
         other => other,
     };
@@ -530,10 +519,7 @@ mod tests {
                 })
             });
             let distance = vector_norm(&delta);
-            assert!(
-                matrix_frobenius(&difference)
-                    <= witness.upper_bound * distance + 1.0e-13
-            );
+            assert!(matrix_frobenius(&difference) <= witness.upper_bound * distance + 1.0e-13);
         }
     }
 
@@ -562,9 +548,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             receipt.status,
-            QualificationStatusV1::Inconclusive(
-                InconclusiveReasonV1::SingularKktJacobian
-            )
+            QualificationStatusV1::Inconclusive(InconclusiveReasonV1::SingularKktJacobian)
         );
     }
 
@@ -603,9 +587,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             receipt.status,
-            QualificationStatusV1::Inconclusive(
-                InconclusiveReasonV1::KantorovichProductTooLarge
-            )
+            QualificationStatusV1::Inconclusive(InconclusiveReasonV1::KantorovichProductTooLarge)
         );
     }
 
