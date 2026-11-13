@@ -127,3 +127,7 @@ See [protocol](./observability-qualification/OBSERVABILITY_QUALIFICATION_V0_1.md
 The new [#5069 recovery-verification benchmark](./recovery-verification/RECOVERY_VERIFICATION_V0_1.md) defines a 13-case synthetic corpus and separate oracle. It distinguishes work-order closure, alarm clearance, current telemetry, candidate recovery, per-area floor verification and independent stable-dwell restoration. Water quality remains explicitly outside this T0 evaluator.
 
 See the [scenario pack](./recovery-verification/scenarios-v0.1.json), [schema](./recovery-verification/scenarios-v0.1.schema.json) and [disposition oracle](./recovery-verification/disposition-oracle-v0.1.json). Every profile, area, evidence path, threshold and value is synthetic/non-normative.
+
+ 
+The recovery-verification T0 evaluator is implemented in `tools/water-service-t0/src/water_recovery_verification.rs` with CLI `water-recovery-verification`. It recomputes per-area floor states, independent evidence-path pairs across five failure domains, freshness, coverage, area binding, stable dwell and overall restoration status. It emits a digest-bound receipt with `qualification_status=NotRun`; native execution remains unverified until exact-head CI evidence is available.
+
