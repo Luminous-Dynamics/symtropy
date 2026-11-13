@@ -173,8 +173,49 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
         if !id.starts_with("WCR-") || !seen.insert(id.clone()) {
             return Err(format!("invalid or duplicate scenario ID: {id}"));
         }
+        let scenario_class = string(case, "scenario_class")?;
+        if ![
+            "nominal",
+            "demand_variation",
+            "sparse_sensing",
+            "sensor_fault",
+            "timebase_fault",
+            "topology_fault",
+            "actuator_fault",
+            "source_fault",
+            "power_fault",
+            "communications_fault",
+            "compound_fault",
+        ]
+        .contains(&scenario_class)
+        {
+            return Err(format!("{id}: unsupported scenario_class"));
+        }
         let measurement_state = string(case, "measurement_state")?;
+        if ![
+            "fully_observed",
+            "partial_with_qualified_estimator",
+            "partial_unqualified",
+            "degraded",
+            "out_of_domain",
+            "disturbed",
+        ]
+        .contains(&measurement_state)
+        {
+            return Err(format!("{id}: unsupported measurement_state"));
+        }
         let disposition = string(case, "expected_disposition")?;
+        if ![
+            "run_nominal",
+            "run_with_qualified_estimator",
+            "abstain_supervisory",
+            "local_safety_only",
+            "stop_and_reconcile",
+        ]
+        .contains(&disposition)
+        {
+            return Err(format!("{id}: unsupported expected_disposition"));
+        }
         let coverage = number(case, "direct_state_coverage_fraction")?;
         let demand_peak_factor = number(case, "demand_peak_factor")?;
         if !(0.0..=1.0).contains(&coverage) || demand_peak_factor <= 0.0 {
@@ -190,9 +231,9 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
             return Err(format!("missing behavioral constraints in {id}"));
         }
 
-        let required_set: BTreeSet<&str> = required.iter().map(String::as_str).collect();
-        let direct_set: BTreeSet<&str> = directly_measured.iter().map(String::as_str).collect();
-        let unobserved_set: BTreeSet<&str> = unobserved.iter().map(String::as_str).collect();
+        let required_set: BTreeSet<String> = required.iter().cloned().collect();
+        let direct_set: BTreeSet<String> = directly_measured.iter().cloned().collect();
+        let unobserved_set: BTreeSet<String> = unobserved.iter().cloned().collect();
         if required.is_empty()
             || required_set.len() != required.len()
             || direct_set.len() != directly_measured.len()
@@ -250,6 +291,17 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
 
         let protection = field(case, "independent_protection")?;
         let protection_status = string(protection, "status")?;
+        if ![
+            "synthetic_interlock_available",
+            "unverified",
+            "unverified_after_topology_change",
+            "unavailable_during_power_loss",
+            "unverified_under_compound_fault",
+        ]
+        .contains(&protection_status)
+        {
+            return Err(format!("{id}: unsupported independent-protection status"));
+        }
         if field(protection, "test_only")?.as_bool() != Some(true)
             || string(protection, "authority_scope")?
                 != "local_protection_only_no_supervisory_actuation"
@@ -307,6 +359,20 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
             && protection_status != "synthetic_interlock_available"
         {
             return Err(format!("{id}: local-safety-only disposition requires the synthetic local protection path"));
+        }
+        if disposition == "local_safety_only"
+            && !required_behaviors
+                .iter()
+                .any(|item| item.contains("keep the supervisory controller out"))
+        {
+            return Err(format!("{id}: local-safety-only behavior must exclude supervisory authority"));
+        }
+        if disposition == "stop_and_reconcile"
+            && !required_behaviors
+                .iter()
+                .any(|item| item.contains("stop issuing supervisory proposals"))
+        {
+            return Err(format!("{id}: stop-and-reconcile behavior must stop supervisory proposals"));
         }
         if disposition == "abstain_supervisory" {
             let no_command = required_behaviors
@@ -538,6 +604,23 @@ mod tests {
         scenarios["scenarios"][3]["independent_protection"]["local_interlock_ref"] = json!("FAKE-INTERLOCK");
         let error = validate_corpus(&scenarios, &oracle).expect_err("active reference must fail");
         assert!(error.contains("cannot carry an active reference"));
+    }
+
+    #[test]
+    fn overlapping_direct_and_unobserved_states_are_rejected() {
+        let (mut scenarios, oracle) = fixtures();
+        scenarios["scenarios"][0]["unobserved_critical_variables"] = json!(["tank_level_1"]);
+        let error = validate_corpus(&scenarios, &oracle).expect_err("overlap must fail");
+        assert!(error.contains("both measured and unobserved"));
+    }
+
+    #[test]
+    fn unknown_disposition_is_rejected_even_if_oracle_is_modified() {
+        let (mut scenarios, mut oracle) = fixtures();
+        scenarios["scenarios"][0]["expected_disposition"] = json!("unrestricted_control");
+        oracle["results"][0]["expected_disposition"] = json!("unrestricted_control");
+        let error = validate_corpus(&scenarios, &oracle).expect_err("unknown disposition must fail");
+        assert!(error.contains("unsupported expected_disposition"));
     }
 
 }
