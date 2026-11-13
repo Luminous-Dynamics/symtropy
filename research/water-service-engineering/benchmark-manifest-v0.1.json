@@ -177,5 +177,32 @@
     ],
     "status": "synthetic_scenario_contract_only_no_controller_reproduction_or_physical_qualification",
     "hard_gate": "stale_conflicting_or_unobservable_critical_state_requires_abstention_or_independent_local_safety_policy"
+  },
+  "observability_qualification": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5045",
+    "protocol": "research/water-service-engineering/observability-qualification/OBSERVABILITY_QUALIFICATION_V0_1.md",
+    "scenarios": "research/water-service-engineering/observability-qualification/scenarios-v0.1.json",
+    "schema": "research/water-service-engineering/observability-qualification/scenarios-v0.1.schema.json",
+    "oracle": "research/water-service-engineering/observability-qualification/disposition-oracle-v0.1.json",
+    "scenario_count": 12,
+    "required_state_count": 4,
+    "dependency_domains": [
+      "physical_interface",
+      "calibration_lineage",
+      "power_supply",
+      "communications_path",
+      "clock_domain",
+      "measurement_principle"
+    ],
+    "dispositions": [
+      "directly_observed_current",
+      "estimator_qualified_for_declared_scope",
+      "structurally_observable_only",
+      "unobservable_under_declared_faults",
+      "topology_invalidates_certificate",
+      "indeterminate_evidence"
+    ],
+    "owner_issue": 4006,
+    "status": "synthetic_qualification_contract_only_no_sensor_placement_optimization_or_physical_qualification"
   }
 }
