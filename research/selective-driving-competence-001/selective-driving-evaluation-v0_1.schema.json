@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/selective-driving-evaluation-v0.1.schema.json",
+  "title": "Selective-driving risk-coverage evaluation input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "expected_episode_ids",
+    "expected_decision_ids",
+    "calibration_bin_count",
+    "fixed_coverage_target",
+    "fixed_risk_limit",
+    "decisions",
+    "bootstrap_replicates",
+    "bootstrap_seed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "protocol_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "expected_episode_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000000,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "expected_decision_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000000,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "calibration_bin_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "fixed_coverage_target": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "fixed_risk_limit": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000000,
+      "items": {
+        "$ref": "#/$defs/decision"
+      }
+    },
+    "bootstrap_replicates": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 10000
+    },
+    "bootstrap_seed": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "episode_id",
+        "scenario_family",
+        "prediction_timestamp_us",
+        "outcome_timestamp_us",
+        "outcome_status",
+        "predicted_failure_probability",
+        "observed_failure",
+        "observed_loss",
+        "policy_input_fields",
+        "abstained",
+        "abstention_timestamp_us",
+        "decision_deadline_us",
+        "fallback_succeeded",
+        "fallback_duration_ms",
+        "human_interventions",
+        "inference_latency_ms",
+        "inference_energy_mj",
+        "peak_memory_bytes"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "scenario_family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "prediction_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outcome_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outcome_status": {
+          "enum": [
+            "observed",
+            "missing",
+            "censored"
+          ]
+        },
+        "predicted_failure_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "observed_failure": {
+          "type": "boolean"
+        },
+        "observed_loss": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "policy_input_fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/policy_input_field"
+          }
+        },
+        "abstained": {
+          "type": "boolean"
+        },
+        "abstention_timestamp_us": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "decision_deadline_us": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "fallback_succeeded": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "fallback_duration_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "human_interventions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inference_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_energy_mj": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "peak_memory_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "policy_input_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_id",
+        "source_role",
+        "available_timestamp_us"
+      ],
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "source_role": {
+          "enum": [
+            "policy_visible",
+            "evaluator_only",
+            "future"
+          ]
+        },
+        "available_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Expected decision and episode manifests must exactly reconcile with observed decision records. Duplicate or unexpected identities are rejected.",
+    "Every decision must have outcome_status=observed. Missing/censored outcomes are rejected; no zero-loss imputation is allowed.",
+    "Every policy input field must be policy_visible and available_timestamp_us <= prediction_timestamp_us.",
+    "outcome_timestamp_us must be >= prediction_timestamp_us.",
+    "An abstained decision requires abstention_timestamp_us, decision_deadline_us, fallback_succeeded and fallback_duration_ms.",
+    "AURC is computed on complete score-tie groups using a right-continuous step integral. Tied scores are never split.",
+    "The evaluator reports actual abstention separately from the hypothetical threshold risk-coverage curve.",
+    "Resource metrics remain null when no measurement exists; missing values are never treated as zero.",
+    "Bootstrap resampling samples whole episode clusters with replacement, preserving all decision records belonging to each sampled episode.",
+    "Bootstrap intervals are deterministic for a fixed seed and replicate count; with fewer than two episode clusters they are reported as unavailable.",
+    "Accepted-risk bootstrap intervals are reported only when every bootstrap replicate contains at least one accepted decision; invalid replicates are not silently discarded."
+  ]
+}

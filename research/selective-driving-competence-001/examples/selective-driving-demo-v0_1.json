@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "protocol_id": "selective-driving-demo-v0.1",
+  "expected_episode_ids": [
+    "episode-urban-001",
+    "episode-night-001",
+    "episode-sensor-drop-001"
+  ],
+  "expected_decision_ids": [
+    "decision-urban-a",
+    "decision-urban-b",
+    "decision-night-a",
+    "decision-night-b",
+    "decision-sensor-a",
+    "decision-sensor-b"
+  ],
+  "calibration_bin_count": 5,
+  "fixed_coverage_target": 0.5,
+  "fixed_risk_limit": 0.1,
+  "decisions": [
+    {
+      "decision_id": "decision-urban-a",
+      "episode_id": "episode-urban-001",
+      "scenario_family": "urban-daylight",
+      "prediction_timestamp_us": 1000000,
+      "outcome_timestamp_us": 1100000,
+      "outcome_status": "observed",
+      "predicted_failure_probability": 0.02,
+      "observed_failure": false,
+      "observed_loss": 0,
+      "policy_input_fields": [
+        {
+          "field_id": "front-camera",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 999000
+        },
+        {
+          "field_id": "ego-speed",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 999500
+        }
+      ],
+      "abstained": false,
+      "abstention_timestamp_us": null,
+      "decision_deadline_us": null,
+      "fallback_succeeded": null,
+      "fallback_duration_ms": null,
+      "human_interventions": 0,
+      "inference_latency_ms": 18.2,
+      "inference_energy_mj": 5.4,
+      "peak_memory_bytes": 134217728
+    },
+    {
+      "decision_id": "decision-urban-b",
+      "episode_id": "episode-urban-001",
+      "scenario_family": "urban-daylight",
+      "prediction_timestamp_us": 2000000,
+      "outcome_timestamp_us": 2100000,
+      "outcome_status": "observed",
+      "predicted_failure_probability": 0.12,
+      "observed_failure": false,
+      "observed_loss": 0.05,
+      "policy_input_fields": [
+        {
+          "field_id": "front-camera",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 1999000
+        }
+      ],
+      "abstained": false,
+      "abstention_timestamp_us": null,
+      "decision_deadline_us": null,
+      "fallback_succeeded": null,
+      "fallback_duration_ms": null,
+      "human_interventions": 0,
+      "inference_latency_ms": 17.8,
+      "inference_energy_mj": 5.1,
+      "peak_memory_bytes": 134217728
+    },
+    {
+      "decision_id": "decision-night-a",
+      "episode_id": "episode-night-001",
+      "scenario_family": "night-rain",
+      "prediction_timestamp_us": 3000000,
+      "outcome_timestamp_us": 3100000,
+      "outcome_status": "observed",
+      "predicted_failure_probability": 0.74,
+      "observed_failure": true,
+      "observed_loss": 0.8,
+      "policy_input_fields": [
+        {
+          "field_id": "front-camera",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 2999000
+        },
+        {
+          "field_id": "rain-state",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 2999500
+        }
+      ],
+      "abstained": false,
+      "abstention_timestamp_us": null,
+      "decision_deadline_us": null,
+      "fallback_succeeded": null,
+      "fallback_duration_ms": null,
+      "human_interventions": 0,
+      "inference_latency_ms": 19.1,
+      "inference_energy_mj": 5.8,
+      "peak_memory_bytes": 134217728
+    },
+    {
+      "decision_id": "decision-night-b",
+      "episode_id": "episode-night-001",
+      "scenario_family": "night-rain",
+      "prediction_timestamp_us": 4000000,
+      "outcome_timestamp_us": 4100000,
+      "outcome_status": "observed",
+      "predicted_failure_probability": 0.88,
+      "observed_failure": true,
+      "observed_loss": 1,
+      "policy_input_fields": [
+        {
+          "field_id": "front-camera",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 3999000
+        },
+        {
+          "field_id": "ego-motion",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 3999500
+        }
+      ],
+      "abstained": false,
+      "abstention_timestamp_us": null,
+      "decision_deadline_us": null,
+      "fallback_succeeded": null,
+      "fallback_duration_ms": null,
+      "human_interventions": 0,
+      "inference_latency_ms": 20.4,
+      "inference_energy_mj": 6.3,
+      "peak_memory_bytes": 134217728
+    },
+    {
+      "decision_id": "decision-sensor-a",
+      "episode_id": "episode-sensor-drop-001",
+      "scenario_family": "camera-dropout",
+      "prediction_timestamp_us": 5000000,
+      "outcome_timestamp_us": 5100000,
+      "outcome_status": "observed",
+      "predicted_failure_probability": 0.31,
+      "observed_failure": false,
+      "observed_loss": 0,
+      "policy_input_fields": [
+        {
+          "field_id": "front-camera-drop-event",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 4999000
+        },
+        {
+          "field_id": "vehicle-state",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 4999500
+        }
+      ],
+      "abstained": true,
+      "abstention_timestamp_us": 5010000,
+      "decision_deadline_us": 5020000,
+      "fallback_succeeded": true,
+      "fallback_duration_ms": 340,
+      "human_interventions": 1,
+      "inference_latency_ms": 21.2,
+      "inference_energy_mj": 6.8,
+      "peak_memory_bytes": 134217728
+    },
+    {
+      "decision_id": "decision-sensor-b",
+      "episode_id": "episode-sensor-drop-001",
+      "scenario_family": "camera-dropout",
+      "prediction_timestamp_us": 6000000,
+      "outcome_timestamp_us": 6100000,
+      "outcome_status": "observed",
+      "predicted_failure_probability": 0.09,
+      "observed_failure": false,
+      "observed_loss": 0,
+      "policy_input_fields": [
+        {
+          "field_id": "front-camera-recovered",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 5999000
+        },
+        {
+          "field_id": "vehicle-state",
+          "source_role": "policy_visible",
+          "available_timestamp_us": 5999500
+        }
+      ],
+      "abstained": false,
+      "abstention_timestamp_us": null,
+      "decision_deadline_us": null,
+      "fallback_succeeded": null,
+      "fallback_duration_ms": null,
+      "human_interventions": 0,
+      "inference_latency_ms": 18.9,
+      "inference_energy_mj": 5.6,
+      "peak_memory_bytes": 134217728
+    }
+  ],
+  "bootstrap_replicates": 1000,
+  "bootstrap_seed": 20261112
+}
