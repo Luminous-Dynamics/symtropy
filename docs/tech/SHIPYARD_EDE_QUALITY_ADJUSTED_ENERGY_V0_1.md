@@ -26,7 +26,7 @@ For density `rho` in kg/m³ and wire diameter `d` in metres:
 
 V0 uses trapezoidal integration of sampled instantaneous power products `V_i*I_i`, and trapezoidal integration of each wire's feed speed. Each of the four streams keeps its own native sample cadence. The four streams must span the exact same declared window, have strictly increasing integer-nanosecond timestamps and obey the maximum sample-gap policy. No implicit gap bridging, endpoint extrapolation, missing-to-zero, mean(V)*mean(I) substitution or universal-rate resampling is permitted.
 
-The calculator requires a non-zero source trace SHA-256 and a non-zero alignment receipt SHA-256. Synthetic tests use symbolic digests only. A future physical adapter must bind actual source bytes and a separately qualified event-time alignment receipt.
+The calculator requires non-zero source-trace, event-alignment and sampling-qualification receipt SHA-256 values. The sampling-qualification receipt must document that the acquisition bandwidth, anti-aliasing or cycle-averaging method and numerical quadrature are adequate for the claimed power integral. A maximum sample gap alone is not proof of transient waveform resolution. This matters because the 2026 paper reports 10 Hz monitoring and averaging over about 100 cycles; a physical adapter must reconcile that published monitor rate with the actual acquisition chain before numerical scoring. Synthetic tests use symbolic digests only. A future physical adapter must bind actual source bytes and a separately qualified event-time alignment receipt.
 
 ## Conservative uncertainty
 
