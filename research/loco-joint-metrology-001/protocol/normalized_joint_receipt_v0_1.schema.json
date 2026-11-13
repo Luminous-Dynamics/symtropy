@@ -249,13 +249,8 @@
         "specification_qualified": {"type": "boolean"}
       }
     },
-    "reasonEvidence": {
+    "nonQualifiedEvidence": {
       "oneOf": [
-        {
-          "type": "object", "additionalProperties": false,
-          "required": ["status", "value"],
-          "properties": {"status": {"const": "qualified"}, "value": {}}
-        },
         {
           "type": "object", "additionalProperties": false,
           "required": ["status", "reason_code"],
@@ -386,43 +381,43 @@
         "source_to_actuator_aoi": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"$ref": "#/$defs/durationValue"}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "command_to_motion": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"$ref": "#/$defs/durationValue"}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "decision": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"$ref": "#/$defs/decisionValue"}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "thermal": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"$ref": "#/$defs/thermalValue"}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "energy": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"$ref": "#/$defs/energyValue"}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "sampling": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"$ref": "#/$defs/samplingValue"}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "terminal_safe_stop": {
           "oneOf": [
             {"type": "object", "additionalProperties": false, "required": ["status", "value"], "properties": {"status": {"const": "qualified"}, "value": {"const": true}}},
-            {"$ref": "#/$defs/reasonEvidence"}
+            {"$ref": "#/$defs/nonQualifiedEvidence"}
           ]
         },
         "causal_edges": {"type": "array", "minItems": 7, "maxItems": 7, "items": {"$ref": "#/$defs/causalEdge"}},
