@@ -28,7 +28,7 @@ A closed-loop robotic-welding survey indexed under DOI 10.1016/j.rcim.2026.10337
 
 ## V0.1 measurement contract
 
-The Rust crate is a nested, dependency-free workspace. It accepts **synthetic-only** profile pairs. Both profiles must share exact WID, joint revision, transition identity, coordinate frame and identical x stations. Each profile is tied to a lowercase SHA-256 identifier; the registration receipt must bind both scan hashes and the target frame.
+The Rust crate is a nested, dependency-free workspace. It accepts **synthetic-only** profile pairs. Both profiles must share exact WID, joint revision, transition identity, coordinate frame, producer-supplied x-grid SHA-256 digest and identical x stations. Each profile is tied to a lowercase SHA-256 identifier; the registration receipt must bind both scan hashes and the target frame.
 
 The registration receipt is checked for:
 - its own SHA-256 identifier;
@@ -71,9 +71,9 @@ The JSON corpus defines:
 - 4 positive known-answer profiles: identical, constant positive offset, sign crossing and constant negative offset;
 - 1 explicit long-internal-gap known-answer rejection;
 - 25 additional named negative controls;
-- 30 total cases (4 positive / 26 negative).
+- 31 total cases (4 positive / 27 negative).
 
-The Rust library has 32 unit/mutation tests. A separate JavaScript replay should reproduce the four numeric positive controls and the negative-gap outcome. All quantities are synthetic; they are not scanner calibration or physical weld observations.
+The Rust library has 33 unit/mutation tests. A separate JavaScript replay should reproduce the four numeric positive controls and the negative-gap outcome. All quantities are synthetic; they are not scanner calibration or physical weld observations.
 
 ## Benchmark targets
 
@@ -93,3 +93,10 @@ Do not compare a 2D cross-section error directly with the 0.1334 mm trajectory R
 ## Claim ceiling
 
 A PASS establishes only deterministic qualification and comparison of synthetic registered 2D profiles. It does not establish laser-scanner calibration, real 3D registration, BAM raw-data admission, physical bead geometry, fusion/penetration, weld quality, NDT acceptance, residual stress, thermal history, WPS/PQR/WPQT compliance or fully cooled/restraint-released distortion.
+
+
+## Point-in-time composition interface
+
+The intermediate result is aligned with [SHIPYARD-METROLOGY-DECISION-COMPOSITION-001 / PR #4852](https://github.com/Luminous-Dynamics/symtropy/pull/4852). It carries reference and observed scan IDs and byte digests, registration receipt digest, target coordinate frame, canonical x-grid digest, coverage and minimum coverage, largest unsupported gap and maximum allowed gap, signed net/added/removed area and integrated area uncertainty with its declared threshold. The host/composition layer supplies the final comparison-envelope digest from a canonical serialized receipt; this crate intentionally does not implement SHA-256.
+
+Unit convention for the handoff: coordinate and gap values are integer micrometre ticks (one tick = 0.001 mm) under the composition receipt's base `length_unit = "mm"`; area values are doubled integer µm² (one integer unit = 0.5 µm²). The x-grid digest producer must hash the canonical ordered station sequence including its unit/scale. A consumer must preserve these scale conventions and must not silently reinterpret the integers as whole millimetres or whole square millimetres.
