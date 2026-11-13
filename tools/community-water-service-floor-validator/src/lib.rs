@@ -56,15 +56,19 @@ fn evaluate_area(area: &Value, profile: &Value, context: &str, errors: &mut Vec<
         return "invalid".to_owned();
     }
 
-    let numerator = area.get("coverage_numerator").and_then(Value::as_u64);
-    let denominator = area.get("coverage_denominator").and_then(Value::as_u64);
-    if let (Some(numerator), Some(denominator)) = (numerator, denominator) {
-        if denominator == 0 || numerator > denominator {
-            return "invalid".to_owned();
-        }
-    } else if area.get("coverage_denominator").is_some_and(Value::is_null) {
-        // A missing denominator is an unknown coverage state, not a measured zero.
-    } else {
+    let numerator = match area.get("coverage_numerator").and_then(Value::as_u64) {
+        Some(value) => value,
+        None => return "invalid".to_owned(),
+    };
+    let denominator = match area.get("coverage_denominator") {
+        Some(value) if value.is_null() => None,
+        Some(value) => match value.as_u64() {
+            Some(value) if value > 0 => Some(value),
+            _ => return "invalid".to_owned(),
+        },
+        None => return "invalid".to_owned(),
+    };
+    if denominator.is_some_and(|value| numerator > value) {
         return "invalid".to_owned();
     }
 
@@ -87,10 +91,13 @@ fn evaluate_area(area: &Value, profile: &Value, context: &str, errors: &mut Vec<
         }
     }
 
+    let complete_coverage = denominator.is_some_and(|value| numerator == value);
     if evidence_state != "observed_current"
-        || numerator != denominator
+        || !complete_coverage
         || lower.is_none()
         || upper.is_none()
+        || !nonempty(area, "observation_ref")
+        || !nonempty(area, "validity_window_ref")
     {
         return "indeterminate".to_owned();
     }
@@ -280,6 +287,25 @@ pub fn evaluate(
             push(&mut errors, "scenario", "scenario_id missing");
             continue;
         };
+        let scenario_class = text(case, "scenario_class").unwrap_or("");
+        if ![
+            "all_floors_met",
+            "weighted_average_masks_breach",
+            "single_area_breach",
+            "missing_evidence",
+            "stale_evidence",
+            "partial_coverage",
+            "interval_crosses_floor",
+            "breach_plus_unknown",
+            "policy_missing",
+            "unit_mismatch",
+            "time_grid_mismatch",
+            "boundary_equal_to_floor",
+        ]
+        .contains(&scenario_class)
+        {
+            push(&mut errors, id, "unsupported scenario_class");
+        }
         if !id.starts_with("WSF-") || !case_ids.insert(id.to_owned()) {
             push(&mut errors, "scenario", &format!("invalid or duplicate scenario ID {id}"));
         }
@@ -352,7 +378,16 @@ pub fn evaluate(
                 push(&mut errors, id, "overall disposition differs from separate oracle");
             }
             let oracle_areas = row.get("expected_area_dispositions").and_then(Value::as_array);
-            if !oracle_areas.is_some_and(|rows| {
+            let oracle_ids: BTreeSet<String> = oracle_areas
+                .into_iter()
+                .flatten()
+                .filter_map(|expected| text(expected, "area_id").map(str::to_owned))
+                .collect();
+            let actual_ids: BTreeSet<String> = area_results
+                .iter()
+                .filter_map(|actual| text(actual, "area_id").map(str::to_owned))
+                .collect();
+            let dispositions_match = oracle_areas.is_some_and(|rows| {
                 rows.len() == area_results.len()
                     && rows.iter().all(|expected| {
                         let expected_id = text(expected, "area_id");
@@ -362,8 +397,9 @@ pub fn evaluate(
                                 && text(actual, "disposition") == expected_state
                         })
                     })
-            }) {
-                push(&mut errors, id, "per-area dispositions differ from separate oracle");
+            });
+            if oracle_ids != actual_ids || !dispositions_match {
+                push(&mut errors, id, "per-area IDs/dispositions differ from separate oracle");
             }
         }
 
@@ -542,4 +578,31 @@ mod tests {
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("normative profile must fail");
         assert!(errors.iter().any(|e| e.contains("non-normative status changed")));
     }
+    #[test]
+    fn missing_coverage_denominator_cannot_be_treated_as_complete() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][0]["areas"][0]["coverage_denominator"] = Value::Null;
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("unknown denominator must not pass");
+        assert!(errors.iter().any(|e| e.contains("expected area disposition meets_floor")));
+    }
+
+    #[test]
+    fn unsupported_scenario_class_is_rejected() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][0]["scenario_class"] = json!("aggregate_pass");
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("unknown scenario class must fail");
+        assert!(errors.iter().any(|e| e.contains("unsupported scenario_class")));
+    }
+
+    #[test]
+    fn duplicate_area_ids_in_oracle_are_rejected() {
+        let (scenarios, schema, mut oracle) = fixtures();
+        oracle["results"][0]["expected_area_dispositions"][2]["area_id"] = json!("DMA-B");
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("oracle area set must be exact");
+        assert!(errors.iter().any(|e| e.contains("per-area IDs/dispositions differ")));
+    }
+
 }
