@@ -117,7 +117,7 @@ The first records are: 34-month Bristol POU UF telemetry under OGL v3; a separat
 
 ### RO transport M0
 
-The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](./membrane-ro-m0-manifest-v0.1.json), with five synthetic [inputs](./membrane-ro-m0-cases-v0.1.json), a separate [oracle](./membrane-ro-m0-oracle-v0.1.json), and a [Draft 2020-12 schema](./membrane-ro-m0.schema.json). The Rust evaluator and `membrane-ro-m0` CLI live in `tools/water-service-t0`. They test net driving pressure, concentration polarization, reference permeance and the error from pressure-only/no-CP simplifications. This is formula arithmetic, not an empirical fouling or membrane-performance claim.
+The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](./membrane-ro-m0-manifest-v0.1.json), with five synthetic [inputs](./membrane-ro-m0-cases-v0.1.json), a separate [oracle](./membrane-ro-m0-oracle-v0.1.json), and a [Draft 2020-12 schema](./membrane-ro-m0.schema.json). The Rust evaluator and `membrane-ro-m0` CLI live in `tools/water-service-t0`. They test net driving pressure, concentration polarization, reference permeance and the error from pressure-only/no-CP simplifications. This is formula arithmetic, not an empirical fouling or membrane-performance claim. The present M0 verifies pointwise J/NDP; Armstrong et al.'s published reference water permeance is a through-origin regression slope across the full pressure series. Exact dataset reproduction is therefore still blocked pending authorized OSF workbook acquisition; grouped multi-pressure regression is the next M0B increment.
 
 
 ### M2 sample-time quality label contract
