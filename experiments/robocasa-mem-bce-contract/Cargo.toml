@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-robocasa-mem-bce-contract"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-or-later"
+description = "Synthetic behavior-conditioned evaluation contract for memory-dependent robotics"
+
+# Standalone nested workspace: no simulator, Python, VLM or Symthaea workspace dependencies.
+[workspace]
+resolver = "2"
