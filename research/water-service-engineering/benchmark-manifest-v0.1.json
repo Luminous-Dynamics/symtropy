@@ -204,6 +204,18 @@
       "schema": "research/water-service-engineering/membrane-ro-m0b-regression.schema.json",
       "cli": "tools/water-service-t0/src/bin/membrane-ro-m0b-regression.rs",
       "status": "synthetic_grouped_multi_pressure_regression_contract_only"
-    }
+    },
+    "m0b_status": "grouped_pressure_series_regression_contract_added_synthetic_only_pending_exact_head_workflow"
+  },
+  "membrane_measurement_integrity": {
+    "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5035",
+    "protocol": "research/water-service-engineering/MEMBRANE_MEASUREMENT_INTEGRITY_PROTOCOL_V0_1.md",
+    "manifest": "research/water-service-engineering/membrane-measurement-integrity-manifest-v0.1.json",
+    "inputs": "research/water-service-engineering/membrane-measurement-integrity-cases-v0.1.json",
+    "oracle": "research/water-service-engineering/membrane-measurement-integrity-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/membrane-measurement-integrity.schema.json",
+    "cli": "tools/water-service-t0/src/bin/membrane-measurement-integrity.rs",
+    "case_count": 8,
+    "status": "synthetic_signal_diagnostics_only_no_real_sensor_or_fouling_claim"
   }
 }
