@@ -278,7 +278,6 @@ impl BilocalGeodesicOperator {
     }
 }
 
-
 /// Endpoint conversion between canonical coordinate variations (delta x, delta p)
 /// and covariant geodesic-deviation data (xi, ell).
 ///
