@@ -1,0 +1,603 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-colreg-scenario-corpus",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "A structurally valid synthetic encounter episode is not correct COLREG interpretation, trajectory prediction, collision avoidance, physical manoeuvring validation, seaworthiness or navigation authority.",
+  "base_episodes": {
+    "valid_head_on": {
+      "scenario_id": "SYNTH-COLREG-HEADON-001",
+      "fixture_kind": "synthetic_fixture",
+      "corpus_version": "0.1.0",
+      "split": "held_out",
+      "split_group": "synthetic-waterway-family-H",
+      "voyage_group": "synthetic-voyage-001",
+      "geography": {
+        "waterway_id": "SYNTH-WATERWAY-OPEN-01",
+        "operating_area": "open_water",
+        "horizontal_crs": "EPSG:4326",
+        "visibility": "good",
+        "traffic_density": "moderate"
+      },
+      "time_policy": {
+        "time_standard": "UTC",
+        "evaluation_cutoff_utc": "2026-11-09T12:00:00Z",
+        "max_track_age_s": 120,
+        "observation_history_s": 600,
+        "prediction_horizon_s": 900
+      },
+      "ownship": {
+        "vessel_id": "SYNTH-OWN-001",
+        "vessel_class": "cargo",
+        "length_m": 180,
+        "beam_m": 30,
+        "speed_mps": 5.14,
+        "course_deg": 90,
+        "mode": "autonomous_synthetic"
+      },
+      "contacts": [
+        {
+          "vessel_id": "SYNTH-TGT-001",
+          "vessel_class": "cargo",
+          "length_m": 170,
+          "beam_m": 28,
+          "speed_mps": 5.14,
+          "course_deg": 270,
+          "source_track_id": "TRACK-TGT-001"
+        }
+      ],
+      "phases": [
+        {
+          "phase": "approach",
+          "source_time_utc": "2026-11-09T11:40:00Z",
+          "range_nm": 5,
+          "relative_bearing_deg": 0,
+          "cpa_time_utc": "2026-11-09T12:00:00Z",
+          "cpa_distance_nm": 0.2
+        },
+        {
+          "phase": "closest_approach",
+          "source_time_utc": "2026-11-09T12:00:00Z",
+          "range_nm": 0.2,
+          "relative_bearing_deg": 0,
+          "cpa_time_utc": "2026-11-09T12:00:00Z",
+          "cpa_distance_nm": 0.2
+        },
+        {
+          "phase": "departure",
+          "source_time_utc": "2026-11-09T12:10:00Z",
+          "range_nm": 2.8,
+          "relative_bearing_deg": 180,
+          "cpa_time_utc": "2026-11-09T12:00:00Z",
+          "cpa_distance_nm": 0.2
+        }
+      ],
+      "tracks": [
+        {
+          "track_id": "TRACK-OWN-001",
+          "vessel_id": "SYNTH-OWN-001",
+          "source_id": "SYNTH-AIS-LIKE-01",
+          "source_time_utc": "2026-11-09T11:40:00Z",
+          "retrieved_at_utc": "2026-11-09T11:40:02Z",
+          "latitude_deg": 0,
+          "longitude_deg": 0,
+          "speed_mps": 5.14,
+          "course_deg": 90,
+          "position_uncertainty_m": 10,
+          "observation_state": "observed"
+        },
+        {
+          "track_id": "TRACK-OWN-001",
+          "vessel_id": "SYNTH-OWN-001",
+          "source_id": "SYNTH-AIS-LIKE-01",
+          "source_time_utc": "2026-11-09T12:00:00Z",
+          "retrieved_at_utc": "2026-11-09T12:00:02Z",
+          "latitude_deg": 0,
+          "longitude_deg": 0.05,
+          "speed_mps": 5.14,
+          "course_deg": 90,
+          "position_uncertainty_m": 10,
+          "observation_state": "observed"
+        },
+        {
+          "track_id": "TRACK-OWN-001",
+          "vessel_id": "SYNTH-OWN-001",
+          "source_id": "SYNTH-AIS-LIKE-01",
+          "source_time_utc": "2026-11-09T12:10:00Z",
+          "retrieved_at_utc": "2026-11-09T12:10:02Z",
+          "latitude_deg": 0,
+          "longitude_deg": 0.075,
+          "speed_mps": 5.14,
+          "course_deg": 90,
+          "position_uncertainty_m": 10,
+          "observation_state": "observed"
+        },
+        {
+          "track_id": "TRACK-TGT-001",
+          "vessel_id": "SYNTH-TGT-001",
+          "source_id": "SYNTH-AIS-LIKE-02",
+          "source_time_utc": "2026-11-09T11:40:00Z",
+          "retrieved_at_utc": "2026-11-09T11:40:02Z",
+          "latitude_deg": 0,
+          "longitude_deg": 0.1,
+          "speed_mps": 5.14,
+          "course_deg": 270,
+          "position_uncertainty_m": 12,
+          "observation_state": "observed"
+        },
+        {
+          "track_id": "TRACK-TGT-001",
+          "vessel_id": "SYNTH-TGT-001",
+          "source_id": "SYNTH-AIS-LIKE-02",
+          "source_time_utc": "2026-11-09T12:00:00Z",
+          "retrieved_at_utc": "2026-11-09T12:00:02Z",
+          "latitude_deg": 0,
+          "longitude_deg": 0.05,
+          "speed_mps": 5.14,
+          "course_deg": 270,
+          "position_uncertainty_m": 12,
+          "observation_state": "observed"
+        },
+        {
+          "track_id": "TRACK-TGT-001",
+          "vessel_id": "SYNTH-TGT-001",
+          "source_id": "SYNTH-AIS-LIKE-02",
+          "source_time_utc": "2026-11-09T12:10:00Z",
+          "retrieved_at_utc": "2026-11-09T12:10:02Z",
+          "latitude_deg": 0,
+          "longitude_deg": 0.025,
+          "speed_mps": 5.14,
+          "course_deg": 270,
+          "position_uncertainty_m": 12,
+          "observation_state": "observed"
+        }
+      ],
+      "encounter_graph": {
+        "nodes": [
+          {
+            "node_id": "SYNTH-OWN-001",
+            "node_kind": "vessel"
+          },
+          {
+            "node_id": "SYNTH-TGT-001",
+            "node_kind": "vessel"
+          }
+        ],
+        "edges": [
+          {
+            "edge_id": "E-001",
+            "from": "SYNTH-OWN-001",
+            "to": "SYNTH-TGT-001",
+            "interaction_kind": "encounter"
+          }
+        ]
+      },
+      "sensor_profile": {
+        "sensor_set_id": "SYNTH-SENSORS-01",
+        "position_source": "synthetic_ais_like",
+        "heading_source": "synthetic_ais_like",
+        "observation_gap_policy": "explicit_missing",
+        "time_sync_state": "synchronized_synthetic",
+        "track_confidence": "nominal_synthetic"
+      },
+      "expected": {
+        "encounter_class": "head_on",
+        "rule_context": "rule_14_head_on",
+        "ownship_role": "equal_duty",
+        "contact_roles": [
+          "equal_duty"
+        ],
+        "expected_contract_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_head_on_episode",
+      "base": "valid_head_on",
+      "mutations": [],
+      "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "crossing_give_way_label_conflicts_with_headon_tracks",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "expected.encounter_class",
+          "op": "set",
+          "value": "crossing_starboard"
+        },
+        {
+          "path": "expected.rule_context",
+          "op": "set",
+          "value": "rule_15_crossing"
+        },
+        {
+          "path": "expected.ownship_role",
+          "op": "set",
+          "value": "give_way"
+        }
+      ],
+      "expected_code": "ENCOUNTER_LABEL_GEOMETRY_MISMATCH"
+    },
+    {
+      "id": "crossing_stand_on_label_conflicts_with_headon_tracks",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "expected.encounter_class",
+          "op": "set",
+          "value": "crossing_port"
+        },
+        {
+          "path": "expected.rule_context",
+          "op": "set",
+          "value": "rule_15_crossing"
+        },
+        {
+          "path": "expected.ownship_role",
+          "op": "set",
+          "value": "stand_on"
+        }
+      ],
+      "expected_code": "ENCOUNTER_LABEL_GEOMETRY_MISMATCH"
+    },
+    {
+      "id": "overtaking_label_conflicts_with_headon_tracks",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "expected.encounter_class",
+          "op": "set",
+          "value": "overtaking"
+        },
+        {
+          "path": "expected.rule_context",
+          "op": "set",
+          "value": "rule_13_overtaking"
+        }
+      ],
+      "expected_code": "ENCOUNTER_LABEL_GEOMETRY_MISMATCH"
+    },
+    {
+      "id": "restricted_channel_context",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "geography.operating_area",
+          "op": "set",
+          "value": "restricted_channel"
+        }
+      ],
+      "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "ambiguous_rule_applicability",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "expected.rule_context",
+          "op": "set",
+          "value": "unknown"
+        },
+        {
+          "path": "expected.ownship_role",
+          "op": "set",
+          "value": "unknown"
+        },
+        {
+          "path": "expected.contact_roles",
+          "op": "set",
+          "value": [
+            "unknown"
+          ]
+        }
+      ],
+      "expected_code": "SCENARIO_CONTRACT_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "missing_approach_phase",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "phases.0.phase",
+          "op": "set",
+          "value": "departure"
+        }
+      ],
+      "expected_code": "MISSING_APPROACH_PHASE"
+    },
+    {
+      "id": "missing_cpa_phase",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "phases.1.phase",
+          "op": "set",
+          "value": "approach"
+        }
+      ],
+      "expected_code": "MISSING_CPA_PHASE"
+    },
+    {
+      "id": "missing_departure_phase",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "phases.2.phase",
+          "op": "set",
+          "value": "closest_approach"
+        }
+      ],
+      "expected_code": "MISSING_DEPARTURE_PHASE"
+    },
+    {
+      "id": "non_monotonic_episode_time",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "phases.2.source_time_utc",
+          "op": "set",
+          "value": "2026-11-09T11:30:00Z"
+        }
+      ],
+      "expected_code": "NON_MONOTONIC_PHASE_TIME"
+    },
+    {
+      "id": "ownship_contact_identity_collision",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "contacts.0.vessel_id",
+          "op": "set",
+          "value": "SYNTH-OWN-001"
+        }
+      ],
+      "expected_code": "DUPLICATE_VESSEL_ID"
+    },
+    {
+      "id": "duplicate_contact_track_identity",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "contacts.0.source_track_id",
+          "op": "set",
+          "value": "TRACK-OWN-001"
+        }
+      ],
+      "expected_code": "TRACK_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "duplicate_track_samples",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "tracks.3.track_id",
+          "op": "set",
+          "value": "TRACK-OWN-001"
+        }
+      ],
+      "expected_code": "TRACK_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "missing_source_observation_time",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "tracks.4.source_time_utc",
+          "op": "remove"
+        }
+      ],
+      "expected_code": "MISSING_SOURCE_TIME"
+    },
+    {
+      "id": "retrieval_precedes_source_time",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "tracks.4.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-09T11:00:00Z"
+        }
+      ],
+      "expected_code": "TEMPORAL_ROLE_INCONSISTENCY"
+    },
+    {
+      "id": "stale_contact_track",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "tracks.5.source_time_utc",
+          "op": "set",
+          "value": "2026-11-09T11:00:00Z"
+        }
+      ],
+      "expected_code": "STALE_TRACK"
+    },
+    {
+      "id": "dangling_encounter_graph_edge",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "encounter_graph.edges.0.to",
+          "op": "set",
+          "value": "SYNTH-UNKNOWN-001"
+        }
+      ],
+      "expected_code": "DANGLING_GRAPH_EDGE"
+    },
+    {
+      "id": "duplicate_encounter_graph_edge_id",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "encounter_graph.edges.0.edge_id",
+          "op": "set",
+          "value": "E-000"
+        }
+      ],
+      "expected_code": "DUPLICATE_GRAPH_EDGE_ID"
+    },
+    {
+      "id": "multi_ship_contact_without_interaction_edge",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "contacts",
+          "op": "set",
+          "value": [
+            {
+              "vessel_id": "SYNTH-TGT-001",
+              "vessel_class": "cargo",
+              "length_m": 170,
+              "beam_m": 28,
+              "speed_mps": 5.14,
+              "course_deg": 270,
+              "source_track_id": "TRACK-TGT-001"
+            },
+            {
+              "vessel_id": "SYNTH-TGT-002",
+              "vessel_class": "tanker",
+              "length_m": 160,
+              "beam_m": 27,
+              "speed_mps": 4,
+              "course_deg": 190,
+              "source_track_id": "TRACK-TGT-002"
+            }
+          ]
+        }
+      ],
+      "expected_code": "INCOMPLETE_INTERACTION_GRAPH"
+    },
+    {
+      "id": "unknown_horizontal_crs",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "geography.horizontal_crs",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_POSITION_REFERENCE"
+    },
+    {
+      "id": "unknown_visibility_state",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "geography.visibility",
+          "op": "set",
+          "value": "unclassified"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_ENVIRONMENT_STATE"
+    },
+    {
+      "id": "sensor_degradation_hidden_as_nominal",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "sensor_profile.observation_gap_policy",
+          "op": "set",
+          "value": "silently_interpolate"
+        }
+      ],
+      "expected_code": "MISSINGNESS_POLICY_VIOLATION"
+    },
+    {
+      "id": "unsynchronized_source_clock",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "sensor_profile.time_sync_state",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "TIME_SYNC_UNQUALIFIED"
+    },
+    {
+      "id": "split_group_leakage",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "split_group",
+          "op": "set",
+          "value": "training-waterway-family-A"
+        }
+      ],
+      "expected_code": "EVALUATION_SPLIT_LEAKAGE"
+    },
+    {
+      "id": "observation_history_shorter_than_manifest",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "time_policy.observation_history_s",
+          "op": "set",
+          "value": 60
+        }
+      ],
+      "expected_code": "INSUFFICIENT_OBSERVATION_HISTORY"
+    },
+    {
+      "id": "prediction_horizon_missing",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "time_policy.prediction_horizon_s",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "MISSING_PREDICTION_HORIZON"
+    },
+    {
+      "id": "conflicting_duplicate_contact_state",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "tracks.4.latitude_deg",
+          "op": "set",
+          "value": 45
+        }
+      ],
+      "expected_code": "CONFLICTING_TRACK_STATE"
+    },
+    {
+      "id": "unknown_rule_context_confidently_labelled",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "expected.rule_context",
+          "op": "set",
+          "value": "rule_99"
+        }
+      ],
+      "expected_code": "UNSUPPORTED_RULE_CONTEXT"
+    },
+    {
+      "id": "invalid_course_units",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "ownship.course_deg",
+          "op": "set",
+          "value": 3600
+        }
+      ],
+      "expected_code": "INVALID_COURSE"
+    },
+    {
+      "id": "synthetic_episode_mislabeled_observed",
+      "base": "valid_head_on",
+      "mutations": [
+        {
+          "path": "tracks.1.observation_state",
+          "op": "set",
+          "value": "observed_real"
+        }
+      ],
+      "expected_code": "INVALID_SYNTHETIC_EVIDENCE_CLASS"
+    }
+  ]
+}
