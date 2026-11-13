@@ -29,6 +29,8 @@ pub enum BilocalOperatorError {
     InvalidTolerance(f64),
     SingularMatrix { pivot: usize, scaled_magnitude: f64 },
     InvalidGeometry(&'static str),
+    InvalidStepCount,
+    TidalSymmetryResidual { residual: f64, tolerance: f64 },
 }
 
 impl fmt::Display for BilocalOperatorError {
@@ -46,6 +48,11 @@ impl fmt::Display for BilocalOperatorError {
                 "bilocal transfer is singular at pivot {pivot} (scaled magnitude {scaled_magnitude})"
             ),
             Self::InvalidGeometry(name) => write!(f, "cannot construct endpoint map: {name}"),
+            Self::InvalidStepCount => write!(f, "constant-tidal BGO integration requires at least one step"),
+            Self::TidalSymmetryResidual { residual, tolerance } => write!(
+                f,
+                "optical tidal matrix symmetry residual {residual} exceeds {tolerance}"
+            ),
         }
     }
 }
@@ -467,6 +474,117 @@ impl CanonicalCovariantEndpointMap {
         BilocalGeodesicOperator::from_matrix(transformed)
     }
 }
+
+
+
+/// Integrate the first-order BGO equation for a constant symmetric tidal matrix.
+///
+/// The frame is declared orthonormal and parallel-propagated, the state is
+/// (xi, ell), and the convention is
+/// D xi/dlambda = ell, D ell/dlambda = T xi.
+///
+/// This is a controlled numerical kernel / analytic-limit fixture, not a
+/// curvature-derived Schwarzschild or Kerr transport result. It requires a
+/// finite symmetric 4x4 tidal matrix and uses classical fixed-step RK4.
+pub fn integrate_constant_tidal_fixed_step(
+    tidal: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    affine_interval: f64,
+    steps: usize,
+    symmetry_tolerance: f64,
+) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
+    if !affine_interval.is_finite() {
+        return Err(BilocalOperatorError::NonFinite("affine interval"));
+    }
+    if !symmetry_tolerance.is_finite() || symmetry_tolerance <= 0.0 {
+        return Err(BilocalOperatorError::InvalidTolerance(symmetry_tolerance));
+    }
+    if steps == 0 {
+        return Err(BilocalOperatorError::InvalidStepCount);
+    }
+
+    let mut symmetry_residual: f64 = 0.0;
+    for row in 0..BLOCK_DIMENSION {
+        for column in 0..BLOCK_DIMENSION {
+            if !tidal[row][column].is_finite() {
+                return Err(BilocalOperatorError::NonFinite("optical tidal matrix"));
+            }
+            symmetry_residual =
+                symmetry_residual.max((tidal[row][column] - tidal[column][row]).abs());
+        }
+    }
+    if symmetry_residual > symmetry_tolerance {
+        return Err(BilocalOperatorError::TidalSymmetryResidual {
+            residual: symmetry_residual,
+            tolerance: symmetry_tolerance,
+        });
+    }
+
+    fn rhs(
+        state: &[[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        tidal: &[[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    ) -> [[f64; STATE_DIMENSION]; STATE_DIMENSION] {
+        let mut derivative = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                derivative[row][column] = state[row + BLOCK_DIMENSION][column];
+                let mut value = 0.0;
+                for inner in 0..BLOCK_DIMENSION {
+                    value = tidal[row][inner].mul_add(state[inner][column], value);
+                }
+                derivative[row + BLOCK_DIMENSION][column] = value;
+            }
+        }
+        derivative
+    }
+
+    fn add_scaled(
+        state: &[[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        derivative: &[[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        scale: f64,
+    ) -> [[f64; STATE_DIMENSION]; STATE_DIMENSION] {
+        let mut result = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for row in 0..STATE_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                result[row][column] =
+                    derivative[row][column].mul_add(scale, state[row][column]);
+            }
+        }
+        result
+    }
+
+    let mut state = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+    for index in 0..STATE_DIMENSION {
+        state[index][index] = 1.0;
+    }
+    let step = affine_interval / steps as f64;
+    for _ in 0..steps {
+        let k1 = rhs(&state, &tidal);
+        let stage2 = add_scaled(&state, &k1, 0.5 * step);
+        let k2 = rhs(&stage2, &tidal);
+        let stage3 = add_scaled(&state, &k2, 0.5 * step);
+        let k3 = rhs(&stage3, &tidal);
+        let stage4 = add_scaled(&state, &k3, step);
+        let k4 = rhs(&stage4, &tidal);
+
+        for row in 0..STATE_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                state[row][column] += step / 6.0
+                    * (k1[row][column]
+                        + 2.0 * k2[row][column]
+                        + 2.0 * k3[row][column]
+                        + k4[row][column]);
+                if !state[row][column].is_finite() {
+                    return Err(BilocalOperatorError::NonFinite(
+                        "constant-tidal BGO integration",
+                    ));
+                }
+            }
+        }
+    }
+
+    BilocalGeodesicOperator::from_matrix(state)
+}
+
 
 #[cfg(test)]
 mod tests {
