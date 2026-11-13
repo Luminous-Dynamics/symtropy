@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-PHYSICAL-GRAPH-F2-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5063",
+  "protocol": "research/water-service-engineering/MEMBRANE_PHYSICAL_GRAPH_F2_PROTOCOL_V0_1.md",
+  "schema": "research/water-service-engineering/membrane-physical-process-graph.schema.json",
+  "synthetic_graph": "research/water-service-engineering/membrane-physical-process-graph-synthetic-v0.1.json",
+  "ablation_plan": "research/water-service-engineering/membrane-physical-graph-ablation-manifest-v0.1.json",
+  "status": "synthetic_topology_contract_only",
+  "comparators": [
+    "univariate_alarm",
+    "MI_only_graph",
+    "domain_graph_only",
+    "hybrid_domain_MI_graph",
+    "hybrid_lag_aware_graph",
+    "signed_physical_uncertain_graph",
+    "hybrid_graph_plus_residual_observer"
+  ],
+  "ablations": [
+    "remove_physical_edges",
+    "remove_MI_edges",
+    "remove_lag_information",
+    "reverse_selected_signs",
+    "perturb_lag_intervals",
+    "delete_sensor_nodes",
+    "inject_sensor_faults",
+    "shift_operating_regime",
+    "introduce_incorrect_domain_edge",
+    "remove_graph_provenance"
+  ],
+  "metrics": [
+    "source_node_localization_macro_f1",
+    "upstream_downstream_order_accuracy",
+    "edge_path_attribution_precision_recall",
+    "lag_estimation_error",
+    "graph_robustness_under_edge_dropout",
+    "false_fouling_localization",
+    "selective_risk_and_abstention"
+  ],
+  "hard_rules": [
+    "no_real_P_and_ID_graph_without_engineer_review",
+    "no_test_label_based_edge_construction",
+    "unknown_or_incompatible_topology_requires_abstention",
+    "synthetic_graphs_are_not_plant_topology"
+  ]
+}
