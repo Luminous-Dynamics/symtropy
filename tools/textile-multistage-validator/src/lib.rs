@@ -903,6 +903,83 @@ mod tests {
         report.findings.iter().any(|item| item.code == code)
     }
 
+    fn setup_required_case() -> (Problem, Schedule) {
+        let (mut problem, mut schedule) = two_job_four_stage_case();
+
+        for operation in problem
+            .operations
+            .iter_mut()
+            .filter(|operation| operation.job_id == "job-b")
+        {
+            operation.product_family = "cotton".to_owned();
+        }
+
+        for machine in problem
+            .machines
+            .iter_mut()
+            .filter(|machine| machine.id != "cut-line")
+        {
+            machine.setup_rules.push(SetupRule {
+                from_family: "woven".to_owned(),
+                to_family: "cotton".to_owned(),
+                duration_ticks: 0,
+                required_operator_skill: None,
+                required_operator_certification: None,
+            });
+        }
+
+        let cutting_machine = problem
+            .machines
+            .iter_mut()
+            .find(|machine| machine.id == "cut-line")
+            .unwrap();
+        cutting_machine.setup_rules.push(SetupRule {
+            from_family: "woven".to_owned(),
+            to_family: "cotton".to_owned(),
+            duration_ticks: 2,
+            required_operator_skill: Some("changeover".to_owned()),
+            required_operator_certification: Some("changeover-qualified".to_owned()),
+        });
+
+        problem.operators.push(Operator {
+            id: "setup-tech".to_owned(),
+            skills: ["changeover".to_owned()].into_iter().collect(),
+            certifications: ["changeover-qualified".to_owned()].into_iter().collect(),
+            availability: vec![Interval {
+                start_tick: 0,
+                end_tick: 30,
+            }],
+        });
+
+        for (operation_id, start, finish) in [
+            ("cut-b", 7, 9),
+            ("sew-b", 9, 13),
+            ("finish-b", 13, 15),
+            ("inspect-b", 15, 16),
+        ] {
+            let assignment = schedule
+                .assignments
+                .iter_mut()
+                .find(|assignment| assignment.operation_id == operation_id)
+                .unwrap();
+            assignment.start_tick = start;
+            assignment.finish_tick = finish;
+        }
+
+        schedule.setup_reservations.push(SetupReservation {
+            machine_id: "cut-line".to_owned(),
+            from_family: "woven".to_owned(),
+            to_family: "cotton".to_owned(),
+            predecessor_operation_id: Some("cut-a".to_owned()),
+            next_operation_id: "cut-b".to_owned(),
+            operator_id: "setup-tech".to_owned(),
+            start_tick: 3,
+            finish_tick: 5,
+        });
+
+        (problem, schedule)
+    }
+
     #[test]
     fn known_answer_case_passes() {
         let (problem, schedule) = two_job_four_stage_case();
@@ -1080,6 +1157,116 @@ mod tests {
             &validate(&problem, &schedule),
             "SETUP_AVAILABILITY_VIOLATION"
         ));
+    }
+
+    #[test]
+    fn qualified_setup_operator_can_reserve_machine_idle_gap() {
+        let (problem, schedule) = setup_required_case();
+        let report = validate(&problem, &schedule);
+        assert!(report.valid, "{:#?}", report.findings);
+        assert_eq!(report.makespan_ticks, Some(16));
+    }
+
+    #[test]
+    fn nonzero_setup_requires_exactly_one_reservation() {
+        let (problem, mut schedule) = setup_required_case();
+        schedule.setup_reservations.clear();
+        assert!(has(
+            &validate(&problem, &schedule),
+            "SETUP_RESERVATION_MISSING"
+        ));
+    }
+
+    #[test]
+    fn setup_operator_must_hold_declared_skill_and_certification() {
+        let (mut problem, schedule) = setup_required_case();
+        problem
+            .operators
+            .iter_mut()
+            .find(|operator| operator.id == "setup-tech")
+            .unwrap()
+            .skills
+            .clear();
+        assert!(has(
+            &validate(&problem, &schedule),
+            "SETUP_OPERATOR_SKILL_MISMATCH"
+        ));
+
+        let (mut problem, schedule) = setup_required_case();
+        problem
+            .operators
+            .iter_mut()
+            .find(|operator| operator.id == "setup-tech")
+            .unwrap()
+            .certifications
+            .clear();
+        assert!(has(
+            &validate(&problem, &schedule),
+            "SETUP_OPERATOR_CERTIFICATION_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn setup_operator_cannot_overlap_a_production_operation() {
+        let (mut problem, mut schedule) = setup_required_case();
+        let sewer = problem
+            .operators
+            .iter_mut()
+            .find(|operator| operator.id == "sewer")
+            .unwrap();
+        sewer.skills.insert("changeover".to_owned());
+        sewer
+            .certifications
+            .insert("changeover-qualified".to_owned());
+        schedule.setup_reservations[0].operator_id = "sewer".to_owned();
+        assert!(has(
+            &validate(&problem, &schedule),
+            "SETUP_OPERATOR_OPERATION_OVERLAP"
+        ));
+    }
+
+    #[test]
+    fn duplicate_setup_reservations_are_rejected() {
+        let (problem, mut schedule) = setup_required_case();
+        schedule
+            .setup_reservations
+            .push(schedule.setup_reservations[0].clone());
+        assert!(has(
+            &validate(&problem, &schedule),
+            "DUPLICATE_SETUP_RESERVATION"
+        ));
+    }
+
+    #[test]
+    fn setup_machine_and_operator_must_both_be_available() {
+        let (mut problem, schedule) = setup_required_case();
+        let cutter = problem
+            .machines
+            .iter_mut()
+            .find(|machine| machine.id == "cut-line")
+            .unwrap();
+        cutter.availability = vec![
+            Interval {
+                start_tick: 0,
+                end_tick: 3,
+            },
+            Interval {
+                start_tick: 5,
+                end_tick: 30,
+            },
+        ];
+        let setup_operator = problem
+            .operators
+            .iter_mut()
+            .find(|operator| operator.id == "setup-tech")
+            .unwrap();
+        setup_operator.availability = vec![Interval {
+            start_tick: 0,
+            end_tick: 3,
+        }];
+        let report = validate(&problem, &schedule);
+        assert!(has(&report, "SETUP_MACHINE_UNAVAILABLE"));
+        assert!(has(&report, "SETUP_OPERATOR_UNAVAILABLE"));
     }
 
     #[test]
