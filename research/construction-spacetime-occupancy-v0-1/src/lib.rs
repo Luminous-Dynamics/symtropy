@@ -8,7 +8,7 @@
 
 use std::collections::BTreeMap;
 
-use construction_robot_interop_core::ReservationRequest;
+use construction_robot_interop_core::resources::ReservationRequest;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SiteBinding {
