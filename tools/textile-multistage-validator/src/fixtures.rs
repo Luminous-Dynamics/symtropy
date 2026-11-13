@@ -21,6 +21,8 @@ fn machine(id: &str, capability: &str) -> Machine {
             from_family: "woven".to_owned(),
             to_family: "woven".to_owned(),
             duration_ticks: 0,
+            required_operator_skill: None,
+            required_operator_certification: None,
         }],
     }
 }
@@ -227,6 +229,7 @@ pub fn two_job_four_stage_case() -> (Problem, Schedule) {
                 finish_tick: 15,
             },
         ],
+        setup_reservations: Vec::new(),
     };
 
     (problem, schedule)
