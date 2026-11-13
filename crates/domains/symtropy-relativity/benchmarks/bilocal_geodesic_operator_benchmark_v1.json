@@ -1,0 +1,219 @@
+{
+  "schema": "luminous.symtropy.kerr_bilocal_geodesic_operator_benchmark.v1",
+  "programme": "BH-KERR-RAY-BUNDLE-001",
+  "title": "Kerr bilocal geodesic operator cross-formulation qualification",
+  "status": "planned_only",
+  "execution_status": "not_implemented",
+  "repository": "Luminous-Dynamics/symtropy",
+  "owner": "symtropy-relativity",
+  "depends_on": {
+    "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
+    "exact_base_head": "a2d4f3381f879d32ca947acc94e503580269e00b"
+  },
+  "claim_ceiling": "A future passing result qualifies finite-dimensional Kerr geodesic-deviation and optical-transfer calculations only. It does not qualify finite-frequency wave optics, plasma transfer, detector predictions, or a new Lorentzian theorem.",
+  "references": [
+    {
+      "name": "Self-lensing of gravitational waves from binary extreme-mass-ratio inspirals: Extended caustics and paired flashes",
+      "kind": "2026 preprint",
+      "date": "2026-10-06",
+      "url": "https://arxiv.org/abs/2610.08399",
+      "role": "Point-to-point Kerr lens map, BGO-derived Jacobi map, image-resolved magnification and arrival times."
+    },
+    {
+      "name": "Observational signatures of Kerr black hole lensing",
+      "kind": "MNRAS",
+      "date": "2026-10-06",
+      "doi": "10.1093/mnras/stag1890",
+      "url": "https://doi.org/10.1093/mnras/stag1890",
+      "role": "Independent Schwarzschild and Mathematica/NDSolve geodesic checks and image/extended-source observables."
+    },
+    {
+      "name": "Geometric optics in general relativity using bilocal operators",
+      "kind": "reference cited by the 2026 BGO application",
+      "url": "https://arxiv.org/abs/1811.10284",
+      "role": "Foundational BGO formalism, pinned to Grasso, Korzyński and Serbenta, Physical Review D 99, 064038 (2019)."
+    }
+  ],
+  "conventions": {
+    "metric_signature": "(-,+,+,+)",
+    "affine_parameter": "lambda",
+    "fiducial_tangent": "k^mu = dx^mu/dlambda",
+    "connecting_vector": "xi^mu",
+    "covariant_tangent_deviation": "ell^mu = D xi^mu / d lambda",
+    "curvature_commutator": "[nabla_alpha,nabla_beta] v^mu = +R^mu_(nu alpha beta) v^nu; matches RiemannTensor4::from_metric_derivatives",
+    "geodesic_deviation": "D xi/dlambda = ell; D ell/dlambda = +T xi",
+    "optical_tidal_operator": "T^mu_nu = R^mu_(alpha nu beta) k^alpha k^beta",
+    "endpoint_comparison": "Only compare after explicit event, chart, tetrad, affine normalization and source-surface matching.",
+    "sachs_screen_sign_policy": "Derive the projected 2x2 screen-tidal sign from the declared curvature convention and explicit screen projection. The existing Rust Sachs/Jacobi convention D''=-T_AB D must be mapped and tested; do not copy the full four-dimensional T sign by name.",
+    "wronskian_basis_policy": "Use constant Omega only in a declared parallel-transported orthonormal frame; in a general coordinate basis use the metric-weighted bilinear form and endpoint basis transformations."
+  },
+  "operator": {
+    "dimension": 8,
+    "blocks": [
+      "W_XX",
+      "W_XK",
+      "W_KX",
+      "W_KK"
+    ],
+    "mapping": "[xi(lambda2),ell(lambda2)]^T = W(lambda2,lambda1) [xi(lambda1),ell(lambda1)]^T",
+    "required_properties": [
+      "composition",
+      "inverse",
+      "Wronskian_or_symplectic_preservation",
+      "coordinate_chart_covariance",
+      "endpoint_basis_covariance",
+      "full_operator_invertibility_through_projected_conjugate_point"
+    ],
+    "canonical_comparison": "Transform the canonical (delta x, delta p) fundamental matrix into covariant (xi,ell) at both endpoints, including metric and metric-derivative terms. Direct elementwise 8x8 comparison is forbidden.",
+    "screen_reduction": "Seed with observer angular variations, project into the parallel Sachs screen, and apply the fixed-source-event correction. Emit fixed-affine and fixed-source maps separately."
+  },
+  "benchmark_ladder": [
+    {
+      "id": "BGO-0",
+      "name": "Minkowski analytic transfer",
+      "status": "planned",
+      "acceptance": [
+        "all four blocks match closed form",
+        "composition and inverse",
+        "Wronskian preservation"
+      ]
+    },
+    {
+      "id": "BGO-1",
+      "name": "Radial Schwarzschild principal-null control",
+      "status": "planned",
+      "acceptance": [
+        "T_AB=0",
+        "D(lambda)=lambda I2 in declared normalization",
+        "BGO remains regular"
+      ]
+    },
+    {
+      "id": "BGO-2",
+      "name": "Nonradial Schwarzschild",
+      "status": "planned",
+      "acceptance": [
+        "nonzero optical tide",
+        "tidal symmetry",
+        "vacuum trace zero",
+        "BGO/Sachs/neighbour-ray refinement agreement"
+      ]
+    },
+    {
+      "id": "BGO-3",
+      "name": "Generic subextremal Kerr",
+      "status": "planned",
+      "acceptance": [
+        "BL/ingoing endpoint transformations",
+        "canonical-to-BGO comparison",
+        "BGO-to-Sachs comparison"
+      ]
+    },
+    {
+      "id": "BGO-4",
+      "name": "Finite source surface",
+      "status": "planned",
+      "acceptance": [
+        "fixed-event correction",
+        "endpoint intersection shift",
+        "time-delay derivatives"
+      ]
+    },
+    {
+      "id": "BGO-5",
+      "name": "Conjugate point and fold",
+      "status": "planned",
+      "acceptance": [
+        "full BGO invertibility",
+        "screen rank loss",
+        "signed parity",
+        "smallest-singular-value event localization"
+      ]
+    },
+    {
+      "id": "BGO-6",
+      "name": "Fold/cusp continuation",
+      "status": "planned",
+      "acceptance": [
+        "branch identity",
+        "even-multiplicity controls",
+        "normal-form and refinement checks"
+      ]
+    },
+    {
+      "id": "BGO-7",
+      "name": "External point-to-point reproduction",
+      "status": "planned",
+      "acceptance": [
+        "pinned source parameters",
+        "matched observer/source frames",
+        "image-branch and arrival-time comparison"
+      ]
+    },
+    {
+      "id": "BGO-8",
+      "name": "Cost per qualified observable",
+      "status": "planned",
+      "acceptance": [
+        "wall time",
+        "peak memory",
+        "energy only with provenance",
+        "same physical/numerical accuracy"
+      ]
+    }
+  ],
+  "proposed_targets": {
+    "canonical_to_bgo_relative_error_well_conditioned": 0.000001,
+    "bgo_composition_inverse_wronskian_residual_well_conditioned": 1e-10,
+    "sachs_frame_orthonormality_transversality": 1e-8,
+    "refinement": "N, 2N, 4N; include independent nearby-ray perturbation-size refinement",
+    "caustic_localization": "conditioning-aware interval from step, angular and source-surface refinement; no determinant-clamping"
+  },
+  "negative_controls": [
+    "curvature_sign_and_deviation_sign_mismatch",
+    "coordinate_chart_mismatch_without_endpoint_transform",
+    "omit_metric_derivative_in_canonical_momentum_variation",
+    "fixed_affine_vs_fixed_source_event_mismatch",
+    "treat_projected_jacobi_singularity_as_full_bgo_singularity",
+    "finite_magnification_at_rank_deficient_screen_map",
+    "radial_only_optical_tidal_test_suite",
+    "array_order_used_as_branch_identity",
+    "cusp_label_without_normal_form_and_refinement"
+  ],
+  "required_receipt_fields": [
+    "source_sha",
+    "manifest_sha256",
+    "metric_and_curvature_convention",
+    "black_hole_mass_and_spin",
+    "coordinate_chart",
+    "observer_event_and_tetrad_digest",
+    "source_surface_definition",
+    "affine_normalization",
+    "ray_initial_data_digest",
+    "BGO_blocks_by_sample",
+    "canonical_fundamental_matrix_digest",
+    "Sachs_frame_and_Jacobi_map",
+    "composition_residual",
+    "inverse_residual",
+    "Wronskian_residual",
+    "endpoint_transform_residual",
+    "neighbour_ray_step_sequence",
+    "fixed_affine_vs_fixed_event_map",
+    "signed_jacobi_determinant",
+    "jacobi_singular_values",
+    "condition_number",
+    "caustic_status",
+    "branch_identity",
+    "time_delay",
+    "accepted_and_rejected_steps",
+    "runtime",
+    "peak_memory",
+    "qualification_status"
+  ],
+  "execution_gates": [
+    "Do not implement caustic classification before BGO-0 through BGO-4 pass.",
+    "Do not claim a physical caustic until BGO-5 and BGO-6 pass at matched endpoints and independent refinement.",
+    "Do not claim external SOTA parity until BGO-7 reproduces pinned published cases.",
+    "Do not compare raw throughput outside matched qualified-observable bins."
+  ]
+}
