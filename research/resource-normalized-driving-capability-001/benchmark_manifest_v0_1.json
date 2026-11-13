@@ -437,16 +437,21 @@
       "id": "tieriv_autoe2e_2026_11_11",
       "class": "industry_fast_slow_architecture",
       "name": "TIER IV AutoE2E (announced 2026-11-11)",
-      "metric_values": null,
+      "metric_values": {
+        "parameters_millions": 79.9,
+        "kitscenes_multimodal_validation_3s_ade_m": 0.744
+      },
       "capabilities": [
         "79.9 million parameters",
         "Fast–Slow architecture: Reactive Model, World Model and Reasoning Model",
         "Reactive Model released; World Model and Reasoning Model remain in development per the announcement",
         "sensor profiles range from cameras-only to LiDAR/radar configurations",
-        "designed for deployment on compute platforms beyond NVIDIA"
+        "designed for deployment on compute platforms beyond NVIDIA",
+        "TIER IV reports 0.744 m average displacement error over a 3-second horizon on KITScenes-Multimodal validation",
+        "the announced released component is the reactive model; world-model and reasoning components are described as in development"
       ],
-      "protocol": "Architecture and availability reference only; no native performance score is registered in the announcement. Compare the released reactive component separately from the developing world/reasoning components. It is a compact fast-path architectural reference, not a verified complete stack result.",
-      "source": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "protocol": "TIER IV/Autoware announcement on 2026-11-11 reports 0.744 m 3-second ADE on KITScenes-Multimodal validation for a 79.9M-parameter AutoE2E model. This is an open-loop trajectory prediction metric on that dataset, not a closed-loop collision/safety score and not directly comparable to NAVSIM EPDMS or Bench2Drive DS. The announcement describes the Fast–Slow architecture (Reactive/World/Reasoning), while world/reasoning components remain development-stage; compare the available release/config separately.",
+      "source": "https://autoware.org/autoware-foundation-and-tier-iv-join-forces-to-releases-autoe2e-an-open-source-ai-model-for-end-to-end-autonomy/",
       "independent_symtropy_reproduction": false
     },
     {
@@ -518,6 +523,24 @@
       ],
       "protocol": "Use as a local benchmark methodology and evaluator reference only. No public submission path is available; it is not an active competition target.",
       "source": "https://leaderboard.carla.org/evaluation_v2_1/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "tieriv_meteor_2026_11_11",
+      "class": "industry_lightweight_multisensor_driving_model",
+      "name": "TIER IV METEOR (announced 2026-11-11)",
+      "metric_values": {
+        "parameters_millions": 16
+      },
+      "capabilities": [
+        "16 million parameters",
+        "CNN with bird's-eye-view representation",
+        "mapless architecture",
+        "camera inputs from one to eight cameras, with optional LiDAR and radar",
+        "TIER IV describes multi-platform support including NVIDIA and Renesas"
+      ],
+      "protocol": "Architecture/model-size comparator only. The announcement does not provide a closed-loop driving score or a directly comparable trajectory prediction metric. Do not treat 16M parameters as evidence of lower end-to-end energy/latency until measured on matched hardware with full sensor/preprocessing costs.",
+      "source": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
       "independent_symtropy_reproduction": false
     }
   ],
@@ -1022,6 +1045,18 @@
       "url": "https://leaderboard.carla.org/evaluation_v2_1/",
       "published": "2026",
       "source_type": "official benchmark protocol; submission service closed"
+    },
+    {
+      "id": "tieriv_autoe2e_2026_11_11",
+      "url": "https://autoware.org/autoware-foundation-and-tier-iv-join-forces-to-releases-autoe2e-an-open-source-ai-model-for-end-to-end-autonomy/",
+      "published": "2026-11-11",
+      "source_type": "Autoware Foundation announcement with TIER IV KITScenes-Multimodal 3s ADE report"
+    },
+    {
+      "id": "tieriv_meteor_2026_11_11",
+      "url": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "published": "2026-11-11",
+      "source_type": "TIER IV press release; model size and sensor architecture"
     }
   ],
   "statistical_method": {
