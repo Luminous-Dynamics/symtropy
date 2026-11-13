@@ -22,21 +22,34 @@
     {
       "case_id": "PS-T0-002-system-curve-intersection",
       "inputs": {
-        "pump_curve": "H_p(Q) = 20 - 80000 * Q^2",
-        "system_curve": "H_s(Q) = 10 + 20000 * Q^2",
         "flow_unit": "m3/s",
-        "head_unit": "m"
+        "head_unit": "m",
+        "pump_curve": {
+          "shutoff_head_m": 20,
+          "quadratic_coefficient_m_per_m6": 80000
+        },
+        "system_curve": {
+          "static_head_m": 10,
+          "quadratic_coefficient_m_per_m6": 20000
+        }
       },
       "oracle": "Solve H_p(Q) = H_s(Q); both curves must return the same duty head"
     },
     {
       "case_id": "PS-T0-003-two-identical-pumps-in-parallel",
       "inputs": {
-        "single_pump_curve": "H(q) = 20 - 80000 * q^2",
-        "system_curve": "H(Q) = 10 + 20000 * Q^2",
         "flow_unit": "m3/s",
         "head_unit": "m",
-        "assumption": "identical pumps, equal flow split, same manifold head"
+        "assumption": "identical pumps, equal flow split, same manifold head",
+        "single_pump_curve": {
+          "shutoff_head_m": 20,
+          "quadratic_coefficient_m_per_m6": 80000
+        },
+        "pump_count": 2,
+        "system_curve": {
+          "static_head_m": 10,
+          "quadratic_coefficient_m_per_m6": 20000
+        }
       },
       "oracle": "H_parallel(Q) = H_single(Q/2); intersect with system curve"
     },
@@ -98,10 +111,16 @@
         "gravity_m_s2": 9.81,
         "static_head_m": 10,
         "system_loss_coefficient_m_per_m6": 20000,
-        "fixed_speed_pump_curve": "H(Q) = 20 - 80000 * Q^2",
         "fixed_speed_ratio": 1,
         "assumed_total_wire_to_water_efficiency_both_modes": 0.7,
-        "vfd_pump_curve_at_speed_ratio_r": "H(Q,r) = 20 * r^2 - 80000 * Q^2"
+        "fixed_speed_pump_curve": {
+          "shutoff_head_m": 20,
+          "quadratic_coefficient_m_per_m6": 80000
+        },
+        "vfd_curve": {
+          "reference_speed_shutoff_head_m": 20,
+          "quadratic_coefficient_m_per_m6": 80000
+        }
       },
       "oracle": "At matched flow, fixed-speed pump head equals system head plus throttle loss; choose r so 20*r^2 - 80000*Q^2 equals the system head. Hold total efficiency fixed only to isolate hydraulic head reduction; real drive and pump efficiency maps must be measured"
     }
