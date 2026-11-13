@@ -47,7 +47,7 @@ The committed fixture uses 2 seconds of two-wire signals with distinct leading/t
 - Estimated leading/trailing filler masses: 3.5513 g / 2.1308 g.
 - Total estimated filler mass: 5.6820 g.
 - Nominal EDE: 998.7908 g/kWh.
-- Conservative interval: 967.5481–1,031.5046 g/kWh.
+- Conservative interval: 966.5718–1,032.5269 g/kWh.
 - Arc energy per weld length: 0.0682667 kJ/mm.
 
 These are synthetic symbolic known answers, not BAM pass data or industrial performance claims. Rust unit tests and an independent JavaScript replay use the same declared fixture values.
