@@ -106,11 +106,11 @@ fn run() -> Result<i32, String> {
         "nonclaims": evaluation["nonclaims"].clone()
     });
 
-    if let Some(parent) = receipt_path.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("create {}: {error}", parent.display()))?;
-        }
+    if let Some(parent) = receipt_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("create {}: {error}", parent.display()))?;
     }
     let serialized = serde_json::to_string_pretty(&receipt)
         .map_err(|error| format!("serialize receipt: {error}"))?
