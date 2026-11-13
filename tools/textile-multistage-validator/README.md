@@ -31,17 +31,28 @@ The validator checks:
 - precedence and minimum-lag constraints;
 - deterministic, sorted findings for reproducible comparison.
 
-The independent `utilities` module additionally checks time-indexed
-electricity, steam, water and wastewater envelopes. It binds complete/partial
-demand profiles to production operations and setup reservations, segments the
-schedule at every operation/envelope boundary, aggregates concurrent demand
+The independent `utilities` module checks time-indexed electricity,
+steam, water and wastewater envelopes. It binds complete/partial demand
+profiles to production operations and setup reservations, segments the
+schedule at every operation/envelope boundary, aggregates concurrent demand,
 and rejects missing profiles, unknown capacity, uncovered positive demand,
-overlapping envelopes and capacity exceedance. A complete profile explicitly
-declares omitted utility metrics as zero; an incomplete or missing profile is
-not treated as zero.
+overlapping envelopes and capacity exceedance.
 
-All time values are integer ticks in one caller-declared common unit. The
-reference does not infer minutes, shifts, machine cycle times or setup rules.
+Every demand profile and known capacity envelope now carries a provenance
+basis: source/evidence ID, exact SHA-256 digest, method/version, and a declared
+basis class (calibrated meter observation, calibrated process-trial
+measurement, machine nameplate, or engineering estimate). Measured meter/trial
+claims require a calibration ID. The validation report counts each basis
+class separately so an estimate cannot be mistaken for a meter observation.
+This is structural binding only: source bytes and calibration authenticity
+must be checked by an upstream evidence verifier. An engineering estimate is
+still usable for synthetic feasibility exploration but must not be promoted to
+a measured production feasibility claim.
+
+A complete profile explicitly declares omitted utility metrics as zero; an
+incomplete or missing profile is not treated as zero. All time values are
+integer ticks in one caller-declared common unit. The reference does not infer
+minutes, shifts, machine cycle times or setup rules.
 
 ## Run locally
 
@@ -115,7 +126,7 @@ or verify physical evidence. The upstream verifier must verify the exact receipt
 bytes before a route is supplied here. A mismatch against the pinned digest
 makes a changed/stale receipt visible to the schedule gate.
 
-The 18 route-gate unit tests cover eligible multi-lot binding, missing and
+The 17 route-gate unit tests cover eligible multi-lot binding, missing and
 non-eligible receipts, digest/lot/route/spec/mass mismatch, duplicate
 requirements/receipts, unknown jobs, malformed digests, independent verifier
 identity and combined schedule validation.
