@@ -538,6 +538,111 @@ mod tests {
         assert!(observed_mass_error <= bound);
     }
 
+    fn transpose2(matrix: &Matrix<2>) -> Matrix<2> {
+        [[matrix[0][0], matrix[1][0]], [matrix[0][1], matrix[1][1]]]
+    }
+
+    fn multiply2(left: &Matrix<2>, right: &Matrix<2>) -> Matrix<2> {
+        [
+            [
+                left[0][0] * right[0][0] + left[0][1] * right[1][0],
+                left[0][0] * right[0][1] + left[0][1] * right[1][1],
+            ],
+            [
+                left[1][0] * right[0][0] + left[1][1] * right[1][0],
+                left[1][0] * right[0][1] + left[1][1] * right[1][1],
+            ],
+        ]
+    }
+
+    fn apply2(matrix: &Matrix<2>, vector: &Vector<2>) -> Vector<2> {
+        [
+            matrix[0][0] * vector[0] + matrix[0][1] * vector[1],
+            matrix[1][0] * vector[0] + matrix[1][1] * vector[1],
+        ]
+    }
+
+    fn solve2(matrix: &Matrix<2>, rhs: &Vector<2>) -> Vector<2> {
+        let determinant = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        [
+            (rhs[0] * matrix[1][1] - matrix[0][1] * rhs[1]) / determinant,
+            (matrix[0][0] * rhs[1] - rhs[0] * matrix[1][0]) / determinant,
+        ]
+    }
+
+    fn mass_norm2(metric: &Matrix<2>, vector: &Vector<2>) -> f64 {
+        let applied = apply2(metric, vector);
+        (vector[0] * applied[0] + vector[1] * applied[1]).sqrt()
+    }
+
+    #[test]
+    fn dense_coordinate_rebasis_produces_a_valid_independent_enclosure() {
+        let profile = VerifiedEnvelopeProfileV1::default();
+        let mass_q = [[2.0, 0.0], [0.0, 3.0]];
+        let delta_mass_q = [[0.02, 0.0], [0.0, -0.03]];
+        let delta_force_q = [0.01, -0.02];
+        let acceleration_q = [0.5, -0.2];
+
+        let q_certificate = certify_metric_uncertainty(
+            &mass_q,
+            &delta_mass_q,
+            &delta_force_q,
+            &acceleration_q,
+            profile,
+        )
+        .unwrap();
+        let q_force = apply2(&mass_q, &acceleration_q);
+        let q_true_force = [q_force[0] + delta_force_q[0], q_force[1] + delta_force_q[1]];
+        let q_true_mass = [
+            [mass_q[0][0] + delta_mass_q[0][0], 0.0],
+            [0.0, mass_q[1][1] + delta_mass_q[1][1]],
+        ];
+        let q_true_acceleration = solve2(&q_true_mass, &q_true_force);
+        let q_error = [
+            q_true_acceleration[0] - acceleration_q[0],
+            q_true_acceleration[1] - acceleration_q[1],
+        ];
+        assert!(
+            mass_norm2(&mass_q, &q_error)
+                <= q_certificate.acceleration_error_bound_upper.unwrap()
+        );
+
+        // q = S y, with a dense non-orthogonal, determinant-one basis map.
+        let s = [[1.0, 2.0], [0.0, 1.0]];
+        let st = transpose2(&s);
+        let s_inverse = [[1.0, -2.0], [0.0, 1.0]];
+        let mass_y = multiply2(&multiply2(&st, &mass_q), &s);
+        let delta_mass_y = multiply2(&multiply2(&st, &delta_mass_q), &s);
+        let acceleration_y = apply2(&s_inverse, &acceleration_q);
+        let delta_force_y = apply2(&st, &delta_force_q);
+        let y_certificate = certify_metric_uncertainty(
+            &mass_y,
+            &delta_mass_y,
+            &delta_force_y,
+            &acceleration_y,
+            profile,
+        )
+        .unwrap();
+
+        let y_force = apply2(&mass_y, &acceleration_y);
+        let y_true_force = [y_force[0] + delta_force_y[0], y_force[1] + delta_force_y[1]];
+        let y_true_mass = [
+            [mass_y[0][0] + delta_mass_y[0][0], mass_y[0][1] + delta_mass_y[0][1]],
+            [mass_y[1][0] + delta_mass_y[1][0], mass_y[1][1] + delta_mass_y[1][1]],
+        ];
+        let y_true_acceleration = solve2(&y_true_mass, &y_true_force);
+        let y_error = [
+            y_true_acceleration[0] - acceleration_y[0],
+            y_true_acceleration[1] - acceleration_y[1],
+        ];
+        assert!(
+            mass_norm2(&mass_y, &y_error)
+                <= y_certificate.acceleration_error_bound_upper.unwrap()
+        );
+        assert_eq!(q_certificate.status, VerifiedEnvelopeStatusV1::VerifiedEnclosure);
+        assert_eq!(y_certificate.status, VerifiedEnvelopeStatusV1::VerifiedEnclosure);
+    }
+
     #[test]
     fn interval_cholesky_abstains_when_spd_cannot_be_proved() {
         let singular = [[1.0, 2.0], [2.0, 4.0]];
