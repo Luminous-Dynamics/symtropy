@@ -247,6 +247,11 @@ jobs:
           components: clippy, rustfmt
       - name: Check formatting
         run: cargo fmt --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml -- --check
+      - name: Diagnose generated lockfile graph
+        run: |
+          cargo test --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml --no-run
+          git diff --no-ext-diff -- research/loco-joint-receipt-interop-001/reference/Cargo.lock
+          exit 1
       - name: Run locked deterministic tests
         run: cargo test --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml
       - name: Strict Clippy
