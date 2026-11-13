@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const INPUT_CASE_COUNT: usize = 23;
@@ -9,9 +9,15 @@ pub const CLAIM_CEILING: &str =
 fn at<'a>(value: &'a Value, path: &[&str]) -> Result<&'a Value, String> {
     let mut current = value;
     for key in path {
-        current = current
-            .get(*key)
-            .ok_or_else(|| format!("missing JSON field: {}", path.join(".")))?;
+        current = if let Some(array) = current.as_array() {
+            let index = key.parse::<usize>().map_err(|_| {
+                format!("expected numeric array index at {}", path.join("."))
+            })?;
+            array.get(index)
+        } else {
+            current.get(*key)
+        }
+        .ok_or_else(|| format!("missing JSON field: {}", path.join(".")))?;
     }
     Ok(current)
 }
@@ -68,13 +74,6 @@ fn case_id(case: &Value) -> Result<String, String> {
     string(case, &["case_id"])
 }
 
-fn object_value(entries: impl IntoIterator<Item = (String, Value)>) -> Value {
-    let mut object = Map::new();
-    for (key, value) in entries {
-        object.insert(key, value);
-    }
-    Value::Object(object)
-}
 
 fn compute_pump(case: &Value) -> Result<Value, String> {
     let id = case_id(case)?;
