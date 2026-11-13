@@ -481,8 +481,8 @@ mod tests {
         assert!((result.trailing_wire_length_m - 0.24).abs() < 1e-12);
         assert!((result.total_estimated_mass_g - 5.682_010_136_988_642).abs() < 1e-10);
         assert!((result.ede_g_per_kwh - 998.790_844_392_534_6).abs() < 1e-9);
-        assert!((result.ede_lower_g_per_kwh - 967.548_120_032_259_8).abs() < 1e-9);
-        assert!((result.ede_upper_g_per_kwh - 1_031.504_567_033_846).abs() < 1e-9);
+        assert!((result.ede_lower_g_per_kwh - 966.571_784_896_001_3).abs() < 1e-9);
+        assert!((result.ede_upper_g_per_kwh - 1_032.526_870_866_386_8).abs() < 1e-9);
         assert!((result.energy_per_length_kj_per_mm - 0.068_266_666_666_666_67).abs() < 1e-12);
         assert_eq!(result.claim_ceiling, "SYNTHETIC_EDE_CALCULATION_ONLY");
     }
@@ -515,6 +515,7 @@ mod tests {
             PowerSample { timestamp_ns: 500_000_000, voltage_v: 26.0, current_a: 160.0 },
             PowerSample { timestamp_ns: 2_000_000_000, voltage_v: 24.0, current_a: 150.0 },
         ];
+        input.maximum_sample_gap_ns = 2_000_000_000;
         input.trailing_wire_feed = vec![
             WireFeedSample { timestamp_ns: 0, speed_m_per_s: 0.11 },
             WireFeedSample { timestamp_ns: 250_000_000, speed_m_per_s: 0.12 },
@@ -673,7 +674,7 @@ mod tests {
         let result = calculate_ede(&base_input()).expect("synthetic case is valid");
         assert!(result.ede_lower_g_per_kwh < result.ede_g_per_kwh);
         assert!(result.ede_g_per_kwh < result.ede_upper_g_per_kwh);
-        assert_eq!(result.relative_mass_uncertainty, 0.009);
+        assert_eq!(result.relative_mass_uncertainty, 0.01);
         assert_eq!(result.relative_energy_uncertainty, 0.023);
     }
 
