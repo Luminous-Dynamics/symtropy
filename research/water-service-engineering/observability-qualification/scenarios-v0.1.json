@@ -195,7 +195,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "All four critical states have current direct sensors with independent physical, calibration, power, communication, clock and measurement-principle domains."
     },
@@ -376,7 +377,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "One required junction pressure sensor is physically failed; no alternate independent channel or qualified estimator exists."
     },
@@ -597,7 +599,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "Two nominally separate level channels share one calibration lineage; a calibration-domain fault invalidates both and must not earn redundancy credit."
     },
@@ -818,7 +821,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "Two different measurement principles still share a common UPS; a power-domain failure invalidates both."
     },
@@ -1039,7 +1043,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "Separate sensors routed through the same gateway are not independent against gateway loss."
     },
@@ -1260,7 +1265,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "A common clock-domain drift makes both time-dependent level observations invalid; they are indeterminate, not two agreeing measurements."
     },
@@ -1441,7 +1447,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "All sensor channels are available, but the structural certificate is bound to an earlier topology revision/digest and must not be reused."
     },
@@ -1587,7 +1594,10 @@
         "calibration_sample_count": 200,
         "max_interval_width": 0.65,
         "condition_number_bound": 1000000000,
-        "validity_domain_ref": "SYNTHETIC-VALIDITY-01"
+        "validity_domain_ref": "SYNTHETIC-VALIDITY-01",
+        "covered_state_ids": [
+          "tank_level_2"
+        ]
       },
       "note": "The topology-only structural test passes, but the numerical estimator for tank_level_2 is badly conditioned and its interval evidence is insufficient."
     },
@@ -1733,7 +1743,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "The topology/state mapping omits a required junction pressure binding; a structural result cannot certify the full required state set."
     },
@@ -1954,7 +1965,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "A second pressure channel has independent physical, calibration, power, communication, clock and measurement-principle dependencies, so it survives the primary calibration-domain failure."
     },
@@ -2100,7 +2112,10 @@
         "calibration_sample_count": 200,
         "max_interval_width": 0.12,
         "condition_number_bound": 1200,
-        "validity_domain_ref": "SYNTHETIC-VALIDITY-01"
+        "validity_domain_ref": "SYNTHETIC-VALIDITY-01",
+        "covered_state_ids": [
+          "tank_level_2"
+        ]
       },
       "note": "Tank level 2 has no direct sensor; a fully referenced synthetic estimator contract meets the fixture's scope, holdout, interval and OOD requirements. No physical qualification is claimed."
     },
@@ -2281,7 +2296,8 @@
         "calibration_sample_count": null,
         "max_interval_width": null,
         "condition_number_bound": null,
-        "validity_domain_ref": null
+        "validity_domain_ref": null,
+        "covered_state_ids": []
       },
       "note": "No topology-bound structural certificate has been verified; direct sensor values may exist but they cannot establish network-wide observability under this contract."
     }
