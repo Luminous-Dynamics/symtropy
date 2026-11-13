@@ -21,7 +21,7 @@
       "const": "0.1.0"
     },
     "canonicalization": {
-      "const": "rfc8785"
+      "const": "ld-json-integer-canonical-v1"
     },
     "producer": {
       "type": "object",
