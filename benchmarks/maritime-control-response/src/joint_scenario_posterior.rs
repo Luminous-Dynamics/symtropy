@@ -222,6 +222,18 @@ pub fn new_joint_scenario_posterior_ledger(
     {
         return Err(JointPosteriorError::CandidateNotSelected);
     }
+    let selected_catalogue_candidate = candidates
+        .iter()
+        .find(|item| item.candidate_id == candidate.candidate_id)
+        .ok_or(JointPosteriorError::CandidateNotSelected)?;
+    if selected_catalogue_candidate.candidate_manifest_sha256
+        != candidate.candidate_manifest_sha256
+        || candidate_manifest_sha256(selected_catalogue_candidate)
+            .map_err(|_| JointPosteriorError::CandidateManifestMismatch)?
+            != selected_catalogue_candidate.candidate_manifest_sha256
+    {
+        return Err(JointPosteriorError::CandidateManifestMismatch);
+    }
 
     validate_candidate_scenarios(candidate)?;
     let candidate_digest = candidate_manifest_sha256(candidate)
@@ -898,6 +910,40 @@ mod tests {
         );
         assert!(ledger.parent_ledger_sha256.is_none());
         assert!(validate_joint_ledger(&ledger).is_ok());
+    }
+
+    #[test]
+    fn genesis_rejects_same_id_candidate_substitution_outside_selected_catalogue() {
+        let selected = candidate();
+        let mut substituted = selected.clone();
+        substituted.expected_cost_seconds += 1.0;
+        substituted.candidate_manifest_sha256 =
+            candidate_manifest_sha256(&substituted).unwrap();
+
+        let hypotheses = hypotheses();
+        let candidates = vec![selected];
+        let policy = ProbeSelectionPolicy::conservative_read_only();
+        let portfolio = rank_diagnostic_probes(&hypotheses, &candidates, &policy).unwrap();
+        let selection = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::RiskAdjustedWorstCaseInformationGain,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+
+        assert_eq!(
+            new_joint_scenario_posterior_ledger(JointScenarioStartContext {
+                hypotheses: &hypotheses,
+                candidates: &candidates,
+                policy: &policy,
+                portfolio: &portfolio,
+                selection: &selection,
+                candidate: &substituted,
+            }),
+            Err(JointPosteriorError::CandidateManifestMismatch)
+        );
     }
 
     #[test]
