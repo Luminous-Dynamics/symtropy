@@ -124,6 +124,7 @@ exclude = [
     "crates/tools/shipyard-weld-physics-vvuq",
     "crates/tools/shipyard-distortion-co-design",
     "crates/tools/shipyard-tandem-gmaw-admission",
+    "crates/tools/manufacturing-dt-commissioning",
 ]
 members = [
     ".",
