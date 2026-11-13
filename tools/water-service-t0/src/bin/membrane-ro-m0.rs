@@ -35,14 +35,14 @@ fn run() -> Result<i32, String> {
         );
     }
     let input_path = PathBuf::from(
-        args.first().map(String::as_str).unwrap_or(
-            "research/water-service-engineering/membrane-ro-m0-cases-v0.1.json",
-        ),
+        args.first()
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/membrane-ro-m0-cases-v0.1.json"),
     );
     let oracle_path = PathBuf::from(
-        args.get(1).map(String::as_str).unwrap_or(
-            "research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json",
-        ),
+        args.get(1)
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json"),
     );
     let schema_path = PathBuf::from(
         args.get(2)
