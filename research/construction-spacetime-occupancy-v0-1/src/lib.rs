@@ -8,7 +8,9 @@
 
 use std::collections::BTreeMap;
 
-use construction_robot_interop_core::resources::ReservationRequest;
+use construction_robot_interop_core::resources::{
+    ReservationBook, ReservationOutcome, ReservationRequest,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SiteBinding {
@@ -149,6 +151,12 @@ pub enum InsertOutcome {
     Duplicate,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CombinedAdmission {
+    pub reservation_outcome: ReservationOutcome,
+    pub occupancy_outcome: InsertOutcome,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpatialError {
     EmptyField(&'static str),
@@ -164,6 +172,7 @@ pub enum SpatialError {
     InvalidReservationInterval,
     OccupancyIdConflict(String),
     PotentialConflict(Box<ConflictRecord>),
+    Reservation(construction_robot_interop_core::resources::ReservationError),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -201,6 +210,33 @@ impl SpatialOccupancyBook {
     /// been admitted by the existing reservation owner. This method checks the exact
     /// declared reservation fields for task, site epoch, clock domain and interval.
     /// It cannot prove that a caller actually obtained a grant from ReservationBook.
+    /// Atomically admit the time/resource reservation and its spatial occupancy
+    /// against cloned in-memory owners. No partial mutation is committed when either
+    /// owner rejects the candidate. This is a single-process composition primitive,
+    /// not a distributed transaction, durable commit or safety authorization.
+    pub fn reserve_and_insert(
+        &mut self,
+        reservation_book: &mut ReservationBook,
+        occupancy: SpatialOccupancy,
+        now_ms: u64,
+    ) -> Result<CombinedAdmission, SpatialError> {
+        let mut candidate_reservations = reservation_book.clone();
+        let mut candidate_occupancies = self.clone();
+
+        let reservation_outcome = candidate_reservations
+            .reserve(occupancy.reservation.clone(), now_ms)
+            .map_err(SpatialError::Reservation)?;
+        let occupancy_outcome = candidate_occupancies.insert(occupancy)?;
+
+        *reservation_book = candidate_reservations;
+        *self = candidate_occupancies;
+
+        Ok(CombinedAdmission {
+            reservation_outcome,
+            occupancy_outcome,
+        })
+    }
+
     pub fn insert(&mut self, occupancy: SpatialOccupancy) -> Result<InsertOutcome, SpatialError> {
         require_non_empty("occupancy_id", &occupancy.occupancy_id)?;
         require_non_empty("task_id", &occupancy.task_id)?;
@@ -800,6 +836,94 @@ mod tests {
         );
         item.reservation.clock_uncertainty_ms = 1;
         assert_eq!(book.insert(item), Err(SpatialError::TimeExpansionOverflow));
+    }
+
+    #[test]
+    fn combined_admission_rolls_back_resource_reservation_on_spatial_conflict() {
+        let mut spatial = book();
+        let mut reservations =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
+        reservations
+            .register_resource("workface-resource", 1)
+            .expect("resource");
+
+        let first = occupancy(
+            "first",
+            "task-first",
+            OccupancyKind::Workface,
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+        );
+        let second = occupancy(
+            "second",
+            "task-second",
+            OccupancyKind::RobotOperatingEnvelope,
+            bounds([500, 500, 0], [1_500, 1_500, 1_000]),
+            50,
+            150,
+        );
+
+        let admitted = spatial
+            .reserve_and_insert(&mut reservations, first, 0)
+            .expect("first admission");
+        assert_eq!(
+            admitted,
+            CombinedAdmission {
+                reservation_outcome: ReservationOutcome::Granted,
+                occupancy_outcome: InsertOutcome::AdmittedToSpatialIndex,
+            }
+        );
+
+        assert!(matches!(
+            spatial.reserve_and_insert(&mut reservations, second, 0),
+            Err(SpatialError::PotentialConflict(_))
+        ));
+        assert_eq!(spatial.occupancy_count(), 1);
+        assert_eq!(reservations.state("reservation-second"), None);
+        assert_eq!(
+            reservations.state("reservation-first"),
+            Some(construction_robot_interop_core::resources::ReservationState::Active)
+        );
+    }
+
+    #[test]
+    fn combined_admission_rolls_back_occupancy_when_resource_capacity_rejects() {
+        let mut spatial = book();
+        let mut reservations =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
+        reservations
+            .register_resource("workface-resource", 1)
+            .expect("resource");
+
+        let first = occupancy(
+            "first",
+            "task-first",
+            OccupancyKind::Workface,
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+        );
+        let second = occupancy(
+            "second",
+            "task-second",
+            OccupancyKind::TransitCorridor,
+            bounds([2_000, 0, 0], [3_000, 1_000, 1_000]),
+            50,
+            150,
+        );
+
+        spatial
+            .reserve_and_insert(&mut reservations, first, 0)
+            .expect("first admission");
+        assert!(matches!(
+            spatial.reserve_and_insert(&mut reservations, second, 0),
+            Err(SpatialError::Reservation(
+                construction_robot_interop_core::resources::ReservationError::CapacityExceeded { .. }
+            ))
+        ));
+        assert_eq!(spatial.occupancy_count(), 1);
+        assert_eq!(reservations.state("reservation-second"), None);
     }
 
     #[test]
