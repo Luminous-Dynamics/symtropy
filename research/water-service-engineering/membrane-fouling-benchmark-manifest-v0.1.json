@@ -1,0 +1,101 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-FOULING-QUAL-001",
+  "dataset_crosswalk_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+  "status": "dataset_metadata_catalogued_no_raw_archives_acquired",
+  "evidence_ceiling": "design_and_metadata_only_no_fouling_model_or_cleaning_performance_claim",
+  "datasets": {
+    "BRISTOL_POU_UF_34M": {
+      "track": "M1",
+      "evidence": "one_site_POU_UF_34_month_5min_rolling_telemetry",
+      "time_range": [
+        "2019-11-01",
+        "2022-09-27"
+      ],
+      "rights": "OGL_v3_record_level",
+      "intake": "metadata_only"
+    },
+    "BRISTOL_POU_WQ_12W": {
+      "track": "M2",
+      "evidence": "12_week_5min_POU_telemetry_plus_9_lab_timepoints_at_3_locations",
+      "time_range": [
+        "2019-11-01",
+        "2020-02-29"
+      ],
+      "rights": "OGL_v3_record_level",
+      "intake": "metadata_only"
+    },
+    "MOROCCO_RO_SCADA_6Y": {
+      "track": "M3",
+      "evidence": "paper_reported_six_year_industrial_RO_SCADA_raw_data_request_only",
+      "rights": "request_pending",
+      "intake": "paper_reference_only"
+    },
+    "ARMSTRONG_RO_CROSSFLOW_2022": {
+      "track": "M0",
+      "evidence": "controlled_crossflow_transport_property_experiment",
+      "rights": "paper_CC_BY_NC_ND_4_0_OSF_file_terms_pending",
+      "intake": "metadata_only"
+    }
+  },
+  "model_benchmark": {
+    "split": "strict_chronological_with_gap_purge_and_grouped_maintenance_cycles_where_verified",
+    "baselines": [
+      "fixed_schedule",
+      "operator_threshold",
+      "EWMA_CUSUM",
+      "mechanistic_resistance_transport",
+      "linear_AR",
+      "regularized_XGBoost",
+      "GRU",
+      "physics_informed_residual_model",
+      "CNN_GRU_only_if_data_supports"
+    ],
+    "tasks": [
+      "M0_transport_calculation",
+      "M1_UF_state_forecasting",
+      "M2_sample_time_quality_audit",
+      "M3_industrial_RO_replication",
+      "M4_cross_site_module_transfer"
+    ],
+    "horizons": [
+      "5 minutes",
+      "1 hour",
+      "24 hours",
+      "7 days",
+      "15-20 days only on original industrial RO population"
+    ],
+    "metrics": [
+      "MAE",
+      "RMSE",
+      "MASE",
+      "prediction_interval_coverage",
+      "PR_AUC_when_event_labels_exist",
+      "false_alerts_per_module_week",
+      "event_warning_lead_time",
+      "post_CIP_recovery",
+      "kWh_per_m3_conforming_permeate",
+      "chemical_consumption_per_m3",
+      "cleaning_water_per_m3",
+      "water_recovery",
+      "membrane_integrity",
+      "cost_per_m3_conforming_water"
+    ],
+    "non_pooling_rules": [
+      "UF_NF_RO_are_separate_populations",
+      "forecast_accuracy_is_not_fouling_mechanism_identification",
+      "permeability_is_not_water_quality",
+      "lab_samples_are_labels_only_at_actual_sample_time_and_location",
+      "paper_reported_industrial_warning_is_not_reproduced",
+      "no_cleaning_recommendation_without_event_ground_truth_and_operational_cost"
+    ]
+  },
+  "improvement_targets_not_achieved": {
+    "warning": "stretch goals not achieved performance claims",
+    "false_cleaning_alarm_reduction_percent": 10,
+    "additional_conforming_permeate_per_cleaning_cycle_percent": 10,
+    "cleaning_energy_or_chemical_burden_reduction_percent": 10,
+    "nominal_90pct_interval_empirical_coverage_target": 0.9
+  }
+}
