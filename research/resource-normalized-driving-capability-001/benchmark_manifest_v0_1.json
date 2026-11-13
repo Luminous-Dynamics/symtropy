@@ -432,6 +432,22 @@
       "protocol": "Regulatory recall narrative and event chronology only. The report is not a controlled benchmark, fleet failure-rate denominator, independent root-cause study or estimate of public-road prevalence. Use it to motivate scenario families and negative controls, not to rank systems.",
       "source": "https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf",
       "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "tieriv_autoe2e_2026_11_11",
+      "class": "industry_fast_slow_architecture",
+      "name": "TIER IV AutoE2E (announced 2026-11-11)",
+      "metric_values": null,
+      "capabilities": [
+        "79.9 million parameters",
+        "Fast–Slow architecture: Reactive Model, World Model and Reasoning Model",
+        "Reactive Model released; World Model and Reasoning Model remain in development per the announcement",
+        "sensor profiles range from cameras-only to LiDAR/radar configurations",
+        "designed for deployment on compute platforms beyond NVIDIA"
+      ],
+      "protocol": "Architecture and availability reference only; no native performance score is registered in the announcement. Compare the released reactive component separately from the developing world/reasoning components. It is a compact fast-path architectural reference, not a verified complete stack result.",
+      "source": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "independent_symtropy_reproduction": false
     }
   ],
   "benchmark_ladder": [
@@ -911,6 +927,12 @@
       "url": "https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf",
       "published": "2026-06-17",
       "source_type": "NHTSA Part 573 regulatory recall report; official event chronology and remedy description"
+    },
+    {
+      "id": "tieriv_autoe2e",
+      "url": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "published": "2026-11-11",
+      "source_type": "TIER IV press release"
     }
   ],
   "statistical_method": {
