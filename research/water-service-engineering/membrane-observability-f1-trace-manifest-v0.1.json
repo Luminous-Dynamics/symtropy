@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-OBSERVABILITY-FAULT-F1-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5059",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5056",
+  "input_corpus": "research/water-service-engineering/membrane-observability-f1-traces-v0.1.json",
+  "oracle": "research/water-service-engineering/membrane-observability-f1-trace-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/membrane-observability-f1-traces.schema.json",
+  "trace_count": 9,
+  "steps_per_trace": 8,
+  "sampling_interval_minutes": 5,
+  "metrics": [
+    "event_detection_delay_steps",
+    "event_detection_delay_minutes",
+    "false_fouling_windows_sensor_only",
+    "false_fouling_windows_regime_only",
+    "false_alerts_per_trace_hour",
+    "recovery_after_sensor_fault_clear_steps",
+    "abstention_count",
+    "false_cip_recommendations"
+  ],
+  "split_rules": [
+    "keep_all_windows_from_a_trace_in_one_split",
+    "hold_out_complete_fault_family_and_severity_combinations",
+    "hold_out_generator_seed",
+    "no_random_window_split"
+  ],
+  "status": "synthetic_trace_baseline_contract_only",
+  "nonclaims": [
+    "no_real_plant_detection_delay",
+    "no_empirical_false_alarm_rate",
+    "no_cleaning_or_actuator_authority"
+  ]
+}

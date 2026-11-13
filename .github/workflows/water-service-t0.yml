@@ -331,6 +331,12 @@ jobs:
             research/water-service-engineering/membrane-observability-fault.schema.json
             research/water-service-engineering/membrane-observability-fault-manifest-v0.1.json
             artifacts/membrane-observability-fault-f0/receipt.json
+            research/water-service-engineering/MEMBRANE_OBSERVABILITY_FAULT_F1_TRACE_PROTOCOL_V0_1.md
+            research/water-service-engineering/membrane-observability-f1-traces-v0.1.json
+            research/water-service-engineering/membrane-observability-f1-trace-oracle-v0.1.json
+            research/water-service-engineering/membrane-observability-f1-traces.schema.json
+            research/water-service-engineering/membrane-observability-f1-trace-manifest-v0.1.json
+            artifacts/membrane-observability-f1/receipt.json
       - name: Validate membrane observability and sensor-fault F0 contracts
         id: membrane_observability_f0_contracts
         run: |
@@ -428,6 +434,126 @@ jobs:
             research/water-service-engineering/membrane-observability-fault.schema.json \
             research/water-service-engineering/membrane-observability-fault-manifest-v0.1.json \
             artifacts/membrane-observability-fault-f0/receipt.json
+      - name: Validate time-indexed membrane observability F1 traces
+        id: membrane_observability_f1_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-observability-f1-traces.schema.json").read_text())
+          inputs = json.loads((root / "membrane-observability-f1-traces-v0.1.json").read_text())
+          oracle = json.loads((root / "membrane-observability-f1-trace-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-observability-f1-trace-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_OBSERVABILITY_F1_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          expected_by_id = {trace["trace_id"]: trace for trace in oracle["traces"]}
+          ids = [trace["trace_id"] for trace in inputs["traces"]]
+          if len(ids) != 9 or len(set(ids)) != 9 or len(expected_by_id) != 9:
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F1_TRACE_IDENTITY_FAIL")
+          if sorted(ids) != sorted(expected_by_id) or manifest["trace_count"] != 9:
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F1_INPUT_ORACLE_MANIFEST_FAIL")
+          thresholds = inputs["baseline_thresholds"]
+
+          def classify(i):
+              sensor = (
+                  i["pressure_sensor_pair_delta_fraction"] > thresholds["pressure_pair_residual_fraction"]
+                  or i["flow_sensor_pair_delta_fraction"] > thresholds["flow_pair_residual_fraction"]
+                  or abs(i["clock_skew_seconds"]) > thresholds["absolute_clock_skew_seconds"]
+                  or i["critical_channel_missing_fraction"] > thresholds["critical_channel_missing_fraction"]
+              )
+              regime = (
+                  abs(i["temperature_delta_c"]) > thresholds["absolute_temperature_shift_c"]
+                  or abs(i["feed_conductivity_ratio"] - 1.0) > thresholds["feed_conductivity_ratio_deviation"]
+                  or abs(i["pump_speed_ratio"] - 1.0) > thresholds["pump_speed_ratio_deviation"]
+              )
+              resistance, uncertainty = i["normalized_resistance_ratio"], i["normalized_resistance_relative_uncertainty"]
+              observable = resistance is not None and uncertainty is not None and uncertainty <= thresholds["maximum_resistance_relative_uncertainty"]
+              fouling = observable and resistance > thresholds["normalized_resistance_ratio"]
+              if sensor and (fouling or regime):
+                  return "MULTIPLE_CAUSES"
+              if sensor:
+                  return "SENSOR_FAULT_SUSPECTED"
+              if fouling and regime:
+                  return "MULTIPLE_CAUSES"
+              if fouling:
+                  return "FOULING_SUSPECTED"
+              if regime:
+                  return "OPERATING_REGIME_SHIFT"
+              if not observable:
+                  return "INDETERMINATE"
+              return "NO_FAULT"
+
+          windows = 0
+          false_sensor, false_regime, false_stable, false_cip = 0, 0, 0, 0
+          delays = []
+          for trace in inputs["traces"]:
+              expected = expected_by_id[trace["trace_id"]]
+              if len(trace["steps"]) != 8 or len(expected["expected_dispositions"]) != 8 or len(expected["expected_cip_recommendations"]) != 8:
+                  raise SystemExit(f"MEMBRANE_OBSERVABILITY_F1_STEP_COUNT_FAIL: {trace['trace_id']}")
+              actual_dispositions = []
+              for index, step in enumerate(trace["steps"]):
+                  if step["time_index"] != index or step["elapsed_minutes"] != index * 5:
+                      raise SystemExit(f"MEMBRANE_OBSERVABILITY_F1_TIME_INDEX_FAIL: {trace['trace_id']}")
+                  actual = classify(step["inputs"])
+                  actual_dispositions.append(actual)
+                  target = expected["expected_dispositions"][index]
+                  if target["time_index"] != index or actual != target["expected_disposition"]:
+                      raise SystemExit(f"MEMBRANE_OBSERVABILITY_F1_ORACLE_MISMATCH: {trace['trace_id']} step {index}")
+                  if expected["expected_cip_recommendations"][index] is not False:
+                      raise SystemExit("MEMBRANE_OBSERVABILITY_F1_CIP_ORACLE_MUST_BE_FALSE")
+                  if actual in ("FOULING_SUSPECTED", "MULTIPLE_CAUSES"):
+                      if trace["event_class"] == "SENSOR_ONLY":
+                          false_sensor += 1
+                      elif trace["event_class"] == "REGIME_ONLY":
+                          false_regime += 1
+                      elif trace["event_class"] == "NONE":
+                          false_stable += 1
+                  windows += 1
+              positive = trace["event_class"] in ("FOULING", "FOULING_AND_SENSOR")
+              detected = None
+              if positive:
+                  onset = trace["event_onset_step_index"]
+                  detected = next(
+                      (index for index, disposition in enumerate(actual_dispositions)
+                       if index >= onset and disposition in ("FOULING_SUSPECTED", "MULTIPLE_CAUSES")),
+                      None,
+                  )
+                  if detected is not None:
+                      delays.append(detected - onset)
+              if detected != expected["expected_detected_step_index"]:
+                  raise SystemExit(f"MEMBRANE_OBSERVABILITY_F1_DETECTION_INDEX_FAIL: {trace['trace_id']}")
+
+          if windows != 72 or false_sensor or false_regime or false_stable or false_cip:
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F1_NEGATIVE_CONTROL_OR_COUNT_FAIL")
+          if len(delays) != 2 or any(delay != 0 for delay in delays):
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F1_SYNTHETIC_EVENT_DELAY_FAIL")
+          print("MEMBRANE_OBSERVABILITY_F1_PASS: 9 traces / 72 windows; 2 synthetic fouling events detected at declared onset; zero false fouling/CIP on negative controls")
+          PY
+      - name: Evaluate membrane observability F1 traces at exact revision
+        id: membrane_observability_f1
+        env:
+          MEMBRANE_OBSERVABILITY_F1_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin membrane-observability-f1 -- \
+            research/water-service-engineering/membrane-observability-f1-traces-v0.1.json \
+            research/water-service-engineering/membrane-observability-f1-trace-oracle-v0.1.json \
+            research/water-service-engineering/membrane-observability-f1-traces.schema.json \
+            research/water-service-engineering/membrane-observability-f1-trace-manifest-v0.1.json \
+            artifacts/membrane-observability-f1/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -469,6 +595,8 @@ jobs:
           MEMBRANE_RO_M0B_OUTCOME: ${{ steps.membrane_ro_m0b.outcome }}
           MEMBRANE_OBSERVABILITY_F0_CONTRACTS_OUTCOME: ${{ steps.membrane_observability_f0_contracts.outcome }}
           MEMBRANE_OBSERVABILITY_F0_OUTCOME: ${{ steps.membrane_observability_f0.outcome }}
+          MEMBRANE_OBSERVABILITY_F1_CONTRACTS_OUTCOME: ${{ steps.membrane_observability_f1_contracts.outcome }}
+          MEMBRANE_OBSERVABILITY_F1_OUTCOME: ${{ steps.membrane_observability_f1.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
@@ -478,3 +606,5 @@ jobs:
           test "$MEMBRANE_RO_M0B_OUTCOME" = "success"
           test "$MEMBRANE_OBSERVABILITY_F0_CONTRACTS_OUTCOME" = "success"
           test "$MEMBRANE_OBSERVABILITY_F0_OUTCOME" = "success"
+          test "$MEMBRANE_OBSERVABILITY_F1_CONTRACTS_OUTCOME" = "success"
+          test "$MEMBRANE_OBSERVABILITY_F1_OUTCOME" = "success"

@@ -226,5 +226,15 @@
       "10.3389/frwa.2026.1863523"
     ],
     "key_gate": "chronological_and_regime_holdout_required_before_any_SOTA_claim"
+  },
+  "membrane_observability_fault_f1": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5059",
+    "protocol": "research/water-service-engineering/MEMBRANE_OBSERVABILITY_FAULT_F1_TRACE_PROTOCOL_V0_1.md",
+    "inputs": "research/water-service-engineering/membrane-observability-f1-traces-v0.1.json",
+    "oracle": "research/water-service-engineering/membrane-observability-f1-trace-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/membrane-observability-f1-traces.schema.json",
+    "manifest": "research/water-service-engineering/membrane-observability-f1-trace-manifest-v0.1.json",
+    "cli": "tools/water-service-t0/src/bin/membrane-observability-f1.rs",
+    "status": "synthetic_9_trace_72_window_baseline_contract_only"
   }
 }

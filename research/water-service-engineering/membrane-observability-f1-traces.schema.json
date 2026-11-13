@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic time-indexed membrane observability and fault-injection traces",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "baseline_thresholds",
+    "traces"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-observability-f1-traces-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_time_indexed_fault_injection"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_trace_evaluation_only_no_plant_detection_latency_or_alarm_rate_claim"
+    },
+    "baseline_thresholds": {
+      "type": "object",
+      "minProperties": 9
+    },
+    "traces": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trace_id",
+          "sampling_interval_minutes",
+          "event_class",
+          "event_onset_step_index",
+          "steps"
+        ],
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "pattern": "^MTR-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "sampling_interval_minutes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "event_class": {
+            "enum": [
+              "NONE",
+              "FOULING",
+              "SENSOR_ONLY",
+              "REGIME_ONLY",
+              "FOULING_AND_SENSOR"
+            ]
+          },
+          "event_onset_step_index": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "steps": {
+            "type": "array",
+            "minItems": 8,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "time_index",
+                "elapsed_minutes",
+                "inputs"
+              ],
+              "properties": {
+                "time_index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "elapsed_minutes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "inputs": {
+                  "type": "object",
+                  "minProperties": 9
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
