@@ -27,7 +27,10 @@ impl fmt::Display for DecisionError {
             Self::DimensionMismatch(name) => write!(f, "dimension mismatch: {name}"),
             Self::InvalidProbability(name) => write!(f, "invalid probability: {name}"),
             Self::InvalidLossOrCost(name) => write!(f, "invalid loss or cost: {name}"),
-            Self::NegativeEvsi => write!(f, "expected value of sample information is materially negative"),
+            Self::NegativeEvsi => write!(
+                f,
+                "expected value of sample information is materially negative"
+            ),
         }
     }
 }
@@ -69,7 +72,9 @@ impl DecisionProblem {
             return Err(DecisionError::DimensionMismatch("hypothesis_ids/prior"));
         }
         if decision_ids.len() != loss_by_decision.len() || decision_ids.is_empty() {
-            return Err(DecisionError::DimensionMismatch("decision_ids/loss_by_decision"));
+            return Err(DecisionError::DimensionMismatch(
+                "decision_ids/loss_by_decision",
+            ));
         }
         if loss_unit.trim().is_empty() {
             return Err(DecisionError::InvalidIdentifier("loss_unit"));
@@ -82,16 +87,29 @@ impl DecisionProblem {
                 return Err(DecisionError::InvalidLossOrCost("loss matrix"));
             }
         }
-        Ok(Self { hypothesis_ids, prior, decision_ids, loss_by_decision, loss_unit })
+        Ok(Self {
+            hypothesis_ids,
+            prior,
+            decision_ids,
+            loss_by_decision,
+            loss_unit,
+        })
     }
 
     fn minimum_expected_loss(&self, probabilities: &[f64]) -> DecisionResult<f64> {
         if probabilities.len() != self.hypothesis_ids.len() {
             return Err(DecisionError::DimensionMismatch("posterior hypotheses"));
         }
-        let minimum = self.loss_by_decision.iter().map(|row| {
-            row.iter().zip(probabilities).map(|(loss, probability)| *loss * *probability).sum::<f64>()
-        }).fold(f64::INFINITY, f64::min);
+        let minimum = self
+            .loss_by_decision
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .zip(probabilities)
+                    .map(|(loss, probability)| *loss * *probability)
+                    .sum::<f64>()
+            })
+            .fold(f64::INFINITY, f64::min);
         if minimum.is_finite() {
             Ok(minimum)
         } else {
@@ -130,7 +148,9 @@ impl MeasurementAction {
         }
         validate_unique_ids(&outcome_ids, "outcome_ids")?;
         if likelihoods.len() != hypothesis_count || hypothesis_count == 0 {
-            return Err(DecisionError::DimensionMismatch("likelihood hypothesis rows"));
+            return Err(DecisionError::DimensionMismatch(
+                "likelihood hypothesis rows",
+            ));
         }
         if outcome_ids.is_empty() {
             return Err(DecisionError::DimensionMismatch("outcome_ids"));
@@ -143,11 +163,19 @@ impl MeasurementAction {
         }
         for row in &likelihoods {
             if row.len() != outcome_ids.len() {
-                return Err(DecisionError::DimensionMismatch("likelihood outcome columns"));
+                return Err(DecisionError::DimensionMismatch(
+                    "likelihood outcome columns",
+                ));
             }
             validate_distribution(row, "likelihood row")?;
         }
-        Ok(Self { action_id, outcome_ids, likelihoods, acquisition_cost, cost_unit })
+        Ok(Self {
+            action_id,
+            outcome_ids,
+            likelihoods,
+            acquisition_cost,
+            cost_unit,
+        })
     }
 }
 
@@ -186,9 +214,14 @@ impl DecisionProblem {
     /// information separately. Does not select or authorize a real measurement.
     pub fn assess(&self, action: &MeasurementAction) -> DecisionResult<MeasurementAssessment> {
         if action.likelihoods.len() != self.hypothesis_ids.len()
-            || action.likelihoods.iter().any(|row| row.len() != action.outcome_ids.len())
+            || action
+                .likelihoods
+                .iter()
+                .any(|row| row.len() != action.outcome_ids.len())
         {
-            return Err(DecisionError::DimensionMismatch("action/problem dimensions"));
+            return Err(DecisionError::DimensionMismatch(
+                "action/problem dimensions",
+            ));
         }
 
         let prior_minimum_expected_loss = self.minimum_expected_loss(&self.prior)?;
@@ -197,18 +230,22 @@ impl DecisionProblem {
         let mut expected_posterior_entropy = 0.0;
 
         for (outcome_index, _) in action.outcome_ids.iter().enumerate() {
-            let weighted: Vec<f64> = self.prior.iter().enumerate()
+            let weighted: Vec<f64> = self
+                .prior
+                .iter()
+                .enumerate()
                 .map(|(h, prior)| *prior * action.likelihoods[h][outcome_index])
                 .collect();
             let outcome_probability: f64 = weighted.iter().sum();
             if outcome_probability <= f64::EPSILON {
                 continue;
             }
-            let posterior: Vec<f64> = weighted.iter()
+            let posterior: Vec<f64> = weighted
+                .iter()
                 .map(|probability| probability / outcome_probability)
                 .collect();
-            expected_posterior_minimum_loss += outcome_probability
-                * self.minimum_expected_loss(&posterior)?;
+            expected_posterior_minimum_loss +=
+                outcome_probability * self.minimum_expected_loss(&posterior)?;
             expected_posterior_entropy += outcome_probability * entropy_bits(&posterior);
         }
 
@@ -227,7 +264,9 @@ impl DecisionProblem {
             raw_eig
         };
         if !expected_information_gain_bits.is_finite() || expected_information_gain_bits < 0.0 {
-            return Err(DecisionError::InvalidProbability("expected information gain"));
+            return Err(DecisionError::InvalidProbability(
+                "expected information gain",
+            ));
         }
 
         let (net_value, disposition) = if action.cost_unit == self.loss_unit {
@@ -267,7 +306,11 @@ fn validate_unique_ids(ids: &[String], field: &'static str) -> DecisionResult<()
 }
 
 fn validate_distribution(values: &[f64], field: &'static str) -> DecisionResult<()> {
-    if values.is_empty() || values.iter().any(|p| !p.is_finite() || *p < 0.0 || *p > 1.0) {
+    if values.is_empty()
+        || values
+            .iter()
+            .any(|p| !p.is_finite() || *p < 0.0 || *p > 1.0)
+    {
         return Err(DecisionError::InvalidProbability(field));
     }
     let total: f64 = values.iter().sum();
@@ -278,7 +321,11 @@ fn validate_distribution(values: &[f64], field: &'static str) -> DecisionResult<
 }
 
 fn entropy_bits(probabilities: &[f64]) -> f64 {
-    probabilities.iter().filter(|p| **p > 0.0).map(|p| -*p * p.log2()).sum()
+    probabilities
+        .iter()
+        .filter(|p| **p > 0.0)
+        .map(|p| -*p * p.log2())
+        .sum()
 }
 
 #[cfg(test)]
@@ -297,7 +344,8 @@ mod tests {
             vec!["dispatch".to_owned(), "do_nothing".to_owned()],
             loss_by_decision,
             loss_unit.to_owned(),
-        ).expect("valid decision problem")
+        )
+        .expect("valid decision problem")
     }
 
     fn perfect_sensor(cost: f64, cost_unit: &str) -> MeasurementAction {
@@ -308,12 +356,15 @@ mod tests {
             cost,
             cost_unit.to_owned(),
             2,
-        ).expect("valid measurement action")
+        )
+        .expect("valid measurement action")
     }
 
     #[test]
     fn perfect_measurement_has_one_bit_and_positive_evsi() {
-        let assessment = binary_problem("USD", false).assess(&perfect_sensor(0.2, "USD")).expect("assessment");
+        let assessment = binary_problem("USD", false)
+            .assess(&perfect_sensor(0.2, "USD"))
+            .expect("assessment");
         assert!((assessment.expected_information_gain_bits - 1.0).abs() < 1e-9);
         assert!((assessment.expected_value_of_sample_information - 1.0).abs() < 1e-9);
         assert!((assessment.net_value.expect("comparable units") - 0.8).abs() < 1e-9);
@@ -329,8 +380,11 @@ mod tests {
             0.1,
             "USD".to_owned(),
             2,
-        ).expect("valid action");
-        let assessment = binary_problem("USD", false).assess(&action).expect("assessment");
+        )
+        .expect("valid action");
+        let assessment = binary_problem("USD", false)
+            .assess(&action)
+            .expect("assessment");
         assert!(assessment.expected_information_gain_bits.abs() < 1e-9);
         assert!(assessment.expected_value_of_sample_information.abs() < 1e-9);
         assert_eq!(assessment.disposition, AcquisitionDisposition::DoNotAcquire);
@@ -338,7 +392,9 @@ mod tests {
 
     #[test]
     fn information_gain_can_be_positive_while_evsi_is_zero() {
-        let assessment = binary_problem("USD", true).assess(&perfect_sensor(0.1, "USD")).expect("assessment");
+        let assessment = binary_problem("USD", true)
+            .assess(&perfect_sensor(0.1, "USD"))
+            .expect("assessment");
         assert!((assessment.expected_information_gain_bits - 1.0).abs() < 1e-9);
         assert!(assessment.expected_value_of_sample_information.abs() < 1e-9);
         assert!(assessment.net_value.expect("comparable units") < 0.0);
@@ -347,9 +403,14 @@ mod tests {
 
     #[test]
     fn incomparable_units_suppress_net_value_and_recommendation() {
-        let assessment = binary_problem("outage_minutes", false).assess(&perfect_sensor(0.1, "USD")).expect("assessment");
+        let assessment = binary_problem("outage_minutes", false)
+            .assess(&perfect_sensor(0.1, "USD"))
+            .expect("assessment");
         assert!(assessment.net_value.is_none());
-        assert_eq!(assessment.disposition, AcquisitionDisposition::NoCostBasedRecommendation);
+        assert_eq!(
+            assessment.disposition,
+            AcquisitionDisposition::NoCostBasedRecommendation
+        );
         assert!((assessment.expected_information_gain_bits - 1.0).abs() < 1e-9);
     }
 
