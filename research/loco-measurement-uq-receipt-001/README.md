@@ -19,6 +19,7 @@ Compose with:
 ## Implemented contract
 
 - Exact mission, robot, actuator, controller, scenario, test-manifest and measurement-window binding.
+- Predeclared channel applicability: Required or NotApplicable with a non-empty rationale; supplying a channel declared NotApplicable is rejected.
 - Measurement identity binds raw artifact, instrument configuration, calibration receipt, measurand, unit and scale.
 - Every uncertainty receipt binds to exactly one measurement and its exact artifact, instrument, calibration, unit and scope.
 - Conservative deterministic bounds and probabilistic coverage intervals are distinct types.
@@ -37,7 +38,7 @@ The reference validates evidence identity/completeness only. It does not validat
     cargo test --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml
     cargo clippy --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml --all-targets -- -D warnings
 
-The 17 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
+The 19 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
 
 ## Research basis
 
