@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Discrete expected-information and decision-value calculations.
 
 use core::fmt;
@@ -39,15 +42,15 @@ pub type DecisionResult<T> = Result<T, DecisionError>;
 #[derive(Clone, Debug, PartialEq)]
 pub struct DecisionProblem {
     /// Stable hypothesis identifiers.
-    pub hypothesis_ids: Vec<String>,
+    hypothesis_ids: Vec<String>,
     /// Prior probability of each hypothesis.
-    pub prior: Vec<f64>,
+    prior: Vec<f64>,
     /// Stable candidate decision identifiers.
-    pub decision_ids: Vec<String>,
+    decision_ids: Vec<String>,
     /// Loss matrix indexed by decision, then hypothesis.
-    pub loss_by_decision: Vec<Vec<f64>>,
+    loss_by_decision: Vec<Vec<f64>>,
     /// Declared unit for all decision losses.
-    pub loss_unit: String,
+    loss_unit: String,
 }
 
 impl DecisionProblem {
@@ -101,15 +104,15 @@ impl DecisionProblem {
 #[derive(Clone, Debug, PartialEq)]
 pub struct MeasurementAction {
     /// Stable measurement action identifier.
-    pub action_id: String,
+    action_id: String,
     /// Stable measurement outcome identifiers.
-    pub outcome_ids: Vec<String>,
+    outcome_ids: Vec<String>,
     /// Conditional probabilities indexed by hypothesis, then outcome.
-    pub likelihoods: Vec<Vec<f64>>,
+    likelihoods: Vec<Vec<f64>>,
     /// Acquisition cost in cost_unit.
-    pub acquisition_cost: f64,
+    acquisition_cost: f64,
     /// Unit for acquisition cost.
-    pub cost_unit: String,
+    cost_unit: String,
 }
 
 impl MeasurementAction {
@@ -193,7 +196,7 @@ impl DecisionProblem {
         let mut expected_posterior_minimum_loss = 0.0;
         let mut expected_posterior_entropy = 0.0;
 
-        for outcome_index in 0..action.outcome_ids.len() {
+        for (outcome_index, _) in action.outcome_ids.iter().enumerate() {
             let weighted: Vec<f64> = self.prior.iter().enumerate()
                 .map(|(h, prior)| prior * action.likelihoods[h][outcome_index])
                 .collect();
