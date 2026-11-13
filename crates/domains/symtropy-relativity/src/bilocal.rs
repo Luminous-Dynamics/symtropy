@@ -811,4 +811,78 @@ mod tests {
             Err(BilocalOperatorError::NonFinite("canonical variation"))
         ));
     }
+
+    #[test]
+    fn constant_zero_tidal_integrator_reduces_to_exact_minkowski_transfer() {
+        let zero = [[0.0; 4]; 4];
+        let integrated =
+            integrate_constant_tidal_fixed_step(zero, 1.25, 7, TOLERANCE).unwrap();
+        let exact = BilocalGeodesicOperator::minkowski(1.25).unwrap();
+        assert!(integrated.max_abs_difference(&exact) <= TOLERANCE);
+        assert!(integrated.symplectic_residual() <= TOLERANCE);
+    }
+
+    #[test]
+    fn constant_isotropic_tide_matches_analytic_oscillator_blocks() {
+        let omega: f64 = 0.7;
+        let interval: f64 = 1.1;
+        let mut tidal = [[0.0; 4]; 4];
+        for index in 0..4 {
+            tidal[index][index] = -omega * omega;
+        }
+        let integrated =
+            integrate_constant_tidal_fixed_step(tidal, interval, 512, TOLERANCE).unwrap();
+
+        let cosine = (omega * interval).cos();
+        let sine = (omega * interval).sin();
+        for index in 0..4 {
+            assert!((integrated.matrix()[index][index] - cosine).abs() <= 1.0e-10);
+            assert!(
+                (integrated.matrix()[index][index + 4] - sine / omega).abs() <= 1.0e-10
+            );
+            assert!(
+                (integrated.matrix()[index + 4][index] + omega * sine).abs() <= 1.0e-10
+            );
+            assert!((integrated.matrix()[index + 4][index + 4] - cosine).abs() <= 1.0e-10);
+        }
+        assert!(integrated.symplectic_residual() <= 1.0e-10);
+    }
+
+    #[test]
+    fn constant_tidal_transfers_compose_under_step_refinement() {
+        let mut tidal = [[0.0; 4]; 4];
+        tidal[0][0] = -0.49;
+        tidal[1][1] = -0.25;
+        tidal[2][2] = 0.16;
+        tidal[3][3] = 0.04;
+        let first = integrate_constant_tidal_fixed_step(tidal, 0.3, 256, TOLERANCE).unwrap();
+        let second = integrate_constant_tidal_fixed_step(tidal, 0.4, 256, TOLERANCE).unwrap();
+        let combined = second.compose(&first).unwrap();
+        let direct = integrate_constant_tidal_fixed_step(tidal, 0.7, 512, TOLERANCE).unwrap();
+        assert!(combined.max_abs_difference(&direct) <= 1.0e-9);
+        assert!(direct.symplectic_residual() <= 1.0e-9);
+    }
+
+    #[test]
+    fn constant_tidal_integrator_rejects_asymmetry_nonfinite_and_zero_steps() {
+        let mut asymmetric = [[0.0; 4]; 4];
+        asymmetric[0][1] = 1.0;
+        assert!(matches!(
+            integrate_constant_tidal_fixed_step(asymmetric, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::TidalSymmetryResidual { .. })
+        ));
+
+        let mut nonfinite = [[0.0; 4]; 4];
+        nonfinite[0][0] = f64::INFINITY;
+        assert_eq!(
+            integrate_constant_tidal_fixed_step(nonfinite, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::NonFinite("optical tidal matrix"))
+        );
+
+        assert_eq!(
+            integrate_constant_tidal_fixed_step([[0.0; 4]; 4], 1.0, 0, TOLERANCE),
+            Err(BilocalOperatorError::InvalidStepCount)
+        );
+    }
+
 }
