@@ -72,3 +72,12 @@ The JSON receipt binds the exact source commit and change-set SHA-256. CI checks
 ## Claim ceiling
 
 The fixture demonstrates deterministic software dependency propagation for one synthetic graph. It does not show that any physical vessel, sensor topology, engine, calibration, clock or operational qualification is current or valid. Real use requires an independently reviewed configuration/dependency graph, authoritative artifact digests, change identity and owner-approved requalification rules.
+
+
+## Path-explained impact receipts
+
+Reachability counts alone do not explain why a qualification is affected. The evaluator now emits a deterministic impact_paths array. Each path binds the exact change ID and changed evidence node, target qualification ID, ordered node path from changed evidence to qualification, and every traversed edge including its dependency type (requires, uses, calibrated_against, qualified_against or derived_from).
+
+All simple paths through the validated acyclic dependency graph are retained, so converging evidence changes and alternative dependency routes are not collapsed into one arbitrary explanation. Each qualification summary carries its own impact_path_count and sorted triggering_change_ids; unaffected qualifications must have zero paths. The synthetic fixture now has 12 source-to-qualification paths across five affected qualifications, while preserving five requalification-required and two unaffected qualification counts.
+
+Path enumeration is bounded at 100,000 qualification paths. Exceeding the limit fails closed rather than silently truncating an explanation. This is a deterministic explanation of the declared dependency graph, not proof that the graph itself is complete or physically correct.

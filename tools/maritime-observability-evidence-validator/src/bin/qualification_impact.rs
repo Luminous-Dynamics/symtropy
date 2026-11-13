@@ -253,6 +253,7 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
         .unwrap_or_default();
     let mut edge_set = BTreeSet::new();
     let mut dependents_by_prerequisite: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut dependency_type_by_edge: BTreeMap<(String, String), String> = BTreeMap::new();
     let mut adjacency: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
 
     for (index, edge) in edge_values.iter().enumerate() {
@@ -319,6 +320,10 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
             .entry(prerequisite.to_owned())
             .or_default()
             .insert(dependent.to_owned());
+        dependency_type_by_edge.insert(
+            (dependent.to_owned(), prerequisite.to_owned()),
+            text(edge, "dependency_type").unwrap_or("unknown").to_owned(),
+        );
     }
 
     // Kahn topological pass: a cycle makes qualification propagation ambiguous.
@@ -489,24 +494,87 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
         return Err(violations);
     }
 
-    // Traverse the reverse dependency graph. Each dependent qualification is
-    // reached once, even if several changed evidence paths converge on it.
-    let mut queue: VecDeque<String> = changed_nodes.iter().cloned().collect();
-    let mut visited_nodes = changed_nodes.clone();
+    // Enumerate every simple changed-evidence -> qualification path in the
+    // validated DAG. This preserves converging causes instead of only counting
+    // the reachable qualification once. A hard cap makes path explosion fail closed.
+    const MAX_IMPACT_PATHS: usize = 100_000;
     let mut impacted_nodes = BTreeSet::new();
     let mut traversed_edges = BTreeSet::new();
+    let mut impact_paths: Vec<Value> = Vec::new();
 
-    while let Some(prerequisite) = queue.pop_front() {
-        if let Some(dependents) = dependents_by_prerequisite.get(&prerequisite) {
-            for dependent in dependents {
-                traversed_edges.insert((dependent.clone(), prerequisite.clone()));
-                impacted_nodes.insert(dependent.clone());
-                if visited_nodes.insert(dependent.clone()) {
-                    queue.push_back(dependent.clone());
+    for change in &change_records {
+        let source_id = change["node_id"].as_str().expect("validated changed node");
+        let change_id = change["change_id"].as_str().expect("validated change ID");
+        let mut stack: Vec<(String, Vec<String>, Vec<Value>)> = vec![(
+            source_id.to_owned(),
+            vec![source_id.to_owned()],
+            Vec::new(),
+        )];
+
+        while let Some((current, node_path, edge_path)) = stack.pop() {
+            if let Some(dependents) = dependents_by_prerequisite.get(&current) {
+                for dependent in dependents.iter().rev() {
+                    if node_path.iter().any(|visited| visited == dependent) {
+                        continue;
+                    }
+                    let edge_key = (dependent.clone(), current.clone());
+                    let dependency_type = dependency_type_by_edge
+                        .get(&edge_key)
+                        .map(String::as_str)
+                        .unwrap_or("unknown");
+                    traversed_edges.insert(edge_key);
+
+                    let mut next_nodes = node_path.clone();
+                    next_nodes.push(dependent.clone());
+                    let mut next_edges = edge_path.clone();
+                    next_edges.push(json!({
+                        "from": current,
+                        "to": dependent,
+                        "dependency_type": dependency_type
+                    }));
+
+                    impacted_nodes.insert(dependent.clone());
+                    if nodes
+                        .get(dependent)
+                        .is_some_and(|node| text(node, "node_kind") == Some("qualification"))
+                    {
+                        if impact_paths.len() >= MAX_IMPACT_PATHS {
+                            violations.push(json!({
+                                "code": "IMPACT_PATH_LIMIT",
+                                "path": "$.dependency_edges",
+                                "detail": "more than 100000 impact paths; qualify a narrower dependency scope"
+                            }));
+                            return Err(violations);
+                        }
+                        impact_paths.push(json!({
+                            "change_id": change_id,
+                            "changed_node_id": source_id,
+                            "qualification_id": dependent,
+                            "node_path": next_nodes,
+                            "edges": next_edges,
+                            "edge_count": next_edges.len()
+                        }));
+                    }
+                    stack.push((dependent.clone(), next_nodes, next_edges));
                 }
             }
         }
     }
+
+    impact_paths.sort_by(|a, b| {
+        (
+            a["change_id"].as_str().unwrap_or(""),
+            a["qualification_id"].as_str().unwrap_or(""),
+            a["edge_count"].as_u64().unwrap_or(0),
+            a["node_path"].to_string(),
+        )
+            .cmp(&(
+                b["change_id"].as_str().unwrap_or(""),
+                b["qualification_id"].as_str().unwrap_or(""),
+                b["edge_count"].as_u64().unwrap_or(0),
+                b["node_path"].to_string(),
+            ))
+    });
 
     let mut impacted_qualifications = Vec::new();
     let mut unaffected_qualifications = Vec::new();
@@ -515,6 +583,15 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
             continue;
         }
         let prior_state = text(node, "qualification_state").unwrap_or("not_evaluated");
+        let qualification_paths: Vec<&Value> = impact_paths
+            .iter()
+            .filter(|path| path["qualification_id"].as_str() == Some(id.as_str()))
+            .collect();
+        let triggering_change_ids: BTreeSet<&str> = qualification_paths
+            .iter()
+            .filter_map(|path| path["change_id"].as_str())
+            .collect();
+
         if impacted_nodes.contains(id) {
             let disposition = if prior_state == "qualified" {
                 "REQUALIFICATION_REQUIRED"
@@ -525,14 +602,18 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
                 "qualification_id": id,
                 "scope": text(node, "scope").unwrap_or("unknown"),
                 "prior_state": prior_state,
-                "disposition": disposition
+                "disposition": disposition,
+                "impact_path_count": qualification_paths.len(),
+                "triggering_change_ids": triggering_change_ids
             }));
         } else {
             unaffected_qualifications.push(json!({
                 "qualification_id": id,
                 "scope": text(node, "scope").unwrap_or("unknown"),
                 "prior_state": prior_state,
-                "disposition": "UNCHANGED_BY_THIS_CHANGE_SET"
+                "disposition": "UNCHANGED_BY_THIS_CHANGE_SET",
+                "impact_path_count": 0,
+                "triggering_change_ids": []
             }));
         }
     }
@@ -558,6 +639,8 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
         "unaffected_qualification_count": unaffected_qualifications.len(),
         "impact_traversal_node_count": impacted_nodes.len(),
         "impact_traversal_edge_count": traversed_edges.len(),
+        "impact_path_count": impact_paths.len(),
+        "impact_paths": impact_paths,
         "impacted_qualifications": impacted_qualifications,
         "unaffected_qualifications": unaffected_qualifications,
         "mutation_performed": false,
@@ -647,6 +730,76 @@ mod tests {
                 "Q-TIMEBASE"
             ])
         );
+    }
+
+    #[test]
+    fn every_impacted_qualification_has_a_source_bound_dependency_path() {
+        let report = validate_fixture();
+        let paths = report["impact_paths"].as_array().unwrap();
+        assert_eq!(report["impact_path_count"], paths.len());
+        for qualification in report["impacted_qualifications"].as_array().unwrap() {
+            let id = qualification["qualification_id"].as_str().unwrap();
+            let matching: Vec<&Value> = paths
+                .iter()
+                .filter(|path| path["qualification_id"] == id)
+                .collect();
+            assert_eq!(qualification["impact_path_count"], matching.len());
+            assert!(!matching.is_empty(), "{id} must have an explanation path");
+            for path in matching {
+                let nodes = path["node_path"].as_array().unwrap();
+                let edges = path["edges"].as_array().unwrap();
+                assert_eq!(nodes.len(), edges.len() + 1);
+                assert_eq!(nodes.first().unwrap(), &path["changed_node_id"]);
+                assert_eq!(nodes.last().unwrap(), &path["qualification_id"]);
+                for (index, edge) in edges.iter().enumerate() {
+                    assert_eq!(edge["from"], nodes[index]);
+                    assert_eq!(edge["to"], nodes[index + 1]);
+                    assert!(edge["dependency_type"].as_str().is_some());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn converging_changes_preserve_multiple_explanations() {
+        let report = validate_fixture();
+        let find = |id: &str| {
+            report["impacted_qualifications"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|item| item["qualification_id"] == id)
+                .unwrap()
+        };
+        assert_eq!(find("Q-CONTROL-RESPONSE")["impact_path_count"], 3);
+        assert_eq!(find("Q-ENGINE-HEALTH")["impact_path_count"], 3);
+        assert_eq!(find("Q-RUL")["impact_path_count"], 3);
+        let triggering: BTreeSet<&str> = find("Q-CONTROL-RESPONSE")["triggering_change_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        assert_eq!(triggering, BTreeSet::from([
+            "CHG-SENSOR-TOPOLOGY-001",
+            "CHG-TIMEBASE-QUAL-001"
+        ]));
+    }
+
+    #[test]
+    fn unaffected_qualifications_have_no_impact_paths() {
+        let report = validate_fixture();
+        for item in report["unaffected_qualifications"].as_array().unwrap() {
+            assert_eq!(item["impact_path_count"], 0);
+            assert_eq!(item["triggering_change_ids"].as_array().unwrap().len(), 0);
+        }
+    }
+
+    #[test]
+    fn deterministic_path_order_is_stable() {
+        let first = validate_fixture();
+        let second = validate_fixture();
+        assert_eq!(first["impact_paths"], second["impact_paths"]);
     }
 
     #[test]

@@ -73,6 +73,10 @@ jobs:
             and .impacted_qualification_count == 5
             and .requalification_required_count == 5
             and .unaffected_qualification_count == 2
+            and .impact_path_count == 12
+            and (.impact_paths | length == 12)
+            and (.impacted_qualifications | all(.impact_path_count > 0))
+            and (.unaffected_qualifications | all(.impact_path_count == 0))
             and .mutation_performed == false
             and .authorization_granted == false
           ' maritime-qualification-impact-receipt.json
