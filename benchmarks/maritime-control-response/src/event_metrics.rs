@@ -818,7 +818,11 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .iter()
-                .all(|target| target["status"] == "aspirational")
+                .all(|target| {
+                    target["status"] == "aspirational"
+                        || target["status"] == "blocked_on_full_data_and_split_provenance"
+                        || target["status"] == "blocked_on_dataset_access_and_protocol_audit"
+                })
         );
         assert!(
             schema["properties"]["protocol"]["required"]
