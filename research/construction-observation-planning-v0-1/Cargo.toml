@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+construction-robot-interop-core = { path = "../construction-robot-interop-v0-1" }
 construction-spacetime-occupancy-core = { path = "../construction-spacetime-occupancy-v0-1" }
 
 [workspace]
