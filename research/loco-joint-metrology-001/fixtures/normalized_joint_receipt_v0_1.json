@@ -7,7 +7,7 @@
     "package": "loco-joint-trace-adapter",
     "version": "0.1.0"
   },
-  "payload_sha256": "902ff6483b23aa66faef7908b65304b3e599b351114fed965a10089ea93f0429",
+  "payload_sha256": "394f94e549a4de9c2657209bcfffb426420fa9dee6dcc9b2e60c2483192cc6b5",
   "payload": {
     "identity": {
       "mission_id": "mission-01",
@@ -109,6 +109,7 @@
       "specification_qualified": true
     },
     "terminal_safe_stop_qualified": true,
+    "terminal_reserve_state_digest": "thermal-1",
     "report": {
       "mission_id": "mission-01",
       "robot_id": "joint-bench-01",
