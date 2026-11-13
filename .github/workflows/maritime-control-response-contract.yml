@@ -133,7 +133,7 @@ jobs:
             (.method.sequential_update_policy.no_silent_fallback == true) and
             (.hard_gates | length >= 50) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
-            (.authority.authority_status | contains("external mandatory checks"))
+            (.evidence_boundaries.authority_status | contains("external mandatory checks"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
       - name: Validate streaming and behavioral contracts
