@@ -50,7 +50,6 @@ fn nonempty(value: Option<&str>) -> bool {
     value.is_some_and(|text| !text.trim().is_empty())
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TwinLifecycleState {
     Unconfigured,
@@ -140,18 +139,12 @@ fn lifecycle_transition(
         (S::Candidate, E::CommissioningFailed) => Some(S::Candidate),
         (S::Commissioned, E::OptionalBudgetExceeded) => Some(S::Degraded),
         (S::Commissioned, E::CriticalBudgetExceeded) => Some(S::Suspended),
-        (S::Commissioned, E::DependencyRevisionChanged) => {
-            Some(S::RequalificationRequired)
-        }
+        (S::Commissioned, E::DependencyRevisionChanged) => Some(S::RequalificationRequired),
         (S::Degraded, E::CriticalBudgetExceeded) => Some(S::Suspended),
-        (S::Degraded, E::DependencyRevisionChanged) => {
-            Some(S::RequalificationRequired)
-        }
+        (S::Degraded, E::DependencyRevisionChanged) => Some(S::RequalificationRequired),
         (S::Degraded, E::RecommissioningStarted) => Some(S::Candidate),
         (S::Suspended, E::SuspensionCleared) => Some(S::RequalificationRequired),
-        (S::Suspended, E::DependencyRevisionChanged) => {
-            Some(S::RequalificationRequired)
-        }
+        (S::Suspended, E::DependencyRevisionChanged) => Some(S::RequalificationRequired),
         (S::RequalificationRequired, E::RequalificationStarted) => Some(S::Candidate),
         _ => None,
     }
@@ -186,7 +179,8 @@ fn validate_lifecycle_scenarios(corpus: &Value) -> Result<usize, Vec<String>> {
             errors.push(format!("{id}: events must be an array"));
             continue;
         };
-        let Some(expected_states) = scenario.get("expected_states").and_then(Value::as_array) else {
+        let Some(expected_states) = scenario.get("expected_states").and_then(Value::as_array)
+        else {
             errors.push(format!("{id}: expected_states must be an array"));
             continue;
         };
@@ -674,7 +668,6 @@ mod tests {
             .expect("case exists")
     }
 
-
     #[test]
     fn frozen_lifecycle_corpus_matches_all_expected_transitions() {
         let corpus = corpus_value();
@@ -768,16 +761,13 @@ mod tests {
     fn requalification_must_return_through_candidate_state() {
         let required = lifecycle_transition(
             TwinLifecycleState::Suspended,
-            LifecycleEvent::SuspensionCleared
-        ).expect("suspension can be cleared into requalification");
-        let candidate = lifecycle_transition(
-            required,
-            LifecycleEvent::RequalificationStarted
-        ).expect("requalification can begin");
-        let commissioned = lifecycle_transition(
-            candidate,
-            LifecycleEvent::CommissioningPassed
-        ).expect("fresh commissioning can pass");
+            LifecycleEvent::SuspensionCleared,
+        )
+        .expect("suspension can be cleared into requalification");
+        let candidate = lifecycle_transition(required, LifecycleEvent::RequalificationStarted)
+            .expect("requalification can begin");
+        let commissioned = lifecycle_transition(candidate, LifecycleEvent::CommissioningPassed)
+            .expect("fresh commissioning can pass");
         assert_eq!(commissioned, TwinLifecycleState::Commissioned);
         assert_eq!(
             lifecycle_transition(
