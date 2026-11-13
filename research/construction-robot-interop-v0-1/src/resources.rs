@@ -169,9 +169,9 @@ impl ReservationBook {
 
         if let Some(level) = reservation_time_bucket_level(start, end) {
             let width = RESERVATION_TIME_BUCKET_WIDTHS_MS[level];
-            for bucket in reservation_time_buckets(start, end, width)
-                .expect("selected temporal bucket level fits")
-            {
+            let (first, last) = reservation_time_bucket_bounds(start, end, width)
+                .expect("selected temporal bucket level fits");
+            for bucket in first..=last {
                 self.time_buckets
                     .entry((resource_id.clone(), level, bucket))
                     .or_default()
@@ -215,9 +215,9 @@ impl ReservationBook {
 
         if let Some(level) = reservation_time_bucket_level(start, end) {
             let width = RESERVATION_TIME_BUCKET_WIDTHS_MS[level];
-            for bucket in reservation_time_buckets(start, end, width)
-                .expect("selected temporal bucket level fits")
-            {
+            let (first, last) = reservation_time_bucket_bounds(start, end, width)
+                .expect("selected temporal bucket level fits");
+            for bucket in first..=last {
                 let key = (resource_id.to_owned(), level, bucket);
                 if let Some(ids) = self.time_buckets.get_mut(&key) {
                     ids.remove(id);
@@ -246,14 +246,16 @@ impl ReservationBook {
             .cloned()
             .unwrap_or_default();
         for (level, width) in RESERVATION_TIME_BUCKET_WIDTHS_MS.iter().copied().enumerate() {
-            let Some(buckets) = reservation_time_buckets(start_ms, end_ms, width) else {
+            let Some((first, last)) =
+                reservation_time_bucket_bounds(start_ms, end_ms, width)
+            else {
                 return self
                     .active_by_resource
                     .get(resource_id)
                     .cloned()
                     .unwrap_or_default();
             };
-            for bucket in buckets {
+            for bucket in first..=last {
                 if let Some(ids) = self
                     .time_buckets
                     .get(&(resource_id.to_owned(), level, bucket))
@@ -575,6 +577,26 @@ impl ReservationBook {
     }
 }
 
+/// Return conservative inclusive broad-phase bucket bounds for an uncertainty-expanded
+/// half-open interval. Including the end bucket may add candidates at exact boundaries;
+/// the final `overlaps` predicate still enforces half-open semantics.
+fn reservation_time_bucket_bounds(
+    start_ms: u64,
+    end_ms: u64,
+    bucket_width_ms: u64,
+) -> Option<(u64, u64)> {
+    if start_ms >= end_ms || bucket_width_ms == 0 {
+        return None;
+    }
+    let first = start_ms / bucket_width_ms;
+    let last = end_ms / bucket_width_ms;
+    let count = last.checked_sub(first)?.checked_add(1)?;
+    if count > MAX_RESERVATION_TIME_BUCKETS || usize::try_from(count).is_err() {
+        return None;
+    }
+    Some((first, last))
+}
+
 /// Select the finest temporal bucket level that can represent an interval within
 /// the fixed index-entry budget. Very long intervals use the resource-wide fallback.
 fn reservation_time_bucket_level(start_ms: u64, end_ms: u64) -> Option<usize> {
@@ -583,29 +605,8 @@ fn reservation_time_bucket_level(start_ms: u64, end_ms: u64) -> Option<usize> {
         .copied()
         .enumerate()
         .find_map(|(level, width)| {
-            reservation_time_buckets(start_ms, end_ms, width).map(|_| level)
+            reservation_time_bucket_bounds(start_ms, end_ms, width).map(|_| level)
         })
-}
-
-/// Conservative inclusive broad-phase buckets for an uncertainty-expanded
-/// half-open interval. Including the end bucket may add candidates at exact boundaries;
-/// the final `overlaps` predicate still enforces half-open semantics.
-fn reservation_time_buckets(
-    start_ms: u64,
-    end_ms: u64,
-    bucket_width_ms: u64,
-) -> Option<Vec<u64>> {
-    if start_ms >= end_ms || bucket_width_ms == 0 {
-        return None;
-    }
-    let first = start_ms / bucket_width_ms;
-    let last = end_ms / bucket_width_ms;
-    let count = last.checked_sub(first)?.checked_add(1)?;
-    if count > MAX_RESERVATION_TIME_BUCKETS {
-        return None;
-    }
-    let _capacity = usize::try_from(count).ok()?;
-    Some((first..=last).collect())
 }
 
 fn validate_request(request: &ReservationRequest) -> Result<(), ReservationError> {
