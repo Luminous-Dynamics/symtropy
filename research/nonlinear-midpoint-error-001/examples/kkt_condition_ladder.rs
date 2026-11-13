@@ -1,6 +1,7 @@
 use nonlinear_midpoint_error_envelope::{
     InconclusiveReasonV1, JacobianLipschitzWitnessV1, KantorovichProfileV1, MidpointKktStateV1,
-    MidpointParametersV1, QualificationStatusV1, qualify_midpoint_state_v1,
+    MidpointParametersV1, QualificationStatusV1, krawczyk_validate_dyadic_midpoint_fixture_v1,
+    qualify_midpoint_state_v1, reference_dyadic_krawczyk_preconditioner_v1,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,6 +49,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 receipt.local_radius_estimate
             );
         }
+    }
+        let exact_parameters = MidpointParametersV1::dimensionless_fixture_default();
+        let exact_center = MidpointKktStateV1 {
+            q1: 2.0,
+            v1: 4.0,
+            multiplier: 2.0,
+        };
+        let proof = krawczyk_validate_dyadic_midpoint_fixture_v1(
+            exact_parameters,
+            exact_center,
+            2.0_f64.powi(-8),
+            reference_dyadic_krawczyk_preconditioner_v1(),
+        )?;
+        println!(
+            "dyadic_krawczyk_status={:?}, contraction_upper={:?}, strict_inclusion={}",
+            proof.status, proof.contraction_upper_bound, proof.strict_inclusion
+        );
     }
     Ok(())
 }
