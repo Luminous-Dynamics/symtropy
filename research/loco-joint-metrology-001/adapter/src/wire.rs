@@ -601,6 +601,9 @@ pub fn verify_normalized_receipt(serialized: &str) -> Result<Value, WireReceiptE
     if hex_digest(&sha256(&canonical)) != expected {
         return Err(WireReceiptError::PayloadDigestMismatch);
     }
+    if !validate_payload_shape(payload) {
+        return Err(WireReceiptError::InvalidEnvelope);
+    }
     let identity = &payload["identity"];
     let configuration = &payload["configuration"];
     let decision = &payload["decision_input"];
@@ -663,6 +666,216 @@ pub fn verify_normalized_receipt(serialized: &str) -> Result<Value, WireReceiptE
         }
     }
     Ok(envelope)
+}
+
+fn non_empty_string(value: &Value) -> bool {
+    value.as_str().is_some_and(|text| !text.trim().is_empty())
+}
+
+fn validate_evidence_shape(value: &Value) -> bool {
+    match value["status"].as_str() {
+        Some("qualified") => has_exact_keys(value, &["status", "value"]),
+        Some("unknown") => {
+            has_exact_keys(value, &["status", "reason_code"])
+                && non_empty_string(&value["reason_code"])
+        }
+        Some("inconclusive") => {
+            (has_exact_keys(value, &["status", "reason_code"])
+                || has_exact_keys(value, &["status", "reason_code", "reason_detail"]))
+                && non_empty_string(&value["reason_code"])
+                && (value.get("reason_detail").is_none()
+                    || value["reason_detail"].is_string())
+        }
+        Some("rejected") => {
+            (has_exact_keys(value, &["status", "reason_code"])
+                || has_exact_keys(value, &["status", "reason_code", "details"]))
+                && non_empty_string(&value["reason_code"])
+                && (value.get("details").is_none() || value["details"].is_object())
+        }
+        _ => false,
+    }
+}
+
+fn validate_payload_shape(payload: &Value) -> bool {
+    let identity = &payload["identity"];
+    let configuration = &payload["configuration"];
+    let timestamps = &payload["timestamp_intervals"];
+    let decision = &payload["decision_input"];
+    let thermal = &payload["thermal_input"];
+    let energy = &payload["energy_input"];
+    let sampling = &payload["sampling_input"];
+    let report = &payload["report"];
+
+    if !has_exact_keys(identity, &[
+        "mission_id", "robot_id", "boot_epoch", "scenario_manifest_digest",
+        "source_observation_id", "source_event_sequence", "decision_id",
+        "decision_event_sequence", "proposal_id", "proposal_event_sequence",
+        "assurance_event_id", "assurance_event_sequence", "command_id",
+        "command_event_sequence", "actuator_application_event_id",
+        "actuator_application_event_sequence", "actuator_application_receipt_digest",
+        "source_sensor_calibration_digest", "physical_transition_id",
+        "physical_transition_event_sequence", "terminal_event_id",
+        "terminal_event_sequence", "actuator_id"
+    ]) || !has_exact_keys(configuration, &[
+        "actuator_configuration_digest", "controller_configuration_digest",
+        "policy_digest", "model_digest", "action_domain_digest",
+        "sensor_calibration_digest", "torque_transducer_calibration_digest",
+        "power_analyzer_calibration_digest", "thermal_sensor_calibration_digest",
+        "sampling_spec_digest", "energy_boundary_manifest_digest",
+        "actuator_application_receipt_digest", "executed_prefix_expected_digest",
+        "executed_prefix_observed_digest", "decision_calibration_receipt_digest"
+    ]) || !has_exact_keys(timestamps, &[
+        "source_capture", "actuator_application", "motion_onset"
+    ]) || !has_exact_keys(decision, &[
+        "decision_id", "model_digest", "action_domain_digest",
+        "calibration_receipt_digest", "regret_upper_units",
+        "epsilon_task_loss_units", "valid_through_tick", "actuator_application_tick"
+    ]) || !has_exact_keys(thermal, &[
+        "physical_transition_id", "sensor_calibration_digest", "required_node_ids",
+        "observed_node_ids", "expected_predecessor_digest",
+        "observed_predecessor_digest", "result_digest", "sequence_reset"
+    ]) || !has_exact_keys(energy, &[
+        "boundary_complete", "boundary_manifest_digest", "closure"
+    ]) || !has_exact_keys(sampling, &[
+        "measured_rate_hz", "required_rate_hz", "specification_digest",
+        "specification_qualified"
+    ]) || !has_exact_keys(report, &[
+        "mission_id", "robot_id", "actuator_id", "source_to_actuator_aoi",
+        "command_to_motion", "decision", "thermal", "energy", "sampling",
+        "terminal_safe_stop", "causal_edges", "causal_chain_complete",
+        "mission_closure", "actuation_authorized"
+    ]) {
+        return false;
+    }
+
+    for timestamp in [
+        &timestamps["source_capture"],
+        &timestamps["actuator_application"],
+        &timestamps["motion_onset"],
+    ] {
+        if !has_exact_keys(timestamp, &["clock_id", "boot_epoch", "lower_ns", "upper_ns"])
+            || !non_empty_string(&timestamp["clock_id"])
+            || timestamp["lower_ns"].as_u64().is_none()
+            || timestamp["upper_ns"].as_u64().is_none()
+            || timestamp["lower_ns"].as_u64() > timestamp["upper_ns"].as_u64()
+        {
+            return false;
+        }
+    }
+
+    let clock = &payload["clock_relation"];
+    match clock["kind"].as_str() {
+        Some("same_monotonic_clock_verified") | Some("unknown") => {
+            if !has_exact_keys(clock, &["kind"]) {
+                return false;
+            }
+        }
+        Some("bounded_mapping_verified") => {
+            let mapping = &clock["mapping"];
+            if !has_exact_keys(clock, &["kind", "mapping"])
+                || !has_exact_keys(mapping, &[
+                    "source_clock_id", "target_clock_id", "boot_epoch",
+                    "offset_lower_ns", "offset_upper_ns", "mapping_digest"
+                ])
+                || !non_empty_string(&mapping["source_clock_id"])
+                || !non_empty_string(&mapping["target_clock_id"])
+                || !non_empty_string(&mapping["mapping_digest"])
+                || mapping["offset_lower_ns"].as_i64().is_none()
+                || mapping["offset_upper_ns"].as_i64().is_none()
+                || mapping["offset_lower_ns"].as_i64() > mapping["offset_upper_ns"].as_i64()
+            {
+                return false;
+            }
+        }
+        _ => return false,
+    }
+
+    let closure = &energy["closure"];
+    let closure_shape = match closure["status"].as_str() {
+        Some("balanced") => {
+            has_exact_keys(closure, &["status", "receipt_digest"])
+                && non_empty_string(&closure["receipt_digest"])
+        }
+        Some("inconclusive") | Some("invalid") => {
+            has_exact_keys(closure, &["status", "reason"])
+                && non_empty_string(&closure["reason"])
+        }
+        Some("unknown") => has_exact_keys(closure, &["status"]),
+        _ => false,
+    };
+    if !closure_shape {
+        return false;
+    }
+
+    if !validate_evidence_shape(&report["source_to_actuator_aoi"])
+        || !validate_evidence_shape(&report["command_to_motion"])
+        || !validate_evidence_shape(&report["decision"])
+        || !validate_evidence_shape(&report["thermal"])
+        || !validate_evidence_shape(&report["energy"])
+        || !validate_evidence_shape(&report["sampling"])
+        || !validate_evidence_shape(&report["terminal_safe_stop"])
+    {
+        return false;
+    }
+
+    if !has_exact_keys(&report["mission_closure"], &["status", "unqualified_domains"]) {
+        return false;
+    }
+    match report["mission_closure"]["status"].as_str() {
+        Some("closed") => {
+            if !report["mission_closure"]["unqualified_domains"]
+                .as_array()
+                .is_some_and(Vec::is_empty)
+            {
+                return false;
+            }
+        }
+        Some("open") => {
+            if !report["mission_closure"]["unqualified_domains"]
+                .as_array()
+                .is_some_and(|values| !values.is_empty() && values.iter().all(non_empty_string))
+            {
+                return false;
+            }
+        }
+        _ => return false,
+    }
+
+    let Some(edges) = report["causal_edges"].as_array() else {
+        return false;
+    };
+    if edges.len() != 7 {
+        return false;
+    }
+    let expected = [
+        (identity["source_observation_id"].as_str(), identity["decision_id"].as_str(),
+            identity["source_event_sequence"].as_u64(), identity["decision_event_sequence"].as_u64()),
+        (identity["decision_id"].as_str(), identity["proposal_id"].as_str(),
+            identity["decision_event_sequence"].as_u64(), identity["proposal_event_sequence"].as_u64()),
+        (identity["proposal_id"].as_str(), identity["assurance_event_id"].as_str(),
+            identity["proposal_event_sequence"].as_u64(), identity["assurance_event_sequence"].as_u64()),
+        (identity["assurance_event_id"].as_str(), identity["command_id"].as_str(),
+            identity["assurance_event_sequence"].as_u64(), identity["command_event_sequence"].as_u64()),
+        (identity["command_id"].as_str(), identity["actuator_application_event_id"].as_str(),
+            identity["command_event_sequence"].as_u64(), identity["actuator_application_event_sequence"].as_u64()),
+        (identity["actuator_application_event_id"].as_str(), identity["physical_transition_id"].as_str(),
+            identity["actuator_application_event_sequence"].as_u64(), identity["physical_transition_event_sequence"].as_u64()),
+        (identity["physical_transition_id"].as_str(), identity["terminal_event_id"].as_str(),
+            identity["physical_transition_event_sequence"].as_u64(), identity["terminal_event_sequence"].as_u64()),
+    ];
+    for (edge, (from, to, from_seq, to_seq)) in edges.iter().zip(expected) {
+        if !has_exact_keys(edge, &[
+            "from_event_id", "to_event_id", "from_sequence", "to_sequence"
+        ]) || edge["from_event_id"].as_str() != from
+            || edge["to_event_id"].as_str() != to
+            || edge["from_sequence"].as_u64() != from_seq
+            || edge["to_sequence"].as_u64() != to_seq
+        {
+            return false;
+        }
+    }
+    report["causal_chain_complete"].as_bool() == Some(true)
+        && report["actuation_authorized"] == Value::Bool(false)
 }
 
 fn has_exact_keys(value: &Value, expected: &[&str]) -> bool {
