@@ -1,0 +1,126 @@
+{
+  "schema_version": "suf.das_dataset_source_manifest.v0.1",
+  "status": "metadata_inventory_only",
+  "created_date": "2026-11-13",
+  "global_rule": "Do not download, train on, redistribute or commercially use a source until its exact version, rights, terms, access controls and any source-specific restrictions are confirmed.",
+  "sources": [
+    {
+      "id": "PAPER_KAMARUZAMAN_2026",
+      "name": "Operational SCADA communication fibre fault screening study",
+      "population": "single_terrestrial_mv_cable_corridor",
+      "version_or_doi": "10.1016/j.rio.2026.101093",
+      "source_url": "https://doi.org/10.1016/j.rio.2026.101093",
+      "data_status": "author_request_required",
+      "rights_status": "permission_and_terms_required",
+      "allowed_current_actions": [
+        "public_metadata_review",
+        "literature_reproduction_protocol_design"
+      ],
+      "not_yet_allowed": [
+        "download_raw_data",
+        "train_model",
+        "redistribute_data",
+        "commercial_use"
+      ],
+      "benchmark_roles": [
+        "fault_event_screening_reproduction"
+      ],
+      "claim_ceiling": "The publication reports a bounded event demonstration on one 5.4 km operational corridor; no dataset has been acquired and no general event sensitivity is inferred."
+    },
+    {
+      "id": "PAPER_COHEN_2026",
+      "name": "Traffic-induced buried-fibre DAS geolocalization study",
+      "population": "terrestrial_buried_fibre_route_geolocation",
+      "version_or_doi": "10.1109/TGRS.2026.3729504",
+      "source_url": "https://doi.org/10.1109/TGRS.2026.3729504",
+      "data_status": "author_request_required",
+      "rights_status": "permission_and_terms_required",
+      "allowed_current_actions": [
+        "public_metadata_review",
+        "literature_reproduction_protocol_design"
+      ],
+      "not_yet_allowed": [
+        "download_raw_data",
+        "train_model",
+        "redistribute_data",
+        "commercial_use"
+      ],
+      "benchmark_roles": [
+        "buried_fibre_route_geolocation_reproduction"
+      ],
+      "claim_ceiling": "The publication reports route geolocation under its investigated conditions; it is not a cable-fault classifier or a universal accuracy claim."
+    },
+    {
+      "id": "MENDELEY_POWER_CABLE_INTRUSION_2025",
+      "name": "DAS power-cable intrusion dataset",
+      "population": "terrestrial_buried_power_cable_windowed_signals",
+      "version_or_doi": "10.17632/fp77d4223z.1",
+      "source_url": "https://data.mendeley.com/datasets/fp77d4223z/1",
+      "data_status": "application_required",
+      "rights_status": "conflicting_license_metadata",
+      "allowed_current_actions": [
+        "public_metadata_review",
+        "request_author_clarification"
+      ],
+      "not_yet_allowed": [
+        "download_raw_data",
+        "train_model",
+        "redistribute_data",
+        "commercial_use"
+      ],
+      "benchmark_roles": [
+        "leakage_audit",
+        "field_signal_transfer_after_rights_clearance"
+      ],
+      "claim_ceiling": "The public description states CC BY-NC 4.0 and application-required access while the licence field states CC BY 4.0; controlling terms require written clarification."
+    },
+    {
+      "id": "DAS10_ZENODO_2026_V2",
+      "name": "DAS-10 distributed acoustic sensing laboratory dataset",
+      "population": "laboratory_loudspeaker_excited_fibre_vibration",
+      "version_or_doi": "10.5281/zenodo.23043546",
+      "source_url": "https://zenodo.org/records/23043546",
+      "data_status": "record_open_file_scope_to_verify",
+      "rights_status": "license_field_not_visible_in_record_extract",
+      "allowed_current_actions": [
+        "public_metadata_review",
+        "verify_exact_version_license"
+      ],
+      "not_yet_allowed": [
+        "commercial_use",
+        "redistribute_data",
+        "train_model_before_license_review"
+      ],
+      "benchmark_roles": [
+        "signal_ingestion_smoke_test",
+        "laboratory_signal_processing",
+        "ood_abstention_experiment"
+      ],
+      "claim_ceiling": "The record describes 2,000 labelled samples from loudspeaker-replayed environmental audio; only representative raw samples are indicated in the supplementary archive. It is not a buried utility field benchmark."
+    },
+    {
+      "id": "OOI_RCA_DAS_2025_2026",
+      "name": "OOI Regional Cabled Array multi-span DAS 2025-2026",
+      "population": "subsea_observatory_long_duration_das",
+      "version_or_doi": "10.5281/zenodo.19930457",
+      "source_url": "https://zenodo.org/records/19930457",
+      "data_status": "external_data_endpoint_public_terms_to_verify",
+      "rights_status": "license_and_endpoint_terms_to_verify",
+      "allowed_current_actions": [
+        "public_metadata_review",
+        "endpoint_documentation_review"
+      ],
+      "not_yet_allowed": [
+        "bulk_download",
+        "redistribute_data",
+        "commercial_use"
+      ],
+      "benchmark_roles": [
+        "hdf5_ingestion",
+        "long_duration_continuity",
+        "calibration_degradation_handling"
+      ],
+      "claim_ceiling": "The external data endpoint contains approximately 1.2 TB of HDF5 at 8 Hz and includes an outage and documented calibration problems; subsea population is not a terrestrial utility performance benchmark."
+    }
+  ]
+}
