@@ -64,7 +64,7 @@ The Rust suite covers:
 - optional-component degradation and missing mandatory components;
 - common-cause source dependency;
 - unbound/duplicate components;
-- deterministic receipt fingerprint and profile-revision binding;
+- deterministic receipt fingerprint bound to task-profile digest, component values and source/transform digests; explicit cross-clock mapping receipt and uncertainty bound;
 - explicitly unsupported post-weld quality/NDT task.
 
 ## Benchmark targets
