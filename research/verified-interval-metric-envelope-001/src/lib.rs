@@ -230,6 +230,13 @@ fn validate_matrix<const N: usize>(matrix: &Matrix<N>) -> Result<(), VerifiedEnv
     if matrix.iter().flatten().any(|value| !value.is_finite()) {
         return Err(VerifiedEnvelopeErrorV1::NonFiniteInput);
     }
+    Ok(())
+}
+
+fn validate_symmetric_matrix<const N: usize>(
+    matrix: &Matrix<N>,
+) -> Result<(), VerifiedEnvelopeErrorV1> {
+    validate_matrix(matrix)?;
     for row in 0..N {
         for column in 0..N {
             if matrix[row][column] != matrix[column][row] {
@@ -258,7 +265,7 @@ fn interval_dot<const N: usize>(
 fn cholesky_interval<const N: usize>(
     matrix: &Matrix<N>,
 ) -> Result<([[Interval; N]; N], f64), VerifiedEnvelopeErrorV1> {
-    validate_matrix(matrix)?;
+    validate_symmetric_matrix(matrix)?;
     let mut lower = interval_zero_matrix::<N>();
     let mut minimum_pivot = f64::INFINITY;
     for row in 0..N {
@@ -316,13 +323,20 @@ fn whiten_mass_perturbation<const N: usize>(
     lower: &[[Interval; N]; N],
     perturbation: &Matrix<N>,
 ) -> Result<[[Interval; N]; N], VerifiedEnvelopeErrorV1> {
-    validate_matrix(perturbation)
-        .map_err(|_| VerifiedEnvelopeErrorV1::NonSymmetricMassPerturbation)?;
+    validate_matrix(perturbation)?;
+    for row in 0..N {
+        for column in 0..N {
+            if perturbation[row][column] != perturbation[column][row] {
+                return Err(VerifiedEnvelopeErrorV1::NonSymmetricMassPerturbation);
+            }
+        }
+    }
     let mut left_whitened = interval_zero_matrix::<N>();
     for column in 0..N {
-        let rhs: [Interval; N] = std::array::from_fn(|row| {
-            Interval::point(perturbation[row][column]).expect("validated finite input")
-        });
+        let mut rhs = [Interval::zero(); N];
+        for row in 0..N {
+            rhs[row] = Interval::point(perturbation[row][column])?;
+        }
         let solved = solve_lower_interval(lower, &rhs)?;
         for row in 0..N {
             left_whitened[row][column] = solved[row];
@@ -404,22 +418,24 @@ pub fn certify_metric_uncertainty<const N: usize>(
     let whitened_mass = whiten_mass_perturbation(&lower, mass_perturbation)?;
 
     let rho_upper = upper_frobenius(&whitened_mass)?;
-    let force_rhs: [Interval; N] =
-        std::array::from_fn(|index| Interval::point(force_perturbation[index]).expect("finite"));
+    let mut force_rhs = [Interval::zero(); N];
+    for index in 0..N {
+        force_rhs[index] = Interval::point(force_perturbation[index])?;
+    }
     let whitened_force = solve_lower_interval(&lower, &force_rhs)?;
     let force_dual_norm_upper = upper_norm(&whitened_force)?;
 
     // ||a0||_M = ||L^T a0||_2.
-    let whitened_acceleration: [Interval; N] = std::array::from_fn(|column| {
+    let mut whitened_acceleration = [Interval::zero(); N];
+    for column in 0..N {
         let mut sum = Interval::zero();
         for row in 0..N {
             let factor = lower[row][column];
-            let acceleration = Interval::point(nominal_acceleration[row]).expect("finite");
-            sum = sum.add(factor.mul(acceleration).expect("finite product"))
-                .expect("finite sum");
+            let acceleration = Interval::point(nominal_acceleration[row])?;
+            sum = sum.add(factor.mul(acceleration)?)?;
         }
-        sum
-    });
+        whitened_acceleration[column] = sum;
+    }
     let nominal_acceleration_mass_norm_upper = upper_norm(&whitened_acceleration)?;
 
     if rho_upper >= 1.0 || rho_upper > profile.maximum_rho {
