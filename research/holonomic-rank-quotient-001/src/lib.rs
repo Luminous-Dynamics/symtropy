@@ -149,7 +149,8 @@ fn dot<const N: usize>(a: &Vector<N>, b: &Vector<N>) -> f64 {
     a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
 }
 fn norm<const N: usize>(a: &Vector<N>) -> f64 {
-    a.iter().fold(0.0_f64, |accumulator, value| accumulator.hypot(*value))
+    a.iter()
+        .fold(0.0_f64, |accumulator, value| accumulator.hypot(*value))
 }
 fn matrix_max_abs<const R: usize, const C: usize>(a: &Matrix<R, C>) -> f64 {
     a.iter().flatten().map(|x| x.abs()).fold(0.0_f64, f64::max)
@@ -871,10 +872,7 @@ mod tests {
 
     #[test]
     fn metric_symmetry_admission_is_relative_to_metric_scale() {
-        let small_asymmetric = [
-            [2.0e-20, 1.0e-20],
-            [1.0e-20 + 1.0e-26, 3.0e-20],
-        ];
+        let small_asymmetric = [[2.0e-20, 1.0e-20], [1.0e-20 + 1.0e-26, 3.0e-20]];
         assert!(matches!(
             SpdMetricV1::new(small_asymmetric, 1.0e-10),
             Err(RankErrorV1::NonSymmetric { .. })
