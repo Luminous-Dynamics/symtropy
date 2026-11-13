@@ -57,6 +57,20 @@ Public product descriptions do not prove that no incumbent does this end-to-end.
 
 ## 3. Paradigm shifts to pursue
 
+### Apply PAS 4010's Avoid → Switch → Improve hierarchy before optimizing the robot
+
+The 9 November 2026 ICE companion guidance to PAS 4010 explicitly orders productivity work as:
+1. **Avoid:** test whether the need can be met without the proposed asset, operation or project scope at all.
+2. **Switch:** where the need is real, find a fundamentally different design, material, method or delivery model that achieves the required outcome more productively.
+3. **Improve:** only then optimize the selected method, reduce waste and improve resource efficiency.
+
+This changes the Luminous optimization problem. A planner must not assume the conventional construction sequence, a climbing platform, a crane lift or a robot task is inherently necessary. It should first ask whether the required functional outcome can be delivered through reuse, design simplification, offsite manufacture, alternative assembly interfaces, reduced temporary works or a different sequence. Robot scheduling is the third-level lever, not the first.
+
+The same guidance says there is deliberately no universal PAS productivity metric set: each project/value chain identifies context-specific indicators, defines baselines and targets, and measures effectiveness as well as efficiency over the lifecycle. The Luminous benchmark should therefore publish a small, owned metric set for each task/work-package class rather than create a universal score or compare heterogeneous units. This complements the accepted-output ledger: outcome adequacy and independently accepted quality come before output-per-input ratios.
+
+Source: [ICE Guidance to PAS 4010:2026, published 9 November 2026](https://knowledgehub.ice.org.uk/guidance/pas-4010/). The PAS publication announcement is dated 9 November 2026, although BSI's product catalogue has a discrepant 30 November listing; use the authoritative final text for clause-level mapping.
+
+
 ### A. Compile the design into executable work contracts
 
 Move from BIM as a visualization/coordination model to a versioned production contract. A work package should carry its geometry and frame, source revision, functional unit, material identity, prerequisites, capability envelope, resource needs, inspection method, postconditions and acceptance contract. The planner compiles candidate task graphs from those contracts; the physical execution layer checks each admission against current context.
