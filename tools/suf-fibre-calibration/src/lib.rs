@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Fail-closed reference kernel for mapping DAS optical range to a
 //! calibrated fibre-relative position and then to a projected route position.
 //!
