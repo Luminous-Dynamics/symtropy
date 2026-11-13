@@ -167,6 +167,7 @@ impl<F, const N: usize> Metric<F, N> {
         covector: &Covector<F, N>,
         profile: MetricProfileV1,
     ) -> Result<f64, MetricErrorV1> {
+        validate_profile(profile)?;
         let factor = cholesky(&self.matrix, profile.relative_pivot_tolerance)?;
         let raised = solve_cholesky(&factor, &covector.components);
         let squared = dot(&covector.components, &raised);
@@ -191,6 +192,7 @@ impl<F, const N: usize> Metric<F, N> {
         covector: &Covector<F, N>,
         profile: MetricProfileV1,
     ) -> Result<Tangent<F, N>, MetricErrorV1> {
+        validate_profile(profile)?;
         let factor = cholesky(&self.matrix, profile.relative_pivot_tolerance)?;
         Tangent::new(solve_cholesky(&factor, &covector.components))
     }
