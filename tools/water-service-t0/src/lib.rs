@@ -1446,7 +1446,7 @@ pub fn evaluate_membrane_observability_f1(
             }
             actual_dispositions.push(disposition);
             total_windows += 1;
-            trace_cip_recommendations += u64::from(cip_expected);
+            trace_cip_recommendations += if cip_expected { 1 } else { 0 };
         }
 
         let expected_detected = at(oracle_trace, &["expected_detected_step_index"])?
