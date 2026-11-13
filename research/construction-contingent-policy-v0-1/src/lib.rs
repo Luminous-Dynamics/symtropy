@@ -461,6 +461,178 @@ fn require_non_empty(name: &'static str, value: &str) -> Result<(), PolicyError>
     Ok(())
 }
 
+/// Hidden-state scenario owned by the independent tiny oracle, never by the
+/// policy selector. Scenarios in one solve call must share the same observable trigger.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OracleScenario {
+    pub scenario_id: String,
+    pub hidden_state_ref: String,
+    pub trigger: TriggerKey,
+    pub outcomes: Vec<OracleBranchOutcome>,
+}
+
+/// One branch's outcome under one hidden scenario. Hard constraints are feasibility
+/// predicates, never terms in a compensatory score.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OracleBranchOutcome {
+    pub branch_id: String,
+    pub hard_constraints_satisfied: bool,
+    pub accepted_units_preserved: u64,
+    pub total_cost_minor_units: u64,
+    pub crew_minutes: u64,
+    pub recovery_minutes: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OracleDecision {
+    pub branch_id: String,
+    pub worst_case_accepted_units_preserved: u64,
+    pub worst_case_cost_minor_units: u64,
+    pub worst_case_crew_minutes: u64,
+    pub worst_case_recovery_minutes: u64,
+}
+
+/// Exhaustively choose one branch for a single observable-trigger equivalence class.
+///
+/// No scenario probabilities are assumed. A candidate must be present and satisfy
+/// every declared hard constraint in every hidden scenario sharing the observable
+/// trigger. The deterministic lexicographic objective is:
+/// 1. maximize worst-case accepted units preserved;
+/// 2. minimize worst-case total cost;
+/// 3. minimize worst-case crew minutes;
+/// 4. minimize worst-case recovery minutes;
+/// 5. break ties by branch ID.
+///
+/// This is a tiny finite oracle, not a production optimizer. Hidden state is accepted
+/// only by this oracle API; `evaluate_policy` never receives `OracleScenario`.
+pub fn solve_tiny_contingent_oracle(
+    scenarios: &[OracleScenario],
+) -> Result<OracleDecision, PolicyError> {
+    if scenarios.is_empty() {
+        return Err(PolicyError::EmptyOracleCorpus);
+    }
+
+    let expected_trigger = &scenarios[0].trigger;
+    let mut scenario_ids = BTreeSet::new();
+    let mut candidate_branch_ids: BTreeSet<String> = BTreeSet::new();
+
+    for (index, scenario) in scenarios.iter().enumerate() {
+        require_non_empty("scenario_id", &scenario.scenario_id)?;
+        require_non_empty("hidden_state_ref", &scenario.hidden_state_ref)?;
+        scenario.trigger.validate()?;
+        if &scenario.trigger != expected_trigger {
+            return Err(PolicyError::MixedOracleTriggers);
+        }
+        if !scenario_ids.insert(scenario.scenario_id.as_str()) {
+            return Err(PolicyError::DuplicateOracleScenario(
+                scenario.scenario_id.clone(),
+            ));
+        }
+        if scenario.outcomes.is_empty() {
+            return Err(PolicyError::EmptyOracleOutcomes(
+                scenario.scenario_id.clone(),
+            ));
+        }
+
+        let mut local_branch_ids = BTreeSet::new();
+        for outcome in &scenario.outcomes {
+            require_non_empty("branch_id", &outcome.branch_id)?;
+            if !local_branch_ids.insert(outcome.branch_id.as_str()) {
+                return Err(PolicyError::DuplicateOracleBranch {
+                    scenario_id: scenario.scenario_id.clone(),
+                    branch_id: outcome.branch_id.clone(),
+                });
+            }
+        }
+
+        if index == 0 {
+            candidate_branch_ids.extend(local_branch_ids.into_iter().map(str::to_owned));
+        } else {
+            candidate_branch_ids
+                .retain(|candidate| local_branch_ids.contains(candidate.as_str()));
+        }
+    }
+
+    let mut best: Option<OracleDecision> = None;
+    for branch_id in candidate_branch_ids {
+        let mut outcomes = Vec::with_capacity(scenarios.len());
+        let mut feasible = true;
+
+        for scenario in scenarios {
+            let Some(outcome) = scenario
+                .outcomes
+                .iter()
+                .find(|outcome| outcome.branch_id == branch_id)
+            else {
+                feasible = false;
+                break;
+            };
+            if !outcome.hard_constraints_satisfied {
+                feasible = false;
+                break;
+            }
+            outcomes.push(outcome);
+        }
+
+        if !feasible {
+            continue;
+        }
+
+        let candidate = OracleDecision {
+            branch_id,
+            worst_case_accepted_units_preserved: outcomes
+                .iter()
+                .map(|outcome| outcome.accepted_units_preserved)
+                .min()
+                .expect("non-empty scenario set"),
+            worst_case_cost_minor_units: outcomes
+                .iter()
+                .map(|outcome| outcome.total_cost_minor_units)
+                .max()
+                .expect("non-empty scenario set"),
+            worst_case_crew_minutes: outcomes
+                .iter()
+                .map(|outcome| outcome.crew_minutes)
+                .max()
+                .expect("non-empty scenario set"),
+            worst_case_recovery_minutes: outcomes
+                .iter()
+                .map(|outcome| outcome.recovery_minutes)
+                .max()
+                .expect("non-empty scenario set"),
+        };
+
+        let better = best.as_ref().is_none_or(|current| {
+            candidate
+                .worst_case_accepted_units_preserved
+                .cmp(&current.worst_case_accepted_units_preserved)
+                .then_with(|| {
+                    current
+                        .worst_case_cost_minor_units
+                        .cmp(&candidate.worst_case_cost_minor_units)
+                })
+                .then_with(|| {
+                    current
+                        .worst_case_crew_minutes
+                        .cmp(&candidate.worst_case_crew_minutes)
+                })
+                .then_with(|| {
+                    current
+                        .worst_case_recovery_minutes
+                        .cmp(&candidate.worst_case_recovery_minutes)
+                })
+                .then_with(|| current.branch_id.cmp(&candidate.branch_id))
+                .is_gt()
+        });
+
+        if better {
+            best = Some(candidate);
+        }
+    }
+
+    best.ok_or(PolicyError::NoRobustFeasibleBranch)
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PolicyError {
     EmptyField(&'static str),
@@ -473,6 +645,12 @@ pub enum PolicyError {
     MissingExternalApproval,
     InvalidEpochTransition,
     NoOpMaterialSubstitution,
+    EmptyOracleCorpus,
+    MixedOracleTriggers,
+    DuplicateOracleScenario(String),
+    EmptyOracleOutcomes(String),
+    DuplicateOracleBranch { scenario_id: String, branch_id: String },
+    NoRobustFeasibleBranch,
 }
 
 #[cfg(test)]
@@ -725,6 +903,153 @@ mod tests {
             policy(vec![first, other]).validate(),
             Err(PolicyError::AmbiguousTrigger(hoist_trigger()))
         );
+    }
+
+    fn oracle_scenario(
+        scenario_id: &str,
+        branch_outcomes: Vec<OracleBranchOutcome>,
+    ) -> OracleScenario {
+        OracleScenario {
+            scenario_id: scenario_id.to_owned(),
+            hidden_state_ref: format!("oracle-hidden:{scenario_id}"),
+            trigger: hoist_trigger(),
+            outcomes: branch_outcomes,
+        }
+    }
+
+    fn oracle_outcome(
+        branch_id: &str,
+        hard_constraints_satisfied: bool,
+        accepted_units_preserved: u64,
+        total_cost_minor_units: u64,
+        crew_minutes: u64,
+        recovery_minutes: u64,
+    ) -> OracleBranchOutcome {
+        OracleBranchOutcome {
+            branch_id: branch_id.to_owned(),
+            hard_constraints_satisfied,
+            accepted_units_preserved,
+            total_cost_minor_units,
+            crew_minutes,
+            recovery_minutes,
+        }
+    }
+
+    #[test]
+    fn tiny_oracle_selects_robust_branch_for_same_observable_trigger() {
+        let scenarios = vec![
+            oracle_scenario(
+                "hidden-hoist-bearing-fault",
+                vec![
+                    oracle_outcome("fast-alternate", true, 8, 200, 50, 20),
+                    oracle_outcome("manual-resequence", true, 7, 100, 70, 30),
+                ],
+            ),
+            oracle_scenario(
+                "hidden-hoist-power-fault",
+                vec![
+                    oracle_outcome("fast-alternate", true, 4, 800, 60, 80),
+                    oracle_outcome("manual-resequence", true, 5, 300, 90, 70),
+                ],
+            ),
+        ];
+
+        let decision = solve_tiny_contingent_oracle(&scenarios)
+            .expect("robust tiny-oracle solution");
+        assert_eq!(
+            decision,
+            OracleDecision {
+                branch_id: "manual-resequence".to_owned(),
+                worst_case_accepted_units_preserved: 5,
+                worst_case_cost_minor_units: 300,
+                worst_case_crew_minutes: 90,
+                worst_case_recovery_minutes: 70,
+            }
+        );
+    }
+
+    #[test]
+    fn tiny_oracle_excludes_a_branch_that_violates_a_hard_gate_in_any_scenario() {
+        let scenarios = vec![
+            oracle_scenario(
+                "scenario-a",
+                vec![
+                    oracle_outcome("fast-but-unauthorized", true, 10, 100, 10, 10),
+                    oracle_outcome("approved-resequence", true, 7, 300, 30, 40),
+                ],
+            ),
+            oracle_scenario(
+                "scenario-b",
+                vec![
+                    oracle_outcome("fast-but-unauthorized", false, 10, 100, 10, 10),
+                    oracle_outcome("approved-resequence", true, 7, 300, 30, 40),
+                ],
+            ),
+        ];
+
+        let decision = solve_tiny_contingent_oracle(&scenarios)
+            .expect("one hard-feasible branch");
+        assert_eq!(decision.branch_id, "approved-resequence");
+    }
+
+    #[test]
+    fn tiny_oracle_requires_a_branch_available_in_every_hidden_scenario() {
+        let scenarios = vec![
+            oracle_scenario(
+                "scenario-a",
+                vec![oracle_outcome("alternate-a", true, 4, 100, 10, 10)],
+            ),
+            oracle_scenario(
+                "scenario-b",
+                vec![oracle_outcome("alternate-b", true, 4, 100, 10, 10)],
+            ),
+        ];
+        assert_eq!(
+            solve_tiny_contingent_oracle(&scenarios),
+            Err(PolicyError::NoRobustFeasibleBranch)
+        );
+    }
+
+    #[test]
+    fn tiny_oracle_rejects_mixed_trigger_information_sets() {
+        let first = oracle_scenario(
+            "scenario-a",
+            vec![oracle_outcome("branch-a", true, 1, 1, 1, 1)],
+        );
+        let mut second = oracle_scenario(
+            "scenario-b",
+            vec![oracle_outcome("branch-a", true, 1, 1, 1, 1)],
+        );
+        second.trigger = TriggerKey::MaterialUnavailable {
+            lot_id: "LOT-9".to_owned(),
+        };
+        assert_eq!(
+            solve_tiny_contingent_oracle(&[first, second]),
+            Err(PolicyError::MixedOracleTriggers)
+        );
+    }
+
+    #[test]
+    fn tiny_oracle_is_invariant_to_scenario_and_outcome_order() {
+        let first = oracle_scenario(
+            "scenario-a",
+            vec![
+                oracle_outcome("alpha", true, 5, 500, 50, 40),
+                oracle_outcome("beta", true, 5, 500, 50, 40),
+            ],
+        );
+        let second = oracle_scenario(
+            "scenario-b",
+            vec![
+                oracle_outcome("alpha", true, 5, 500, 50, 40),
+                oracle_outcome("beta", true, 500, 5, 5, 5),
+            ],
+        );
+        let expected = solve_tiny_contingent_oracle(&[first.clone(), second.clone()])
+            .expect("oracle result");
+        let actual = solve_tiny_contingent_oracle(&[second, first])
+            .expect("permuted oracle result");
+        assert_eq!(actual, expected);
     }
 
     #[test]
