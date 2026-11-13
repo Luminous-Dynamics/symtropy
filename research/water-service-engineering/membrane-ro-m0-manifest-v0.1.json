@@ -25,5 +25,12 @@
     "not_a_CIP_or_cleaning_dataset",
     "not_an_industrial_RO_replication",
     "not_a_membrane_product_acceptance_test"
-  ]
+  ],
+  "water_permeance_methodology": {
+    "armstrong_reference": "through_origin_regression_slope_of_permeate_flux_vs_net_driving_pressure_across_the_complete_pressure_series",
+    "current_m0": "single_point_flux_divided_by_net_driving_pressure_formula_unit_check",
+    "exact_dataset_reproduction": "blocked_until_authorized_OSF_workbook_is_acquired_and_replicate_pressure_series_are_grouped",
+    "required_next_increment": "M0B_grouped_multi_pressure_through_origin_regression_with_replicate_level_uncertainty",
+    "nonclaim": "the current five-case M0 unit test is not a reproduction of the paper's fitted reference_A column"
+  }
 }
