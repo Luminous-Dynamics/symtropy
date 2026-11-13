@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1.0",
   "protocol_id": "RESOURCE-NORMALIZED-DRIVING-CAPABILITY-001",
-  "as_of": "2026-11-12",
+  "as_of": "2026-11-13",
   "status": "specification_only_no_model_runs",
   "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4639",
   "related_owners": {
@@ -447,6 +447,77 @@
       ],
       "protocol": "Architecture and availability reference only; no native performance score is registered in the announcement. Compare the released reactive component separately from the developing world/reasoning components. It is a compact fast-path architectural reference, not a verified complete stack result.",
       "source": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_tfv6_scaledrive_unprivileged",
+      "class": "self_reported_closed_loop_benchmark_leaderboard",
+      "name": "Bench2Drive v0.0.3 — TFv6+ScaleDrive (non-privileged section)",
+      "metric_values": {
+        "driving_score": 96.65,
+        "success_rate_percent": 90.45
+      },
+      "capabilities": [
+        "public aggregated leaderboard lists this in the non-privileged section",
+        "leaderboard last updated 2026-11-06",
+        "scores copied from papers and self-reported by contributors"
+      ],
+      "protocol": "Bench2Drive v0.0.3. The leaderboard explicitly states methods vary in data, experts, training/inference compute, model size and IL/RL. This is a system-level self-reported comparator, not a matched architecture-only experiment; keep separate from v0.0.4.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_lead_privileged",
+      "class": "privileged_closed_loop_comparator",
+      "name": "Bench2Drive v0.0.3 — LEAD (privileged section)",
+      "metric_values": {
+        "driving_score": 96.78,
+        "success_rate_percent": 96.59
+      },
+      "capabilities": [
+        "listed below the leaderboard divider as privileged methods",
+        "ground-truth perception input"
+      ],
+      "protocol": "Bench2Drive v0.0.3 self-reported leaderboard snapshot, last updated 2026-11-06. Strictly separate from vision-only/non-privileged comparison; not a fair SOTA target for camera-only Symthaea.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "navsim_v2_sota2_tps_drive_2026_05",
+      "class": "third_party_leaderboard_snapshot",
+      "name": "NAVSIM v2 SOTA2 leaderboard — TPS-Drive 2026.05",
+      "metric_values": {
+        "nc": 98.5,
+        "epdms": 86.7
+      },
+      "protocol": "Third-party SOTA2 leaderboard snapshot; page states Updated 5mo ago. Preserve NC and EPDMS native metrics; not an official organizer run or Symtropy reproduction.",
+      "source": "https://www.sota2.com/research/sota/autonomous-driving-on-navsim-v2",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "navsim_v2_sota2_drivevla_w0_2026_05",
+      "class": "third_party_leaderboard_snapshot",
+      "name": "NAVSIM v2 SOTA2 leaderboard — DriveVLA-W0 2026.05",
+      "metric_values": {
+        "nc": 98.5,
+        "epdms": 86.1
+      },
+      "protocol": "Third-party SOTA2 leaderboard snapshot; page states Updated 5mo ago. Keep distinct from DriveVLA-W0 paper results if task splits/evaluator provenance differ.",
+      "source": "https://www.sota2.com/research/sota/autonomous-driving-on-navsim-v2",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "carla_leaderboard_2_1_protocol_closed",
+      "class": "historical_evaluator_protocol",
+      "name": "CARLA Leaderboard 2.1 — latest protocol, submissions closed",
+      "metric_values": null,
+      "capabilities": [
+        "Leaderboard 2.1 is the current published evaluation protocol",
+        "submission service and evaluation servers are permanently closed",
+        "retains local-evaluation route/infraction and privileged-information criteria"
+      ],
+      "protocol": "Use as a local benchmark methodology and evaluator reference only. No public submission path is available; it is not an active competition target.",
+      "source": "https://leaderboard.carla.org/evaluation_v2_1/",
       "independent_symtropy_reproduction": false
     }
   ],
@@ -933,6 +1004,24 @@
       "url": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
       "published": "2026-11-11",
       "source_type": "TIER IV press release"
+    },
+    {
+      "id": "bench2drive_v003_2026_11_snapshot",
+      "url": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "published": "last updated 2026-11-06",
+      "source_type": "self-reported paper-aggregated leaderboard"
+    },
+    {
+      "id": "navsim_v2_sota2_2026_05_snapshot",
+      "url": "https://www.sota2.com/research/sota/autonomous-driving-on-navsim-v2",
+      "published": "page marked updated five months before 2026-11-13; entries 2026.05",
+      "source_type": "third-party leaderboard snapshot"
+    },
+    {
+      "id": "carla_leaderboard_2_1",
+      "url": "https://leaderboard.carla.org/evaluation_v2_1/",
+      "published": "2026",
+      "source_type": "official benchmark protocol; submission service closed"
     }
   ],
   "statistical_method": {
