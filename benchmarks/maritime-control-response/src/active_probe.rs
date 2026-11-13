@@ -2682,7 +2682,7 @@ mod tests {
             false
         );
         assert!(
-            protocol["evidence_boundaries"]["authority_status"]
+            protocol["authority"]["authority_status"]
                 .as_str()
                 .unwrap()
                 .contains("external mandatory checks")
