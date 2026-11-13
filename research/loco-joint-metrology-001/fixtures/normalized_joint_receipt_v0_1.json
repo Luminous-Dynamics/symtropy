@@ -1,13 +1,13 @@
 {
   "schema_id": "urn:luminous-dynamics:loco-joint-metrology-normalized-receipt:0.1.0",
   "schema_version": "0.1.0",
-  "canonicalization": "rfc8785",
+  "canonicalization": "ld-json-integer-canonical-v1",
   "producer": {
     "repository": "Luminous-Dynamics/symtropy",
     "package": "loco-joint-trace-adapter",
     "version": "0.1.0"
   },
-  "payload_sha256": "94137cc32ebeb908b2e0ad50ad6f05fb9836f455056d7b88eb54dffc0c290aad",
+  "payload_sha256": "902ff6483b23aa66faef7908b65304b3e599b351114fed965a10089ea93f0429",
   "payload": {
     "identity": {
       "mission_id": "mission-01",
@@ -142,8 +142,8 @@
         {"from_event_id": "observation-01", "to_event_id": "decision-01", "from_sequence": 1, "to_sequence": 2},
         {"from_event_id": "decision-01", "to_event_id": "proposal-01", "from_sequence": 2, "to_sequence": 3},
         {"from_event_id": "proposal-01", "to_event_id": "assurance-01", "from_sequence": 3, "to_sequence": 4},
-        {"from_event_id": "assurance-01", "to_event_id": "command", "from_sequence": 4, "to_sequence": 5},
-        {"from_event_id": "command", "to_event_id": "application-01", "from_sequence": 5, "to_sequence": 6},
+        {"from_event_id": "assurance-01", "to_event_id": "command-01", "from_sequence": 4, "to_sequence": 5},
+        {"from_event_id": "command-01", "to_event_id": "application-01", "from_sequence": 5, "to_sequence": 6},
         {"from_event_id": "application-01", "to_event_id": "physical-01", "from_sequence": 6, "to_sequence": 7},
         {"from_event_id": "physical-01", "to_event_id": "terminal-01", "from_sequence": 7, "to_sequence": 8}
       ],
