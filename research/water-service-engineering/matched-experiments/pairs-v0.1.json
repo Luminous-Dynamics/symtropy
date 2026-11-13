@@ -1,0 +1,1602 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "water-matched-experiment-pairs-v0.1",
+  "profile": {
+    "profile_id": "SYNTHETIC-MATCHED-EXPERIMENT-PROFILE-V0",
+    "evidence_class": "synthetic_design_profile",
+    "minimum_baseline_count": 2,
+    "deployment_parity_fields": [
+      "scenario_ref",
+      "network_id",
+      "topology_revision",
+      "topology_digest",
+      "geometry_revision",
+      "geometry_digest",
+      "demand_trace_digest",
+      "disturbance_trace_digest",
+      "random_seed",
+      "sensor_set",
+      "sampling_period_seconds",
+      "missingness_profile_ref",
+      "time_grid_ref",
+      "unit_system",
+      "scoring_horizon_seconds",
+      "service_floor_profile_digest",
+      "required_service_area_ids",
+      "actuator_envelope_digest",
+      "local_protection_contract_digest",
+      "decision_deadline_ms",
+      "future_covariates_available"
+    ],
+    "development_budget_policy": "record_per_baseline_do_not_hide_or_force_equality",
+    "values_are_normative": false
+  },
+  "pairs": [
+    {
+      "pair_id": "MEC-001",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "admit",
+      "note": "Canonical pair: deployment information is exactly matched; training and compute costs differ and are transparently recorded."
+    },
+    {
+      "pair_id": "MEC-002",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "One baseline receives fewer sensors than the paired reference; this is not an information-equivalent trial."
+    },
+    {
+      "pair_id": "MEC-003",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 30,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "One baseline receives twice the sampling rate."
+    },
+    {
+      "pair_id": "MEC-004",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:different-disturbances",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "Baselines are evaluated under different disturbance realizations."
+    },
+    {
+      "pair_id": "MEC-005",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:weaker-floor",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "One baseline is scored against a weaker service-floor profile."
+    },
+    {
+      "pair_id": "MEC-006",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:larger-actuator-envelope",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "One baseline receives more permissive actuator authority."
+    },
+    {
+      "pair_id": "MEC-007",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 43200,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "One baseline is scored over half the observation horizon."
+    },
+    {
+      "pair_id": "MEC-008",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": "sha256:synthetic-enc_2026-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": true
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "A baseline attempts to access future covariates unavailable to its paired comparator."
+    },
+    {
+      "pair_id": "MEC-009",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "A single baseline cannot constitute a paired comparison."
+    },
+    {
+      "pair_id": "MEC-010",
+      "protocol_revision": "WATER-MATCHED-EXPERIMENT-0.1",
+      "evidence_class": "synthetic_design_fixture",
+      "shared_deployment_inputs": {
+        "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+        "network_id": "SYNTHETIC-NET-01",
+        "topology_revision": "SYNTHETIC-TOPO-01",
+        "topology_digest": "sha256:synthetic-topology-001",
+        "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+        "geometry_digest": "sha256:synthetic-geometry-001",
+        "demand_trace_digest": "sha256:synthetic-demand-001",
+        "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+        "random_seed": 17012026,
+        "sensor_set": [
+          "FLOW-01",
+          "PRESSURE-01",
+          "PRESSURE-02",
+          "TANK-LEVEL-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+        "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+        "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "scoring_profile": {
+        "scoring_profile_ref": "SYNTHETIC-SCORECARD-01",
+        "event_metric_version": "EVENT-METRICS-0.1",
+        "service_metric_version": "SERVICE-FLOOR-METRICS-0.1",
+        "uncertainty_metric_version": "UNCERTAINTY-METRICS-0.1",
+        "resource_metric_version": "RESOURCE-METRICS-0.1",
+        "aggregation_policy": "no_single_compensatory_score",
+        "abstention_reported": true,
+        "coverage_reported": true
+      },
+      "baseline_runs": [
+        {
+          "baseline_id": "TUNED_PI",
+          "baseline_version_ref": "SYNTHETIC-TUNED_PI-REV-01",
+          "configuration_digest": "sha256:synthetic-tuned_pi-config-01",
+          "implementation_artifact_digest": "sha256:synthetic-tuned_pi-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 0,
+            "training_source_population_ref": "NOT_APPLICABLE",
+            "split_receipt_ref": "NOT_APPLICABLE",
+            "offline_compute_seconds": 0,
+            "offline_memory_mb": 128,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 0,
+            "online_cpu_ms_p95": 4,
+            "online_memory_mb": 64,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "NOT_APPLICABLE",
+          "split_receipt_ref": "NOT_APPLICABLE",
+          "future_covariate_access": false
+        },
+        {
+          "baseline_id": "ENC_2026",
+          "baseline_version_ref": "SYNTHETIC-ENC_2026-REV-01",
+          "configuration_digest": null,
+          "implementation_artifact_digest": "sha256:synthetic-enc_2026-artifact-01",
+          "deployment_inputs": {
+            "scenario_ref": "SYNTHETIC-SCENARIO-REF-001",
+            "network_id": "SYNTHETIC-NET-01",
+            "topology_revision": "SYNTHETIC-TOPO-01",
+            "topology_digest": "sha256:synthetic-topology-001",
+            "geometry_revision": "SYNTHETIC-GEOMETRY-01",
+            "geometry_digest": "sha256:synthetic-geometry-001",
+            "demand_trace_digest": "sha256:synthetic-demand-001",
+            "disturbance_trace_digest": "sha256:synthetic-disturbance-001",
+            "random_seed": 17012026,
+            "sensor_set": [
+              "FLOW-01",
+              "PRESSURE-01",
+              "PRESSURE-02",
+              "TANK-LEVEL-01"
+            ],
+            "sampling_period_seconds": 60,
+            "missingness_profile_ref": "SYNTHETIC-MISSINGNESS-BASE-01",
+            "time_grid_ref": "SYNTHETIC-TIMEGRID-60S-01",
+            "unit_system": "SI",
+            "scoring_horizon_seconds": 86400,
+            "service_floor_profile_digest": "sha256:synthetic-service-floor-001",
+            "required_service_area_ids": [
+              "DMA-A",
+              "DMA-B",
+              "DMA-C"
+            ],
+            "actuator_envelope_digest": "sha256:synthetic-actuator-envelope-001",
+            "local_protection_contract_digest": "sha256:synthetic-local-protection-001",
+            "decision_deadline_ms": 1000,
+            "future_covariates_available": false
+          },
+          "resource_budget": {
+            "training_sample_count": 200,
+            "training_source_population_ref": "SYNTHETIC-TRAIN-POP-01",
+            "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+            "offline_compute_seconds": 900,
+            "offline_memory_mb": 256,
+            "hyperparameter_trials": 12,
+            "engineer_hours": 16,
+            "online_cpu_ms_p95": 2,
+            "online_memory_mb": 128,
+            "communication_bytes_per_decision": 2048
+          },
+          "execution_environment_ref": "SYNTHETIC-RUNTIME-ENV-01",
+          "solver_or_runtime_version": "SYNTHETIC-RUNTIME-0.1",
+          "data_population_ref": "SYNTHETIC-POPULATION-01",
+          "split_receipt_ref": "SYNTHETIC-SPLIT-RECEIPT-01",
+          "future_covariate_access": false
+        }
+      ],
+      "expected_pair_disposition": "reject",
+      "note": "A baseline without an exact configuration digest cannot produce a reproducible comparative result."
+    }
+  ],
+  "interpretation_rules": [
+    "Every baseline in a pair must receive a deployment_inputs object exactly equal to the pair's shared_deployment_inputs object.",
+    "Deployment input parity covers scenario, network, topology, geometry, demand and disturbance traces, random seed, sensor set, sampling, missingness, time grid, units, scoring horizon, service-floor profile, required area set, actuator envelope, local protection contract, decision deadline and no-future-covariate declaration.",
+    "Development resource budgets may differ across baselines but each component must be explicitly recorded; no missing training/compute/engineer-hour fields are permitted.",
+    "A baseline cannot use future covariates unavailable to the paired comparator.",
+    "Every baseline requires version, configuration digest, implementation artifact, execution environment, runtime version, data population and split receipt.",
+    "Leak dataset split admission is owned by #5053/#4979; this matched-trial evaluator only requires the exact split receipt reference and does not replace split-integrity checks.",
+    "Abstention and eligible coverage must be scored alongside risk or accuracy; abstained cases cannot be silently dropped.",
+    "All scorecards retain service, event, uncertainty, resilience, resource and evidence-integrity dimensions separately; no single compensatory score is authoritative.",
+    "A failed pair is rejected from comparative scoring but retained in the receipt with the specific mismatch reason.",
+    "Synthetic input digests and budgets are design placeholders, not measured data, vendor performance, procurement prices or operating conditions."
+  ],
+  "claim_ceiling": "Synthetic paired-input admission semantics only. No algorithm or commercial platform performance is measured or ranked."
+}
