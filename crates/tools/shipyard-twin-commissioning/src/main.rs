@@ -808,6 +808,7 @@ mod tests {
                 ready_limited: 0,
                 not_ready: 9,
                 exact_oracle_agreements: 13,
+                lifecycle_scenarios: 8,
             }
         );
     }
