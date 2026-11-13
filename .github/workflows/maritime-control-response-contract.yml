@@ -220,6 +220,42 @@ jobs:
             ((.claim_ceiling | ascii_downcase) | contains("no model") and contains("cross-engine"))
           ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
 
+          jq -e '
+            .schema_version == "symtropy-published-marine-engine-baseline-audit-v0.1" and
+            .status == "public_release_preflight_incomplete_not_reproduced" and
+            .publication.article_reported_accuracy_percent == 99.45 and
+            .public_code_repository.sample_csv.parsed_rows == 1025 and
+            .public_code_repository.sample_csv.columns == 25 and
+            .public_code_repository.sample_csv.observed_unique_labels == 1 and
+            .public_code_repository.sample_csv.observed_label_counts["10"] == 1025 and
+            .public_code_repository.sample_csv.paper_described_state_count == 11 and
+            .public_code_repository.sample_csv.label_coverage_complete == false and
+            .implementation_review.repository_script_split.test_fraction == 0.2 and
+            .implementation_review.repository_script_split.shuffle == true and
+            .audit_disposition.reproduced == false and
+            .audit_disposition.model_score_claim_allowed == false and
+            (.audit_disposition.required_reproduction_protocol | length >= 8)
+          ' benchmarks/maritime-control-response/published-marine-engine-baseline-audit-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-marine-multisource-virtual-real-transfer-v0.1" and
+            .status == "published_dataset_reference_access_not_yet_audited" and
+            .publication.doi == "10.1038/s41597-026-07924-7" and
+            .publication.dataset_license == "not_verified_from_accessible_record" and
+            .reported_dataset.load_range_percent == [25, 100] and
+            .reported_dataset.source_domains | length == 4
+          ' benchmarks/maritime-control-response/multi-source-virtual-real-transfer-v0.1.json >/dev/null
+
+          jq -e '
+            .reported_dataset.published_transfer_result.value_percent == 70.18 and
+            .reported_dataset.published_transfer_result.status == "published_reference_not_reproduced" and
+            (.benchmark_tracks | length == 5) and
+            (.hard_gates | length >= 10) and
+            ([.benchmark_tracks[].id] | index("simulation_to_vessel_zero_shot") != null) and
+            ([.benchmark_tracks[].id] | index("virtual_real_fault_fusion") != null) and
+            (.claim_ceiling | contains("not been independently audited"))
+          ' benchmarks/maritime-control-response/multi-source-virtual-real-transfer-v0.1.json >/dev/null
+
       - name: Validate run manifest and external file manifest schemas
         run: |
           set -euo pipefail
