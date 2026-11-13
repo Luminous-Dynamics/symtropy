@@ -29,6 +29,14 @@ struct Channel {
     raw: Value,
 }
 
+#[derive(Clone, Copy)]
+struct EvaluationContext<'a> {
+    evidence_class: PairEvidenceClass,
+    asset_sha256: &'a str,
+    regime_qualified: bool,
+    max_timestamp_uncertainty_ms: f64,
+}
+
 fn push(errors: &mut Errors, code: &str, path: &str, detail: impl Into<String>) {
     errors.push(json!({"code":code,"path":path,"detail":detail.into()}));
 }
@@ -107,7 +115,7 @@ fn interval(v:&Value,key:&str,path:&str,errors:&mut Errors)->Option<(f64,f64)>{
     Some((lower,upper))
 }
 
-fn channel_is_measured_and_qualified(channel:&Channel,asset_sha:&str,max_timestamp_uncertainty_ms:f64)->bool{
+fn channel_is_measured_and_qualified(channel:&Channel,context:EvaluationContext<'_>)->bool{
     let v=&channel.raw;
     text(v,"source_role")==Some("measured")
         && v["installed"].as_bool()==Some(true)
@@ -115,24 +123,24 @@ fn channel_is_measured_and_qualified(channel:&Channel,asset_sha:&str,max_timesta
         && text(v,"calibration_state")==Some("current")
         && text(v,"timebase_qualification_state")==Some("qualified")
         && text(v,"timebase_id").is_some()
-        && finite(v,"timestamp_uncertainty_ms").is_some_and(|x|x>=0.0&&x<=max_timestamp_uncertainty_ms)
+        && finite(v,"timestamp_uncertainty_ms").is_some_and(|x|x>=0.0&&x<=context.max_timestamp_uncertainty_ms)
         && v["timebase_qualification_sha256"].as_str().is_some_and(sha256)
-        && text(v,"configuration_sha256")==Some(asset_sha)
+        && text(v,"configuration_sha256")==Some(context.asset_sha256)
         && v["derived_from_channel_ids"].as_array().is_some_and(|a|a.is_empty())
 }
 
-fn evidence_role(raw:Option<&str>,channel:&Channel,evidence_class:&str,asset_sha:&str,common_timebase:Option<&str>,common_clock_digest:Option<&str>,regime_qualified:bool,max_timestamp_uncertainty_ms:f64)->PairEvidenceRole{
+fn evidence_role(raw:Option<&str>,channel:&Channel,context:EvaluationContext<'_>,common_timebase:Option<&str>,common_clock_digest:Option<&str>)->PairEvidenceRole{
     match raw {
         Some("SYNTHETIC_CONFORMANCE_FIXTURE")
-            if evidence_class=="SYNTHETIC_CONFORMANCE_FIXTURE"
+            if context.evidence_class==PairEvidenceClass::SyntheticConformanceFixture
                 && text(&channel.raw,"source_role")==Some("synthetic_fixture")
-                && channel.raw["configuration_sha256"].as_str()==Some(asset_sha)
+                && channel.raw["configuration_sha256"].as_str()==Some(context.asset_sha256)
                 && text(&channel.raw,"quality_state")==Some("current")
             => PairEvidenceRole::SyntheticConformanceFixture,
         Some("INDEPENDENT_MEASUREMENT")
-            if evidence_class=="MEASURED"
-                && regime_qualified
-                && channel_is_measured_and_qualified(channel,asset_sha,max_timestamp_uncertainty_ms)
+            if context.evidence_class==PairEvidenceClass::Measured
+                && context.regime_qualified
+                && channel_is_measured_and_qualified(channel,context)
                 && text(&channel.raw,"timebase_id")==common_timebase
                 && channel.raw["timebase_qualification_sha256"].as_str()==common_clock_digest
             => PairEvidenceRole::IndependentMeasurement,
@@ -355,7 +363,7 @@ fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BT
     Ok((case_id,asset_id,regime,evidence_class,channels,pairs.clone(),cuts.clone()))
 }
 
-fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,evidence_class:PairEvidenceClass,asset_sha:&str,disabled:&BTreeSet<String>,regime_qualified:bool,max_timestamp_uncertainty_ms:f64)->Result<Value,String>{
+fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,context:EvaluationContext<'_>,disabled:&BTreeSet<String>)->Result<Value,String>{
     let pair_id=text(pair,"pair_id").unwrap_or("UNKNOWN");
     let mut pair_timebases=BTreeSet::new();
     let mut pair_clock_digests=BTreeSet::new();
@@ -378,18 +386,14 @@ fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,evidence_class:Pa
             interval_b:response["interval_b"].as_array().and_then(|a|Some((a.get(0)?.as_f64()?,a.get(1)?.as_f64()?))),
             availability_a:availability(text(response,"availability_a")).expect("validated"),
             availability_b:availability(text(response,"availability_b")).expect("validated"),
-            evidence_role_a:evidence_role(text(response,"evidence_role_a"),channel,
-                if evidence_class==PairEvidenceClass::Measured{"MEASURED"}else{"SYNTHETIC_CONFORMANCE_FIXTURE"},
-                asset_sha,common_timebase.as_deref(),common_clock_digest.as_deref(),regime_qualified,max_timestamp_uncertainty_ms),
-            evidence_role_b:evidence_role(text(response,"evidence_role_b"),channel,
-                if evidence_class==PairEvidenceClass::Measured{"MEASURED"}else{"SYNTHETIC_CONFORMANCE_FIXTURE"},
-                asset_sha,common_timebase.as_deref(),common_clock_digest.as_deref(),regime_qualified,max_timestamp_uncertainty_ms),
+            evidence_role_a:evidence_role(text(response,"evidence_role_a"),channel,context,common_timebase.as_deref(),common_clock_digest.as_deref()),
+            evidence_role_b:evidence_role(text(response,"evidence_role_b"),channel,context,common_timebase.as_deref(),common_clock_digest.as_deref()),
         });
     }
     let result=classify_pair_signatures(
         &signatures,
         pair["minimum_independent_principles"].as_u64().expect("validated") as usize,
-        evidence_class,
+        context.evidence_class,
         disabled
     )?;
     let mut shared:BTreeMap<String,usize>=BTreeMap::new();
@@ -419,9 +423,15 @@ fn run_case(case:&Value,source:&str,digest:&str)->Result<Value,String>{
     let asset_sha=text(&case["asset"],"configuration_sha256").unwrap_or("");
     let regime_qualified=text(&case["operating_domain"],"qualification_state")==Some("qualified");
     let max_timestamp_uncertainty=finite(case,"maximum_timestamp_uncertainty_ms").unwrap_or(0.0);
+    let context=EvaluationContext{
+        evidence_class,
+        asset_sha256:asset_sha,
+        regime_qualified,
+        max_timestamp_uncertainty_ms:max_timestamp_uncertainty,
+    };
     let no_cut=BTreeSet::new();
     let mut base_results=Vec::new();
-    for pair in &pairs{base_results.push(classify_one(pair,&channels,evidence_class,asset_sha,&no_cut,regime_qualified,max_timestamp_uncertainty)?);}
+    for pair in &pairs{base_results.push(classify_one(pair,&channels,context,&no_cut)?);}
     for pair in &pairs{
         if let Some(expected)=text(pair,"expected_status"){
             let actual=base_results.iter().find(|r|r["pair_id"]==pair["pair_id"]).and_then(|r|r["status"].as_str()).unwrap_or("");
@@ -433,7 +443,7 @@ fn run_case(case:&Value,source:&str,digest:&str)->Result<Value,String>{
         let disabled=string_array(cut,"disabled_dependency_groups","$",&mut Vec::new());
         let mut results=Vec::new();
         for pair in &pairs{
-            let result=classify_one(pair,&channels,evidence_class,asset_sha,&disabled,regime_qualified,max_timestamp_uncertainty)?;
+            let result=classify_one(pair,&channels,context,&disabled)?;
             results.push(result);
         }
         if let Some(expected)=cut.get("expected_statuses").and_then(Value::as_array){
