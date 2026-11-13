@@ -653,7 +653,7 @@ mod tests {
         ));
         let bound = envelope.acceleration_error_bound_mass_norm.unwrap();
 
-        let perturbed_mass = std::array::from_fn(|row| {
+        let perturbed_mass: Matrix<3> = std::array::from_fn(|row| {
             std::array::from_fn(|column| metric.matrix()[row][column] + delta_mass[row][column])
         });
         let perturbed_metric = Metric::new(perturbed_mass, profile).unwrap();
@@ -674,7 +674,7 @@ mod tests {
 
     #[test]
     fn uncertainty_envelope_is_invariant_under_dense_rebasing() {
-        let (metric_q, rebase, acceleration_q, force_q) = fixture();
+        let (metric_q, rebase, acceleration_q, _force_q) = fixture();
         let delta_mass_q = diagonal_mass_perturbation();
         let delta_force_q = Covector::new(force_perturbation()).unwrap();
         let envelope_q = estimate_acceleration_uncertainty(
