@@ -1,0 +1,136 @@
+{
+  "schema_version": "water-process-closure-001-oracle-v1",
+  "qualification_status": "NotRun",
+  "claim_ceiling": "WaterProcessAccountingContractOnly",
+  "independently_hand_calculated": true,
+  "results": [
+    {
+      "case_id": "WPC-01",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "AccountingOnly"
+    },
+    {
+      "case_id": "WPC-02",
+      "water_balance_status": "ExactUnbalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Unbalanced"
+    },
+    {
+      "case_id": "WPC-03",
+      "water_balance_status": "Invalid",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Invalid"
+    },
+    {
+      "case_id": "WPC-04",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "AccountingOnly"
+    },
+    {
+      "case_id": "WPC-05",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "AccountingOnly"
+    },
+    {
+      "case_id": "WPC-06",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "Indeterminate",
+      "overall_disposition": "Indeterminate"
+    },
+    {
+      "case_id": "WPC-07",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "Incomplete",
+      "overall_disposition": "Incomplete"
+    },
+    {
+      "case_id": "WPC-08",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactUnbalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Unbalanced"
+    },
+    {
+      "case_id": "WPC-09",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "PossibleWithUncertainty",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Indeterminate"
+    },
+    {
+      "case_id": "WPC-10",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ImpossibleWithinBounds",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Unbalanced"
+    },
+    {
+      "case_id": "WPC-11",
+      "water_balance_status": "Invalid",
+      "material_mass_status": "Invalid",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Invalid"
+    },
+    {
+      "case_id": "WPC-12",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "ExactBalanced",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "AccountingOnly"
+    },
+    {
+      "case_id": "WPC-13",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotAssessable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Indeterminate"
+    },
+    {
+      "case_id": "WPC-14",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "Incomplete",
+      "overall_disposition": "Incomplete"
+    },
+    {
+      "case_id": "WPC-15",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "Incomplete",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "ClosedForAccounting",
+      "overall_disposition": "Incomplete"
+    },
+    {
+      "case_id": "WPC-16",
+      "water_balance_status": "ExactBalanced",
+      "material_mass_status": "ExactBalanced",
+      "tracer_status": "NotApplicable",
+      "lifecycle_status": "Incomplete",
+      "overall_disposition": "Incomplete"
+    }
+  ]
+}

@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water process closure inputs v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "qualification_status",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "water-process-closure-001-inputs-v1"
+    },
+    "qualification_status": {
+      "const": "NotRun"
+    },
+    "claim_ceiling": {
+      "const": "WaterProcessAccountingContractOnly"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "profile",
+          "unit_status",
+          "time_grid_aligned",
+          "input_streams_complete",
+          "internal_recycle_counted_as_external",
+          "water_balance",
+          "mass_balance",
+          "tracer_balance",
+          "residual",
+          "cycle",
+          "utilities",
+          "quality_gate"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^WPC-[0-9]{2}$"
+          },
+          "profile": {
+            "enum": [
+              "conventional_treatment",
+              "membrane_reuse",
+              "sludge_dewatering",
+              "tracer_mixing"
+            ]
+          },
+          "unit_status": {
+            "enum": [
+              "valid",
+              "missing",
+              "mismatch"
+            ]
+          },
+          "time_grid_aligned": {
+            "type": "boolean"
+          },
+          "input_streams_complete": {
+            "type": "boolean"
+          },
+          "internal_recycle_counted_as_external": {
+            "type": "boolean"
+          },
+          "water_balance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit_status",
+              "inflow_ml",
+              "opening_storage_ml",
+              "treated_effluent_ml",
+              "reuse_ml",
+              "backwash_ml",
+              "sludge_water_ml",
+              "reject_ml",
+              "declared_loss_ml",
+              "closing_storage_ml",
+              "tolerance_ml"
+            ],
+            "properties": {
+              "unit_status": {
+                "enum": [
+                  "valid",
+                  "missing",
+                  "mismatch"
+                ]
+              },
+              "inflow_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "opening_storage_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "treated_effluent_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reuse_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "backwash_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sludge_water_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reject_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "declared_loss_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "closing_storage_ml": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "tolerance_ml": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "mass_balance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit_status",
+              "streams_complete",
+              "input_mass_g",
+              "outputs",
+              "tolerance_g"
+            ],
+            "properties": {
+              "unit_status": {
+                "enum": [
+                  "valid",
+                  "missing",
+                  "mismatch"
+                ]
+              },
+              "streams_complete": {
+                "type": "boolean"
+              },
+              "input_mass_g": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "lower",
+                  "upper"
+                ],
+                "properties": {
+                  "lower": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "upper": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "stream_id",
+                    "lower_g",
+                    "upper_g",
+                    "stream_class"
+                  ],
+                  "properties": {
+                    "stream_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "lower_g": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "upper_g": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "stream_class": {
+                      "enum": [
+                        "product",
+                        "by_product",
+                        "residual_solid",
+                        "reject",
+                        "recycle_material",
+                        "tracked_material",
+                        "waste"
+                      ]
+                    }
+                  }
+                }
+              },
+              "tolerance_g": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "tracer_balance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "applicable",
+              "input_mass_mg",
+              "output_mass_mg",
+              "concentration_only_claim",
+              "reaction_expected",
+              "reaction_model_available",
+              "closed_boundary",
+              "tolerance_mg"
+            ],
+            "properties": {
+              "applicable": {
+                "type": "boolean"
+              },
+              "input_mass_mg": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "output_mass_mg": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "concentration_only_claim": {
+                "type": "boolean"
+              },
+              "reaction_expected": {
+                "type": "boolean"
+              },
+              "reaction_model_available": {
+                "type": "boolean"
+              },
+              "closed_boundary": {
+                "type": "boolean"
+              },
+              "tolerance_mg": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "residual": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "required",
+              "route_state",
+              "recovery_claimed",
+              "recovery_qualified",
+              "recovered_mass_g",
+              "recovered_output_evidence",
+              "permission_known"
+            ],
+            "properties": {
+              "required": {
+                "type": "boolean"
+              },
+              "route_state": {
+                "enum": [
+                  "qualified",
+                  "missing",
+                  "unqualified",
+                  "not_applicable"
+                ]
+              },
+              "recovery_claimed": {
+                "type": "boolean"
+              },
+              "recovery_qualified": {
+                "type": "boolean"
+              },
+              "recovered_mass_g": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "recovered_output_evidence": {
+                "type": "boolean"
+              },
+              "permission_known": {
+                "type": "boolean"
+              }
+            }
+          },
+          "cycle": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "complete",
+              "consumables_renewed",
+              "backwash_accounted"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "consumables_renewed": {
+                "type": "boolean"
+              },
+              "backwash_accounted": {
+                "type": "boolean"
+              }
+            }
+          },
+          "utilities": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "complete",
+              "electricity_wh",
+              "heat_wh",
+              "process_minutes"
+            ],
+            "properties": {
+              "complete": {
+                "type": "boolean"
+              },
+              "electricity_wh": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "heat_wh": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "process_minutes": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "quality_gate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "required",
+              "status"
+            ],
+            "properties": {
+              "required": {
+                "type": "boolean"
+              },
+              "status": {
+                "enum": [
+                  "not_assessed",
+                  "cleared",
+                  "missing",
+                  "failed",
+                  "indeterminate"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1183 @@
+{
+  "schema_version": "water-process-closure-001-inputs-v1",
+  "qualification_status": "NotRun",
+  "claim_ceiling": "WaterProcessAccountingContractOnly",
+  "cases": [
+    {
+      "case_id": "WPC-01",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-02",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 9000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-03",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": true,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-04",
+      "profile": "sludge_dewatering",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 12000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 8000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 3000,
+        "reject_ml": 0,
+        "declared_loss_ml": 1000,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "dry-cake",
+            "lower_g": 700,
+            "upper_g": 700,
+            "stream_class": "residual_solid"
+          },
+          {
+            "stream_id": "filtrate-solids",
+            "lower_g": 100,
+            "upper_g": 100,
+            "stream_class": "recycle_material"
+          },
+          {
+            "stream_id": "captured-residual",
+            "lower_g": 200,
+            "upper_g": 200,
+            "stream_class": "residual_solid"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-05",
+      "profile": "membrane_reuse",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 6000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 4000,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "permeate-solids",
+            "lower_g": 500,
+            "upper_g": 500,
+            "stream_class": "product"
+          },
+          {
+            "stream_id": "concentrate-solids",
+            "lower_g": 400,
+            "upper_g": 400,
+            "stream_class": "reject"
+          },
+          {
+            "stream_id": "captured-solids",
+            "lower_g": 100,
+            "upper_g": 100,
+            "stream_class": "residual_solid"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-06",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "unqualified",
+        "recovery_claimed": true,
+        "recovery_qualified": false,
+        "recovered_mass_g": 300,
+        "recovered_output_evidence": false,
+        "permission_known": false
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-07",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "missing",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": false
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-08",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "effluent-solids",
+            "lower_g": 900,
+            "upper_g": 900,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-09",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 900,
+          "upper": 1100
+        },
+        "outputs": [
+          {
+            "stream_id": "uncertain-output",
+            "lower_g": 1000,
+            "upper_g": 1200,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-10",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 900,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "unreachable-output",
+            "lower_g": 1100,
+            "upper_g": 1200,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-11",
+      "profile": "conventional_treatment",
+      "unit_status": "mismatch",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "mismatch",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "mismatch",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-12",
+      "profile": "tracer_mixing",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 20000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 20000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 50,
+          "upper": 50
+        },
+        "outputs": [
+          {
+            "stream_id": "diluted-solute",
+            "lower_g": 50,
+            "upper_g": 50,
+            "stream_class": "tracked_material"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": true,
+        "input_mass_mg": 1000,
+        "output_mass_mg": 1000,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": true,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-13",
+      "profile": "tracer_mixing",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": true,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": true,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-14",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": false,
+        "consumables_renewed": false,
+        "backwash_accounted": false
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-15",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": false,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": true,
+        "electricity_wh": 2500,
+        "heat_wh": 0,
+        "process_minutes": 60
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    },
+    {
+      "case_id": "WPC-16",
+      "profile": "conventional_treatment",
+      "unit_status": "valid",
+      "time_grid_aligned": true,
+      "input_streams_complete": true,
+      "internal_recycle_counted_as_external": false,
+      "water_balance": {
+        "unit_status": "valid",
+        "inflow_ml": 10000,
+        "opening_storage_ml": 0,
+        "treated_effluent_ml": 10000,
+        "reuse_ml": 0,
+        "backwash_ml": 0,
+        "sludge_water_ml": 0,
+        "reject_ml": 0,
+        "declared_loss_ml": 0,
+        "closing_storage_ml": 0,
+        "tolerance_ml": 0
+      },
+      "mass_balance": {
+        "unit_status": "valid",
+        "streams_complete": true,
+        "input_mass_g": {
+          "lower": 1000,
+          "upper": 1000
+        },
+        "outputs": [
+          {
+            "stream_id": "treated-solids",
+            "lower_g": 1000,
+            "upper_g": 1000,
+            "stream_class": "product"
+          }
+        ],
+        "tolerance_g": 0
+      },
+      "tracer_balance": {
+        "applicable": false,
+        "input_mass_mg": null,
+        "output_mass_mg": null,
+        "concentration_only_claim": false,
+        "reaction_expected": false,
+        "reaction_model_available": false,
+        "closed_boundary": false,
+        "tolerance_mg": 0
+      },
+      "residual": {
+        "required": true,
+        "route_state": "qualified",
+        "recovery_claimed": false,
+        "recovery_qualified": false,
+        "recovered_mass_g": 0,
+        "recovered_output_evidence": false,
+        "permission_known": true
+      },
+      "cycle": {
+        "complete": true,
+        "consumables_renewed": true,
+        "backwash_accounted": true
+      },
+      "utilities": {
+        "complete": false,
+        "electricity_wh": null,
+        "heat_wh": null,
+        "process_minutes": 120
+      },
+      "quality_gate": {
+        "required": false,
+        "status": "not_assessed"
+      }
+    }
+  ]
+}
