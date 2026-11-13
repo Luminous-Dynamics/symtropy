@@ -1,0 +1,321 @@
+{
+  "schema_version": "loco-modal-failover-known-answers-v0.1",
+  "statuses": [
+    "valid",
+    "degraded",
+    "ood",
+    "unavailable",
+    "unknown"
+  ],
+  "evidence_groups": [
+    "D1",
+    "D2",
+    "D3",
+    "X1",
+    "X2"
+  ],
+  "cases": [
+    {
+      "id": "A-vision-ood-proprioception-fallback",
+      "current_mode": "full-perception",
+      "target_mode": "proprioceptive-haptic",
+      "possible_health_signatures": [
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "valid",
+          "X1": "ood"
+        }
+      ],
+      "receipts": [
+        {
+          "signature": "vision-ood",
+          "status": "admitted",
+          "actions": [
+            "hold",
+            "retreat"
+          ]
+        }
+      ],
+      "preferred_action": "retreat",
+      "expected": {
+        "disposition": "enter-target-mode",
+        "selected_action": "retreat"
+      }
+    },
+    {
+      "id": "B-vision-ood-and-proprioception-degraded",
+      "current_mode": "full-perception",
+      "target_mode": "proprioceptive-haptic",
+      "possible_health_signatures": [
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "valid",
+          "X1": "ood"
+        },
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "degraded",
+          "X1": "ood"
+        }
+      ],
+      "receipts": [
+        {
+          "signature": "vision-ood",
+          "status": "admitted",
+          "actions": [
+            "hold",
+            "retreat"
+          ]
+        },
+        {
+          "signature": "vision-ood-d3-degraded",
+          "status": "admitted",
+          "actions": [
+            "hold"
+          ]
+        }
+      ],
+      "preferred_action": "retreat",
+      "expected": {
+        "disposition": "enter-target-mode",
+        "selected_action": "hold",
+        "rule": "intersection of admitted action sets"
+      }
+    },
+    {
+      "id": "C-unknown-d3-health-expands-signature-set",
+      "possible_health_signatures": [
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "valid",
+          "X1": "ood"
+        },
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "unavailable",
+          "X1": "ood"
+        },
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "unknown",
+          "X1": "ood"
+        }
+      ],
+      "receipts": [
+        {
+          "signature": "valid",
+          "status": "admitted",
+          "actions": [
+            "hold"
+          ]
+        },
+        {
+          "signature": "unavailable",
+          "status": "rejected",
+          "witness": "no-safe-stance"
+        },
+        {
+          "signature": "unknown",
+          "status": "unknown",
+          "reason": "unbounded D3 fault"
+        }
+      ],
+      "expected": {
+        "disposition": "reject-or-unknown",
+        "low_probability_signatures_must_not_be_deleted": true
+      }
+    },
+    {
+      "id": "D-no-common-action-across-signatures",
+      "possible_health_signatures": [
+        {
+          "D1": "valid",
+          "D2": "valid",
+          "D3": "valid",
+          "X1": "degraded"
+        },
+        {
+          "D1": "valid",
+          "D2": "degraded",
+          "D3": "valid",
+          "X1": "degraded"
+        }
+      ],
+      "receipts": [
+        {
+          "signature": "a",
+          "status": "admitted",
+          "actions": [
+            "advance"
+          ]
+        },
+        {
+          "signature": "b",
+          "status": "admitted",
+          "actions": [
+            "retreat"
+          ]
+        }
+      ],
+      "expected": {
+        "disposition": "unknown",
+        "reason": "empty admitted action intersection"
+      }
+    },
+    {
+      "id": "E-upgrade-held-by-dwell",
+      "current_mode": "proprioceptive-haptic",
+      "target_mode": "full-perception",
+      "rank_current": 1,
+      "rank_target": 2,
+      "last_change_ns": 900,
+      "now_ns": 950,
+      "upgrade_dwell_ns": 100,
+      "all_target_receipts_fresh": true,
+      "all_channels_revalidated": true,
+      "expected": {
+        "disposition": "hold-current",
+        "reason": "upgrade dwell not elapsed"
+      }
+    },
+    {
+      "id": "F-downshift-not-delayed-by-dwell",
+      "current_mode": "full-perception",
+      "target_mode": "vision-off",
+      "rank_current": 3,
+      "rank_target": 1,
+      "last_change_ns": 990,
+      "now_ns": 995,
+      "upgrade_dwell_ns": 1000,
+      "urgent": true,
+      "expected": {
+        "dwell_does_not_block_safety_downshift": true
+      }
+    },
+    {
+      "id": "G-transition-prefix-loses-contact",
+      "receipts": [
+        {
+          "signature": "x",
+          "status": "rejected",
+          "witness": "support-loss-during-mode-switch"
+        }
+      ],
+      "expected": {
+        "disposition": "rejected",
+        "state_constant_during_transition_must_not_be_assumed": true
+      }
+    },
+    {
+      "id": "H-actuator-derating-with-good-vision",
+      "actuator_state": "thermal-derated",
+      "receipt_actuator_digest": "derated-v2",
+      "input_actuator_digest": "nominal-v1",
+      "expected": {
+        "disposition": "unknown",
+        "reason": "actuator receipt context mismatch"
+      }
+    },
+    {
+      "id": "I-replayed-health-evidence",
+      "health_evidence_ids": [
+        "e1",
+        "e1"
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "duplicate evidence ID"
+      }
+    },
+    {
+      "id": "J-stale-calibration-clock-or-receipt",
+      "calibration_fresh": false,
+      "clock_mapping_valid": false,
+      "viability_receipt_stale": true,
+      "expected": {
+        "disposition": "unknown",
+        "richer_mode_entry_forbidden": true
+      }
+    },
+    {
+      "id": "K-channel-recovery-requires-revalidation",
+      "current_mode": "vision-off",
+      "target_mode": "full-perception",
+      "x1_status": "valid",
+      "x1_calibration_revalidated": false,
+      "viability_readmission": false,
+      "expected": {
+        "disposition": "hold-current",
+        "reentry_forbidden": true
+      }
+    },
+    {
+      "id": "L-false-ood",
+      "actual_x1": "valid",
+      "detector_x1": "ood",
+      "expected": {
+        "fallback_transition_not_automatically_admitted": true,
+        "unnecessary_degradation_counted": true
+      }
+    },
+    {
+      "id": "M-missed-ood",
+      "actual_x1": "ood",
+      "detector_x1": "valid",
+      "expected": {
+        "health_signature_set_must_include_ood": true,
+        "learned_gate_cannot_certify_itself": true
+      }
+    },
+    {
+      "id": "N-canonical-permutation",
+      "signatures": [
+        "A",
+        "B"
+      ],
+      "receipts": [
+        "A",
+        "B"
+      ],
+      "permuted_signatures": [
+        "B",
+        "A"
+      ],
+      "permuted_receipts": [
+        "B",
+        "A"
+      ],
+      "expected": {
+        "report_identical": true
+      }
+    },
+    {
+      "id": "O-no-viable-emergency-stop",
+      "possible_health_signatures": [
+        {
+          "D1": "unavailable",
+          "D2": "unavailable",
+          "D3": "degraded",
+          "X1": "ood"
+        }
+      ],
+      "receipts": [
+        {
+          "signature": "all-lost",
+          "status": "rejected",
+          "witness": "no-certified-emergency-stop"
+        }
+      ],
+      "expected": {
+        "disposition": "rejected-or-external-intervention",
+        "nominal_controller_must_not_be_silently_selected": true
+      }
+    }
+  ]
+}
