@@ -7,6 +7,7 @@ A dependency-free Rust reference implementation for the **single, already-disamb
 - Separates interrogator optical range, physical fibre chainage, route station and projected map coordinates.
 - Applies two separately declared monotone piecewise-linear calibrations.
 - Binds each observation to exact fibre, fibre revision, route revision, interrogator configuration, physical start/end endpoint identities, direction and source digest.
+- Binds route-station zero and increasing direction to the actual physical endpoint pair, including reverse-end interrogation.
 - Rejects stale/mismatched identities, out-of-range values, invalid anchors and unsupported coordinate frames.
 - Interpolates along a versioned route polyline only when the caller explicitly declares a projected-metre CRS and easting/northing axis order.
 - Produces a conservative horizontal-equivalent uncertainty bound by summing declared absolute error bounds. Callers must first propagate native axis errors through the exact transform sensitivities. This is not a statistical confidence interval.
