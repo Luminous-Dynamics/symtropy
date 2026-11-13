@@ -95,8 +95,12 @@
           "scenario_id",
           "scenario_class",
           "measurement_state",
+          "required_critical_variables",
+          "directly_measured_critical_variables",
           "direct_state_coverage_fraction",
           "unobserved_critical_variables",
+          "estimator_evidence",
+          "independent_protection",
           "demand_peak_factor",
           "disturbances",
           "expected_disposition",
@@ -143,7 +147,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "uniqueItems": true
           },
           "demand_peak_factor": {
             "type": "number",
@@ -159,7 +164,7 @@
             "enum": [
               "run_nominal",
               "run_with_qualified_estimator",
-              "abstain_or_local_fallback",
+              "abstain_supervisory",
               "local_safety_only",
               "stop_and_reconcile"
             ]
@@ -181,6 +186,101 @@
           "note": {
             "type": "string",
             "minLength": 1
+          },
+          "required_critical_variables": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "directly_measured_critical_variables": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "estimator_evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fixture_disposition",
+              "estimator_ref",
+              "calibration_ref",
+              "uncertainty_profile_ref",
+              "validity_scope",
+              "actual_qualification_claimed"
+            ],
+            "properties": {
+              "fixture_disposition": {
+                "enum": [
+                  "not_used",
+                  "synthetic_contract_only"
+                ]
+              },
+              "estimator_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "calibration_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "uncertainty_profile_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "validity_scope": {
+                "type": "string",
+                "minLength": 1
+              },
+              "actual_qualification_claimed": {
+                "const": false
+              }
+            }
+          },
+          "independent_protection": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "local_interlock_ref",
+              "test_only",
+              "authority_scope"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "synthetic_interlock_available",
+                  "unverified",
+                  "unverified_after_topology_change",
+                  "unavailable_during_power_loss",
+                  "unverified_under_compound_fault"
+                ]
+              },
+              "local_interlock_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "test_only": {
+                "const": true
+              },
+              "authority_scope": {
+                "const": "local_protection_only_no_supervisory_actuation"
+              }
+            }
           }
         }
       }
