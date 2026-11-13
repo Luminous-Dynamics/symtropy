@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-MEASUREMENT-INTEGRITY-M1-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5035",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+  "dataset_crosswalk_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "status": "synthetic_measurement_integrity_contract_only",
+  "input_corpus": "research/water-service-engineering/membrane-measurement-integrity-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/membrane-measurement-integrity-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/membrane-measurement-integrity.schema.json",
+  "case_count": 8,
+  "case_families": [
+    "healthy_stable",
+    "coherent_process_shift",
+    "stuck_flux_sensor",
+    "channel_dropout",
+    "common_historian_outage",
+    "cross_channel_bias",
+    "outside_declared_envelope",
+    "ambiguous_stuck_and_dropout"
+  ],
+  "states": [
+    "HEALTHY_STABLE",
+    "PROCESS_SHIFT_COHERENT",
+    "STUCK_SENSOR_SUSPECTED",
+    "CHANNEL_DATA_GAP",
+    "HISTORIAN_OUTAGE",
+    "CROSS_CHANNEL_INCONSISTENCY",
+    "OUT_OF_DOMAIN_ABSTAIN",
+    "INDETERMINATE"
+  ],
+  "hard_rules": [
+    "missing_or_stale_never_normal",
+    "sensor_fault_not_fouling_mechanism",
+    "hydraulic_state_not_integrity_or_quality",
+    "physical_consistency_only_with_synchronized_measured_variables",
+    "declared_envelopes_are_fixture_specific_not_plant_limits",
+    "ambiguous_signals_abstain"
+  ],
+  "nonclaims": [
+    "no_real_sensor_is_diagnosed",
+    "no_process_or_fouling_mechanism_identified",
+    "no_normalized_RO_performance_computed",
+    "no_water_quality_or_membrane_integrity_claim",
+    "no_controller_or_actuator_authority"
+  ]
+}

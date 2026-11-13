@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic membrane measurement integrity input schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "sampling_interval_seconds",
+    "policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-measurement-integrity-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_measurement_integrity"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_signal_diagnostics_only_no_real_sensor_or_fouling_claim"
+    },
+    "sampling_interval_seconds": {
+      "const": 300
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_missing_fraction",
+        "min_stuck_run",
+        "flatline_epsilon_fraction",
+        "peer_variation_fraction",
+        "consistency_relative_error_limit",
+        "process_tmp_rise_fraction",
+        "process_flux_drop_fraction",
+        "min_consistency_points"
+      ],
+      "properties": {
+        "max_missing_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_stuck_run": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "flatline_epsilon_fraction": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peer_variation_fraction": {
+          "type": "number",
+          "minimum": 0
+        },
+        "consistency_relative_error_limit": {
+          "type": "number",
+          "minimum": 0
+        },
+        "process_tmp_rise_fraction": {
+          "type": "number",
+          "minimum": 0
+        },
+        "process_flux_drop_fraction": {
+          "type": "number",
+          "minimum": 0
+        },
+        "min_consistency_points": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "sample_times_seconds",
+          "channels",
+          "declared_envelopes"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MI-M1-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "sample_times_seconds": {
+            "type": "array",
+            "minItems": 5,
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "channels": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flux_l_m2_h",
+              "tmp_bar",
+              "permeability_l_m2_h_bar"
+            ],
+            "properties": {
+              "flux_l_m2_h": {
+                "type": "array",
+                "minItems": 5,
+                "items": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "tmp_bar": {
+                "type": "array",
+                "minItems": 5,
+                "items": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "permeability_l_m2_h_bar": {
+                "type": "array",
+                "minItems": 5,
+                "items": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "declared_envelopes": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flux_l_m2_h",
+              "tmp_bar",
+              "permeability_l_m2_h_bar"
+            ],
+            "properties": {
+              "flux_l_m2_h": {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "tmp_bar": {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "permeability_l_m2_h_bar": {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

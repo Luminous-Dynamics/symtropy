@@ -1,0 +1,458 @@
+{
+  "schema_version": "membrane-measurement-integrity-cases-v0.1",
+  "evidence_class": "synthetic_measurement_integrity",
+  "evidence_ceiling": "synthetic_signal_diagnostics_only_no_real_sensor_or_fouling_claim",
+  "sampling_interval_seconds": 300,
+  "policy": {
+    "max_missing_fraction": 0.2,
+    "min_stuck_run": 4,
+    "flatline_epsilon_fraction": 0.001,
+    "peer_variation_fraction": 0.08,
+    "consistency_relative_error_limit": 0.2,
+    "process_tmp_rise_fraction": 0.15,
+    "process_flux_drop_fraction": 0.1,
+    "min_consistency_points": 3
+  },
+  "cases": [
+    {
+      "case_id": "MI-M1-001-healthy-stable",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          10.1,
+          9.95,
+          10.05,
+          10.02,
+          9.98,
+          10
+        ],
+        "tmp_bar": [
+          0.5,
+          0.505,
+          0.5,
+          0.502,
+          0.498,
+          0.501,
+          0.5
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          20,
+          19.9,
+          20.02,
+          20.12,
+          19.92,
+          20
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-002-coherent-process-shift",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          9.8,
+          9.5,
+          9.1,
+          8.8,
+          8.5,
+          8.2
+        ],
+        "tmp_bar": [
+          0.5,
+          0.52,
+          0.55,
+          0.58,
+          0.62,
+          0.65,
+          0.68
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          18.8461538,
+          17.2727273,
+          15.6896552,
+          14.1935484,
+          13.0769231,
+          12.0588235
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-003-stuck-flux-peer-channels-moving",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "tmp_bar": [
+          0.5,
+          0.53,
+          0.56,
+          0.59,
+          0.62,
+          0.65,
+          0.68
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          18.8679245,
+          17.8571429,
+          16.9491525,
+          16.1290323,
+          15.3846154,
+          14.7058824
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-004-channel-dropout",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          10.1,
+          null,
+          null,
+          10,
+          9.98,
+          10
+        ],
+        "tmp_bar": [
+          0.5,
+          0.505,
+          0.5,
+          0.502,
+          0.498,
+          0.501,
+          0.5
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          20,
+          19.9,
+          20.02,
+          20.12,
+          19.92,
+          20
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-005-common-historian-outage",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          10.1,
+          null,
+          null,
+          10,
+          9.98,
+          10
+        ],
+        "tmp_bar": [
+          0.5,
+          0.505,
+          null,
+          null,
+          0.498,
+          0.501,
+          0.5
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          20,
+          null,
+          null,
+          20.12,
+          19.92,
+          20
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-006-cross-channel-measurement-bias",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          10.1,
+          9.95,
+          10.05,
+          10.02,
+          9.98,
+          10
+        ],
+        "tmp_bar": [
+          0.5,
+          0.505,
+          0.5,
+          0.502,
+          0.498,
+          0.501,
+          0.5
+        ],
+        "permeability_l_m2_h_bar": [
+          15,
+          15.075,
+          14.925,
+          15.075,
+          14.97,
+          14.97,
+          15
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-007-outside-declared-envelope",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          9.8,
+          9.5,
+          9.1,
+          8.8,
+          8.5,
+          8.2
+        ],
+        "tmp_bar": [
+          0.5,
+          0.52,
+          0.55,
+          1.2,
+          0.62,
+          0.65,
+          0.68
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          18.8461538,
+          17.2727273,
+          7.5833333,
+          14.1935484,
+          13.0769231,
+          12.0588235
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    },
+    {
+      "case_id": "MI-M1-008-ambiguous-stuck-plus-peer-dropout",
+      "sample_times_seconds": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800
+      ],
+      "channels": {
+        "flux_l_m2_h": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "tmp_bar": [
+          0.5,
+          null,
+          null,
+          0.6,
+          0.65,
+          0.7,
+          0.75
+        ],
+        "permeability_l_m2_h_bar": [
+          20,
+          null,
+          null,
+          16.6666667,
+          15.3846154,
+          14.2857143,
+          13.3333333
+        ]
+      },
+      "declared_envelopes": {
+        "flux_l_m2_h": {
+          "min": 0,
+          "max": 50
+        },
+        "tmp_bar": {
+          "min": 0.05,
+          "max": 1
+        },
+        "permeability_l_m2_h_bar": {
+          "min": 0,
+          "max": 100
+        }
+      }
+    }
+  ]
+}

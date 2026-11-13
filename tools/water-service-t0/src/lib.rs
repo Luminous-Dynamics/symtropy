@@ -1022,6 +1022,433 @@ pub fn evaluate_membrane_ro_m0b(inputs: &Value, oracle: &Value) -> Result<Value,
     }))
 }
 
+pub fn evaluate_membrane_measurement_integrity(
+    inputs: &Value,
+    oracle: &Value,
+) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 8;
+    const CEILING: &str = "synthetic_signal_diagnostics_only_no_real_sensor_or_fouling_claim";
+    const CHANNELS: [&str; 3] = [
+        "flux_l_m2_h",
+        "tmp_bar",
+        "permeability_l_m2_h_bar",
+    ];
+
+    if string(inputs, &["schema_version"])?
+        != "membrane-measurement-integrity-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_measurement_integrity"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])?
+            != "membrane-measurement-integrity-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_measurement_integrity"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err(
+            "membrane measurement integrity input/oracle identity or evidence ceiling mismatch"
+                .to_owned(),
+        );
+    }
+
+    let sampling_interval = at(inputs, &["sampling_interval_seconds"])?
+        .as_u64()
+        .ok_or_else(|| "sampling interval must be an unsigned integer".to_owned())?;
+    if sampling_interval != 300 {
+        return Err("synthetic M1 corpus requires a declared 300-second cadence".to_owned());
+    }
+    let policy = at(inputs, &["policy"])?;
+    let max_missing_fraction = number(policy, &["max_missing_fraction"])?;
+    let min_stuck_run = at(policy, &["min_stuck_run"])?
+        .as_u64()
+        .ok_or_else(|| "min_stuck_run must be an unsigned integer".to_owned())?
+        as usize;
+    let flatline_epsilon_fraction = number(policy, &["flatline_epsilon_fraction"])?;
+    let peer_variation_fraction = number(policy, &["peer_variation_fraction"])?;
+    let consistency_limit = number(policy, &["consistency_relative_error_limit"])?;
+    let process_tmp_rise_limit = number(policy, &["process_tmp_rise_fraction"])?;
+    let process_flux_drop_limit = number(policy, &["process_flux_drop_fraction"])?;
+    let min_consistency_points = at(policy, &["min_consistency_points"])?
+        .as_u64()
+        .ok_or_else(|| "min_consistency_points must be an unsigned integer".to_owned())?
+        as usize;
+    if !(0.0..=1.0).contains(&max_missing_fraction)
+        || min_stuck_run < 2
+        || flatline_epsilon_fraction < 0.0
+        || peer_variation_fraction < 0.0
+        || consistency_limit < 0.0
+        || process_tmp_rise_limit < 0.0
+        || process_flux_drop_limit < 0.0
+        || min_consistency_points == 0
+    {
+        return Err("invalid membrane measurement-integrity policy domain".to_owned());
+    }
+
+    let cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "measurement integrity cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "measurement integrity oracle cases must be an array".to_owned())?;
+    if cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "measurement integrity expected {EXPECTED_CASES} input and oracle cases; got {} and {}",
+            cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["case_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("measurement integrity duplicate oracle case ID: {id}"));
+        }
+    }
+
+    fn read_series(case: &Value, name: &str) -> Result<Vec<Option<f64>>, String> {
+        let values = at(case, &["channels", name])?
+            .as_array()
+            .ok_or_else(|| format!("{}: channel {name} must be an array", case_id(case).unwrap_or_default()))?;
+        values
+            .iter()
+            .map(|value| {
+                if value.is_null() {
+                    Ok(None)
+                } else {
+                    value
+                        .as_f64()
+                        .filter(|number| number.is_finite())
+                        .map(Some)
+                        .ok_or_else(|| format!("channel {name} contains a non-finite/non-numeric value"))
+                }
+            })
+            .collect()
+    }
+
+    fn relative_range(values: &[Option<f64>]) -> f64 {
+        let present: Vec<f64> = values.iter().filter_map(|value| *value).collect();
+        if present.is_empty() {
+            return 0.0;
+        }
+        let mean = present.iter().sum::<f64>() / present.len() as f64;
+        let min = present.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = present.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        if mean.abs() <= 1.0e-12 {
+            0.0
+        } else {
+            (max - min) / mean.abs()
+        }
+    }
+
+    fn longest_flatline(values: &[Option<f64>], epsilon: f64) -> usize {
+        let mut longest = 0usize;
+        let mut run = 0usize;
+        let mut previous: Option<f64> = None;
+        for value in values {
+            match value {
+                None => {
+                    run = 0;
+                    previous = None;
+                }
+                Some(current) => {
+                    if previous.is_some_and(|prior| (current - prior).abs() <= epsilon) {
+                        run += 1;
+                    } else {
+                        run = 1;
+                    }
+                    longest = longest.max(run);
+                    previous = Some(*current);
+                }
+            }
+        }
+        longest
+    }
+
+    fn median(values: &mut [f64]) -> Option<f64> {
+        if values.is_empty() {
+            return None;
+        }
+        values.sort_by(f64::total_cmp);
+        let middle = values.len() / 2;
+        if values.len() % 2 == 1 {
+            Some(values[middle])
+        } else {
+            Some((values[middle - 1] + values[middle]) / 2.0)
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("measurement integrity duplicate input case ID: {id}"));
+        }
+
+        let times = at(case, &["sample_times_seconds"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: sample_times_seconds must be an array"))?;
+        if times.len() < 5 {
+            return Err(format!("{id}: at least five timestamps are required"));
+        }
+        let mut last_time = None;
+        for raw_time in times {
+            let time = raw_time
+                .as_i64()
+                .ok_or_else(|| format!("{id}: sample timestamp must be an integer"))?;
+            if let Some(previous) = last_time
+                && time - previous != sampling_interval as i64
+            {
+                return Err(format!("{id}: sample timestamps must be strictly 300 seconds apart"));
+            }
+            last_time = Some(time);
+        }
+
+        let mut series: BTreeMap<&str, Vec<Option<f64>>> = BTreeMap::new();
+        let mut missing_fraction = serde_json::Map::new();
+        let mut flatline_runs = serde_json::Map::new();
+        let mut range_fractions = serde_json::Map::new();
+        let mut outside_envelope = Vec::new();
+        for name in CHANNELS {
+            let values = read_series(case, name)?;
+            if values.len() != times.len() {
+                return Err(format!("{id}: channel {name} length does not match timestamps"));
+            }
+            let present: Vec<f64> = values.iter().filter_map(|value| *value).collect();
+            let missing = (values.len() - present.len()) as f64 / values.len() as f64;
+            let mean = if present.is_empty() {
+                0.0
+            } else {
+                present.iter().sum::<f64>() / present.len() as f64
+            };
+            let flatline = longest_flatline(
+                &values,
+                (mean.abs() * flatline_epsilon_fraction).max(1.0e-12),
+            );
+            let range = relative_range(&values);
+            let lower = number(at(case, &["declared_envelopes", name])?, &["min"])?;
+            let upper = number(at(case, &["declared_envelopes", name])?, &["max"])?;
+            if lower > upper {
+                return Err(format!("{id}: invalid declared envelope for {name}"));
+            }
+            if present.iter().any(|value| *value < lower || *value > upper) {
+                outside_envelope.push(name.to_owned());
+            }
+            missing_fraction.insert(name.to_owned(), json!(missing));
+            flatline_runs.insert(name.to_owned(), json!(flatline));
+            range_fractions.insert(name.to_owned(), json!(range));
+            series.insert(name, values);
+        }
+
+        let mut common_gap_max = 0usize;
+        let mut common_gap_run = 0usize;
+        for index in 0..times.len() {
+            let all_missing = CHANNELS
+                .iter()
+                .all(|name| series.get(name).is_some_and(|values| values[index].is_none()));
+            if all_missing {
+                common_gap_run += 1;
+                common_gap_max = common_gap_max.max(common_gap_run);
+            } else {
+                common_gap_run = 0;
+            }
+        }
+
+        let missing_channels: Vec<String> = CHANNELS
+            .iter()
+            .filter(|name| {
+                missing_fraction
+                    .get(**name)
+                    .and_then(Value::as_f64)
+                    .is_some_and(|fraction| fraction > max_missing_fraction)
+            })
+            .map(|name| (*name).to_owned())
+            .collect();
+
+        let mut stuck_channels = Vec::new();
+        for name in CHANNELS {
+            let flatline = flatline_runs
+                .get(name)
+                .and_then(Value::as_u64)
+                .unwrap_or(0) as usize;
+            if flatline >= min_stuck_run {
+                let peers_vary = CHANNELS
+                    .iter()
+                    .filter(|peer| **peer != name)
+                    .any(|peer| {
+                        range_fractions
+                            .get(*peer)
+                            .and_then(Value::as_f64)
+                            .is_some_and(|range| range >= peer_variation_fraction)
+                    });
+                if peers_vary {
+                    stuck_channels.push(name.to_owned());
+                }
+            }
+        }
+
+        let flux = series
+            .get("flux_l_m2_h")
+            .ok_or_else(|| format!("{id}: flux channel missing"))?;
+        let tmp = series
+            .get("tmp_bar")
+            .ok_or_else(|| format!("{id}: TMP channel missing"))?;
+        let permeability = series
+            .get("permeability_l_m2_h_bar")
+            .ok_or_else(|| format!("{id}: permeability channel missing"))?;
+        let mut residuals = Vec::new();
+        for index in 0..times.len() {
+            if let (Some(flux_value), Some(tmp_value), Some(permeability_value)) =
+                (flux[index], tmp[index], permeability[index])
+                && tmp_value > 0.0
+            {
+                residuals.push(
+                    (flux_value / tmp_value - permeability_value).abs()
+                        / permeability_value.abs().max(1.0e-9),
+                );
+            }
+        }
+        let max_residual = residuals.iter().copied().reduce(f64::max);
+        let median_residual = median(&mut residuals);
+        let inconsistent = residuals.len() >= min_consistency_points
+            && median_residual.is_some_and(|value| value > consistency_limit);
+
+        fn relative_delta(values: &[Option<f64>]) -> f64 {
+            let present: Vec<f64> = values.iter().filter_map(|value| *value).collect();
+            if present.len() < 2 {
+                0.0
+            } else {
+                (present[present.len() - 1] - present[0]) / present[0].abs().max(1.0e-9)
+            }
+        }
+        let tmp_rise = relative_delta(tmp);
+        let flux_drop = -relative_delta(flux);
+        let permeability_drop = -relative_delta(permeability);
+        let coherent_process_shift = tmp_rise >= process_tmp_rise_limit
+            && flux_drop >= process_flux_drop_limit
+            && permeability_drop >= process_flux_drop_limit;
+
+        let mut flags = Vec::new();
+        if !outside_envelope.is_empty() {
+            flags.push("OUTSIDE_DECLARED_SYNTHETIC_ENVELOPE");
+        }
+        if common_gap_max >= 2 {
+            flags.push("COMMON_HISTORIAN_GAP");
+        }
+        if !missing_channels.is_empty() {
+            flags.push("CHANNEL_MISSINGNESS");
+        }
+        if !stuck_channels.is_empty() {
+            flags.push("STUCK_AT_WITH_PEER_MOVEMENT");
+        }
+        if inconsistent {
+            flags.push("CROSS_CHANNEL_CONSISTENCY_RESIDUAL");
+        }
+        if coherent_process_shift {
+            flags.push("COHERENT_HYDRAULIC_PROCESS_SHIFT");
+        }
+
+        let state = if !outside_envelope.is_empty() {
+            "OUT_OF_DOMAIN_ABSTAIN"
+        } else if common_gap_max >= 2 {
+            "HISTORIAN_OUTAGE"
+        } else if !stuck_channels.is_empty() && !missing_channels.is_empty() {
+            "INDETERMINATE"
+        } else if !missing_channels.is_empty() {
+            "CHANNEL_DATA_GAP"
+        } else if !stuck_channels.is_empty() {
+            "STUCK_SENSOR_SUSPECTED"
+        } else if inconsistent {
+            "CROSS_CHANNEL_INCONSISTENCY"
+        } else if coherent_process_shift {
+            "PROCESS_SHIFT_COHERENT"
+        } else {
+            "HEALTHY_STABLE"
+        };
+
+        let suspect_channels = if !stuck_channels.is_empty() {
+            stuck_channels.clone()
+        } else if inconsistent {
+            vec!["permeability_l_m2_h_bar".to_owned()]
+        } else {
+            Vec::new()
+        };
+
+        let actual = json!({
+            "state": state,
+            "suspect_channels": suspect_channels,
+            "flags": flags,
+            "missing_fraction_by_channel": missing_fraction,
+            "longest_flatline_run_by_channel": flatline_runs,
+            "range_fraction_by_channel": range_fractions,
+            "max_consistency_relative_error": max_residual,
+            "median_consistency_relative_error": median_residual,
+            "coherent_process_deltas": {
+                "tmp_rise_fraction": tmp_rise,
+                "flux_drop_fraction": flux_drop,
+                "permeability_drop_fraction": permeability_drop
+            },
+            "common_historian_gap_max_samples": common_gap_max,
+            "fouling_mechanism": "NOT_IDENTIFIED"
+        });
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("measurement integrity oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "family": "MEMBRANE_MEASUREMENT_INTEGRITY",
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "measurement integrity input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|left, right| {
+        left.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&right.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+    Ok(json!({
+        "schema_version": "membrane-measurement-integrity-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_measurement_integrity",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "This is synthetic telemetry integrity arithmetic, not a plant sensor diagnosis.",
+            "No fouling mechanism or membrane integrity conclusion is made.",
+            "No water-quality, potability or normalized RO performance is established.",
+            "This evaluator has no controller, CIP, chemical dosing or actuator authority."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1052,9 +1479,72 @@ mod tests {
             "membrane_m0b_oracle" => include_str!(
                 "../../../research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json"
             ),
+            "measurement_integrity_inputs" => include_str!(
+                "../../../research/water-service-engineering/membrane-measurement-integrity-cases-v0.1.json"
+            ),
+            "measurement_integrity_oracle" => include_str!(
+                "../../../research/water-service-engineering/membrane-measurement-integrity-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_eight_measurement_integrity_cases_match_separate_oracle() {
+        let result = evaluate_membrane_measurement_integrity(
+            &load("measurement_integrity_inputs"),
+            &load("measurement_integrity_oracle"),
+        )
+        .expect("M1 measurement integrity cases must evaluate");
+        assert_eq!(result["result_count"], 8);
+        assert_eq!(result["matched_case_count"], 8);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn measurement_integrity_never_labels_a_coherent_process_shift_as_fouling() {
+        let result = evaluate_membrane_measurement_integrity(
+            &load("measurement_integrity_inputs"),
+            &load("measurement_integrity_oracle"),
+        )
+        .expect("M1 measurement integrity cases must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "MI-M1-002-coherent-process-shift")
+            .unwrap();
+        assert_eq!(row["computed"]["state"], "PROCESS_SHIFT_COHERENT");
+        assert_eq!(row["computed"]["fouling_mechanism"], "NOT_IDENTIFIED");
+    }
+
+    #[test]
+    fn measurement_integrity_abstains_on_ambiguous_stuck_and_dropout() {
+        let result = evaluate_membrane_measurement_integrity(
+            &load("measurement_integrity_inputs"),
+            &load("measurement_integrity_oracle"),
+        )
+        .expect("M1 measurement integrity cases must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "MI-M1-008-ambiguous-stuck-plus-peer-dropout")
+            .unwrap();
+        assert_eq!(row["computed"]["state"], "INDETERMINATE");
+        assert_eq!(row["computed"]["fouling_mechanism"], "NOT_IDENTIFIED");
+    }
+
+    #[test]
+    fn measurement_integrity_rejects_nonmonotonic_timebase() {
+        let mut inputs = load("measurement_integrity_inputs");
+        inputs["cases"][0]["sample_times_seconds"][2] = json!(250);
+        assert!(evaluate_membrane_measurement_integrity(
+            &inputs,
+            &load("measurement_integrity_oracle")
+        ).is_err());
     }
 
     #[test]
