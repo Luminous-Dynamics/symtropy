@@ -672,18 +672,17 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                                     }
                                     if let Some(certification) =
                                         rule.required_operator_certification.as_deref()
+                                        && !operator.certifications.contains(certification)
                                     {
-                                        if !operator.certifications.contains(certification) {
-                                            finding(
-                                                &mut findings,
-                                                "SETUP_OPERATOR_CERTIFICATION_MISMATCH",
-                                                &assignment.operation_id,
-                                                format!(
-                                                    "setup operator {} lacks required certification {certification}",
-                                                    operator.id
-                                                ),
-                                            );
-                                        }
+                                        finding(
+                                            &mut findings,
+                                            "SETUP_OPERATOR_CERTIFICATION_MISMATCH",
+                                            &assignment.operation_id,
+                                            format!(
+                                                "setup operator {} lacks required certification {certification}",
+                                                operator.id
+                                            ),
+                                        );
                                     }
                                 }
                             } else {
