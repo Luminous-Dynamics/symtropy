@@ -28,6 +28,7 @@ pub enum BilocalOperatorError {
     NonFinite(&'static str),
     InvalidTolerance(f64),
     SingularMatrix { pivot: usize, scaled_magnitude: f64 },
+    InvalidGeometry(&'static str),
 }
 
 impl fmt::Display for BilocalOperatorError {
@@ -44,6 +45,7 @@ impl fmt::Display for BilocalOperatorError {
                 f,
                 "bilocal transfer is singular at pivot {pivot} (scaled magnitude {scaled_magnitude})"
             ),
+            Self::InvalidGeometry(name) => write!(f, "cannot construct endpoint map: {name}"),
         }
     }
 }
@@ -273,6 +275,196 @@ impl BilocalGeodesicOperator {
             }
         }
         maximum
+    }
+}
+
+
+/// Endpoint conversion between canonical coordinate variations (delta x, delta p)
+/// and covariant geodesic-deviation data (xi, ell).
+///
+/// The map is defined at one event in one coordinate chart and for one fiducial
+/// contravariant tangent k^mu. It is not a chart-independent 8x8 array: callers
+/// must build separate maps at both endpoints of a propagated canonical flow.
+///
+/// Given p_mu = g_mu_nu k^nu and delta p_mu =
+/// (partial_sigma g_mu_nu) xi^sigma k^nu + g_mu_nu delta k^nu,
+/// this implements xi=delta x and
+///
+/// ell^mu = delta k^mu + Gamma^mu_(alpha beta) k^alpha xi^beta.
+///
+/// Therefore S maps (delta x, delta p) -> (xi, ell), and a covariant BGO
+/// reconstructed from a canonical fundamental matrix is
+/// W = S_final * Phi_canonical * inverse(S_initial).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CanonicalCovariantEndpointMap {
+    matrix: [[f64; STATE_DIMENSION]; STATE_DIMENSION],
+    metric_covariant: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    lower_left: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+}
+
+impl CanonicalCovariantEndpointMap {
+    /// Construct the endpoint map from already validated geometry tensors.
+    ///
+    /// Metric derivatives use d[alpha][mu][nu] = partial_alpha g_mu_nu;
+    /// connection uses Gamma[rho][mu][nu]; tangent is k^mu in the same chart.
+    /// The metric inverse is computed without regularization.
+    pub fn from_geometry(
+        metric: &super::metric::MetricComponents4,
+        derivatives: &super::connection::MetricDerivatives4,
+        connection: &super::connection::LeviCivitaConnection4,
+        tangent: [f64; BLOCK_DIMENSION],
+    ) -> Result<Self, BilocalOperatorError> {
+        if tangent.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("endpoint tangent"));
+        }
+        let inverse = metric
+            .inverse()
+            .map_err(|_| BilocalOperatorError::InvalidGeometry("metric inverse"))?;
+        let covariant = *metric.covariant();
+        let d = derivatives.components();
+        let gamma = connection.symbols();
+        let mut lower_left = [[0.0; BLOCK_DIMENSION]; BLOCK_DIMENSION];
+
+        for mu in 0..BLOCK_DIMENSION {
+            for beta in 0..BLOCK_DIMENSION {
+                let mut connection_term = 0.0;
+                for alpha in 0..BLOCK_DIMENSION {
+                    connection_term += gamma[mu][alpha][beta] * tangent[alpha];
+                }
+
+                let mut metric_derivative_term = 0.0;
+                for nu in 0..BLOCK_DIMENSION {
+                    for rho in 0..BLOCK_DIMENSION {
+                        metric_derivative_term +=
+                            inverse[mu][nu] * d[beta][nu][rho] * tangent[rho];
+                    }
+                }
+
+                lower_left[mu][beta] = connection_term - metric_derivative_term;
+            }
+        }
+
+        let mut matrix = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for index in 0..BLOCK_DIMENSION {
+            matrix[index][index] = 1.0;
+            for momentum_index in 0..BLOCK_DIMENSION {
+                matrix[index + BLOCK_DIMENSION][momentum_index + BLOCK_DIMENSION] =
+                    inverse[index][momentum_index];
+            }
+            for position_index in 0..BLOCK_DIMENSION {
+                matrix[index + BLOCK_DIMENSION][position_index] =
+                    lower_left[index][position_index];
+            }
+        }
+
+        for row in &matrix {
+            if row.iter().any(|value| !value.is_finite()) {
+                return Err(BilocalOperatorError::NonFinite("endpoint conversion matrix"));
+            }
+        }
+
+        Ok(Self {
+            matrix,
+            metric_covariant: covariant,
+            lower_left,
+        })
+    }
+
+    /// Matrix S taking (delta x, delta p) to (xi, ell).
+    pub const fn matrix(&self) -> &[[f64; STATE_DIMENSION]; STATE_DIMENSION] {
+        &self.matrix
+    }
+
+    /// Convert a canonical variation to covariant deviation data.
+    pub fn to_covariant(
+        &self,
+        canonical: [f64; STATE_DIMENSION],
+    ) -> Result<[f64; STATE_DIMENSION], BilocalOperatorError> {
+        if canonical.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("canonical variation"));
+        }
+        let mut covariant = [0.0; STATE_DIMENSION];
+        for row in 0..STATE_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                covariant[row] = self.matrix[row][column].mul_add(canonical[column], covariant[row]);
+            }
+        }
+        if covariant.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("covariant variation"));
+        }
+        Ok(covariant)
+    }
+
+    /// Convert covariant deviation data (xi, ell) back to (delta x, delta p).
+    ///
+    /// This uses the inverse block-triangular relation delta p = g (ell - A xi),
+    /// avoiding a second numerical 8x8 inversion.
+    pub fn to_canonical(
+        &self,
+        covariant: [f64; STATE_DIMENSION],
+    ) -> Result<[f64; STATE_DIMENSION], BilocalOperatorError> {
+        if covariant.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("covariant variation"));
+        }
+        let mut canonical = [0.0; STATE_DIMENSION];
+        for index in 0..BLOCK_DIMENSION {
+            canonical[index] = covariant[index];
+        }
+        for momentum_index in 0..BLOCK_DIMENSION {
+            let mut value = 0.0;
+            for mu in 0..BLOCK_DIMENSION {
+                let mut corrected_ell = covariant[mu + BLOCK_DIMENSION];
+                for position_index in 0..BLOCK_DIMENSION {
+                    corrected_ell -=
+                        self.lower_left[mu][position_index] * covariant[position_index];
+                }
+                value += self.metric_covariant[momentum_index][mu] * corrected_ell;
+            }
+            canonical[momentum_index + BLOCK_DIMENSION] = value;
+        }
+        if canonical.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("canonical variation"));
+        }
+        Ok(canonical)
+    }
+
+    /// Transform a canonical fundamental matrix Phi between endpoint maps:
+    /// W_covariant = S_final * Phi_canonical * inverse(S_initial).
+    ///
+    /// The returned operator acts on (xi_initial, ell_initial) and produces
+    /// (xi_final, ell_final). Both endpoint maps must use their own chart,
+    /// metric, connection and fiducial tangent.
+    pub fn transform_canonical_flow(
+        canonical_flow: [[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        initial: &Self,
+        final_endpoint: &Self,
+    ) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
+        for row in &canonical_flow {
+            if row.iter().any(|value| !value.is_finite()) {
+                return Err(BilocalOperatorError::NonFinite("canonical fundamental matrix"));
+            }
+        }
+
+        let mut transformed = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for column in 0..STATE_DIMENSION {
+            let mut covariant_basis = [0.0; STATE_DIMENSION];
+            covariant_basis[column] = 1.0;
+            let canonical_initial = initial.to_canonical(covariant_basis)?;
+
+            let mut canonical_final = [0.0; STATE_DIMENSION];
+            for row in 0..STATE_DIMENSION {
+                for inner in 0..STATE_DIMENSION {
+                    canonical_final[row] = canonical_flow[row][inner]
+                        .mul_add(canonical_initial[inner], canonical_final[row]);
+                }
+            }
+
+            let covariant_final = final_endpoint.to_covariant(canonical_final)?;
+            for row in 0..STATE_DIMENSION {
+                transformed[row][column] = covariant_final[row];
+            }
+        }
+        BilocalGeodesicOperator::from_matrix(transformed)
     }
 }
 
