@@ -1,0 +1,349 @@
+{
+  "schema_version": "membrane-dataset-admission-v0.1",
+  "programme": "MEMBRANE-FOULING-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+  "status": "metadata_crosswalk_only_no_raw_dataset_files_acquired",
+  "evidence_ceiling": "dataset_metadata_and_benchmark_design_only_no_model_or_process_performance_claim",
+  "attribution_requirements": [
+    "EIDC OGL v3 datasets require attribution: Contains data supplied by UK Centre for Ecology & Hydrology.",
+    "Cite each EIDC dataset DOI in full and retain metadata copyright notices.",
+    "Article open access does not independently establish raw-data reuse rights; repository-level dataset licence must be checked."
+  ],
+  "intake_rules": [
+    "Do not invent archive digests, unpacked file inventory, sample labels, cleaning events or calibration records.",
+    "Keep UF, NF and RO populations separate.",
+    "Keep process telemetry, lab samples and paper-reported outcome claims as separate evidence classes.",
+    "A 5-minute rolling average is not a high-frequency transient record.",
+    "Sparse laboratory samples are labels only at actual sample times, locations and methods.",
+    "Do not classify fouling mechanism without independent evidence; otherwise abstain.",
+    "Missing sensors and unknown periods cannot be labelled safe/normal by default."
+  ],
+  "datasets": [
+    {
+      "dataset_id": "BRISTOL_POU_UF_34M",
+      "title": "Operational telemetry data of a community-scale decentralized point-of-use drinking water treatment system, Bristol, UK, November 2019-September 2022",
+      "creators": [
+        "G.E. Clayton",
+        "R.M.S. Thorn",
+        "B.G. Fox",
+        "D.M. Reynolds"
+      ],
+      "publication": {
+        "date": "2024-05-09",
+        "doi": "10.5285/d3daab67-dc02-43a0-82c0-afff709c43f4",
+        "url": "https://doi.org/10.5285/d3daab67-dc02-43a0-82c0-afff709c43f4"
+      },
+      "source": {
+        "type": "POU_UF_operational_telemetry",
+        "record_url": "https://catalogue.ceh.ac.uk/documents/d3daab67-dc02-43a0-82c0-afff709c43f4",
+        "metadata_url": "https://catalogue.ceh.ac.uk/documents/d3daab67-dc02-43a0-82c0-afff709c43f4?format=json",
+        "download_url": "https://data-package.ceh.ac.uk/data/d3daab67-dc02-43a0-82c0-afff709c43f4.zip",
+        "supporting_information_url": "https://data-package.ceh.ac.uk/sd/d3daab67-dc02-43a0-82c0-afff709c43f4.zip",
+        "record_version": "metadata_last_updated_2026-11-05"
+      },
+      "rights": {
+        "status": "rights_verified_record_level",
+        "license": "Open Government Licence v3",
+        "license_url": "https://eidc.ac.uk/licences/ogl/plain",
+        "attribution": "Contains data supplied by UK Centre for Ecology & Hydrology.",
+        "notes": "EIDC record explicitly declares OGL v3. File archive bytes not acquired or verified."
+      },
+      "profile": {
+        "process": "point_of_use_drinking_water_ultrafiltration",
+        "site_count": 1,
+        "site": "University of the West of England Frenchay campus, Bristol",
+        "start_date": "2019-11-01",
+        "end_date": "2022-09-27",
+        "duration_months": 34,
+        "resolution": "5-minute rolling average",
+        "format": [
+          "CSV"
+        ],
+        "parameters_described": [
+          "oxidation_reduction_potential",
+          "free_available_chlorine",
+          "flow_rate",
+          "discharge_pressure",
+          "filtration_flux",
+          "ultrafiltration_membrane_permeability"
+        ],
+        "sensor_provenance": "in-line sensors/probes uploaded to Grundfos Remote Manager",
+        "known_metadata_gaps": [
+          "column names and units not inspected",
+          "temperature channel not confirmed",
+          "TMP channel not explicitly listed in record description",
+          "cleaning/fouling event labels not confirmed",
+          "calibration records not inspected"
+        ]
+      },
+      "tasks": {
+        "eligible": [
+          "M1_long_horizon_UF_operational_state_forecasting_after_file_audit",
+          "permeability_and_flux_forecasting_if_units_confirmed"
+        ],
+        "not_eligible": [
+          "labelled_fouling_event_detection_without_event_audit",
+          "continuous_water_quality_compliance",
+          "temperature_normalized_permeability_without_temperature_data",
+          "cross_site_generalization_from_one_installation"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "archive_sha256": null,
+        "file_inventory": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "One POU UF system with 34 months of 5-minute rolling telemetry. Metadata confirms operational channels, not independent fouling mechanism labels or continuous water-quality samples."
+    },
+    {
+      "dataset_id": "BRISTOL_POU_WQ_12W",
+      "title": "Operational and water quality data from a decentralised, low-maintenance, drinking water treatment system trial, UK, November 2019 to February 2020",
+      "creators": [
+        "B.G. Fox",
+        "R.M.S. Thorn",
+        "G.E. Clayton",
+        "D.M. Reynolds"
+      ],
+      "publication": {
+        "date": "2022-06-10",
+        "doi": "10.5285/98148025-e8ef-40f9-907e-dae8b28106d2",
+        "url": "https://doi.org/10.5285/98148025-e8ef-40f9-907e-dae8b28106d2"
+      },
+      "source": {
+        "type": "POU_UF_telemetry_and_accredited_lab_sample_dataset",
+        "record_url": "https://catalogue.ceh.ac.uk/documents/98148025-e8ef-40f9-907e-dae8b28106d2",
+        "metadata_url": "https://catalogue.ceh.ac.uk/documents/98148025-e8ef-40f9-907e-dae8b28106d2?format=json",
+        "download_url": "https://data-package.ceh.ac.uk/data/98148025-e8ef-40f9-907e-dae8b28106d2.zip",
+        "supporting_information_url": "https://data-package.ceh.ac.uk/sd/98148025-e8ef-40f9-907e-dae8b28106d2.zip",
+        "record_version": "metadata_last_updated_2026-11-05"
+      },
+      "rights": {
+        "status": "rights_verified_record_level",
+        "license": "Open Government Licence v3",
+        "license_url": "https://eidc.ac.uk/licences/ogl/plain",
+        "attribution": "Contains data supplied by UK Centre for Ecology & Hydrology.",
+        "notes": "EIDC record explicitly declares OGL v3. File archive bytes not acquired or verified."
+      },
+      "profile": {
+        "process": "decentralized_drinking_water_treatment_with_ultrafiltration",
+        "start_date": "2019-11-01",
+        "end_date": "2020-02-29",
+        "duration_weeks": 12,
+        "telemetry_resolution": "5-minute",
+        "telemetry_statistics": [
+          "average",
+          "minimum_where_available",
+          "maximum_where_available"
+        ],
+        "operational_parameters_described": [
+          "flow_rate",
+          "UF_transmembrane_pressure",
+          "oxidation_reduction_potential",
+          "free_chlorine"
+        ],
+        "sample_locations": 3,
+        "lab_sampling_timepoints": 9,
+        "lab_analysis": "accredited UK laboratory",
+        "sampling_protocol": "UKAS laboratory protocols",
+        "lab_parameters_described": [
+          "biological",
+          "physicochemical",
+          "chemical",
+          "metals",
+          "hydrocarbons",
+          "disinfection_byproducts"
+        ],
+        "files": [
+          "CSV described in record; exact filenames not inspected"
+        ],
+        "known_metadata_gaps": [
+          "exact sample timestamps and matching telemetry windows not yet inspected",
+          "analyte units/limits/method IDs not yet inventoried",
+          "CIP/maintenance labels not confirmed"
+        ]
+      },
+      "tasks": {
+        "eligible": [
+          "M2_sample_time_only_quality_audit_after_file_audit",
+          "M2_telemetry_contextualization_of_actual_lab_samples"
+        ],
+        "not_eligible": [
+          "interpolated_continuous_water_quality_labels",
+          "continuous_potability_or_compliance_prediction",
+          "fouling_mechanism_labels_without_independent_reference"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "archive_sha256": null,
+        "file_inventory": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Twelve-week POU record with 9 sample timepoints across 3 locations. Lab outcomes are sparse, location- and analyte-specific labels, not a dense time-series target."
+    },
+    {
+      "dataset_id": "MOROCCO_RO_SCADA_6Y",
+      "title": "Analysis and diagnostic of reverse osmosis membrane fouling using industrial plant data",
+      "creators": [
+        "Yassine Elyaakouby",
+        "Abderrazek El-Kordy",
+        "Amine Tilioua"
+      ],
+      "publication": {
+        "date": "2026-06",
+        "journal": "Cleaner Water",
+        "volume": "6",
+        "article": "100247",
+        "doi": "10.1016/j.clwat.2026.100247",
+        "url": "https://doi.org/10.1016/j.clwat.2026.100247"
+      },
+      "source": {
+        "type": "industrial_RO_SCADA_paper_reported",
+        "record_url": "https://www.sciencedirect.com/science/article/pii/S2950263226000451",
+        "data_availability": "available_on_request",
+        "raw_data_acquired": false,
+        "record_version": "paper_2026-06"
+      },
+      "rights": {
+        "status": "request_and_terms_pending",
+        "license": null,
+        "notes": "Data availability says available on request. No data-use agreement, plant permission or raw data acquired."
+      },
+      "profile": {
+        "process": "industrial_reverse_osmosis_demineralization",
+        "site_count": 1,
+        "site_country": "Morocco",
+        "scada_duration_years": 6,
+        "paper_reported_early_warning_days": [
+          15,
+          20
+        ],
+        "paper_reported_indicators": [
+          "differential_pressure",
+          "conductivity",
+          "pretreatment_pressure_differentials"
+        ],
+        "paper_reported_threshold_deviation_percent": 10,
+        "membrane_autopsy": "SEM-EDS evidence reported as consistent with organic fouling",
+        "known_limitations": [
+          "raw cadence and tag dictionary not inspected",
+          "exact event count and event dates not acquired",
+          "CIP/maintenance schedule not acquired",
+          "original split and baseline not independently reproduced",
+          "thresholds described as site-specific"
+        ]
+      },
+      "tasks": {
+        "eligible": [
+          "M3_external_RO_replication_only_after_authorized_data_access"
+        ],
+        "not_eligible": [
+          "claiming_15_20_day_result_reproduced",
+          "generalizing_site_specific_thresholds",
+          "raw_data_redistribution_without_permission"
+        ]
+      },
+      "intake": {
+        "status": "paper_reference_only_request_required",
+        "files_acquired": false,
+        "archive_sha256": null,
+        "file_inventory": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Six-year industrial RO result is paper-reported; raw SCADA access and permission remain pending."
+    },
+    {
+      "dataset_id": "ARMSTRONG_RO_CROSSFLOW_2022",
+      "title": "Dataset of reverse osmosis membrane transport properties calculated with and without assumptions about concentration polarization and solute rejection and the errors associated with each assumption",
+      "creators": [
+        "Mikayla D. Armstrong",
+        "Riley Vickers",
+        "Orlando Coronell"
+      ],
+      "publication": {
+        "date": "2022-08-12",
+        "doi": "10.1016/j.dib.2022.108538",
+        "url": "https://doi.org/10.1016/j.dib.2022.108538",
+        "pmc": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9436753/"
+      },
+      "source": {
+        "type": "controlled_RO_crossflow_transport_experiment",
+        "repository": "Open Science Framework",
+        "repository_doi": "10.17605/OSF.IO/PU5AJ",
+        "repository_url": "https://osf.io/pu5aj/",
+        "record_version": "2022_paper_metadata"
+      },
+      "rights": {
+        "status": "paper_license_verified_repository_file_terms_pending",
+        "license": "CC BY-NC-ND 4.0 for the paper",
+        "license_url": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+        "notes": "The paper reports the OSF Excel workbook. Confirm OSF project/file licence at acquisition; the paper licence must not be assumed to govern every raw repository object."
+      },
+      "profile": {
+        "process": "reverse_osmosis_crossflow",
+        "membranes": [
+          "ESPA3",
+          "SWC4+"
+        ],
+        "replicates_described": 2,
+        "pressures_bar": [
+          4.14,
+          8.28,
+          12.42,
+          16.56,
+          20.7,
+          24.84,
+          28.98,
+          33.12
+        ],
+        "solutes": [
+          "NaCl",
+          "As(V)",
+          "As(III)",
+          "boron"
+        ],
+        "reported_fields": [
+          "pressure",
+          "permeate_flux",
+          "solute_rejection",
+          "feed_and_permeate_concentration",
+          "concentration_polarization_modulus",
+          "water_permeance",
+          "solute_permeance",
+          "water_solute_selectivity",
+          "scenario_percent_errors"
+        ],
+        "data_format": "Excel workbook reported by paper",
+        "known_limitations": [
+          "controlled lab crossflow experiment",
+          "not long-term fouling time series",
+          "not a CIP/maintenance event dataset",
+          "file-level OSF terms and bytes not inspected"
+        ]
+      },
+      "tasks": {
+        "eligible": [
+          "M0_RO_transport_calculation_reproduction",
+          "M0_concentration_polarization_and_rejection_assumption_error_baseline"
+        ],
+        "not_eligible": [
+          "long_horizon_fouling_prediction",
+          "CIP_effectiveness",
+          "full_scale_RO_field_performance"
+        ]
+      },
+      "intake": {
+        "status": "catalogued_metadata_only",
+        "files_acquired": false,
+        "archive_sha256": null,
+        "file_inventory": [],
+        "split_manifest": null
+      },
+      "evidence_limit": "Controlled RO transport experiment with two membrane types and multiple solutes. It supports transport-equation calculation checks, not operational fouling prediction."
+    }
+  ]
+}
