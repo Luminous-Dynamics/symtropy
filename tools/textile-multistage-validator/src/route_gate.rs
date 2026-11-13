@@ -476,11 +476,8 @@ mod tests {
     fn stale_or_different_receipt_digest_is_rejected() {
         let mut req = requirement("JOB-1");
         req.receipt_sha256 = digest('c');
-        let findings = validate_route_gates(
-            &problem(),
-            &[req],
-            &[receipt(RouteReceiptStatus::Eligible)],
-        );
+        let findings =
+            validate_route_gates(&problem(), &[req], &[receipt(RouteReceiptStatus::Eligible)]);
         assert!(
             findings
                 .iter()
