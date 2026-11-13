@@ -337,11 +337,7 @@ fn validate_profile(profile: MetricProfileV1) -> Result<(), MetricErrorV1> {
     Ok(())
 }
 
-fn checked_sqrt(
-    value: f64,
-    scale: f64,
-    relative_tolerance: f64,
-) -> Result<f64, MetricErrorV1> {
+fn checked_sqrt(value: f64, scale: f64, relative_tolerance: f64) -> Result<f64, MetricErrorV1> {
     if !value.is_finite() || !scale.is_finite() {
         return Err(MetricErrorV1::NonFiniteArithmetic);
     }
@@ -582,8 +578,7 @@ mod tests {
     fn riesz_residual_dual_norm_is_invariant_after_dense_rebasis() {
         let metric_q = cartesian_metric();
         let basis = rebasis();
-        let exact_q =
-            Tangent::<CartesianFrame, 3>::new([0.5, -2.0 / 3.0, 0.8]).unwrap();
+        let exact_q = Tangent::<CartesianFrame, 3>::new([0.5, -2.0 / 3.0, 0.8]).unwrap();
         let approximate_q =
             Tangent::<CartesianFrame, 3>::new([0.50001, -2.0 / 3.00002, 0.80003]).unwrap();
         let force_q = metric_q.lower(&exact_q).unwrap();
@@ -626,7 +621,13 @@ mod tests {
             Metric::<DenseGeneralizedFrame, 3>::new(wrong, profile()).unwrap_err(),
             MetricErrorV1::MetricNotSymmetric
         );
-        assert!(correct.matrix().iter().flatten().all(|value| value.is_finite()));
+        assert!(
+            correct
+                .matrix()
+                .iter()
+                .flatten()
+                .all(|value| value.is_finite())
+        );
     }
 
     #[test]
