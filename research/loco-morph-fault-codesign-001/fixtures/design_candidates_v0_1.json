@@ -1,0 +1,273 @@
+{
+  "schema_version": "loco-morph-fault-design-candidates-v0.1",
+  "issue": 4360,
+  "status": "synthetic_design_space_only",
+  "evidence_tiers": [
+    "simulation",
+    "test_rig",
+    "hardware",
+    "field"
+  ],
+  "representation_contract": {
+    "continuous_axes": [
+      "limb_length_ratio",
+      "hip_spacing_mm",
+      "payload_kg",
+      "actuator_torque_nm",
+      "thermal_headroom_c",
+      "passive_stiffness_nm_per_rad",
+      "clutch_slip_torque_nm",
+      "sensor_mass_g"
+    ],
+    "categorical_axes": [
+      "limb_topology",
+      "appendage_topology",
+      "transmission_topology",
+      "power_distribution",
+      "sensor_common_cause_grouping",
+      "reconfiguration_modes"
+    ],
+    "rule": "Continuous interpolation across different categorical support graphs or actuation topologies is forbidden without an explicit validated mapping."
+  },
+  "candidates": [
+    {
+      "id": "M0-conventional-quadruped",
+      "family": "baseline",
+      "topology": "4_legs_12dof",
+      "appendages": "none",
+      "transmission": "independent_actuators",
+      "power": "shared_bus",
+      "sensing": "standard_proprioception",
+      "intended_role": "matched nominal baseline"
+    },
+    {
+      "id": "M1-functional-arms",
+      "family": "functional_redundancy",
+      "topology": "4_legs_12dof_plus_2_arms",
+      "appendages": "two_multifunctional_support_manipulation_arms",
+      "transmission": "independent_actuators",
+      "power": "shared_bus",
+      "sensing": "proprioception_plus_arm_state",
+      "intended_role": "leg-loss support and loco-manipulation"
+    },
+    {
+      "id": "M2-differential-actuation",
+      "family": "mechanically_coupled",
+      "topology": "4_legs_12dof",
+      "appendages": "none",
+      "transmission": "proximal_differential_or_coupled_dofs",
+      "power": "paired_drive_modules",
+      "sensing": "independent_position_velocity_current",
+      "intended_role": "redistribute actuation/load under selected single-drive failures"
+    },
+    {
+      "id": "M3-reconfigurable-limb",
+      "family": "structural_reconfiguration",
+      "topology": "4_legs_12dof_with_two_verified_geometry_states",
+      "appendages": "modular_limb_segments",
+      "transmission": "modular_actuator_interfaces",
+      "power": "isolated_per_module",
+      "sensing": "joint_and_module_health",
+      "intended_role": "switch to separately validated geometry"
+    },
+    {
+      "id": "M4-overload-slip-coupling",
+      "family": "passive_mechanical_resilience",
+      "topology": "4_legs_12dof",
+      "appendages": "none",
+      "transmission": "passive_overload_slip_clutch",
+      "power": "independent_drive_modules",
+      "sensing": "hall_phase_plus_independent_motor_current",
+      "intended_role": "slip under overload, protect drive, re-engage"
+    },
+    {
+      "id": "M5-compliant-energy-storage",
+      "family": "passive_mechanical_resilience",
+      "topology": "4_legs_12dof",
+      "appendages": "none",
+      "transmission": "series_elastic_or_tunable_compliance",
+      "power": "shared_or_isolated_as_ablation",
+      "sensing": "joint_force_or_torque_and_position",
+      "intended_role": "absorb impacts and retain passive function"
+    },
+    {
+      "id": "M6-isolated-power",
+      "family": "fault_containment",
+      "topology": "4_legs_12dof",
+      "appendages": "none",
+      "transmission": "independent_leg_drives",
+      "power": "per_leg_isolated_bus_with_cross_tie_disabled_by_default",
+      "sensing": "bus_voltage_current_temperature_per_leg",
+      "intended_role": "contain common-bus or single-driver failure"
+    },
+    {
+      "id": "M7-diagnosable-actuator",
+      "family": "sensor_actuator_observability",
+      "topology": "4_legs_12dof",
+      "appendages": "none",
+      "transmission": "independent_actuators",
+      "power": "isolated_drive_modules",
+      "sensing": "independent_encoder_velocity_current_temperature_and_foot_wrench",
+      "intended_role": "distinguish actuator and sensor faults"
+    },
+    {
+      "id": "M8-hybrid-selective",
+      "family": "hybrid_co_design",
+      "topology": "declared_per_candidate",
+      "appendages": "selective_appendage_or_support_module",
+      "transmission": "selective_differential_or_passive_clutch",
+      "power": "fault_contained",
+      "sensing": "independent_common_cause_aware",
+      "intended_role": "combine only mechanisms with measured Pareto contribution"
+    },
+    {
+      "id": "M9-self-sufficient-modules",
+      "family": "distributed_autonomous_submachines",
+      "comparison_stratum_id": "reconfigurable-modular-submachines",
+      "topology": "combinatorial_module_graph_two_to_five_autonomous_modules",
+      "appendages": "each_module_can_be_leg_arm_tail_or_spine",
+      "transmission": "module_internal_single_dof_actuation_with_bolted_multi_dock_interfaces",
+      "power": "per_module_battery_and_drive",
+      "sensing": "per_module_imu_encoder_and_processing",
+      "intended_role": "survive structural damage and continue locomotion using remaining self-sufficient modules; manual field reconfiguration is a separate capability"
+    }
+  ],
+  "fault_axes": [
+    {
+      "id": "torque_authority",
+      "type": "continuous",
+      "levels_ppm": [
+        1000000,
+        900000,
+        700000,
+        500000,
+        250000,
+        0
+      ],
+      "nested_claim": "only if source-qualified actuator model supports monotone authority reduction"
+    },
+    {
+      "id": "thermal_derating",
+      "type": "continuous",
+      "levels_ppm": [
+        1000000,
+        800000,
+        600000,
+        400000
+      ],
+      "nested_claim": "actuator-temperature-conditioned envelope"
+    },
+    {
+      "id": "joint_state",
+      "type": "categorical",
+      "levels": [
+        "healthy",
+        "locked",
+        "limited_range",
+        "free_swing",
+        "intermittent_dropout"
+      ]
+    },
+    {
+      "id": "drive_power",
+      "type": "categorical",
+      "levels": [
+        "healthy",
+        "voltage_sag",
+        "single_driver_loss",
+        "shared_bus_loss"
+      ]
+    },
+    {
+      "id": "sensor_health",
+      "type": "categorical",
+      "levels": [
+        "all_valid",
+        "encoder_bias",
+        "encoder_stuck",
+        "current_sensor_missing",
+        "common_clock_or_bus_fault"
+      ]
+    },
+    {
+      "id": "mechanical_coupler",
+      "type": "categorical",
+      "levels": [
+        "rigid",
+        "clutch_slips_and_reengages",
+        "clutch_nuisance_slip",
+        "clutch_fails_to_reengage",
+        "compliance_degraded"
+      ]
+    }
+  ],
+  "required_metrics": [
+    "nominal_task_success_and_capability",
+    "fault_condition_task_success_and_capability",
+    "robust_viability_and_recovery_receipts",
+    "full_adverse_event_vector_and_measurement_coverage",
+    "battery_actuator_electrical_and_mechanical_energy",
+    "actuator_peak_continuous_torque_and_thermal_headroom",
+    "clutch_slip_threshold_reengagement_latency_and_cycle_wear",
+    "mass_payload_workspace_turning_and_support_footprint",
+    "diagnosis_set_coverage_and_detection_latency",
+    "repair_replace_inspection_time_and_commonality"
+  ],
+  "adversarial_cases": [
+    {
+      "id": "A-topology-interpolation",
+      "design_ids": [
+        "M0-conventional-quadruped",
+        "M1-functional-arms"
+      ],
+      "expected": "invalid unless explicit topology mapping and validation evidence exist"
+    },
+    {
+      "id": "B-extra-mass-comparison",
+      "expected": "no direct claim unless payload, mass, CoM and task are matched or explicitly separate strata"
+    },
+    {
+      "id": "C-clutch-does-not-reengage",
+      "design_id": "M4-overload-slip-coupling",
+      "expected": "fail qualification; reengagement behavior must be tested"
+    },
+    {
+      "id": "D-nuisance-clutch-slip",
+      "design_id": "M4-overload-slip-coupling",
+      "expected": "retain as nominal capability and maintenance regression"
+    },
+    {
+      "id": "E-false-sensor-redundancy",
+      "design_id": "M7-diagnosable-actuator",
+      "expected": "common-cause encoder/current/clock group prevents independence assumption"
+    },
+    {
+      "id": "F-nominal-performance-regression",
+      "expected": "publish nominal/degraded Pareto trade; no single fault metric can hide nominal mission failure"
+    },
+    {
+      "id": "G-safety-proxy-shift",
+      "expected": "a design that reduces shank collision but increases foot scuff/fall cannot claim full safety improvement"
+    },
+    {
+      "id": "H-no-valid-physical-abstraction",
+      "expected": "no morphology is qualified when physical successors or fault signatures are incomplete"
+    }
+  ],
+  "literature_baselines": [
+    {
+      "id": "pnas-2026-autonomous-modular-legs",
+      "citation": "Yu et al., Agile legged locomotion in reconfigurable modular robots, PNAS 123(10), e2519129123 (10 March 2026)",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12974426/",
+      "platform_stratum": "reconfigurable-modular-submachines",
+      "evidence": "simulation plus hardware; three previously unseen physical amputation locations tested",
+      "results": "reported amputation-agnostic policy retained forward locomotion for one hindlimb removed, both hindlimbs removed, and all but one module remaining; undamaged policy speed 105.3% of original expert",
+      "limits": [
+        "five-module design; three physical unseen damage locations",
+        "most broader damage coverage is simulated",
+        "modules are not autonomously reabsorbed or reconfigured; manual assembly/reconfiguration remains",
+        "latent decoder may fail to reconstruct an exact topology; decoded designs require physical topology validation"
+      ]
+    }
+  ]
+}
