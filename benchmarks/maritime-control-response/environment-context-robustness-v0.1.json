@@ -1,0 +1,729 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MARITIME-EXTERNAL-CONTEXT-ROBUSTNESS-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "cases": [
+    {
+      "case_id": "calm_environment_healthy",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "sea-state-calm",
+        "context_kind": "sea_state",
+        "value": 2,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "no-sea-effect-qualified",
+        "qualification_state": "NO_QUALIFIED_PATH",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 0,
+        "effect_upper": 0,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 600,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NO_CONTEXT_CONFOUNDING"
+    },
+    {
+      "case_id": "high_wave_context_explains_healthy_response",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "sea-state-high",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "CONTEXT_EXPLAINS_RESPONSE"
+    },
+    {
+      "case_id": "internal_fault_not_excused_by_high_wave",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "degraded-state-50pct",
+      "fault_truth": "FAULT_PRESENT",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "sea-state-high",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 650,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "RESPONSE_MISMATCH_UNISOLATED"
+    },
+    {
+      "case_id": "negative_control_context_has_no_effect",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "negative-control-index",
+        "context_kind": "negative_control",
+        "value": 0.73,
+        "unit": "index",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "external-index-feed"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "no-sea-effect-qualified",
+        "qualification_state": "NO_QUALIFIED_PATH",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 0,
+        "effect_upper": 0,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 600,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NO_CONTEXT_CONFOUNDING"
+    },
+    {
+      "case_id": "stale_weather_context_not_used",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "sea-state-stale",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "STALE",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "post_prediction_context_is_invalid",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "posthoc-weather",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 1200,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT"
+    },
+    {
+      "case_id": "overlapping_context_prediction_time_is_not_evaluated",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 1,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "ambiguous-clock-weather",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 999,
+        "timestamp_uncertainty_ms": 2,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "out_of_domain_sea_state_is_not_evaluated",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "extreme-sea-state",
+        "context_kind": "sea_state",
+        "value": 20,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": false
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "engine_derived_weather_proxy_not_independent",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "engine-derived-weather-proxy",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "DERIVED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "engine-daq-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "qualified-sea-state-load-path-v1",
+        "qualification_state": "QUALIFIED",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 15,
+        "effect_upper": 20,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "unqualified_context_path_cannot_shift_envelope",
+      "asset_configuration_id": "engine-cfg-r3",
+      "regime_id": "steady-load-50",
+      "internal_state_id": "healthy-state-50pct",
+      "fault_truth": "HEALTHY",
+      "timebase": {
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-ptp-qualification-v1",
+        "qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "valid_from_ms": 0,
+        "valid_until_ms": 5000
+      },
+      "prediction_time_ms": 1000,
+      "prediction_timestamp_uncertainty_ms": 0,
+      "max_response_horizon_ms": 5000,
+      "internal_dependency_groups": [
+        "engine-daq-a",
+        "sensor-power-a"
+      ],
+      "external_context": {
+        "context_id": "unqualified-sea-effect",
+        "context_kind": "sea_state",
+        "value": 7,
+        "unit": "m",
+        "source_role": "MEASURED",
+        "quality_state": "CURRENT",
+        "dependency_groups": [
+          "metocean-feed-a"
+        ],
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 900,
+        "timestamp_uncertainty_ms": 0,
+        "in_support": true
+      },
+      "context_path": {
+        "path_id": "no-sea-effect-qualified",
+        "qualification_state": "NO_QUALIFIED_PATH",
+        "configuration_id": "engine-cfg-r3",
+        "regime_id": "steady-load-50",
+        "timebase_id": "engine-run-common-tai-v1",
+        "qualified_at_ms": 800,
+        "valid_until_ms": 4000,
+        "effect_lower": 0,
+        "effect_upper": 0,
+        "unit": "rpm"
+      },
+      "state_only_envelope": {
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "context_conditioned_envelope": {
+        "lower": 610,
+        "mean": 617.5,
+        "upper": 625,
+        "unit": "rpm"
+      },
+      "observed_response": {
+        "value": 617,
+        "unit": "rpm",
+        "quality_state": "CURRENT",
+        "timebase_id": "engine-run-common-tai-v1",
+        "observed_at_ms": 2000,
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT"
+    }
+  ],
+  "counterfactual_pairs": [
+    {
+      "pair_id": "same-internal-state-different-sea-state",
+      "kind": "SAME_INTERNAL_STATE_DIFFERENT_CONTEXT",
+      "case_ids": [
+        "calm_environment_healthy",
+        "high_wave_context_explains_healthy_response"
+      ],
+      "minimum_context_delta": 4,
+      "minimum_conditioned_mean_delta": 10,
+      "minimum_observed_response_delta": 10
+    },
+    {
+      "pair_id": "same-sea-state-healthy-vs-fault",
+      "kind": "SAME_CONTEXT_DIFFERENT_INTERNAL_FAULT",
+      "case_ids": [
+        "high_wave_context_explains_healthy_response",
+        "internal_fault_not_excused_by_high_wave"
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic external-context falsification only. It does not establish a causal effect in real vessels, validate weather-to-engine transfer, diagnose physical machinery, authorize route/load changes, maintenance or vessel operating decisions."
+}

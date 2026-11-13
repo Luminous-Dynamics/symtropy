@@ -1,0 +1,453 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_EXTERNAL_CONTEXT_ROBUSTNESS_V0_1.schema.json",
+  "title": "Maritime external-context robustness corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "cases",
+    "counterfactual_pairs",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "MARITIME-EXTERNAL-CONTEXT-ROBUSTNESS-001"
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "asset_configuration_id",
+          "regime_id",
+          "internal_state_id",
+          "fault_truth",
+          "timebase",
+          "prediction_time_ms",
+          "prediction_timestamp_uncertainty_ms",
+          "max_response_horizon_ms",
+          "internal_dependency_groups",
+          "external_context",
+          "context_path",
+          "state_only_envelope",
+          "context_conditioned_envelope",
+          "observed_response",
+          "expected_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_configuration_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "regime_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "internal_state_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault_truth": {
+            "enum": [
+              "HEALTHY",
+              "FAULT_PRESENT"
+            ]
+          },
+          "timebase": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "timebase_id",
+              "qualification_state",
+              "qualification_id",
+              "qualification_sha256",
+              "valid_from_ms",
+              "valid_until_ms"
+            ],
+            "properties": {
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qualification_state": {
+                "enum": [
+                  "QUALIFIED",
+                  "UNQUALIFIED"
+                ]
+              },
+              "qualification_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qualification_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "valid_from_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "valid_until_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "prediction_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "prediction_timestamp_uncertainty_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_response_horizon_ms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "internal_dependency_groups": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "external_context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "context_id",
+              "context_kind",
+              "value",
+              "unit",
+              "source_role",
+              "quality_state",
+              "dependency_groups",
+              "timebase_id",
+              "observed_at_ms",
+              "timestamp_uncertainty_ms",
+              "in_support"
+            ],
+            "properties": {
+              "context_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "context_kind": {
+                "enum": [
+                  "sea_state",
+                  "wind_wave_height",
+                  "draft_trim",
+                  "sea_surface_temperature",
+                  "negative_control"
+                ]
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_role": {
+                "enum": [
+                  "MEASURED",
+                  "DERIVED",
+                  "SIMULATED"
+                ]
+              },
+              "quality_state": {
+                "enum": [
+                  "CURRENT",
+                  "STALE",
+                  "MISSING",
+                  "UNKNOWN"
+                ]
+              },
+              "dependency_groups": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "timestamp_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "in_support": {
+                "type": "boolean"
+              }
+            }
+          },
+          "context_path": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path_id",
+              "qualification_state",
+              "configuration_id",
+              "regime_id",
+              "timebase_id",
+              "qualified_at_ms",
+              "valid_until_ms",
+              "effect_lower",
+              "effect_upper",
+              "unit"
+            ],
+            "properties": {
+              "path_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qualification_state": {
+                "enum": [
+                  "QUALIFIED",
+                  "NO_QUALIFIED_PATH",
+                  "EXPIRED",
+                  "UNKNOWN"
+                ]
+              },
+              "configuration_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "regime_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "qualified_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "valid_until_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "effect_lower": {
+                "type": "number"
+              },
+              "effect_upper": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "state_only_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lower",
+              "mean",
+              "upper",
+              "unit"
+            ],
+            "properties": {
+              "lower": {
+                "type": "number"
+              },
+              "mean": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "context_conditioned_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lower",
+              "mean",
+              "upper",
+              "unit"
+            ],
+            "properties": {
+              "lower": {
+                "type": "number"
+              },
+              "mean": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "observed_response": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "unit",
+              "quality_state",
+              "timebase_id",
+              "observed_at_ms",
+              "timestamp_uncertainty_ms"
+            ],
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quality_state": {
+                "enum": [
+                  "CURRENT",
+                  "STALE",
+                  "MISSING",
+                  "UNKNOWN"
+                ]
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "timestamp_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "NO_CONTEXT_CONFOUNDING",
+              "CONTEXT_EXPLAINS_RESPONSE",
+              "RESPONSE_MISMATCH_UNISOLATED",
+              "NOT_EVALUATED",
+              "INVALID_CONTRACT"
+            ]
+          }
+        }
+      }
+    },
+    "counterfactual_pairs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pair_id",
+              "kind",
+              "case_ids",
+              "minimum_context_delta",
+              "minimum_conditioned_mean_delta",
+              "minimum_observed_response_delta"
+            ],
+            "properties": {
+              "pair_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "const": "SAME_INTERNAL_STATE_DIFFERENT_CONTEXT"
+              },
+              "case_ids": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "minimum_context_delta": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minimum_conditioned_mean_delta": {
+                "type": "number",
+                "minimum": 0
+              },
+              "minimum_observed_response_delta": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pair_id",
+              "kind",
+              "case_ids"
+            ],
+            "properties": {
+              "pair_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "const": "SAME_CONTEXT_DIFFERENT_INTERNAL_FAULT"
+              },
+              "case_ids": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    }
+  }
+}

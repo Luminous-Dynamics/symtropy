@@ -1,0 +1,723 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_CONTROL_AWARE_CASE_V0_1.schema.json",
+  "title": "Maritime control-aware diagnosis benchmark case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "asset",
+    "controller",
+    "operating_regime",
+    "provenance",
+    "signals",
+    "recordings",
+    "command_response_links",
+    "evaluation_contract",
+    "authority_boundary",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "engine_model",
+        "configuration_revision",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vessel_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engine_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_serial": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controller_id",
+        "controller_revision",
+        "io_map_sha256",
+        "mode_signal_id"
+      ],
+      "properties": {
+        "controller_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "io_map_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode_signal_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "control_system_review_state": {
+          "enum": [
+            "not_reviewed",
+            "review_required",
+            "independently_reviewed"
+          ]
+        }
+      }
+    },
+    "operating_regime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regime_id",
+        "description",
+        "qualification_state",
+        "label_available_at_prediction_time"
+      ],
+      "properties": {
+        "regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_state": {
+          "enum": [
+            "qualified",
+            "unsupported",
+            "not_evaluated"
+          ]
+        },
+        "load_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "speed_rpm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "maneuver_class": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "label_available_at_prediction_time": {
+          "type": "boolean"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_inventory_sha256",
+        "data_sha256",
+        "split_manifest_sha256",
+        "model_sha256",
+        "evaluator_sha256"
+      ],
+      "properties": {
+        "signal_inventory_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "data_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "split_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluator_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "signals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "signal_id",
+          "role",
+          "source_kind",
+          "unit",
+          "installed",
+          "quality_state",
+          "calibration_state",
+          "clock_domain",
+          "dependency_groups",
+          "derived_from_signal_ids"
+        ],
+        "properties": {
+          "signal_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "control_intent",
+              "controller_state",
+              "actuator_feedback",
+              "physical_response",
+              "disturbance_context",
+              "derived_response"
+            ]
+          },
+          "source_kind": {
+            "enum": [
+              "controller_register",
+              "actuator_transducer",
+              "physical_sensor",
+              "operator_entry",
+              "model_output",
+              "external_context",
+              "unknown"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scale": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sign_convention": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "quality_state": {
+            "enum": [
+              "current",
+              "missing",
+              "stale",
+              "rejected",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "calibration_state": {
+            "enum": [
+              "current",
+              "expired",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "clock_domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sampling_period_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "latency_bound_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "dependency_groups": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "derived_from_signal_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "configuration_revision": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "recordings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recording_id",
+          "artifact_id",
+          "sha256",
+          "recording_role",
+          "time_start",
+          "time_end",
+          "clock_quality",
+          "sample_count"
+        ],
+        "properties": {
+          "recording_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "recording_role": {
+            "enum": [
+              "training",
+              "validation",
+              "test",
+              "reference",
+              "simulation"
+            ]
+          },
+          "time_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "time_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clock_quality": {
+            "enum": [
+              "synchronized",
+              "bounded_offset",
+              "unknown",
+              "conflicted"
+            ]
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "engine_run_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "command_response_links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "link_id",
+          "control_intent_signal_ids",
+          "controller_state_signal_ids",
+          "actuator_feedback_signal_ids",
+          "physical_response_signal_ids",
+          "disturbance_signal_ids",
+          "max_response_lag_ms",
+          "response_model_id",
+          "training_scope",
+          "independence_review_state"
+        ],
+        "properties": {
+          "link_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "control_intent_signal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "controller_state_signal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "actuator_feedback_signal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "physical_response_signal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "disturbance_signal_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "max_response_lag_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "response_model_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "training_scope": {
+            "enum": [
+              "training_only",
+              "independently_qualified",
+              "invalid_full_recording_fit"
+            ]
+          },
+          "independence_review_state": {
+            "enum": [
+              "reviewed",
+              "shared_dependency",
+              "not_reviewed"
+            ]
+          }
+        }
+      }
+    },
+    "evaluation_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "split_group_key",
+        "preprocessing_fit_scope",
+        "future_signal_leakage_allowed",
+        "required_baselines",
+        "dropout_scenarios",
+        "metrics"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "split_group_key": {
+          "enum": [
+            "engine_run",
+            "engine_campaign",
+            "physical_engine",
+            "vessel",
+            "unknown"
+          ]
+        },
+        "preprocessing_fit_scope": {
+          "enum": [
+            "training_partition_only",
+            "invalid_full_dataset_fit",
+            "not_evaluated"
+          ]
+        },
+        "future_signal_leakage_allowed": {
+          "const": false
+        },
+        "required_baselines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "state_only",
+              "control_only",
+              "naive_fusion",
+              "gated_fusion",
+              "control_aware_domain_adversarial",
+              "binary_domain_adversarial",
+              "physics_residual",
+              "selective_abstention"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "dropout_scenarios": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "controller_write",
+        "actuation",
+        "maintenance_authorization",
+        "mode_transition",
+        "restriction_clearance"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "controller_write": {
+          "const": false
+        },
+        "actuation": {
+          "const": false
+        },
+        "maintenance_authorization": {
+          "const": false
+        },
+        "mode_transition": {
+          "const": false
+        },
+        "restriction_clearance": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal_id",
+        "role",
+        "source_kind",
+        "unit",
+        "installed",
+        "quality_state",
+        "calibration_state",
+        "clock_domain",
+        "dependency_groups",
+        "derived_from_signal_ids"
+      ],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "control_intent",
+            "controller_state",
+            "actuator_feedback",
+            "physical_response",
+            "disturbance_context",
+            "derived_response"
+          ]
+        },
+        "source_kind": {
+          "enum": [
+            "controller_register",
+            "actuator_transducer",
+            "physical_sensor",
+            "operator_entry",
+            "model_output",
+            "external_context",
+            "unknown"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scale": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sign_convention": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installed": {
+          "type": "boolean"
+        },
+        "quality_state": {
+          "enum": [
+            "current",
+            "missing",
+            "stale",
+            "rejected",
+            "conflicted",
+            "unknown"
+          ]
+        },
+        "calibration_state": {
+          "enum": [
+            "current",
+            "expired",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "clock_domain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sampling_period_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "latency_bound_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "dependency_groups": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "derived_from_signal_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
