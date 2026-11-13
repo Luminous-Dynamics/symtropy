@@ -45,7 +45,9 @@
         "coordinate_frame",
         "captured_at_tick",
         "points",
-        "x_grid_sha256"
+        "x_grid_sha256",
+        "layer_id",
+        "predecessor_pass_id"
       ],
       "properties": {
         "evidence_class": {
@@ -93,6 +95,14 @@
         "x_grid_sha256": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
