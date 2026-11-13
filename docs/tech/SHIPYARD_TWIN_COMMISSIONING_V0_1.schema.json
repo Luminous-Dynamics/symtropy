@@ -127,7 +127,9 @@
         "maximum_clock_offset_us",
         "uncertainty_permille",
         "maximum_uncertainty_permille",
-        "composition_schema_id"
+        "composition_schema_id",
+        "sample_interval_us",
+        "max_sample_interval_us"
       ],
       "properties": {
         "interface_id": {
@@ -261,6 +263,14 @@
             "null"
           ],
           "minLength": 1
+        },
+        "sample_interval_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_sample_interval_us": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
