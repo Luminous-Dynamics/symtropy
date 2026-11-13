@@ -33,7 +33,7 @@ The profile records the 2027 page's stated contract:
 
 The page has three details that must be resolved before data ingestion or an official adapter is declared conformant:
 
-1. It first describes one nominal dataset plus seven fault-scenario datasets, then explicitly states that the training data consists of 41 datasets. The profile uses 41 as the explicit count while recording the earlier wording for organizer clarification.
+1. It first describes one nominal dataset plus seven fault-scenario datasets, then explicitly states that training contains 41 datasets and says there are two to seven datasets from each known fault. Those statements do not unambiguously specify how the 41 recordings are partitioned. The profile uses 41 as the explicit total and records the per-fault range, but the recording manifest and organizer clarification must settle the partition before splits are frozen.
 2. Its fault/filename labels include `y_pim` and `y_waf`, while the output vector uses `f_pim` and `f_waf`. The profile preserves the source spellings and marks both crosswalks for verification against the official evaluator; it does not silently normalize them.
 3. The interface section permits MATLAB or Python, while the evaluation section says the submitted code should be executable in Python and cannot include other licensed software. Confirm the precise runtime/package requirement with the organizers before implementing the submission adapter.
 
@@ -55,7 +55,16 @@ The 2027 dataset expansion is not simply "more rows." It creates an edition-to-e
 - **Protocol generalization:** preserve WLTP training restrictions and use held-out cycles as actual OOD/operating-regime tests, not random row splits.
 - **Identifiability:** keep the admissible hypothesis set when model parameters are not uniquely identifiable. A low residual or optimizer-selected parameter vector is not proof of a unique physical cause.
 
-The 2026 published grey-box solution is a comparator, not a measured Symtropy baseline. Its reported hidden-test aggregate is 88.01%, while the published table includes weak cells (45.64% score for FTP75 Standard `f_pim -10%`; 44.87% for WLTP `f_pic +8%`). These cases should be preregistered as stress targets in a matched reproduction, not presented as 2027 outcomes.
+The 2026 published grey-box solution is a comparator, not a measured Symtropy baseline. Keep its two reported evaluation levels separate:
+
+- Its shared-dataset validation table reports 92.29% global score over 41 files (FAR 0.68%, TDR 78.75%, FIA 98.97%).
+- The competition organizers' official hidden-test table reports 88.01% overall (FAR 7.86%, TDR 92.26%, FIA 79.62%).
+
+The two tables are not the same evaluation set and must not be averaged or quoted as interchangeable. The hidden-test outcome is a literature reference; reproducing it requires the exact hidden evaluation inputs or an official rerun. A public reproduction on the released data must be labelled as a separate result.
+
+The published grey-box system is a serious comparator: it uses an MVEM-derived structural model, MSO decoupling, four virtual sensors and recurrent grey-box estimators, with residual/diagnosis logic. On the paper's reference CPU it reports 0.82 ms average inference per sample and a 49.5 ms observed maximum. It also uses a 0.75 s (15-sample) debounce and a 90 s startup calibration/warm-up; the authors explicitly discuss the resulting detection delay and the risk of startup fault masking.
+
+The official hidden-test table exposes two highly informative weak cells: score 45.64% for FTP75 Standard `f_pim -10%` (TDR 21.12%) and 44.87% for WLTP `f_pic +8%` (TDR 100%, 1-FAR 34.61%, FIA 0%). The first is primarily a missed-detection boundary; the second detects the anomaly but fails to control false alarms and isolate it. These require different remedies and should be preregistered separately, not folded into one average target.
 
 ## Next benchmark sequence
 
