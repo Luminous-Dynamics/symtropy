@@ -347,7 +347,7 @@ mod tests {
 
     #[test]
     fn incomparable_units_suppress_net_value_and_recommendation() {
-        let assessment = binary_problem("outage_minutes").assess(&perfect_sensor(0.1, "USD")).expect("assessment");
+        let assessment = binary_problem("outage_minutes", false).assess(&perfect_sensor(0.1, "USD")).expect("assessment");
         assert!(assessment.net_value.is_none());
         assert_eq!(assessment.disposition, AcquisitionDisposition::NoCostBasedRecommendation);
         assert!((assessment.expected_information_gain_bits - 1.0).abs() < 1e-9);
