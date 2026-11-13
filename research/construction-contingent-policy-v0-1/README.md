@@ -17,7 +17,7 @@ Stack: interop #3644 → accepted-floor #4960 → space-time occupancy #4976 →
 - Rejects duplicate branch IDs, ambiguous trigger mappings, duplicate approval roles and malformed actions.
 - Emits either `Hold` or `Proposal`. There is no `Execute`, `Grant`, `Permit` or `Accept` disposition.
 - Requires current resource, occupancy, capability and authority revalidation before any external execution; this crate performs none of those grants.
-- Thirteen Rust tests cover positive branches, unknown/no evidence, stale context, time freshness, approvals, qualification references and ambiguity rejection.
+- Eighteen Rust tests cover positive branches, unknown/no evidence, stale context, time freshness, approvals, qualification references and ambiguity rejection.
 
 ## Local commands
 
