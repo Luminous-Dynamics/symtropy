@@ -1,0 +1,294 @@
+{
+  "schema_version": "0.1.0",
+  "oracle_id": "water-service-recovery-disposition-oracle-v0.1",
+  "corpus_id": "water-service-recovery-verification-v0.1",
+  "results": [
+    {
+      "scenario_id": "WRV-001",
+      "expected_overall_disposition": "verified_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-002",
+      "expected_overall_disposition": "not_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "breached_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-003",
+      "expected_overall_disposition": "candidate_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "candidate_restored"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-004",
+      "expected_overall_disposition": "candidate_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "candidate_restored"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-005",
+      "expected_overall_disposition": "not_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "breached_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-006",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "indeterminate"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-007",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "indeterminate"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-008",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "indeterminate"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-009",
+      "expected_overall_disposition": "candidate_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "candidate_restored"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-010",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "indeterminate"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-011",
+      "expected_overall_disposition": "breached_with_indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "breached_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "indeterminate"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-012",
+      "expected_overall_disposition": "candidate_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WRV-013",
+      "expected_overall_disposition": "not_restored",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "breached_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "repair_ticket_is_restoration_evidence": false,
+      "alarm_clearance_is_restoration_evidence": false,
+      "quality_assessment": "not_in_scope",
+      "evidence_ceiling": "synthetic_design_only"
+    }
+  ],
+  "interpretation": "Expected state dispositions only; no hydraulic trajectories, repair outcomes, drinking-water quality or field service are measured."
+}
