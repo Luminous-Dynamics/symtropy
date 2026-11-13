@@ -191,8 +191,8 @@ pub fn evaluate_kantorovich_envelope(
     } else {
         // Stable form of (1 - sqrt(1 - 2h))/(beta*L).
         // It also handles L=0 and eta=0 without dividing by beta*L.
-        let radius = 2.0 * input.newton_correction_norm_upper
-            / (1.0 + (1.0 - 2.0 * h).max(0.0).sqrt());
+        let radius =
+            2.0 * input.newton_correction_norm_upper / (1.0 + (1.0 - 2.0 * h).max(0.0).sqrt());
         if !radius.is_finite() {
             return Err(EnvelopeErrorV1::ArithmeticOverflow);
         }
