@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic membrane observability and fault diagnosis cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "baseline_thresholds",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-observability-fault-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_observability_challenge"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_diagnostic_baseline_only_no_real_sensor_or_membrane_diagnosis"
+    },
+    "baseline_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pressure_pair_residual_fraction",
+        "flow_pair_residual_fraction",
+        "absolute_clock_skew_seconds",
+        "critical_channel_missing_fraction",
+        "absolute_temperature_shift_c",
+        "feed_conductivity_ratio_deviation",
+        "pump_speed_ratio_deviation",
+        "normalized_resistance_ratio",
+        "maximum_resistance_relative_uncertainty"
+      ],
+      "properties": {
+        "pressure_pair_residual_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "flow_pair_residual_fraction": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "absolute_clock_skew_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "critical_channel_missing_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "absolute_temperature_shift_c": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "feed_conductivity_ratio_deviation": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pump_speed_ratio_deviation": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "normalized_resistance_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 1
+        },
+        "maximum_resistance_relative_uncertainty": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "inputs"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^MOBS-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pressure_sensor_pair_delta_fraction",
+              "flow_sensor_pair_delta_fraction",
+              "clock_skew_seconds",
+              "critical_channel_missing_fraction",
+              "temperature_delta_c",
+              "feed_conductivity_ratio",
+              "pump_speed_ratio",
+              "normalized_resistance_ratio",
+              "normalized_resistance_relative_uncertainty"
+            ],
+            "properties": {
+              "pressure_sensor_pair_delta_fraction": {
+                "type": "number",
+                "minimum": 0
+              },
+              "flow_sensor_pair_delta_fraction": {
+                "type": "number",
+                "minimum": 0
+              },
+              "clock_skew_seconds": {
+                "type": "number"
+              },
+              "critical_channel_missing_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "temperature_delta_c": {
+                "type": "number"
+              },
+              "feed_conductivity_ratio": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "pump_speed_ratio": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "normalized_resistance_ratio": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "normalized_resistance_relative_uncertainty": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
