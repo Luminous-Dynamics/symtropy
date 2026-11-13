@@ -1,0 +1,109 @@
+name: camera-boundary-fault-injection
+
+on:
+  pull_request:
+    paths:
+      - "research/camera-boundary-fault-injection-001/**"
+      - ".github/workflows/camera-boundary-fault-injection.yml"
+  push:
+    paths:
+      - "research/camera-boundary-fault-injection-001/**"
+      - ".github/workflows/camera-boundary-fault-injection.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  fault-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact Symtropy commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check committed Rust formatting
+        run: rustfmt --edition 2024 --check research/camera-boundary-fault-injection-001/src/main.rs
+
+      - name: Run mutation and campaign tests
+        run: cargo test --locked --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml --all-targets --all-features -- -D warnings
+
+      - name: Check out the exact Symthaea bridge source used by the source episode
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symthaea
+          ref: 4917ba2dc16c72425452458b46a93fc1cc1966e5
+          path: symthaea
+
+      - name: Build the pinned Symthaea camera-driving bridge (strict lockfile gate)
+        run: cargo build --locked --manifest-path symthaea/crates/bridges/symthaea-camera-driving-bridge/Cargo.toml --bin camera-driving-bridge
+
+      # Diagnostic only: preserve the strict --locked failure above, then let
+      # Cargo produce an ephemeral lockfile delta for reconciliation into the
+      # pinned Symthaea PR. This step cannot turn a failed lock gate green.
+      - name: Diagnose pinned Symthaea lockfile drift without weakening the gate
+        if: failure()
+        continue-on-error: true
+        run: |
+          cargo build --manifest-path symthaea/crates/bridges/symthaea-camera-driving-bridge/Cargo.toml --bin camera-driving-bridge
+          git -C symthaea diff -- Cargo.lock > "${RUNNER_TEMP}/symthaea-Cargo.lock.diff"
+          cp symthaea/Cargo.lock "${RUNNER_TEMP}/symthaea-Cargo.lock.regenerated"
+
+      - name: Preserve lockfile diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: symthaea-lockfile-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/symthaea-Cargo.lock.diff
+            ${{ runner.temp }}/symthaea-Cargo.lock.regenerated
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Download immutable #4618 renderer-to-bridge source episode
+        uses: actions/download-artifact@v4
+        with:
+          name: fresh-process-driving-observation-e2e-43274065339-1
+          run-id: 43274065339
+          github-token: ${{ github.token }}
+          path: source-episode
+
+      - name: Verify source episode identity and execute all 14 fresh-process bridge cases
+        run: |
+          mkdir -p "${RUNNER_TEMP}/camera-boundary-fault-campaign"
+          cargo run --release --locked \
+            --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml -- \
+            source-episode \
+            symthaea/target/debug/camera-driving-bridge \
+            "${RUNNER_TEMP}/camera-boundary-fault-campaign"
+          jq -e '
+            .status == "all_cases_passed" and
+            .cases_expected == 14 and
+            .cases_observed == 14 and
+            .fresh_processes_spawned == 14 and
+            .clean_control_accepted == true and
+            .all_negative_controls_rejected_before_policy_output == true and
+            .all_rejections_preflighted_before_temporal_advance == true and
+            (.cases | map(select(.case_id == "missing-action-receipt" and
+                                 .expected_error == "UpstreamActionReferenceInvalid" and
+                                 .expected_error_observed == true and
+                                 .no_policy_output_committed == true)) | length) == 1
+          ' "${RUNNER_TEMP}/camera-boundary-fault-campaign/fault-campaign-report.json"
+
+      - name: Preserve exact-head 14-case integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: camera-boundary-fault-campaign-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/camera-boundary-fault-campaign/
+          if-no-files-found: warn
+          retention-days: 30

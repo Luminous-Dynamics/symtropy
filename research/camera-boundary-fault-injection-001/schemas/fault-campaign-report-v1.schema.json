@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/camera-boundary-fault-campaign-report-v1.schema.json",
+  "title": "Camera boundary fault injection campaign report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "status",
+    "source_episode_id",
+    "bridge_binary",
+    "bridge_binary_sha256",
+    "source_episode_request_sha256",
+    "source_episode_report_sha256",
+    "camera_calibration_pin_sha256",
+    "maximum_observation_delivery_age_us",
+    "maximum_sensor_clock_skew_us",
+    "cases_expected",
+    "cases_observed",
+    "fresh_processes_spawned",
+    "all_negative_controls_rejected_before_policy_output",
+    "all_rejections_preflighted_before_temporal_advance",
+    "clean_control_accepted",
+    "controller_invoked",
+    "vehicle_actuator_invoked",
+    "cases",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "all_cases_passed",
+        "rejected"
+      ]
+    },
+    "source_episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bridge_binary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "camera_calibration_pin_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "maximum_observation_delivery_age_us": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maximum_sensor_clock_skew_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cases_expected": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cases_observed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fresh_processes_spawned": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "all_negative_controls_rejected_before_policy_output": {
+      "type": "boolean"
+    },
+    "clean_control_accepted": {
+      "type": "boolean"
+    },
+    "controller_invoked": {
+      "const": false
+    },
+    "vehicle_actuator_invoked": {
+      "const": false
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "all_rejections_preflighted_before_temporal_advance": {
+      "type": "boolean"
+    },
+    "source_episode_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_episode_request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bridge_binary_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "expected_error",
+        "actual_exit_code",
+        "child_process_spawned",
+        "accepted",
+        "expected_error_observed",
+        "receipt_output_exists",
+        "policy_input_directory_exists",
+        "policy_input_artifact_count",
+        "no_policy_output_committed",
+        "expected_frames_processed_before_rejection",
+        "frames_processed_before_rejection",
+        "rejected_observation_did_not_advance_temporal_state",
+        "input_observation_count",
+        "stderr"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actual_exit_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "child_process_spawned": {
+          "type": "boolean"
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "expected_error_observed": {
+          "type": "boolean"
+        },
+        "receipt_output_exists": {
+          "type": "boolean"
+        },
+        "policy_input_directory_exists": {
+          "type": "boolean"
+        },
+        "policy_input_artifact_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_policy_output_committed": {
+          "type": "boolean"
+        },
+        "input_observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stderr": {
+          "type": "string"
+        },
+        "expected_frames_processed_before_rejection": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "frames_processed_before_rejection": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rejected_observation_did_not_advance_temporal_state": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Each case is invoked as a separate operating-system process with a fresh bridge instance.",
+    "The clean control must be accepted and produce one receipt and one HDC artifact per input observation.",
+    "Every negative control must match its exact expected BridgeError variant, produce no receipt output file, and leave no policy-input artifact.",
+    "A structurally valid unkeyed calibration pin is loaded from the clean renderer receipt into the BridgeConfig before mutations are generated.",
+    "This report validates software bridge input rejection only; it is not a trained policy or vehicle safety result.",
+    "For each negative control, frames_processed_before_rejection equals the number of preceding accepted observations; the rejected observation itself must not advance the Vision Manifold.",
+    "The source episode must declare passing fresh-process renderer replay, fresh-process Symthaea bridge replay, branch evidence audit and stale-actor negative control results.",
+    "The source episode RGB bytes must match every upstream frame SHA-256, and the persisted policy receipt JSON must exactly equal the receipt embedded in the episode request.",
+    "The report identifies the exact source report, source request and bridge executable bytes by SHA-256."
+  ]
+}
