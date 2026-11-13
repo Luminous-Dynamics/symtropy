@@ -418,7 +418,13 @@ impl RouteGeometry {
     }
 }
 
-/// Conservative absolute error bounds, all expressed in metres.
+/// Conservative horizontal-equivalent absolute error bounds, all expressed
+/// in projected horizontal metres.
+///
+/// Each upstream component must already be propagated into a horizontal
+/// coordinate bound for this exact calibration/profile. In particular, raw
+/// optical-range/fibre-chainage/route-station errors must not be inserted
+/// without accounting for the corresponding transform sensitivity.
 ///
 /// The total is a triangle-inequality upper bound, not a Gaussian standard
 /// deviation or a statistically calibrated confidence interval. Correlations
