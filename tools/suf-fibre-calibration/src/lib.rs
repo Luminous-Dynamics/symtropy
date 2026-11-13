@@ -243,6 +243,12 @@ pub struct CalibrationBinding {
     pub interrogator_config_revision: String,
     /// Unique calibration revision.
     pub calibration_revision: String,
+    /// Exact algorithm/method revision used to create the calibration.
+    pub method_revision: String,
+    /// SHA-256 of the calibration receipt/artifact bytes supplied by the caller.
+    pub calibration_artifact_sha256: String,
+    /// SHA-256 of the exact route geometry artifact bytes supplied by the caller.
+    pub route_geometry_sha256: String,
     /// Declared endpoint A identity.
     pub endpoint_a_id: String,
     /// Declared endpoint B identity.
@@ -263,6 +269,7 @@ impl CalibrationBinding {
             ("route_revision", self.route_revision.as_str()),
             ("interrogator_config_revision", self.interrogator_config_revision.as_str()),
             ("calibration_revision", self.calibration_revision.as_str()),
+            ("method_revision", self.method_revision.as_str()),
             ("endpoint_a_id", self.endpoint_a_id.as_str()),
             ("endpoint_b_id", self.endpoint_b_id.as_str()),
         ] {
@@ -270,6 +277,8 @@ impl CalibrationBinding {
                 return Err(CalibrationError::EmptyIdentifier(name));
             }
         }
+        validate_sha256(&self.calibration_artifact_sha256)?;
+        validate_sha256(&self.route_geometry_sha256)?;
         if self.endpoint_a_id == self.endpoint_b_id {
             return Err(CalibrationError::BindingMismatch("endpoints must be distinct"));
         }
@@ -504,6 +513,12 @@ pub struct QualifiedRoutePosition {
     pub route_revision: String,
     /// Exact calibration revision.
     pub calibration_revision: String,
+    /// Calibration method revision.
+    pub method_revision: String,
+    /// Digest of the exact calibration receipt/artifact.
+    pub calibration_artifact_sha256: String,
+    /// Digest of the exact route geometry artifact.
+    pub route_geometry_sha256: String,
     /// Physical fibre chainage, in metres.
     pub physical_fibre_chainage_m: f64,
     /// Route station, in metres.
@@ -641,6 +656,9 @@ impl CalibrationModel {
             fibre_revision: self.binding.fibre_revision.clone(),
             route_revision: self.binding.route_revision.clone(),
             calibration_revision: self.binding.calibration_revision.clone(),
+            method_revision: self.binding.method_revision.clone(),
+            calibration_artifact_sha256: self.binding.calibration_artifact_sha256.clone(),
+            route_geometry_sha256: self.binding.route_geometry_sha256.clone(),
             physical_fibre_chainage_m,
             route_station_m,
             easting_m,
@@ -719,6 +737,9 @@ mod tests {
             route_revision: "route-r7".to_owned(),
             interrogator_config_revision: "interrogator-config-3".to_owned(),
             calibration_revision: "calibration-r4".to_owned(),
+            method_revision: "piecewise-linear-v1".to_owned(),
+            calibration_artifact_sha256: DIGEST.to_owned(),
+            route_geometry_sha256: DIGEST.to_owned(),
             endpoint_a_id: "chamber-A".to_owned(),
             endpoint_b_id: "chamber-B".to_owned(),
             direction: FibreDirection::AToB,
@@ -766,6 +787,9 @@ mod tests {
         assert!((position.northing_m - 210.0).abs() < 1e-9);
         assert!((position.horizontal_error_bound_m - 1.4).abs() < 1e-9);
         assert_eq!(position.crs_id, "urn:ogc:def:crs:EPSG::32735");
+        assert_eq!(position.method_revision, "piecewise-linear-v1");
+        assert_eq!(position.calibration_artifact_sha256, DIGEST);
+        assert_eq!(position.route_geometry_sha256, DIGEST);
         // QualifiedRoutePosition intentionally has no asset_id field.
     }
 
@@ -959,6 +983,28 @@ mod tests {
                 base.uncertainty,
             ),
             Err(CalibrationError::UnsupportedTopology)
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_calibration_receipt_digest() {
+        let mut binding = model().binding;
+        binding.calibration_artifact_sha256 = "not-a-digest".to_owned();
+        assert_eq!(
+            CalibrationModel::new(
+                binding,
+                FibreTopology::SingleSpan,
+                map(&[(0.0, 10.0), (100.0, 110.0)]),
+                map(&[(10.0, 0.0), (110.0, 100.0)]),
+                route(),
+                UncertaintyBudget {
+                    optical_measurement_bound_m: 0.0,
+                    optical_to_fibre_bound_m: 0.0,
+                    fibre_to_route_bound_m: 0.0,
+                    route_geometry_bound_m: 0.0,
+                },
+            ),
+            Err(CalibrationError::InvalidSha256)
         );
     }
 
