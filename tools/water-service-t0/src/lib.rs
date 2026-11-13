@@ -818,8 +818,7 @@ pub fn evaluate_dark_fiber_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
             .ok_or_else(|| format!("dark-fibre F0 oracle missing case {id}"))?;
         let expected_family = string(oracle_row, &["family"])?;
         let expected = at(oracle_row, &["expected"])?;
-        let matches = expected_family == "F0_ROUTE_GEOMETRY"
-            && compare_json(&actual, expected);
+        let matches = expected_family == "F0_ROUTE_GEOMETRY" && compare_json(&actual, expected);
         if !matches {
             mismatches.push(json!({
                 "case_id": id,
@@ -923,8 +922,15 @@ mod tests {
             .iter()
             .find(|row| row["case_id"] == "DF0-001-clear-geometric-candidate")
             .unwrap();
-        assert_eq!(row["computed"]["geometry_disposition"], "WITHIN_GEOMETRIC_SCREEN");
-        assert!(!row["computed"]["physical_sensing_qualified"].as_bool().unwrap());
+        assert_eq!(
+            row["computed"]["geometry_disposition"],
+            "WITHIN_GEOMETRIC_SCREEN"
+        );
+        assert!(
+            !row["computed"]["physical_sensing_qualified"]
+                .as_bool()
+                .unwrap()
+        );
         assert_eq!(row["computed"]["observed_sensing_length_m"], 0.0);
     }
 
@@ -939,7 +945,11 @@ mod tests {
             .find(|row| row["case_id"] == "DF0-004-fibre-offline")
             .unwrap();
         assert_eq!(row["computed"]["route_status"], "UNOBSERVED_FIBRE_OFFLINE");
-        assert!(!row["computed"]["leak_absence_claim_allowed"].as_bool().unwrap());
+        assert!(
+            !row["computed"]["leak_absence_claim_allowed"]
+                .as_bool()
+                .unwrap()
+        );
     }
 
     #[test]
@@ -965,8 +975,15 @@ mod tests {
             .iter()
             .find(|row| row["case_id"] == "DF0-006-shared-corridor-asset-ambiguity")
             .unwrap();
-        assert_eq!(row["computed"]["route_status"], "ASSET_ATTRIBUTION_AMBIGUOUS");
-        assert!(!row["computed"]["physical_sensing_qualified"].as_bool().unwrap());
+        assert_eq!(
+            row["computed"]["route_status"],
+            "ASSET_ATTRIBUTION_AMBIGUOUS"
+        );
+        assert!(
+            !row["computed"]["physical_sensing_qualified"]
+                .as_bool()
+                .unwrap()
+        );
     }
 
     #[test]
@@ -979,7 +996,10 @@ mod tests {
             .iter()
             .find(|row| row["case_id"] == "DF0-003-uncertainty-crosses-screen")
             .unwrap();
-        assert_eq!(row["computed"]["geometry_disposition"], "INDETERMINATE_GEOMETRY");
+        assert_eq!(
+            row["computed"]["geometry_disposition"],
+            "INDETERMINATE_GEOMETRY"
+        );
     }
 
     #[test]
