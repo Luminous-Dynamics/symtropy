@@ -49,9 +49,7 @@ pub struct Bounds3Mm {
 
 impl Bounds3Mm {
     fn validate(&self) -> Result<(), SpatialError> {
-        for (axis, (minimum, maximum)) in
-            self.min.iter().zip(self.max.iter()).enumerate()
-        {
+        for (axis, (minimum, maximum)) in self.min.iter().zip(self.max.iter()).enumerate() {
             if minimum >= maximum {
                 return Err(SpatialError::InvalidBounds { axis });
             }
@@ -203,18 +201,21 @@ impl SpatialOccupancyBook {
     /// been admitted by the existing reservation owner. This method checks the exact
     /// declared reservation fields for task, site epoch, clock domain and interval.
     /// It cannot prove that a caller actually obtained a grant from ReservationBook.
-    pub fn insert(
-        &mut self,
-        occupancy: SpatialOccupancy,
-    ) -> Result<InsertOutcome, SpatialError> {
+    pub fn insert(&mut self, occupancy: SpatialOccupancy) -> Result<InsertOutcome, SpatialError> {
         require_non_empty("occupancy_id", &occupancy.occupancy_id)?;
         require_non_empty("task_id", &occupancy.task_id)?;
         require_non_empty("reservation_id", &occupancy.reservation.reservation_id)?;
-        require_non_empty("reservation_resource_id", &occupancy.reservation.resource_id)?;
+        require_non_empty(
+            "reservation_resource_id",
+            &occupancy.reservation.resource_id,
+        )?;
         require_non_empty("reservation_owner_id", &occupancy.reservation.owner_id)?;
         require_non_empty("reservation_task_id", &occupancy.reservation.task_id)?;
         require_non_empty("reservation_site_epoch", &occupancy.reservation.site_epoch)?;
-        require_non_empty("reservation_clock_domain_id", &occupancy.reservation.clock_domain_id)?;
+        require_non_empty(
+            "reservation_clock_domain_id",
+            &occupancy.reservation.clock_domain_id,
+        )?;
 
         occupancy.bounds.validate()?;
         let expanded_candidate = occupancy.bounds.expanded(
@@ -264,10 +265,9 @@ impl SpatialOccupancyBook {
                 continue;
             }
 
-            let expanded_existing = existing.bounds.expanded(
-                existing.uncertainty_margin_mm,
-                existing.clearance_margin_mm,
-            )?;
+            let expanded_existing = existing
+                .bounds
+                .expanded(existing.uncertainty_margin_mm, existing.clearance_margin_mm)?;
             if let Some(overlap_bounds_mm) =
                 expanded_candidate.intersection_closed(&expanded_existing)
             {
@@ -295,9 +295,7 @@ impl SpatialOccupancyBook {
 /// Expand the existing reservation interval conservatively using its clock bound.
 /// Half-open intervals remain half-open; no independent calendar or clock policy
 /// is created here. Underflow/overflow is a typed failure, not a wrap or clamp.
-fn expanded_time_interval(
-    reservation: &ReservationRequest,
-) -> Result<(u64, u64), SpatialError> {
+fn expanded_time_interval(reservation: &ReservationRequest) -> Result<(u64, u64), SpatialError> {
     let start = reservation
         .interval_start_ms
         .checked_sub(reservation.clock_uncertainty_ms)
@@ -382,18 +380,14 @@ mod tests {
         SpatialOccupancyBook::new(binding(), "site-clock-1").expect("valid book")
     }
 
-    fn lattice_oracle_intersection(
-        left: Bounds3Mm,
-        right: Bounds3Mm,
-    ) -> Option<Bounds3Mm> {
+    fn lattice_oracle_intersection(left: Bounds3Mm, right: Bounds3Mm) -> Option<Bounds3Mm> {
         let mut points = Vec::new();
         for x in 0_i64..=4 {
             for y in 0_i64..=4 {
                 for z in 0_i64..=4 {
                     let point = [x, y, z];
-                    let in_left = (0..3).all(|axis| {
-                        left.min[axis] <= point[axis] && point[axis] <= left.max[axis]
-                    });
+                    let in_left = (0..3)
+                        .all(|axis| left.min[axis] <= point[axis] && point[axis] <= left.max[axis]);
                     let in_right = (0..3).all(|axis| {
                         right.min[axis] <= point[axis] && point[axis] <= right.max[axis]
                     });
@@ -431,10 +425,7 @@ mod tests {
                     for dx in 1_i64..=2 {
                         for dy in 1_i64..=2 {
                             for dz in 1_i64..=2 {
-                                boxes.push(bounds(
-                                    [x, y, z],
-                                    [x + dx, y + dy, z + dz],
-                                ));
+                                boxes.push(bounds([x, y, z], [x + dx, y + dy, z + dz]));
                             }
                         }
                     }
@@ -700,10 +691,7 @@ mod tests {
         );
         stale_epoch.binding.site_epoch = "site-epoch-old".to_owned();
         stale_epoch.reservation.site_epoch = "site-epoch-old".to_owned();
-        assert_eq!(
-            book.insert(stale_epoch),
-            Err(SpatialError::StaleSiteEpoch)
-        );
+        assert_eq!(book.insert(stale_epoch), Err(SpatialError::StaleSiteEpoch));
 
         let mut stale_design = occupancy(
             "stale-design",
@@ -811,10 +799,7 @@ mod tests {
             100,
         );
         item.reservation.clock_uncertainty_ms = 1;
-        assert_eq!(
-            book.insert(item),
-            Err(SpatialError::TimeExpansionOverflow)
-        );
+        assert_eq!(book.insert(item), Err(SpatialError::TimeExpansionOverflow));
     }
 
     #[test]
