@@ -49,6 +49,7 @@ pub struct EdeInput {
     pub wire_diameter_m: f64,
     pub source_trace_sha256: [u8; 32],
     pub alignment_receipt_sha256: [u8; 32],
+    pub sampling_qualification_receipt_sha256: [u8; 32],
     pub leading_power: Vec<PowerSample>,
     pub trailing_power: Vec<PowerSample>,
     pub leading_wire_feed: Vec<WireFeedSample>,
@@ -63,6 +64,7 @@ pub enum EdeError {
     InvalidMaximumSampleGap,
     MissingSourceTraceDigest,
     MissingAlignmentReceiptDigest,
+    MissingSamplingQualificationReceipt,
     InvalidWeldLength,
     InvalidDensity,
     InvalidWireDiameter,
@@ -269,6 +271,9 @@ fn validate_input(input: &EdeInput) -> Result<(), EdeError> {
     if digest_is_zero(&input.alignment_receipt_sha256) {
         return Err(EdeError::MissingAlignmentReceiptDigest);
     }
+    if digest_is_zero(&input.sampling_qualification_receipt_sha256) {
+        return Err(EdeError::MissingSamplingQualificationReceipt);
+    }
     if !input.weld_length_m.is_finite() || input.weld_length_m <= 0.0 {
         return Err(EdeError::InvalidWeldLength);
     }
@@ -438,6 +443,7 @@ mod tests {
             wire_diameter_m: 0.0012,
             source_trace_sha256: [0x11; 32],
             alignment_receipt_sha256: [0x22; 32],
+            sampling_qualification_receipt_sha256: [0x33; 32],
             leading_power: vec![
                 PowerSample { timestamp_ns: start, voltage_v: 30.0, current_a: 200.0 },
                 PowerSample { timestamp_ns: middle, voltage_v: 32.0, current_a: 210.0 },
@@ -538,6 +544,16 @@ mod tests {
         let mut input = base_input();
         input.alignment_receipt_sha256 = [0; 32];
         assert_eq!(calculate_ede(&input), Err(EdeError::MissingAlignmentReceiptDigest));
+    }
+
+    #[test]
+    fn missing_sampling_qualification_receipt_is_rejected() {
+        let mut input = base_input();
+        input.sampling_qualification_receipt_sha256 = [0; 32];
+        assert_eq!(
+            calculate_ede(&input),
+            Err(EdeError::MissingSamplingQualificationReceipt)
+        );
     }
 
     #[test]
