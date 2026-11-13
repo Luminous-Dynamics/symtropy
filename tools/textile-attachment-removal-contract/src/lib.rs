@@ -758,5 +758,4 @@ mod tests {
         );
         assert_eq!(report.evidence_ceiling, EvidenceCeiling::ContractOnly);
     }
-
 }
