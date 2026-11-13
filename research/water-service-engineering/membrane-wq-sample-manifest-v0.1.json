@@ -5,7 +5,7 @@
   "dataset_id": "BRISTOL_POU_WQ_12W",
   "schema": "research/water-service-engineering/membrane-wq-sample.schema.json",
   "fixtures": "research/water-service-engineering/membrane-wq-sample-fixtures-v0.1.json",
-  "case_count": 5,
+  "case_count": 6,
   "hard_rules": [
     "lab_result_is_a_sample_time_location_analyte_label_only",
     "never_forward_fill_backward_fill_or_interpolate_lab_result_to_5min_telemetry",
