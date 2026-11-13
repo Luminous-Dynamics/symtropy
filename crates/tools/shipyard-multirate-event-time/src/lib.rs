@@ -502,9 +502,6 @@ pub fn align_stream(
     if included_times.is_empty() {
         return Err(AbstainReason::InsufficientSamples);
     }
-    if included_times.len() > expected_minimum as usize {
-        // Excess samples are valid; coverage saturates at 1000.
-    }
     let included_count = included_times.len();
     let coverage = (included_count as u128)
         .checked_mul(COVERAGE_SCALE)
