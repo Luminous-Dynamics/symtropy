@@ -336,10 +336,10 @@ fn detect_common_cause_dependencies(
         for right_id in required_ids.iter().skip(left_index + 1) {
             let left = components
                 .iter()
-                .find(|component| component.component_id == *left_id);
+                .find(|component| component.component_id.as_str() == *left_id);
             let right = components
                 .iter()
-                .find(|component| component.component_id == *right_id);
+                .find(|component| component.component_id.as_str() == *right_id);
             let (Some(left), Some(right)) = (left, right) else {
                 continue;
             };
