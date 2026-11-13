@@ -745,10 +745,16 @@ mod tests {
         record.damage = None;
         let report = validate(&record);
         assert!(
-            report.findings.iter().any(|item| item.code == "MISSING_MASS_BALANCE")
+            report
+                .findings
+                .iter()
+                .any(|item| item.code == "MISSING_MASS_BALANCE")
         );
         assert!(
-            report.findings.iter().any(|item| item.code == "MISSING_TEXTILE_DAMAGE_OBSERVATION")
+            report
+                .findings
+                .iter()
+                .any(|item| item.code == "MISSING_TEXTILE_DAMAGE_OBSERVATION")
         );
         assert_eq!(report.evidence_ceiling, EvidenceCeiling::ContractOnly);
     }
