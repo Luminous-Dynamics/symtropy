@@ -404,6 +404,12 @@ fn require_non_empty(name: &'static str, value: &str) -> Result<(), SpatialError
 #[cfg(test)]
 mod tests {
     use super::*;
+    use construction_floor_production_core::{
+        CostCategory, CostEntry, FloorBinding, FloorLedger, LabourSlice, WorkUnitSpec,
+    };
+    use construction_robot_interop_core::{
+        AcceptanceReceipt, ContextBinding, EventEnvelope, TaskMachine, TransitionKind,
+    };
 
     fn binding() -> SiteBinding {
         SiteBinding {
@@ -1021,6 +1027,183 @@ mod tests {
         ));
         assert_eq!(spatial.occupancy_count(), 1);
         assert_eq!(reservations.state("reservation-second"), None);
+    }
+
+    #[test]
+    fn accepted_floor_ledger_and_space_time_admission_integrate_end_to_end() {
+        let context = ContextBinding {
+            site_epoch: "site-epoch-1".to_owned(),
+            design_revision_digest: "design-sha256-1".to_owned(),
+            target_frame_id: "project-grid-1".to_owned(),
+            robot_config_digest: "robot-config-sha256-1".to_owned(),
+        };
+        let floor_binding = FloorBinding {
+            floor_id: "reference-floor-01".to_owned(),
+            site_epoch: context.site_epoch.clone(),
+            design_revision_digest: context.design_revision_digest.clone(),
+            target_frame_id: context.target_frame_id.clone(),
+            benchmark_profile_id: "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001".to_owned(),
+            benchmark_profile_digest:
+                "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6".to_owned(),
+            reference_fixture_id: "highrise-reference-floor-micro-oracle-001".to_owned(),
+            reference_fixture_digest:
+                "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23".to_owned(),
+            claim_ceiling: "synthetic_integrated_production_experiment_only".to_owned(),
+            labour_time_axis_id: "site-labour-clock-1".to_owned(),
+        };
+        let mut ledger = FloorLedger::new(
+            floor_binding,
+            "USD",
+            vec![WorkUnitSpec {
+                work_unit_id: "rebar-functional-unit-001".to_owned(),
+                acceptance_contract_ref: "acceptance-contract:rebar-install".to_owned(),
+            }],
+        )
+        .expect("floor ledger");
+
+        let mut machine =
+            TaskMachine::new("task-1", context.clone()).expect("valid task machine");
+        let actor = "robot-1";
+        let session = "session-1";
+        let mut send = |sequence: u64, transition: TransitionKind| {
+            machine.apply(EventEnvelope {
+                message_id: format!("{actor}-message-{sequence}"),
+                payload_digest: format!("{actor}-payload-{sequence}"),
+                actor_id: actor.to_owned(),
+                actor_session_id: session.to_owned(),
+                task_sequence: sequence,
+                task_id: "task-1".to_owned(),
+                binding: context.clone(),
+                transition,
+            })
+        };
+        send(1, TransitionKind::Accept).expect("task accepted for execution");
+        send(2, TransitionKind::Start).expect("task started");
+        send(
+            3,
+            TransitionKind::ExecutorComplete {
+                output_evidence_ref: Some("output-evidence:rebar-001".to_owned()),
+            },
+        )
+        .expect("executor completed");
+        send(4, TransitionKind::SubmitForMeasurement).expect("submitted for inspection");
+        send(
+            5,
+            TransitionKind::InspectionAccepted {
+                receipt: AcceptanceReceipt {
+                    receipt_ref: "inspection-receipt:rebar-001".to_owned(),
+                    task_id: "task-1".to_owned(),
+                    binding: context,
+                    output_evidence_ref: "output-evidence:rebar-001".to_owned(),
+                },
+            },
+        )
+        .expect("independent inspection acceptance");
+        drop(send);
+
+        assert_eq!(
+            ledger.observe_attempt("rebar-functional-unit-001", &machine, None),
+            Ok(construction_floor_production_core::ObserveOutcome::Recorded)
+        );
+        ledger
+            .add_cost(CostEntry {
+                entry_id: "robot-task-cost-001".to_owned(),
+                task_id: Some("task-1".to_owned()),
+                category: CostCategory::RobotOperation,
+                amount_minor_units: 1_000,
+                currency_code: "USD".to_owned(),
+            })
+            .expect("task-attributed cost");
+        ledger
+            .add_cost(CostEntry {
+                entry_id: "shared-survey-cost-001".to_owned(),
+                task_id: None,
+                category: CostCategory::SurveyAndControl,
+                amount_minor_units: 300,
+                currency_code: "USD".to_owned(),
+            })
+            .expect("unallocated floor-wide cost");
+        ledger
+            .add_labour_slice(LabourSlice {
+                slice_id: "operator-slice-001".to_owned(),
+                person_id: "operator-1".to_owned(),
+                role: "robot-operator".to_owned(),
+                task_id: Some("task-1".to_owned()),
+                start_minute: 0,
+                end_minute: 30,
+            })
+            .expect("task-attributed operator time");
+        ledger
+            .add_labour_slice(LabourSlice {
+                slice_id: "supervisor-slice-001".to_owned(),
+                person_id: "supervisor-1".to_owned(),
+                role: "site-supervisor".to_owned(),
+                task_id: None,
+                start_minute: 0,
+                end_minute: 15,
+            })
+            .expect("shared supervisor time");
+
+        let mut reservations =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0)
+                .expect("existing interop resource book");
+        reservations
+            .register_resource("HOIST-1", 1)
+            .expect("hoist resource");
+        reservations
+            .register_resource("ROBOT-1", 1)
+            .expect("robot resource");
+        let mut spatial = book();
+
+        let mut accepted_workface = occupancy(
+            "accepted-rebar-workface",
+            "task-1",
+            OccupancyKind::Workface,
+            bounds([0, 0, 0], [1_000, 1_000, 2_000]),
+            0,
+            100,
+        );
+        accepted_workface.reservation.resource_id = "HOIST-1".to_owned();
+        let first = spatial
+            .reserve_and_insert(&mut reservations, accepted_workface, 0)
+            .expect("reserve and admit accepted workface");
+        assert_eq!(first.reservation_outcome, ReservationOutcome::Granted);
+        assert_eq!(
+            first.occupancy_outcome,
+            InsertOutcome::AdmittedToSpatialIndex
+        );
+
+        let mut overlapping_candidate = occupancy(
+            "overlapping-robot-envelope",
+            "task-2",
+            OccupancyKind::RobotOperatingEnvelope,
+            bounds([500, 500, 0], [1_500, 1_500, 2_000]),
+            50,
+            150,
+        );
+        overlapping_candidate.reservation.resource_id = "ROBOT-1".to_owned();
+        assert!(matches!(
+            spatial.reserve_and_insert(&mut reservations, overlapping_candidate, 0),
+            Err(SpatialError::PotentialConflict(_))
+        ));
+        assert_eq!(spatial.occupancy_count(), 1);
+        assert_eq!(reservations.state("reservation-overlapping-robot-envelope"), None);
+        assert_eq!(
+            reservations.state("reservation-accepted-rebar-workface"),
+            Some(construction_robot_interop_core::resources::ReservationState::Active)
+        );
+
+        let report = ledger.report().expect("whole-floor production report");
+        assert!(report.floor_accepted());
+        assert_eq!(report.required_units, 1);
+        assert_eq!(report.finally_accepted_units, 1);
+        assert_eq!(report.total_cost_minor_units, 1_300);
+        assert_eq!(report.costs_by_task_minor_units.get("task-1"), Some(&1_000));
+        assert_eq!(report.unallocated_floor_cost_minor_units, 300);
+        assert_eq!(report.accepted_floor_cost_minor_units, Some(1_300));
+        assert_eq!(report.total_workflow_crew_minutes, 45);
+        assert_eq!(report.crew_minutes_by_role.get("robot-operator"), Some(&30));
+        assert_eq!(report.crew_minutes_by_role.get("site-supervisor"), Some(&15));
     }
 
     #[test]
