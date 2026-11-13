@@ -35,26 +35,19 @@ fn run() -> Result<i32, String> {
                 .to_owned(),
         );
     }
-    let input_path = PathBuf::from(
-        args.first().map(String::as_str).unwrap_or(
-            "research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json",
-        ),
-    );
-    let oracle_path = PathBuf::from(
-        args.get(1).map(String::as_str).unwrap_or(
-            "research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json",
-        ),
-    );
-    let schema_path = PathBuf::from(
-        args.get(2)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/membrane-ro-m0b-regression.schema.json"),
-    );
-    let manifest_path = PathBuf::from(
-        args.get(3).map(String::as_str).unwrap_or(
-            "research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json",
-        ),
-    );
+    let input_path = PathBuf::from(args.first().map(String::as_str).unwrap_or(
+        "research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json",
+    ));
+    let oracle_path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
+        "research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json",
+    ));
+    let schema_path =
+        PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
+            "research/water-service-engineering/membrane-ro-m0b-regression.schema.json",
+        ));
+    let manifest_path = PathBuf::from(args.get(3).map(String::as_str).unwrap_or(
+        "research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json",
+    ));
     let receipt_path = PathBuf::from(
         args.get(4)
             .map(String::as_str)
