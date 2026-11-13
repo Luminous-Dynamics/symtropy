@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/pump-control-robustness/scenarios-v0.1.schema.json",
+  "title": "Pump Control Robustness Scenario Schema v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "profile",
+    "baseline_families",
+    "scenarios",
+    "interpretation_rules",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "water-control-robustness-scenarios-v0.1"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "evidence_class",
+        "plant_population",
+        "pressure_floor_m",
+        "pressure_ceiling_m",
+        "storage_reserve_floor_fraction",
+        "storage_ceiling_fraction",
+        "time_step_seconds",
+        "values_are_normative"
+      ],
+      "properties": {
+        "profile_id": {
+          "const": "SYNTHETIC-SMALL-WDS-CONTROL-V0"
+        },
+        "evidence_class": {
+          "const": "synthetic_design_profile"
+        },
+        "plant_population": {
+          "const": "small_looped_water_distribution_network"
+        },
+        "pressure_floor_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pressure_ceiling_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "storage_reserve_floor_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "storage_ceiling_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "time_step_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "values_are_normative": {
+          "const": false
+        }
+      }
+    },
+    "baseline_families": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "tuned_rule_or_pi",
+          "hydraulic_model_mpc",
+          "data_enabled_predictive_control",
+          "model_free_enc_2026",
+          "qualified_estimator_plus_controller"
+        ]
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "scenario_class",
+          "measurement_state",
+          "direct_state_coverage_fraction",
+          "unobserved_critical_variables",
+          "demand_peak_factor",
+          "disturbances",
+          "expected_disposition",
+          "required_behaviors",
+          "prohibited_behaviors",
+          "note"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^WCR-[0-9]{3}$"
+          },
+          "scenario_class": {
+            "enum": [
+              "nominal",
+              "demand_variation",
+              "sparse_sensing",
+              "sensor_fault",
+              "timebase_fault",
+              "topology_fault",
+              "actuator_fault",
+              "source_fault",
+              "power_fault",
+              "communications_fault",
+              "compound_fault"
+            ]
+          },
+          "measurement_state": {
+            "enum": [
+              "fully_observed",
+              "partial_with_qualified_estimator",
+              "partial_unqualified",
+              "degraded",
+              "out_of_domain",
+              "disturbed"
+            ]
+          },
+          "direct_state_coverage_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "unobserved_critical_variables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "demand_peak_factor": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "disturbances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "run_nominal",
+              "run_with_qualified_estimator",
+              "abstain_or_local_fallback",
+              "local_safety_only",
+              "stop_and_reconcile"
+            ]
+          },
+          "required_behaviors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "prohibited_behaviors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "interpretation_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

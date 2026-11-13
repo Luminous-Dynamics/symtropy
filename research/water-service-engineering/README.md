@@ -107,3 +107,10 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+ 
+## Fourth control-qualification increment — sparse sensing and safe abstention
+
+The 2026 model-free ENC pump-control paper gives a strong new comparator, but its own discussion identifies full direct measurement of all regulated pressures and tank levels as a limitation. The new child benchmark [#5018](https://github.com/Luminous-Dynamics/symtropy/issues/5018) therefore compares tuned rule/PI, hydraulic MPC, DeePC/data-driven MPC, model-free ENC and qualified-estimator hybrids under matched sparse-sensor, bias, common-mode, stale-time, topology, pump, source, power and communications faults.
+
+See [sparse-sensor control robustness protocol](./pump-control-robustness/PUMP_CONTROL_ROBUSTNESS_V0_1.md) and the 15-case synthetic scenario pack. This is a controller admission/disposition contract, not a controller implementation or measured performance. The ENC paper's data remain available on request; exact reproduction is blocked pending authorized source files and code.
