@@ -260,6 +260,10 @@ fn expiry_run(size: u64) {
         .expect("expiry benchmark reservation");
     }
 
+    let full_scan = measure_query(|| {
+        black_box(book.reference_due_count_at(20_000));
+    });
+    let expected_due = book.reference_due_count_at(20_000);
     let start = Instant::now();
     let expired = book.expire(20_000);
     let elapsed = start.elapsed();
@@ -267,7 +271,9 @@ fn expiry_run(size: u64) {
         .active_reservation_count_for_resource("expiry-load")
         .expect("remaining active count");
     println!(
-        "distribution=expiry_index reservations={size} expired={expired} remaining={remaining} expire_ms={:.3}",
+        "distribution=expiry_index reservations={size} expected_due_by_full_scan={expected_due} expired={expired} remaining={remaining} full_scan_due_p50_us={:.3} full_scan_due_p95_us={:.3} indexed_expire_ms={:.3}",
+        percentile(&full_scan, 50).as_secs_f64() * 1_000_000.0,
+        percentile(&full_scan, 95).as_secs_f64() * 1_000_000.0,
         elapsed.as_secs_f64() * 1_000.0
     );
     black_box(book);
