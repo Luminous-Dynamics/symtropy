@@ -242,8 +242,10 @@ pub fn validate_utilities(
         }
     }
 
-    let active_keys: BTreeSet<UtilityConsumerKey> =
-        consumers.iter().map(|consumer| consumer.key.clone()).collect();
+    let active_keys: BTreeSet<UtilityConsumerKey> = consumers
+        .iter()
+        .map(|consumer| consumer.key.clone())
+        .collect();
     for profile in &model.profiles {
         if !active_keys.contains(&profile.consumer) {
             add(
@@ -273,9 +275,8 @@ pub fn validate_utilities(
     }
 
     for (metric, envelopes) in &mut envelope_by_metric {
-        envelopes.sort_by_key(|envelope| {
-            (envelope.interval.start_tick, envelope.interval.end_tick)
-        });
+        envelopes
+            .sort_by_key(|envelope| (envelope.interval.start_tick, envelope.interval.end_tick));
         for pair in envelopes.windows(2) {
             if pair[1].interval.start_tick < pair[0].interval.end_tick {
                 add(
@@ -627,7 +628,12 @@ mod tests {
             &problem(),
             &schedule(),
             &model(
-                vec![profile(UtilityConsumerKind::Operation, "op-a", false, Vec::new())],
+                vec![profile(
+                    UtilityConsumerKind::Operation,
+                    "op-a",
+                    false,
+                    Vec::new(),
+                )],
                 Vec::new(),
             ),
         );
@@ -646,7 +652,12 @@ mod tests {
                     true,
                     vec![rate(UtilityMetric::SteamFlowGramsPerTick, None)],
                 )],
-                vec![envelope(UtilityMetric::SteamFlowGramsPerTick, 0, 5, Some(100))],
+                vec![envelope(
+                    UtilityMetric::SteamFlowGramsPerTick,
+                    0,
+                    5,
+                    Some(100),
+                )],
             ),
         );
         assert!(has(&unknown_demand, "UTILITY_DEMAND_UNKNOWN"));
@@ -721,7 +732,12 @@ mod tests {
                         vec![rate(UtilityMetric::SteamFlowGramsPerTick, Some(40))],
                     ),
                 ],
-                vec![envelope(UtilityMetric::SteamFlowGramsPerTick, 0, 5, Some(100))],
+                vec![envelope(
+                    UtilityMetric::SteamFlowGramsPerTick,
+                    0,
+                    5,
+                    Some(100),
+                )],
             ),
         );
         assert_eq!(report.setup_consumers, 1);
@@ -801,9 +817,8 @@ mod tests {
 
     #[test]
     fn synthetic_utility_corpus_executes_every_declared_case() {
-        const CORPUS: &str = include_str!(
-            "../../../research/textile-multistage-factory/utility_cases_v0.1.json"
-        );
+        const CORPUS: &str =
+            include_str!("../../../research/textile-multistage-factory/utility_cases_v0.1.json");
         const SCHEMA: &str = include_str!(
             "../../../research/textile-multistage-factory/utility_cases_v0.1.schema.json"
         );
@@ -816,12 +831,36 @@ mod tests {
 
         let cases = [
             ("UTIL-001-KNOWN-LOAD-UNDER-CAPACITY", "valid", None),
-            ("UTIL-002-CONCURRENT-PEAK-EXCEEDED", "invalid", Some("UTILITY_CAPACITY_EXCEEDED")),
-            ("UTIL-003-MISSING-UTILITY-PROFILE", "invalid", Some("UTILITY_PROFILE_MISSING")),
-            ("UTIL-004-UNKNOWN-CAPACITY", "invalid", Some("UTILITY_CAPACITY_UNKNOWN")),
-            ("UTIL-005-ENVELOPE-GAP", "invalid", Some("UTILITY_CAPACITY_MISSING")),
-            ("UTIL-006-SETUP-PEAK-COUNTED", "invalid", Some("UTILITY_CAPACITY_EXCEEDED")),
-            ("UTIL-007-OVERLAP-AND-DUPLICATE-METRIC", "invalid", Some("UTILITY_ENVELOPE_OVERLAP")),
+            (
+                "UTIL-002-CONCURRENT-PEAK-EXCEEDED",
+                "invalid",
+                Some("UTILITY_CAPACITY_EXCEEDED"),
+            ),
+            (
+                "UTIL-003-MISSING-UTILITY-PROFILE",
+                "invalid",
+                Some("UTILITY_PROFILE_MISSING"),
+            ),
+            (
+                "UTIL-004-UNKNOWN-CAPACITY",
+                "invalid",
+                Some("UTILITY_CAPACITY_UNKNOWN"),
+            ),
+            (
+                "UTIL-005-ENVELOPE-GAP",
+                "invalid",
+                Some("UTILITY_CAPACITY_MISSING"),
+            ),
+            (
+                "UTIL-006-SETUP-PEAK-COUNTED",
+                "invalid",
+                Some("UTILITY_CAPACITY_EXCEEDED"),
+            ),
+            (
+                "UTIL-007-OVERLAP-AND-DUPLICATE-METRIC",
+                "invalid",
+                Some("UTILITY_ENVELOPE_OVERLAP"),
+            ),
             ("UTIL-008-HALF-OPEN-TOUCHING-INTERVALS", "valid", None),
         ];
 
@@ -846,7 +885,10 @@ mod tests {
                 ),
             }
             let (actual_validity, actual_finding) = exercise_utility_case(case_id);
-            assert_eq!(actual_validity, expected_validity, "case {case_id} validity");
+            assert_eq!(
+                actual_validity, expected_validity,
+                "case {case_id} validity"
+            );
             assert_eq!(actual_finding, expected_finding, "case {case_id} finding");
         }
         assert_eq!(seen.len(), 8);
