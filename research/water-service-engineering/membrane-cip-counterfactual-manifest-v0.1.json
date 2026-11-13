@@ -1,0 +1,98 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-CIP-COUNTERFACTUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5012",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+  "dataset_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "status": "causal_evaluation_contract_only_no_intervention_qualified",
+  "evidence_ceiling": "design_only_no_causal_policy_value_or_cleaning_performance_claim",
+  "target_trial": {
+    "eligibility": "in_service_module_with_observed_critical_state_inside_approved_envelope_and_no_unresolved_quality_or_integrity_emergency",
+    "time_zero": "pre-intervention decision opportunity timestamp",
+    "strategies": [
+      "calendar_schedule",
+      "operator_SOP_threshold",
+      "mechanistic_threshold",
+      "bounded_early_CIP",
+      "deferred_CIP_with_approved_rescue",
+      "observation_when_safe"
+    ],
+    "treatment_version_fields": [
+      "chemical_identity",
+      "concentration",
+      "pH",
+      "temperature",
+      "contact_time",
+      "pressure_flow",
+      "rinse_endpoint",
+      "sequence"
+    ],
+    "follow_up_horizons_hours": [
+      24,
+      168,
+      720,
+      2160
+    ],
+    "censoring": [
+      "membrane_replacement",
+      "module_retirement",
+      "loss_to_follow_up",
+      "service_outage"
+    ],
+    "estimands": [
+      "intention_to_treat_policy_effect",
+      "per_protocol_effect_only_if_adherence_and_confounding_support",
+      "predefined_heterogeneous_effects"
+    ]
+  },
+  "identification_gates": [
+    "treatment_assignment_and_time_zero_observed",
+    "pre_decision_confounder_set_audited",
+    "time_varying_confounders_and_prior_interventions_audited",
+    "treatment_versions_and_adherence_recorded",
+    "overlap_positivity_and_effective_sample_size_reported",
+    "replacement_and_censoring_accounted_for",
+    "negative_control_and_sensitivity_analysis_where_defensible",
+    "no_extrapolation_outside_observed_treatment_support"
+  ],
+  "baseline_policies": [
+    "calendar_CIP",
+    "operator_SOP_threshold",
+    "TMP_flux_EWMA_CUSUM",
+    "mechanistic_resistance_threshold",
+    "ML_hybrid_abstaining_trigger",
+    "perfect_information_oracle_upper_bound_only"
+  ],
+  "outcome_metrics": [
+    "conforming_permeate_24h_7d_30d_90d",
+    "post_CIP_normalized_permeability_recovery",
+    "recovery_retention_across_cycles",
+    "false_cleaning_interventions",
+    "missed_or_rescue_interventions",
+    "CIP_chemical_mass",
+    "cleaning_water",
+    "energy_heat",
+    "downtime",
+    "labour",
+    "waste",
+    "replacement_cost",
+    "membrane_integrity",
+    "sample_time_quality",
+    "lifecycle_cost_per_m3_conforming_permeate",
+    "policy_regret"
+  ],
+  "proposed_targets_not_achieved": {
+    "warning": "research_targets_not_achieved",
+    "lifecycle_cost_reduction_percent": 10,
+    "unnecessary_CIP_intervention_reduction_percent": 10,
+    "additional_conforming_permeate_per_cycle_percent": 10
+  },
+  "hard_rules": [
+    "model_output_advisory_only",
+    "no_autonomous_CIP_or_chemical_or_pressure_or_valve_action",
+    "no_imputation_of_missing_critical_state_as_safe",
+    "no_unsupported_off_policy_extrapolation",
+    "no_quality_or_integrity_tradeoff_hidden_by_flux_gain",
+    "no_claim_of_causal_benefit_from_post_CIP_TMP_drop_alone"
+  ]
+}
