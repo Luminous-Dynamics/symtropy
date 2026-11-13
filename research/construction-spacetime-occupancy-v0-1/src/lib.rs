@@ -526,6 +526,11 @@ mod tests {
         AcceptanceReceipt, ContextBinding, EventEnvelope, TaskMachine, TransitionKind,
     };
 
+    const BENCHMARK_PROFILE_BLOB_ID: &str =
+        "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6";
+    const REFERENCE_FIXTURE_BLOB_ID: &str =
+        "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23";
+
     fn binding() -> SiteBinding {
         SiteBinding {
             floor_id: "reference-floor-01".to_owned(),
@@ -1158,11 +1163,9 @@ mod tests {
             design_revision_digest: context.design_revision_digest.clone(),
             target_frame_id: context.target_frame_id.clone(),
             benchmark_profile_id: "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001".to_owned(),
-            benchmark_profile_digest:
-                "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6".to_owned(),
+            benchmark_profile_digest: BENCHMARK_PROFILE_BLOB_ID.to_owned(),
             reference_fixture_id: "highrise-reference-floor-micro-oracle-001".to_owned(),
-            reference_fixture_digest:
-                "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23".to_owned(),
+            reference_fixture_digest: REFERENCE_FIXTURE_BLOB_ID.to_owned(),
             claim_ceiling: "synthetic_integrated_production_experiment_only".to_owned(),
             labour_time_axis_id: "site-labour-clock-1".to_owned(),
         };
@@ -1176,8 +1179,7 @@ mod tests {
         )
         .expect("floor ledger");
 
-        let mut machine =
-            TaskMachine::new("task-1", context.clone()).expect("valid task machine");
+        let mut machine = TaskMachine::new("task-1", context.clone()).expect("valid task machine");
         let actor = "robot-1";
         let session = "session-1";
         let mut send = |sequence: u64, transition: TransitionKind| {
@@ -1259,9 +1261,8 @@ mod tests {
             })
             .expect("shared supervisor time");
 
-        let mut reservations =
-            ReservationBook::new("site-epoch-1", "site-clock-1", 0)
-                .expect("existing interop resource book");
+        let mut reservations = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
+            .expect("existing interop resource book");
         reservations
             .register_resource("HOIST-1", 1)
             .expect("hoist resource");
@@ -1302,7 +1303,10 @@ mod tests {
             Err(SpatialError::PotentialConflict(_))
         ));
         assert_eq!(spatial.occupancy_count(), 1);
-        assert_eq!(reservations.state("reservation-overlapping-robot-envelope"), None);
+        assert_eq!(
+            reservations.state("reservation-overlapping-robot-envelope"),
+            None
+        );
         assert_eq!(
             reservations.state("reservation-accepted-rebar-workface"),
             Some(construction_robot_interop_core::resources::ReservationState::Active)
@@ -1318,7 +1322,10 @@ mod tests {
         assert_eq!(report.accepted_floor_cost_minor_units, Some(1_300));
         assert_eq!(report.total_workflow_crew_minutes, 45);
         assert_eq!(report.crew_minutes_by_role.get("robot-operator"), Some(&30));
-        assert_eq!(report.crew_minutes_by_role.get("site-supervisor"), Some(&15));
+        assert_eq!(
+            report.crew_minutes_by_role.get("site-supervisor"),
+            Some(&15)
+        );
     }
 
     #[test]
