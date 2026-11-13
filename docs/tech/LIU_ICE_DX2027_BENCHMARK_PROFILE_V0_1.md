@@ -39,6 +39,12 @@ The page has three details that must be resolved before data ingestion or an off
 
 The official page exposes a downloadable training link, but a link is not proof that the archive has been retrieved, that its bytes are correct, or that redistribution is permitted. Current status is therefore `linked_not_downloaded`; archive and recording-manifest hashes are null; file inventory is empty; licence/redistribution status is unverified. No dataset result or score is claimed.
 
+## Calibration adequacy: a hard sample-size limit
+
+The official page reports only two to seven datasets per known fault family. The current finite-sample split-conformal protocol requires at least 9 independent calibration episodes for 90% marginal coverage, 19 for 95%, and 99 for 99%. Since the maximum stated population per family is seven—and the available recordings must also serve training/evaluation design—**a per-fault 90% split-conformal guarantee cannot be claimed from the stated training population**.
+
+Pooling fault families may yield a pooled marginal coverage statement only under the relevant exchangeability assumptions. It does not establish per-fault coverage, and it can conceal poor coverage on a rare or difficult fault. The profile and Rust validator now hard-code this limit. For per-fault calibration, obtain additional independent recordings or use a different, explicitly justified uncertainty method with its own finite-sample/assumption statement; do not relabel pooled coverage as class-conditional coverage.
+
 ## Why this advances the research programme
 
 The 2027 dataset expansion is not simply "more rows." It creates an edition-to-edition robustness question. Freeze and test separately:
