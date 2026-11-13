@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Membrane RO M0B grouped through-origin regression inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "regression",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-ro-m0b-regression-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_multi_pressure_regression"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim"
+    },
+    "regression": {
+      "const": "through_origin_least_squares_flux_vs_net_driving_pressure_per_replicate"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "replicates"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MRO-M0B-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "replicates": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "replicate_id",
+                "points"
+              ],
+              "properties": {
+                "replicate_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "points": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "delta_pressure_bar",
+                      "osmotic_pressure_wall_bar",
+                      "osmotic_pressure_permeate_bar",
+                      "flux_l_m2_h"
+                    ],
+                    "properties": {
+                      "delta_pressure_bar": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "osmotic_pressure_wall_bar": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "osmotic_pressure_permeate_bar": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "flux_l_m2_h": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

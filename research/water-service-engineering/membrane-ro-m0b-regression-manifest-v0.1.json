@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-RO-TRANSPORT-M0B-001",
+  "parent_benchmark": "MEMBRANE-RO-TRANSPORT-M0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "dataset_id": "ARMSTRONG_RO_CROSSFLOW_2022",
+  "comparator_doi": "10.1016/j.dib.2022.108538",
+  "status": "synthetic_grouped_regression_contract_only",
+  "reference_method": "per replicate, fit zero-intercept slope of permeate flux Jv against net driving pressure deltaP - (pi_wall - pi_permeate); report replicate-level slope, residual RMSE, mean slope and sample SD across replicates",
+  "input_corpus": "research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/membrane-ro-m0b-regression.schema.json",
+  "case_count": 3,
+  "nonclaims": [
+    "synthetic_only_not_exact_OSF_reproduction",
+    "no_osf_raw_file_acquired",
+    "no_membrane_performance_or_fouling_claim",
+    "no extrapolation beyond input pressure range"
+  ],
+  "evidence_class": "synthetic_multi_pressure_regression",
+  "evidence_ceiling": "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim"
+}

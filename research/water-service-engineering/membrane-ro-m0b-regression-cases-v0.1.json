@@ -1,0 +1,244 @@
+{
+  "schema_version": "membrane-ro-m0b-regression-cases-v0.1",
+  "evidence_class": "synthetic_multi_pressure_regression",
+  "evidence_ceiling": "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim",
+  "regression": "through_origin_least_squares_flux_vs_net_driving_pressure_per_replicate",
+  "cases": [
+    {
+      "case_id": "MRO-M0B-001-stable-high-flux-two-replicates",
+      "replicates": [
+        {
+          "replicate_id": "SYN-REP-A",
+          "points": [
+            {
+              "delta_pressure_bar": 8,
+              "osmotic_pressure_wall_bar": 2.5,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 8.81
+            },
+            {
+              "delta_pressure_bar": 12,
+              "osmotic_pressure_wall_bar": 2.5,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 15.98
+            },
+            {
+              "delta_pressure_bar": 16,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 21.03
+            },
+            {
+              "delta_pressure_bar": 20,
+              "osmotic_pressure_wall_bar": 3.5,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 27.22
+            }
+          ]
+        },
+        {
+          "replicate_id": "SYN-REP-B",
+          "points": [
+            {
+              "delta_pressure_bar": 8,
+              "osmotic_pressure_wall_bar": 2.5,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 8.75
+            },
+            {
+              "delta_pressure_bar": 12,
+              "osmotic_pressure_wall_bar": 2.5,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 16.04
+            },
+            {
+              "delta_pressure_bar": 16,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 20.97
+            },
+            {
+              "delta_pressure_bar": 20,
+              "osmotic_pressure_wall_bar": 3.5,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 27.18
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "MRO-M0B-002-lower-permeance",
+      "replicates": [
+        {
+          "replicate_id": "SYN-REP-A",
+          "points": [
+            {
+              "delta_pressure_bar": 7,
+              "osmotic_pressure_wall_bar": 2,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 3.99
+            },
+            {
+              "delta_pressure_bar": 11,
+              "osmotic_pressure_wall_bar": 2.4,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 7.08
+            },
+            {
+              "delta_pressure_bar": 16,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 10.44
+            },
+            {
+              "delta_pressure_bar": 22,
+              "osmotic_pressure_wall_bar": 3.6,
+              "osmotic_pressure_permeate_bar": 0.6,
+              "flux_l_m2_h": 15.27
+            }
+          ]
+        },
+        {
+          "replicate_id": "SYN-REP-B",
+          "points": [
+            {
+              "delta_pressure_bar": 7,
+              "osmotic_pressure_wall_bar": 2,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 4.05
+            },
+            {
+              "delta_pressure_bar": 11,
+              "osmotic_pressure_wall_bar": 2.4,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 7.12
+            },
+            {
+              "delta_pressure_bar": 16,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 10.39
+            },
+            {
+              "delta_pressure_bar": 22,
+              "osmotic_pressure_wall_bar": 3.6,
+              "osmotic_pressure_permeate_bar": 0.6,
+              "flux_l_m2_h": 15.21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "MRO-M0B-003-heteroscedastic-noise-three-replicates",
+      "replicates": [
+        {
+          "replicate_id": "SYN-REP-A",
+          "points": [
+            {
+              "delta_pressure_bar": 5,
+              "osmotic_pressure_wall_bar": 1.2,
+              "osmotic_pressure_permeate_bar": 0.2,
+              "flux_l_m2_h": 4.71
+            },
+            {
+              "delta_pressure_bar": 8,
+              "osmotic_pressure_wall_bar": 1.5,
+              "osmotic_pressure_permeate_bar": 0.2,
+              "flux_l_m2_h": 7.52
+            },
+            {
+              "delta_pressure_bar": 14,
+              "osmotic_pressure_wall_bar": 2,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 14.15
+            },
+            {
+              "delta_pressure_bar": 22,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 21.94
+            },
+            {
+              "delta_pressure_bar": 28,
+              "osmotic_pressure_wall_bar": 4,
+              "osmotic_pressure_permeate_bar": 0.6,
+              "flux_l_m2_h": 28.92
+            }
+          ]
+        },
+        {
+          "replicate_id": "SYN-REP-B",
+          "points": [
+            {
+              "delta_pressure_bar": 5,
+              "osmotic_pressure_wall_bar": 1.2,
+              "osmotic_pressure_permeate_bar": 0.2,
+              "flux_l_m2_h": 4.77
+            },
+            {
+              "delta_pressure_bar": 8,
+              "osmotic_pressure_wall_bar": 1.5,
+              "osmotic_pressure_permeate_bar": 0.2,
+              "flux_l_m2_h": 7.49
+            },
+            {
+              "delta_pressure_bar": 14,
+              "osmotic_pressure_wall_bar": 2,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 14.08
+            },
+            {
+              "delta_pressure_bar": 22,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 22.06
+            },
+            {
+              "delta_pressure_bar": 28,
+              "osmotic_pressure_wall_bar": 4,
+              "osmotic_pressure_permeate_bar": 0.6,
+              "flux_l_m2_h": 28.85
+            }
+          ]
+        },
+        {
+          "replicate_id": "SYN-REP-C",
+          "points": [
+            {
+              "delta_pressure_bar": 5,
+              "osmotic_pressure_wall_bar": 1.2,
+              "osmotic_pressure_permeate_bar": 0.2,
+              "flux_l_m2_h": 4.68
+            },
+            {
+              "delta_pressure_bar": 8,
+              "osmotic_pressure_wall_bar": 1.5,
+              "osmotic_pressure_permeate_bar": 0.2,
+              "flux_l_m2_h": 7.55
+            },
+            {
+              "delta_pressure_bar": 14,
+              "osmotic_pressure_wall_bar": 2,
+              "osmotic_pressure_permeate_bar": 0.4,
+              "flux_l_m2_h": 13.99
+            },
+            {
+              "delta_pressure_bar": 22,
+              "osmotic_pressure_wall_bar": 3,
+              "osmotic_pressure_permeate_bar": 0.5,
+              "flux_l_m2_h": 21.88
+            },
+            {
+              "delta_pressure_bar": 28,
+              "osmotic_pressure_wall_bar": 4,
+              "osmotic_pressure_permeate_bar": 0.6,
+              "flux_l_m2_h": 29.07
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

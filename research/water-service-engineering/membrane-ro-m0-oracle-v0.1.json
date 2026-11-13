@@ -1,0 +1,74 @@
+{
+  "schema_version": "membrane-ro-m0-oracle-v0.1",
+  "evidence_class": "synthetic_transport_arithmetic",
+  "evidence_ceiling": "synthetic_transport_arithmetic_only_no_empirical_RO_performance_or_fouling_claim",
+  "formula_reference": "Armstrong et al. 2022, Data in Brief 44, 108538, DOI 10.1016/j.dib.2022.108538; formulas restated explicitly in the input manifest",
+  "independently_recomputed": true,
+  "cases": [
+    {
+      "case_id": "MRO-M0-001-high-rejection-moderate-CP",
+      "expected": {
+        "net_driving_pressure_bar": 16,
+        "concentration_polarization_modulus": 1.342861631424483,
+        "water_permeance_reference_l_m2_h_bar": 1.875,
+        "water_permeance_pressure_only_l_m2_h_bar": 1.5,
+        "water_permeance_pressure_only_percent_error": -20,
+        "solute_permeance_reference_l_m2_h": 0.4535621759275828,
+        "solute_permeance_no_concentration_polarization_l_m2_h": 0.6122448979591842,
+        "solute_permeance_no_concentration_polarization_percent_error": 34.985880757600306
+      }
+    },
+    {
+      "case_id": "MRO-M0-002-moderate-rejection",
+      "expected": {
+        "net_driving_pressure_bar": 12.5,
+        "concentration_polarization_modulus": 1.4426422278771431,
+        "water_permeance_reference_l_m2_h_bar": 1.6,
+        "water_permeance_pressure_only_l_m2_h_bar": 1.3333333333333333,
+        "water_permeance_pressure_only_percent_error": -16.666666666666675,
+        "solute_permeance_reference_l_m2_h": 1.4896001023014203,
+        "solute_permeance_no_concentration_polarization_l_m2_h": 2.222222222222222,
+        "solute_permeance_no_concentration_polarization_percent_error": 49.182469764127056
+      }
+    },
+    {
+      "case_id": "MRO-M0-003-lower-rejection-higher-CP",
+      "expected": {
+        "net_driving_pressure_bar": 8.2,
+        "concentration_polarization_modulus": 1.6165891002928816,
+        "water_permeance_reference_l_m2_h_bar": 1.829268292682927,
+        "water_permeance_pressure_only_l_m2_h_bar": 1.25,
+        "water_permeance_pressure_only_percent_error": -31.66666666666667,
+        "solute_permeance_reference_l_m2_h": 2.7440581804701325,
+        "solute_permeance_no_concentration_polarization_l_m2_h": 5,
+        "solute_permeance_no_concentration_polarization_percent_error": 82.21188003905088
+      }
+    },
+    {
+      "case_id": "MRO-M0-004-very-high-rejection",
+      "expected": {
+        "net_driving_pressure_bar": 19,
+        "concentration_polarization_modulus": 1.3584809642344848,
+        "water_permeance_reference_l_m2_h_bar": 2.1052631578947367,
+        "water_permeance_pressure_only_l_m2_h_bar": 1.2121212121212122,
+        "water_permeance_pressure_only_percent_error": -42.424242424242415,
+        "solute_permeance_reference_l_m2_h": 0.14776713177722314,
+        "solute_permeance_no_concentration_polarization_l_m2_h": 0.20100502512562832,
+        "solute_permeance_no_concentration_polarization_percent_error": 36.02823761150602
+      }
+    },
+    {
+      "case_id": "MRO-M0-005-low-flux-low-driving-pressure",
+      "expected": {
+        "net_driving_pressure_bar": 6.6,
+        "concentration_polarization_modulus": 1.1131761851068025,
+        "water_permeance_reference_l_m2_h_bar": 1.5151515151515151,
+        "water_permeance_pressure_only_l_m2_h_bar": 1.25,
+        "water_permeance_pressure_only_percent_error": -17.5,
+        "solute_permeance_reference_l_m2_h": 1.5573474751492862,
+        "solute_permeance_no_concentration_polarization_l_m2_h": 1.7647058823529416,
+        "solute_permeance_no_concentration_polarization_percent_error": 13.314845306682644
+      }
+    }
+  ]
+}

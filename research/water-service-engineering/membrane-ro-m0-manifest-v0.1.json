@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-RO-TRANSPORT-M0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "dataset_id": "ARMSTRONG_RO_CROSSFLOW_2022",
+  "comparator_doi": "10.1016/j.dib.2022.108538",
+  "status": "synthetic_formula_and_unit_check_only",
+  "reference_formulas": {
+    "net_driving_pressure": "deltaP - (pi_wall - pi_permeate)",
+    "concentration_polarization_modulus": "(1 - R) + R * exp(Jv / k)",
+    "water_permeance_reference": "Jv / net_driving_pressure",
+    "solute_permeance_reference": "Jv * (1 - R) / (R * exp(Jv / k))"
+  },
+  "input_corpus": "research/water-service-engineering/membrane-ro-m0-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/membrane-ro-m0.schema.json",
+  "case_count": 5,
+  "baseline_comparisons": [
+    "pressure_only_water_permeance_ignores_osmotic_pressure_difference",
+    "no_CP_solute_permeance_assumes_concentration_polarization_factor_one"
+  ],
+  "evidence_ceiling": "synthetic_transport_arithmetic_only_no_empirical_RO_performance_or_fouling_claim",
+  "nonclaims": [
+    "not_a_fouling_time_series",
+    "not_a_CIP_or_cleaning_dataset",
+    "not_an_industrial_RO_replication",
+    "not_a_membrane_product_acceptance_test"
+  ],
+  "water_permeance_methodology": {
+    "armstrong_reference": "through_origin_regression_slope_of_permeate_flux_vs_net_driving_pressure_across_the_complete_pressure_series",
+    "current_m0": "single_point_flux_divided_by_net_driving_pressure_formula_unit_check",
+    "exact_dataset_reproduction": "still_blocked_until_authorized_OSF_workbook_acquisition; M0B validates the grouped through-origin fitting method on synthetic replicate series only",
+    "required_next_increment": "M0B_grouped_multi_pressure_through_origin_regression_with_replicate_level_uncertainty",
+    "nonclaim": "the current five-case M0 unit test is not a reproduction of the paper's fitted reference_A column"
+  },
+  "next_increment": "MEMBRANE-RO-TRANSPORT-M0B-001",
+  "next_increment_manifest": "research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json"
+}

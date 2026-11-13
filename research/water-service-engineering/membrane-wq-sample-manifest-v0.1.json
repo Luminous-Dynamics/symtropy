@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-WQ-SAMPLE-TIME-M2-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+  "dataset_id": "BRISTOL_POU_WQ_12W",
+  "schema": "research/water-service-engineering/membrane-wq-sample.schema.json",
+  "fixtures": "research/water-service-engineering/membrane-wq-sample-fixtures-v0.1.json",
+  "case_count": 6,
+  "hard_rules": [
+    "lab_result_is_a_sample_time_location_analyte_label_only",
+    "never_forward_fill_backward_fill_or_interpolate_lab_result_to_5min_telemetry",
+    "telemetry_feature_observation_time_must_be_at_or_before_sample_collection_time",
+    "below_LOD_or_LOQ_qualifier_is_preserved_not_replaced_by_zero",
+    "rejected_or_pending_lab_QC_is_not_a_training_label",
+    "same_timestamp_different_locations_are_distinct_records",
+    "detection_limit_is_not_regulatory_acceptance_limit"
+  ],
+  "evidence_ceiling": "synthetic_contract_fixtures_only_no_real_lab_data_or_quality_compliance_claim"
+}

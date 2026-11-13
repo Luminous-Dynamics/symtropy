@@ -1,0 +1,90 @@
+{
+  "schema_version": "membrane-ro-m0b-regression-oracle-v0.1",
+  "evidence_class": "synthetic_multi_pressure_regression",
+  "evidence_ceiling": "synthetic_regression_arithmetic_only_no_empirical_RO_performance_or_paper_reproduction_claim",
+  "regression": "through_origin_least_squares_flux_vs_net_driving_pressure_per_replicate",
+  "cases": [
+    {
+      "case_id": "MRO-M0B-001-stable-high-flux-two-replicates",
+      "expected": {
+        "replicate_count": 2,
+        "total_point_count": 8,
+        "replicates": [
+          {
+            "replicate_id": "SYN-REP-A",
+            "point_count": 4,
+            "slope_l_m2_h_bar": 1.5797529847673941,
+            "residual_rmse_l_m2_h": 0.4185877887955842,
+            "mean_pointwise_ratio_l_m2_h_bar": 1.5563218954248366
+          },
+          {
+            "replicate_id": "SYN-REP-B",
+            "point_count": 4,
+            "slope_l_m2_h_bar": 1.577694524495677,
+            "residual_rmse_l_m2_h": 0.45256831923311563,
+            "mean_pointwise_ratio_l_m2_h_bar": 1.5536225490196076
+          }
+        ],
+        "mean_slope_l_m2_h_bar": 1.5787237546315356,
+        "sample_sd_of_replicate_slopes_l_m2_h_bar": 0.0014555512169342486
+      }
+    },
+    {
+      "case_id": "MRO-M0B-002-lower-permeance",
+      "expected": {
+        "replicate_count": 2,
+        "total_point_count": 8,
+        "replicates": [
+          {
+            "replicate_id": "SYN-REP-A",
+            "point_count": 4,
+            "slope_l_m2_h_bar": 0.7902174744800355,
+            "residual_rmse_l_m2_h": 0.2209468809897458,
+            "mean_pointwise_ratio_l_m2_h_bar": 0.7756432748538011
+          },
+          {
+            "replicate_id": "SYN-REP-B",
+            "point_count": 4,
+            "slope_l_m2_h_bar": 0.7884865551491408,
+            "residual_rmse_l_m2_h": 0.20055195984269594,
+            "mean_pointwise_ratio_l_m2_h_bar": 0.7778167641325536
+          }
+        ],
+        "mean_slope_l_m2_h_bar": 0.7893520148145882,
+        "sample_sd_of_replicate_slopes_l_m2_h_bar": 0.0012239447965625616
+      }
+    },
+    {
+      "case_id": "MRO-M0B-003-heteroscedastic-noise-three-replicates",
+      "expected": {
+        "replicate_count": 3,
+        "total_point_count": 15,
+        "replicates": [
+          {
+            "replicate_id": "SYN-REP-A",
+            "point_count": 5,
+            "slope_l_m2_h_bar": 1.1532306717997436,
+            "residual_rmse_l_m2_h": 0.36824575637266777,
+            "mean_pointwise_ratio_l_m2_h_bar": 1.1483510106370647
+          },
+          {
+            "replicate_id": "SYN-REP-B",
+            "point_count": 5,
+            "slope_l_m2_h_bar": 1.153054847257637,
+            "residual_rmse_l_m2_h": 0.32959093736129996,
+            "mean_pointwise_ratio_l_m2_h_bar": 1.1499881195306527
+          },
+          {
+            "replicate_id": "SYN-REP-C",
+            "point_count": 5,
+            "slope_l_m2_h_bar": 1.153744812759362,
+            "residual_rmse_l_m2_h": 0.44540337031940475,
+            "mean_pointwise_ratio_l_m2_h_bar": 1.1457700154435713
+          }
+        ],
+        "mean_slope_l_m2_h_bar": 1.1533434439389143,
+        "sample_sd_of_replicate_slopes_l_m2_h_bar": 0.0003585404648327312
+      }
+    }
+  ]
+}

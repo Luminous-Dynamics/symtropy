@@ -45,12 +45,286 @@ jobs:
           WATER_SERVICE_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 -- \
+          cargo run --locked --package water-service-t0 --bin water-service-t0 -- \
             research/water-service-engineering/t0-known-answer-vectors-v0.1.json \
             research/water-service-engineering/benchmark-manifest-v0.1.json \
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for membrane data contracts
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate membrane dataset admission and RO M0 contracts
+        id: membrane_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          register = json.loads((root / "membrane-dataset-admission-v0.1.json").read_text())
+          register_schema = json.loads((root / "membrane-dataset-admission.schema.json").read_text())
+          Draft202012Validator.check_schema(register_schema)
+          errors = sorted(
+              Draft202012Validator(register_schema).iter_errors(register),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_DATASET_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          rows = register["datasets"]
+          ids = [row["dataset_id"] for row in rows]
+          if len(ids) != 4 or len(set(ids)) != 4:
+              raise SystemExit("MEMBRANE_DATASET_IDENTITY_FAIL")
+          if any(row["intake"]["files_acquired"] for row in rows):
+              raise SystemExit("MEMBRANE_DATASET_BYTES_NOT_ACQUIRED_GUARD_FAIL")
+          if any(row["intake"]["archive_sha256"] is not None or row["intake"]["file_inventory"] for row in rows):
+              raise SystemExit("MEMBRANE_DATASET_UNVERIFIED_DIGEST_GUARD_FAIL")
+          if any(row["intake"]["split_manifest"] is not None for row in rows):
+              raise SystemExit("MEMBRANE_DATASET_UNVERIFIED_SPLIT_GUARD_FAIL")
+
+          m0_schema = json.loads((root / "membrane-ro-m0.schema.json").read_text())
+          m0_inputs = json.loads((root / "membrane-ro-m0-cases-v0.1.json").read_text())
+          m0_oracle = json.loads((root / "membrane-ro-m0-oracle-v0.1.json").read_text())
+          m0_manifest = json.loads((root / "membrane-ro-m0-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(m0_schema)
+          errors = sorted(
+              Draft202012Validator(m0_schema).iter_errors(m0_inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_M0_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          oracle_by_id = {row["case_id"]: row["expected"] for row in m0_oracle["cases"]}
+          input_ids = [row["case_id"] for row in m0_inputs["cases"]]
+          if len(input_ids) != 5 or len(set(input_ids)) != 5 or len(oracle_by_id) != 5:
+              raise SystemExit("MEMBRANE_M0_CASE_IDENTITY_FAIL")
+          if sorted(input_ids) != sorted(oracle_by_id):
+              raise SystemExit("MEMBRANE_M0_INPUT_ORACLE_ID_MISMATCH")
+          if m0_manifest["case_count"] != 5:
+              raise SystemExit("MEMBRANE_M0_MANIFEST_COUNT_FAIL")
+          if any("expected" in row for row in m0_inputs["cases"]):
+              raise SystemExit("MEMBRANE_M0_INPUTS_EMBED_ORACLE_FAIL")
+
+          def close(actual, expected):
+              return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
+
+          for row in m0_inputs["cases"]:
+              i = row["inputs"]
+              j = i["flux_l_m2_h"]
+              dp = i["delta_pressure_bar"]
+              piw = i["osmotic_pressure_wall_bar"]
+              pip = i["osmotic_pressure_permeate_bar"]
+              rejection = i["rejection_fraction"]
+              k = i["mass_transfer_coefficient_l_m2_h"]
+              ndp = dp - (piw - pip)
+              cp = math.exp(j / k)
+              beta = (1.0 - rejection) + rejection * cp
+              aw = j / ndp
+              aw_simple = j / dp
+              bs = j * (1.0 - rejection) / (rejection * cp)
+              bs_simple = j * (1.0 - rejection) / rejection
+              actual = {
+                  "net_driving_pressure_bar": ndp,
+                  "concentration_polarization_modulus": beta,
+                  "water_permeance_reference_l_m2_h_bar": aw,
+                  "water_permeance_pressure_only_l_m2_h_bar": aw_simple,
+                  "water_permeance_pressure_only_percent_error": 100.0 * (aw_simple - aw) / aw,
+                  "solute_permeance_reference_l_m2_h": bs,
+                  "solute_permeance_no_concentration_polarization_l_m2_h": bs_simple,
+                  "solute_permeance_no_concentration_polarization_percent_error": 100.0 * (bs_simple - bs) / bs,
+              }
+              expected = oracle_by_id[row["case_id"]]
+              for key, value in actual.items():
+                  if not close(value, expected[key]):
+                      raise SystemExit(
+                          f"MEMBRANE_M0_ORACLE_MISMATCH: {row['case_id']} {key}: {value} != {expected[key]}"
+                      )
+          print("MEMBRANE_DATASET_ADMISSION_PASS: 4 records remain metadata-only; no hashes or splits fabricated")
+          print("MEMBRANE_RO_M0_PASS: 5 synthetic transport cases match separate formula oracle")
+          PY
+      - name: Validate sample-time-only M2 water-quality labels
+        id: membrane_wq_m2
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-wq-sample.schema.json").read_text())
+          fixtures = json.loads((root / "membrane-wq-sample-fixtures-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-wq-sample-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=FormatChecker())
+
+          if len(fixtures["cases"]) != 6 or manifest["case_count"] != 6:
+              raise SystemExit("MEMBRANE_WQ_M2_CASE_COUNT_FAIL")
+          ids = [case["case_id"] for case in fixtures["cases"]]
+          if len(set(ids)) != 6:
+              raise SystemExit("MEMBRANE_WQ_M2_DUPLICATE_CASE_ID")
+
+          for case in fixtures["cases"]:
+              record = case["record"]
+              errors = sorted(
+                  validator.iter_errors(record),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"MEMBRANE_WQ_M2_SCHEMA_FAIL: {case['case_id']} {pointer}: {error.message}")
+                  raise SystemExit(1)
+
+              sample_time = datetime.fromisoformat(record["sample_collection_time"].replace("Z", "+00:00"))
+              feature_cutoff = datetime.fromisoformat(record["telemetry_feature_cutoff"].replace("Z", "+00:00"))
+              if feature_cutoff > sample_time:
+                  if case["expected"] != "REJECT_POST_SAMPLE_FEATURE_LEAKAGE":
+                      raise SystemExit(f"MEMBRANE_WQ_M2_FUTURE_FEATURE_NOT_REJECTED: {case['case_id']}")
+              if record["result_qualifier"] in ("BELOW_LOD", "BELOW_LOQ"):
+                  if record["value"] is not None:
+                      raise SystemExit(f"MEMBRANE_WQ_M2_CENSORED_RESULT_MUST_NOT_BE_NUMERIC: {case['case_id']}")
+                  if case["expected"] != "ADMISSIBLE_QUALIFIED_RESULT_NOT_ZERO":
+                      raise SystemExit(f"MEMBRANE_WQ_M2_QUALIFIER_SEMANTICS_FAIL: {case['case_id']}")
+              if record["lab_qc_status"] != "ACCEPTED":
+                  if case["expected"] != "NOT_A_TRAINING_LABEL":
+                      raise SystemExit(f"MEMBRANE_WQ_M2_REJECTED_QC_NOT_EXCLUDED: {case['case_id']}")
+              if record["label_scope"] != "SAMPLE_TIME_LOCATION_ANALYTE_ONLY":
+                  raise SystemExit(f"MEMBRANE_WQ_M2_LABEL_SCOPE_FAIL: {case['case_id']}")
+
+          same_time = [
+              row["record"] for row in fixtures["cases"]
+              if row["record"]["sample_collection_time"] == "2030-01-01T10:20:00Z"
+          ]
+          if len(same_time) > 1 and len({x["sample_location_id"] for x in same_time}) != len(same_time):
+              raise SystemExit("MEMBRANE_WQ_M2_LOCATION_IDENTITY_FAIL")
+          print("MEMBRANE_WQ_M2_PASS: 6 synthetic fixtures; sample-time-only, causal cutoff and qualifier semantics enforced")
+          PY
+      - name: Evaluate membrane RO transport M0 at exact revision
+        id: membrane_ro_m0
+        env:
+          MEMBRANE_RO_M0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin membrane-ro-m0 -- \
+            research/water-service-engineering/membrane-ro-m0-cases-v0.1.json \
+            research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json \
+            research/water-service-engineering/membrane-ro-m0.schema.json \
+            research/water-service-engineering/membrane-ro-m0-manifest-v0.1.json \
+            artifacts/membrane-ro-m0/receipt.json
+      - name: Validate grouped multi-pressure membrane RO M0B regression
+        id: membrane_ro_m0b_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-ro-m0b-regression.schema.json").read_text())
+          inputs = json.loads((root / "membrane-ro-m0b-regression-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "membrane-ro-m0b-regression-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-ro-m0b-regression-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_M0B_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          oracle_by_id = {row["case_id"]: row["expected"] for row in oracle["cases"]}
+          case_ids = [row["case_id"] for row in inputs["cases"]]
+          if len(case_ids) != 3 or len(set(case_ids)) != 3 or len(oracle_by_id) != 3:
+              raise SystemExit("MEMBRANE_M0B_CASE_IDENTITY_FAIL")
+          if sorted(case_ids) != sorted(oracle_by_id) or manifest["case_count"] != 3:
+              raise SystemExit("MEMBRANE_M0B_INPUT_ORACLE_OR_MANIFEST_MISMATCH")
+          if any("expected" in row for row in inputs["cases"]):
+              raise SystemExit("MEMBRANE_M0B_INPUTS_EMBED_ORACLE_FAIL")
+
+          def close(actual, expected):
+              return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
+
+          for case in inputs["cases"]:
+              replicate_results = []
+              for replicate in case["replicates"]:
+                  xs, ys = [], []
+                  for point in replicate["points"]:
+                      ndp = (
+                          point["delta_pressure_bar"]
+                          - point["osmotic_pressure_wall_bar"]
+                          + point["osmotic_pressure_permeate_bar"]
+                      )
+                      if ndp <= 0:
+                          raise SystemExit(f"MEMBRANE_M0B_NONPOSITIVE_NDP: {case['case_id']}")
+                      xs.append(ndp)
+                      ys.append(point["flux_l_m2_h"])
+                  slope = sum(x * y for x, y in zip(xs, ys)) / sum(x * x for x in xs)
+                  rmse = math.sqrt(sum((y - slope * x) ** 2 for x, y in zip(xs, ys)) / len(xs))
+                  pointwise = sum(y / x for x, y in zip(xs, ys)) / len(xs)
+                  replicate_results.append({
+                      "replicate_id": replicate["replicate_id"],
+                      "point_count": len(xs),
+                      "slope_l_m2_h_bar": slope,
+                      "residual_rmse_l_m2_h": rmse,
+                      "mean_pointwise_ratio_l_m2_h_bar": pointwise,
+                  })
+              slopes = [row["slope_l_m2_h_bar"] for row in replicate_results]
+              mean = sum(slopes) / len(slopes)
+              sd = math.sqrt(sum((x - mean) ** 2 for x in slopes) / (len(slopes) - 1))
+              actual = {
+                  "replicate_count": len(replicate_results),
+                  "total_point_count": sum(row["point_count"] for row in replicate_results),
+                  "replicates": replicate_results,
+                  "mean_slope_l_m2_h_bar": mean,
+                  "sample_sd_of_replicate_slopes_l_m2_h_bar": sd,
+              }
+              expected = oracle_by_id[case["case_id"]]
+              for key in ("replicate_count", "total_point_count"):
+                  if actual[key] != expected[key]:
+                      raise SystemExit(f"MEMBRANE_M0B_ORACLE_MISMATCH: {case['case_id']} {key}")
+              for key in ("mean_slope_l_m2_h_bar", "sample_sd_of_replicate_slopes_l_m2_h_bar"):
+                  if not close(actual[key], expected[key]):
+                      raise SystemExit(f"MEMBRANE_M0B_ORACLE_MISMATCH: {case['case_id']} {key}")
+              expected_reps = {row["replicate_id"]: row for row in expected["replicates"]}
+              for actual_rep in actual["replicates"]:
+                  target = expected_reps[actual_rep["replicate_id"]]
+                  for key in ("slope_l_m2_h_bar", "residual_rmse_l_m2_h", "mean_pointwise_ratio_l_m2_h_bar"):
+                      if not close(actual_rep[key], target[key]):
+                          raise SystemExit(f"MEMBRANE_M0B_REPLICATE_MISMATCH: {case['case_id']} {actual_rep['replicate_id']} {key}")
+          print("MEMBRANE_RO_M0B_PASS: 3 grouped pressure-series cases; per-replicate slopes and uncertainty match separate oracle")
+          PY
+      - name: Evaluate membrane RO M0B grouped regression at exact revision
+        id: membrane_ro_m0b
+        env:
+          MEMBRANE_RO_M0B_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin membrane-ro-m0b-regression -- \
+            research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json \
+            research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json \
+            research/water-service-engineering/membrane-ro-m0b-regression.schema.json \
+            research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json \
+            artifacts/membrane-ro-m0b-regression/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +336,38 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/membrane-dataset-admission-v0.1.json
+            research/water-service-engineering/membrane-dataset-admission.schema.json
+            research/water-service-engineering/MEMBRANE_FOULING_DATASET_CROSSWALK_V0_1.md
+            research/water-service-engineering/membrane-fouling-benchmark-manifest-v0.1.json
+            research/water-service-engineering/membrane-ro-m0-cases-v0.1.json
+            research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json
+            research/water-service-engineering/membrane-ro-m0.schema.json
+            research/water-service-engineering/membrane-ro-m0-manifest-v0.1.json
+            research/water-service-engineering/MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md
+            research/water-service-engineering/membrane-wq-sample.schema.json
+            research/water-service-engineering/membrane-wq-sample-fixtures-v0.1.json
+            research/water-service-engineering/membrane-wq-sample-manifest-v0.1.json
+            artifacts/membrane-ro-m0/receipt.json
+            research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json
+            research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json
+            research/water-service-engineering/membrane-ro-m0b-regression.schema.json
+            research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json
+            artifacts/membrane-ro-m0b-regression/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          MEMBRANE_CONTRACTS_OUTCOME: ${{ steps.membrane_contracts.outcome }}
+          MEMBRANE_RO_M0_OUTCOME: ${{ steps.membrane_ro_m0.outcome }}
+          MEMBRANE_WQ_M2_OUTCOME: ${{ steps.membrane_wq_m2.outcome }}
+          MEMBRANE_RO_M0B_CONTRACTS_OUTCOME: ${{ steps.membrane_ro_m0b_contracts.outcome }}
+          MEMBRANE_RO_M0B_OUTCOME: ${{ steps.membrane_ro_m0b.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
+          test "$MEMBRANE_RO_M0_OUTCOME" = "success"
+          test "$MEMBRANE_WQ_M2_OUTCOME" = "success"
+          test "$MEMBRANE_RO_M0B_CONTRACTS_OUTCOME" = "success"
+          test "$MEMBRANE_RO_M0B_OUTCOME" = "success"
