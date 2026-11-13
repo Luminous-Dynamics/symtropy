@@ -107,3 +107,10 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Distributed dark-fibre sensing sub-benchmark
+
+The new [DARK-FIBER-WDN-DIAGNOSTICS-001 #4991](https://github.com/Luminous-Dynamics/symtropy/issues/4991) workstream evaluates telecom dark fibre as a distributed acoustic sensing layer for pressurized water networks. Its initial synthetic F0 contract separates geometric candidate coverage, physical coupling qualification and current observed coverage. See [benchmark protocol](./DARK_FIBER_WDN_DIAGNOSTICS_BENCHMARK_V0_1.md), [F0 inputs](./dark-fiber-observability-cases-v0.1.json), [independent oracle](./dark-fiber-observability-oracle-v0.1.json), and [schema](./dark-fiber-observability.schema.json).
+
+The 2026 Pamplona field precedent used 17 km of dark fibre and 2.6 m effective gauge length under controlled valve leaks; natural-leak generalization and raw-data access remain separate evidence gates. This is a sensing research lead, not a qualified Luminous deployment.

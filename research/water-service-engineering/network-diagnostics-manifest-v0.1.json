@@ -112,5 +112,30 @@
     "class_prevalence_baselines_matching_tolerance_and_operational_denominators",
     "detection_localization_uncertainty_abstention_and_robustness_metrics",
     "reproducibility_receipt_and_exact_implementation_revision"
-  ]
+  ],
+  "distributed_fibre_sensing": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4991",
+    "primary_comparator": {
+      "doi": "10.3390/s26072152",
+      "date": "2026-03-31",
+      "demonstrated_fibre_route_km": 17,
+      "effective_gauge_length_m": 2.6,
+      "controlled_leak_flow_range_l_s": [
+        0.14,
+        3.75
+      ],
+      "evidence_class": "controlled_field_leaks_not_natural_failure_population",
+      "raw_data_status": "available_on_reasonable_request_not_acquired"
+    },
+    "f0_input_corpus": "research/water-service-engineering/dark-fiber-observability-cases-v0.1.json",
+    "f0_oracle": "research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json",
+    "f0_case_count": 10,
+    "f0_status": "synthetic_geometry_only_no_sensing_sensitivity_or_leak_detection_claim",
+    "hard_boundaries": [
+      "geometric_coverage_not_physical_sensing_qualification",
+      "fibre_gauge_length_not_localization_error",
+      "fibre_offline_or_missing_route_not_no_leak",
+      "raw_data_rights_must_be_verified_before_reproduction"
+    ]
+  }
 }

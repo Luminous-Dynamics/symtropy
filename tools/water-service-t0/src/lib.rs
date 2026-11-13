@@ -665,6 +665,214 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_dark_fiber_f0(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 10;
+    const CEILING: &str =
+        "route_geometry_screening_only_no_sensing_sensitivity_or_leak_detection_claim";
+
+    if string(inputs, &["schema_version"])? != "dark-fiber-observability-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_geometry_only"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "dark-fiber-observability-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_geometry_only"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+        || !boolean(oracle, &["independently_reviewed_expected_outputs"])?
+    {
+        return Err("dark-fibre F0 input/oracle identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let screen = number(inputs, &["screen_policy", "max_separation_m"])?;
+    if screen <= 0.0 {
+        return Err("dark-fibre F0 screen radius must be positive".to_owned());
+    }
+
+    let cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "dark-fibre F0 cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "dark-fibre F0 oracle cases must be an array".to_owned())?;
+    if cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "dark-fibre F0 expected {EXPECTED_CASES} input and oracle cases; got {} and {}",
+            cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["case_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("dark-fibre F0 duplicate oracle case ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("dark-fibre F0 duplicate input case ID: {id}"));
+        }
+        let input = at(case, &["inputs"])?;
+        let length = number(input, &["pipe_segment_length_m"])?;
+        if length <= 0.0 {
+            return Err(format!("{id}: pipe segment length must be positive"));
+        }
+
+        let mapping_valid = boolean(input, &["route_mapping_valid"])?;
+        let geometry = if !mapping_valid {
+            "INDETERMINATE_GEOMETRY"
+        } else {
+            let distance_value = at(input, &["minimum_separation_m"])?;
+            let uncertainty_value = at(input, &["separation_uncertainty_m"])?;
+            let (Some(distance), Some(uncertainty)) =
+                (distance_value.as_f64(), uncertainty_value.as_f64())
+            else {
+                return Err(format!(
+                    "{id}: valid route mapping requires separation and uncertainty"
+                ));
+            };
+            if !distance.is_finite()
+                || !uncertainty.is_finite()
+                || distance < 0.0
+                || uncertainty < 0.0
+            {
+                return Err(format!("{id}: invalid separation or uncertainty"));
+            }
+            let lower = (distance - uncertainty).max(0.0);
+            let upper = distance + uncertainty;
+            if upper <= screen {
+                "WITHIN_GEOMETRIC_SCREEN"
+            } else if lower > screen {
+                "OUTSIDE_GEOMETRIC_SCREEN"
+            } else {
+                "INDETERMINATE_GEOMETRY"
+            }
+        };
+
+        let geometric_candidate_length = if geometry == "WITHIN_GEOMETRIC_SCREEN" {
+            length
+        } else {
+            0.0
+        };
+        let health = string(input, &["fibre_health"])?;
+        if !["healthy", "offline", "degraded_signal_quality"].contains(&health.as_str()) {
+            return Err(format!("{id}: unsupported fibre health state"));
+        }
+        let attribution = string(input, &["asset_attribution"])?;
+        if !["unique", "multiple_assets_same_corridor"].contains(&attribution.as_str()) {
+            return Err(format!("{id}: unsupported asset attribution state"));
+        }
+        let coupling = boolean(input, &["physical_coupling_qualified"])?;
+        let physical = geometry == "WITHIN_GEOMETRIC_SCREEN"
+            && coupling
+            && health == "healthy"
+            && attribution == "unique";
+
+        let acquisition = input
+            .get("valid_measurement_acquisition")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let route_status = if !mapping_valid {
+            "UNOBSERVED_ROUTE_MAPPING_MISSING"
+        } else if geometry == "OUTSIDE_GEOMETRIC_SCREEN" {
+            "OUTSIDE_GEOMETRIC_SCREEN"
+        } else if geometry == "INDETERMINATE_GEOMETRY" {
+            "INDETERMINATE_GEOMETRY"
+        } else if health == "offline" {
+            "UNOBSERVED_FIBRE_OFFLINE"
+        } else if health == "degraded_signal_quality" {
+            "UNOBSERVED_SIGNAL_QUALITY_FAULT"
+        } else if attribution != "unique" {
+            "ASSET_ATTRIBUTION_AMBIGUOUS"
+        } else if !coupling {
+            "COUPLING_NOT_QUALIFIED"
+        } else if !acquisition {
+            "NO_CURRENT_MEASUREMENT_ACQUISITION"
+        } else {
+            "OBSERVED_WITHIN_PROFILE"
+        };
+        let observed_length = if route_status == "OBSERVED_WITHIN_PROFILE" {
+            length
+        } else {
+            0.0
+        };
+
+        let mut actual = json!({
+            "geometry_disposition": geometry,
+            "geometric_candidate_length_m": geometric_candidate_length,
+            "observed_sensing_length_m": observed_length,
+            "physical_sensing_qualified": physical,
+            "route_status": route_status,
+            "leak_absence_claim_allowed": false
+        });
+        if attribution != "unique" {
+            actual["unique_asset_localization_allowed"] = json!(false);
+        }
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("dark-fibre F0 oracle missing case {id}"))?;
+        let expected_family = string(oracle_row, &["family"])?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = expected_family == "F0_ROUTE_GEOMETRY" && compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected_family": expected_family,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "family": "F0_ROUTE_GEOMETRY",
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "dark-fibre F0 input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|a, b| {
+        a.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+
+    Ok(json!({
+        "schema_version": "dark-fiber-observability-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_geometry_only",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "Geometric screening is not physical sensing qualification or leak detection.",
+            "Fibre gauge length is not P95 chainage localization accuracy.",
+            "Unobserved fibre or unqualified pipe/fibre coupling never implies no leak.",
+            "No natural leak, water quality, field service or water-savings result is established."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -683,9 +891,116 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "dark_inputs" => include_str!(
+                "../../../research/water-service-engineering/dark-fiber-observability-cases-v0.1.json"
+            ),
+            "dark_oracle" => include_str!(
+                "../../../research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_ten_dark_fiber_f0_cases_match_separate_oracle() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        assert_eq!(result["result_count"], 10);
+        assert_eq!(result["matched_case_count"], 10);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn dark_fiber_geometry_is_not_physical_sensing_qualification() {
+        let inputs = load("dark_inputs");
+        let result = evaluate_dark_fiber_f0(&inputs, &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-001-clear-geometric-candidate")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["geometry_disposition"],
+            "WITHIN_GEOMETRIC_SCREEN"
+        );
+        assert!(
+            !row["computed"]["physical_sensing_qualified"]
+                .as_bool()
+                .unwrap()
+        );
+        assert_eq!(row["computed"]["observed_sensing_length_m"], 0.0);
+    }
+
+    #[test]
+    fn dark_fiber_offline_is_unobserved_not_no_leak() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-004-fibre-offline")
+            .unwrap();
+        assert_eq!(row["computed"]["route_status"], "UNOBSERVED_FIBRE_OFFLINE");
+        assert!(
+            !row["computed"]["leak_absence_claim_allowed"]
+                .as_bool()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn dark_fiber_outside_screen_is_not_labelled_as_a_coupling_failure() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-002-outside-geometric-screen")
+            .unwrap();
+        assert_eq!(row["computed"]["route_status"], "OUTSIDE_GEOMETRIC_SCREEN");
+    }
+
+    #[test]
+    fn shared_corridor_does_not_qualify_pipe_specific_sensing() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-006-shared-corridor-asset-ambiguity")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["route_status"],
+            "ASSET_ATTRIBUTION_AMBIGUOUS"
+        );
+        assert!(
+            !row["computed"]["physical_sensing_qualified"]
+                .as_bool()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn dark_fiber_screen_boundary_uncertainty_abstains() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-003-uncertainty-crosses-screen")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["geometry_disposition"],
+            "INDETERMINATE_GEOMETRY"
+        );
     }
 
     #[test]

@@ -150,6 +150,14 @@
       "simulated_scores_never_presented_as_field_accuracy",
       "model_only_alerts_never_authorize_physical_actuation",
       "saved_water_and_repair_claims_require_independent_post_repair_measurements"
+    ],
+    "specialized_sensing_benchmarks": [
+      {
+        "id": "DARK-FIBER-WDN-DIAGNOSTICS-001",
+        "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4991",
+        "manifest": "research/water-service-engineering/dark-fiber-benchmark-manifest-v0.1.json",
+        "status": "synthetic_f0_route_geometry_contract_only"
+      }
     ]
   },
   "t0_evaluator": {

@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/dark-fiber-observability.schema.json",
+  "title": "Dark fibre water-network F0 route observability corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "screen_policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "dark-fiber-observability-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_geometry_only"
+    },
+    "evidence_ceiling": {
+      "const": "route_geometry_screening_only_no_sensing_sensitivity_or_leak_detection_claim"
+    },
+    "screen_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "max_separation_m",
+        "status"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "max_separation_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^DF0-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pipe_segment_length_m",
+              "route_mapping_valid",
+              "minimum_separation_m",
+              "separation_uncertainty_m",
+              "fibre_health",
+              "asset_attribution",
+              "physical_coupling_qualified"
+            ],
+            "properties": {
+              "pipe_segment_length_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "route_mapping_valid": {
+                "type": "boolean"
+              },
+              "minimum_separation_m": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "separation_uncertainty_m": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "fibre_health": {
+                "enum": [
+                  "healthy",
+                  "offline",
+                  "degraded_signal_quality"
+                ]
+              },
+              "asset_attribution": {
+                "enum": [
+                  "unique",
+                  "multiple_assets_same_corridor"
+                ]
+              },
+              "physical_coupling_qualified": {
+                "type": "boolean"
+              },
+              "valid_measurement_acquisition": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
