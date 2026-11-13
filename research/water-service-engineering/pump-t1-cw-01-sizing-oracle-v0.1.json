@@ -1,0 +1,68 @@
+{
+  "schema_version": "pump-t1-cw-01-sizing-oracle-v0.1",
+  "evidence_class": "synthetic_first_pass_design_arithmetic",
+  "evidence_ceiling": "parametric_sizing_arithmetic_only_no_pump_product_or_safety_qualification",
+  "independently_hand_recomputed": true,
+  "cases": [
+    {
+      "case_id": "PUMP-T1-CW-01-001-max-envelope",
+      "expected": {
+        "hydraulic_power_w": 245.25,
+        "illustrative_electrical_input_w": 490.5,
+        "mean_pipe_velocity_m_s": 0.7957747154594766,
+        "turnover_time_s": 250,
+        "differential_pressure_pa": 245250,
+        "differential_pressure_bar": 2.4525,
+        "pipe_velocity_screen": "WITHIN_ILLUSTRATIVE_SCREEN"
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-002-min-envelope",
+      "expected": {
+        "hydraulic_power_w": 9.81,
+        "illustrative_electrical_input_w": 19.62,
+        "mean_pipe_velocity_m_s": 0.15915494309189532,
+        "turnover_time_s": 1250,
+        "differential_pressure_pa": 49050,
+        "differential_pressure_bar": 0.4905,
+        "pipe_velocity_screen": "WITHIN_ILLUSTRATIVE_SCREEN"
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-003-smaller-pipe-velocity-screen",
+      "expected": {
+        "hydraulic_power_w": 245.25,
+        "illustrative_electrical_input_w": 490.5,
+        "mean_pipe_velocity_m_s": 2.0371832715762603,
+        "turnover_time_s": 250,
+        "differential_pressure_pa": 245250,
+        "differential_pressure_bar": 2.4525,
+        "pipe_velocity_screen": "EXCEEDS_ILLUSTRATIVE_SCREEN"
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-004-head-pressure-equivalence",
+      "expected": {
+        "hydraulic_power_w": 245.25,
+        "illustrative_electrical_input_w": 490.5,
+        "mean_pipe_velocity_m_s": 0.7957747154594766,
+        "turnover_time_s": 250,
+        "differential_pressure_pa": 245250,
+        "differential_pressure_bar": 2.4525,
+        "pipe_velocity_screen": "WITHIN_ILLUSTRATIVE_SCREEN"
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-005-reservoir-turnover",
+      "expected": {
+        "hydraulic_power_w": 245.25,
+        "illustrative_electrical_input_w": 490.5,
+        "mean_pipe_velocity_m_s": 0.7957747154594766,
+        "turnover_time_s": 250,
+        "differential_pressure_pa": 245250,
+        "differential_pressure_bar": 2.4525,
+        "pipe_velocity_screen": "WITHIN_ILLUSTRATIVE_SCREEN"
+      }
+    }
+  ]
+}

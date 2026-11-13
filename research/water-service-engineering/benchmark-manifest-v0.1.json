@@ -160,5 +160,26 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "pump_t1_cw_01": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4994",
+    "design_basis": "research/water-service-engineering/PUMP_T1_CW_01_DESIGN_BASIS_V0_1.md",
+    "sizing_inputs": "research/water-service-engineering/pump-t1-cw-01-sizing-cases-v0.1.json",
+    "independent_oracle": "research/water-service-engineering/pump-t1-cw-01-sizing-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/pump-t1-cw-01-sizing.schema.json",
+    "status": "parametric_design_basis_synthetic_arithmetic_only",
+    "proposed_envelope": {
+      "flow_l_s": [
+        0.2,
+        1
+      ],
+      "total_dynamic_head_m": [
+        5,
+        25
+      ],
+      "reservoir_usable_volume_l": 250,
+      "pipe_internal_diameter_candidate_mm": 40
+    },
+    "evidence_ceiling": "no_pump_product_test_pressure_system_or_safety_qualification"
   }
 }

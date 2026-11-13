@@ -1,0 +1,55 @@
+{
+  "schema_version": "pump-t1-cw-01-sizing-cases-v0.1",
+  "evidence_class": "synthetic_first_pass_design_arithmetic",
+  "evidence_ceiling": "parametric_sizing_arithmetic_only_no_pump_product_or_safety_qualification",
+  "basis": {
+    "water_density_kg_m3": 1000,
+    "gravity_m_s2": 9.81,
+    "assumed_wire_to_water_efficiency": 0.5,
+    "reservoir_usable_volume_m3": 0.25,
+    "illustrative_max_pipe_velocity_m_s": 1,
+    "note": "All values are illustrative design assumptions; not measurements or normative limits."
+  },
+  "cases": [
+    {
+      "case_id": "PUMP-T1-CW-01-001-max-envelope",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "head_m": 25,
+        "pipe_internal_diameter_m": 0.04
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-002-min-envelope",
+      "inputs": {
+        "flow_m3_s": 0.0002,
+        "head_m": 5,
+        "pipe_internal_diameter_m": 0.04
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-003-smaller-pipe-velocity-screen",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "head_m": 25,
+        "pipe_internal_diameter_m": 0.025
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-004-head-pressure-equivalence",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "head_m": 25,
+        "pipe_internal_diameter_m": 0.04
+      }
+    },
+    {
+      "case_id": "PUMP-T1-CW-01-005-reservoir-turnover",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "head_m": 25,
+        "pipe_internal_diameter_m": 0.04
+      }
+    }
+  ]
+}

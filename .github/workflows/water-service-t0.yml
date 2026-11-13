@@ -51,6 +51,88 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for pump sizing schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate PUMP-T1-CW-01 sizing cases and arithmetic oracle
+        id: pump_t1_sizing
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "pump-t1-cw-01-sizing.schema.json").read_text())
+          inputs = json.loads((root / "pump-t1-cw-01-sizing-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "pump-t1-cw-01-sizing-oracle-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"PUMP_T1_CW_01_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          basis = inputs["basis"]
+          rho = basis["water_density_kg_m3"]
+          gravity = basis["gravity_m_s2"]
+          efficiency = basis["assumed_wire_to_water_efficiency"]
+          volume = basis["reservoir_usable_volume_m3"]
+          velocity_limit = basis["illustrative_max_pipe_velocity_m_s"]
+          oracle_by_id = {row["case_id"]: row["expected"] for row in oracle["cases"]}
+          case_ids = [case["case_id"] for case in inputs["cases"]]
+          if len(case_ids) != 5 or len(set(case_ids)) != 5:
+              raise SystemExit("PUMP_T1_CW_01_INPUT_IDENTITY_FAIL")
+          if len(oracle_by_id) != 5 or len(oracle_by_id) != len(oracle["cases"]):
+              raise SystemExit("PUMP_T1_CW_01_ORACLE_IDENTITY_FAIL")
+          if sorted(case_ids) != sorted(oracle_by_id):
+              raise SystemExit("PUMP_T1_CW_01_INPUT_ORACLE_IDS_DIFFER")
+          if any("expected" in case for case in inputs["cases"]):
+              raise SystemExit("PUMP_T1_CW_01_INPUTS_MUST_NOT_EMBED_ORACLE")
+
+          def close(actual, expected):
+              return math.isclose(actual, expected, rel_tol=1e-10, abs_tol=1e-12)
+
+          for case in inputs["cases"]:
+              i = case["inputs"]
+              q, head, diameter = i["flow_m3_s"], i["head_m"], i["pipe_internal_diameter_m"]
+              hydraulic = rho * gravity * q * head
+              electrical = hydraulic / efficiency
+              velocity = q / (math.pi * diameter * diameter / 4.0)
+              turnover = volume / q
+              pressure = rho * gravity * head
+              actual = {
+                  "hydraulic_power_w": hydraulic,
+                  "illustrative_electrical_input_w": electrical,
+                  "mean_pipe_velocity_m_s": velocity,
+                  "turnover_time_s": turnover,
+                  "differential_pressure_pa": pressure,
+                  "differential_pressure_bar": pressure / 100000.0,
+                  "pipe_velocity_screen": (
+                      "WITHIN_ILLUSTRATIVE_SCREEN"
+                      if velocity <= velocity_limit
+                      else "EXCEEDS_ILLUSTRATIVE_SCREEN"
+                  ),
+              }
+              expected = oracle_by_id[case["case_id"]]
+              for key, value in actual.items():
+                  target = expected[key]
+                  matches = close(value, target) if isinstance(value, float) else value == target
+                  if not matches:
+                      raise SystemExit(
+                          f"PUMP_T1_CW_01_ORACLE_MISMATCH: {case['case_id']} {key}: {value} != {target}"
+                      )
+          print("PUMP_T1_CW_01_PASS: 5 independent sizing cases match separate oracle")
+          PY
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +144,16 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/pump-t1-cw-01-sizing-cases-v0.1.json
+            research/water-service-engineering/pump-t1-cw-01-sizing-oracle-v0.1.json
+            research/water-service-engineering/pump-t1-cw-01-sizing.schema.json
+            research/water-service-engineering/PUMP_T1_CW_01_DESIGN_BASIS_V0_1.md
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          PUMP_T1_SIZING_OUTCOME: ${{ steps.pump_t1_sizing.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$PUMP_T1_SIZING_OUTCOME" = "success"
