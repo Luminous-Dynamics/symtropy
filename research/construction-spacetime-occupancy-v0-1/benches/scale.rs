@@ -49,8 +49,7 @@ fn occupancy(index: u64) -> SpatialOccupancy {
 
 fn main() {
     for size in [10_u64, 100, 1_000, 10_000] {
-        let mut book =
-            SpatialOccupancyBook::new(binding(), "benchmark-clock").expect("valid book");
+        let mut book = SpatialOccupancyBook::new(binding(), "benchmark-clock").expect("valid book");
         let start = Instant::now();
         for index in 0..size {
             book.insert(occupancy(index))
