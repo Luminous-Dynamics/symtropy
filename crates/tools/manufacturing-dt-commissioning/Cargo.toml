@@ -1,0 +1,15 @@
+[package]
+name = "manufacturing-dt-commissioning"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Task-scoped federated manufacturing digital-twin readiness evaluator"
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[workspace]
