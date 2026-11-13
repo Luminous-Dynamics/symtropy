@@ -32,8 +32,8 @@
     },
     "sources": {
       "type": "array",
-      "minItems": 3,
-      "maxItems": 3,
+      "minItems": 4,
+      "maxItems": 4,
       "items": {
         "$ref": "#/$defs/source"
       }
@@ -46,8 +46,8 @@
     },
     "controls": {
       "type": "array",
-      "minItems": 41,
-      "maxItems": 41,
+      "minItems": 46,
+      "maxItems": 46,
       "items": {
         "$ref": "#/$defs/control"
       }
@@ -91,7 +91,8 @@
           "enum": [
             "bam-tandem-gmaw-2026",
             "intel-robotic-welding-multimodal",
-            "gmaw-thermography-profilometry-2025"
+            "gmaw-thermography-profilometry-2025",
+            "bam-scientific-tool-use-v0.1.0"
           ]
         },
         "title": {
@@ -126,7 +127,8 @@
         "rights_status": {
           "enum": [
             "RIGHTS_PENDING",
-            "RESEARCH_ONLY_NONCOMMERCIAL_GATED"
+            "RESEARCH_ONLY_NONCOMMERCIAL_GATED",
+            "RIGHTS_RECONCILIATION_REQUIRED"
           ]
         },
         "article_doi": {
@@ -192,7 +194,9 @@
               "macrographic_measurement",
               "expert_annotation",
               "independent_ndt_disposition",
-              "mechanical_structural_outcome"
+              "mechanical_structural_outcome",
+              "derived_numerical_reference",
+              "constructed_missing_file_control"
             ]
           }
         },
@@ -212,6 +216,29 @@
           "items": {
             "type": "string"
           }
+        },
+        "task_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "answerable_task_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "constructed_withheld_task_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "introductory_sft_example_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "heldout_test_workpiece_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "published_models_all_solved_test_ceiling": {
+          "type": "boolean"
         }
       }
     },
