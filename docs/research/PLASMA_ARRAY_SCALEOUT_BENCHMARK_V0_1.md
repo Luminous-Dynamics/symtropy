@@ -205,4 +205,4 @@ The Rust evaluator also rejects unknown fields at the schema boundary. This prev
 
 **Current S0 read-back:** the 12-scenario JSON was independently replayed from the fetched branch: 1 SYNTHETIC_PASS, 4 BLOCKED, 7 REJECTED; 12/12 expected dispositions matched. The independent formula oracle gives G_5=0.96 and G_100=0.9405. These are synthetic scenario calculations, not physical array results.
 
-**Execution status:** 21 Rust tests are authored, including explicit unknown/unmeasured cross-talk, signed-delta, expected-metric, incomplete-energy, reference-validity and independent G_N oracle tests. They have not been compiled or executed in the current environment; no CI pass is claimed.
+**Execution status:** 23 Rust tests are authored, including explicit unknown/unmeasured cross-talk, signed-delta, expected-metric, incomplete-energy, reference-validity and independent G_N oracle tests. They have not been compiled or executed in the current environment; no CI pass is claimed.
