@@ -367,7 +367,11 @@
     "virtual-real superimposed fault data are never represented as observed shipboard fault events",
     "the article license is not automatically the dataset license; verify dataset access and reuse terms independently",
     "baseline selector replays the full evidence portfolio from frozen prior, candidates and policy",
-    "caller-edited eligibility or rejected-candidate flags cannot be used to select an evidence probe"
+    "caller-edited eligibility or rejected-candidate flags cannot be used to select an evidence probe",
+    "sequential e-process counts one predeclared calibrated block as one evidence unit, never one raw 20 Hz row",
+    "block manifest, aggregation protocol and dependence-review receipt are bound to model and evidence receipts",
+    "duplicate block IDs, overlapping blocks and blocks below the frozen minimum separation are rejected",
+    "non-overlap alone is not treated as proof of conditional independence or validity of the null e-process"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -568,6 +572,11 @@
     {
       "id": "active_selection_portfolio_replay",
       "target": "Zero baseline selections accepted from a modified or non-replayable eligibility portfolio.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_block_pseudoreplication",
+      "target": "Zero raw-sample pseudo-replication, block-identity duplication, overlap or minimum-separation violations accepted into the sequential e-process.",
       "status": "aspirational"
     }
   ],
@@ -902,17 +911,20 @@
     "claim_ceiling": "synthetic calibrated-envelope counterexamples only; the published DX2026 paper is not reproduced"
   },
   "sequential_evidence": {
-    "path": "sequential-evidence-v0.1.json",
-    "schema_version": "symtropy-sequential-evidence-v0.1",
+    "path": "sequential-evidence-v0.2.json",
+    "schema_version": "symtropy-sequential-evidence-v0.2",
     "status": "protocol_only_not_executed",
     "rust_module": "src/sequential_evidence.rs",
-    "comparator": "anytime_valid_sequential_likelihood_ratio",
-    "optional_stopping_claim": "model_conditional_ville_bound",
+    "evidence_unit_kind": "non_overlapping_calibrated_block",
+    "raw_sample_pseudoreplication_allowed": false,
+    "unique_block_ids": true,
+    "non_overlapping_blocks": true,
+    "minimum_block_separation_required": true,
+    "block_aggregation_and_dependence_review_bound": true,
+    "optional_stopping_claim": "model_conditional_ville_bound_for_valid_block_level_null_e_process",
     "familywise_control": "bonferroni",
-    "fixed_channel_per_session": true,
-    "changing_channel_within_session_allowed": false,
     "physical_cause_claim_allowed": false,
-    "claim_ceiling": "fixed-channel synthetic likelihood mechanics; no real engine likelihood calibration"
+    "claim_ceiling": "synthetic block-level likelihood mechanics only; block independence and likelihood calibration not validated"
   },
   "published_marine_engine_baseline_audit": {
     "path": "published-marine-engine-baseline-audit-v0.1.json",
