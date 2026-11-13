@@ -7,6 +7,9 @@ on:
       - "tools/maritime-control-response-evaluator/**"
       - "docs/tech/MARITIME_CONTROL_AWARE_DIAGNOSIS_BENCHMARK_V0_1.md"
       - "docs/tech/MARITIME_CONTROL_RESPONSE_CORPUS_V0_1.schema.json"
+      - "docs/tech/MARITIME_EXTERNAL_CONTEXT_ROBUSTNESS_V0_1.schema.json"
+      - "docs/tech/MARITIME_EXTERNAL_CONTEXT_ROBUSTNESS_BENCHMARK_V0_1.md"
+      - "tools/maritime-control-response-evaluator/**"
       - ".github/workflows/maritime-control-response-evaluator.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -45,3 +48,21 @@ jobs:
 
       - name: Run strict Clippy
         run: cargo clippy --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Execute external-context robustness benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-control-response/environment-context-robustness-v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --locked --bin external_context_robustness -- \
+            "$input" --source-commit "$source_commit" --corpus-sha256 "$digest" > external-context-robustness-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass" and .source_commit == $source and .corpus_sha256 == $digest
+            and .case_count == 10 and .pair_count == 2
+            and .fault_conclusion == "NOT_ATTEMPTED"
+            and .causal_attribution == "NOT_ESTABLISHED"
+            and (.counterfactual_pairs | all(.status == "PASS"))
+          ' external-context-robustness-receipt.json
