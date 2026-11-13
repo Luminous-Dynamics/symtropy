@@ -2715,11 +2715,20 @@ mod tests {
             "source_authored_ci_pending"
         );
         assert!(
-            protocol["method"]["sequential_update_policy"]["required_future_joint_ledger"]
-                .as_array()
+            protocol["method"]["sequential_update_policy"]["scope"]
+                .as_str()
                 .unwrap()
-                .len()
-                >= 5
+                .contains("One ledger is bound to one immutable selected candidate")
+        );
+        assert!(
+            protocol["method"]["sequential_update_policy"]["ledger"]
+                .as_str()
+                .unwrap()
+                .contains("append-only ledger")
+        );
+        assert_eq!(
+            protocol["method"]["sequential_update_policy"]["factorized_prior_assumption"],
+            "v0.1 genesis prior assumes p(H,S)=p(H)*p(S). A dependent joint prior requires a separately reviewed extension."
         );
         assert!(
             protocol["method"]["observation_update"]["realized_information"]
@@ -2801,22 +2810,32 @@ mod tests {
                 .any(|field| field == "sequential_update_status")
         );
         let conditions = active["allOf"].as_array().unwrap();
-        assert_eq!(conditions.len(), 2);
+        let rule_for = |status: &str| {
+            conditions
+                .iter()
+                .find(|condition| {
+                    condition["if"]["properties"]["sequential_update_status"]["const"] == status
+                })
+                .expect("run-manifest schema retains the requested status rule")
+        };
+        let qualified = rule_for("joint_hypothesis_scenario_ledger_qualified");
         assert_eq!(
-            conditions[0]["if"]["properties"]["sequential_update_status"]["const"],
-            "joint_hypothesis_scenario_ledger_qualified"
+            qualified["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
+            "string"
         );
+        let blocked = rule_for("multi_scenario_blocked_joint_posterior_missing");
         assert_eq!(
-            conditions[0]["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
+            blocked["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
+            "null"
+        );
+        let synthetic = rule_for("joint_scenario_ledger_synthetic_contract_only");
+        assert_eq!(
+            synthetic["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
             "string"
         );
         assert_eq!(
-            conditions[1]["if"]["properties"]["sequential_update_status"]["const"],
-            "multi_scenario_blocked_joint_posterior_missing"
-        );
-        assert_eq!(
-            conditions[1]["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
-            "null"
+            synthetic["then"]["properties"]["joint_scenario_observation_count"]["type"],
+            "integer"
         );
     }
 
