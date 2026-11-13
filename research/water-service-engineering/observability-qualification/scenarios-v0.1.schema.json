@@ -86,6 +86,12 @@
           "failed_domains",
           "structural_observability",
           "numerical_estimator",
+          "note",
+          "topology",
+          "sensors",
+          "failed_domains",
+          "structural_observability",
+          "numerical_estimator",
           "note"
         ],
         "properties": {
