@@ -1,10 +1,9 @@
-use shipyard_geometry_measurement_oracle::{verify_corpus, Corpus};
+use shipyard_geometry_measurement_oracle::{Corpus, verify_corpus};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-const DEFAULT_CORPUS: &str =
-    "benchmarks/shipyard/geometry-measurement-oracle/corpus-v0.1.json";
+const DEFAULT_CORPUS: &str = "benchmarks/shipyard/geometry-measurement-oracle/corpus-v0.1.json";
 
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
@@ -38,7 +37,10 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(errors) => {
-            eprintln!("FAIL: {} geometry-oracle discrepancy/discrepancies", errors.len());
+            eprintln!(
+                "FAIL: {} geometry-oracle discrepancy/discrepancies",
+                errors.len()
+            );
             for error in errors {
                 eprintln!("- {error}");
             }
