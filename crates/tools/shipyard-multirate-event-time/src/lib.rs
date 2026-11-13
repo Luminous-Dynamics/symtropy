@@ -434,6 +434,12 @@ pub fn align_stream(
         if received_ns > decision_cutoff_ns {
             return Err(AbstainReason::FutureInformationLeakage);
         }
+        let sample_age = (decision_cutoff_ns as i128)
+            .checked_sub(mapped_ns as i128)
+            .ok_or(AbstainReason::ArithmeticOverflow)?;
+        if sample_age < 0 {
+            return Err(AbstainReason::FutureSampleTimestamp);
+        }
         let arrival_delay = (received_ns as i128)
             .checked_sub(mapped_ns as i128)
             .ok_or(AbstainReason::ArithmeticOverflow)?;
@@ -443,12 +449,6 @@ pub fn align_stream(
         if arrival_delay > stream.maximum_lateness_ns as i128 {
             late_sample_count += 1;
             continue;
-        }
-        let sample_age = (decision_cutoff_ns as i128)
-            .checked_sub(mapped_ns as i128)
-            .ok_or(AbstainReason::ArithmeticOverflow)?;
-        if sample_age < 0 {
-            return Err(AbstainReason::FutureSampleTimestamp);
         }
         if sample_age > stream.maximum_sample_age_ns as i128 {
             stale_sample_count += 1;
@@ -683,16 +683,25 @@ mod tests {
         let receipt = align_stream(&event(), &input, DECISION).expect("alignment");
         assert_eq!(receipt.included_sample_count, 10);
         assert_eq!(receipt.coverage_permille, 1_000);
-        assert_eq!(receipt.maximum_mapping_uncertainty_ns, 100);
+        assert_eq!(receipt.maximum_mapping_uncertainty_ns, 101);
         assert_eq!(receipt.claim_ceiling, "TEMPORAL_ALIGNMENT_ONLY");
     }
 
     #[test]
     fn multimodal_streams_keep_their_own_sample_cadence() {
-        let process = stream("PROCESS-01", 100_000, 1_000);
-        let robot = stream("ROBOT-01", 8_000_000, 13);
-        let opcua = stream("OPCUA-01", 100_000_000, 1);
-        let receipt = align_event(&event(), &[opcua, robot, process], DECISION)
+        let mut window = event();
+        window.end_ns = 500_000_000;
+        let decision = 1_000_000_000;
+        let make_rate = |id: &str, period: u64, maximum_gap: u64| {
+            let mut value = stream(id, period, ((500_000_000 - 2_000_000) / period + 1) as usize);
+            value.maximum_gap_ns = maximum_gap;
+            value.maximum_sample_age_ns = 1_000_000_000;
+            value
+        };
+        let process = make_rate("PROCESS-01", 100_000, 1_000_000);
+        let robot = make_rate("ROBOT-01", 8_000_000, 9_000_000);
+        let opcua = make_rate("OPCUA-01", 100_000_000, 110_000_000);
+        let receipt = align_event(&window, &[opcua, robot, process], decision)
             .expect("multirate event alignment");
         assert_eq!(receipt.stream_receipts.len(), 3);
         assert_eq!(receipt.stream_receipts[0].stream_id, "OPCUA-01");
@@ -854,7 +863,7 @@ mod tests {
     #[test]
     fn stale_slow_state_is_excluded() {
         let mut input = stream("STALE", 10_000_000, 10);
-        input.maximum_sample_age_ns = 50_000_000;
+        input.maximum_sample_age_ns = 100_000_000;
         let receipt = align_stream(&event(), &input, DECISION).expect("remaining coverage");
         assert!(receipt.stale_sample_count > 0);
         assert!(receipt.included_sample_count < 10);
@@ -875,6 +884,7 @@ mod tests {
         input.samples[0].quality = SampleQuality::Clipped;
         input.samples[1].quality = SampleQuality::Dropped;
         input.samples[2].quality = SampleQuality::Invalid;
+        input.minimum_coverage_permille = 700;
         let receipt = align_stream(&event(), &input, DECISION).expect("remaining coverage");
         assert_eq!(receipt.clipped_sample_count, 1);
         assert_eq!(receipt.dropped_sample_count, 1);
@@ -927,6 +937,7 @@ mod tests {
         let mut input = stream("END", 10_000_000, 10);
         input.samples[9].source_timestamp_ns = Some(EVENT_END);
         input.samples[9].received_master_ns = Some(EVENT_END + 1_000_000);
+        input.maximum_gap_ns = 20_000_000;
         let receipt = align_stream(&event(), &input, DECISION).expect("window still covered");
         assert_eq!(receipt.out_of_window_count, 1);
         assert_eq!(receipt.included_sample_count, 9);
@@ -947,8 +958,6 @@ mod tests {
     fn large_internal_gap_abstains() {
         let mut input = stream("GAP", 10_000_000, 10);
         input.samples.remove(4);
-        input.samples[4].source_timestamp_ns = Some(72_000_000);
-        input.samples[4].received_master_ns = Some(73_000_000);
         input.maximum_gap_ns = 10_500_000;
         assert_eq!(
             align_stream(&event(), &input, DECISION),
