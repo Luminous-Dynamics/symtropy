@@ -336,7 +336,8 @@
               "calibration_sample_count",
               "max_interval_width",
               "condition_number_bound",
-              "validity_domain_ref"
+              "validity_domain_ref",
+              "covered_state_ids"
             ],
             "properties": {
               "status": {
@@ -415,6 +416,18 @@
                   "string",
                   "null"
                 ]
+              },
+              "covered_state_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "tank_level_1",
+                    "tank_level_2",
+                    "junction_pressure_1",
+                    "junction_pressure_2"
+                  ]
+                }
               }
             }
           },
