@@ -455,7 +455,10 @@ impl<Frame, const N: usize> Covector<Frame, N> {
         if components.iter().any(|value| !value.is_finite()) {
             return Err(RobustConstraintErrorV1::NonFiniteInput);
         }
-        Ok(Self { components, frame: PhantomData })
+        Ok(Self {
+            components,
+            frame: PhantomData,
+        })
     }
     pub fn components(&self) -> &Vector<N> {
         &self.components
@@ -875,8 +878,7 @@ mod tests {
             RobustConstraintStatusV1::ConstraintRankInconclusive
         );
         assert!(
-            envelope.robust_minimum_eigenvalue_lower_bound
-                <= profile().minimum_delassus_eigenvalue
+            envelope.robust_minimum_eigenvalue_lower_bound <= profile().minimum_delassus_eigenvalue
         );
     }
 
