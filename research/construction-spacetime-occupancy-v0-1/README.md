@@ -74,3 +74,8 @@ The combined admission helper is a single-process, typed-error-atomic in-memory 
 
 The v0.1 AABB model is a deterministic broad-phase research reference only. The grid is an acceleration index; 1 m cell size and 4,096-cell fallback threshold are implementation parameters, not construction tolerances. False positives are allowed and must remain visible. A later narrow-phase geometry implementation needs an independent reference oracle and independently measured/as-built envelopes before any physical claim.
 
+
+
+## Stacked dependency note (13 November 2026)
+
+This branch includes the exact accepted-floor production crate snapshot from #4960 so the standalone push workflow can resolve all local Cargo paths. The stacked PR base remains the accepted-floor branch. The floor crate is a dependency, not a second implementation of floor accounting in this package.
