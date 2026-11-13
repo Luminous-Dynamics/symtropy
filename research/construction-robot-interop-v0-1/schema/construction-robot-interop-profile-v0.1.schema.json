@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-robot-interop-profile-v0.1.schema.json",
+  "title": "Construction Robot Interoperability Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "owner_issue",
+    "applicability",
+    "protocol_baselines",
+    "conformance_layers",
+    "task_contract",
+    "message_contract",
+    "task_states",
+    "resource_reservation",
+    "safety_boundary",
+    "targets",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "profile_id": {
+      "const": "construction-robot-mixed-fleet-v0.1"
+    },
+    "owner_issue": {
+      "const": 3644
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "site_scope",
+        "robot_classes"
+      ],
+      "properties": {
+        "environment": {
+          "enum": [
+            "construction_site",
+            "controlled_construction_testbed",
+            "construction_logistics_yard"
+          ]
+        },
+        "site_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "protocol_baselines": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version",
+          "role",
+          "scope_note"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "VDA_5050",
+              "ISO_21423",
+              "MassRobotics_AMR_Interop",
+              "vendor_specific"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "conformance_layers": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "transport_syntax",
+          "semantic_data",
+          "task_lifecycle",
+          "resource_coordination",
+          "evidence_continuity",
+          "authority_separation"
+        ]
+      }
+    },
+    "task_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_fields",
+        "capability_fields",
+        "unit_frame_policy",
+        "unsupported_task_policy",
+        "acceptance_boundary"
+      ],
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "capability_fields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "unit_frame_policy": {
+          "const": "explicit_only_no_implicit_conversion"
+        },
+        "unsupported_task_policy": {
+          "const": "typed_rejection"
+        },
+        "acceptance_boundary": {
+          "const": "executor_completion_is_not_independent_acceptance"
+        }
+      }
+    },
+    "message_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_fields",
+        "ordering_scope",
+        "duplicate_policy",
+        "conflicting_id_policy",
+        "clock_policy"
+      ],
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "ordering_scope": {
+          "const": "actor_session_task_scoped"
+        },
+        "duplicate_policy": {
+          "const": "idempotent_same_digest"
+        },
+        "conflicting_id_policy": {
+          "const": "reject_and_mark_conflict"
+        },
+        "clock_policy": {
+          "const": "source_time_with_uncertainty_and_receiver_observed_time"
+        }
+      }
+    },
+    "task_states": {
+      "type": "array",
+      "minItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "submitted",
+          "accepted",
+          "queued",
+          "started",
+          "paused",
+          "blocked",
+          "executor_completed",
+          "measurement_pending",
+          "independently_accepted",
+          "independently_rejected",
+          "failed",
+          "cancelled",
+          "revoked_or_stale",
+          "indeterminate"
+        ]
+      }
+    },
+    "resource_reservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_types",
+        "expiry_required",
+        "site_epoch_binding",
+        "exclusive_conflict_policy",
+        "is_safety_permit",
+        "clock_domain_binding",
+        "clock_uncertainty_policy"
+      ],
+      "properties": {
+        "resource_types": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "expiry_required": {
+          "const": true
+        },
+        "site_epoch_binding": {
+          "const": true
+        },
+        "exclusive_conflict_policy": {
+          "const": "reject"
+        },
+        "is_safety_permit": {
+          "const": false
+        },
+        "clock_domain_binding": {
+          "const": true
+        },
+        "clock_uncertainty_policy": {
+          "const": "explicit_project_limit_and_conservative_interval_expansion"
+        }
+      }
+    },
+    "safety_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interop_grants_motion_authority",
+        "external_safety_authority_required",
+        "safety_hold_overrides_scheduler"
+      ],
+      "properties": {
+        "interop_grants_motion_authority": {
+          "const": false
+        },
+        "external_safety_authority_required": {
+          "const": true
+        },
+        "safety_hold_overrides_scheduler": {
+          "const": true
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_field_preservation_fraction",
+        "silent_field_loss",
+        "implicit_unit_or_frame_conversion",
+        "stale_resume",
+        "exclusive_reservation_conflict",
+        "completion_promoted_without_receipt",
+        "finite_oracle_agreement"
+      ],
+      "properties": {
+        "required_field_preservation_fraction": {
+          "const": 1
+        },
+        "silent_field_loss": {
+          "const": 0
+        },
+        "implicit_unit_or_frame_conversion": {
+          "const": 0
+        },
+        "stale_resume": {
+          "const": 0
+        },
+        "exclusive_reservation_conflict": {
+          "const": 0
+        },
+        "completion_promoted_without_receipt": {
+          "const": 0
+        },
+        "finite_oracle_agreement": {
+          "const": 1
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    }
+  }
+}
