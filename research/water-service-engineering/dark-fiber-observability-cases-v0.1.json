@@ -1,0 +1,135 @@
+{
+  "schema_version": "dark-fiber-observability-cases-v0.1",
+  "evidence_class": "synthetic_geometry_only",
+  "evidence_ceiling": "route_geometry_screening_only_no_sensing_sensitivity_or_leak_detection_claim",
+  "screen_policy": {
+    "name": "synthetic candidate route-screen distance",
+    "max_separation_m": 5,
+    "status": "illustrative policy input not a validated physical sensitivity threshold"
+  },
+  "cases": [
+    {
+      "case_id": "DF0-001-clear-geometric-candidate",
+      "inputs": {
+        "pipe_segment_length_m": 1000,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 1,
+        "separation_uncertainty_m": 0.2,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": false
+      }
+    },
+    {
+      "case_id": "DF0-002-outside-geometric-screen",
+      "inputs": {
+        "pipe_segment_length_m": 1000,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 8,
+        "separation_uncertainty_m": 1,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": false
+      }
+    },
+    {
+      "case_id": "DF0-003-uncertainty-crosses-screen",
+      "inputs": {
+        "pipe_segment_length_m": 500,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 4.8,
+        "separation_uncertainty_m": 0.5,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": false
+      }
+    },
+    {
+      "case_id": "DF0-004-fibre-offline",
+      "inputs": {
+        "pipe_segment_length_m": 500,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 1,
+        "separation_uncertainty_m": 0.2,
+        "fibre_health": "offline",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": true
+      }
+    },
+    {
+      "case_id": "DF0-005-route-map-missing",
+      "inputs": {
+        "pipe_segment_length_m": 750,
+        "route_mapping_valid": false,
+        "minimum_separation_m": null,
+        "separation_uncertainty_m": null,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": false
+      }
+    },
+    {
+      "case_id": "DF0-006-shared-corridor-asset-ambiguity",
+      "inputs": {
+        "pipe_segment_length_m": 1200,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 1.2,
+        "separation_uncertainty_m": 0.2,
+        "fibre_health": "healthy",
+        "asset_attribution": "multiple_assets_same_corridor",
+        "physical_coupling_qualified": true
+      }
+    },
+    {
+      "case_id": "DF0-007-geometric-candidate-but-coupling-unqualified",
+      "inputs": {
+        "pipe_segment_length_m": 900,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 2,
+        "separation_uncertainty_m": 0.4,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": false
+      }
+    },
+    {
+      "case_id": "DF0-008-valid-geometry-and-coupling-but-no-acquisition",
+      "inputs": {
+        "pipe_segment_length_m": 600,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 1,
+        "separation_uncertainty_m": 0.1,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": true,
+        "valid_measurement_acquisition": false
+      }
+    },
+    {
+      "case_id": "DF0-009-valid-geometry-coupling-and-acquisition",
+      "inputs": {
+        "pipe_segment_length_m": 300,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 1.5,
+        "separation_uncertainty_m": 0.2,
+        "fibre_health": "healthy",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": true,
+        "valid_measurement_acquisition": true
+      }
+    },
+    {
+      "case_id": "DF0-010-rayleigh-fading-or-interrogator-quality-fault",
+      "inputs": {
+        "pipe_segment_length_m": 400,
+        "route_mapping_valid": true,
+        "minimum_separation_m": 1,
+        "separation_uncertainty_m": 0.2,
+        "fibre_health": "degraded_signal_quality",
+        "asset_attribution": "unique",
+        "physical_coupling_qualified": true,
+        "valid_measurement_acquisition": false
+      }
+    }
+  ]
+}
