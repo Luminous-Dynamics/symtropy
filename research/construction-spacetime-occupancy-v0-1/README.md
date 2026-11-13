@@ -38,16 +38,16 @@ The scale harness reports insertion and full-conflict-query timings for 10, 100,
 
 ## First synthetic scale baseline
 
-Dedicated Rust 1.96 run [#43380765824](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43380765824), Ubuntu runner, exact head `b1cbfe0f0991e496b521351c180e447d9cb0ec03`:
+Dedicated Rust 1.96 run [#43381165686](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43381165686), Ubuntu runner, exact head `855db67fa91473dc4977b850ec42fcf565430f01`:
 
 | Sparse occupancy records | Insert all records (ms) | One candidate query (ms) | Conflicts |
 |---:|---:|---:|---:|
-| 10 | 0.013 | 0.000 | 0 |
-| 100 | 0.178 | 0.001 | 0 |
-| 1,000 | 7.069 | 0.012 | 0 |
-| 10,000 | 757.243 | 0.147 | 0 |
+| 10 | 0.015 | 0.000 | 0 |
+| 100 | 0.164 | 0.001 | 0 |
+| 1,000 | 4.741 | 0.008 | 0 |
+| 10,000 | 524.295 | 0.105 | 0 |
 
-This is one synthetic run, not a repeated distribution, benchmark leaderboard, deployment SLO or physical-site result. The fixture uses spatially separated AABBs with overlapping time windows. The implementation checks each new insert against the existing occupancy map, so batch insertion exhibits quadratic aggregate work; one candidate conflict query is a linear scan. At 10,000 sparse records, the initial reference implementation remains sub-second on this CI runner, but it needs a spatial/time broad-phase accelerator before being considered for high-rate replanning or much larger site models.
+This is one synthetic run, not a repeated distribution, benchmark leaderboard, deployment SLO or physical-site result. The fixture uses spatially separated AABBs with overlapping time windows. The implementation checks each new insert against the existing occupancy map, so batch insertion exhibits quadratic aggregate work; one candidate conflict query is a linear scan. At 10,000 sparse records, the reference implementation remains sub-second on this CI runner, but it needs a spatial/time broad-phase accelerator before being considered for high-rate replanning or much larger site models.
 
 Next performance work should add warm-up and repeated runs, sparse/dense/adversarial overlap distributions, p50/p95/p99, memory and candidate-pair counts, plus an independently validated indexed alternative. Do not improve latency by shrinking uncertainty/clearance margins or by omitting conflict pairs.
 
