@@ -365,7 +365,9 @@
     "the 2026 multi-source dataset's four source domains (simulation, bench, real vessel, virtual-real fault fusion) are separate evaluation strata",
     "the published 70.18% zero-shot virtual-to-real result remains a literature baseline until dataset bytes, source-domain membership and evaluation protocol are audited",
     "virtual-real superimposed fault data are never represented as observed shipboard fault events",
-    "the article license is not automatically the dataset license; verify dataset access and reuse terms independently"
+    "the article license is not automatically the dataset license; verify dataset access and reuse terms independently",
+    "baseline selector replays the full evidence portfolio from frozen prior, candidates and policy",
+    "caller-edited eligibility or rejected-candidate flags cannot be used to select an evidence probe"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -562,6 +564,11 @@
       "id": "virtual_real_transfer_gain",
       "target": "After matched reproduction, improve zero-shot virtual-to-real accuracy by at least 5 absolute points while maintaining or improving per-fault macro recall, calibration and worst-domain performance.",
       "status": "aspirational"
+    },
+    {
+      "id": "active_selection_portfolio_replay",
+      "target": "Zero baseline selections accepted from a modified or non-replayable eligibility portfolio.",
+      "status": "aspirational"
     }
   ],
   "prohibited_claims": [
@@ -656,7 +663,7 @@
   },
   "active_evidence_selection": {
     "path": "active-evidence-selection-v0.1.json",
-    "schema_version": "liu-ice-active-evidence-selection-v0.6",
+    "schema_version": "liu-ice-active-evidence-selection-v0.7",
     "status": "protocol_only_not_executed",
     "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
     "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
@@ -704,6 +711,14 @@
       "scope": "One fixed selected candidate, likelihood model, calibration review, hypothesis space, scenario set and outcome space per ledger. Switching evidence model or channel requires a new selection and ledger.",
       "genesis_assumption": "p(H,S)=p(H)*p(S)",
       "claim_ceiling": "Source-authored joint posterior mechanics and synthetic fixtures only until exact-head compilation, tests, independent mathematical review and calibrated real likelihood scenarios."
+    },
+    "portfolio_replay": {
+      "status": "source_contract_implemented_ci_pending",
+      "full_policy_retained": true,
+      "replays_rank_diagnostic_probes_before_baseline_selection": true,
+      "rejects_forged_eligibility_flags": true,
+      "error": "SelectionReplayMismatch",
+      "limitation": "deterministic integrity only; not signer or code authenticity"
     }
   },
   "streaming_contract": {
