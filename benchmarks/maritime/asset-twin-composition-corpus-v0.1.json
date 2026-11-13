@@ -1,0 +1,639 @@
+{
+  "corpus_id": "luminous.symtropy.maritime-asset-twin-composition",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "A synthetic composition case expected to be contract-valid is not commissioned, a physical twin, a quality acceptance, a safety certificate or an operational authority.",
+  "base_composition": {
+    "composition_id": "synthetic-maritime-federation-v0",
+    "fixture_kind": "synthetic_fixture",
+    "composition_mode": "federated",
+    "evaluation_cutoff_utc": "2026-11-09T12:00:00Z",
+    "subject": {
+      "asset_id": "SYNTH-VESSEL-001",
+      "component_id": "SYNTH-PUMP-001",
+      "serial_id": "SYNTH-SERIAL-001",
+      "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+      "state_class": "as_built",
+      "configuration_revision": "cfg-03",
+      "effectivity_start_utc": "2026-01-01T00:00:00Z",
+      "effectivity_end_utc": null
+    },
+    "federates": [
+      {
+        "federate_id": "plm",
+        "system_role": "product_definition",
+        "system_of_record": true,
+        "owner": "ship_design_authority_synthetic",
+        "record_id": "PLM-001",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "schema_revision": "plm-0.1",
+        "state_class": "as_designed",
+        "source_time_utc": "2026-11-09T10:00:00Z",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_to_utc": null,
+        "transaction_time_utc": "2026-11-09T10:00:03Z",
+        "retrieved_at_utc": "2026-11-09T10:00:05Z",
+        "update_interval_s": 3600,
+        "approval": {
+          "status": "approved",
+          "issuer": "synthetic-engineering-authority",
+          "role": "design_authority",
+          "scope": "design_baseline:cfg-03",
+          "expires_at_utc": "2027-01-01T00:00:00Z",
+          "revocation_ref": null
+        },
+        "field_ownership": "owner_writable",
+        "projection_write_mode": "read_only",
+        "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      },
+      {
+        "federate_id": "mes",
+        "system_role": "manufacturing_execution",
+        "system_of_record": true,
+        "owner": "shipyard_synthetic",
+        "record_id": "MES-004",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "schema_revision": "mes-0.1",
+        "state_class": "as_manufactured",
+        "source_time_utc": "2026-11-08T12:01:00Z",
+        "valid_from_utc": "2026-11-08T08:00:00Z",
+        "valid_to_utc": null,
+        "transaction_time_utc": "2026-11-09T11:57:30Z",
+        "retrieved_at_utc": "2026-11-09T11:58:00Z",
+        "update_interval_s": 86400,
+        "approval": {
+          "status": "recorded",
+          "issuer": "synthetic-shipyard",
+          "role": "manufacturing_record_owner",
+          "scope": "process_lot:LOT-01",
+          "expires_at_utc": null,
+          "revocation_ref": null
+        },
+        "field_ownership": "owner_writable",
+        "projection_write_mode": "read_only",
+        "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      },
+      {
+        "federate_id": "qms",
+        "system_role": "quality_inspection",
+        "system_of_record": true,
+        "owner": "inspection_provider_synthetic",
+        "record_id": "QMS-007",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "schema_revision": "qms-0.1",
+        "state_class": "as_inspected",
+        "source_time_utc": "2026-11-08T12:00:00Z",
+        "valid_from_utc": "2026-11-08T12:00:00Z",
+        "valid_to_utc": null,
+        "transaction_time_utc": "2026-11-09T11:58:30Z",
+        "retrieved_at_utc": "2026-11-09T11:59:00Z",
+        "update_interval_s": 86400,
+        "approval": {
+          "status": "accepted",
+          "issuer": "synthetic-inspector",
+          "role": "qualified_inspector",
+          "scope": "inspection_record:QMS-007",
+          "expires_at_utc": "2026-12-01T00:00:00Z",
+          "revocation_ref": null
+        },
+        "field_ownership": "owner_writable",
+        "projection_write_mode": "read_only",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      },
+      {
+        "federate_id": "eam",
+        "system_role": "maintenance_asset",
+        "system_of_record": true,
+        "owner": "vessel_operator_synthetic",
+        "record_id": "EAM-002",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "schema_revision": "eam-0.1",
+        "state_class": "as_built",
+        "source_time_utc": "2026-11-09T09:00:00Z",
+        "valid_from_utc": "2026-11-09T09:00:00Z",
+        "valid_to_utc": null,
+        "transaction_time_utc": "2026-11-09T11:59:00Z",
+        "retrieved_at_utc": "2026-11-09T11:59:30Z",
+        "update_interval_s": 86400,
+        "approval": {
+          "status": "recorded",
+          "issuer": "synthetic-vessel-operator",
+          "role": "asset_record_owner",
+          "scope": "asset_instance:SYNTH-PUMP-001",
+          "expires_at_utc": null,
+          "revocation_ref": null
+        },
+        "field_ownership": "owner_writable",
+        "projection_write_mode": "read_only",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      }
+    ],
+    "relationships": [
+      {
+        "relationship_id": "r1",
+        "from_federate": "plm",
+        "to_federate": "mes",
+        "kind": "manufactured_from_design",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      },
+      {
+        "relationship_id": "r2",
+        "from_federate": "mes",
+        "to_federate": "qms",
+        "kind": "inspected_manufactured_item",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      },
+      {
+        "relationship_id": "r3",
+        "from_federate": "qms",
+        "to_federate": "eam",
+        "kind": "accepted_for_installation",
+        "subject_id": "SYNTH-PUMP-001",
+        "configuration_revision": "cfg-03",
+        "asset_id": "SYNTH-VESSEL-001",
+        "parent_assembly_id": "SYNTH-ENGINE-ROOM-001",
+        "serial_id": "SYNTH-SERIAL-001"
+      }
+    ],
+    "mappings": [
+      {
+        "mapping_id": "m1",
+        "source_federate": "plm",
+        "source_field": "part_revision",
+        "target_field": "design_revision",
+        "mapping_state": "exact",
+        "transform_revision": "map-0.1",
+        "parent_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "mapping_id": "m2",
+        "source_federate": "mes",
+        "source_field": "manufacturing_lot",
+        "target_field": "process_lot",
+        "mapping_state": "normalized",
+        "transform_revision": "map-0.1",
+        "parent_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "mapping_id": "m3",
+        "source_federate": "qms",
+        "source_field": "inspection_disposition",
+        "target_field": "inspection_state",
+        "mapping_state": "exact",
+        "transform_revision": "map-0.1",
+        "parent_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    ],
+    "commissioning": {
+      "required_federates": [
+        "plm",
+        "mes",
+        "qms",
+        "eam"
+      ],
+      "max_source_age_s": 86400,
+      "max_update_latency_s": 3600,
+      "required_projection_write_mode": "read_only",
+      "required_mapping_state": "exact_or_normalized",
+      "allow_missing_required_fields": false,
+      "clock_skew_tolerance_s": 5,
+      "revocation_check_required": true
+    },
+    "projection": {
+      "projection_id": "sol-atlas-readonly-v0",
+      "projection_owner": "sol-atlas-synthetic",
+      "source_state_writeback": false,
+      "projected_state_class": "as_built",
+      "projection_revision": "projection-0.1"
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_readonly_federation",
+      "base": "valid_federated_read_only",
+      "mutations": [],
+      "expected_code": "COMPOSITION_CONTRACT_VALID_NOT_COMMISSIONED"
+    },
+    {
+      "id": "wrong_asset_subject",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.asset_id",
+          "op": "set",
+          "value": "SYNTH-VESSEL-OTHER"
+        }
+      ],
+      "expected_code": "IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_component_serial",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "subject.serial_id",
+          "op": "set",
+          "value": "SYNTH-SERIAL-OTHER"
+        }
+      ],
+      "expected_code": "IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_design_revision",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.1.configuration_revision",
+          "op": "set",
+          "value": "cfg-02"
+        }
+      ],
+      "expected_code": "CONFIGURATION_MISMATCH"
+    },
+    {
+      "id": "effectivity_begins_after_decision",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "subject.effectivity_start_utc",
+          "op": "set",
+          "value": "2027-01-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "EFFECTIVITY_NOT_VALID_AT_CUTOFF"
+    },
+    {
+      "id": "expired_effectivity",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "subject.effectivity_end_utc",
+          "op": "set",
+          "value": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "EFFECTIVITY_EXPIRED"
+    },
+    {
+      "id": "non_system_owner_marked_authoritative",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.1.system_of_record",
+          "op": "set",
+          "value": false
+        },
+        {
+          "path": "federates.1.field_ownership",
+          "op": "set",
+          "value": "owner_writable"
+        }
+      ],
+      "expected_code": "SOURCE_OWNERSHIP_CONFLICT"
+    },
+    {
+      "id": "projection_can_write_to_source",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.0.projection_write_mode",
+          "op": "set",
+          "value": "read_write"
+        }
+      ],
+      "expected_code": "PROJECTION_WRITEBACK_FORBIDDEN"
+    },
+    {
+      "id": "synthetic_projection_claims_as_operated",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "projection.projected_state_class",
+          "op": "set",
+          "value": "as_operated"
+        }
+      ],
+      "expected_code": "STATE_CLASS_PROMOTION_FORBIDDEN"
+    },
+    {
+      "id": "retrieval_time_recent_source_time_stale",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.1.source_time_utc",
+          "op": "set",
+          "value": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "SOURCE_STALE"
+    },
+    {
+      "id": "event_time_and_retrieval_time_conflated",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.source_time_utc",
+          "op": "set",
+          "value": "2026-11-09T11:59:00Z"
+        },
+        {
+          "path": "federates.2.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-08T12:00:00Z"
+        }
+      ],
+      "expected_code": "TEMPORAL_ROLE_INCONSISTENCY"
+    },
+    {
+      "id": "duplicate_event_record",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.3.record_id",
+          "op": "set",
+          "value": "QMS-007"
+        }
+      ],
+      "expected_code": "DUPLICATE_RECORD_ID"
+    },
+    {
+      "id": "out_of_order_revision_resurrected",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.3.configuration_revision",
+          "op": "set",
+          "value": "cfg-02"
+        }
+      ],
+      "expected_code": "SUPERSEDED_REVISION"
+    },
+    {
+      "id": "revoked_quality_approval",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.approval.status",
+          "op": "set",
+          "value": "revoked"
+        },
+        {
+          "path": "federates.2.approval.revocation_ref",
+          "op": "set",
+          "value": "revoke-009"
+        }
+      ],
+      "expected_code": "APPROVAL_REVOKED"
+    },
+    {
+      "id": "approval_scope_wrong",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.approval.scope",
+          "op": "set",
+          "value": "asset_instance:SYNTH-PUMP-002"
+        }
+      ],
+      "expected_code": "AUTHORITY_SCOPE_MISMATCH"
+    },
+    {
+      "id": "approval_expired",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.approval.expires_at_utc",
+          "op": "set",
+          "value": "2026-11-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "APPROVAL_EXPIRED"
+    },
+    {
+      "id": "digest_is_not_source_authenticity",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.0.approval.status",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "SOURCE_AUTHENTICITY_UNKNOWN"
+    },
+    {
+      "id": "lossy_mapping_labelled_exact",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "mappings.1.mapping_state",
+          "op": "set",
+          "value": "lossy"
+        }
+      ],
+      "expected_code": "REQUIRED_MAPPING_NOT_EXACT_OR_NORMALIZED"
+    },
+    {
+      "id": "unsupported_required_field_dropped",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "mappings.2.mapping_state",
+          "op": "set",
+          "value": "unsupported"
+        }
+      ],
+      "expected_code": "REQUIRED_MAPPING_UNSUPPORTED"
+    },
+    {
+      "id": "projection_revision_unpinned",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "projection.projection_revision",
+          "op": "set",
+          "value": "latest"
+        }
+      ],
+      "expected_code": "MUTABLE_PROJECTION_REVISION"
+    },
+    {
+      "id": "duplicate_relationship",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "relationships.2.relationship_id",
+          "op": "set",
+          "value": "r1"
+        }
+      ],
+      "expected_code": "DUPLICATE_RELATIONSHIP_ID"
+    },
+    {
+      "id": "broken_component_lineage",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "relationships.1.subject_id",
+          "op": "set",
+          "value": "SYNTH-PUMP-002"
+        }
+      ],
+      "expected_code": "RELATIONSHIP_SUBJECT_MISMATCH"
+    },
+    {
+      "id": "source_federate_missing",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "commissioning.required_federates",
+          "op": "set",
+          "value": [
+            "plm",
+            "mes",
+            "qms",
+            "eam",
+            "hydro"
+          ]
+        }
+      ],
+      "expected_code": "REQUIRED_FEDERATE_MISSING"
+    },
+    {
+      "id": "federate_outage_without_stale_state",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-07T12:00:00Z"
+        }
+      ],
+      "expected_code": "SOURCE_STALE"
+    },
+    {
+      "id": "clock_skew_exceeds_tolerance",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.3.transaction_time_utc",
+          "op": "set",
+          "value": "2026-11-09T12:10:00Z"
+        }
+      ],
+      "expected_code": "CLOCK_SKEW_EXCEEDED"
+    },
+    {
+      "id": "update_latency_exceeded",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.1.transaction_time_utc",
+          "op": "set",
+          "value": "2026-11-09T10:00:00Z"
+        }
+      ],
+      "expected_code": "UPDATE_LATENCY_EXCEEDED"
+    },
+    {
+      "id": "maintenance_repair_without_reinspection",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.3.state_class",
+          "op": "set",
+          "value": "as_maintained"
+        },
+        {
+          "path": "relationships.2.kind",
+          "op": "set",
+          "value": "repair_completed"
+        }
+      ],
+      "expected_code": "POST_MAINTENANCE_EVIDENCE_MISSING"
+    },
+    {
+      "id": "replacement_without_supersession_lineage",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.3.subject_id",
+          "op": "set",
+          "value": "SYNTH-PUMP-REPLACEMENT"
+        }
+      ],
+      "expected_code": "REPLACEMENT_LINEAGE_MISSING"
+    },
+    {
+      "id": "asset_state_conflict_between_qms_and_eam",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.3.configuration_revision",
+          "op": "set",
+          "value": "cfg-04"
+        }
+      ],
+      "expected_code": "FEDERATE_STATE_CONFLICT"
+    },
+    {
+      "id": "simulated_state_writeback_attempt",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "projection.source_state_writeback",
+          "op": "set",
+          "value": true
+        }
+      ],
+      "expected_code": "SYNTHETIC_WRITEBACK_FORBIDDEN"
+    },
+    {
+      "id": "wrong_federate_serial",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "federates.2.serial_id",
+          "op": "set",
+          "value": "SYNTH-SERIAL-OTHER"
+        }
+      ],
+      "expected_code": "IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_parent_assembly_lineage",
+      "base": "valid_federated_read_only",
+      "mutations": [
+        {
+          "path": "relationships.1.parent_assembly_id",
+          "op": "set",
+          "value": "SYNTH-ENGINE-ROOM-OTHER"
+        }
+      ],
+      "expected_code": "RELATIONSHIP_SUBJECT_MISMATCH"
+    }
+  ]
+}

@@ -1,0 +1,587 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime-asset-twin-composition-v0.1.schema.json",
+  "title": "Maritime Asset Twin Composition Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_composition",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.maritime-asset-twin-composition"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_composition": {
+      "$ref": "#/$defs/composition"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 32,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "nullableDate": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "federate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "federate_id",
+        "system_role",
+        "system_of_record",
+        "owner",
+        "record_id",
+        "subject_id",
+        "configuration_revision",
+        "schema_revision",
+        "state_class",
+        "source_time_utc",
+        "valid_from_utc",
+        "valid_to_utc",
+        "transaction_time_utc",
+        "retrieved_at_utc",
+        "update_interval_s",
+        "approval",
+        "field_ownership",
+        "projection_write_mode",
+        "artifact_sha256",
+        "asset_id",
+        "parent_assembly_id",
+        "serial_id"
+      ],
+      "properties": {
+        "federate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_role": {
+          "enum": [
+            "product_definition",
+            "manufacturing_execution",
+            "quality_inspection",
+            "maintenance_asset",
+            "spatial_projection",
+            "authority_registry",
+            "other"
+          ]
+        },
+        "system_of_record": {
+          "type": "boolean"
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state_class": {
+          "enum": [
+            "as_designed",
+            "as_manufactured",
+            "as_inspected",
+            "as_built",
+            "as_commissioned",
+            "as_operated",
+            "as_maintained",
+            "inferred",
+            "synthetic"
+          ]
+        },
+        "source_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_from_utc": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "valid_to_utc": {
+          "$ref": "#/$defs/nullableDate"
+        },
+        "transaction_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "update_interval_s": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "approval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "issuer",
+            "role",
+            "scope",
+            "expires_at_utc",
+            "revocation_ref"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "approved",
+                "accepted",
+                "recorded",
+                "unknown",
+                "expired",
+                "revoked",
+                "pending"
+              ]
+            },
+            "issuer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expires_at_utc": {
+              "$ref": "#/$defs/nullableDate"
+            },
+            "revocation_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "field_ownership": {
+          "enum": [
+            "owner_writable",
+            "read_only_consumer",
+            "shared_contract"
+          ]
+        },
+        "projection_write_mode": {
+          "enum": [
+            "read_only",
+            "read_write",
+            "none"
+          ]
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationship_id",
+        "from_federate",
+        "to_federate",
+        "kind",
+        "subject_id",
+        "configuration_revision",
+        "asset_id",
+        "parent_assembly_id",
+        "serial_id"
+      ],
+      "properties": {
+        "relationship_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_federate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_federate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "manufactured_from_design",
+            "inspected_manufactured_item",
+            "accepted_for_installation",
+            "installed_as",
+            "replaced_by",
+            "repair_completed",
+            "maintained_from",
+            "other"
+          ]
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapping_id",
+        "source_federate",
+        "source_field",
+        "target_field",
+        "mapping_state",
+        "transform_revision",
+        "parent_digest"
+      ],
+      "properties": {
+        "mapping_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_federate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_state": {
+          "enum": [
+            "exact",
+            "normalized",
+            "lossy",
+            "unsupported"
+          ]
+        },
+        "transform_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "composition_id",
+        "fixture_kind",
+        "composition_mode",
+        "evaluation_cutoff_utc",
+        "subject",
+        "federates",
+        "relationships",
+        "mappings",
+        "commissioning",
+        "projection"
+      ],
+      "properties": {
+        "composition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "composition_mode": {
+          "enum": [
+            "integrated",
+            "unified",
+            "federated"
+          ]
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_id",
+            "component_id",
+            "serial_id",
+            "parent_assembly_id",
+            "state_class",
+            "configuration_revision",
+            "effectivity_start_utc",
+            "effectivity_end_utc"
+          ],
+          "properties": {
+            "asset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "serial_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "parent_assembly_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state_class": {
+              "enum": [
+                "as_designed",
+                "as_manufactured",
+                "as_inspected",
+                "as_built",
+                "as_commissioned",
+                "as_operated",
+                "as_maintained",
+                "inferred",
+                "synthetic"
+              ]
+            },
+            "configuration_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "effectivity_start_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "effectivity_end_utc": {
+              "$ref": "#/$defs/nullableDate"
+            }
+          }
+        },
+        "federates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/federate"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationship"
+          }
+        },
+        "mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mapping"
+          }
+        },
+        "commissioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required_federates",
+            "max_source_age_s",
+            "max_update_latency_s",
+            "required_projection_write_mode",
+            "required_mapping_state",
+            "allow_missing_required_fields",
+            "clock_skew_tolerance_s",
+            "revocation_check_required"
+          ],
+          "properties": {
+            "required_federates": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "max_source_age_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_update_latency_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required_projection_write_mode": {
+              "const": "read_only"
+            },
+            "required_mapping_state": {
+              "const": "exact_or_normalized"
+            },
+            "allow_missing_required_fields": {
+              "const": false
+            },
+            "clock_skew_tolerance_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "revocation_check_required": {
+              "const": true
+            }
+          }
+        },
+        "projection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "projection_id",
+            "projection_owner",
+            "source_state_writeback",
+            "projected_state_class",
+            "projection_revision"
+          ],
+          "properties": {
+            "projection_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "projection_owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_state_writeback": {
+              "const": false
+            },
+            "projected_state_class": {
+              "enum": [
+                "as_designed",
+                "as_manufactured",
+                "as_inspected",
+                "as_built",
+                "as_commissioned",
+                "as_operated",
+                "as_maintained",
+                "inferred",
+                "synthetic"
+              ]
+            },
+            "projection_revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "enum": [
+            "set",
+            "remove",
+            "insert"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "const": "valid_federated_read_only"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
