@@ -1219,8 +1219,8 @@ mod tests {
     #[test]
     fn independent_resources_can_be_reserved_in_parallel() {
         let floor = floor_binding();
-        let mut book = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
-            .expect("reservation book");
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
         book.register_resource("HOIST-1", 1).expect("hoist");
         book.register_resource("PUMP-1", 1).expect("pump");
 
