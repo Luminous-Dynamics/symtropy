@@ -160,5 +160,28 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "membrane_fouling": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+    "dataset_crosswalk_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4996",
+    "register": "research/water-service-engineering/membrane-dataset-admission-v0.1.json",
+    "schema": "research/water-service-engineering/membrane-dataset-admission.schema.json",
+    "crosswalk": "research/water-service-engineering/MEMBRANE_FOULING_DATASET_CROSSWALK_V0_1.md",
+    "status": "metadata_crosswalk_and_synthetic_RO_transport_M0_contract_only",
+    "datasets": [
+      "BRISTOL_POU_UF_34M",
+      "BRISTOL_POU_WQ_12W",
+      "MOROCCO_RO_SCADA_6Y",
+      "ARMSTRONG_RO_CROSSFLOW_2022"
+    ],
+    "m0": {
+      "manifest": "research/water-service-engineering/membrane-ro-m0-manifest-v0.1.json",
+      "inputs": "research/water-service-engineering/membrane-ro-m0-cases-v0.1.json",
+      "oracle": "research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json",
+      "schema": "research/water-service-engineering/membrane-ro-m0.schema.json",
+      "cli": "tools/water-service-t0/src/bin/membrane-ro-m0.rs",
+      "status": "synthetic_transport_arithmetic_only"
+    },
+    "evidence_ceiling": "no_raw_dataset_file_acquired_no_fouling_model_or_cleaning_performance_claim"
   }
 }
