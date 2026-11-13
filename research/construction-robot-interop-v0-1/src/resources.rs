@@ -819,6 +819,36 @@ mod tests {
     }
 
     #[test]
+    fn multi_resolution_index_selects_the_finest_bounded_level() {
+        assert_eq!(reservation_time_bucket_level(10, 20), Some(0));
+        assert_eq!(reservation_time_bucket_level(10, 5_000_010), Some(1));
+        assert_eq!(reservation_time_bucket_level(10, 100_000_010), Some(2));
+        assert_eq!(reservation_time_bucket_level(10, 300_000_010), Some(3));
+        assert_eq!(reservation_time_bucket_level(10, 3_000_000_010), None);
+
+        let mut book = book(100);
+        let requests = [
+            request("level-0", "robot-0", 10, 20, 100, 1),
+            request("level-1", "robot-1", 10, 5_000_010, 5_001_000, 1),
+            request("level-2", "robot-2", 10, 100_000_010, 100_001_000, 1),
+            request("level-3", "robot-3", 10, 300_000_010, 300_001_000, 1),
+        ];
+        for item in requests {
+            book.reserve(item, 0).expect("multi-resolution reservation");
+        }
+
+        for reservation_id in ["level-0", "level-1", "level-2", "level-3"] {
+            let record = book
+                .reservations
+                .get(reservation_id)
+                .expect("indexed reservation exists");
+            let start = record.request.interval_start_ms;
+            let end = record.request.interval_end_ms;
+            assert_index_contains_every_exact_overlap(&book, "work-zone-A", start, end);
+        }
+    }
+
+    #[test]
     fn long_reservations_use_per_resource_global_fallback() {
         let mut book = book(10);
         let long_end =
@@ -858,11 +888,11 @@ mod tests {
             book.candidate_count_for_interval("work-zone-B", 100, 200),
             Ok(1)
         );
-        // Same 60-second bucket yields one broad-phase false positive; the exact
-        // full-scan oracle confirms that the half-open intervals do not overlap.
+        // A one-second bucket separates this remote interval; exact and indexed
+        // queries both return no candidate.
         assert_eq!(
             book.candidate_count_for_interval("work-zone-A", 10_000, 20_000),
-            Ok(1)
+            Ok(0)
         );
         assert_eq!(
             book.reference_candidate_count_for_interval("work-zone-A", 10_000, 20_000),
