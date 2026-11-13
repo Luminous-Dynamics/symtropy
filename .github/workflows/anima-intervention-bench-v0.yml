@@ -1,0 +1,35 @@
+name: ANIMA Intervention Benchmark
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/anima-intervention-bench-v0/**"
+      - ".github/workflows/anima-intervention-bench-v0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anima-intervention-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-source-tests:
+    name: Isolated intervention benchmark tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/anima-intervention-bench-v0/Cargo.toml -- --check
+      - name: Run benchmark contract tests
+        run: cargo test --manifest-path research/anima-intervention-bench-v0/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/anima-intervention-bench-v0/Cargo.toml --locked --all-targets -- -D warnings
