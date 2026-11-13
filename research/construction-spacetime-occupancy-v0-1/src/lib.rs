@@ -49,8 +49,10 @@ pub struct Bounds3Mm {
 
 impl Bounds3Mm {
     fn validate(&self) -> Result<(), SpatialError> {
-        for axis in 0..3 {
-            if self.min[axis] >= self.max[axis] {
+        for (axis, (minimum, maximum)) in
+            self.min.iter().zip(self.max.iter()).enumerate()
+        {
+            if minimum >= maximum {
                 return Err(SpatialError::InvalidBounds { axis });
             }
         }
@@ -66,16 +68,22 @@ impl Bounds3Mm {
         let mut min = self.min;
         let mut max = self.max;
 
-        for axis in 0..3 {
-            let total_margin = uncertainty_mm[axis]
-                .checked_add(clearance_mm[axis])
+        for (axis, ((minimum, maximum), (uncertainty, clearance))) in self
+            .min
+            .iter()
+            .zip(self.max.iter())
+            .zip(uncertainty_mm.iter().zip(clearance_mm.iter()))
+            .enumerate()
+        {
+            let total_margin = uncertainty
+                .checked_add(*clearance)
                 .ok_or(SpatialError::ExpansionOverflow { axis })?;
             let margin = i64::try_from(total_margin)
                 .map_err(|_| SpatialError::ExpansionOverflow { axis })?;
-            min[axis] = min[axis]
+            min[axis] = minimum
                 .checked_sub(margin)
                 .ok_or(SpatialError::ExpansionOverflow { axis })?;
-            max[axis] = max[axis]
+            max[axis] = maximum
                 .checked_add(margin)
                 .ok_or(SpatialError::ExpansionOverflow { axis })?;
         }
@@ -86,17 +94,20 @@ impl Bounds3Mm {
     /// Closed spatial intersection: touching expanded boundaries are a potential
     /// conflict. This conservative policy is not a physical collision verdict.
     fn intersection_closed(&self, other: &Self) -> Option<Self> {
-        let mut min = [0_i64; 3];
-        let mut max = [0_i64; 3];
-
-        for axis in 0..3 {
-            min[axis] = self.min[axis].max(other.min[axis]);
-            max[axis] = self.max[axis].min(other.max[axis]);
-            if min[axis] > max[axis] {
-                return None;
-            }
+        let separated = self
+            .min
+            .iter()
+            .zip(self.max.iter())
+            .zip(other.min.iter().zip(other.max.iter()))
+            .any(|((left_min, left_max), (right_min, right_max))| {
+                left_min > right_max || right_min > left_max
+            });
+        if separated {
+            return None;
         }
 
+        let min = std::array::from_fn(|axis| self.min[axis].max(other.min[axis]));
+        let max = std::array::from_fn(|axis| self.max[axis].min(other.max[axis]));
         Some(Self { min, max })
     }
 }
@@ -199,6 +210,8 @@ impl SpatialOccupancyBook {
         require_non_empty("occupancy_id", &occupancy.occupancy_id)?;
         require_non_empty("task_id", &occupancy.task_id)?;
         require_non_empty("reservation_id", &occupancy.reservation.reservation_id)?;
+        require_non_empty("reservation_resource_id", &occupancy.reservation.resource_id)?;
+        require_non_empty("reservation_owner_id", &occupancy.reservation.owner_id)?;
         require_non_empty("reservation_task_id", &occupancy.reservation.task_id)?;
         require_non_empty("reservation_site_epoch", &occupancy.reservation.site_epoch)?;
         require_non_empty("reservation_clock_domain_id", &occupancy.reservation.clock_domain_id)?;
@@ -590,7 +603,7 @@ mod tests {
             "task-second",
             OccupancyKind::MaterialStaging,
             bounds([0, 0, 0], [1_000, 1_000, 1_000]),
-            110,
+            109,
             200,
         );
         second.reservation.clock_uncertainty_ms = 10;
