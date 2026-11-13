@@ -301,9 +301,14 @@ fn check_component(
         }
     }
 
-    // A matching clock domain is not enough by itself: the mapping uncertainty
-    // still has to be declared and checked against the task profile above.
-    let _same_clock_domain = component.clock_domain == profile.clock_domain;
+    // Different clock domains require an explicit mapping. If a threshold is
+    // configured above, the uncertainty is also checked against that bound.
+    if component.clock_domain != profile.clock_domain
+        && component.clock_mapping_uncertainty_ns.is_none()
+        && requirement.maximum_clock_uncertainty_ns.is_none()
+    {
+        add_failure(failures, id, FailureReason::ClockMappingUnknown, required);
+    }
 }
 
 fn detect_common_cause_dependencies(
@@ -509,11 +514,12 @@ fn readiness_fingerprint(
     feed(task_id.as_bytes());
     feed(profile_revision.as_bytes());
     feed(&evaluated_at_ns.to_le_bytes());
-    feed(match status {
+    let status_bytes: &[u8] = match status {
         ReadinessStatus::Ready => b"READY",
         ReadinessStatus::Degraded => b"DEGRADED",
         ReadinessStatus::NotReady => b"NOT_READY",
-    });
+    };
+    feed(status_bytes);
 
     for component_id in evaluated_components {
         feed(component_id.as_bytes());
@@ -579,9 +585,6 @@ mod tests {
         authority: &str,
         output_scope: &str,
         required: bool,
-        maximum_sample_interval_ns: u64,
-        maximum_update_interval_ns: u64,
-        maximum_p99_latency_ns: u64,
     ) -> ComponentRequirement {
         ComponentRequirement {
             component_id: id.to_owned(),
@@ -589,10 +592,10 @@ mod tests {
             authority: authority.to_owned(),
             output_scope: output_scope.to_owned(),
             required,
-            maximum_sample_interval_ns: Some(maximum_sample_interval_ns),
-            maximum_update_interval_ns: Some(maximum_update_interval_ns),
+            maximum_sample_interval_ns: Some(100_000_000),
+            maximum_update_interval_ns: Some(200_000_000),
             maximum_data_age_ns: Some(1_000_000_000),
-            maximum_p99_latency_ns: Some(maximum_p99_latency_ns),
+            maximum_p99_latency_ns: Some(300_000_000),
             maximum_clock_uncertainty_ns: Some(10_000),
             expected_coordinate_frame: None,
             maximum_registration_error_um: None,
@@ -609,10 +612,10 @@ mod tests {
             "scan-observation",
             "interpass-surface-geometry",
             true,
-            20_000_000,
-            100_000_000,
-            200_000_000,
         );
+        scan.maximum_sample_interval_ns = Some(20_000_000);
+        scan.maximum_update_interval_ns = Some(100_000_000);
+        scan.maximum_p99_latency_ns = Some(200_000_000);
         scan.expected_coordinate_frame = Some("welding_reference_frame".to_owned());
         scan.maximum_registration_error_um = Some(500);
         scan.minimum_coverage_permille = Some(980);
@@ -626,35 +629,38 @@ mod tests {
             independent_sources_required: false,
             requirements: vec![
                 scan,
-                requirement(
-                    "robot-tcp",
-                    "robot-owner",
-                    "robot-observation",
-                    "robot-pose",
-                    true,
-                    8_000_000,
-                    20_000_000,
-                    50_000_000,
-                ),
-                requirement(
-                    "process-iv",
-                    "weld-power-owner",
-                    "process-observation",
-                    "voltage-current",
-                    true,
-                    100_000,
-                    1_000_000,
-                    2_000_000,
-                ),
+                {
+                    let mut requirement = requirement(
+                        "robot-tcp",
+                        "robot-owner",
+                        "robot-observation",
+                        "robot-pose",
+                        true,
+                    );
+                    requirement.maximum_sample_interval_ns = Some(8_000_000);
+                    requirement.maximum_update_interval_ns = Some(20_000_000);
+                    requirement.maximum_p99_latency_ns = Some(50_000_000);
+                    requirement
+                },
+                {
+                    let mut requirement = requirement(
+                        "process-iv",
+                        "weld-power-owner",
+                        "process-observation",
+                        "voltage-current",
+                        true,
+                    );
+                    requirement.maximum_sample_interval_ns = Some(100_000);
+                    requirement.maximum_update_interval_ns = Some(1_000_000);
+                    requirement.maximum_p99_latency_ns = Some(2_000_000);
+                    requirement
+                },
                 requirement(
                     "power-source-opcua",
                     "power-source-owner",
                     "equipment-observation",
                     "power-source-state",
                     true,
-                    100_000_000,
-                    200_000_000,
-                    300_000_000,
                 ),
             ],
         }
@@ -864,16 +870,16 @@ mod tests {
     #[test]
     fn optional_component_failure_degrades_but_does_not_mark_not_ready() {
         let mut profile = interpass_profile();
-        let optional = requirement(
+        let mut optional = requirement(
             "optional-video",
             "video-owner",
             "video-observation",
             "weld-pool-video",
             false,
-            25_000_000,
-            50_000_000,
-            200_000_000,
         );
+        optional.maximum_sample_interval_ns = Some(25_000_000);
+        optional.maximum_update_interval_ns = Some(50_000_000);
+        optional.maximum_p99_latency_ns = Some(200_000_000);
         profile.requirements.push(optional);
         let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::Degraded);
