@@ -46,7 +46,7 @@ The independent replay should reproduce: 5 eligible options, 2 threshold-ready o
 - `docs/tech/SHIPYARD_ACTIVE_METROLOGY_V0_1.schema.json`: Draft 2020-12 input contract.
 - `benchmarks/shipyard/active-metrology/corpus-v0.1.json`: frozen known-answer case.
 - Focused CI: Rust 1.96 format, unit tests and Clippy with warnings denied.
-- 24 tests cover threshold handling, Pareto output, scan/registration digest binding, stale identity, profile revision and output, profile qualification/evidence/domain, capability underclaim, non-reduction, resource/access constraints, already-observed/future/live-action denial, duplicate identities and immutable thresholds.
+- 26 tests cover threshold handling, Pareto output, scan/registration digest binding, stale identity, profile revision and output, profile qualification/evidence/domain, capability underclaim, non-reduction, resource/access constraints, already-observed/future/live-action denial, duplicate identities and immutable thresholds.
 
 ## Integration
 
@@ -59,3 +59,8 @@ The independent replay should reproduce: 5 eligible options, 2 threshold-ready o
 ## Claim ceiling
 
 PASS establishes deterministic selection of synthetic measurement options under the stated contract. It does not establish scanner accuracy, a real measurement uncertainty, physical residual-fill accuracy, weld quality, WPS qualification or permission to execute a robot or weld action.
+
+
+## Independent replay
+
+The frozen JSON known-answer corpus has 5 eligible options, 2 threshold-ready options and a 4-option Pareto set. The SLOW-DOMINATED candidate is eligible but dominated. The Rust unit tests use the same symbolic objective vectors; the repository corpus remains fully bound to the WID, joint, layer, predecessor, scan and registration receipt.
