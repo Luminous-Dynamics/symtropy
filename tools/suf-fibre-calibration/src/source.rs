@@ -27,6 +27,8 @@ pub enum SourceEnvelopeError {
     IncompleteDerivativeLineage,
     /// A derivative was incorrectly marked as vendor-native.
     DerivativeMarkedNative,
+    /// The phenomenon belongs to a distinct sensing modality, not this DAS envelope.
+    UnsupportedPhenomenon,
 }
 
 impl fmt::Display for SourceEnvelopeError {
