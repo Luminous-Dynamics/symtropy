@@ -1,0 +1,682 @@
+{
+  "schema_version": "loco-coupled-frontier-known-answers-v0.1",
+  "coordinate_order": "Lexicographic by stable axis_id. Coordinates are integer uncertainty-set severity levels, not raw unqualified SI parameters.",
+  "interpretation": "Synthetic finite result tables. Oracle statuses are stipulated known answers.",
+  "statuses": [
+    "viable",
+    "nonviable",
+    "unknown",
+    "invalid"
+  ],
+  "fixtures": [
+    {
+      "id": "A-2d-staircase-interaction",
+      "axes": [
+        {
+          "axis_id": "friction_degradation",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens friction-loss set"
+        },
+        {
+          "axis_id": "impact_bound",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens contact-impact set"
+        }
+      ],
+      "identity": {
+        "model": "model-A",
+        "abstraction": "abstraction-A",
+        "morphology": "robot-A",
+        "controller": "controller-A",
+        "horizon_steps": 12,
+        "oracle": "finite-robust-oracle-A"
+      },
+      "samples": [
+        {
+          "theta": [
+            0,
+            0
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            0,
+            1
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            0,
+            2
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            1,
+            0
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            1,
+            1
+          ],
+          "viability": "viable",
+          "recovery": "nonviable"
+        },
+        {
+          "theta": [
+            1,
+            2
+          ],
+          "viability": "nonviable",
+          "recovery": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            0
+          ],
+          "viability": "viable",
+          "recovery": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            1
+          ],
+          "viability": "nonviable",
+          "recovery": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            2
+          ],
+          "viability": "nonviable",
+          "recovery": "nonviable"
+        }
+      ],
+      "expected": {
+        "family_qualified": true,
+        "viability_maximal_safe": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "viability_minimal_unsafe": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "recovery_maximal_safe": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "recovery_minimal_unsafe": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            0
+          ]
+        ],
+        "joint_high_high_nonviable": true,
+        "rectangular_separable_margin_is_invalid": true
+      }
+    },
+    {
+      "id": "B-2d-rectangular-control",
+      "axes": [
+        {
+          "axis_id": "slope_uncertainty",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens slope set"
+        },
+        {
+          "axis_id": "actuator_derating",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens torque-derating set"
+        }
+      ],
+      "identity": {
+        "model": "model-B",
+        "abstraction": "abstraction-B",
+        "morphology": "robot-A",
+        "controller": "controller-A",
+        "horizon_steps": 12,
+        "oracle": "finite-robust-oracle-B"
+      },
+      "samples": [
+        {
+          "theta": [
+            0,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            0,
+            1
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            0,
+            2
+          ],
+          "viability": "nonviable"
+        },
+        {
+          "theta": [
+            1,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            1
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            2
+          ],
+          "viability": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            0
+          ],
+          "viability": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            1
+          ],
+          "viability": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            2
+          ],
+          "viability": "nonviable"
+        }
+      ],
+      "expected": {
+        "family_qualified": true,
+        "viability_maximal_safe": [
+          [
+            1,
+            1
+          ]
+        ],
+        "viability_minimal_unsafe": [
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "id": "C-viability-and-recovery-are-distinct",
+      "axes": [
+        {
+          "axis_id": "delay_uncertainty",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens delay bound"
+        },
+        {
+          "axis_id": "support_uncertainty",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens support-state set"
+        }
+      ],
+      "identity": {
+        "model": "model-C",
+        "abstraction": "abstraction-C",
+        "morphology": "robot-A",
+        "controller": "controller-A",
+        "horizon_steps": 10,
+        "oracle": "finite-robust-oracle-C"
+      },
+      "samples": [
+        {
+          "theta": [
+            0,
+            0
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            0,
+            1
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            1,
+            0
+          ],
+          "viability": "viable",
+          "recovery": "viable"
+        },
+        {
+          "theta": [
+            1,
+            1
+          ],
+          "viability": "viable",
+          "recovery": "nonviable"
+        },
+        {
+          "theta": [
+            2,
+            0
+          ],
+          "viability": "viable",
+          "recovery": "nonviable"
+        },
+        {
+          "theta": [
+            0,
+            2
+          ],
+          "viability": "nonviable",
+          "recovery": "nonviable"
+        }
+      ],
+      "expected": {
+        "family_qualified": true,
+        "viability_maximal_safe": [
+          [
+            2,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "recovery_maximal_safe": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "predicates_must_remain_separate": true
+      }
+    },
+    {
+      "id": "D-monotonicity-contradiction",
+      "axes": [
+        {
+          "axis_id": "friction_uncertainty",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens uncertainty set"
+        }
+      ],
+      "identity": {
+        "model": "model-D",
+        "abstraction": "abstraction-D",
+        "morphology": "robot-A",
+        "controller": "controller-A",
+        "horizon_steps": 8,
+        "oracle": "finite-robust-oracle-D"
+      },
+      "samples": [
+        {
+          "theta": [
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1
+          ],
+          "viability": "nonviable",
+          "witness": "witness-low-nonviable"
+        },
+        {
+          "theta": [
+            2
+          ],
+          "viability": "viable",
+          "witness": "witness-high-viable"
+        }
+      ],
+      "expected": {
+        "family_qualified": false,
+        "violation": {
+          "lower_theta": [
+            1
+          ],
+          "lower_status": "nonviable",
+          "higher_theta": [
+            2
+          ],
+          "higher_status": "viable"
+        },
+        "retain_both_witnesses": true,
+        "frontier_claim_suppressed": true
+      }
+    },
+    {
+      "id": "E-unknown-and-coverage-hole",
+      "axes": [
+        {
+          "axis_id": "impact_uncertainty",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens impulse set"
+        },
+        {
+          "axis_id": "torque_derating",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1,
+            2
+          ],
+          "nesting": "increasing widens derating set"
+        }
+      ],
+      "identity": {
+        "model": "model-E",
+        "abstraction": "abstraction-E",
+        "morphology": "robot-A",
+        "controller": "controller-A",
+        "horizon_steps": 8,
+        "oracle": "finite-robust-oracle-E"
+      },
+      "samples": [
+        {
+          "theta": [
+            0,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            0,
+            1
+          ],
+          "viability": "unknown",
+          "reason": "oracle_timeout"
+        },
+        {
+          "theta": [
+            1,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            1
+          ],
+          "viability": "nonviable",
+          "witness": "counterexample-1"
+        },
+        {
+          "theta": [
+            2,
+            0
+          ],
+          "viability": "nonviable",
+          "witness": "counterexample-2"
+        }
+      ],
+      "expected": {
+        "unknown_samples_excluded_from_antichain": true,
+        "missing_vectors": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ]
+        ],
+        "coverage_holes_reported": true,
+        "no_interpolation": true
+      }
+    },
+    {
+      "id": "F-3d-exact-antichain",
+      "axes": [
+        {
+          "axis_id": "friction",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1
+          ],
+          "nesting": "nested"
+        },
+        {
+          "axis_id": "impact",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1
+          ],
+          "nesting": "nested"
+        },
+        {
+          "axis_id": "actuator_derating",
+          "unit": "severity_level",
+          "levels": [
+            0,
+            1
+          ],
+          "nesting": "nested"
+        }
+      ],
+      "identity": {
+        "model": "model-F",
+        "abstraction": "abstraction-F",
+        "morphology": "robot-A",
+        "controller": "controller-A",
+        "horizon_steps": 8,
+        "oracle": "finite-robust-oracle-F"
+      },
+      "samples": [
+        {
+          "theta": [
+            0,
+            0,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            0,
+            0,
+            1
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            0,
+            1,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            0,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            0,
+            1,
+            1
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            0,
+            1
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            1,
+            0
+          ],
+          "viability": "viable"
+        },
+        {
+          "theta": [
+            1,
+            1,
+            1
+          ],
+          "viability": "nonviable"
+        }
+      ],
+      "expected": {
+        "family_qualified": true,
+        "viability_maximal_safe": [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ]
+        ],
+        "viability_minimal_unsafe": [
+          [
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    }
+  ]
+}
