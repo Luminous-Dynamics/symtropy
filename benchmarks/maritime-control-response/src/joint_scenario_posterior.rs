@@ -15,9 +15,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::active_probe::{
-    candidate_manifest_sha256, hypothesis_manifest_sha256, rank_diagnostic_probes,
-    select_probe_baseline, DiagnosticProbeCandidate, HypothesisPrior, ProbeBaselineSelection,
-    ProbePortfolio, ProbeSelectionPolicy,
+    DiagnosticProbeCandidate, HypothesisPrior, ProbeBaselineSelection, ProbePortfolio,
+    ProbeSelectionPolicy, candidate_manifest_sha256, hypothesis_manifest_sha256,
+    rank_diagnostic_probes, select_probe_baseline,
 };
 
 const PROBABILITY_TOLERANCE: f64 = 1e-9;
@@ -111,21 +111,62 @@ pub enum JointPosteriorError {
 impl fmt::Display for JointPosteriorError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidSelectionReplay => write!(formatter, "portfolio or baseline does not replay from the frozen selection inputs"),
-            Self::CandidateNotSelected => write!(formatter, "candidate was not eligible and selected by the frozen baseline"),
-            Self::CandidateManifestMismatch => write!(formatter, "candidate content does not match the ledger-bound manifest"),
-            Self::HypothesisSpaceMismatch => write!(formatter, "candidate hypothesis space differs from the ledger-bound hypothesis space"),
-            Self::InvalidScenarioSet => write!(formatter, "scenario IDs, weights, outcome spaces or likelihood tables are invalid"),
-            Self::InvalidPrior => write!(formatter, "hypothesis prior or joint posterior does not form a finite probability distribution"),
-            Self::InvalidObservationReceipt => write!(formatter, "observation receipt must be a lowercase SHA-256 digest"),
+            Self::InvalidSelectionReplay => write!(
+                formatter,
+                "portfolio or baseline does not replay from the frozen selection inputs"
+            ),
+            Self::CandidateNotSelected => write!(
+                formatter,
+                "candidate was not eligible and selected by the frozen baseline"
+            ),
+            Self::CandidateManifestMismatch => write!(
+                formatter,
+                "candidate content does not match the ledger-bound manifest"
+            ),
+            Self::HypothesisSpaceMismatch => write!(
+                formatter,
+                "candidate hypothesis space differs from the ledger-bound hypothesis space"
+            ),
+            Self::InvalidScenarioSet => write!(
+                formatter,
+                "scenario IDs, weights, outcome spaces or likelihood tables are invalid"
+            ),
+            Self::InvalidPrior => write!(
+                formatter,
+                "hypothesis prior or joint posterior does not form a finite probability distribution"
+            ),
+            Self::InvalidObservationReceipt => write!(
+                formatter,
+                "observation receipt must be a lowercase SHA-256 digest"
+            ),
             Self::EmptyOutcomeIdentity => write!(formatter, "observed outcome identity is empty"),
-            Self::OutcomeNotFound(id) => write!(formatter, "observed outcome is absent from a scenario likelihood table: {id}"),
-            Self::OutcomeImpossible(id) => write!(formatter, "observed outcome has zero probability under the current joint posterior: {id}"),
-            Self::DuplicateObservationReceipt => write!(formatter, "observation receipt has already been applied"),
-            Self::InvalidLedger => write!(formatter, "joint posterior ledger identity, ordering or digest is invalid"),
-            Self::LedgerCandidateMismatch => write!(formatter, "joint posterior ledger belongs to a different candidate or scenario catalogue"),
-            Self::Serialization => write!(formatter, "failed to serialize canonical joint posterior evidence"),
-            Self::NumericalFailure => write!(formatter, "joint posterior update is non-finite or fails normalization"),
+            Self::OutcomeNotFound(id) => write!(
+                formatter,
+                "observed outcome is absent from a scenario likelihood table: {id}"
+            ),
+            Self::OutcomeImpossible(id) => write!(
+                formatter,
+                "observed outcome has zero probability under the current joint posterior: {id}"
+            ),
+            Self::DuplicateObservationReceipt => {
+                write!(formatter, "observation receipt has already been applied")
+            }
+            Self::InvalidLedger => write!(
+                formatter,
+                "joint posterior ledger identity, ordering or digest is invalid"
+            ),
+            Self::LedgerCandidateMismatch => write!(
+                formatter,
+                "joint posterior ledger belongs to a different candidate or scenario catalogue"
+            ),
+            Self::Serialization => write!(
+                formatter,
+                "failed to serialize canonical joint posterior evidence"
+            ),
+            Self::NumericalFailure => write!(
+                formatter,
+                "joint posterior update is non-finite or fails normalization"
+            ),
         }
     }
 }
@@ -204,11 +245,8 @@ pub fn new_joint_scenario_posterior_ledger(
         .iter()
         .map(|(_, weight)| *weight)
         .collect::<Vec<_>>();
-    let scenario_digest = scenario_manifest_sha256(
-        candidate,
-        &scenario_ids,
-        &initial_scenario_prior_weights,
-    )?;
+    let scenario_digest =
+        scenario_manifest_sha256(candidate, &scenario_ids, &initial_scenario_prior_weights)?;
 
     let mut joint_posterior = Vec::with_capacity(canonical_hypotheses.len() * scenario_ids.len());
     for hypothesis in &canonical_hypotheses {
@@ -333,7 +371,9 @@ pub fn realize_joint_scenario_observation(
     }
     let observation_probability = unnormalized.iter().sum::<f64>();
     if !observation_probability.is_finite() || observation_probability <= f64::EPSILON {
-        return Err(JointPosteriorError::OutcomeImpossible(observed_outcome_id.to_owned()));
+        return Err(JointPosteriorError::OutcomeImpossible(
+            observed_outcome_id.to_owned(),
+        ));
     }
     let posterior_probabilities = unnormalized
         .iter()
@@ -490,11 +530,8 @@ fn scenario_prior(
         .map(|scenario| (scenario.scenario_id.clone(), scenario.scenario_weight))
         .collect::<Vec<_>>();
     scenarios.sort_by(|left, right| left.0.cmp(&right.0));
-    if scenarios
-        .windows(2)
-        .any(|pair| pair[0].0 == pair[1].0)
-        || (scenarios.iter().map(|item| item.1).sum::<f64>() - 1.0).abs()
-            > PROBABILITY_TOLERANCE
+    if scenarios.windows(2).any(|pair| pair[0].0 == pair[1].0)
+        || (scenarios.iter().map(|item| item.1).sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
     {
         return Err(JointPosteriorError::InvalidScenarioSet);
     }
@@ -520,7 +557,12 @@ fn canonical_hypotheses(
             return Err(JointPosteriorError::InvalidPrior);
         }
     }
-    if (values.iter().map(|item| item.prior_probability).sum::<f64>() - 1.0).abs()
+    if (values
+        .iter()
+        .map(|item| item.prior_probability)
+        .sum::<f64>()
+        - 1.0)
+        .abs()
         > PROBABILITY_TOLERANCE
     {
         return Err(JointPosteriorError::InvalidPrior);
@@ -535,10 +577,7 @@ fn hypothesis_manifest_sha256_from_ids(ids: &[String]) -> Result<String, JointPo
     {
         return Err(JointPosteriorError::InvalidLedger);
     }
-    sha256_serializable(
-        b"symtropy-diagnostic-hypothesis-space-v1\0",
-        &ids,
-    )
+    sha256_serializable(b"symtropy-diagnostic-hypothesis-space-v1\0", &ids)
 }
 
 fn scenario_manifest_sha256(
@@ -550,7 +589,9 @@ fn scenario_manifest_sha256(
         || scenario_ids.len() != weights.len()
         || scenario_ids.iter().any(|id| id.trim().is_empty())
         || scenario_ids.windows(2).any(|pair| pair[0] >= pair[1])
-        || weights.iter().any(|weight| !weight.is_finite() || *weight <= 0.0)
+        || weights
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight <= 0.0)
         || (weights.iter().sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
     {
         return Err(JointPosteriorError::InvalidScenarioSet);
@@ -560,7 +601,9 @@ fn scenario_manifest_sha256(
         &(
             candidate.likelihood_model_sha256.as_str(),
             candidate.likelihood_calibration_sha256.as_str(),
-            candidate.likelihood_calibration_review_receipt_sha256.as_str(),
+            candidate
+                .likelihood_calibration_review_receipt_sha256
+                .as_str(),
             candidate.likelihood_calibration_reviewed_by_independent_validator,
             scenario_ids,
             weights,
@@ -588,9 +631,7 @@ fn ledger_digest(ledger: &JointScenarioPosteriorLedger) -> Result<String, JointP
     )
 }
 
-fn validate_joint_ledger(
-    ledger: &JointScenarioPosteriorLedger,
-) -> Result<(), JointPosteriorError> {
+fn validate_joint_ledger(ledger: &JointScenarioPosteriorLedger) -> Result<(), JointPosteriorError> {
     if ledger.schema_version != LEDGER_SCHEMA
         || ledger.candidate_id.trim().is_empty()
         || !is_sha256_hex(&ledger.candidate_manifest_sha256)
@@ -599,22 +640,46 @@ fn validate_joint_ledger(
         || !is_sha256_hex(&ledger.ledger_sha256)
         || ledger.hypothesis_ids.len() < 2
         || ledger.scenario_ids.len() < 2
-        || ledger.hypothesis_ids.windows(2).any(|pair| pair[0] >= pair[1])
-        || ledger.scenario_ids.windows(2).any(|pair| pair[0] >= pair[1])
+        || ledger
+            .hypothesis_ids
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || ledger
+            .scenario_ids
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
         || ledger.initial_scenario_prior_weights.len() != ledger.scenario_ids.len()
-        || ledger.initial_scenario_prior_weights.iter().any(|weight| !weight.is_finite() || *weight <= 0.0)
-        || (ledger.initial_scenario_prior_weights.iter().sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
+        || ledger
+            .initial_scenario_prior_weights
+            .iter()
+            .any(|weight| !weight.is_finite() || *weight <= 0.0)
+        || (ledger.initial_scenario_prior_weights.iter().sum::<f64>() - 1.0).abs()
+            > PROBABILITY_TOLERANCE
         || ledger.applied_observation_receipt_sha256.len() as u64 != ledger.observation_count
-        || ledger.applied_observation_receipt_sha256.iter().any(|receipt| !is_sha256_hex(receipt))
-        || ledger.applied_observation_receipt_sha256.iter().collect::<BTreeSet<_>>().len()
+        || ledger
+            .applied_observation_receipt_sha256
+            .iter()
+            .any(|receipt| !is_sha256_hex(receipt))
+        || ledger
+            .applied_observation_receipt_sha256
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
             != ledger.applied_observation_receipt_sha256.len()
         || (ledger.observation_count == 0) != ledger.parent_ledger_sha256.is_none()
-        || ledger.parent_ledger_sha256.as_ref().is_some_and(|digest| !is_sha256_hex(digest))
+        || ledger
+            .parent_ledger_sha256
+            .as_ref()
+            .is_some_and(|digest| !is_sha256_hex(digest))
         || ledger.joint_posterior.len() != ledger.hypothesis_ids.len() * ledger.scenario_ids.len()
     {
         return Err(JointPosteriorError::InvalidLedger);
     }
-    let expected_hypothesis_ids = ledger.hypothesis_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let expected_hypothesis_ids = ledger
+        .hypothesis_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let expected_scenario_ids = ledger.scenario_ids.iter().cloned().collect::<BTreeSet<_>>();
     let mut total = 0.0;
     let mut prior_cell_index = 0usize;
@@ -714,9 +779,9 @@ fn is_sha256_hex(value: &str) -> bool {
 mod tests {
     use super::*;
     use crate::active_probe::{
-        candidate_manifest_sha256, hypothesis_manifest_sha256, DiagnosticProbeCandidate,
-        ProbeAuthorization, ProbeBaseline, ProbeLikelihoodScenario, ProbeOutcomeLikelihood,
-        ProbeSelectionPolicy, rank_diagnostic_probes, select_probe_baseline,
+        DiagnosticProbeCandidate, ProbeAuthorization, ProbeBaseline, ProbeLikelihoodScenario,
+        ProbeOutcomeLikelihood, ProbeSelectionPolicy, candidate_manifest_sha256,
+        hypothesis_manifest_sha256, rank_diagnostic_probes, select_probe_baseline,
     };
 
     fn digest(byte: char) -> String {
@@ -814,11 +879,23 @@ mod tests {
         let item = candidate();
         let ledger = initial_ledger(&item);
         assert_eq!(ledger.schema_version, LEDGER_SCHEMA);
-        assert_eq!(ledger.hypothesis_ids, vec!["bearing_degradation", "fuel_delivery_fault"]);
+        assert_eq!(
+            ledger.hypothesis_ids,
+            vec!["bearing_degradation", "fuel_delivery_fault"]
+        );
         assert_eq!(ledger.scenario_ids, vec!["degraded_calibration", "nominal"]);
         assert_eq!(ledger.observation_count, 0);
         assert_eq!(ledger.applied_observation_receipt_sha256.len(), 0);
-        assert!((ledger.joint_posterior.iter().map(|cell| cell.probability).sum::<f64>() - 1.0).abs() < 1e-12);
+        assert!(
+            (ledger
+                .joint_posterior
+                .iter()
+                .map(|cell| cell.probability)
+                .sum::<f64>()
+                - 1.0)
+                .abs()
+                < 1e-12
+        );
         assert!(ledger.parent_ledger_sha256.is_none());
         assert!(validate_joint_ledger(&ledger).is_ok());
     }
@@ -827,22 +904,36 @@ mod tests {
     fn persistent_scenario_posterior_updates_after_each_observation() {
         let item = candidate();
         let genesis = initial_ledger(&item);
-        let first = realize_joint_scenario_observation(
-            &genesis,
-            &item,
-            "bearing_signature",
-            &digest('f'),
-        )
-        .unwrap();
+        let first =
+            realize_joint_scenario_observation(&genesis, &item, "bearing_signature", &digest('f'))
+                .unwrap();
         let initial_weights = &genesis.initial_scenario_prior_weights;
-        assert_ne!(
-            first.posterior_scenarios[0].probability,
-            initial_weights[0]
-        );
+        assert_ne!(first.posterior_scenarios[0].probability, initial_weights[0]);
         assert_eq!(first.ledger.observation_count, 1);
-        assert_eq!(first.ledger.parent_ledger_sha256.as_deref(), Some(genesis.ledger_sha256.as_str()));
-        assert!((first.posterior_hypotheses.iter().map(|entry| entry.probability).sum::<f64>() - 1.0).abs() < 1e-12);
-        assert!((first.posterior_scenarios.iter().map(|entry| entry.probability).sum::<f64>() - 1.0).abs() < 1e-12);
+        assert_eq!(
+            first.ledger.parent_ledger_sha256.as_deref(),
+            Some(genesis.ledger_sha256.as_str())
+        );
+        assert!(
+            (first
+                .posterior_hypotheses
+                .iter()
+                .map(|entry| entry.probability)
+                .sum::<f64>()
+                - 1.0)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (first
+                .posterior_scenarios
+                .iter()
+                .map(|entry| entry.probability)
+                .sum::<f64>()
+                - 1.0)
+                .abs()
+                < 1e-12
+        );
 
         let second = realize_joint_scenario_observation(
             &first.ledger,
@@ -852,7 +943,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(second.ledger.observation_count, 2);
-        assert_eq!(second.ledger.parent_ledger_sha256.as_deref(), Some(first.ledger.ledger_sha256.as_str()));
+        assert_eq!(
+            second.ledger.parent_ledger_sha256.as_deref(),
+            Some(first.ledger.ledger_sha256.as_str())
+        );
         assert_ne!(
             second.posterior_scenarios[0].probability,
             first.posterior_scenarios[0].probability
@@ -864,13 +958,9 @@ mod tests {
     fn same_likelihood_scenarios_are_not_redrawn_at_each_sample() {
         let item = candidate();
         let genesis = initial_ledger(&item);
-        let first = realize_joint_scenario_observation(
-            &genesis,
-            &item,
-            "bearing_signature",
-            &digest('f'),
-        )
-        .unwrap();
+        let first =
+            realize_joint_scenario_observation(&genesis, &item, "bearing_signature", &digest('f'))
+                .unwrap();
         let second = realize_joint_scenario_observation(
             &first.ledger,
             &item,
@@ -899,13 +989,9 @@ mod tests {
     fn receipt_replay_is_append_only_and_duplicate_receipts_are_rejected() {
         let item = candidate();
         let ledger = initial_ledger(&item);
-        let first = realize_joint_scenario_observation(
-            &ledger,
-            &item,
-            "bearing_signature",
-            &digest('f'),
-        )
-        .unwrap();
+        let first =
+            realize_joint_scenario_observation(&ledger, &item, "bearing_signature", &digest('f'))
+                .unwrap();
         assert_eq!(
             realize_joint_scenario_observation(
                 &first.ledger,
@@ -915,7 +1001,10 @@ mod tests {
             ),
             Err(JointPosteriorError::DuplicateObservationReceipt)
         );
-        assert_eq!(first.ledger.applied_observation_receipt_sha256, vec![digest('f')]);
+        assert_eq!(
+            first.ledger.applied_observation_receipt_sha256,
+            vec![digest('f')]
+        );
     }
 
     #[test]
@@ -925,12 +1014,7 @@ mod tests {
         let mut tampered = ledger.clone();
         tampered.joint_posterior[0].probability += 0.1;
         assert_eq!(
-            realize_joint_scenario_observation(
-                &tampered,
-                &item,
-                "bearing_signature",
-                &digest('f'),
-            ),
+            realize_joint_scenario_observation(&tampered, &item, "bearing_signature", &digest('f'),),
             Err(JointPosteriorError::InvalidLedger)
         );
 
@@ -953,21 +1037,13 @@ mod tests {
         let item = candidate();
         let ledger = initial_ledger(&item);
         assert_eq!(
-            realize_joint_scenario_observation(
-                &ledger,
-                &item,
-                "absent_outcome",
-                &digest('f'),
-            ),
-            Err(JointPosteriorError::OutcomeNotFound("absent_outcome".into()))
+            realize_joint_scenario_observation(&ledger, &item, "absent_outcome", &digest('f'),),
+            Err(JointPosteriorError::OutcomeNotFound(
+                "absent_outcome".into()
+            ))
         );
         assert_eq!(
-            realize_joint_scenario_observation(
-                &ledger,
-                &item,
-                "bearing_signature",
-                "not-a-digest",
-            ),
+            realize_joint_scenario_observation(&ledger, &item, "bearing_signature", "not-a-digest",),
             Err(JointPosteriorError::InvalidObservationReceipt)
         );
     }
