@@ -154,3 +154,8 @@ These are experimental goals, not achieved results or guarantees.
 ## 11. Nonclaims
 
 No raw archive from any of these datasets has been acquired or hashed in this branch. No model has been trained, no CIP action evaluated, no fouling mechanism identified, no water-quality or potability result established, and no industrial performance improvement claimed. A paper-reported metric is not a reproduced benchmark result.
+
+
+## M0 methodology caveat and next increment
+
+Armstrong et al. calculate their reported reference water permeance as the slope of permeate flux versus net driving pressure across the full pressure series, with the intercept fixed at zero. The current five synthetic M0 cases verify pointwise J/NDP arithmetic only; they do not reproduce the multi-pressure fitted reference-A procedure. Exact reproduction remains blocked until the authorized OSF workbook is acquired and the replicate series are grouped. The next M0B task is a grouped through-origin regression with replicate-level uncertainty. Source: https://doi.org/10.1016/j.dib.2022.108538.
