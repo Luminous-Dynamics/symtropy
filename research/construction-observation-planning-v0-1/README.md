@@ -18,6 +18,7 @@ Stacked dependency order:
 - Keeps hidden scenario truth in a separate scenario oracle, never in the planner's selection inputs.
 - Evaluates each scenario separately; there are no invented probabilities or expected-value averages.
 - Calculates `net_voi = no_observation_loss - observation_cost - residual_loss_after_result` in integer minor currency units.
+- Reports observation duration, crew minutes and energy separately from monetary cost and residual scenario loss.
 - Distinguishes qualified clear, finding, incomplete, invalidated and unavailable outcomes.
 - A qualified clear only makes work `ReadyForIndependentAcceptance`; findings require professional/site disposition; incomplete, stale or unavailable results remain `HeldUnknown`.
 - A missing scenario result is a typed error, not a clear outcome.
