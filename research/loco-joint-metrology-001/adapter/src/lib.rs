@@ -10,6 +10,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod wire;
+
 use std::collections::BTreeSet;
 
 /// Closed interval for an event timestamp in one declared monotonic clock.
@@ -171,6 +173,8 @@ pub struct JointTrace {
     pub energy: EnergyEvidence,
     pub sampling: SamplingEvidence,
     pub terminal_safe_stop_qualified: bool,
+    /// Terminal physical reserve-state digest bound to the safe-stop receipt.
+    pub terminal_reserve_state_digest: String,
 }
 
 /// An elapsed-time interval whose bounds include timestamp uncertainty.
@@ -833,10 +837,10 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
-    fn reference_trace() -> JointTrace {
+    pub(crate) fn reference_trace() -> JointTrace {
         JointTrace {
             identity: CausalIdentity {
                 mission_id: "mission-01".into(),
@@ -933,6 +937,7 @@ mod tests {
                 specification_qualified: true,
             },
             terminal_safe_stop_qualified: true,
+            terminal_reserve_state_digest: "thermal-1".into(),
         }
     }
 

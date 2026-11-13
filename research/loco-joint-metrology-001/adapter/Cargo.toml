@@ -5,6 +5,9 @@ edition = "2024"
 license = "AGPL-3.0-or-later"
 publish = false
 
+[dependencies]
+serde_json = "=1.0.150"
+
 # Keep this small reference package isolated from the large application
-# package at the repository root. It has no third-party dependencies.
+# package at the repository root. serde_json is used only by the wire adapter.
 [workspace]
