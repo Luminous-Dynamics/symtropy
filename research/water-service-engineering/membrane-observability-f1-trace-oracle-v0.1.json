@@ -1,0 +1,439 @@
+{
+  "schema_version": "membrane-observability-f1-trace-oracle-v0.1",
+  "evidence_class": "synthetic_time_indexed_fault_injection",
+  "evidence_ceiling": "synthetic_trace_evaluation_only_no_plant_detection_latency_or_alarm_rate_claim",
+  "traces": [
+    {
+      "trace_id": "MTR-001-stable-negative-control",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "NO_FAULT"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-002-gradual-normalized-resistance-growth",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "FOULING_SUSPECTED"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "FOULING_SUSPECTED"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "FOULING_SUSPECTED"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "FOULING_SUSPECTED"
+        }
+      ],
+      "expected_detected_step_index": 4,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-003-pressure-sensor-drift-only",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-004-temperature-regime-ramp",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-005-pump-speed-regime-transition",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-006-intermittent-critical-channel-dropout",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "NO_FAULT"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-007-fouling-plus-pressure-drift",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "FOULING_SUSPECTED"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "MULTIPLE_CAUSES"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "MULTIPLE_CAUSES"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "MULTIPLE_CAUSES"
+        }
+      ],
+      "expected_detected_step_index": 4,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-008-salinity-regime-shift-no-fouling",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "OPERATING_REGIME_SHIFT"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "trace_id": "MTR-009-pressure-drift-clears",
+      "expected_dispositions": [
+        {
+          "time_index": 0,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 1,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 2,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 3,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 4,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 5,
+          "expected_disposition": "SENSOR_FAULT_SUSPECTED"
+        },
+        {
+          "time_index": 6,
+          "expected_disposition": "NO_FAULT"
+        },
+        {
+          "time_index": 7,
+          "expected_disposition": "NO_FAULT"
+        }
+      ],
+      "expected_detected_step_index": null,
+      "expected_cip_recommendations": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  ]
+}
