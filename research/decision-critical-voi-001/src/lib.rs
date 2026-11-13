@@ -738,7 +738,7 @@ mod tests {
             0,
             vec![
                 outcome(500_000, 40, 100),
-                outcome(500_000, 35, 100),
+                outcome(500_000, 40, 90),
             ],
         );
         let report = allocate(&base_request(vec![irrelevant])).unwrap();
@@ -867,6 +867,15 @@ mod tests {
             vec![outcome(1_000_000, 30, 50)],
         );
         let valuable = beneficial_query("slower-higher-value", QueryKind::CounterfactualSimulation, 20_000);
+        let fast = candidate(
+            "fast-lower-value",
+            QueryKind::SensorReacquisition,
+            5_000,
+            100,
+            0,
+            0,
+            vec![outcome(1_000_000, 30, 50)],
+        );
         let dominated = candidate(
             "dominated",
             QueryKind::HighFidelityWorldModel,
@@ -886,7 +895,15 @@ mod tests {
     fn explicit_preference_selects_only_among_pareto_options() {
         let mut request = base_request(vec![
             beneficial_query("slow-high-benefit", QueryKind::CounterfactualSimulation, 20_000),
-            beneficial_query("fast-low-cost", QueryKind::SensorReacquisition, 5_000),
+            candidate(
+                "fast-low-cost",
+                QueryKind::SensorReacquisition,
+                5_000,
+                100,
+                0,
+                0,
+                vec![outcome(1_000_000, 30, 50)],
+            ),
         ]);
         request.preference = AllocationPreference::LowestLatency;
         let report = allocate(&request).unwrap();
@@ -911,6 +928,30 @@ mod tests {
         request.context.actuation_reserve_us = 200_000;
         let errors = allocate(&request).unwrap_err();
         assert!(errors.contains(&RejectionReason::InvalidDecisionWindow));
+    }
+
+    #[test]
+    fn current_policy_action_must_match_the_declared_current_loss_argmin() {
+        let mut request = base_request(vec![]);
+        request.context.current_action_id = "proceed".to_string();
+        let errors = allocate(&request).unwrap_err();
+        assert!(errors.contains(&RejectionReason::CurrentActionNotBestEstimate));
+    }
+
+    #[test]
+    fn outcome_probability_action_change_probability_is_bounded_by_declared_mass() {
+        let report = allocate(&base_request(vec![beneficial_query(
+            "bounded-action-change",
+            QueryKind::SensorReacquisition,
+            10_000,
+        )]))
+        .unwrap();
+        assert_eq!(
+            report.candidates[0].predicted_best_action_change_probability_ppm,
+            500_000
+        );
+        assert!(report.candidates[0].predicted_best_action_change_probability_ppm
+            <= PROBABILITY_SCALE_PPM);
     }
 
     #[test]
