@@ -180,6 +180,8 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
         if !(0.0..=1.0).contains(&coverage) || demand_peak_factor <= 0.0 {
             return Err(format!("invalid coverage or demand factor in {id}"));
         }
+        let required = strings(case, "required_critical_variables")?;
+        let directly_measured = strings(case, "directly_measured_critical_variables")?;
         let unobserved = strings(case, "unobserved_critical_variables")?;
         let disturbances = strings(case, "disturbances")?;
         let required_behaviors = strings(case, "required_behaviors")?;
@@ -188,52 +190,129 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
             return Err(format!("missing behavioral constraints in {id}"));
         }
 
+        let required_set: BTreeSet<&str> = required.iter().map(String::as_str).collect();
+        let direct_set: BTreeSet<&str> = directly_measured.iter().map(String::as_str).collect();
+        let unobserved_set: BTreeSet<&str> = unobserved.iter().map(String::as_str).collect();
+        if required.is_empty()
+            || required_set.len() != required.len()
+            || direct_set.len() != directly_measured.len()
+            || unobserved_set.len() != unobserved.len()
+        {
+            return Err(format!("{id}: required/direct/unobserved variable IDs must be unique"));
+        }
+        if direct_set.iter().any(|variable| unobserved_set.contains(variable)) {
+            return Err(format!("{id}: a critical variable is both measured and unobserved"));
+        }
+        if direct_set.iter().chain(unobserved_set.iter()).any(|variable| {
+            !required_set.contains(variable)
+        }) {
+            return Err(format!("{id}: state coverage names a variable outside the required set"));
+        }
+        for variable in &required_set {
+            if direct_set.contains(variable) == unobserved_set.contains(variable) {
+                return Err(format!("{id}: each required state must be exactly measured or unobserved"));
+            }
+        }
+        let derived_coverage = directly_measured.len() as f64 / required.len() as f64;
+        if (coverage - derived_coverage).abs() > 1.0e-9 {
+            return Err(format!("{id}: direct coverage fraction does not match named variables"));
+        }
+
+        let estimator = field(case, "estimator_evidence")?;
+        let estimator_disposition = string(estimator, "fixture_disposition")?;
+        if field(estimator, "actual_qualification_claimed")?.as_bool() != Some(false) {
+            return Err(format!("{id}: synthetic estimator cannot claim actual qualification"));
+        }
+        if disposition == "run_with_qualified_estimator" {
+            if estimator_disposition != "synthetic_contract_only"
+                || string(estimator, "validity_scope")? != "single_scenario_fixture_only"
+            {
+                return Err(format!("{id}: estimator requires an explicit synthetic-only evidence contract"));
+            }
+            for key in ["estimator_ref", "calibration_ref", "uncertainty_profile_ref"] {
+                if field(estimator, key)?.as_str().is_none_or(str::is_empty) {
+                    return Err(format!("{id}: estimator evidence is missing {key}"));
+                }
+            }
+            if measurement_state != "partial_with_qualified_estimator" || coverage >= 1.0 {
+                return Err(format!("{id}: estimator disposition has inconsistent direct coverage"));
+            }
+        } else {
+            if estimator_disposition != "not_used" || string(estimator, "validity_scope")? != "none" {
+                return Err(format!("{id}: unused estimator fields must remain explicitly unused"));
+            }
+            for key in ["estimator_ref", "calibration_ref", "uncertainty_profile_ref"] {
+                if !field(estimator, key)?.is_null() {
+                    return Err(format!("{id}: unused estimator reference {key} must be null"));
+                }
+            }
+        }
+
+        let protection = field(case, "independent_protection")?;
+        let protection_status = string(protection, "status")?;
+        if field(protection, "test_only")?.as_bool() != Some(true)
+            || string(protection, "authority_scope")?
+                != "local_protection_only_no_supervisory_actuation"
+        {
+            return Err(format!("{id}: protection layer must remain test-only and non-supervisory"));
+        }
+        let local_interlock_ref = field(protection, "local_interlock_ref")?;
+        if protection_status == "synthetic_interlock_available" {
+            if local_interlock_ref.as_str().is_none_or(str::is_empty) {
+                return Err(format!("{id}: synthetic protection status requires an explicit fixture reference"));
+            }
+        } else if !local_interlock_ref.is_null() {
+            return Err(format!("{id}: unavailable/unverified protection cannot carry an active reference"));
+        }
+
         if coverage < 1.0 && disposition == "run_nominal" {
             return Err(format!("{id}: partial sensing cannot be admitted as nominal"));
         }
-        if coverage == 1.0 && !unobserved.is_empty() {
-            return Err(format!("{id}: full direct coverage conflicts with unobserved variables"));
-        }
-        if coverage < 1.0 && unobserved.is_empty() {
-            return Err(format!("{id}: partial coverage requires named unobserved variables"));
-        }
-        if disposition == "run_nominal" && measurement_state != "fully_observed" {
-            return Err(format!("{id}: nominal run requires fully observed state"));
+        if disposition == "run_nominal"
+            && (measurement_state != "fully_observed"
+                || coverage != 1.0
+                || protection_status != "synthetic_interlock_available")
+        {
+            return Err(format!("{id}: nominal run requires direct full observability and an independent synthetic protection fixture"));
         }
         if disposition == "run_with_qualified_estimator"
-            && !contains(&disturbances, "qualified_estimator_with_bound")
+            && protection_status != "synthetic_interlock_available"
         {
-            return Err(format!("{id}: estimator disposition requires a qualified-bound marker"));
-        }
-        if disposition == "run_with_qualified_estimator"
-            && measurement_state != "partial_with_qualified_estimator"
-        {
-            return Err(format!("{id}: estimator disposition has inconsistent measurement_state"));
+            return Err(format!("{id}: estimator-backed run requires an independent synthetic protection fixture"));
         }
         if disposition == "stop_and_reconcile"
             && !contains(&disturbances, "topology_revision_mismatch")
             && !contains(&disturbances, "pump_2_trip")
+            && !contains(&disturbances, "power_loss_900_seconds")
         {
-            return Err(format!(
-                "{id}: stop-and-reconcile lacks a topology or compound-fault trigger"
-            ));
+            return Err(format!("{id}: stop-and-reconcile lacks a topology, actuator or power trigger"));
+        }
+        if disposition == "stop_and_reconcile"
+            && protection_status == "synthetic_interlock_available"
+        {
+            return Err(format!("{id}: stop-and-reconcile requires protection state reconciliation"));
         }
         if disposition == "local_safety_only"
             && ![
                 "pump_2_trip",
                 "source_level_below_declared_floor",
-                "power_loss_900_seconds",
                 "supervisory_link_offline_120_seconds",
             ]
             .iter()
             .any(|fault| contains(&disturbances, fault))
         {
-            return Err(format!(
-                "{id}: local-safety-only disposition lacks a declared trigger"
-            ));
+            return Err(format!("{id}: local-safety-only disposition lacks a declared trigger"));
         }
-        if disposition == "abstain_or_local_fallback"
-            && ![
+        if disposition == "local_safety_only"
+            && protection_status != "synthetic_interlock_available"
+        {
+            return Err(format!("{id}: local-safety-only disposition requires the synthetic local protection path"));
+        }
+        if disposition == "abstain_supervisory" {
+            let no_command = required_behaviors
+                .iter()
+                .any(|item| item.contains("do not issue a new supervisory command"));
+            let trigger = [
                 "one_sensor_dropout",
                 "pressure_sensor_bias_plus_5_percent_full_scale",
                 "common_mode_pressure_bias_plus_3_percent_full_scale",
@@ -241,12 +320,10 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
                 "telemetry_age_120_seconds",
             ]
             .iter()
-            .any(|fault| contains(&disturbances, fault))
-            && measurement_state != "partial_unqualified"
-        {
-            return Err(format!(
-                "{id}: abstention disposition lacks a sensor/timebase trigger"
-            ));
+            .any(|fault| contains(&disturbances, fault));
+            if !no_command || (!trigger && measurement_state != "partial_unqualified") {
+                return Err(format!("{id}: supervisory abstention requires an explicit no-command rule and fault trigger"));
+            }
         }
         if !prohibited_behaviors
             .iter()
@@ -266,7 +343,12 @@ fn validate_corpus(scenarios: &Value, oracle: &Value) -> Result<Value, String> {
             "scenario_id": id,
             "matched": true,
             "expected_disposition": disposition,
-            "direct_state_coverage_fraction": coverage,
+            "required_critical_variable_count": required.len(),
+            "directly_measured_critical_variable_count": directly_measured.len(),
+            "unobserved_critical_variable_count": unobserved.len(),
+            "direct_state_coverage_fraction": derived_coverage,
+            "estimator_fixture_disposition": estimator_disposition,
+            "independent_protection_status": protection_status,
             "evidence_ceiling": "synthetic_design_only"
         }));
     }
@@ -404,9 +486,9 @@ mod tests {
     fn estimator_path_requires_explicit_qualification_marker() {
         let (mut scenarios, oracle) = fixtures();
         scenarios["scenarios"][2]["disturbances"] = json!([]);
-        let error =
-            validate_corpus(&scenarios, &oracle).expect_err("unqualified estimator must fail");
-        assert!(error.contains("qualified-bound"));
+        scenarios["scenarios"][2]["estimator_evidence"]["fixture_disposition"] = json!("not_used");
+        let error = validate_corpus(&scenarios, &oracle).expect_err("unqualified estimator must fail");
+        assert!(error.contains("synthetic-only evidence contract"));
     }
 
     #[test]
@@ -433,4 +515,29 @@ mod tests {
         let error = validate_corpus(&scenarios, &oracle).expect_err("altered oracle must fail");
         assert!(error.contains("scenario/oracle disposition mismatch"));
     }
+    #[test]
+    fn coverage_fraction_must_match_named_state_variables() {
+        let (mut scenarios, oracle) = fixtures();
+        scenarios["scenarios"][0]["direct_state_coverage_fraction"] = json!(0.75);
+        let error = validate_corpus(&scenarios, &oracle).expect_err("coverage mismatch must fail");
+        assert!(error.contains("does not match named variables"));
+    }
+
+    #[test]
+    fn local_safety_only_requires_an_independent_interlock_fixture() {
+        let (mut scenarios, oracle) = fixtures();
+        scenarios["scenarios"][10]["independent_protection"]["status"] = json!("unverified");
+        scenarios["scenarios"][10]["independent_protection"]["local_interlock_ref"] = Value::Null;
+        let error = validate_corpus(&scenarios, &oracle).expect_err("unverified local path must fail");
+        assert!(error.contains("requires the synthetic local protection path"));
+    }
+
+    #[test]
+    fn unverified_protection_cannot_carry_an_active_reference() {
+        let (mut scenarios, oracle) = fixtures();
+        scenarios["scenarios"][3]["independent_protection"]["local_interlock_ref"] = json!("FAKE-INTERLOCK");
+        let error = validate_corpus(&scenarios, &oracle).expect_err("active reference must fail");
+        assert!(error.contains("cannot carry an active reference"));
+    }
+
 }
