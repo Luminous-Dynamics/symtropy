@@ -88,6 +88,15 @@ pub enum CalibrationError {
     UnsupportedCoordinateFrame,
     /// The route topology is not a single disambiguated fibre span.
     UnsupportedTopology,
+    /// Observation phenomenon time is outside the calibration validity interval.
+    OutsideValidityInterval {
+        /// Observation phenomenon time in Unix milliseconds.
+        observed_at_unix_ms: i64,
+        /// Inclusive calibration validity start in Unix milliseconds.
+        valid_from_unix_ms: i64,
+        /// Inclusive calibration validity end in Unix milliseconds.
+        valid_until_unix_ms: i64,
+    },
     /// A mapped route station lies outside the supplied route geometry.
     RouteStationOutsideGeometry,
 }
@@ -112,6 +121,9 @@ impl fmt::Display for CalibrationError {
             }
             Self::UnsupportedTopology => {
                 write!(f, "branched or ambiguous fibre topology is unsupported by this single-span kernel")
+            }
+            Self::OutsideValidityInterval { observed_at_unix_ms, valid_from_unix_ms, valid_until_unix_ms } => {
+                write!(f, "observation time {observed_at_unix_ms} is outside calibration validity [{valid_from_unix_ms}, {valid_until_unix_ms}]")
             }
             Self::RouteStationOutsideGeometry => {
                 write!(f, "mapped route station is outside the route geometry")
@@ -237,6 +249,10 @@ pub struct CalibrationBinding {
     pub endpoint_b_id: String,
     /// Direction expected by this single-span calibration.
     pub direction: FibreDirection,
+    /// Inclusive start of calibration validity, Unix milliseconds.
+    pub valid_from_unix_ms: i64,
+    /// Inclusive end of calibration validity, Unix milliseconds.
+    pub valid_until_unix_ms: i64,
 }
 
 impl CalibrationBinding {
@@ -256,6 +272,9 @@ impl CalibrationBinding {
         }
         if self.endpoint_a_id == self.endpoint_b_id {
             return Err(CalibrationError::BindingMismatch("endpoints must be distinct"));
+        }
+        if self.valid_from_unix_ms > self.valid_until_unix_ms {
+            return Err(CalibrationError::BindingMismatch("calibration validity interval"));
         }
         Ok(())
     }
@@ -461,6 +480,8 @@ pub struct FibreObservation {
     pub endpoint_from_id: String,
     /// Physical endpoint at which this observation's optical path ends.
     pub endpoint_to_id: String,
+    /// Phenomenon time represented by the observation, Unix milliseconds.
+    pub phenomenon_time_unix_ms: i64,
     /// Optical range emitted by the interrogator, in metres.
     pub optical_range_m: f64,
     /// SHA-256 digest of the exact acquired source artifact.
@@ -594,6 +615,15 @@ impl CalibrationModel {
         if &observation.endpoint_to_id != expected_to {
             return Err(CalibrationError::BindingMismatch("endpoint_to_id"));
         }
+        if observation.phenomenon_time_unix_ms < self.binding.valid_from_unix_ms
+            || observation.phenomenon_time_unix_ms > self.binding.valid_until_unix_ms
+        {
+            return Err(CalibrationError::OutsideValidityInterval {
+                observed_at_unix_ms: observation.phenomenon_time_unix_ms,
+                valid_from_unix_ms: self.binding.valid_from_unix_ms,
+                valid_until_unix_ms: self.binding.valid_until_unix_ms,
+            });
+        }
         validate_sha256(&observation.source_sha256)?;
 
         let physical_fibre_chainage_m = self
@@ -692,6 +722,8 @@ mod tests {
             endpoint_a_id: "chamber-A".to_owned(),
             endpoint_b_id: "chamber-B".to_owned(),
             direction: FibreDirection::AToB,
+            valid_from_unix_ms: 1_000,
+            valid_until_unix_ms: 2_000,
         };
         CalibrationModel::new(
             binding,
@@ -719,6 +751,7 @@ mod tests {
             direction: FibreDirection::AToB,
             endpoint_from_id: "chamber-A".to_owned(),
             endpoint_to_id: "chamber-B".to_owned(),
+            phenomenon_time_unix_ms: 1_500,
             optical_range_m: 60.0,
             source_sha256: DIGEST.to_owned(),
         }
@@ -812,6 +845,17 @@ mod tests {
             }),
             Err(CalibrationError::BindingMismatch("direction"))
         );
+    }
+
+    #[test]
+    fn rejects_observation_outside_calibration_validity_window() {
+        assert!(matches!(
+            model().locate(&FibreObservation {
+                phenomenon_time_unix_ms: 2_001,
+                ..observation()
+            }),
+            Err(CalibrationError::OutsideValidityInterval { .. })
+        ));
     }
 
     #[test]
