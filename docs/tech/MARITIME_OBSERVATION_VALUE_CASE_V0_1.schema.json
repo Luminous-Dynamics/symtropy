@@ -112,7 +112,8 @@
           "likelihood_model_qualification_state",
           "likelihood_model_sha256",
           "acquisition_cost",
-          "outcomes"
+          "outcomes",
+          "likelihood_scenarios"
         ],
         "properties": {
           "candidate_id": {
@@ -230,6 +231,69 @@
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "likelihood_scenarios": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_id",
+                "likelihood_model_sha256",
+                "qualification_state",
+                "outcomes"
+              ],
+              "properties": {
+                "scenario_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "likelihood_model_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "qualification_state": {
+                  "enum": [
+                    "QUALIFIED",
+                    "UNQUALIFIED",
+                    "UNKNOWN"
+                  ]
+                },
+                "outcomes": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 100,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "outcome_id",
+                      "likelihoods"
+                    ],
+                    "properties": {
+                      "outcome_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "likelihoods": {
+                        "type": "object",
+                        "minProperties": 2,
+                        "additionalProperties": false,
+                        "patternProperties": {
+                          "^[A-Z0-9_-]+$": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          }
+                        }
+                      }
                     }
                   }
                 }

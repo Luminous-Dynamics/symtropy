@@ -76,6 +76,53 @@ fn normalize_sum(values: impl Iterator<Item=f64>) -> f64 {
     values.sum::<f64>()
 }
 
+fn score_likelihood_model(
+    scenario_id: &str,
+    model_sha256: &str,
+    priors: &Probabilities,
+    decisions: &[Decision],
+    likelihoods: &BTreeMap<String,Probabilities>,
+    prior_risk: f64,
+    cost: f64,
+) -> Result<Value,String> {
+    let mut expected_posterior_risk = 0.0;
+    let mut outcome_receipts = Vec::new();
+    for (outcome_id,row) in likelihoods {
+        let predictive_probability = priors.iter()
+            .map(|(hypothesis,prior)| prior * row[hypothesis])
+            .sum::<f64>();
+        if predictive_probability <= 1e-15 {
+            outcome_receipts.push(json!({
+                "outcome_id":outcome_id,"predictive_probability":predictive_probability,
+                "posterior_probabilities":{},"best_decision_id":Value::Null,"posterior_bayes_risk":Value::Null
+            }));
+            continue;
+        }
+        let posterior: Probabilities = priors.iter()
+            .map(|(hypothesis,prior)|(hypothesis.clone(),prior*row[hypothesis]/predictive_probability))
+            .collect();
+        let (decision_id,posterior_risk) = best_decision(&posterior,decisions);
+        expected_posterior_risk += predictive_probability * posterior_risk;
+        outcome_receipts.push(json!({
+            "outcome_id":outcome_id,"predictive_probability":predictive_probability,
+            "posterior_probabilities":posterior,"best_decision_id":decision_id,
+            "posterior_bayes_risk":posterior_risk
+        }));
+    }
+    let raw_gross_evsi = prior_risk - expected_posterior_risk;
+    if raw_gross_evsi < -1e-9 {
+        return Err(format!("scenario {scenario_id}: posterior risk exceeds prior risk"));
+    }
+    let gross_evsi = raw_gross_evsi.max(0.0);
+    let net_evsi = gross_evsi - cost;
+    Ok(json!({
+        "scenario_id":scenario_id,"likelihood_model_sha256":model_sha256,
+        "prior_bayes_risk":prior_risk,"expected_posterior_bayes_risk":expected_posterior_risk,
+        "gross_evsi":gross_evsi,"acquisition_cost":cost,"net_evsi":net_evsi,
+        "outcomes":outcome_receipts
+    }))
+}
+
 fn evaluate(input: &Value) -> Result<Value,Errors> {
     let mut errors = Vec::new();
     keys(input,&[
@@ -183,12 +230,19 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
         push(&mut errors,"CANDIDATE_COUNT","$.candidates","expected 1..=1000 candidates");
     }
 
+    struct LikelihoodScenario {
+        id: String,
+        model_sha256: String,
+        likelihoods: BTreeMap<String,Probabilities>,
+    }
     struct Candidate {
         id: String,
         eligible: bool,
         reasons: Vec<String>,
         cost: f64,
+        nominal_model_sha256: String,
         likelihoods: BTreeMap<String,Probabilities>,
+        scenarios: Vec<LikelihoodScenario>,
     }
     let mut parsed_candidates = Vec::new();
     let mut candidate_ids = BTreeSet::new();
@@ -200,7 +254,7 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
             "availability_state","measurement_quality_state","sensor_calibration_state",
             "timebase_id","timebase_qualification_state","timebase_qualification_sha256",
             "dependency_groups","likelihood_model_qualification_state","likelihood_model_sha256",
-            "acquisition_cost","outcomes"
+            "acquisition_cost","outcomes","likelihood_scenarios"
         ],&path,&mut errors);
         let Some(id) = text(candidate,"candidate_id") else {
             push(&mut errors,"CANDIDATE_ID_REQUIRED",&path,"candidate ID required");
@@ -299,6 +353,90 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
         }
 
         let mut reasons = BTreeSet::new();
+        // Require a finite set of separately qualified, digest-bound alternatives.
+        let scenario_values = candidate["likelihood_scenarios"].as_array().cloned().unwrap_or_default();
+        if scenario_values.len() < 2 || scenario_values.len() > 20 {
+            push(&mut errors,"LIKELIHOOD_SCENARIO_COUNT",&format!("{path}.likelihood_scenarios"),"expected 2..=20 alternative models");
+        }
+        let mut scenario_ids = BTreeSet::new();
+        let mut scenario_hashes = BTreeSet::new();
+        let mut parsed_scenarios = Vec::new();
+        for (scenario_index,scenario) in scenario_values.iter().enumerate() {
+            let scenario_path = format!("{path}.likelihood_scenarios[{scenario_index}]");
+            keys(scenario,&["scenario_id","likelihood_model_sha256","qualification_state","outcomes"],&scenario_path,&mut errors);
+            let Some(scenario_id) = text(scenario,"scenario_id") else {
+                push(&mut errors,"LIKELIHOOD_SCENARIO_ID_REQUIRED",&scenario_path,"scenario ID required");
+                continue;
+            };
+            if !scenario_ids.insert(scenario_id.to_owned()) {
+                push(&mut errors,"DUPLICATE_LIKELIHOOD_SCENARIO_ID",&scenario_path,"scenario IDs must be unique");
+            }
+            let Some(scenario_sha) = text(scenario,"likelihood_model_sha256") else {
+                push(&mut errors,"LIKELIHOOD_SCENARIO_SHA_REQUIRED",&scenario_path,"scenario SHA-256 required");
+                continue;
+            };
+            if !sha256(scenario_sha) {
+                push(&mut errors,"LIKELIHOOD_SCENARIO_SHA_INVALID",&scenario_path,"expected lowercase SHA-256");
+            }
+            if !scenario_hashes.insert(scenario_sha.to_owned()) {
+                push(&mut errors,"DUPLICATE_LIKELIHOOD_SCENARIO_SHA",&scenario_path,"scenario model digests must be unique");
+            }
+            if text(scenario,"qualification_state") != Some("QUALIFIED") {
+                reasons.insert("LIKELIHOOD_SCENARIO_NOT_QUALIFIED");
+            }
+            let scenario_outcomes = scenario["outcomes"].as_array().cloned().unwrap_or_default();
+            if scenario_outcomes.len() != outcome_ids.len() {
+                push(&mut errors,"LIKELIHOOD_SCENARIO_OUTCOME_COUNT",&format!("{scenario_path}.outcomes"),"scenario must preserve the nominal outcome set");
+            }
+            let mut scenario_outcome_ids = BTreeSet::new();
+            let mut scenario_likelihoods: BTreeMap<String,Probabilities> = BTreeMap::new();
+            let mut scenario_sums: Probabilities = hypothesis_ids.iter().map(|id|(id.clone(),0.0)).collect();
+            for (outcome_index,scenario_outcome) in scenario_outcomes.iter().enumerate() {
+                let outcome_path = format!("{scenario_path}.outcomes[{outcome_index}]");
+                keys(scenario_outcome,&["outcome_id","likelihoods"],&outcome_path,&mut errors);
+                let Some(outcome_id) = text(scenario_outcome,"outcome_id") else {
+                    push(&mut errors,"LIKELIHOOD_SCENARIO_OUTCOME_ID_REQUIRED",&outcome_path,"outcome ID required");
+                    continue;
+                };
+                if !scenario_outcome_ids.insert(outcome_id.to_owned()) {
+                    push(&mut errors,"DUPLICATE_LIKELIHOOD_SCENARIO_OUTCOME",&outcome_path,"scenario outcome IDs must be unique");
+                }
+                let Some(map) = scenario_outcome["likelihoods"].as_object() else {
+                    push(&mut errors,"LIKELIHOOD_SCENARIO_MAP_REQUIRED",&outcome_path,"likelihood map required");
+                    continue;
+                };
+                let actual: BTreeSet<String> = map.keys().cloned().collect();
+                if actual != hypothesis_ids {
+                    push(&mut errors,"LIKELIHOOD_SCENARIO_HYPOTHESIS_SET_MISMATCH",&outcome_path,"scenario must name every hypothesis");
+                }
+                let mut row = BTreeMap::new();
+                for (hypothesis,value) in map {
+                    let Some(probability) = finite(value) else {
+                        push(&mut errors,"LIKELIHOOD_SCENARIO_VALUE_INVALID",&format!("{outcome_path}.likelihoods.{hypothesis}"),"finite likelihood required");
+                        continue;
+                    };
+                    if !(0.0..=1.0).contains(&probability) {
+                        push(&mut errors,"LIKELIHOOD_SCENARIO_VALUE_RANGE",&format!("{outcome_path}.likelihoods.{hypothesis}"),"likelihood must be in [0,1]");
+                    }
+                    *scenario_sums.entry(hypothesis.clone()).or_default() += probability;
+                    row.insert(hypothesis.clone(),probability);
+                }
+                scenario_likelihoods.insert(outcome_id.to_owned(),row);
+            }
+            if scenario_outcome_ids != outcome_ids {
+                push(&mut errors,"LIKELIHOOD_SCENARIO_OUTCOME_SET_MISMATCH",&format!("{scenario_path}.outcomes"),"scenario outcome IDs must exactly match nominal outcomes");
+            }
+            for (hypothesis,sum) in &scenario_sums {
+                if (sum-1.0).abs() > 1e-9 {
+                    push(&mut errors,"LIKELIHOOD_SCENARIO_NORMALIZATION",&format!("{scenario_path}.outcomes"),format!("scenario likelihoods for {hypothesis} must sum to one"));
+                }
+            }
+            parsed_scenarios.push(LikelihoodScenario {
+                id:scenario_id.to_owned(),
+                model_sha256:scenario_sha.to_owned(),
+                likelihoods:scenario_likelihoods,
+            });
+        }
         if text(candidate,"availability_state") != Some("AVAILABLE") { reasons.insert("OBSERVATION_NOT_AVAILABLE"); }
         if text(candidate,"measurement_quality_state") != Some("CURRENT") { reasons.insert("MEASUREMENT_NOT_CURRENT"); }
         if !matches!(text(candidate,"sensor_calibration_state"),Some("CURRENT"|"NOT_APPLICABLE")) { reasons.insert("CALIBRATION_NOT_CURRENT"); }
@@ -310,7 +448,8 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
         }
         parsed_candidates.push(Candidate{
             id:id.to_owned(),eligible:reasons.is_empty(),reasons:reasons.into_iter().map(str::to_owned).collect(),
-            cost,likelihoods
+            cost,nominal_model_sha256:text(candidate,"likelihood_model_sha256").unwrap_or("").to_owned(),
+            likelihoods,scenarios:parsed_scenarios
         });
     }
 
@@ -327,51 +466,43 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
         if !candidate.eligible {
             candidate_receipts.push(json!({
                 "candidate_id":candidate.id,"status":"NOT_EVALUATED","reason_codes":candidate.reasons,
-                "gross_evsi":Value::Null,"acquisition_cost":candidate.cost,"net_evsi":Value::Null
+                "gross_evsi":Value::Null,"acquisition_cost":candidate.cost,"net_evsi":Value::Null,
+                "robust_net_evsi_min":Value::Null,"robust_net_evsi_max":Value::Null
             }));
             continue;
         }
-
-        let mut expected_posterior_risk = 0.0;
-        let mut outcome_receipts = Vec::new();
-        for (outcome_id,row) in &candidate.likelihoods {
-            let predictive_probability = priors.iter()
-                .map(|(hypothesis,prior)| prior * row[hypothesis])
-                .sum::<f64>();
-            if predictive_probability <= 1e-15 {
-                outcome_receipts.push(json!({
-                    "outcome_id":outcome_id,"predictive_probability":predictive_probability,
-                    "posterior_probabilities":{},"best_decision_id":Value::Null,"posterior_bayes_risk":Value::Null
-                }));
-                continue;
-            }
-            let posterior: Probabilities = priors.iter()
-                .map(|(hypothesis,prior)|(hypothesis.clone(),prior*row[hypothesis]/predictive_probability))
-                .collect();
-            let (decision_id,posterior_risk) = best_decision(&posterior,&decisions);
-            expected_posterior_risk += predictive_probability * posterior_risk;
-            outcome_receipts.push(json!({
-                "outcome_id":outcome_id,"predictive_probability":predictive_probability,
-                "posterior_probabilities":posterior,"best_decision_id":decision_id,
-                "posterior_bayes_risk":posterior_risk
-            }));
+        let nominal = score_likelihood_model(
+            "NOMINAL",&candidate.nominal_model_sha256,&priors,&decisions,
+            &candidate.likelihoods,prior_risk,candidate.cost
+        ).map_err(|detail|vec![json!({"code":"INVALID_NOMINAL_EVSI","path":format!("$.candidates[{}]",candidate.id),"detail":detail})])?;
+        let mut model_scenarios = vec![nominal.clone()];
+        for scenario in &candidate.scenarios {
+            let scored = score_likelihood_model(
+                &scenario.id,&scenario.model_sha256,&priors,&decisions,
+                &scenario.likelihoods,prior_risk,candidate.cost
+            ).map_err(|detail|vec![json!({"code":"INVALID_SCENARIO_EVSI","path":format!("$.candidates[{}].likelihood_scenarios.{}",candidate.id,scenario.id),"detail":detail})])?;
+            model_scenarios.push(scored);
         }
-        let raw_gross_evsi = prior_risk - expected_posterior_risk;
-        if raw_gross_evsi < -1e-9 {
-            return Err(vec![json!({
-                "code":"NEGATIVE_GROSS_EVSI","path":format!("$.candidates[{}]",candidate.id),
-                "detail":"expected posterior Bayes risk exceeds prior Bayes risk; likelihood model is invalid"
-            })]);
-        }
-        let gross_evsi = raw_gross_evsi.max(0.0);
-        let net_evsi = gross_evsi - candidate.cost;
-        let status = if net_evsi > 1e-12 { positive_count += 1; "POSITIVE_NET_VALUE" } else { "NON_POSITIVE_NET_VALUE" };
+        let robust_min = model_scenarios.iter().map(|model|model["net_evsi"].as_f64().unwrap_or(f64::NEG_INFINITY)).fold(f64::INFINITY,f64::min);
+        let robust_max = model_scenarios.iter().map(|model|model["net_evsi"].as_f64().unwrap_or(f64::NEG_INFINITY)).fold(f64::NEG_INFINITY,f64::max);
+        let worst_case_scenario_id = model_scenarios.iter()
+            .min_by(|left,right|left["net_evsi"].as_f64().unwrap_or(f64::INFINITY).total_cmp(&right["net_evsi"].as_f64().unwrap_or(f64::INFINITY)))
+            .and_then(|model|model["scenario_id"].as_str()).unwrap_or("UNKNOWN");
+        let status = if robust_min > 1e-12 {
+            positive_count += 1;
+            "ROBUST_POSITIVE_NET_VALUE"
+        } else {
+            "NOT_ROBUST_POSITIVE_NET_VALUE"
+        };
         evaluated_count += 1;
         candidate_receipts.push(json!({
             "candidate_id":candidate.id,"status":status,"reason_codes":[],
-            "prior_bayes_risk":prior_risk,"expected_posterior_bayes_risk":expected_posterior_risk,
-            "gross_evsi":gross_evsi,"acquisition_cost":candidate.cost,"net_evsi":net_evsi,
-            "outcomes":outcome_receipts
+            "prior_bayes_risk":prior_risk,
+            "expected_posterior_bayes_risk":nominal["expected_posterior_bayes_risk"],
+            "gross_evsi":nominal["gross_evsi"],"acquisition_cost":candidate.cost,
+            "net_evsi":nominal["net_evsi"],"robust_net_evsi_min":robust_min,
+            "robust_net_evsi_max":robust_max,"worst_case_scenario_id":worst_case_scenario_id,
+            "likelihood_scenario_count":model_scenarios.len(),"scenario_results":model_scenarios
         }));
     }
     candidate_receipts.sort_by(|left,right| {
@@ -380,8 +511,8 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
         match (left_invalid,right_invalid) {
             (false,true) => std::cmp::Ordering::Less,
             (true,false) => std::cmp::Ordering::Greater,
-            (false,false) => right["net_evsi"].as_f64().unwrap_or(f64::NEG_INFINITY)
-                .total_cmp(&left["net_evsi"].as_f64().unwrap_or(f64::NEG_INFINITY))
+            (false,false) => right["robust_net_evsi_min"].as_f64().unwrap_or(f64::NEG_INFINITY)
+                .total_cmp(&left["robust_net_evsi_min"].as_f64().unwrap_or(f64::NEG_INFINITY))
                 .then_with(|| left["candidate_id"].as_str().cmp(&right["candidate_id"].as_str())),
             (true,true) => left["candidate_id"].as_str().cmp(&right["candidate_id"].as_str())
         }
@@ -498,5 +629,46 @@ mod tests {
         let mut input=fixture();
         input["authority_boundary"]["controller_write"]=json!(true);
         assert!(evaluate(&input).unwrap_err().iter().any(|error|error["code"]=="AUTHORITY_BOUNDARY_VIOLATION"));
+    }
+    #[test]
+    fn nominal_value_must_survive_all_likelihood_scenarios(){
+        let mut input=fixture();
+        let initial=evaluate(&input).unwrap();
+        assert_eq!(initial["ranked_candidates"][0]["status"],"ROBUST_POSITIVE_NET_VALUE");
+        assert!(initial["ranked_candidates"][0]["robust_net_evsi_min"].as_f64().unwrap()>0.0);
+        for (index,value) in [0.6,0.3,0.1].iter().enumerate(){
+            for hypothesis in ["FUEL_RESTRICTION","INJECTOR_DEGRADATION","SENSOR_BIAS"]{
+                input["candidates"][0]["likelihood_scenarios"][0]["outcomes"][index]["likelihoods"][hypothesis]=json!(value);
+            }
+        }
+        let changed=evaluate(&input).unwrap();
+        let candidate=changed["ranked_candidates"].as_array().unwrap().iter()
+            .find(|item|item["candidate_id"]=="needle-lift-existing-trace").unwrap();
+        assert_eq!(candidate["status"],"NOT_ROBUST_POSITIVE_NET_VALUE");
+        assert!(candidate["net_evsi"].as_f64().unwrap()>0.0);
+        assert!(candidate["robust_net_evsi_min"].as_f64().unwrap()<=0.0);
+    }
+    #[test]
+    fn unqualified_likelihood_scenario_is_not_scored(){
+        let mut input=fixture();
+        input["candidates"][0]["likelihood_scenarios"][0]["qualification_state"]=json!("UNKNOWN");
+        let report=evaluate(&input).unwrap();
+        let candidate=report["ranked_candidates"].as_array().unwrap().iter()
+            .find(|item|item["candidate_id"]=="needle-lift-existing-trace").unwrap();
+        assert_eq!(candidate["status"],"NOT_EVALUATED");
+        assert!(candidate["reason_codes"].as_array().unwrap().iter().any(|code|code=="LIKELIHOOD_SCENARIO_NOT_QUALIFIED"));
+    }
+    #[test]
+    fn likelihood_scenario_probabilities_must_normalize(){
+        let mut input=fixture();
+        input["candidates"][0]["likelihood_scenarios"][0]["outcomes"][0]["likelihoods"]["FUEL_RESTRICTION"]=json!(0.99);
+        assert!(evaluate(&input).unwrap_err().iter().any(|error|error["code"]=="LIKELIHOOD_SCENARIO_NORMALIZATION"));
+    }
+    #[test]
+    fn duplicate_likelihood_scenario_digests_are_rejected(){
+        let mut input=fixture();
+        let digest=input["candidates"][0]["likelihood_scenarios"][0]["likelihood_model_sha256"].clone();
+        input["candidates"][0]["likelihood_scenarios"][1]["likelihood_model_sha256"]=digest;
+        assert!(evaluate(&input).unwrap_err().iter().any(|error|error["code"]=="DUPLICATE_LIKELIHOOD_SCENARIO_SHA"));
     }
 }

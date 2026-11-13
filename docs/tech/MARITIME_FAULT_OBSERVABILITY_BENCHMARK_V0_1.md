@@ -333,3 +333,12 @@ A candidate is scored only if it is an already-available, read-only measured rec
 The frozen synthetic fixture contains three diagnostic hypotheses, three diagnostic dispositions and four candidates. It tests a positive-net-value needle-lift trace, a non-positive-net-value exhaust-temperature record, a derived load estimate and a stale thermocouple record. The first-ranked candidate is the needle-lift record. This is an EVSI calculation fixture, not an actual maintenance, inspection or engine-control recommendation.
 
 This composes with sensor-layout and passive active-diagnosis work in [#4006](https://github.com/Luminous-Dynamics/symtropy/issues/4006). Real use requires independently calibrated likelihood models, defensible prior/loss elicitation, an authoritative dependency map and human review of every information request.
+
+
+### P0.2 — likelihood-model robustness for passive EVSI
+
+A single qualified likelihood matrix can create a falsely precise EVSI. P0.2 requires at least two additional, separately digest-bound and qualified likelihood scenarios for each candidate, preserving the same hypothesis and outcome sets. The evaluator recomputes the Bayes decision problem for the nominal model and every alternative.
+
+A candidate is labelled `ROBUST_POSITIVE_NET_VALUE` only when its **minimum net EVSI across the nominal model and every declared qualified scenario is strictly positive**. Otherwise it is `NOT_ROBUST_POSITIVE_NET_VALUE`. If any scenario lacks qualification, the candidate is `NOT_EVALUATED`. Ranking uses minimum scenario net EVSI, not nominal estimate.
+
+The receipt preserves nominal EVSI, minimum/maximum scenario EVSI, worst-case scenario ID and each scenario's posterior risks. The minimum is a deterministic envelope over the declared finite scenario set; it is not a confidence interval and does not prove coverage of every possible likelihood-model error. Scenario construction and qualification require independent support. The fixture's scenario variants are fabricated conformance models only.
