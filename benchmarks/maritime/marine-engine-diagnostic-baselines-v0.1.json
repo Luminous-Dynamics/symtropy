@@ -1084,6 +1084,46 @@
         "Report false-safe rate and severe-case underwarning separately from ordinary classification accuracy; include partial pressure-group and torsional-group dropout.",
         "Do not conflate D0-D5 diagnostic indications with engine operating status, maintenance authorization, vessel ODD status or permission to operate."
       ]
+    },
+    {
+      "id": "control-aware-affine-network-maneuvering-2026",
+      "title": "Control-aware affine network: a novel framework for reliable fault diagnosis of marine diesel engines in dynamic maneuvers",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-10-21",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1080/17445302.2026.2748397",
+      "data_domain": "Proprietary marine-diesel injector-system simulation data covering dynamic maneuvering conditions. The authors state that the simulation data and self-developed engine model are not publicly shareable under industrial confidentiality and IP restrictions.",
+      "task": "Control-aware feature calibration using real-time control signals, followed by dual-feature decoupling into fault-severity and maneuver-invariant representations using knowledge distillation and adversarial training.",
+      "reported_metrics": [
+        {
+          "metric": "numeric_performance_metric_in_accessible_abstract",
+          "value": "not reported",
+          "unit": "not available",
+          "context": "The accessible abstract describes the architecture and simulated cross-maneuvering evaluation but does not provide a numeric accuracy, false-alarm, calibration or transfer score.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "public_dataset_and_model_availability",
+          "value": "unavailable",
+          "unit": "reproducibility",
+          "context": "The authors state that simulation datasets and the self-developed simulation model are withheld under industrial confidentiality and internal intellectual-property restrictions; partial de-identified analytical results may be requested by eligible researchers.",
+          "source_location": "Data availability statement"
+        }
+      ],
+      "split_protocol": "The accessible abstract reports evaluation across cross-maneuvering tasks using diesel-engine injection-system simulations. Exact scenario/engine split identities, task-level scores, calibration protocol and leakage controls require full-methods audit; the simulation data and model are not publicly available.",
+      "reported_limitations": [
+        "The reported evaluation uses marine diesel injection-system simulations, not physical engine or shipboard records.",
+        "The simulation model, parameterization and datasets are not publicly released, limiting independent reproduction.",
+        "The accessible abstract does not expose numerical performance metrics, per-maneuver results or uncertainty/calibration evidence.",
+        "The claimed maneuver-invariant representation must be tested against residual fault-severity loss and negative transfer, not only cross-domain average accuracy."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Important comparator to simple control-signal concatenation and control-aware domain-adversarial fusion: control signals are used as calibration mechanisms, then severity and maneuver-invariant features are decoupled.",
+        "Symtropy should compare command-conditioned residual models, CAAN-style feature calibration, severity retention and unknown-regime abstention under matched held-out maneuvering scenarios.",
+        "Do not infer superiority or reproduce a score until source methods, dataset access and target splits are available."
+      ]
     }
   ]
 }
