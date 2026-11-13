@@ -452,9 +452,10 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         }
 
         let mut delassus = [[0.0; K]; K];
-        let jt = transpose(&jacobian);
+        // Column j of J^T is row j of J, with N generalized-velocity
+        // components. Solve M x_j = J_j^T before forming J_i x_j.
         for column in 0..K {
-            let mass_inverse_jt_column = solve(&mass.matrix, &jt[column], profile)?;
+            let mass_inverse_jt_column = solve(&mass.matrix, &jacobian[column], profile)?;
             for row in 0..K {
                 delassus[row][column] = dot(&jacobian[row], &mass_inverse_jt_column);
             }
