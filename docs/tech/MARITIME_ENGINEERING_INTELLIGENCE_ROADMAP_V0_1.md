@@ -360,3 +360,41 @@ This is an important comparator for #4628: compare (1) command/context-condition
 ### Passive information prioritization
 
 The maritime observability work now supplies a synthetic EVSI evaluator for already-available independent records. The same methodology should be applied to #4444: rank existing telemetry, archived OEM records, calibration evidence and human-reviewed records by expected reduction in diagnostic decision loss. A likelihood model must be independently qualified, and a candidate that shares dependencies with current evidence must not be counted as new information. The experiment should compare EVSI ranking with a fixed-checklist baseline at matched decision risk and report the number of observations/reviews needed to resolve the same ambiguity class. Active diagnostic excitation remains outside this read-only programme.
+
+
+## Open-world generalization and multiview corroboration — 13 November 2026
+
+The 2026 open-set fault-diagnosis literature makes it necessary to separate two independent shift axes:
+
+- **Condition shift (C-shift):** known fault semantics, but unseen operating conditions, loads, speeds, environment, sensor mounting or asset configuration.
+- **Fault-semantic shift (F-shift):** known operating domain, but previously unseen fault families or fault combinations.
+- **Combined C+F shift:** both the operating domain and fault semantics are unseen. This is the most difficult open-world diagnostic setting and must not be hidden inside an aggregate cross-validation score.
+
+The benchmark should publish four separate strata: closed known-domain/known-fault reference, C-shift, F-shift and C+F shift. Every stratum must use whole physical recordings, campaigns and assets as holdout units, with fault-family holdout for F-shift and entire operating-domain holdout for C-shift.
+
+### New 2026 open-set comparators
+
+The baseline registry adds four current general-machinery methods:
+
+- **TFEAT** reports 94.74% average H-score across 16 open-set domain-generalization tasks and three public bearing datasets. This is the strongest numeric open-set comparator added in this iteration, but it is not a marine-engine score.
+- **SEE–GROW** uses pseudo-unknown synthesis and boundary-aware representation learning for unseen-condition open-set diagnosis; its accessible abstract reports qualitative H-score superiority without a directly transcribed numeric result.
+- **MVAPN** combines native multiview signals, adversarial purification, cross-view consistency and prototype-driven OOD synthesis across three public gearbox/bearing datasets. Its key lesson for our work is to use physically meaningful views while explicitly checking shared dependencies and common-mode disturbances.
+- **Domain-augmented OSDG** reports 92.3% accuracy and 89.5% unknown-fault rejection on its own rotating-machinery protocol. These metrics are not directly comparable to TFEAT's H-score.
+
+All four are recorded as reported-not-reproduced. They are methodological comparators, not evidence of marine-engine performance.
+
+### Required open-world metrics
+
+- Known-fault macro-F1 / balanced accuracy and event recall.
+- Unknown-fault AUROC and AUPR, false-known rate at a preregistered known-fault acceptance coverage, and unknown-rejection recall.
+- H-score with its known/unknown component scores separately reported.
+- Risk-versus-coverage and abstention precision.
+- Worst-domain and worst-fault performance, not only aggregate averages.
+- Calibration error and uncertainty by C-shift, F-shift and C+F stratum.
+- False unique-cause rate when multiple fault hypotheses remain admissible.
+
+A multiview model receives no independence credit from raw sensor count. The observability adapter must qualify physical measurement principles and common-cause dependencies before cross-view agreement contributes to a fault conclusion.
+
+### Competitive target
+
+The research target is to reproduce the published H-score baselines under their exact splits, then improve the **worst-stratum** C+F H-score and false-known rate without sacrificing known-fault event recall or calibration. A marine-engine superiority claim requires a matched marine dataset and independently audited physical fault labels; the three generic rotating-machinery datasets do not satisfy that requirement.

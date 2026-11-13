@@ -184,22 +184,44 @@
           "metric": "operating_regions",
           "value": 7,
           "unit": "regions",
-          "context": "The paper reports capturing seven operating regions using a GMM-EM approach; this is a dataset/model configuration fact, not a diagnostic accuracy score.",
-          "source_location": "Highlights and abstract"
+          "context": "GMM-EM identified seven operating regions, including steady, transient and transition modes.",
+          "source_location": "Abstract and Section 3"
         },
         {
-          "metric": "numeric_performance_metrics",
-          "value": "not_transcribed",
-          "unit": "not_available_from_accessible_abstract",
-          "context": "No numerical detection or recovery metric is transcribed from the accessible abstract. Full paper and data protocol must be audited.",
-          "source_location": "Accessible abstract"
+          "metric": "SVD_fuel_consumption_RMSE_main_regimes",
+          "value": "2.27–2.66",
+          "unit": "% of mean fuel consumption",
+          "context": "Paper-reported on the selected vessel's own operating regions.",
+          "source_location": "Results, Sections 4.1–4.3"
+        },
+        {
+          "metric": "hyperplane_fuel_consumption_RMSE_main_regimes",
+          "value": "2.24–2.60",
+          "unit": "% of mean fuel consumption",
+          "context": "Paper-reported for main operating regions.",
+          "source_location": "Results"
+        },
+        {
+          "metric": "hyperplane_fuel_consumption_RMSE_transient_regimes",
+          "value": "1.42–4.85",
+          "unit": "% of mean fuel consumption",
+          "context": "Paper-reported for transient regions.",
+          "source_location": "Results"
+        },
+        {
+          "metric": "localized_method_execution_time",
+          "value": "under 5",
+          "unit": "seconds",
+          "context": "Authors report under five seconds for all clusters on their standard laptop; their comparison to external model RMSE values uses other datasets and is contextual rather than a matched direct benchmark.",
+          "source_location": "Results and discussion"
         }
       ],
       "split_protocol": "Selected-vessel operating regions are modeled using GMM-EM, with localized SVD-based anomaly detection and missing-value recovery. Exact vessel identity, campaign split, data availability, labels and validation protocol require full-paper audit.",
       "reported_limitations": [
         "Accessible abstract does not provide numerical anomaly-detection or imputation metrics.",
         "Missing-value recovery can erase sensor-failure or anomaly evidence if imputed values are not separately typed and attributed.",
-        "Data rights, exact dataset, vessel/engine identity and independent validation have not been audited by this project."
+        "Data rights, exact dataset, vessel/engine identity and independent validation have not been audited by this project.",
+        "The authors explicitly caution that external SOTA RMSE values cited in their comparison use different datasets and vessel types; these figures are contextual, not matched leaderboard comparisons."
       ],
       "reproducibility_status": "reported_not_reproduced",
       "direct_comparison_to_aalto": "not_comparable",
@@ -1123,6 +1145,147 @@
         "Important comparator to simple control-signal concatenation and control-aware domain-adversarial fusion: control signals are used as calibration mechanisms, then severity and maneuver-invariant features are decoupled.",
         "Symtropy should compare command-conditioned residual models, CAAN-style feature calibration, severity retention and unknown-regime abstention under matched held-out maneuvering scenarios.",
         "Do not infer superiority or reproduce a score until source methods, dataset access and target splits are available."
+      ]
+    },
+    {
+      "id": "tfeat-open-set-domain-generalization-2026",
+      "title": "Transformer-enhanced feature extraction with adaptive thresholding for domain generalization fault diagnosis under open-set scenarios",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-10",
+      "publication_date_precision": "month",
+      "source_url": "https://doi.org/10.1016/j.asoc.2026.115910",
+      "data_domain": "Three public bearing datasets; 16 open-set domain-generalization fault-diagnosis tasks spanning known-class recognition, domain shift and unknown-fault rejection.",
+      "task": "Open-set domain-generalization using transformer-enhanced fault embeddings, magnitude/orientation decoupling, hyperspherical feature constraints and sample-wise adaptive rejection thresholds.",
+      "reported_metrics": [
+        {
+          "metric": "average_H_score_across_16_OSDGFD_tasks",
+          "value": 94.74,
+          "unit": "%",
+          "context": "Overall H-score reported across 16 open-set domain-generalization tasks and three public bearing datasets; not a marine-engine or vessel result.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "The accessible abstract reports 16 OSDGFD tasks over three public bearing datasets. Per-task source/target/fault holdout details must be extracted and reproduced before direct comparison.",
+      "reported_limitations": [
+        "The demonstrated datasets are bearings, not marine diesel engines or shipboard propulsion machinery.",
+        "The 94.74% average H-score is paper-reported and has not been independently reproduced.",
+        "No real marine-engine or vessel validation is established by this result."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Useful current open-set domain-generalization comparator and H-score reference.",
+        "Reproduce with the same unknown-fault and unseen-condition partition before comparing numbers.",
+        "Our maritime benchmark should add false-known rate, worst-domain H-score, calibration and ambiguity reporting rather than optimizing only aggregate H-score."
+      ]
+    },
+    {
+      "id": "see-grow-open-set-single-domain-generalization-2026",
+      "title": "SEE–GROW: Reliable exploration and boundary-aware learning for open-set single-domain generalization in fault diagnosis",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-07-15",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1016/j.ymssp.2026.114493",
+      "data_domain": "Bearing and planetary-gearbox rotating-machinery datasets; open-set tests under unseen operating conditions.",
+      "task": "Open-set single-domain generalization that diversifies known-class support, synthesizes boundary-adjacent pseudo-unknown examples, shapes known/unknown separation and distills uncertainty-aware rejection.",
+      "reported_metrics": [
+        {
+          "metric": "known_unknown_harmonic_mean",
+          "value": "authors report improvement over SOTA; numeric value not present in accessible abstract",
+          "unit": "qualitative",
+          "context": "The paper reports harmonic-mean improvement between known-fault recognition and unknown-fault detection under unseen operating conditions.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Single-domain generalization with unknown-fault rejection under unseen operating conditions; exact fault-family and operating-domain holdouts need method-level reproduction.",
+      "reported_limitations": [
+        "The public abstract does not provide a numeric score suitable for a matched leaderboard comparison.",
+        "The demonstrated domains are generic rotating machinery rather than marine diesel engines.",
+        "Pseudo-unknown synthesis and rejection boundaries require independent sensitivity tests for false-known and false-unknown errors."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Benchmark known-fault recognition and unknown-fault detection jointly, using a harmonic metric plus separate component metrics.",
+        "Do not assume the pseudo-unknown generator covers physically plausible marine fault families.",
+        "Retain calibration, worst-domain and false-known gates."
+      ]
+    },
+    {
+      "id": "mvapn-multiview-open-set-domain-generalization-2026",
+      "title": "Prototype-driven open-set domain generalization for rotating machinery fault diagnosis via multiview adversarial purification",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-08-03",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1016/j.knosys.2026.116372",
+      "data_domain": "Three public rotating-machinery datasets: SDUST planetary gearbox, HUST parallel gearbox and HIT aero-engine bearing; native multi-axis or multi-location signals are treated as physically complementary views.",
+      "task": "Open-set domain generalization with multiview adversarial purification, cross-view consistency, hyperspherical class geometry and prototype-driven pseudo-OOD synthesis.",
+      "reported_metrics": [
+        {
+          "metric": "benchmark_datasets",
+          "value": 3,
+          "unit": "datasets",
+          "context": "SDUST planetary gearbox, HUST parallel gearbox and HIT aero-engine bearing.",
+          "source_location": "Abstract and dataset section"
+        },
+        {
+          "metric": "diagnostic_and_open_set_rejection_performance",
+          "value": "authors report superiority to SOTA; no single numeric aggregate transcribed",
+          "unit": "qualitative",
+          "context": "The authors report improvements in diagnostic accuracy and open-set rejection under complex operating conditions.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Multi-domain open-set generalization across the three named datasets. Exact source/target domains, unknown-class splits and per-dataset metrics must be reconstructed from the paper and public implementation.",
+      "reported_limitations": [
+        "No marine diesel or vessel dataset is used.",
+        "Cross-view agreement can reinforce common-mode disturbances if physical measurement dependencies are not represented; the paper's multiview representation is not itself proof of independent evidence.",
+        "The reported performance has not been independently reproduced in Symtropy."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "This is a particularly relevant method comparator for physically grounded multiview diagnosis.",
+        "Our adapter must count independent measurement principles and dependency groups, not raw channel count or view count.",
+        "Use native multiaxis/multilocation marine sensor data only after verifying instrumentation and shared power, clock and acquisition dependencies."
+      ]
+    },
+    {
+      "id": "domain-augmented-open-set-generalization-2026",
+      "title": "Domain-augmented open-set generalization framework for fault diagnosis in rotating machinery",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-08-15",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1016/j.engappai.2026.115134",
+      "data_domain": "Generic rotating-machinery bearing/gearbox fault diagnosis under working-condition shifts and unknown fault types.",
+      "task": "Target-free open-set domain generalization combining frequency-domain multi-source interpolation, WGAN-GP pseudo-unknown synthesis and reconstruction-based feature learning with a physics-informed spectral constraint.",
+      "reported_metrics": [
+        {
+          "metric": "overall_classification_accuracy",
+          "value": 92.3,
+          "unit": "%",
+          "context": "Paper-reported result on its own rotating-machinery datasets.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "unknown_fault_rejection_rate",
+          "value": 89.5,
+          "unit": "%",
+          "context": "Paper-reported unknown-fault rejection rate on its own protocol; not comparable with TFEAT H-score.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Target-free open-set generalization under varying operating conditions; detailed dataset split and unknown-class protocol must be reconstructed for reproduction.",
+      "reported_limitations": [
+        "The authors characterize the contribution as an integration-based advancement rather than a fundamentally new paradigm.",
+        "The 92.3% classification accuracy and 89.5% rejection rate come from a different task and dataset than the 94.74% TFEAT H-score; they must not be ranked directly.",
+        "No marine diesel engine or shipboard validation is established."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Use as a matched baseline for target-free open-set domain generalization and physics-informed feature constraints.",
+        "Report known-fault accuracy and unknown rejection separately, together with H-score, false-known rate and calibration."
       ]
     }
   ]
