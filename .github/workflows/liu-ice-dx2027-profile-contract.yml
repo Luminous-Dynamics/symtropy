@@ -63,8 +63,13 @@ jobs:
           assert profile["edition_comparison"]["dx2026_training_dataset_count_reported"] == 26
           assert profile["acquisition"]["archive_sha256"] is None
           assert profile["acquisition"]["file_inventory"] == []
+          calibration = profile["calibration_feasibility"]
+          assert calibration["reported_max_recordings_per_known_fault_family"] == 7
+          assert calibration["required_independent_episodes_for_split_conformal_coverage"]["0.90"] == 9
+          assert calibration["per_fault_90pct_split_conformal_feasible_from_reported_training_count"] is False
+          assert calibration["pooled_marginal_coverage_claims_per_fault_coverage"] is False
           assert profile["claim_ceiling"]["benchmark_score_claim_allowed"] is False
-          print("DX2027 profile schema and cross-edition invariants: PASS")
+          print("DX2027 profile schema, calibration adequacy and cross-edition invariants: PASS")
           PY
 
       - name: Validate Rust formatting
