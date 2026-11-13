@@ -336,7 +336,7 @@ pub fn evaluate_observation(
         })?;
     result.outcome.validate()?;
 
-    let work_disposition = match result.outcome {
+    let work_disposition = match &result.outcome {
         ObservationOutcome::QualifiedClear { .. } => {
             WorkDisposition::ReadyForIndependentAcceptance
         }
