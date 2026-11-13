@@ -1,0 +1,351 @@
+{
+  "schema_version": "0.1.0",
+  "title": "Textile attachment-removal adversarial benchmark corpus",
+  "status": "synthetic_reference_fixtures",
+  "claim_ceiling": "Fixtures validate contract semantics only; they are not physical trial observations or evidence of recycling acceptance.",
+  "cases": [
+    {
+      "case_id": "physical-removed-valid",
+      "purpose": "Positive control: measured physical removal with distinct independent inspection, matching force calibration, damage and closed mass balance.",
+      "expected_valid": true,
+      "expected_evidence_ceiling": "PhysicalRemovalIndependentlyInspected",
+      "must_include_findings": [],
+      "record": {
+        "attempt_id": "attempt-001",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Sewn",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Removed",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "inspection-001",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tier": "IndependentlyInspected",
+          "calibration_id": null
+        },
+        "peak_force_mn": 7500,
+        "force_calibration_id": "force-cal-2026-01",
+        "mass_balance": {
+          "input_mass_mg": 10000,
+          "textile_recovered_mass_mg": 7000,
+          "attachment_recovered_mass_mg": 1000,
+          "residual_mass_mg": 1500,
+          "unexplained_mass_mg": 500
+        },
+        "damage": {
+          "damage_area_mm2": 0,
+          "severed_yarns": 0,
+          "holes": 0,
+          "tears": 0
+        }
+      }
+    },
+    {
+      "case_id": "physical-partial-valid",
+      "purpose": "Positive control: partial physical removal can reach the independently inspected evidence ceiling only when all measurement gates are met.",
+      "expected_valid": true,
+      "expected_evidence_ceiling": "PhysicalRemovalIndependentlyInspected",
+      "must_include_findings": [],
+      "record": {
+        "attempt_id": "attempt-002",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Sewn",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Partial",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "inspection-001",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tier": "IndependentlyInspected",
+          "calibration_id": null
+        },
+        "peak_force_mn": 7500,
+        "force_calibration_id": "force-cal-2026-01",
+        "mass_balance": {
+          "input_mass_mg": 10000,
+          "textile_recovered_mass_mg": 7000,
+          "attachment_recovered_mass_mg": 300,
+          "residual_mass_mg": 2400,
+          "unexplained_mass_mg": 300
+        },
+        "damage": {
+          "damage_area_mm2": 0,
+          "severed_yarns": 0,
+          "holes": 0,
+          "tears": 0
+        }
+      }
+    },
+    {
+      "case_id": "force-calibration-mismatch",
+      "purpose": "Negative control: force observation cannot be detached from the calibration identity bound by the action evidence.",
+      "expected_valid": false,
+      "expected_evidence_ceiling": "ContractOnly",
+      "must_include_findings": [
+        "FORCE_CALIBRATION_MISMATCH"
+      ],
+      "record": {
+        "attempt_id": "attempt-003",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Sewn",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Removed",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "inspection-001",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tier": "IndependentlyInspected",
+          "calibration_id": null
+        },
+        "peak_force_mn": 7500,
+        "force_calibration_id": "force-cal-other",
+        "mass_balance": {
+          "input_mass_mg": 10000,
+          "textile_recovered_mass_mg": 7000,
+          "attachment_recovered_mass_mg": 1000,
+          "residual_mass_mg": 1500,
+          "unexplained_mass_mg": 500
+        },
+        "damage": {
+          "damage_area_mm2": 0,
+          "severed_yarns": 0,
+          "holes": 0,
+          "tears": 0
+        }
+      }
+    },
+    {
+      "case_id": "reused-action-inspection-reference",
+      "purpose": "Negative control: one evidence reference cannot stand in for both action trace and independent inspection.",
+      "expected_valid": false,
+      "expected_evidence_ceiling": "ContractOnly",
+      "must_include_findings": [
+        "ACTION_AND_INSPECTION_REUSE_EVIDENCE"
+      ],
+      "record": {
+        "attempt_id": "attempt-004",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Sewn",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Removed",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "peak_force_mn": 7500,
+        "force_calibration_id": "force-cal-2026-01",
+        "mass_balance": {
+          "input_mass_mg": 10000,
+          "textile_recovered_mass_mg": 7000,
+          "attachment_recovered_mass_mg": 1000,
+          "residual_mass_mg": 1500,
+          "unexplained_mass_mg": 500
+        },
+        "damage": {
+          "damage_area_mm2": 0,
+          "severed_yarns": 0,
+          "holes": 0,
+          "tears": 0
+        }
+      }
+    },
+    {
+      "case_id": "unknown-join-executed",
+      "purpose": "Negative control: unidentified joining construction cannot be acted on as an executed removal task.",
+      "expected_valid": false,
+      "expected_evidence_ceiling": "ContractOnly",
+      "must_include_findings": [
+        "UNKNOWN_JOIN_METHOD_MUST_ABSTAIN"
+      ],
+      "record": {
+        "attempt_id": "attempt-005",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Unknown",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Removed",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "inspection-001",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tier": "IndependentlyInspected",
+          "calibration_id": null
+        },
+        "peak_force_mn": 7500,
+        "force_calibration_id": "force-cal-2026-01",
+        "mass_balance": {
+          "input_mass_mg": 10000,
+          "textile_recovered_mass_mg": 7000,
+          "attachment_recovered_mass_mg": 1000,
+          "residual_mass_mg": 1500,
+          "unexplained_mass_mg": 500
+        },
+        "damage": {
+          "damage_area_mm2": 0,
+          "severed_yarns": 0,
+          "holes": 0,
+          "tears": 0
+        }
+      }
+    },
+    {
+      "case_id": "partial-without-measurements",
+      "purpose": "Negative control: partial removal cannot be qualified without mass-balance and damage observations.",
+      "expected_valid": false,
+      "expected_evidence_ceiling": "ContractOnly",
+      "must_include_findings": [
+        "MISSING_MASS_BALANCE",
+        "MISSING_TEXTILE_DAMAGE_OBSERVATION"
+      ],
+      "record": {
+        "attempt_id": "attempt-006",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Sewn",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Partial",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "inspection-001",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tier": "IndependentlyInspected",
+          "calibration_id": null
+        },
+        "peak_force_mn": 7500,
+        "force_calibration_id": "force-cal-2026-01",
+        "mass_balance": null,
+        "damage": null
+      }
+    },
+    {
+      "case_id": "force-limit-exceeded",
+      "purpose": "Negative control: hard force limit cannot be compensated by otherwise valid removal evidence.",
+      "expected_valid": false,
+      "expected_evidence_ceiling": "ContractOnly",
+      "must_include_findings": [
+        "FORCE_LIMIT_EXCEEDED"
+      ],
+      "record": {
+        "attempt_id": "attempt-007",
+        "task": {
+          "task_id": "task-001",
+          "specimen_id": "specimen-001",
+          "garment_revision": "overshirt-r1",
+          "attachment_id": "care-label-001",
+          "join_method": "Sewn",
+          "requested_action": "Remove",
+          "tool_profile_id": "guarded-seam-ripper-v1",
+          "max_force_mn": 12000
+        },
+        "execution_state": "Executed",
+        "outcome": "Removed",
+        "action_evidence": {
+          "evidence_id": "physical-action-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "tier": "PhysicalObserved",
+          "calibration_id": "force-cal-2026-01"
+        },
+        "post_inspection": {
+          "evidence_id": "inspection-001",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tier": "IndependentlyInspected",
+          "calibration_id": null
+        },
+        "peak_force_mn": 12001,
+        "force_calibration_id": "force-cal-2026-01",
+        "mass_balance": {
+          "input_mass_mg": 10000,
+          "textile_recovered_mass_mg": 7000,
+          "attachment_recovered_mass_mg": 1000,
+          "residual_mass_mg": 1500,
+          "unexplained_mass_mg": 500
+        },
+        "damage": {
+          "damage_area_mm2": 0,
+          "severed_yarns": 0,
+          "holes": 0,
+          "tears": 0
+        }
+      }
+    }
+  ]
+}
