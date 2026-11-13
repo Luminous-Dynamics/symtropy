@@ -14,8 +14,10 @@ A dependency-free Rust reference implementation for the **single, already-disamb
 - Returns route positioning only. It does not attribute the result to a utility asset.
 - Includes a discrete expected-information / expected-value-of-sample-information evaluator that keeps information gain separate from decision-loss reduction and suppresses net-value rankings when cost and loss units are incomparable.
 - Includes a source-envelope semantic validator for raw-vs-derived lineage, modality boundaries, typed sample axes and pitch/resolution separation.
-- Includes an event-conditioned coverage evaluator with complete route-length partitioning, separate independent event/background truth gates, 95% Wilson POD intervals and false alarms per observable fibre-km-day.
+- Includes an event-conditioned coverage evaluator with complete route-length partitioning, separate independent event/background truth gates, unique physical-event and false-alarm episode IDs, 95% Wilson POD intervals and false alarms per observable fibre-km-day.
 - Includes a deterministic integration benchmark with 10,000 seeded samples over a bent projected route, independent oracle equations, endpoint checks and monotonicity checks.
+
+Each eligible event ID must represent one independent physical event (not a crop, frame, overlapping window or repeated observation); detected event IDs must be a subset of eligible IDs. False-alarm episode IDs similarly deduplicate overlapping alarm windows. The evaluator rejects duplicates and withholds numerators/denominators when their independent truth source is absent.
 
 ## Decision-value evaluator
 
