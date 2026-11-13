@@ -280,11 +280,11 @@ impl<const N: usize> SpdMetricV1<N> {
         if !finite_matrix(&matrix) {
             return Err(RankErrorV1::NonFiniteInput);
         }
+        let symmetry_scale = matrix_max_abs(&matrix);
         for (i, row) in matrix.iter().enumerate() {
             for (j, value) in row.iter().enumerate().skip(i + 1) {
                 let defect = (*value - matrix[j][i]).abs();
-                let scale = 1.0_f64.max(value.abs()).max(matrix[j][i].abs());
-                if defect > symmetry_tolerance * scale {
+                if defect > symmetry_tolerance * symmetry_scale {
                     return Err(RankErrorV1::NonSymmetric {
                         row: i,
                         column: j,
@@ -356,10 +356,11 @@ fn jacobi_eigen<const K: usize>(
             continue;
         }
         let tau = (a[q][q] - a[p][p]) / (2.0 * apq);
+        let tau_hypotenuse = tau.hypot(1.0);
         let t = if tau >= 0.0 {
-            1.0 / (tau + (1.0 + tau * tau).sqrt())
+            1.0 / (tau + tau_hypotenuse)
         } else {
-            -1.0 / (-tau + (1.0 + tau * tau).sqrt())
+            -1.0 / (-tau + tau_hypotenuse)
         };
         let c = 1.0 / (1.0 + t * t).sqrt();
         let s = t * c;
@@ -559,6 +560,9 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
             profile.absolute_rank_tolerance + profile.relative_rank_tolerance * max_eigen;
         let psd_tolerance =
             profile.absolute_psd_tolerance + profile.relative_psd_tolerance * max_eigen;
+        if !rank_cutoff.is_finite() || !psd_tolerance.is_finite() {
+            return Err(RankErrorV1::NonFiniteIntermediate);
+        }
 
         let mut active = [false; K];
         let mut rank = 0usize;
@@ -693,6 +697,12 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         // Dividing atol by ||b|| makes the decision invariant to common scaling.
         let range_tolerance = profile.relative_range_tolerance
             + profile.absolute_range_tolerance / rhs_norm.max(1.0e-300);
+        if !range_tolerance.is_finite() {
+            return Ok(ConstraintSolveOutcomeV1::Inconclusive {
+                rank: self.rank_receipt,
+                relative_range_defect: None,
+            });
+        }
 
         let mut coefficients = [0.0; K];
         let mut range_residual_hat = [0.0; K];
@@ -857,6 +867,18 @@ mod tests {
 
     fn mat3_mul(a: &Matrix<3, 3>, b: &Matrix<3, 3>) -> Matrix<3, 3> {
         multiply(a, b)
+    }
+
+    #[test]
+    fn metric_symmetry_admission_is_relative_to_metric_scale() {
+        let small_asymmetric = [
+            [2.0e-20, 1.0e-20],
+            [1.0e-20 + 1.0e-26, 3.0e-20],
+        ];
+        assert!(matches!(
+            SpdMetricV1::new(small_asymmetric, 1.0e-10),
+            Err(RankErrorV1::NonSymmetric { .. })
+        ));
     }
 
     #[test]
