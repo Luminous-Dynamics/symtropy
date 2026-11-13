@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/eclss-supportability-case-v0.1.json",
+  "title": "ECLSS Supportability Benchmark Case Registry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "version",
+    "claim_status",
+    "unit_basis",
+    "reference_ledger",
+    "cases"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "ECLSS-SUPPORTABILITY-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "claim_status": {
+      "const": "SYNTHETIC_ONLY"
+    },
+    "unit_basis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "daily_demand_units",
+        "recovery_fraction",
+        "horizon_days",
+        "initial_makeup_inventory_units",
+        "expected_daily_makeup_units",
+        "expected_total_makeup_units",
+        "expected_unserved_units"
+      ],
+      "properties": {
+        "basis": {
+          "const": "ABSTRACT_SYNTHETIC_WATER_UNITS"
+        },
+        "daily_demand_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recovery_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "horizon_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initial_makeup_inventory_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_daily_makeup_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_total_makeup_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_unserved_units": {
+          "type": "number",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "family",
+          "description",
+          "stressors",
+          "expected_disposition",
+          "independent_assertion"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^ECLSS-[0-9]{3}$"
+          },
+          "family": {
+            "enum": [
+              "WATER_QUALITY",
+              "WATER_BALANCE",
+              "OXYGEN_RECOVERY",
+              "ATMOSPHERE",
+              "CONTAMINANT_CONTROL",
+              "COMMON_CAUSE",
+              "THROUGHPUT",
+              "POWER_THERMAL",
+              "SPARES",
+              "MAINTENANCE",
+              "REQUALIFICATION",
+              "BIOREGENERATIVE",
+              "LOGISTICS",
+              "OBSERVABILITY",
+              "OUT_OF_DOMAIN",
+              "METAMORPHIC_TAMPER"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "stressors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "expected_disposition": {
+            "enum": [
+              "ACCEPT_SERVICE",
+              "REJECT_OUTPUT",
+              "DEGRADED_SERVICE",
+              "NO_SERVICE",
+              "INDETERMINATE",
+              "REJECT_INPUT"
+            ]
+          },
+          "independent_assertion": {
+            "type": "string",
+            "minLength": 10
+          },
+          "critical_control": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

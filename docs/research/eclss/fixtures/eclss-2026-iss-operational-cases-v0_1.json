@@ -1,0 +1,203 @@
+{
+  "benchmark_id": "ECLSS-SUPPORTABILITY-001",
+  "version": "0.1.0",
+  "evidence_class": "PUBLISHED_OPERATIONAL_CASES",
+  "claim_status": "SOURCE_BOUNDED_NARRATIVE_REPLAY_ONLY",
+  "source": {
+    "citation": "Brown, C.A.; Toon, K.P.; Hornyak, D.M.; Premer, A.; Caradec, P.A.; Williams, A. (2026), International Space Station as a Testbed for Exploration Environmental Control and Life Support Systems – 2026 Status, ICES-2026-379.",
+    "url": "https://ntrs.nasa.gov/citations/20260003280",
+    "pdf_url": "https://ntrs.nasa.gov/api/citations/20260003280/downloads/ISS%20ECLSS%20Testbed%202026_final_A.pdf",
+    "publication_date": "2026-07-12",
+    "source_type": "NASA conference paper, externally peer committee review, public distribution",
+    "limitations": [
+      "The paper reports the status and operational lessons of a demonstration campaign; it is not a complete component event database.",
+      "Some causal explanations are explicitly tentative or incomplete.",
+      "Planned design features and delivery dates are not demonstrated performance.",
+      "Technology-demo subsystems are not automatically part of the critical certified vehicle configuration.",
+      "ISS microgravity evidence does not by itself establish lunar/Martian partial-gravity or different-pressure applicability.",
+      "Narrative cases do not establish failure distributions, MTBF/MTTR populations or probabilistic reliability."
+    ]
+  },
+  "records": [
+    {
+      "record_id": "NASA-ICES-2026-FBCO2-SPARE-VALVE-MISMATCH",
+      "evidence_status": "OBSERVED_OPERATIONAL_EVENT_AND_RECOVERY",
+      "date_or_period": "June 2024 to February 2025",
+      "subsystem": "Four Bed CO2 Scrubber",
+      "event": "The Air Save Pump failed in June 2024. The on-orbit spare pump omitted an internal valve present in the original because of an error in transfer of design data.",
+      "service_consequence": "Without the internal valve, the scrubber could not maintain vacuum on the adsorbent beds.",
+      "response": "Operational workarounds were implemented; an external COTS valve was developed and flown; the new valve assembly was installed in February 2025.",
+      "benchmark_challenge": "A spare is not an interchangeable spare merely because its part label appears compatible. Require exact configuration, functional interface, bill-of-material and as-built inspection checks before admission; preserve workaround state and repair/requalification history.",
+      "source_locations": [
+        {
+          "pdf_page": 4,
+          "printed_page": 5,
+          "section": "CO2 Removal System"
+        }
+      ],
+      "claim_ceiling": "Published operational case; does not provide a statistical rate of configuration errors or fleet-wide repair probability."
+    },
+    {
+      "record_id": "NASA-ICES-2026-UWMS-PRETREAT-MATERIAL-COMPATIBILITY",
+      "evidence_status": "OBSERVED_OPERATIONAL_FAILURE_SEQUENCE",
+      "date_or_period": "Early 2023 to late 2024",
+      "subsystem": "Universal Waste Management System / pretreat dosing",
+      "event": "During an attempted 14-day, four-crew demonstration, the dose pump failed to dispense pretreat. NASA attributed the issue to PEEK check-valve material incompatibility with pretreat over an indeterminate amount of time. A legacy-design spare pump flown in March 2024 failed again on May 2024 reactivation; a controller failure during July 2024 troubleshooting took the system down and prevented further troubleshooting.",
+      "service_consequence": "The intended demonstration and operation were delayed; the subsystem could not provide the planned pretreat dosing function.",
+      "response": "Check-valve material redesign remained in development; the pump and controller were returned to ground for test, teardown and evaluation in late 2024.",
+      "benchmark_challenge": "Model time-dependent material compatibility and recurrent failure without inventing a precise exposure threshold; distinguish a replacement of the same design from a qualified corrective redesign; preserve cascading loss of diagnostic access after a controller fault.",
+      "source_locations": [
+        {
+          "pdf_page": 8,
+          "printed_page": 9,
+          "section": "Human Metabolic Waste Collection (Toilet)"
+        }
+      ],
+      "claim_ceiling": "Narrative report of a specific ISS demonstration sequence; no general material-life distribution is supplied."
+    },
+    {
+      "record_id": "NASA-ICES-2026-WATER-SEPARATOR-FOULING-DRYOUT",
+      "evidence_status": "OBSERVED_OPERATIONAL_DEGRADATION_AND_ADAPTATION",
+      "date_or_period": "Reported through 2026 status paper",
+      "subsystem": "Water Separator downstream of Condensing Heat Exchanger",
+      "event": "Foreign-object debris accumulated at the liquid/air separation interface, fouling check valves and filling separator volume. Returned samples confirmed material from the hydrophilic heat-exchanger coating; the authors state other contributing factors remained incompletely understood.",
+      "service_consequence": "The water separator could become ineffective when filled with debris.",
+      "response": "Heat-exchanger dry-out frequency was changed from monthly to every 90 days to reduce precipitate accumulation; six months was stated as a future goal, not an achieved interval.",
+      "benchmark_challenge": "Preserve uncertain causal contributors; simulate fouling/cleaning/maintenance trade-offs and avoid treating a proposed six-month interval as validated. Separate sensor-confirmed degradation from hypothesized root cause.",
+      "source_locations": [
+        {
+          "pdf_page": 4,
+          "printed_page": 5,
+          "section": "Water Separator post-CHX"
+        }
+      ],
+      "claim_ceiling": "Observed issue and published procedure change; causal attribution is partial and no universal lifetime is established."
+    },
+    {
+      "record_id": "NASA-ICES-2026-TCCS-CHARCOAL-FILTER-LIFE",
+      "evidence_status": "OBSERVED_LIFE_AND_CONSERVATIVE_OPERATING_LIMIT",
+      "date_or_period": "Filter use reported through 2026",
+      "subsystem": "Trace Contaminant Control System",
+      "event": "Charcoal filters were removed when water data indicated run-to-failure at about 4.25 years. Ground assessment indicated the filters could run to about four years and still perform their function.",
+      "service_consequence": "Filter life is coupled to contaminant capture and monitoring rather than a single generic MTBF measure.",
+      "response": "The ISS programme accepted a conservative three-year operational life for the charcoal filters.",
+      "benchmark_challenge": "Compare fixed conservative life limits with condition-informed proposals while respecting the currently accepted limit; require domain-specific monitoring and authority approval before any change.",
+      "source_locations": [
+        {
+          "pdf_page": 4,
+          "printed_page": 5,
+          "section": "Trace Contaminant Control System"
+        }
+      ],
+      "claim_ceiling": "Source-specific operational history and accepted limit; not permission to extend life in other configurations."
+    },
+    {
+      "record_id": "NASA-ICES-2026-OGA-H2-SENSOR-DRIFT",
+      "evidence_status": "OBSERVED_SENSOR_FAILURE_AND_CONDITIONAL_LIFE_REVIEW",
+      "date_or_period": "April 2022 to May 2026",
+      "subsystem": "Oxygen Generation Assembly hydrogen sensing",
+      "event": "The H2 Sensor Technology demonstration had one of four sensors declared failed after three months and a second failure in January 2025; two remained stable. Legacy H2 sensors were held to a 201-day installed life based on qualification and on-orbit operating experience. Returned-unit testing found sensor-specific drift rates.",
+      "service_consequence": "Sensor availability and drift affect the ability to monitor hydrogen in the oxygen-delivery line and make life-extension decisions.",
+      "response": "The paper reports that observed drift could allow longer installation in some cases; a life up to 348 days was discussed with an R&R in May 2026, subject to data review and testing.",
+      "benchmark_challenge": "Model sensor-/ORU-specific drift, failure and uncertainty; never generalize an observed maximum or conditional extension into a blanket replacement interval. Include redundant sensors with correlated/uncorrelated failure assumptions only where justified.",
+      "source_locations": [
+        {
+          "pdf_page": 5,
+          "printed_page": 6,
+          "section": "Oxygen Generation System"
+        }
+      ],
+      "claim_ceiling": "Published demonstration and conditional engineering assessment, not a universal H2 sensor life distribution."
+    },
+    {
+      "record_id": "NASA-ICES-2026-AIRFLOW-SENSOR-FOULING",
+      "evidence_status": "OBSERVED_MONITORING_BENEFIT_AND_SENSOR_FAILURE_MODE",
+      "date_or_period": "Sensors installed and evaluated through 2026",
+      "subsystem": "Airflow monitoring / ECLSS condition monitoring",
+      "event": "Airflow sensors enabled longer-term trending compared with legacy spot checks and could help target housekeeping to reduce crew time. The paper also reports that unfiltered foreign debris adhered to sensor heads and blocked airflow measurements in some locations.",
+      "service_consequence": "Condition-based maintenance can reduce unnecessary scheduled tasks, but a fouled sensor can bias the very trend used to defer maintenance.",
+      "response": "NASA investigated filters and alternate sensor-head materials to reduce cleaning needs.",
+      "benchmark_challenge": "Evaluate maintenance policy and sensor health jointly; use independent/cleaning checks and adversarial sensor-fouling tests so a corrupted observation cannot justify unsafe maintenance deferral.",
+      "source_locations": [
+        {
+          "pdf_page": 6,
+          "printed_page": 7,
+          "section": "COTS Air Monitoring Sensors / Airflow Sensors"
+        }
+      ],
+      "claim_ceiling": "Published sensor behaviour in ISS locations; no general sensor error probability is implied."
+    },
+    {
+      "record_id": "NASA-ICES-2026-AOGA-COMPONENT-REPAIR-DESIGN",
+      "evidence_status": "PLANNED_DESIGN_FEATURE",
+      "date_or_period": "Delivery to ISS planned for mid-2027 in the 2026 paper",
+      "subsystem": "Advanced Oxygen Generation Assembly",
+      "event": "The design includes improvements intended to enable component-level replacement (such as individual valves), reduce spares mass/volume, and add a purge/flush procedure to clear recirculation-loop contaminants and enable dormancy.",
+      "service_consequence": "Potentially lower spare burden and improved contamination management; no on-orbit result is established by this planned design description.",
+      "response": "The paper identified three new manifolds and pressure-sensor qualification work on the critical path; delivery was planned for mid-2027.",
+      "benchmark_challenge": "Measure maintainability, spare commonality, component replacement time, post-repair requalification and purge effectiveness as separate claims; compare declared design forecasts with later measured demonstration results.",
+      "source_locations": [
+        {
+          "pdf_page": 5,
+          "printed_page": 6,
+          "section": "Oxygen Generation System"
+        }
+      ],
+      "claim_ceiling": "Planned design intent and schedule only; not a demonstrated performance result as of the 2026 status paper."
+    },
+    {
+      "record_id": "NASA-ICES-2026-MICROGRAVITY-TO-SURFACE-APPLICABILITY",
+      "evidence_status": "EXPLICIT_DOMAIN_LIMIT",
+      "date_or_period": "2026 status paper",
+      "subsystem": "Exploration ECLSS architecture",
+      "event": "The paper states that ISS microgravity testing is most relevant to microgravity environments such as transit or lunar orbit. Partial-gravity lunar/Martian surface stays may have altered requirements, and different cabin pressures may require ground testing.",
+      "service_consequence": "A successful ISS test cannot directly establish surface-habitat operation under partial gravity or a different pressure envelope.",
+      "response": "NASA identifies ground testing as the priority for human-in-the-loop pressure and surface-specific differences.",
+      "benchmark_challenge": "Attach an explicit context-of-use/domain vector to every claim; force abstention or separate evidence acquisition when gravity, pressure, fluid phase behaviour or cabin conditions fall outside the tested domain.",
+      "source_locations": [
+        {
+          "pdf_page": 1,
+          "printed_page": 2,
+          "section": "Introduction"
+        }
+      ],
+      "claim_ceiling": "Applicability limitation stated by authors; no surface system is qualified by this record."
+    },
+    {
+      "record_id": "NASA-ICES-2026-DEMO-VS-CRITICAL-CONFIGURATION",
+      "evidence_status": "CERTIFICATION_SCOPE_LIMIT",
+      "date_or_period": "2026 status paper",
+      "subsystem": "ISS exploration ECLSS demonstration integration",
+      "event": "Standalone demonstration systems were treated as non-critical technology demos with little or no reliability requirements. Most upgraded subassemblies were not certified as part of the critical vehicle configuration until they had proved to function; the nominal critical-system spares fleet was retained.",
+      "service_consequence": "Demonstration operation is not equivalent to certified critical life-support availability or replacement of the critical fallback configuration.",
+      "response": "NASA retains the nominal spares fleet for critical vehicle systems during the demonstrations.",
+      "benchmark_challenge": "Track demo/critical configuration identity, fallback inventory, authority scope and qualification promotion as explicit state; do not award critical-service credit to a technology demo that has not passed the applicable gate.",
+      "source_locations": [
+        {
+          "pdf_page": 12,
+          "printed_page": 13,
+          "section": "Operations and Certification Approach"
+        }
+      ],
+      "claim_ceiling": "Published programme approach; exact detailed certification artefacts and acceptance data are outside this paper."
+    },
+    {
+      "record_id": "NASA-ICES-2026-TAS-SPARES-DEPENDENT-OPERATIONS",
+      "evidence_status": "OBSERVED_OPERATIONAL_FAILURE_SEQUENCE",
+      "date_or_period": "Started ISS operation May 2019; status described in 2026 paper",
+      "subsystem": "Thermal Amine Scrubber",
+      "event": "The scrubber experienced multiple failures requiring replacement of the desiccant wheel, system controller and bulk-water-save valve. The 2026 paper states it was no longer being actively sustained with a logistics plan and would continue operating as long as existing spares lasted.",
+      "service_consequence": "Continued operating time became dependent on finite existing spares rather than an active replenishment plan.",
+      "response": "Existing spares continued to support operation; the 2026 paper reports an operational-runtime goal of three years in Fall 2026.",
+      "benchmark_challenge": "Model finite spare exhaustion and support-plan termination separately from component reliability; do not treat a currently operating demo as indefinitely maintainable or assume replenishment.",
+      "source_locations": [
+        {
+          "pdf_page": 4,
+          "printed_page": 5,
+          "section": "CO2 Removal System"
+        }
+      ],
+      "claim_ceiling": "Published programme status at the paper's date; not a quantitative spare-exhaustion forecast or failure probability."
+    }
+  ]
+}

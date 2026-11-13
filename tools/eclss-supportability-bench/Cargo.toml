@@ -1,0 +1,12 @@
+[package]
+name = "eclss-supportability-bench"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Deterministic source-register and known-answer validator for Symtropy ECLSS supportability research."
+
+[workspace]
+
+[dependencies]
+serde_json = "=1.0.150"

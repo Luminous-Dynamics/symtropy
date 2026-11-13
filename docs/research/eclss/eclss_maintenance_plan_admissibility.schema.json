@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/eclss-maintenance-plan-admissibility-v0.1.json",
+  "title": "ECLSS evidence-carrying maintenance plan admissibility corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "contract_id",
+    "version",
+    "claim_status",
+    "unit_basis",
+    "cases"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "ECLSS-SUPPORTABILITY-001"
+    },
+    "contract_id": {
+      "const": "ECLSS-MAINTENANCE-PLAN-ADMISSIBILITY-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "claim_status": {
+      "const": "SYNTHETIC_ONLY"
+    },
+    "unit_basis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "plan",
+          "expected_disposition",
+          "expected_reason"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MPA-[0-9]{3}$"
+          },
+          "expected_disposition": {
+            "enum": [
+              "ADMISSIBLE",
+              "REJECTED"
+            ]
+          },
+          "expected_reason": {
+            "enum": [
+              "NONE",
+              "SPARE_CONFIGURATION_MISMATCH",
+              "SPARE_EXPIRED",
+              "ISOLATION_NOT_VERIFIED",
+              "SERVICE_FLOOR_BREACH",
+              "WORKER_NOT_QUALIFIED",
+              "POST_REPAIR_TEST_MISSING_OR_STALE",
+              "WORKER_OR_TOOL_OVERLAP",
+              "SPARE_OVERALLOCATED",
+              "AUTHORITY_EXPIRED_OR_REVOKED",
+              "DEPENDENCY_ORDER_INVALID",
+              "TASK_OUTSIDE_MAINTENANCE_WINDOW",
+              "PROCEDURE_NOT_APPROVED"
+            ]
+          },
+          "plan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "plan_id",
+              "mission_window_end_minute",
+              "assets",
+              "workers",
+              "tools",
+              "procedures",
+              "spares",
+              "isolation_records",
+              "authorizations",
+              "tasks"
+            ],
+            "properties": {
+              "plan_id": {
+                "type": "string"
+              },
+              "mission_window_end_minute": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "assets": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "asset_id",
+                    "installed_revision"
+                  ],
+                  "properties": {
+                    "asset_id": {
+                      "type": "string"
+                    },
+                    "installed_revision": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "workers": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "worker_id",
+                    "status",
+                    "skills",
+                    "valid_through_minute"
+                  ],
+                  "properties": {
+                    "worker_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "CURRENT",
+                        "EXPIRED",
+                        "SUSPENDED"
+                      ]
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "valid_through_minute": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tool_id",
+                    "status",
+                    "exclusive"
+                  ],
+                  "properties": {
+                    "tool_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "UNAVAILABLE"
+                      ]
+                    },
+                    "exclusive": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "procedures": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "procedure_id",
+                    "revision",
+                    "approved",
+                    "valid_through_minute"
+                  ],
+                  "properties": {
+                    "procedure_id": {
+                      "type": "string"
+                    },
+                    "revision": {
+                      "type": "string"
+                    },
+                    "approved": {
+                      "type": "boolean"
+                    },
+                    "valid_through_minute": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "spares": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "spare_id",
+                    "compatible_asset_ids",
+                    "compatible_revision",
+                    "qualified",
+                    "available_quantity",
+                    "expiry_minute"
+                  ],
+                  "properties": {
+                    "spare_id": {
+                      "type": "string"
+                    },
+                    "compatible_asset_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "uniqueItems": true
+                    },
+                    "compatible_revision": {
+                      "type": "string"
+                    },
+                    "qualified": {
+                      "type": "boolean"
+                    },
+                    "available_quantity": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "expiry_minute": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "isolation_records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "evidence_id",
+                    "asset_id",
+                    "asset_revision",
+                    "status",
+                    "valid_through_minute"
+                  ],
+                  "properties": {
+                    "evidence_id": {
+                      "type": "string"
+                    },
+                    "asset_id": {
+                      "type": "string"
+                    },
+                    "asset_revision": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "VERIFIED",
+                        "UNVERIFIED",
+                        "MISSING"
+                      ]
+                    },
+                    "valid_through_minute": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "authorizations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "authority_id",
+                    "asset_id",
+                    "asset_revision",
+                    "status",
+                    "valid_through_minute"
+                  ],
+                  "properties": {
+                    "authority_id": {
+                      "type": "string"
+                    },
+                    "asset_id": {
+                      "type": "string"
+                    },
+                    "asset_revision": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "APPROVED",
+                        "REJECTED",
+                        "REVOKED"
+                      ]
+                    },
+                    "valid_through_minute": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              },
+              "tasks": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "task_id",
+                    "asset_id",
+                    "asset_revision",
+                    "procedure_id",
+                    "procedure_revision",
+                    "start_minute",
+                    "duration_minutes",
+                    "worker_id",
+                    "required_skill",
+                    "tool_ids",
+                    "spare_id",
+                    "isolation_evidence_id",
+                    "required_service_floor_bp",
+                    "service_capacity_during_bp",
+                    "authority_id",
+                    "post_test_id",
+                    "post_test_asset_revision",
+                    "post_test_status",
+                    "dependencies"
+                  ],
+                  "properties": {
+                    "task_id": {
+                      "type": "string"
+                    },
+                    "asset_id": {
+                      "type": "string"
+                    },
+                    "asset_revision": {
+                      "type": "string"
+                    },
+                    "procedure_id": {
+                      "type": "string"
+                    },
+                    "procedure_revision": {
+                      "type": "string"
+                    },
+                    "start_minute": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "duration_minutes": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "worker_id": {
+                      "type": "string"
+                    },
+                    "required_skill": {
+                      "type": "string"
+                    },
+                    "tool_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "uniqueItems": true
+                    },
+                    "spare_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "isolation_evidence_id": {
+                      "type": "string"
+                    },
+                    "required_service_floor_bp": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000
+                    },
+                    "service_capacity_during_bp": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 10000
+                    },
+                    "authority_id": {
+                      "type": "string"
+                    },
+                    "post_test_id": {
+                      "type": "string"
+                    },
+                    "post_test_asset_revision": {
+                      "type": "string"
+                    },
+                    "post_test_status": {
+                      "enum": [
+                        "PASS",
+                        "FAIL",
+                        "MISSING"
+                      ]
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "uniqueItems": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

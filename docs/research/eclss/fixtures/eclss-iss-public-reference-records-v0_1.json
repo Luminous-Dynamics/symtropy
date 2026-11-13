@@ -1,0 +1,210 @@
+{
+  "benchmark_id": "ECLSS-SUPPORTABILITY-001",
+  "version": "0.1.0",
+  "evidence_class": "PUBLISHED_REFERENCE",
+  "claim_status": "PRELIMINARY_REFERENCE_ONLY",
+  "source": {
+    "citation": "Chen, L.; Rivas, J.; Rangel, A. (2025), Advancing ECLSS Reliability Modeling: Integrating ISS Data for Sustainable Long-Duration Mission Planning, 54th International Conference on Environmental Systems, ICES-2025-127.",
+    "url": "https://ntrs.nasa.gov/citations/20250003955",
+    "pdf_url": "https://ntrs.nasa.gov/api/citations/20250003955/downloads/ICES-2025-127_Final_Rev%20B.pdf",
+    "data_origin_as_described_by_authors": "ISS Maintenance & Analysis Data Set (MADS)",
+    "extraction_scope": "Selected reference subset: 9 component entries from Appendix Tables 2–5 plus 2 Table 1 crew R&R task estimates. Supplementary register covers 133 further component entries and 39 further Table 1 crew R&R tasks.",
+    "limitations": [
+      "Authors state the reliability dataset is not yet complete.",
+      "Authors state analogies may be used where required component data are unavailable.",
+      "Authors state the integrated simulation framework is still in development and planned for a future ICES paper.",
+      "Table 1 crew R&R estimates exclude gathering and stowing time.",
+      "Crew time depends on installation location, accessibility and task complexity; Table 1 is not exhaustive.",
+      "MTBF values are not standalone mission failure probabilities. The paper's annual failure-rate expression also depends on duty cycle, installed quantity and K-factor.",
+      "No raw MADS event history, censoring treatment, complete exposure denominators or independent calibration set is distributed in this source register.",
+      "Table 5 component R&R time is kept separate from Table 1 major-ORU crew R&R task time; the two are not interchangeable."
+    ]
+  },
+  "component_records": [
+    {
+      "record_id": "ICES2025-127-WPA-CATALYTIC-REACTOR",
+      "table": "Table 2",
+      "printed_page": 10,
+      "subsystem": "Water Processor Assembly",
+      "component": "Catalytic Reactor",
+      "mass_kg": 57.43,
+      "mtbf_hours": 27077,
+      "operational_mttr_hours": 6,
+      "operational_k_factor": 1.05,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": null,
+      "calendar_limited_life": null,
+      "notes": "Published component row. Do not infer mission reliability without duty cycle, quantity and model assumptions.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-WPA-ION-EXCHANGE-BED",
+      "table": "Table 2",
+      "printed_page": 10,
+      "subsystem": "Water Processor Assembly",
+      "component": "Ion Exchange Bed",
+      "mass_kg": 12.02,
+      "mtbf_hours": 442478,
+      "operational_mttr_hours": 0.65,
+      "operational_k_factor": 1.38,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": null,
+      "calendar_limited_life": null,
+      "notes": "Published component row; MTTR is an operational reliability input, not the full crew task or mission downtime.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-WPA-PUMP-SEPARATOR",
+      "table": "Table 2",
+      "printed_page": 10,
+      "subsystem": "Water Processor Assembly",
+      "component": "Pump/Separator",
+      "mass_kg": 27.58,
+      "mtbf_hours": 39429,
+      "operational_mttr_hours": 1.15,
+      "operational_k_factor": 3.26,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": null,
+      "calendar_limited_life": null,
+      "notes": "High published K-factor in the selected WPA sample; preserve source value and do not reinterpret it as a probability.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-UPA-DISTILLATION-ASSEMBLY",
+      "table": "Table 3",
+      "printed_page": 10,
+      "subsystem": "Urine Processor Assembly",
+      "component": "Distillation Assembly",
+      "mass_kg": 75.57,
+      "mtbf_hours": 41376,
+      "operational_mttr_hours": 7,
+      "operational_k_factor": 1.84,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": null,
+      "calendar_limited_life": null,
+      "notes": "Table 3 operational MTTR is 7 h. The separate Table 1 UPA Distillation Assembly crew R&R estimate is 3 h (180 min) in crew_task_records.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-UPA-BRINE-FILTER",
+      "table": "Table 3",
+      "printed_page": 10,
+      "subsystem": "Urine Processor Assembly",
+      "component": "Brine Filter",
+      "mass_kg": 5.35,
+      "mtbf_hours": null,
+      "operational_mttr_hours": null,
+      "operational_k_factor": null,
+      "preventive_r_and_r_interval_days": 60,
+      "preventive_r_and_r_duration_hours": 0.17,
+      "throughput_limited_life": null,
+      "calendar_limited_life": null,
+      "notes": "Preventive-maintenance-limited row. MTBPMRR=60 days; MTTPMRR=0.17 h. Not a stochastic MTBF row.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-UPA-PURGE-FILTER",
+      "table": "Table 3",
+      "printed_page": 10,
+      "subsystem": "Urine Processor Assembly",
+      "component": "Purge Filter",
+      "mass_kg": 1.61,
+      "mtbf_hours": null,
+      "operational_mttr_hours": null,
+      "operational_k_factor": null,
+      "preventive_r_and_r_interval_days": 545,
+      "preventive_r_and_r_duration_hours": 0.17,
+      "throughput_limited_life": null,
+      "calendar_limited_life": null,
+      "notes": "Preventive-maintenance-limited row. MTBPMRR=545 days; MTTPMRR=0.17 h.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-WATER-STORAGE-ACTEX-FILTER",
+      "table": "Table 5",
+      "printed_page": 11,
+      "subsystem": "Water Storage System",
+      "component": "ACTEX Filter",
+      "mass_kg": 1.46,
+      "mtbf_hours": 469469,
+      "operational_mttr_hours": null,
+      "operational_k_factor": 1.15,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": {
+        "value": 6750,
+        "unit": "lb processed"
+      },
+      "calendar_limited_life": {
+        "value": 4,
+        "unit": "years wetted life"
+      },
+      "notes": "Table 5 reports component R&R=0.5 h; this is distinct from the Table 1 major-ORU crew R&R task estimates. Limited life: 6,750 lb throughput or four years wetted life.",
+      "component_r_and_r_hours": 0.5
+    },
+    {
+      "record_id": "ICES2025-127-BPA-BRINE-PROCESSOR",
+      "table": "Table 4",
+      "printed_page": 10,
+      "subsystem": "Brine Processor Assembly",
+      "component": "Brine Processor",
+      "mass_kg": null,
+      "mtbf_hours": null,
+      "operational_mttr_hours": null,
+      "operational_k_factor": null,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": null,
+      "calendar_limited_life": {
+        "value": 10.8,
+        "unit": "years operational life"
+      },
+      "notes": "Table 4 gives approximately 10.8 years operational life for the processor. Text section also describes the detrusor at approximately 10.8 years.",
+      "component_r_and_r_hours": null
+    },
+    {
+      "record_id": "ICES2025-127-BPA-BLADDER",
+      "table": "Table 4",
+      "printed_page": 10,
+      "subsystem": "Brine Processor Assembly",
+      "component": "Brine Processor Bladder",
+      "mass_kg": null,
+      "mtbf_hours": null,
+      "operational_mttr_hours": null,
+      "operational_k_factor": null,
+      "preventive_r_and_r_interval_days": null,
+      "preventive_r_and_r_duration_hours": null,
+      "throughput_limited_life": null,
+      "calendar_limited_life": {
+        "value": 35,
+        "unit": "weeks maximum after brine fill before disposal"
+      },
+      "notes": "Table 4 states that each bladder must be disposed of within 35 weeks of brine fill. The paper separately reports the BPA batch processes 24 L of brine every 26 days; this is a batch/cadence reference, not a throughput-limited lifetime or the bladder's instantaneous capacity.",
+      "component_r_and_r_hours": null
+    }
+  ],
+  "crew_task_records": [
+    {
+      "record_id": "ICES2025-127-CREW-OGA-HYDROGEN-RR",
+      "table": "Table 1",
+      "printed_page": 9,
+      "subsystem": "OGS",
+      "oru": "OGA — Hydrogen",
+      "crew_time_minutes": 840,
+      "notes": "Table 1 major ORU crew R&R estimate (14 h); excludes gathering/stowing and depends on installation access and task complexity."
+    },
+    {
+      "record_id": "ICES2025-127-CREW-WPA-COMBINED-RR",
+      "table": "Table 1",
+      "printed_page": 9,
+      "subsystem": "Water",
+      "oru": "WPA — Gas Separator, Water Delivery, Ion Exchange and AAA (combined task grouping)",
+      "crew_time_minutes": 1155,
+      "notes": "Table 1 major ORU crew R&R estimate (19 h 15 min) for one combined task grouping; do not allocate this to each component individually; excludes gathering/stowing."
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+name: ECLSS Supportability Corpus Validator
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/research/eclss/**"
+      - "tools/eclss-supportability-bench/**"
+      - ".github/workflows/eclss-supportability-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eclss-supportability-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/eclss-supportability-bench/Cargo.toml -- --check
+
+      - name: Run validator tests
+        run: cargo test --manifest-path tools/eclss-supportability-bench/Cargo.toml
+
+      - name: Execute exact-head validator and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          expected_commit="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "$expected_commit"
+          cargo run --quiet --manifest-path tools/eclss-supportability-bench/Cargo.toml > eclss-supportability-receipt.json
+          jq --arg source_commit "$source_commit" '. + {source_commit: $source_commit}' eclss-supportability-receipt.json > eclss-supportability-receipt.tmp
+          mv eclss-supportability-receipt.tmp eclss-supportability-receipt.json
+          jq -e '
+            .result == "PASS_FIXTURE_STRUCTURE_AND_KNOWN_ANSWER"
+            and .synthetic.case_count == 30
+            and .synthetic.reference_ledger.total_makeup_units == 60
+            and .synthetic.reference_ledger.unserved_units == 20
+            and .published_reference.selected_register_records == 11
+            and .published_reference.selected_component_records == 9
+            and .published_reference.selected_crew_task_records == 2
+            and .published_appendix_supplement.additional_component_records == 133
+            and .published_appendix_supplement.additional_crew_task_records == 39
+            and .published_appendix_supplement.combined_component_records == 142
+            and .published_appendix_supplement.combined_crew_task_records == 41
+            and .published_operational_cases.operational_records == 10
+            and .programme_schedule.schedule_snapshots == 5
+            and .maintenance_plan_admissibility.case_count == 13
+            and .maintenance_plan_admissibility.admissible == 1
+            and .maintenance_plan_admissibility.rejected == 12
+            and (.maintenance_plan_admissibility.execution_authorized == false)
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+          ' eclss-supportability-receipt.json
+
+      - name: Upload deterministic ECLSS validation receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: eclss-supportability-reference-receipt
+          path: eclss-supportability-receipt.json
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,1731 @@
+{
+  "benchmark_id": "ECLSS-SUPPORTABILITY-001",
+  "contract_id": "ECLSS-MAINTENANCE-PLAN-ADMISSIBILITY-001",
+  "version": "0.1.0",
+  "claim_status": "SYNTHETIC_ONLY",
+  "unit_basis": "Time is integer mission-relative minutes; service floors and capacities are integer basis points (10000 = 100%). All identities and evidence statuses are synthetic.",
+  "cases": [
+    {
+      "case_id": "MPA-001",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "ADMISSIBLE",
+      "expected_reason": "NONE"
+    },
+    {
+      "case_id": "MPA-002",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-B",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "SPARE_CONFIGURATION_MISMATCH"
+    },
+    {
+      "case_id": "MPA-003",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 50
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "SPARE_EXPIRED"
+    },
+    {
+      "case_id": "MPA-004",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "UNVERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "ISOLATION_NOT_VERIFIED"
+    },
+    {
+      "case_id": "MPA-005",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 7000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "SERVICE_FLOOR_BREACH"
+    },
+    {
+      "case_id": "MPA-006",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "EXPIRED",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "WORKER_NOT_QUALIFIED"
+    },
+    {
+      "case_id": "MPA-007",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "MISSING",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "POST_REPAIR_TEST_MISSING_OR_STALE"
+    },
+    {
+      "case_id": "MPA-008",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 2,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          },
+          {
+            "task_id": "TASK-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 20,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-02",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-02",
+            "post_test_id": "POST-TASK-02",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "WORKER_OR_TOOL_OVERLAP"
+    },
+    {
+      "case_id": "MPA-009",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          },
+          {
+            "task_id": "TASK-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 80,
+            "duration_minutes": 60,
+            "worker_id": "TECH-02",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-02"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-02",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-02",
+            "post_test_id": "POST-TASK-02",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "SPARE_OVERALLOCATED"
+    },
+    {
+      "case_id": "MPA-010",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 50
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "AUTHORITY_EXPIRED_OR_REVOKED"
+    },
+    {
+      "case_id": "MPA-011",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          },
+          {
+            "task_id": "TASK-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 20,
+            "duration_minutes": 60,
+            "worker_id": "TECH-02",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-02"
+            ],
+            "spare_id": null,
+            "isolation_evidence_id": "ISO-02",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-02",
+            "post_test_id": "POST-TASK-02",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": [
+              "TASK-01"
+            ]
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "DEPENDENCY_ORDER_INVALID"
+    },
+    {
+      "case_id": "MPA-012",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": true,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 150,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "TASK_OUTSIDE_MAINTENANCE_WINDOW"
+    },
+    {
+      "case_id": "MPA-013",
+      "plan": {
+        "plan_id": "PLAN-BASE",
+        "mission_window_end_minute": 200,
+        "assets": [
+          {
+            "asset_id": "WPA-PUMP-01",
+            "installed_revision": "REV-A"
+          },
+          {
+            "asset_id": "WPA-PUMP-02",
+            "installed_revision": "REV-A"
+          }
+        ],
+        "workers": [
+          {
+            "worker_id": "TECH-01",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          },
+          {
+            "worker_id": "TECH-02",
+            "status": "CURRENT",
+            "skills": [
+              "WPA_PUMP_ORU"
+            ],
+            "valid_through_minute": 500
+          }
+        ],
+        "tools": [
+          {
+            "tool_id": "TORQUE-01",
+            "status": "AVAILABLE",
+            "exclusive": true
+          },
+          {
+            "tool_id": "TORQUE-02",
+            "status": "AVAILABLE",
+            "exclusive": true
+          }
+        ],
+        "procedures": [
+          {
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "revision": "1",
+            "approved": false,
+            "valid_through_minute": 500
+          }
+        ],
+        "spares": [
+          {
+            "spare_id": "SPARE-PUMP-A",
+            "compatible_asset_ids": [
+              "WPA-PUMP-01",
+              "WPA-PUMP-02"
+            ],
+            "compatible_revision": "REV-A",
+            "qualified": true,
+            "available_quantity": 1,
+            "expiry_minute": 1000
+          }
+        ],
+        "isolation_records": [
+          {
+            "evidence_id": "ISO-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          },
+          {
+            "evidence_id": "ISO-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "VERIFIED",
+            "valid_through_minute": 500
+          }
+        ],
+        "authorizations": [
+          {
+            "authority_id": "AUTH-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          },
+          {
+            "authority_id": "AUTH-02",
+            "asset_id": "WPA-PUMP-02",
+            "asset_revision": "REV-A",
+            "status": "APPROVED",
+            "valid_through_minute": 500
+          }
+        ],
+        "tasks": [
+          {
+            "task_id": "TASK-01",
+            "asset_id": "WPA-PUMP-01",
+            "asset_revision": "REV-A",
+            "procedure_id": "PROC-REPLACE-PUMP",
+            "procedure_revision": "1",
+            "start_minute": 10,
+            "duration_minutes": 60,
+            "worker_id": "TECH-01",
+            "required_skill": "WPA_PUMP_ORU",
+            "tool_ids": [
+              "TORQUE-01"
+            ],
+            "spare_id": "SPARE-PUMP-A",
+            "isolation_evidence_id": "ISO-01",
+            "required_service_floor_bp": 8000,
+            "service_capacity_during_bp": 9000,
+            "authority_id": "AUTH-01",
+            "post_test_id": "POST-TASK-01",
+            "post_test_asset_revision": "REV-A",
+            "post_test_status": "PASS",
+            "dependencies": []
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED",
+      "expected_reason": "PROCEDURE_NOT_APPROVED"
+    }
+  ]
+}

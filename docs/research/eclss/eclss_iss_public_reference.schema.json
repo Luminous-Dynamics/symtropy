@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/eclss-iss-reference-records-v0.1.json",
+  "title": "Selected published ISS ECLSS reference records from ICES-2025-127",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "version",
+    "evidence_class",
+    "claim_status",
+    "source",
+    "component_records",
+    "crew_task_records"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "ECLSS-SUPPORTABILITY-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "evidence_class": {
+      "const": "PUBLISHED_REFERENCE"
+    },
+    "claim_status": {
+      "const": "PRELIMINARY_REFERENCE_ONLY"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "citation",
+        "url",
+        "data_origin_as_described_by_authors",
+        "limitations"
+      ],
+      "properties": {
+        "citation": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "pdf_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "data_origin_as_described_by_authors": {
+          "type": "string"
+        },
+        "extraction_scope": {
+          "type": "string"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "component_records": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "table",
+          "printed_page",
+          "subsystem",
+          "component",
+          "mass_kg",
+          "mtbf_hours",
+          "operational_mttr_hours",
+          "operational_k_factor",
+          "preventive_r_and_r_interval_days",
+          "preventive_r_and_r_duration_hours",
+          "throughput_limited_life",
+          "calendar_limited_life",
+          "notes",
+          "component_r_and_r_hours"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^ICES2025-127-[A-Z0-9-]+$"
+          },
+          "table": {
+            "enum": [
+              "Table 1",
+              "Table 2",
+              "Table 3",
+              "Table 4",
+              "Table 5"
+            ]
+          },
+          "printed_page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "component": {
+            "type": "string"
+          },
+          "mass_kg": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "mtbf_hours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "operational_mttr_hours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "operational_k_factor": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "preventive_r_and_r_interval_days": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "preventive_r_and_r_duration_hours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "throughput_limited_life": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "unit"
+            ],
+            "additionalProperties": false
+          },
+          "calendar_limited_life": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "value": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "unit"
+            ],
+            "additionalProperties": false
+          },
+          "notes": {
+            "type": "string"
+          },
+          "component_r_and_r_hours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "crew_task_records": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "table",
+          "printed_page",
+          "subsystem",
+          "oru",
+          "crew_time_minutes",
+          "notes"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^ICES2025-127-CREW-[A-Z0-9-]+$"
+          },
+          "table": {
+            "const": "Table 1"
+          },
+          "printed_page": {
+            "const": 9
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "oru": {
+            "type": "string"
+          },
+          "crew_time_minutes": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

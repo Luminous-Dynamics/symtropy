@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/eclss-iss-operational-cases-v0.1.json",
+  "title": "Published NASA ISS ECLSS operational benchmark case registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmark_id",
+    "version",
+    "evidence_class",
+    "claim_status",
+    "source",
+    "records"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "const": "ECLSS-SUPPORTABILITY-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "evidence_class": {
+      "const": "PUBLISHED_OPERATIONAL_CASES"
+    },
+    "claim_status": {
+      "const": "SOURCE_BOUNDED_NARRATIVE_REPLAY_ONLY"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "citation",
+        "url",
+        "pdf_url",
+        "publication_date",
+        "source_type",
+        "limitations"
+      ],
+      "properties": {
+        "citation": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "pdf_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publication_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_type": {
+          "type": "string"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "evidence_status",
+          "date_or_period",
+          "subsystem",
+          "event",
+          "service_consequence",
+          "response",
+          "benchmark_challenge",
+          "source_locations",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "pattern": "^NASA-ICES-2026-[A-Z0-9-]+$"
+          },
+          "evidence_status": {
+            "enum": [
+              "OBSERVED_OPERATIONAL_EVENT_AND_RECOVERY",
+              "OBSERVED_OPERATIONAL_FAILURE_SEQUENCE",
+              "OBSERVED_OPERATIONAL_DEGRADATION_AND_ADAPTATION",
+              "OBSERVED_LIFE_AND_CONSERVATIVE_OPERATING_LIMIT",
+              "OBSERVED_SENSOR_FAILURE_AND_CONDITIONAL_LIFE_REVIEW",
+              "OBSERVED_MONITORING_BENEFIT_AND_SENSOR_FAILURE_MODE",
+              "PLANNED_DESIGN_FEATURE",
+              "EXPLICIT_DOMAIN_LIMIT",
+              "CERTIFICATION_SCOPE_LIMIT"
+            ]
+          },
+          "date_or_period": {
+            "type": "string"
+          },
+          "subsystem": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event": {
+            "type": "string",
+            "minLength": 10
+          },
+          "service_consequence": {
+            "type": "string",
+            "minLength": 5
+          },
+          "response": {
+            "type": "string",
+            "minLength": 5
+          },
+          "benchmark_challenge": {
+            "type": "string",
+            "minLength": 10
+          },
+          "source_locations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "pdf_page",
+                "printed_page",
+                "section"
+              ],
+              "properties": {
+                "pdf_page": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "printed_page": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "section": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 5
+          }
+        }
+      }
+    }
+  }
+}

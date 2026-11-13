@@ -1,0 +1,381 @@
+{
+  "benchmark_id": "ECLSS-SUPPORTABILITY-001",
+  "version": "0.1.0",
+  "claim_status": "SYNTHETIC_ONLY",
+  "unit_basis": "All values in reference_ledger are abstract synthetic accounting units; no physical ECLSS performance is asserted.",
+  "reference_ledger": {
+    "basis": "ABSTRACT_SYNTHETIC_WATER_UNITS",
+    "daily_demand_units": 100,
+    "recovery_fraction": 0.98,
+    "horizon_days": 30,
+    "initial_makeup_inventory_units": 40,
+    "expected_daily_makeup_units": 2,
+    "expected_total_makeup_units": 60,
+    "expected_unserved_units": 20,
+    "notes": "A 98% gross recovery fraction still requires 60 make-up units over 30 days. With only 40 qualified units and no resupply, 20 units of demand remain unserved. This is a deliberately simplified arithmetic counterexample, not an ISS reproduction."
+  },
+  "cases": [
+    {
+      "case_id": "ECLSS-001",
+      "family": "WATER_QUALITY",
+      "description": "Nominal recovery with independent product-quality acceptance",
+      "stressors": [
+        "nominal_process",
+        "valid_assay"
+      ],
+      "expected_disposition": "ACCEPT_SERVICE",
+      "independent_assertion": "Credit only accepted product meeting the declared consumer quality contract.",
+      "critical_control": false
+    },
+    {
+      "case_id": "ECLSS-002",
+      "family": "WATER_QUALITY",
+      "description": "High recovery percentage but product quality fails",
+      "stressors": [
+        "quality_failure",
+        "high_recovery"
+      ],
+      "expected_disposition": "REJECT_OUTPUT",
+      "independent_assertion": "Gross recovery must not count as potable service when the consumer quality gate fails.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-003",
+      "family": "WATER_BALANCE",
+      "description": "Brine and residual stream accounting",
+      "stressors": [
+        "brine_residual",
+        "mass_balance"
+      ],
+      "expected_disposition": "ACCEPT_SERVICE",
+      "independent_assertion": "All input mass is allocated to product, residual, loss or inventory change within declared tolerance.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-004",
+      "family": "WATER_BALANCE",
+      "description": "Recovery path outage with finite clean-water inventory",
+      "stressors": [
+        "processor_outage",
+        "finite_inventory"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Inventory decreases by demand and service stops or degrades at the exact reserve boundary.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-005",
+      "family": "THROUGHPUT",
+      "description": "Water processor throughput below peak demand",
+      "stressors": [
+        "throughput_cap",
+        "peak_demand"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Delivered accepted water cannot exceed qualified throughput; deficit remains explicit.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-006",
+      "family": "OBSERVABILITY",
+      "description": "Quality sensor drift falsely reports acceptable water",
+      "stressors": [
+        "sensor_drift",
+        "false_accept"
+      ],
+      "expected_disposition": "REJECT_OUTPUT",
+      "independent_assertion": "Independent validation detects the bias; a stale/drifting sensor cannot qualify product.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-007",
+      "family": "OBSERVABILITY",
+      "description": "Independent assay contradicts inline sensor",
+      "stressors": [
+        "sensor_conflict",
+        "independent_assay"
+      ],
+      "expected_disposition": "INDETERMINATE",
+      "independent_assertion": "Conflicting current evidence is preserved and must not be resolved by last-write-wins.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-008",
+      "family": "OXYGEN_RECOVERY",
+      "description": "CO2 reduction at declared oxygen recovery boundary",
+      "stressors": [
+        "sabatier_reference",
+        "explicit_boundary"
+      ],
+      "expected_disposition": "ACCEPT_SERVICE",
+      "independent_assertion": "Oxygen recovery is calculated on its own declared basis and not conflated with water recovery.",
+      "critical_control": false
+    },
+    {
+      "case_id": "ECLSS-009",
+      "family": "OXYGEN_RECOVERY",
+      "description": "Hydrogen shortage constrains oxygen recovery",
+      "stressors": [
+        "hydrogen_shortage",
+        "stoichiometric_limit"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Output is limited by qualified hydrogen availability and mass balance.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-010",
+      "family": "OXYGEN_RECOVERY",
+      "description": "Oxygen throughput passes but purity fails",
+      "stressors": [
+        "oxygen_quality_failure",
+        "rate_pass"
+      ],
+      "expected_disposition": "REJECT_OUTPUT",
+      "independent_assertion": "Rate alone does not satisfy the downstream oxygen service contract.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-011",
+      "family": "ATMOSPHERE",
+      "description": "CO2 removal subsystem saturates before service interval ends",
+      "stressors": [
+        "sorbent_saturation",
+        "delayed_maintenance"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "CO2 removal capacity decline produces explicit service deficit and time-to-threshold.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-012",
+      "family": "CONTAMINANT_CONTROL",
+      "description": "Trace contaminant breakthrough after filter exhaustion",
+      "stressors": [
+        "filter_exhaustion",
+        "contaminant_breakthrough"
+      ],
+      "expected_disposition": "REJECT_OUTPUT",
+      "independent_assertion": "The system does not report acceptable atmosphere after the qualified contaminant limit is exceeded.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-013",
+      "family": "OXYGEN_RECOVERY",
+      "description": "Oxygen-generation outage with qualified independent reserve",
+      "stressors": [
+        "generator_outage",
+        "qualified_reserve"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Reserve contribution is credited only for matching quality, configuration and validity evidence.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-014",
+      "family": "COMMON_CAUSE",
+      "description": "Nominally redundant units share power and cooling dependency",
+      "stressors": [
+        "shared_power",
+        "shared_cooling"
+      ],
+      "expected_disposition": "NO_SERVICE",
+      "independent_assertion": "A common-cause event defeats both paths; redundancy is not treated as independent.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-015",
+      "family": "SPARES",
+      "description": "Replacement part is present but not configuration-qualified",
+      "stressors": [
+        "spare_available",
+        "revision_mismatch"
+      ],
+      "expected_disposition": "NO_SERVICE",
+      "independent_assertion": "Physical stock does not establish an admissible interchangeable spare.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-016",
+      "family": "SPARES",
+      "description": "Spare shelf life expires or storage conditions are violated",
+      "stressors": [
+        "shelf_life_expiry",
+        "storage_excursion"
+      ],
+      "expected_disposition": "NO_SERVICE",
+      "independent_assertion": "Expired/unqualified stock cannot be counted as available until requalification.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-017",
+      "family": "LOGISTICS",
+      "description": "Consumable is exhausted before the next resupply window",
+      "stressors": [
+        "consumable_depletion",
+        "delayed_resupply"
+      ],
+      "expected_disposition": "NO_SERVICE",
+      "independent_assertion": "No implicit replenishment occurs; unmet demand and first loss time are explicit.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-018",
+      "family": "MAINTENANCE",
+      "description": "Maintenance specialist unavailable due to competing critical task",
+      "stressors": [
+        "crew_contention",
+        "task_dependency"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Maintenance queue and service degradation reflect actual qualified labor availability.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-019",
+      "family": "MAINTENANCE",
+      "description": "Maintenance duration exceeds declared reserve",
+      "stressors": [
+        "long_maintenance",
+        "reserve_depletion"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Reserve consumption and service shortfall are time-resolved; no zero-duration repair assumption.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-020",
+      "family": "REQUALIFICATION",
+      "description": "Repair reported complete without post-repair test",
+      "stressors": [
+        "repair_claim",
+        "missing_test"
+      ],
+      "expected_disposition": "NO_SERVICE",
+      "independent_assertion": "Repair claim alone cannot restore verified availability.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-021",
+      "family": "REQUALIFICATION",
+      "description": "Passing test belongs to an earlier subsystem revision",
+      "stressors": [
+        "stale_requalification",
+        "revision_mismatch"
+      ],
+      "expected_disposition": "NO_SERVICE",
+      "independent_assertion": "Evidence for the old revision cannot qualify the changed installed configuration.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-022",
+      "family": "CONTAMINANT_CONTROL",
+      "description": "Cleaning restores nominal flow but not contaminant rejection",
+      "stressors": [
+        "cleaning",
+        "selectivity_degradation"
+      ],
+      "expected_disposition": "REJECT_OUTPUT",
+      "independent_assertion": "Nominal flow recovery is not equivalent to restored contaminant-control service.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-023",
+      "family": "THROUGHPUT",
+      "description": "Throughput degrades across repeated operating cycles",
+      "stressors": [
+        "cycle_degradation",
+        "history_dependence"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "The transition preserves accumulated degradation and does not reset state between cycles.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-024",
+      "family": "BIOREGENERATIVE",
+      "description": "Biological-loop contamination forces isolation",
+      "stressors": [
+        "bio_contamination",
+        "isolation"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Isolated or unqualified biological output is not credited as food/air/water service.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-025",
+      "family": "BIOREGENERATIVE",
+      "description": "Crop failure or delayed harvest affects nutrition service",
+      "stressors": [
+        "crop_failure",
+        "harvest_delay"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Only accepted harvest on the declared nutrition basis is credited; no invented replacement calories.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-026",
+      "family": "POWER_THERMAL",
+      "description": "Power shortage forces scheduled load shedding",
+      "stressors": [
+        "power_shortage",
+        "load_shedding"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Protected service floors remain hard constraints and deferrable loads are reported separately.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-027",
+      "family": "POWER_THERMAL",
+      "description": "Thermal rejection cap reduces capacity despite available electricity",
+      "stressors": [
+        "heat_rejection_limit",
+        "capacity_derate"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Electrical availability cannot override thermal rejection or temperature-grade constraints.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-028",
+      "family": "LOGISTICS",
+      "description": "Communication blackout removes remote support",
+      "stressors": [
+        "communication_delay",
+        "local_authority"
+      ],
+      "expected_disposition": "DEGRADED_SERVICE",
+      "independent_assertion": "Only locally authorized procedures remain admissible during loss of remote support.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-029",
+      "family": "OUT_OF_DOMAIN",
+      "description": "Unknown fault and out-of-domain environment",
+      "stressors": [
+        "unknown_fault",
+        "unqualified_environment"
+      ],
+      "expected_disposition": "INDETERMINATE",
+      "independent_assertion": "No convenient failure distribution, nominal state or recovery capability is invented.",
+      "critical_control": true
+    },
+    {
+      "case_id": "ECLSS-030",
+      "family": "METAMORPHIC_TAMPER",
+      "description": "Time-step, unit, duplicate-event, digest and receipt-replay controls",
+      "stressors": [
+        "unit_mutation",
+        "duplicate_event",
+        "digest_mutation",
+        "receipt_replay"
+      ],
+      "expected_disposition": "REJECT_INPUT",
+      "independent_assertion": "Semantic mutation or stale evidence is detected by the independent verifier.",
+      "critical_control": true
+    }
+  ]
+}
