@@ -1386,7 +1386,7 @@ mod tests {
                 receipt: AcceptanceReceipt {
                     receipt_ref: "inspection-receipt:rebar-001".to_owned(),
                     task_id: "task-1".to_owned(),
-                    binding: context,
+                    binding: context.clone(),
                     output_evidence_ref: "output-evidence:rebar-001".to_owned(),
                 },
             },
