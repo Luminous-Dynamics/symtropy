@@ -84,12 +84,8 @@ fn sparse_run(size: u64) {
 
         let indexed_local = measure_query(|| {
             black_box(
-                book.candidate_count_for_interval(
-                    "shared-hoist",
-                    local_start,
-                    local_start + 1_000,
-                )
-                .expect("indexed local query"),
+                book.candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
+                    .expect("indexed local query"),
             );
         });
         let reference_local = measure_query(|| {
@@ -114,11 +110,17 @@ fn sparse_run(size: u64) {
             percentile(&insert_samples, 50).as_secs_f64() * 1_000.0,
             percentile(&insert_samples, 95).as_secs_f64() * 1_000.0,
             percentile(&insert_samples, 99).as_secs_f64() * 1_000.0,
-            book.candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000).unwrap(),
+            book.candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
+                .unwrap(),
             percentile(&indexed_local, 50).as_secs_f64() * 1_000_000.0,
             percentile(&indexed_local, 95).as_secs_f64() * 1_000_000.0,
             percentile(&indexed_local, 99).as_secs_f64() * 1_000_000.0,
-            book.reference_candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000).unwrap(),
+            book.reference_candidate_count_for_interval(
+                "shared-hoist",
+                local_start,
+                local_start + 1_000
+            )
+            .unwrap(),
             percentile(&reference_local, 50).as_secs_f64() * 1_000_000.0,
             percentile(&reference_local, 95).as_secs_f64() * 1_000_000.0,
             percentile(&reference_local, 99).as_secs_f64() * 1_000_000.0,
@@ -176,9 +178,15 @@ fn multi_resource_run(per_resource: u64) {
         "distribution=multi_resource resources={resources} per_resource={per_resource} total={} insert_ms={:.3} indexed_candidates={} indexed_query_p50_us={:.3} full_scan_overlaps={} full_scan_query_p50_us={:.3}",
         per_resource * resources,
         insert.as_secs_f64() * 1_000.0,
-        book.candidate_count_for_interval("resource-07", local_start, local_start + 1_000).unwrap(),
+        book.candidate_count_for_interval("resource-07", local_start, local_start + 1_000)
+            .unwrap(),
         percentile(&indexed, 50).as_secs_f64() * 1_000_000.0,
-        book.reference_candidate_count_for_interval("resource-07", local_start, local_start + 1_000).unwrap(),
+        book.reference_candidate_count_for_interval(
+            "resource-07",
+            local_start,
+            local_start + 1_000
+        )
+        .unwrap(),
         percentile(&full_scan, 50).as_secs_f64() * 1_000_000.0
     );
     black_box(book);
@@ -211,12 +219,8 @@ fn dense_run(size: u64) {
     let query_start = 20_000;
     let indexed = measure_query(|| {
         black_box(
-            book.candidate_count_for_interval(
-                "shared-workface",
-                query_start,
-                query_start + 100,
-            )
-            .expect("dense indexed query"),
+            book.candidate_count_for_interval("shared-workface", query_start, query_start + 100)
+                .expect("dense indexed query"),
         );
     });
     let full_scan = measure_query(|| {
@@ -232,9 +236,15 @@ fn dense_run(size: u64) {
     println!(
         "distribution=dense_single_bucket reservations={size} insert_ms={:.3} indexed_candidates={} indexed_query_p50_us={:.3} full_scan_overlaps={} full_scan_query_p50_us={:.3}",
         elapsed.as_secs_f64() * 1_000.0,
-        book.candidate_count_for_interval("shared-workface", query_start, query_start + 100).unwrap(),
+        book.candidate_count_for_interval("shared-workface", query_start, query_start + 100)
+            .unwrap(),
         percentile(&indexed, 50).as_secs_f64() * 1_000_000.0,
-        book.reference_candidate_count_for_interval("shared-workface", query_start, query_start + 100).unwrap(),
+        book.reference_candidate_count_for_interval(
+            "shared-workface",
+            query_start,
+            query_start + 100
+        )
+        .unwrap(),
         percentile(&full_scan, 50).as_secs_f64() * 1_000_000.0
     );
     black_box(book);
@@ -253,11 +263,8 @@ fn expiry_run(size: u64) {
             let start = 1_000_000 + (index - 100) * 2_000;
             (start, start + 100, 10_000_000_000)
         };
-        book.reserve(
-            request(index, "expiry-load", start, end, expiry),
-            0,
-        )
-        .expect("expiry benchmark reservation");
+        book.reserve(request(index, "expiry-load", start, end, expiry), 0)
+            .expect("expiry benchmark reservation");
     }
 
     let full_scan = measure_query(|| {
