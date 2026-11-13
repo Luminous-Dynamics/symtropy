@@ -222,5 +222,18 @@
     "document": "research/water-service-engineering/MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md",
     "status": "literature_and_manufacturer_reference_matrix_not_field_performance",
     "maturity_level": "L1_synthetic_contract_and_arithmetic_benchmarks"
+  },
+  "membrane_observation_semantics": {
+    "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5039",
+    "protocol": "research/water-service-engineering/MEMBRANE_OBSERVATION_SEMANTICS_PROTOCOL_V0_1.md",
+    "schema": "research/water-service-engineering/membrane-observation.schema.json",
+    "fixtures": "research/water-service-engineering/membrane-observation-fixtures-v0.1.json",
+    "manifest": "research/water-service-engineering/membrane-observation-manifest-v0.1.json",
+    "case_count": 8,
+    "status": "synthetic_schema_contract_only_no_real_dataset_admitted"
+  },
+  "membrane_evidence_twin_blueprint": {
+    "document": "research/water-service-engineering/MEMBRANE_EVIDENCE_TWIN_REFERENCE_ARCHITECTURE_V0_1.md",
+    "status": "reference_architecture_only_no_live_plant_twin_or_actuation"
   }
 }

@@ -554,6 +554,62 @@ jobs:
             research/water-service-engineering/membrane-measurement-integrity.schema.json \
             research/water-service-engineering/membrane-measurement-integrity-manifest-v0.1.json \
             artifacts/membrane-measurement-integrity/receipt.json
+      - name: Validate membrane observation semantics envelope
+        id: membrane_observation_semantics
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-observation.schema.json").read_text())
+          fixtures = json.loads((root / "membrane-observation-fixtures-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-observation-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=FormatChecker())
+          if len(fixtures["cases"]) != 9 or manifest["case_count"] != 8:
+              raise SystemExit("MEMBRANE_OBSERVATION_CASE_COUNT_FAIL")
+          ids = [case["case_id"] for case in fixtures["cases"]]
+          if len(set(ids)) != 9:
+              raise SystemExit("MEMBRANE_OBSERVATION_DUPLICATE_CASE_ID")
+
+          for case in fixtures["cases"]:
+              errors = list(validator.iter_errors(case["record"]))
+              actual_valid = not errors
+              expected_valid = case["expected_valid"]
+              if actual_valid != expected_valid:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"MEMBRANE_OBSERVATION_SCHEMA_FAIL: {case['case_id']} {pointer}: {error.message}")
+                  raise SystemExit(f"MEMBRANE_OBSERVATION_EXPECTATION_MISMATCH: {case['case_id']}")
+
+              record = case["record"]
+              if record["quality"]["status"] in ("MISSING", "STALE", "INVALID") and record["value"] is not None:
+                  raise SystemExit(f"MEMBRANE_OBSERVATION_MISSING_NOT_NULL: {case['case_id']}")
+              if record["evidence_class"] in ("DERIVED_METRIC", "NORMALIZED_METRIC"):
+                  if not record["lineage"] or not record["formula"]:
+                      raise SystemExit(f"MEMBRANE_OBSERVATION_LINEAGE_REQUIRED: {case['case_id']}")
+              if record["evidence_class"] == "NORMALIZED_METRIC":
+                  normalization = record["normalization"]
+                  if not normalization or not normalization["correction_inputs"]:
+                      raise SystemExit(f"MEMBRANE_OBSERVATION_REFERENCE_REQUIRED: {case['case_id']}")
+                  if not set(normalization["correction_inputs"]).issubset(set(record["lineage"])):
+                      raise SystemExit(f"MEMBRANE_OBSERVATION_NORMALIZATION_LINEAGE_MISMATCH: {case['case_id']}")
+              if record["evidence_class"] == "ROLLING_AGGREGATE":
+                  start = datetime.fromisoformat(record["time"]["window_start"].replace("Z", "+00:00"))
+                  end = datetime.fromisoformat(record["time"]["window_end"].replace("Z", "+00:00"))
+                  if (end - start).total_seconds() != record["aggregation"]["window_duration_seconds"]:
+                      raise SystemExit(f"MEMBRANE_OBSERVATION_WINDOW_DURATION_MISMATCH: {case['case_id']}")
+                  if record["time"]["semantics"] == "WINDOW_END" and end.isoformat() != datetime.fromisoformat(record["time"]["timestamp"].replace("Z", "+00:00")).isoformat():
+                      raise SystemExit(f"MEMBRANE_OBSERVATION_WINDOW_END_TIMESTAMP_MISMATCH: {case['case_id']}")
+              if record["evidence_class"] == "LAB_SAMPLE" and record["time"]["semantics"] != "SAMPLE_COLLECTION":
+                  raise SystemExit(f"MEMBRANE_OBSERVATION_LAB_TIME_SCOPE_FAIL: {case['case_id']}")
+
+          print("MEMBRANE_OBSERVATION_SEMANTICS_PASS: 9 positive/negative fixtures; evidence class, aggregation, lineage and missingness enforced")
+          PY
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -589,6 +645,10 @@ jobs:
             research/water-service-engineering/membrane-measurement-integrity.schema.json
             research/water-service-engineering/membrane-measurement-integrity-manifest-v0.1.json
             artifacts/membrane-measurement-integrity/receipt.json
+            research/water-service-engineering/MEMBRANE_OBSERVATION_SEMANTICS_PROTOCOL_V0_1.md
+            research/water-service-engineering/membrane-observation.schema.json
+            research/water-service-engineering/membrane-observation-fixtures-v0.1.json
+            research/water-service-engineering/membrane-observation-manifest-v0.1.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -601,6 +661,7 @@ jobs:
           MEMBRANE_RO_M0B_OUTCOME: ${{ steps.membrane_ro_m0b.outcome }}
           MEMBRANE_MEASUREMENT_INTEGRITY_OUTCOME: ${{ steps.membrane_measurement_integrity_contracts.outcome }}
           MEMBRANE_MEASUREMENT_INTEGRITY_RUST_OUTCOME: ${{ steps.membrane_measurement_integrity.outcome }}
+          MEMBRANE_OBSERVATION_SEMANTICS_OUTCOME: ${{ steps.membrane_observation_semantics.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
@@ -610,3 +671,4 @@ jobs:
           test "$MEMBRANE_RO_M0B_OUTCOME" = "success"
           test "$MEMBRANE_MEASUREMENT_INTEGRITY_OUTCOME" = "success"
           test "$MEMBRANE_MEASUREMENT_INTEGRITY_RUST_OUTCOME" = "success"
+          test "$MEMBRANE_OBSERVATION_SEMANTICS_OUTCOME" = "success"

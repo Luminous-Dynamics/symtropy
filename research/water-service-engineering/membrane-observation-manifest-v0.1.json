@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-OBSERVATION-SEMANTICS-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5039",
+  "schema": "research/water-service-engineering/membrane-observation.schema.json",
+  "fixtures": "research/water-service-engineering/membrane-observation-fixtures-v0.1.json",
+  "case_count": 9,
+  "evidence_classes": [
+    "RAW_INSTANT_MEASUREMENT",
+    "ROLLING_AGGREGATE",
+    "LAB_SAMPLE",
+    "DERIVED_METRIC",
+    "NORMALIZED_METRIC"
+  ],
+  "invariants": [
+    "aggregation_semantics_explicit",
+    "missing_not_zero",
+    "units_required",
+    "derived_requires_complete_lineage",
+    "normalized_requires_versioned_reference_and_correction_inputs",
+    "lab_sample_is_sample_time_only",
+    "sensor_and_calibration_provenance_preserved",
+    "timezone_and_timestamp_semantics_required"
+  ],
+  "status": "synthetic_schema_contract_only_no_real_dataset_admitted",
+  "evidence_ceiling": "schema_semantics_only_no_real_membrane_observation_or_measurement_claim"
+}

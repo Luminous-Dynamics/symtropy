@@ -1,0 +1,514 @@
+{
+  "schema_version": "membrane-observation-fixtures-v0.1",
+  "evidence_class": "synthetic_contract_fixture",
+  "evidence_ceiling": "schema_semantics_only_no_real_membrane_observation_or_measurement_claim",
+  "cases": [
+    {
+      "case_id": "OBS-001-valid-instant-sensor",
+      "expected_valid": true,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-001",
+        "evidence_class": "RAW_INSTANT_MEASUREMENT",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp",
+        "value": 0.52,
+        "unit": "bar",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:00:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "SENSOR",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": {
+          "instrument_id": "SYN-PT-01",
+          "tag_id": "PT_001"
+        },
+        "calibration": {
+          "status": "CALIBRATED",
+          "calibration_record_id": "CAL-SYN-001",
+          "last_calibrated_at": "2030-01-01T00:00:00Z"
+        },
+        "aggregation": {
+          "method": "INSTANT",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-002-valid-5min-rolling-mean",
+      "expected_valid": true,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-002",
+        "evidence_class": "ROLLING_AGGREGATE",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.permeability",
+        "value": 18.7,
+        "unit": "L m-2 h-1 bar-1",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:05:00Z",
+          "timezone": "UTC",
+          "semantics": "WINDOW_END",
+          "window_start": "2030-01-01T10:00:00Z",
+          "window_end": "2030-01-01T10:05:00Z",
+          "window_duration_seconds": 300
+        },
+        "source_type": "SENSOR",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": {
+          "instrument_id": "SYN-PT-01",
+          "tag_id": "PT_001"
+        },
+        "calibration": {
+          "status": "CALIBRATED",
+          "calibration_record_id": "CAL-SYN-001",
+          "last_calibrated_at": "2030-01-01T00:00:00Z"
+        },
+        "aggregation": {
+          "method": "ROLLING_MEAN",
+          "window_duration_seconds": 300
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-003-valid-lab-sample",
+      "expected_valid": true,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-003",
+        "evidence_class": "LAB_SAMPLE",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "lab.turbidity",
+        "value": 0.03,
+        "unit": "NTU",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:15:00Z",
+          "timezone": "UTC",
+          "semantics": "SAMPLE_COLLECTION",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "LABORATORY",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.005,
+          "lod": 0.01,
+          "loq": 0.02
+        },
+        "sensor": null,
+        "calibration": null,
+        "aggregation": {
+          "method": "SAMPLE",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": {
+          "sample_id": "SYN-SAMPLE-001",
+          "analyte_id": "turbidity",
+          "method_id": "SYN-METHOD-01",
+          "qc_status": "ACCEPTED",
+          "accreditation_scope": "synthetic"
+        }
+      }
+    },
+    {
+      "case_id": "OBS-004-missing-not-zero",
+      "expected_valid": false,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-004",
+        "evidence_class": "RAW_INSTANT_MEASUREMENT",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp",
+        "value": 0,
+        "unit": "bar",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:00:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "SENSOR",
+        "quality": {
+          "status": "MISSING",
+          "uncertainty": null,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": {
+          "instrument_id": "SYN-PT-01",
+          "tag_id": "PT_001"
+        },
+        "calibration": {
+          "status": "CALIBRATED",
+          "calibration_record_id": "CAL-SYN-001",
+          "last_calibrated_at": "2030-01-01T00:00:00Z"
+        },
+        "aggregation": {
+          "method": "INSTANT",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-005-derived-without-lineage",
+      "expected_valid": false,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-005",
+        "evidence_class": "DERIVED_METRIC",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp",
+        "value": 0.52,
+        "unit": "bar",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:00:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "DERIVED",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": null,
+        "calibration": null,
+        "aggregation": {
+          "method": "DERIVED",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-006-normalized-without-reference",
+      "expected_valid": false,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-006",
+        "evidence_class": "NORMALIZED_METRIC",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp",
+        "value": 0.52,
+        "unit": "bar",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:00:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "NORMALIZED",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": null,
+        "calibration": null,
+        "aggregation": {
+          "method": "DERIVED",
+          "window_duration_seconds": 0
+        },
+        "lineage": [
+          "SYN-OBS-001"
+        ],
+        "formula": {
+          "formula_id": "SYN-NORMALIZE",
+          "version": "1.0"
+        },
+        "normalization": null,
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-007-rolling-average-without-window",
+      "expected_valid": false,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-007",
+        "evidence_class": "ROLLING_AGGREGATE",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp",
+        "value": 0.52,
+        "unit": "bar",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:05:00Z",
+          "timezone": "UTC",
+          "semantics": "WINDOW_END",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "SENSOR",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": {
+          "instrument_id": "SYN-PT-01",
+          "tag_id": "PT_001"
+        },
+        "calibration": {
+          "status": "CALIBRATED",
+          "calibration_record_id": "CAL-SYN-001",
+          "last_calibrated_at": "2030-01-01T00:00:00Z"
+        },
+        "aggregation": {
+          "method": "MEAN",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-008-valid-normalized-RO-with-lineage",
+      "expected_valid": true,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-008",
+        "evidence_class": "NORMALIZED_METRIC",
+        "process": {
+          "process_type": "RO",
+          "site_id": "SYN-RO-SITE",
+          "plant_id": "SYN-RO-PLANT",
+          "train_id": "RO-TRAIN-1",
+          "stage_id": "RO-1",
+          "module_id": "RO-MODULE-1"
+        },
+        "variable_id": "ro.normalized_permeate_flow",
+        "value": 0.98,
+        "unit": "fraction_of_reference",
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:30:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "NORMALIZED",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": null,
+        "calibration": null,
+        "aggregation": {
+          "method": "DERIVED",
+          "window_duration_seconds": 0
+        },
+        "lineage": [
+          "OBS-FEED-PRESSURE",
+          "OBS-PERMEATE-PRESSURE",
+          "OBS-FEED-CONDUCTIVITY",
+          "OBS-TEMPERATURE",
+          "OBS-PERMEATE-FLOW"
+        ],
+        "formula": {
+          "formula_id": "SYN-RO-NORM",
+          "version": "1.0"
+        },
+        "normalization": {
+          "method_id": "SYN-NORM",
+          "method_version": "1.0",
+          "reference_state_id": "CLEAN-REFERENCE-001",
+          "correction_inputs": [
+            "OBS-FEED-PRESSURE",
+            "OBS-PERMEATE-PRESSURE",
+            "OBS-FEED-CONDUCTIVITY",
+            "OBS-TEMPERATURE",
+            "OBS-PERMEATE-FLOW"
+          ]
+        },
+        "lab": null
+      }
+    },
+    {
+      "case_id": "OBS-009-numeric-value-without-unit",
+      "expected_valid": false,
+      "record": {
+        "schema_version": "membrane-observation-v0.1",
+        "observation_id": "SYN-OBS-009",
+        "evidence_class": "RAW_INSTANT_MEASUREMENT",
+        "process": {
+          "process_type": "UF",
+          "site_id": "SYN-SITE",
+          "plant_id": "SYN-PLANT",
+          "train_id": "SYN-TRAIN",
+          "stage_id": "UF-OUTLET",
+          "module_id": "SYN-MODULE-1"
+        },
+        "variable_id": "uf.tmp.no-unit",
+        "value": 0.52,
+        "unit": null,
+        "location": {
+          "measurement_point_id": "SYN-TMP-PT",
+          "treatment_stage": "UF_OUTLET"
+        },
+        "time": {
+          "timestamp": "2030-01-01T10:00:00Z",
+          "timezone": "UTC",
+          "semantics": "INSTANT",
+          "window_start": null,
+          "window_end": null,
+          "window_duration_seconds": 0
+        },
+        "source_type": "SENSOR",
+        "quality": {
+          "status": "VALID",
+          "uncertainty": 0.01,
+          "lod": null,
+          "loq": null
+        },
+        "sensor": {
+          "instrument_id": "SYN-PT-01",
+          "tag_id": "PT_001"
+        },
+        "calibration": {
+          "status": "CALIBRATED",
+          "calibration_record_id": "CAL-SYN-001",
+          "last_calibrated_at": "2030-01-01T00:00:00Z"
+        },
+        "aggregation": {
+          "method": "INSTANT",
+          "window_duration_seconds": 0
+        },
+        "lineage": [],
+        "formula": null,
+        "normalization": null,
+        "lab": null
+      }
+    }
+  ]
+}

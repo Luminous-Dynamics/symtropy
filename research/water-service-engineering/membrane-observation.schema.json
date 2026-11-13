@@ -1,0 +1,809 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/membrane-observation.schema.json",
+  "title": "Membrane observation semantics envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "evidence_class",
+    "process",
+    "variable_id",
+    "value",
+    "unit",
+    "location",
+    "time",
+    "source_type",
+    "quality",
+    "sensor",
+    "calibration",
+    "aggregation",
+    "lineage",
+    "formula",
+    "normalization",
+    "lab"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-observation-v0.1"
+    },
+    "observation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "RAW_INSTANT_MEASUREMENT",
+        "ROLLING_AGGREGATE",
+        "LAB_SAMPLE",
+        "DERIVED_METRIC",
+        "NORMALIZED_METRIC"
+      ]
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process_type",
+        "site_id"
+      ],
+      "properties": {
+        "process_type": {
+          "enum": [
+            "UF",
+            "NF",
+            "RO",
+            "MBR"
+          ]
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plant_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "train_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "module_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "variable_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "value": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "unit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_point_id",
+        "treatment_stage"
+      ],
+      "properties": {
+        "measurement_point_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "treatment_stage": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp",
+        "timezone",
+        "semantics",
+        "window_start",
+        "window_end",
+        "window_duration_seconds"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantics": {
+          "enum": [
+            "INSTANT",
+            "WINDOW_START",
+            "WINDOW_END",
+            "WINDOW_CENTER",
+            "SAMPLE_COLLECTION"
+          ]
+        },
+        "window_start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "window_duration_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source_type": {
+      "enum": [
+        "SENSOR",
+        "LABORATORY",
+        "DERIVED",
+        "NORMALIZED"
+      ]
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "uncertainty",
+        "lod",
+        "loq"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "VALID",
+            "MISSING",
+            "STALE",
+            "INVALID",
+            "SUSPECT",
+            "BELOW_LOD",
+            "BELOW_LOQ"
+          ]
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "lod": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "loq": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "sensor": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "instrument_id",
+        "tag_id"
+      ],
+      "properties": {
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "calibration": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "calibration_record_id",
+        "last_calibrated_at"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "CALIBRATED",
+            "DUE",
+            "UNVERIFIED",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "calibration_record_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_calibrated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "aggregation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "window_duration_seconds"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "INSTANT",
+            "MEAN",
+            "ROLLING_MEAN",
+            "MIN",
+            "MAX",
+            "MEDIAN",
+            "SAMPLE",
+            "DERIVED"
+          ]
+        },
+        "window_duration_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "lineage": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "formula": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "formula_id",
+        "version"
+      ],
+      "properties": {
+        "formula_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "normalization": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "method_id",
+        "method_version",
+        "reference_state_id",
+        "correction_inputs"
+      ],
+      "properties": {
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_state_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correction_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "lab": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "analyte_id",
+        "method_id",
+        "qc_status",
+        "accreditation_scope"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analyte_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qc_status": {
+          "enum": [
+            "ACCEPTED",
+            "REJECTED",
+            "PENDING"
+          ]
+        },
+        "accreditation_scope": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "quality": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "MISSING",
+                  "STALE",
+                  "INVALID"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "quality"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "quality": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "BELOW_LOD",
+                  "BELOW_LOQ"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "quality"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "null"
+          },
+          "lab": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "RAW_INSTANT_MEASUREMENT"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_type": {
+            "const": "SENSOR"
+          },
+          "sensor": {
+            "type": "object"
+          },
+          "calibration": {
+            "type": "object"
+          },
+          "time": {
+            "properties": {
+              "semantics": {
+                "const": "INSTANT"
+              },
+              "window_start": {
+                "type": "null"
+              },
+              "window_end": {
+                "type": "null"
+              },
+              "window_duration_seconds": {
+                "const": 0
+              }
+            }
+          },
+          "aggregation": {
+            "properties": {
+              "method": {
+                "const": "INSTANT"
+              },
+              "window_duration_seconds": {
+                "const": 0
+              }
+            }
+          },
+          "lineage": {
+            "maxItems": 0
+          },
+          "formula": {
+            "type": "null"
+          },
+          "normalization": {
+            "type": "null"
+          },
+          "lab": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "ROLLING_AGGREGATE"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_type": {
+            "const": "SENSOR"
+          },
+          "sensor": {
+            "type": "object"
+          },
+          "calibration": {
+            "type": "object"
+          },
+          "time": {
+            "properties": {
+              "semantics": {
+                "enum": [
+                  "WINDOW_START",
+                  "WINDOW_END",
+                  "WINDOW_CENTER"
+                ]
+              },
+              "window_start": {
+                "type": "string"
+              },
+              "window_end": {
+                "type": "string"
+              },
+              "window_duration_seconds": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "aggregation": {
+            "properties": {
+              "method": {
+                "enum": [
+                  "MEAN",
+                  "ROLLING_MEAN",
+                  "MIN",
+                  "MAX",
+                  "MEDIAN"
+                ]
+              },
+              "window_duration_seconds": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "formula": {
+            "type": "null"
+          },
+          "normalization": {
+            "type": "null"
+          },
+          "lab": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "LAB_SAMPLE"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_type": {
+            "const": "LABORATORY"
+          },
+          "sensor": {
+            "type": "null"
+          },
+          "time": {
+            "properties": {
+              "semantics": {
+                "const": "SAMPLE_COLLECTION"
+              },
+              "window_start": {
+                "type": "null"
+              },
+              "window_end": {
+                "type": "null"
+              },
+              "window_duration_seconds": {
+                "const": 0
+              }
+            }
+          },
+          "aggregation": {
+            "properties": {
+              "method": {
+                "const": "SAMPLE"
+              },
+              "window_duration_seconds": {
+                "const": 0
+              }
+            }
+          },
+          "lineage": {
+            "maxItems": 0
+          },
+          "formula": {
+            "type": "null"
+          },
+          "normalization": {
+            "type": "null"
+          },
+          "lab": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "DERIVED_METRIC"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_type": {
+            "const": "DERIVED"
+          },
+          "sensor": {
+            "type": "null"
+          },
+          "calibration": {
+            "type": "null"
+          },
+          "aggregation": {
+            "properties": {
+              "method": {
+                "const": "DERIVED"
+              }
+            }
+          },
+          "lineage": {
+            "minItems": 1
+          },
+          "formula": {
+            "type": "object"
+          },
+          "normalization": {
+            "type": "null"
+          },
+          "lab": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "NORMALIZED_METRIC"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_type": {
+            "const": "NORMALIZED"
+          },
+          "sensor": {
+            "type": "null"
+          },
+          "calibration": {
+            "type": "null"
+          },
+          "aggregation": {
+            "properties": {
+              "method": {
+                "const": "DERIVED"
+              }
+            }
+          },
+          "lineage": {
+            "minItems": 1
+          },
+          "formula": {
+            "type": "object"
+          },
+          "normalization": {
+            "type": "object"
+          },
+          "lab": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "quality": {
+            "properties": {
+              "status": {
+                "const": "VALID"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "quality"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "then": {
+        "properties": {
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}
