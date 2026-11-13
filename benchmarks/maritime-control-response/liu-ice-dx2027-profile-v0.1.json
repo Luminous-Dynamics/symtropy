@@ -179,5 +179,17 @@
     "benchmark_score_claim_allowed": false,
     "physical_validation_claim_allowed": false,
     "cross_engine_transfer_claim_allowed": false
+  },
+  "calibration_feasibility": {
+    "independent_calibration_unit": "recording",
+    "reported_max_recordings_per_known_fault_family": 7,
+    "required_independent_episodes_for_split_conformal_coverage": {
+      "0.90": 9,
+      "0.95": 19,
+      "0.99": 99
+    },
+    "per_fault_90pct_split_conformal_feasible_from_reported_training_count": false,
+    "pooled_marginal_coverage_claims_per_fault_coverage": false,
+    "claim_note": "At most seven recordings per known fault family is below the nine independent calibration episodes needed for a 90% finite-sample split-conformal marginal guarantee. A pooled calibration result is not a per-fault guarantee."
   }
 }
