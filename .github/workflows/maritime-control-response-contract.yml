@@ -256,7 +256,7 @@ jobs:
           ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
 
           jq -e '
-            .schema_version == "symtropy-marine-file-manifest-v1" and
+            .properties.schema_version.const == "symtropy-marine-file-manifest-v1" and
             .properties.dataset_doi.const == "10.5281/zenodo.19857425" and
             .properties.dataset_license.const == "CC-BY-4.0" and
             (.properties.files.minItems == 16) and
