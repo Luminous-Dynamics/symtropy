@@ -1,0 +1,325 @@
+{
+  "schema_version": "loco-probe-continuation-known-answers-v0.1",
+  "units": {
+    "probability": "ppb",
+    "probability_scale": 1000000000,
+    "decision_step": "one declared abstraction step"
+  },
+  "interpretation": "Synthetic finite transition fixtures. Viable sets and transition branches are supplied inputs. They do not represent physical robot measurements or a hardware safety certificate.",
+  "required_semantics": {
+    "robust_gate": "All physically possible branches are checked independently of probability mass.",
+    "observation_partition": "A branch is included in every observation outcome listed in physically_possible_observation_ids.",
+    "continuation": "An action is admitted for an observation only when every successor from every state in that observation's physical successor set lies in the declared next-horizon viable or recovery set.",
+    "unknown": "Unknown observation outcomes retain all declared possible successor states and require the declared fallback action.",
+    "incomplete": "Missing transition rows, missing branch evidence or incomplete branch enumeration must return Unknown/Invalid, never admitted."
+  },
+  "fixtures": [
+    {
+      "id": "A-safe-informative-branch-specific-continuation",
+      "horizon_steps": 3,
+      "probe_duration_steps": 1,
+      "current_state": "s0",
+      "viable_state_ids_by_remaining_horizon": {
+        "1": [
+          "advance-good",
+          "retreat-good",
+          "retreat-degraded"
+        ],
+        "2": [
+          "grip-good",
+          "grip-degraded"
+        ],
+        "3": [
+          "s0"
+        ]
+      },
+      "probe_branches": [
+        {
+          "id": "b-grip-good",
+          "probability_ppb": 600000000,
+          "intermediate_states": [],
+          "terminal_state": "grip-good",
+          "physically_possible_observation_ids": [
+            "grip-confirmed"
+          ],
+          "joint_probability_ppb_by_observation": [
+            600000000,
+            0
+          ]
+        },
+        {
+          "id": "b-grip-degraded",
+          "probability_ppb": 400000000,
+          "intermediate_states": [],
+          "terminal_state": "grip-degraded",
+          "physically_possible_observation_ids": [
+            "grip-degraded"
+          ],
+          "joint_probability_ppb_by_observation": [
+            0,
+            400000000
+          ]
+        }
+      ],
+      "outcomes": [
+        "grip-confirmed",
+        "grip-degraded"
+      ],
+      "continuation_actions": [
+        {
+          "id": "advance",
+          "fallback_only": false,
+          "successors_by_state": {
+            "grip-good": [
+              "advance-good"
+            ],
+            "grip-degraded": [
+              "dead-end"
+            ]
+          }
+        },
+        {
+          "id": "retreat",
+          "fallback_only": true,
+          "successors_by_state": {
+            "grip-good": [
+              "retreat-good"
+            ],
+            "grip-degraded": [
+              "retreat-degraded"
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "probe_admission": "admitted",
+        "successor_states_by_outcome": {
+          "grip-confirmed": [
+            "grip-good"
+          ],
+          "grip-degraded": [
+            "grip-degraded"
+          ]
+        },
+        "robust_continuation_action_ids_by_outcome": {
+          "grip-confirmed": [
+            "advance",
+            "retreat"
+          ],
+          "grip-degraded": [
+            "retreat"
+          ]
+        },
+        "worst_case_continuation_action_count": 1,
+        "all_physical_branches_viable_through_observation": true
+      }
+    },
+    {
+      "id": "B-high-eig-trap-zero-probability-physical-branch",
+      "horizon_steps": 2,
+      "probe_duration_steps": 1,
+      "current_state": "s0",
+      "viable_state_ids_by_remaining_horizon": {
+        "1": [
+          "safe-terminal"
+        ],
+        "2": [
+          "s0"
+        ]
+      },
+      "probe_branches": [
+        {
+          "id": "b-safe",
+          "probability_ppb": 1000000000,
+          "intermediate_states": [],
+          "terminal_state": "safe-terminal",
+          "physically_possible_observation_ids": [
+            "safe"
+          ],
+          "joint_probability_ppb_by_observation": [
+            1000000000,
+            0
+          ]
+        },
+        {
+          "id": "b-dead-end",
+          "probability_ppb": 0,
+          "intermediate_states": [],
+          "terminal_state": "dead-end",
+          "physically_possible_observation_ids": [
+            "danger"
+          ],
+          "joint_probability_ppb_by_observation": [
+            0,
+            0
+          ]
+        }
+      ],
+      "outcomes": [
+        "safe",
+        "danger"
+      ],
+      "continuation_actions": [
+        {
+          "id": "fallback",
+          "fallback_only": true,
+          "successors_by_state": {
+            "safe-terminal": [
+              "recovery"
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "probe_admission": "rejected",
+        "rejection_reason": "physically possible zero-probability branch terminal is outside viable/recovery set",
+        "information_gain_claim_must_not_override_rejection": true
+      }
+    },
+    {
+      "id": "C-observation-alias-requires-robust-action-intersection",
+      "horizon_steps": 3,
+      "probe_duration_steps": 1,
+      "current_state": "s0",
+      "viable_state_ids_by_remaining_horizon": {
+        "1": [
+          "next-a",
+          "next-b",
+          "retreat-a",
+          "retreat-b"
+        ],
+        "2": [
+          "state-a",
+          "state-b"
+        ],
+        "3": [
+          "s0"
+        ]
+      },
+      "probe_branches": [
+        {
+          "id": "b-a",
+          "probability_ppb": 500000000,
+          "intermediate_states": [],
+          "terminal_state": "state-a",
+          "physically_possible_observation_ids": [
+            "ambiguous"
+          ],
+          "joint_probability_ppb_by_observation": [
+            500000000
+          ]
+        },
+        {
+          "id": "b-b",
+          "probability_ppb": 500000000,
+          "intermediate_states": [],
+          "terminal_state": "state-b",
+          "physically_possible_observation_ids": [
+            "ambiguous"
+          ],
+          "joint_probability_ppb_by_observation": [
+            500000000
+          ]
+        }
+      ],
+      "outcomes": [
+        "ambiguous"
+      ],
+      "continuation_actions": [
+        {
+          "id": "exploit-a",
+          "fallback_only": false,
+          "successors_by_state": {
+            "state-a": [
+              "next-a"
+            ],
+            "state-b": [
+              "outside-viability"
+            ]
+          }
+        },
+        {
+          "id": "retreat",
+          "fallback_only": true,
+          "successors_by_state": {
+            "state-a": [
+              "retreat-a"
+            ],
+            "state-b": [
+              "retreat-b"
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "probe_admission": "admitted",
+        "successor_states_by_outcome": {
+          "ambiguous": [
+            "state-a",
+            "state-b"
+          ]
+        },
+        "robust_continuation_action_ids_by_outcome": {
+          "ambiguous": [
+            "retreat"
+          ]
+        },
+        "exploit_a_must_be_rejected": true,
+        "posterior_concentration_does_not_collapse_physical_successor_set": true
+      }
+    },
+    {
+      "id": "D-intermediate-latency-state-loses-fallback",
+      "horizon_steps": 3,
+      "probe_duration_steps": 2,
+      "current_state": "s0",
+      "viable_state_ids_by_remaining_horizon": {
+        "1": [
+          "terminal-recoverable"
+        ],
+        "2": [],
+        "3": [
+          "s0"
+        ]
+      },
+      "probe_branches": [
+        {
+          "id": "b-latency",
+          "probability_ppb": 1000000000,
+          "intermediate_states": [
+            {
+              "state_id": "latency-prefix",
+              "elapsed_steps": 1
+            }
+          ],
+          "terminal_state": "terminal-recoverable",
+          "physically_possible_observation_ids": [
+            "observed"
+          ],
+          "joint_probability_ppb_by_observation": [
+            1000000000
+          ]
+        }
+      ],
+      "outcomes": [
+        "observed"
+      ],
+      "continuation_actions": [
+        {
+          "id": "recover",
+          "fallback_only": true,
+          "successors_by_state": {
+            "terminal-recoverable": [
+              "recovery"
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "probe_admission": "rejected",
+        "rejection_reason": "latency-prefix is not viable for its remaining horizon (2)",
+        "terminal_state_being_viable_does_not_repair_intermediate_loss": true
+      }
+    }
+  ]
+}
