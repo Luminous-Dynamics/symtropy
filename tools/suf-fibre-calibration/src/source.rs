@@ -212,10 +212,10 @@ impl ObservedQuantity {
             ("sensor.channel_pitch_m", self.channel_pitch_m),
             ("sensor.spatial_resolution_m", self.spatial_resolution_m),
         ] {
-            if let Some(value) = value {
-                if !value.is_finite() || value <= 0.0 {
-                    return Err(SourceEnvelopeError::InvalidNumber(name));
-                }
+            if let Some(value) = value
+                && (!value.is_finite() || value <= 0.0)
+            {
+                return Err(SourceEnvelopeError::InvalidNumber(name));
             }
         }
         Ok(())
