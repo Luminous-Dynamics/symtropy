@@ -73,14 +73,19 @@ For each run, freeze and publish:
 
 ## First execution order
 
-1. Admit **BattLeDIM** and **Slovak SCADA** first as separate P3 tracks: they provide complementary 5-minute benchmark and hourly utility populations.
-2. Admit **LeakTestbed** for P2 sensor/localization work after verifying Mendeley raw-data licence and files.
-3. Admit **LeakDB** for P1 after resolving licence metadata and retrieving its scoring tool revision.
-4. Admit **WDSEventDB** only after inspecting its native labels, sample rates, files and rights.
-5. Use **DiTEC-WDN** as P0 normal hydraulic state, not leak ground truth.
-6. Recover the 47k+ Net3 paper's exact artifact set or mark reproduction blocked.
-7. Only after these are in place, choose one shared baseline and run a matched, separately reported transfer experiment across two populations.
+1. Request and rights-check the **Pamplona DAS** dataset and method details with the corresponding author; keep reproduction Blocked until raw traces, labels, baseline records and permissions are received.\n2. Admit **BattLeDIM** and **Slovak SCADA** first as separate P3 tracks: they provide complementary 5-minute benchmark and hourly utility populations.
+3. Admit **LeakTestbed** for P2 sensor/localization work after verifying Mendeley raw-data licence and files.
+4. Admit **LeakDB** for P1 after resolving licence metadata and retrieving its scoring tool revision.
+5. Admit **WDSEventDB** only after inspecting its native labels, sample rates, files and rights.
+6. Use **DiTEC-WDN** as P0 normal hydraulic state, not leak ground truth.
+7. Recover the 47k+ Net3 paper's exact artifact set or mark reproduction blocked.
+8. Only after these are in place, choose one shared baseline and run a matched, separately reported transfer experiment across two populations.
 
 ## Nonclaims
 
 No dataset files have been acquired, hashed, redistributed or evaluated by this document. No model result, leak location, field performance, water savings, repair outcome, or SOTA claim is made. Metadata catalogue entries are not a successful dataset admission.
+
+
+## Pamplona dark-fibre DAS intake note
+
+The 31 March 2026 Sensors paper's Data Availability Statement says its data are available on reasonable request from the corresponding author. The raw DAS traces, baseline records, event labels and route geometry are not included in this repository and have no SHA-256 digests or split manifest here. Article open access is not treated as raw-data redistribution permission. See [DARK-FIBER-WDN-DIAGNOSTICS-001 #4991](https://github.com/Luminous-Dynamics/symtropy/issues/4991) and DOI https://doi.org/10.3390/s26072152.
