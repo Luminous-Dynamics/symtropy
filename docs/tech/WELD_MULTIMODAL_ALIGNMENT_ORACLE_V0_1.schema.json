@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Weld multimodal clock/latency alignment known-answer corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "formula",
+    "no_interpolation_across_missing_blocks",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "WELD-MULTIMODAL-ALIGNMENT-ORACLE-001"
+    },
+    "formula": {
+      "type": "string",
+      "minLength": 50
+    },
+    "no_interpolation_across_missing_blocks": {
+      "const": true
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local_timestamp_ns",
+        "expected_master_event_time_ns"
+      ],
+      "properties": {
+        "local_timestamp_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_master_event_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "modality",
+        "sample_interval_ns",
+        "clock_offset_local_minus_master_ns",
+        "sensor_response_delay_ns",
+        "clock_uncertainty_ns",
+        "latency_uncertainty_ns",
+        "maximum_alignment_uncertainty_ns",
+        "samples"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "modality": {
+          "type": "string"
+        },
+        "sample_interval_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "clock_offset_local_minus_master_ns": {
+          "type": "integer"
+        },
+        "sensor_response_delay_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latency_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_alignment_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        }
+      }
+    }
+  }
+}

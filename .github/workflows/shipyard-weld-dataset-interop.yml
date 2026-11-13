@@ -1,0 +1,41 @@
+name: Shipyard Weld Dataset Interoperability
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-weld-dataset-interop/**"
+      - "benchmarks/shipyard/weld-dataset-interop/**"
+      - "docs/tech/SHIPYARD_WELD_DATASET_INTEROP_V0_1*"
+      - "docs/tech/WELD_MULTIMODAL_ALIGNMENT_ORACLE_V0_1.schema.json"
+      - ".github/workflows/shipyard-weld-dataset-interop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-weld-dataset-interop-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify rights-aware sources and alignment oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-weld-dataset-interop/Cargo.toml --all -- --check
+      - name: Run source registry and alignment tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-weld-dataset-interop/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-weld-dataset-interop/Cargo.toml --all-targets -- -D warnings
+      - name: Verify source cards and multimodal timing known answers
+        run: cargo run --locked --manifest-path crates/tools/shipyard-weld-dataset-interop/Cargo.toml
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
