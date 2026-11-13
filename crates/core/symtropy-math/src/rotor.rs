@@ -17,6 +17,44 @@ use nalgebra::{SMatrix, SVector};
 pub struct Rotor<const D: usize> {
     mat: SMatrix<f64, D, D>,
 }
+/// Failure while admitting an externally supplied matrix as a proper rotation.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RotorMatrixError {
+    /// The requested validation tolerance was negative, NaN, or infinite.
+    InvalidTolerance,
+    /// At least one matrix entry was NaN or infinite.
+    NonFiniteEntry,
+    /// The matrix does not satisfy RᵀR = I within the requested tolerance.
+    NotOrthogonal { max_error: f64 },
+    /// The matrix is orthogonal but does not preserve orientation (det(R) != +1).
+    ImproperOrientation { determinant: f64 },
+}
+
+impl std::fmt::Display for RotorMatrixError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidTolerance => write!(
+                f,
+                "rotation-matrix tolerance must be finite and non-negative"
+            ),
+            Self::NonFiniteEntry => write!(f, "rotation matrix contains a non-finite entry"),
+            Self::NotOrthogonal { max_error } => {
+                write!(
+                    f,
+                    "rotation matrix is not orthogonal: max residual {max_error:e}"
+                )
+            }
+            Self::ImproperOrientation { determinant } => {
+                write!(
+                    f,
+                    "orthogonal matrix does not preserve orientation: determinant {determinant:e}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for RotorMatrixError {}
 
 impl<const D: usize> Rotor<D> {
     /// Identity rotor (no rotation).
@@ -149,7 +187,42 @@ impl<const D: usize> Rotor<D> {
         Self::from_plane_angle(&plane, dot.acos())
     }
 
-    /// Direct construction from a rotation matrix (must be orthogonal, det=+1).
+    /// Validate and construct from a matrix in SO(D).
+    ///
+    /// Admission requires finite entries, orthogonality (RᵀR ≈ I), and
+    /// orientation preservation (det(R) ≈ +1), each under the same
+    /// absolute tolerance. Use this at external-input boundaries.
+    /// The unchecked from_matrix constructor remains available for callers
+    /// that have already established the invariant by construction.
+    pub fn try_from_matrix(
+        mat: SMatrix<f64, D, D>,
+        tolerance: f64,
+    ) -> Result<Self, RotorMatrixError> {
+        if !tolerance.is_finite() || tolerance < 0.0 {
+            return Err(RotorMatrixError::InvalidTolerance);
+        }
+        if !mat.iter().all(|value| value.is_finite()) {
+            return Err(RotorMatrixError::NonFiniteEntry);
+        }
+
+        let candidate = Self { mat };
+        let max_error = candidate.orthogonality_error();
+        if !max_error.is_finite() || max_error > tolerance {
+            return Err(RotorMatrixError::NotOrthogonal { max_error });
+        }
+
+        let determinant = candidate.determinant();
+        if !determinant.is_finite() || (determinant - 1.0).abs() > tolerance {
+            return Err(RotorMatrixError::ImproperOrientation { determinant });
+        }
+
+        Ok(candidate)
+    }
+
+    /// Construct directly from a rotation matrix without checking it.
+    ///
+    /// The caller must guarantee orthogonality and det(R)=+1. Prefer
+    /// try_from_matrix for externally supplied matrices.
     pub fn from_matrix(mat: SMatrix<f64, D, D>) -> Self {
         Self { mat }
     }
@@ -403,6 +476,181 @@ mod tests {
         let plane = Bivector::<3>::unit_plane(0, 1);
         let r = Rotor::from_plane_angle(&plane, 0.5);
         assert!(approx_eq(r.to_matrix().determinant(), 1.0));
+    }
+
+    #[test]
+    fn try_from_matrix_accepts_proper_rotations_in_3d_and_4d() {
+        let rotation_3d = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.73);
+        let admitted_3d = Rotor::try_from_matrix(*rotation_3d.to_matrix(), 1e-10).unwrap();
+        assert!(admitted_3d.is_proper_rotation(1e-10));
+
+        let mut generator = Bivector::<4>::zero();
+        generator.set(0, 1, 0.4);
+        generator.set(2, 3, -0.9);
+        let rotation_4d = Rotor::from_bivector(&generator);
+        let admitted_4d = Rotor::try_from_matrix(*rotation_4d.to_matrix(), 1e-10).unwrap();
+        assert!(admitted_4d.is_proper_rotation(1e-10));
+    }
+
+    #[test]
+    fn try_from_matrix_rejects_non_orthogonal_matrix() {
+        let mut matrix = SMatrix::<f64, 3, 3>::identity();
+        matrix[(0, 1)] = 0.25;
+        assert!(matches!(
+            Rotor::try_from_matrix(matrix, 1e-10),
+            Err(RotorMatrixError::NotOrthogonal { .. })
+        ));
+    }
+
+    #[test]
+    fn try_from_matrix_rejects_reflection() {
+        let mut reflection = SMatrix::<f64, 3, 3>::identity();
+        reflection[(0, 0)] = -1.0;
+        assert!(matches!(
+            Rotor::try_from_matrix(reflection, 1e-10),
+            Err(RotorMatrixError::ImproperOrientation { determinant })
+                if (determinant + 1.0).abs() < 1e-12
+        ));
+    }
+
+    #[test]
+    fn try_from_matrix_rejects_non_finite_entries() {
+        let mut matrix = SMatrix::<f64, 3, 3>::identity();
+        matrix[(1, 2)] = f64::NAN;
+        assert!(matches!(
+            Rotor::try_from_matrix(matrix, 1e-10),
+            Err(RotorMatrixError::NonFiniteEntry)
+        ));
+    }
+
+    #[test]
+    fn try_from_matrix_rejects_invalid_tolerance() {
+        assert!(matches!(
+            Rotor::try_from_matrix(SMatrix::<f64, 3, 3>::identity(), f64::NAN),
+            Err(RotorMatrixError::InvalidTolerance)
+        ));
+        assert!(matches!(
+            Rotor::try_from_matrix(SMatrix::<f64, 3, 3>::identity(), -1.0),
+            Err(RotorMatrixError::InvalidTolerance)
+        ));
+    }
+
+    fn assert_simple_plane_rotations_are_proper<const D: usize>() {
+        let point = SVector::<f64, D>::from_fn(|i, _| (i as f64 + 1.0) / D as f64);
+        for i in 0..D {
+            for j in (i + 1)..D {
+                let plane = Bivector::<D>::unit_plane(i, j);
+                let angle = 0.11 + (i + j) as f64 * 0.071;
+                let rotation = Rotor::from_plane_angle(&plane, angle);
+                assert!(
+                    rotation.is_proper_rotation(1e-9),
+                    "SO({D}) plane ({i},{j}) failed: orthogonality={}, determinant={}",
+                    rotation.orthogonality_error(),
+                    rotation.determinant()
+                );
+
+                let rotated = rotation.rotate_vector(&point);
+                assert!((rotated.norm() - point.norm()).abs() < 1e-9);
+                let recovered = rotation.reverse().rotate_vector(&rotated);
+                assert!((recovered - point).norm() < 1e-9);
+
+                let admitted = Rotor::try_from_matrix(*rotation.to_matrix(), 1e-9)
+                    .expect("a constructed proper rotation must pass matrix admission");
+                assert!(admitted.is_proper_rotation(1e-9));
+            }
+        }
+    }
+
+    #[test]
+    fn every_supported_dimension_preserves_rotor_group_invariants() {
+        // Bivector currently supports D=2..=9. Exercise every coordinate plane,
+        // not only the common 2D/3D/4D specializations.
+        assert_simple_plane_rotations_are_proper::<2>();
+        assert_simple_plane_rotations_are_proper::<3>();
+        assert_simple_plane_rotations_are_proper::<4>();
+        assert_simple_plane_rotations_are_proper::<5>();
+        assert_simple_plane_rotations_are_proper::<6>();
+        assert_simple_plane_rotations_are_proper::<7>();
+        assert_simple_plane_rotations_are_proper::<8>();
+        assert_simple_plane_rotations_are_proper::<9>();
+    }
+
+    fn assert_adjoint_equivariance<const D: usize>() {
+        let mut frame_generator = Bivector::<D>::zero();
+        let mut body_generator = Bivector::<D>::zero();
+        for i in 0..D {
+            for j in (i + 1)..D {
+                let parity = if (i + j) % 2 == 0 { 1.0 } else { -1.0 };
+                frame_generator.set(i, j, parity * 0.009 * (i + 1) as f64 * (j + 2) as f64);
+                body_generator.set(i, j, -parity * 0.007 * (i + 2) as f64 * (j + 1) as f64);
+            }
+        }
+
+        let frame = Rotor::from_bivector(&frame_generator);
+        let original_exponential = Rotor::from_bivector(&body_generator);
+        let conjugated = frame
+            .compose(&original_exponential)
+            .compose(&frame.reverse());
+
+        let transformed_matrix =
+            frame.to_matrix() * body_generator.to_matrix() * frame.to_matrix().transpose();
+        let transformed_generator = Bivector::<D>::from_matrix(&transformed_matrix);
+        let exponential_after_adjoint = Rotor::from_bivector(&transformed_generator);
+
+        let residual = *conjugated.to_matrix() - *exponential_after_adjoint.to_matrix();
+        let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
+        assert!(
+            max_error < 1e-8,
+            "SO({D}) adjoint-equivariance residual={max_error:e}"
+        );
+        assert!(conjugated.is_proper_rotation(1e-8));
+        assert!(exponential_after_adjoint.is_proper_rotation(1e-8));
+    }
+
+    #[test]
+    fn bivector_exponential_is_adjoint_equivariant_in_dimensions_three_through_nine() {
+        assert_adjoint_equivariance::<3>();
+        assert_adjoint_equivariance::<4>();
+        assert_adjoint_equivariance::<5>();
+        assert_adjoint_equivariance::<6>();
+        assert_adjoint_equivariance::<7>();
+        assert_adjoint_equivariance::<8>();
+        assert_adjoint_equivariance::<9>();
+    }
+    #[test]
+    fn bivector_exponential_respects_adjoint_equivariance() {
+        // The exponential map commutes with the adjoint action:
+        // Q exp(B) Q⁻¹ = exp(Q B Q⁻¹). This is a core SO(D) frame-covariance
+        // property and catches basis/order/sign errors in bivector conversion.
+        let mut frame_generator = Bivector::<4>::zero();
+        frame_generator.set(0, 2, 0.31);
+        frame_generator.set(1, 3, -0.47);
+        frame_generator.set(0, 1, 0.19);
+        let frame = Rotor::from_bivector(&frame_generator);
+
+        let mut body_generator = Bivector::<4>::zero();
+        body_generator.set(0, 3, -0.62);
+        body_generator.set(1, 2, 0.28);
+        body_generator.set(0, 2, 0.11);
+
+        let original_exponential = Rotor::from_bivector(&body_generator);
+        let conjugated = frame
+            .compose(&original_exponential)
+            .compose(&frame.reverse());
+
+        let transformed_matrix =
+            frame.to_matrix() * body_generator.to_matrix() * frame.to_matrix().transpose();
+        let transformed_generator = Bivector::<4>::from_matrix(&transformed_matrix);
+        let exponential_after_adjoint = Rotor::from_bivector(&transformed_generator);
+
+        let residual = conjugated.to_matrix() - exponential_after_adjoint.to_matrix();
+        let max_error = residual.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
+        assert!(
+            max_error < 1e-9,
+            "SO(4) adjoint-equivariance residual={max_error:e}"
+        );
+        assert!(conjugated.is_proper_rotation(1e-9));
+        assert!(exponential_after_adjoint.is_proper_rotation(1e-9));
     }
 
     #[test]
