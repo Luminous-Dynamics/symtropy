@@ -108,7 +108,7 @@
           },
           "areas": {
             "type": "array",
-            "minItems": 2,
+            "minItems": 3,
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -230,7 +230,8 @@
                   ]
                 }
               }
-            }
+            },
+            "maxItems": 3
           },
           "aggregate_diagnostic": {
             "type": "object",
