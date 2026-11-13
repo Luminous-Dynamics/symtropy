@@ -475,7 +475,7 @@ fn evaluate_case(case: &Value) -> Check<(String, Value)> {
     };
     out["context_id"] = json!(context_id);
     out["context_kind"] = json!(context_kind);
-    out["context_path_id"] = json!(text(cp, "path_id").unwrap_or(""));
+    out["context_path_id"] = json!(string(cp, "path_id", path).unwrap_or(""));
     out["observed_response"] = json!(observed);
     out["conditioned_envelope"] = json!([cond_lower, cond_mean, cond_upper]);
     out["state_only_envelope"] = json!([base_lower, base_mean, base_upper]);
