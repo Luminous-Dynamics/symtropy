@@ -1,0 +1,98 @@
+{
+  "schema_version": "0.1.0",
+  "oracle_id": "water-control-robustness-disposition-oracle-v0.1",
+  "corpus_id": "water-control-robustness-scenarios-v0.1",
+  "results": [
+    {
+      "scenario_id": "WCR-001",
+      "expected_disposition": "run_nominal",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-002",
+      "expected_disposition": "run_nominal",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-003",
+      "expected_disposition": "run_with_qualified_estimator",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-004",
+      "expected_disposition": "abstain_or_local_fallback",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-005",
+      "expected_disposition": "run_with_qualified_estimator",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-006",
+      "expected_disposition": "abstain_or_local_fallback",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-007",
+      "expected_disposition": "abstain_or_local_fallback",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-008",
+      "expected_disposition": "abstain_or_local_fallback",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-009",
+      "expected_disposition": "abstain_or_local_fallback",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-010",
+      "expected_disposition": "stop_and_reconcile",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-011",
+      "expected_disposition": "local_safety_only",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-012",
+      "expected_disposition": "local_safety_only",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-013",
+      "expected_disposition": "local_safety_only",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-014",
+      "expected_disposition": "local_safety_only",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WCR-015",
+      "expected_disposition": "stop_and_reconcile",
+      "hard_gate": "must_not_issue_unqualified_supervisory_command",
+      "evidence_ceiling": "synthetic_design_only"
+    }
+  ],
+  "interpretation": "This oracle checks the scenario-admission / response-contract layer only. It does not contain controller outputs, hydraulic trajectories or performance measurements."
+}
