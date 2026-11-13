@@ -588,7 +588,6 @@ pub fn integrate_constant_tidal_fixed_step(
     BilocalGeodesicOperator::from_matrix(state)
 }
 
-
 /// Integrate constant symmetric optical tides with the symplectic
 /// kick-drift-kick (Störmer-Verlet) method.
 ///
