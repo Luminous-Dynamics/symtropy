@@ -18,6 +18,16 @@ This is a real industrial process comparator, but it is a post-cutting/clipping-
 
 The supplier's public descriptions do not provide an independently reproduced, matched-lot performance dataset for every feedstock, damage mode, residual-trim level, operating cost or accepted downstream grade. Do not turn supplier descriptions into validated quantitative claims.
 
+### Adjacent incumbent: reuse grading and plant capacity
+
+Valvan's **Hypersort** is an adjacent comparator for whole-item reuse grading/pricing, not a like-for-like fibre-recycling sorter. Valvan advertises up to 1,200 garments/hour for an automated grading line and 50% higher throughput for its automated machine; these are supplier-stated figures that require site-specific measurement and a defined denominator (items presented, accepted grades, operators, uptime).
+
+Valvan also describes a 55,000-square-foot Salvation Army facility processing up to 20 tonnes/hour of donated clothing and other textiles. That is a whole-facility donation-processing capacity, **not** an independently measured Fibersort-only or Trimclean-only capacity. Never use it as a direct sorter-throughput baseline.
+
+Sources:
+- Hypersort: https://www.valvan.com/en/solutions/textile-pricing-hypersort
+- SATCoL facility case: https://www.valvan.com/en/cases/processes-up-to-20-tons-per-hour-of-donated-clothing
+
 The research-review finding that attachment-removal AI is sparse concerns the published research corpus. It does not establish that commercial trim-removal systems do not exist.
 
 ## 2. Matched process arms
