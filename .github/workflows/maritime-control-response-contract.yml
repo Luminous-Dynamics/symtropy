@@ -69,7 +69,7 @@ jobs:
             (.shift_matrix.axes | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
             (.shift_matrix.axes | index("C_PLUS_F_SHIFT") != null) and
             (.shift_matrix.cross_engine_fleet | contains("unsupported")) and
-            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.6") and
+            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.7") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
             (.active_evidence_selection.comparators | length == 7) and
             (.active_evidence_selection.comparators | index("maximum_worst_case_pairwise_chernoff_information") != null) and
@@ -77,6 +77,10 @@ jobs:
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
             (.active_evidence_selection.sequential_updates.status == "joint_hypothesis_scenario_ledger_supported") and
+            (.active_evidence_selection.portfolio_replay.status == "source_contract_implemented_ci_pending") and
+            (.active_evidence_selection.portfolio_replay.replays_rank_diagnostic_probes_before_baseline_selection == true) and
+            (.active_evidence_selection.portfolio_replay.rejects_forged_eligibility_flags == true) and
+            (.active_evidence_selection.portfolio_replay_match == false) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.status == "protocol_only_not_executed") and
             (.streaming_contract.one_sample_one_output == true) and
@@ -131,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           jq -e '
-            .schema_version == "liu-ice-active-evidence-selection-v0.6" and
+            .schema_version == "liu-ice-active-evidence-selection-v0.7" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 7) and
             ([.comparators[].id] | unique | length == 7) and
@@ -290,13 +294,15 @@ jobs:
             (.properties.protocol.required | index("deployability_assessment") != null) and
             (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
             (.properties.protocol.required | index("sequential_evidence") != null) and
-            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.6") and
+            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.7") and
+            (.properties.protocol.properties.active_evidence_selection.required | index("portfolio_replay_match") != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.portfolio_replay_match.type == "boolean") and
             (.properties.protocol.properties.active_evidence_selection.properties.execution_performed.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.sequential_update_status.enum | index("multi_scenario_blocked_joint_posterior_missing") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.joint_scenario_posterior_ledger_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.active_evidence_selection.allOf | length >= 3) and
+            (.properties.protocol.properties.active_evidence_selection.allOf | length >= 4) and
             ([.properties.protocol.properties.active_evidence_selection.allOf[].if.properties.sequential_update_status.const] | index("joint_hypothesis_scenario_ledger_qualified") != null) and
             ([.properties.protocol.properties.active_evidence_selection.allOf[].if.properties.sequential_update_status.const] | index("multi_scenario_blocked_joint_posterior_missing") != null) and
             ([.properties.protocol.properties.active_evidence_selection.allOf[].if.properties.sequential_update_status.const] | index("joint_scenario_ledger_synthetic_contract_only") != null) and
