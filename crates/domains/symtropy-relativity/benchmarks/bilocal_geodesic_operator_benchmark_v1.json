@@ -2,8 +2,8 @@
   "schema": "luminous.symtropy.kerr_bilocal_geodesic_operator_benchmark.v1",
   "programme": "BH-KERR-RAY-BUNDLE-001",
   "title": "Kerr bilocal geodesic operator cross-formulation qualification",
-  "status": "planned_only",
-  "execution_status": "not_implemented",
+  "status": "BGO-0 Rust 1.96 audit passed 150/150; BGO-1 and BGO-2 remain open",
+  "execution_status": "BGO-0 source implemented and exact-head Rust checks passed; curvature-driven BGO and physical Kerr qualification not implemented",
   "repository": "Luminous-Dynamics/symtropy",
   "owner": "symtropy-relativity",
   "depends_on": {
@@ -40,11 +40,12 @@
     "fiducial_tangent": "k^mu = dx^mu/dlambda",
     "connecting_vector": "xi^mu",
     "covariant_tangent_deviation": "ell^mu = D xi^mu / d lambda",
-    "curvature_commutator": "[nabla_alpha,nabla_beta] v^mu = -R^mu_(nu alpha beta) v^nu",
+    "curvature_commutator": "[nabla_alpha,nabla_beta] v^mu = +R^mu_(nu alpha beta) v^nu; matches RiemannTensor4::from_metric_derivatives",
     "geodesic_deviation": "D xi/dlambda = ell; D ell/dlambda = +T xi",
-    "optical_tidal_operator": "T^mu_nu = R^mu_(alpha nu beta) k^alpha k^beta",
+    "optical_tidal_operator": "T^mu_nu = R^mu_(alpha nu beta) k^alpha k^beta, with the source code's positive commutator convention",
     "endpoint_comparison": "Only compare after explicit event, chart, tetrad, affine normalization and source-surface matching.",
-    "sachs_screen_sign_policy": "Derive the projected 2x2 screen-tidal sign from the declared curvature convention and explicit screen projection. The existing Rust Sachs/Jacobi convention D''=-T_AB D must be mapped and tested; do not copy the full four-dimensional T sign by name."
+    "sachs_screen_sign_policy": "Derive the projected 2x2 screen-tidal sign from the declared curvature convention and explicit screen projection. The existing Rust Sachs/Jacobi convention D''=-T_AB D must be mapped and tested; do not copy the full four-dimensional T sign by name.",
+    "wronskian_basis_policy": "Use constant Omega only in a declared parallel-transported orthonormal frame; in a general coordinate basis use the metric-weighted bilinear form and endpoint basis transformations."
   },
   "operator": {
     "dimension": 8,
@@ -70,11 +71,14 @@
     {
       "id": "BGO-0",
       "name": "Minkowski analytic transfer",
-      "status": "planned",
+      "status": "passed_rust_1_96",
       "acceptance": [
-        "all four blocks match closed form",
-        "composition and inverse",
-        "Wronskian preservation"
+        "W_XX=I4, W_XK=delta_lambda*I4, W_KX=0, W_KK=I4",
+        "transfer composition equals affine-interval addition",
+        "scaled-pivot inverse equals backward propagation",
+        "W^T Omega W - Omega residual is within declared tolerance",
+        "reject non-finite affine intervals and matrix entries",
+        "reject singular full transfer without regularization"
       ]
     },
     {
@@ -207,12 +211,48 @@
     "accepted_and_rejected_steps",
     "runtime",
     "peak_memory",
-    "qualification_status"
+    "qualification_status",
+    "bgo0_validation_receipt"
   ],
   "execution_gates": [
     "Do not implement caustic classification before BGO-0 through BGO-4 pass.",
     "Do not claim a physical caustic until BGO-5 and BGO-6 pass at matched endpoints and independent refinement.",
     "Do not claim external SOTA parity until BGO-7 reproduces pinned published cases.",
     "Do not compare raw throughput outside matched qualified-observable bins."
-  ]
+  ],
+  "bgo0_source": {
+    "path": "crates/domains/symtropy-relativity/src/bilocal.rs",
+    "module_export": "crates/domains/symtropy-relativity/src/lib.rs",
+    "authored_tests": [
+      "minkowski_transfer_has_exact_four_block_known_answer",
+      "minkowski_transfers_compose_by_affine_interval_addition",
+      "minkowski_transfer_inverse_is_backward_propagation",
+      "minkowski_transfer_preserves_wronskian_symplectic_form",
+      "identity_and_zero_length_transfer_are_identical",
+      "constructors_reject_nonfinite_values_without_repair",
+      "inverse_rejects_singular_matrix_and_invalid_tolerance"
+    ],
+    "workflow": ".github/workflows/kerr-bgo-minkowski.yml",
+    "claim_ceiling": "Flat-spacetime BGO transfer algebra only. No curvature-driven transport, Kerr BGO, endpoint conversion, caustic classification or physical observable is qualified.",
+    "status": "rust_1_96_passed",
+    "validation_receipt": {
+      "source_head": "b1218ea4caccf21c55965128b89f3acf4bb6cbbd",
+      "workflow_run_id": 43378351602,
+      "workflow_name": "Kerr BGO Minkowski kernel audit",
+      "toolchain": "Rust 1.96.0",
+      "formatting": "passed",
+      "clippy": "passed",
+      "crate_test_result": "150 passed; 0 failed",
+      "tests_authored_and_executed": [
+        "minkowski_transfer_has_exact_four_block_known_answer",
+        "minkowski_transfers_compose_by_affine_interval_addition",
+        "minkowski_transfer_inverse_is_backward_propagation",
+        "minkowski_transfer_preserves_wronskian_symplectic_form",
+        "identity_and_zero_length_transfer_are_identical",
+        "constructors_reject_nonfinite_values_without_repair",
+        "inverse_rejects_singular_matrix_and_invalid_tolerance"
+      ],
+      "claim_ceiling": "Flat-spacetime BGO transfer algebra only."
+    }
+  }
 }

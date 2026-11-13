@@ -1,6 +1,6 @@
 # Bilocal geodesic operators: Kerr cross-formulation qualification
 
-**Status:** planned research contract; no BGO integrator or BGO-to-canonical comparison is claimed by this document.
+**Status:** BGO-0 transfer algebra and Minkowski known-answer source are implemented in `src/bilocal.rs`. Exact-head Rust 1.96 formatting, Clippy and the complete crate test suite passed at source head `b1218ea4caccf21c55965128b89f3acf4bb6cbbd` (150 passed, 0 failed). No curvature-driven BGO integrator or BGO-to-canonical comparison is claimed.
 
 ## Why this is the next step
 
@@ -10,16 +10,22 @@ The full BGO propagates both endpoint displacement and covariant tangent displac
 
 The October 2026 EMRI self-lensing preprint uses BGOs to derive the point-to-point Jacobi map and image-resolved magnification for Kerr null rays. It is a particularly relevant external target, but is a preprint and is not a validation oracle by itself: https://arxiv.org/abs/2610.08399. The October 2026 MNRAS Kerr-lensing paper supplies a complementary image-position/extended-source comparison and documents independent Schwarzschild and Mathematica/NDSolve checks: https://doi.org/10.1093/mnras/stag1890.
 
+## Executable BGO-0 slice
+
+`BilocalGeodesicOperator` now represents the 8×8 transfer in `(xi, ell)` ordering and exposes checked construction from a full matrix or four 4×4 blocks, composition, scaled-pivot inversion, and a symplectic residual. `minkowski(delta_lambda)` implements the exact transfer `W_XX=I`, `W_XK=delta_lambda I`, `W_KX=0`, `W_KK=I`. Authored Rust tests cover all four blocks, affine-interval composition, inverse/backward propagation, Wronskian preservation, the zero-interval identity, non-finite rejection and singular-matrix rejection. The exact-head Rust 1.96 workflow passed all 150 crate tests, including these seven BGO-0 tests. This qualifies the crate test suite at the recorded source head; it does not qualify curved-space transport.
+
+The type deliberately does not yet evolve a Kerr curvature tensor. Its BGO-1 and BGO-2 milestones remain open.
+
 ## Mathematical contract
 
 Use the declared curvature convention consistently throughout the implementation:
 
 \[
 [\nabla_\alpha,\nabla_\beta]v^\mu
-= -R^\mu{}_{\nu\alpha\beta}v^\nu .
+= +R^\mu{}_{\nu\alpha\beta}v^\nu .
 \]
 
-For a fiducial affinely parameterized null geodesic with tangent \(k^\mu\), define the connecting vector \(\xi^\mu\) and covariant tangent deviation \(\ell^\mu=D\xi^\mu/d\lambda\). With this commutator convention, the full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
+For a fiducial affinely parameterized null geodesic with tangent \\(k^\\mu\\), define the connecting vector \\(\\xi^\\mu\\) and covariant tangent deviation \\(\\ell^\\mu=D\\xi^\\mu/d\\lambda\\). This positive commutator convention matches `RiemannTensor4::from_metric_derivatives` in Symtropy. The resulting full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
 
 \[
 \mathcal T^\mu{}_\nu
@@ -46,7 +52,7 @@ W_{KX}&W_{KK}
 \end{pmatrix}.
 \]
 
-The implementation must make endpoint tangent/covector and coordinate-chart conventions explicit. The full covariant deviation sign above follows the pinned BGO curvature convention; the existing Sachs/Jacobi implementation uses its own screen-tidal definition in \(D''=-T_{AB}D\). The endpoint projection must derive the mapping between those definitions and test its sign on the exact radial and nonradial Schwarzschild fixtures. A coordinate-component BGO is not directly comparable to a canonical \((x^\mu,p_\mu)\) fundamental matrix until the endpoint conversion includes the metric and the derivative of the metric in the momentum variation. Do not compare arrays merely because both happen to be 8×8.
+The implementation must make endpoint tangent/covector and coordinate-chart conventions explicit. The full-coordinate BGO is not automatically represented by a constant canonical symplectic matrix in arbitrary coordinates: evaluate the Wronskian using the declared parallel-transported orthonormal frame or the corresponding metric-weighted bilinear form. The flat Cartesian BGO-0 residual uses the constant Minkowski frame. The full covariant deviation sign above follows the pinned BGO curvature convention; the existing Sachs/Jacobi implementation uses its own screen-tidal definition in \(D''=-T_{AB}D\). The endpoint projection must derive the mapping between those definitions and test its sign on the exact radial and nonradial Schwarzschild fixtures. A coordinate-component BGO is not directly comparable to a canonical \((x^\mu,p_\mu)\) fundamental matrix until the endpoint conversion includes the metric and the derivative of the metric in the momentum variation. Do not compare arrays merely because both happen to be 8×8.
 
 ### Required identities
 

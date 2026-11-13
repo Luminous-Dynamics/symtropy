@@ -32,6 +32,8 @@ use core::fmt;
 
 /// Fixed-size second-order automatic differentiation for metric derivatives.
 pub mod autodiff;
+/// Bilocal geodesic transfer operators and the exact Minkowski BGO reference.
+pub mod bilocal;
 /// Levi-Civita connection coefficients from explicit metric derivatives.
 pub mod connection;
 /// Convention-explicit Riemann, Ricci, and Einstein curvature tensors.
