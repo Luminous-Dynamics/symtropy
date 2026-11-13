@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/membrane-wq-sample.schema.json",
+  "title": "Sample-time water-quality label record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "dataset_id",
+    "sample_id",
+    "sample_collection_time",
+    "sample_location_id",
+    "analyte_id",
+    "result_qualifier",
+    "value",
+    "unit",
+    "method_id",
+    "lod",
+    "loq",
+    "lab_qc_status",
+    "label_scope",
+    "telemetry_feature_cutoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-wq-sample-v0.1"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_contract_fixture",
+        "laboratory_sample_record"
+      ]
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_collection_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sample_location_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "analyte_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "result_qualifier": {
+      "enum": [
+        "QUANTIFIED",
+        "BELOW_LOD",
+        "BELOW_LOQ",
+        "INVALID",
+        "NOT_REPORTED"
+      ]
+    },
+    "value": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "unit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "method_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lod": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "loq": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "lab_qc_status": {
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "PENDING"
+      ]
+    },
+    "accreditation_scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "replicate_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "result_note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "label_scope": {
+      "const": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY"
+    },
+    "telemetry_feature_cutoff": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result_qualifier": {
+            "const": "QUANTIFIED"
+          }
+        },
+        "required": [
+          "result_qualifier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lab_qc_status": {
+            "const": "ACCEPTED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_qualifier": {
+            "enum": [
+              "BELOW_LOD",
+              "BELOW_LOQ"
+            ]
+          }
+        },
+        "required": [
+          "result_qualifier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "null"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lab_qc_status": {
+            "const": "ACCEPTED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_qualifier": {
+            "enum": [
+              "INVALID",
+              "NOT_REPORTED"
+            ]
+          }
+        },
+        "required": [
+          "result_qualifier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "telemetry_feature_cutoff": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "telemetry_feature_cutoff"
+      ]
+    }
+  ]
+}
