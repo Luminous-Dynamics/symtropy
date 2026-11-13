@@ -1,0 +1,69 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-PHYSICAL-GRAPH-F2-001",
+  "graph_id": "SYN-RO-TRAIN-001",
+  "base_graph": "research/water-service-engineering/membrane-physical-process-graph-synthetic-v0.1.json",
+  "variants": [
+    {
+      "variant_id": "V0-univariate",
+      "operation": "no_edges"
+    },
+    {
+      "variant_id": "V1-mi-only",
+      "operation": "derive_graph_from_training_MI_only"
+    },
+    {
+      "variant_id": "V2-domain-only",
+      "operation": "use_synthetic_engineering_edges_only"
+    },
+    {
+      "variant_id": "V3-hybrid",
+      "operation": "domain_plus_training_MI"
+    },
+    {
+      "variant_id": "V4-hybrid-lag",
+      "operation": "domain_plus_MI_plus_lag_intervals"
+    },
+    {
+      "variant_id": "V5-signed-uncertain",
+      "operation": "signed_edges_with_interval_lags_and_confidence"
+    }
+  ],
+  "perturbations": [
+    {
+      "id": "P1-remove-physical-edge",
+      "fraction": 0.1
+    },
+    {
+      "id": "P2-remove-MI-edge",
+      "fraction": 0.1
+    },
+    {
+      "id": "P3-reverse-sign",
+      "fraction": 0.1
+    },
+    {
+      "id": "P4-widen-lag-interval",
+      "factor": 2
+    },
+    {
+      "id": "P5-delete-sensor-node",
+      "fraction": 0.1
+    },
+    {
+      "id": "P6-add-incorrect-edge",
+      "fraction": 0.1
+    },
+    {
+      "id": "P7-remove-provenance",
+      "fraction": 0.1
+    }
+  ],
+  "holdout_rules": [
+    "complete_fault_trace",
+    "complete_operating_regime",
+    "complete_lag_pattern",
+    "generator_seed"
+  ],
+  "evidence_ceiling": "synthetic_graph_ablation_design_only"
+}
