@@ -618,7 +618,6 @@ mod tests {
             component_id: id.to_owned(),
             revision: "R1".to_owned(),
             owner: owner.to_owned(),
-            expected_revision: "R1".to_owned(),
             authority: authority.to_owned(),
             output_scope: output_scope.to_owned(),
             source_sha256: [0x11; 32],
@@ -648,6 +647,7 @@ mod tests {
         ComponentRequirement {
             component_id: id.to_owned(),
             owner: owner.to_owned(),
+            expected_revision: "R1".to_owned(),
             authority: authority.to_owned(),
             output_scope: output_scope.to_owned(),
             required,
