@@ -459,7 +459,6 @@ pub fn validate_utilities(
 mod tests {
     use super::*;
     use crate::{Assignment, Interval, Operation, Problem, Schedule, SetupReservation};
-    use std::collections::BTreeSet;
 
     fn problem() -> Problem {
         Problem {
