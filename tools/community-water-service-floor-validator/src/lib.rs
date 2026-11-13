@@ -72,24 +72,34 @@ fn evaluate_area(area: &Value, profile: &Value, context: &str, errors: &mut Vec<
         return "invalid".to_owned();
     }
 
-    let lower_value = area.get("observation_lower_bound");
-    let upper_value = area.get("observation_upper_bound");
-    let lower = lower_value.and_then(Value::as_f64);
-    let upper = upper_value.and_then(Value::as_f64);
-
-    for (name, bound) in [("lower", lower), ("upper", upper)] {
-        if let Some(bound) = bound {
-            if !bound.is_finite() || !(0.0..=1.0).contains(&bound) {
-                push(errors, context, &format!("{name} bound must be in [0, 1]"));
-                return "invalid".to_owned();
-            }
-        } else if !lower_value.is_some_and(Value::is_null)
-            && !upper_value.is_some_and(Value::is_null)
-        {
-            push(errors, context, &format!("{name} bound is malformed"));
+    let lower = match area.get("observation_lower_bound") {
+        None => {
+            push(errors, context, "lower observation bound field is missing");
             return "invalid".to_owned();
         }
-    }
+        Some(value) if value.is_null() => None,
+        Some(value) => match value.as_f64() {
+            Some(bound) if bound.is_finite() && (0.0..=1.0).contains(&bound) => Some(bound),
+            _ => {
+                push(errors, context, "lower observation bound must be finite and in [0, 1]");
+                return "invalid".to_owned();
+            }
+        },
+    };
+    let upper = match area.get("observation_upper_bound") {
+        None => {
+            push(errors, context, "upper observation bound field is missing");
+            return "invalid".to_owned();
+        }
+        Some(value) if value.is_null() => None,
+        Some(value) => match value.as_f64() {
+            Some(bound) if bound.is_finite() && (0.0..=1.0).contains(&bound) => Some(bound),
+            _ => {
+                push(errors, context, "upper observation bound must be finite and in [0, 1]");
+                return "invalid".to_owned();
+            }
+        },
+    };
 
     let complete_coverage = denominator.is_some_and(|value| numerator == value);
     if evidence_state != "observed_current"
@@ -160,13 +170,40 @@ fn verify_aggregate(scenario: &Value, areas: &[Value], context: &str, errors: &m
             for area in areas {
                 let lower = area.get("observation_lower_bound").and_then(Value::as_f64);
                 let weight = finite(area, "diagnostic_weight");
+                let evidence_current =
+                    text(area, "evidence_state") == Some("observed_current");
+                let complete_coverage = match (
+                    area.get("coverage_numerator").and_then(Value::as_u64),
+                    area.get("coverage_denominator").and_then(Value::as_u64),
+                ) {
+                    (Some(numerator), Some(denominator)) if denominator > 0 => {
+                        numerator == denominator
+                    }
+                    _ => false,
+                };
+                if !evidence_current || !complete_coverage {
+                    push(
+                        errors,
+                        context,
+                        "weighted average must not use stale, missing or partially covered area evidence",
+                    );
+                    return;
+                }
                 match (lower, weight) {
-                    (Some(value), Some(weight)) if value.is_finite() && weight > 0.0 => {
+                    (Some(value), Some(weight))
+                        if value.is_finite()
+                            && (0.0..=1.0).contains(&value)
+                            && weight > 0.0 =>
+                    {
                         numerator += value * weight;
                         denominator += weight;
                     }
                     _ => {
-                        push(errors, context, "weighted average supplied when one or more area bounds/weights are unavailable");
+                        push(
+                            errors,
+                            context,
+                            "weighted average supplied when one or more area bounds/weights are unavailable",
+                        );
                         return;
                     }
                 }
@@ -603,6 +640,25 @@ mod tests {
         let errors = evaluate(&scenarios, &schema, &oracle)
             .expect_err("oracle area set must be exact");
         assert!(errors.iter().any(|e| e.contains("per-area IDs/dispositions differ")));
+    }
+
+    #[test]
+    fn one_malformed_bound_is_rejected_even_when_the_other_is_null() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][3]["areas"][1]["observation_lower_bound"] = json!("not-a-number");
+        scenarios["scenarios"][3]["areas"][1]["observation_upper_bound"] = Value::Null;
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("malformed lower bound must fail despite explicit null upper bound");
+        assert!(errors.iter().any(|e| e.contains("lower observation bound must be finite")));
+    }
+
+    #[test]
+    fn weighted_average_cannot_use_stale_or_partial_area_evidence() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][1]["areas"][2]["evidence_state"] = json!("stale");
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("stale evidence cannot contribute to a positive aggregate diagnostic");
+        assert!(errors.iter().any(|e| e.contains("weighted average must not use stale")));
     }
 
 }
