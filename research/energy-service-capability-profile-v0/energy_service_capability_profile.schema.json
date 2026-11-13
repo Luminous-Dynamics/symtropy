@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/energy-service-capability-profile-v0.schema.json",
+  "title": "Energy Service Capability Profile v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "provider_id",
+    "profile_version",
+    "bearer",
+    "field_regime",
+    "receiver_compatibility",
+    "supported_motion_states",
+    "supported_environment_strata",
+    "session_modes",
+    "evidence_receipts",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "provider_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "profile_version": {
+      "const": 1
+    },
+    "bearer": {
+      "enum": [
+        "CONDUCTIVE",
+        "IPT",
+        "CPT",
+        "BATTERY_EXCHANGE",
+        "RF_MICROWAVE",
+        "OPTICAL",
+        "POWER_LINE"
+      ]
+    },
+    "field_regime": {
+      "enum": [
+        "CONTACT",
+        "NEAR_FIELD",
+        "FAR_FIELD",
+        "ENERGY_CARRIER",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "receiver_compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hardware_sha256",
+        "geometry_sha256",
+        "coordinate_frame_sha256"
+      ],
+      "properties": {
+        "hardware_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "geometry_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "coordinate_frame_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "supported_motion_states": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "supported_environment_strata": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "session_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_receipts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "receipt_id",
+          "receipt_sha256",
+          "evidence_class",
+          "review_status",
+          "disposition",
+          "valid_until_us"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt_sha256": {
+            "$ref": "#/$defs/digest"
+          },
+          "evidence_class": {
+            "enum": [
+              "DECLARED",
+              "SYNTHETIC_ONLY",
+              "SIMULATED",
+              "BENCH_MEASURED",
+              "FIELD_MEASURED"
+            ]
+          },
+          "review_status": {
+            "enum": [
+              "NOT_REVIEWED",
+              "INDEPENDENTLY_REVIEWED"
+            ]
+          },
+          "disposition": {
+            "enum": [
+              "QUALIFIED_FOR_DECLARED_SCOPE",
+              "DECLARED_ONLY",
+              "AMBIGUOUS",
+              "STALE",
+              "OUT_OF_DOMAIN",
+              "UNKNOWN",
+              "REVOKED",
+              "NOT_ADMITTED",
+              "NOT_EVALUATED"
+            ]
+          },
+          "valid_until_us": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
