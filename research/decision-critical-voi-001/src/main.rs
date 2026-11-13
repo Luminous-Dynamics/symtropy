@@ -103,9 +103,11 @@ mod tests {
             2
         );
         assert_eq!(rendered["recommended_query_id"], Value::Null);
-        assert_eq!(
-            rendered["claim_ceiling"].as_str().unwrap().contains("probability calibration"),
-            true
+        assert!(
+            rendered["claim_ceiling"]
+                .as_str()
+                .unwrap()
+                .contains("probability calibration")
         );
     }
 
