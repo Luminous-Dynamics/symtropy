@@ -402,7 +402,6 @@ fn solver_solution(
 
 struct RunInput<'a> {
     backend: &'a str,
-    family: usize,
     profile: MetricProfileV1,
     metric_q: &'a Metric<CartesianQ, N>,
     rebasis: &'a Rebasis<CartesianQ, DenseY, N>,
@@ -417,7 +416,6 @@ struct RunInput<'a> {
 fn run_metrics(input: RunInput<'_>) -> Result<RunMetrics, Box<dyn Error>> {
     let RunInput {
         backend,
-        family: _,
         profile,
         metric_q,
         rebasis,
@@ -695,7 +693,6 @@ fn run_one_family(
 
     let metrics = run_metrics(RunInput {
         backend,
-        family,
         profile,
         metric_q,
         rebasis: &rebasis,
