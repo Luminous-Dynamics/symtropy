@@ -753,6 +753,105 @@ mod tests {
         assert!(has(&report, "UTILITY_ENVELOPE_OVERLAP"));
     }
 
+    fn utility_case_block<'a>(corpus: &'a str, case_id: &str) -> Option<&'a str> {
+        let needle = format!("\"case_id\": \"{case_id}\"");
+        let id_position = corpus.find(&needle)?;
+        let object_start = corpus[..id_position].rfind('{')?;
+        let object_end = id_position + corpus[id_position..].find('}')? + 1;
+        corpus.get(object_start..object_end)
+    }
+
+    fn exercise_utility_case(case_id: &str) -> (&'static str, Option<&'static str>) {
+        match case_id {
+            "UTIL-001-KNOWN-LOAD-UNDER-CAPACITY" => {
+                known_operation_demand_within_envelope_passes();
+                ("valid", None)
+            }
+            "UTIL-002-CONCURRENT-PEAK-EXCEEDED" => {
+                concurrent_operation_demands_cannot_exceed_peak_capacity();
+                ("invalid", Some("UTILITY_CAPACITY_EXCEEDED"))
+            }
+            "UTIL-003-MISSING-UTILITY-PROFILE" => {
+                missing_or_incomplete_profiles_never_mean_zero_utility_use();
+                ("invalid", Some("UTILITY_PROFILE_MISSING"))
+            }
+            "UTIL-004-UNKNOWN-CAPACITY" => {
+                unknown_demand_rate_and_unknown_capacity_block_qualification();
+                ("invalid", Some("UTILITY_CAPACITY_UNKNOWN"))
+            }
+            "UTIL-005-ENVELOPE-GAP" => {
+                positive_demand_without_time_coverage_fails_closed();
+                ("invalid", Some("UTILITY_CAPACITY_MISSING"))
+            }
+            "UTIL-006-SETUP-PEAK-COUNTED" => {
+                setup_consumption_is_counted_as_a_separate_concurrent_consumer();
+                ("invalid", Some("UTILITY_CAPACITY_EXCEEDED"))
+            }
+            "UTIL-007-OVERLAP-AND-DUPLICATE-METRIC" => {
+                overlapping_envelopes_and_duplicate_profile_metrics_are_rejected();
+                ("invalid", Some("UTILITY_ENVELOPE_OVERLAP"))
+            }
+            "UTIL-008-HALF-OPEN-TOUCHING-INTERVALS" => {
+                touching_half_open_operation_intervals_do_not_overlap();
+                ("valid", None)
+            }
+            other => panic!("unknown textile utility corpus case: {other}"),
+        }
+    }
+
+    #[test]
+    fn synthetic_utility_corpus_executes_every_declared_case() {
+        const CORPUS: &str = include_str!(
+            "../../../research/textile-multistage-factory/utility_cases_v0.1.json"
+        );
+        const SCHEMA: &str = include_str!(
+            "../../../research/textile-multistage-factory/utility_cases_v0.1.schema.json"
+        );
+
+        assert!(CORPUS.contains("\"corpus_id\": \"TEXTILE-UTILITY-CASES-001\""));
+        assert!(CORPUS.contains("\"fixture_class\": \"synthetic\""));
+        assert!(SCHEMA.contains("\"minItems\": 8"));
+        assert!(SCHEMA.contains("\"maxItems\": 8"));
+        assert_eq!(CORPUS.matches("\"case_id\":").count(), 8);
+
+        let cases = [
+            ("UTIL-001-KNOWN-LOAD-UNDER-CAPACITY", "valid", None),
+            ("UTIL-002-CONCURRENT-PEAK-EXCEEDED", "invalid", Some("UTILITY_CAPACITY_EXCEEDED")),
+            ("UTIL-003-MISSING-UTILITY-PROFILE", "invalid", Some("UTILITY_PROFILE_MISSING")),
+            ("UTIL-004-UNKNOWN-CAPACITY", "invalid", Some("UTILITY_CAPACITY_UNKNOWN")),
+            ("UTIL-005-ENVELOPE-GAP", "invalid", Some("UTILITY_CAPACITY_MISSING")),
+            ("UTIL-006-SETUP-PEAK-COUNTED", "invalid", Some("UTILITY_CAPACITY_EXCEEDED")),
+            ("UTIL-007-OVERLAP-AND-DUPLICATE-METRIC", "invalid", Some("UTILITY_ENVELOPE_OVERLAP")),
+            ("UTIL-008-HALF-OPEN-TOUCHING-INTERVALS", "valid", None),
+        ];
+
+        let mut seen = BTreeSet::new();
+        for (case_id, expected_validity, expected_finding) in cases {
+            assert!(seen.insert(case_id), "duplicate utility case {case_id}");
+            let block = utility_case_block(CORPUS, case_id)
+                .unwrap_or_else(|| panic!("utility corpus case missing: {case_id}"));
+            let expected_bool = expected_validity == "valid";
+            assert!(
+                block.contains(&format!("\"expected_valid\": {expected_bool}")),
+                "case {case_id} expected_valid differs from Rust regression mapping"
+            );
+            match expected_finding {
+                Some(code) => assert!(
+                    block.contains(&format!("\"expected_finding\": \"{code}\"")),
+                    "case {case_id} expected finding differs from Rust regression mapping"
+                ),
+                None => assert!(
+                    block.contains("\"expected_finding\": null"),
+                    "case {case_id} must have no expected finding"
+                ),
+            }
+            let (actual_validity, actual_finding) = exercise_utility_case(case_id);
+            assert_eq!(actual_validity, expected_validity, "case {case_id} validity");
+            assert_eq!(actual_finding, expected_finding, "case {case_id} finding");
+        }
+        assert_eq!(seen.len(), 8);
+    }
+
     #[test]
     fn touching_half_open_operation_intervals_do_not_overlap() {
         let mut schedule = schedule();
