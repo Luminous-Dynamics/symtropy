@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic active-metrology selector input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "observation",
+    "profiles",
+    "options",
+    "decision_at_tick",
+    "maximum_observation_age_ticks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-ACTIVE-METROLOGY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_contract_only"
+    },
+    "observation": {
+      "$ref": "#/$defs/observation"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/option"
+      }
+    },
+    "decision_at_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maximum_observation_age_ticks": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_class",
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id",
+        "scan_id",
+        "scan_sha256",
+        "registration_receipt_sha256",
+        "uncertainty_upper_bound_units",
+        "decision_threshold_units",
+        "observed_at_tick"
+      ],
+      "properties": {
+        "evidence_class": {
+          "const": "synthetic_contract_only"
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "uncertainty_upper_bound_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_threshold_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observed_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "revision",
+        "evidence_class",
+        "output",
+        "qualified",
+        "operating_domain_supported",
+        "guaranteed_post_uncertainty_bound_units"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "const": "synthetic_contract_only"
+        },
+        "output": {
+          "const": "residual_fill_geometry"
+        },
+        "qualified": {
+          "const": true
+        },
+        "operating_domain_supported": {
+          "const": true
+        },
+        "guaranteed_post_uncertainty_bound_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id",
+        "source_scan_id",
+        "source_scan_sha256",
+        "source_registration_receipt_sha256",
+        "profile_id",
+        "profile_revision",
+        "declared_post_uncertainty_bound_units",
+        "acquisition_time_units",
+        "energy_units",
+        "interruption_risk_units",
+        "resource_feasible",
+        "access_feasible",
+        "already_observed",
+        "future_information_used",
+        "live_action_requested"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string"
+        },
+        "joint_revision": {
+          "type": "string"
+        },
+        "layer_id": {
+          "type": "string"
+        },
+        "predecessor_pass_id": {
+          "type": "string"
+        },
+        "source_scan_id": {
+          "type": "string"
+        },
+        "source_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "profile_id": {
+          "type": "string"
+        },
+        "profile_revision": {
+          "type": "string"
+        },
+        "declared_post_uncertainty_bound_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "acquisition_time_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "energy_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interruption_risk_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resource_feasible": {
+          "type": "boolean"
+        },
+        "access_feasible": {
+          "type": "boolean"
+        },
+        "already_observed": {
+          "type": "boolean"
+        },
+        "future_information_used": {
+          "type": "boolean"
+        },
+        "live_action_requested": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

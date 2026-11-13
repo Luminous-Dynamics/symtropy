@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-active-metrology"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic decision-aware measurement option selector for shipyard welding"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
