@@ -11,7 +11,7 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use observability_guided_driving::{audit_campaign, AuditReport, Campaign};
+use observability_guided_driving::{AuditReport, Campaign, audit_campaign};
 use serde_json::json;
 
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
@@ -23,7 +23,10 @@ fn audit_value(input: &str) -> Result<AuditReport, String> {
 }
 
 fn write_report(path: &Path, report: &AuditReport) -> Result<(), Box<dyn Error>> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(report)?)?;
@@ -44,8 +47,8 @@ fn run() -> Result<i32, Box<dyn Error>> {
     }
 
     let input = fs::read_to_string(input_path)?;
-    let report = audit_value(&input)
-        .map_err(|error| format!("campaign input rejected: {error}"))?;
+    let report =
+        audit_value(&input).map_err(|error| format!("campaign input rejected: {error}"))?;
     write_report(output_path, &report)?;
 
     println!(
@@ -73,14 +76,18 @@ mod tests {
     use super::*;
 
     fn fixture() -> serde_json::Value {
-        serde_json::from_str(include_str!("../fixtures/occluded-crosswalk-paired-v1.json"))
-            .expect("checked-in fixture JSON is valid")
+        serde_json::from_str(include_str!(
+            "../fixtures/occluded-crosswalk-paired-v1.json"
+        ))
+        .expect("checked-in fixture JSON is valid")
     }
 
     #[test]
     fn paired_occluded_crosswalk_fixture_is_valid() {
-        let report = audit_value(include_str!("../fixtures/occluded-crosswalk-paired-v1.json"))
-            .unwrap();
+        let report = audit_value(include_str!(
+            "../fixtures/occluded-crosswalk-paired-v1.json"
+        ))
+        .unwrap();
         assert_eq!(report.disposition, "valid");
         assert!(report.findings.is_empty());
         assert_eq!(report.expected_pair_count, 2);
@@ -90,8 +97,10 @@ mod tests {
 
     #[test]
     fn fixture_shows_better_proper_score_after_safe_reposition() {
-        let report = audit_value(include_str!("../fixtures/occluded-crosswalk-paired-v1.json"))
-            .unwrap();
+        let report = audit_value(include_str!(
+            "../fixtures/occluded-crosswalk-paired-v1.json"
+        ))
+        .unwrap();
         assert!(
             report
                 .active_minus_passive_crossing_brier
@@ -108,8 +117,10 @@ mod tests {
 
     #[test]
     fn evaluator_report_does_not_create_a_composite_observability_score() {
-        let report = audit_value(include_str!("../fixtures/occluded-crosswalk-paired-v1.json"))
-            .unwrap();
+        let report = audit_value(include_str!(
+            "../fixtures/occluded-crosswalk-paired-v1.json"
+        ))
+        .unwrap();
         let value = serde_json::to_value(report).unwrap();
         assert!(value.get("passive_control").is_some());
         assert!(value.get("active_observation").is_some());
@@ -122,13 +133,17 @@ mod tests {
     #[test]
     fn no_safe_information_action_negative_control_is_enforced_by_cli() {
         let mut campaign = fixture();
-        campaign["pairs"][1]["active_observation"]["information_action"] =
-            json!("safe_reposition");
+        campaign["pairs"][1]["active_observation"]["information_action"] = json!("safe_reposition");
         campaign["pairs"][1]["active_observation"]["action_cost"] =
             campaign["pairs"][0]["active_observation"]["action_cost"].clone();
         let report = audit_value(&campaign.to_string()).unwrap();
         assert_eq!(report.disposition, "rejected");
-        assert!(report.findings.iter().any(|finding| finding == "no_safe_action_violation"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding == "no_safe_action_violation")
+        );
     }
 
     #[test]
