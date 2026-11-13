@@ -32,9 +32,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --package water-service-t0 -- --check
       - name: Run observability adversarial and oracle tests
-        run: cargo test --locked --package water-service-t0 --bin water-observability-qualification
+        run: cargo test --locked --package water-service-t0
       - name: Run strict Clippy
-        run: cargo clippy --locked --package water-service-t0 --bin water-observability-qualification -- -D warnings
+        run: cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
       - name: Evaluate exact checked-out corpus
         env:
           WATER_OBSERVABILITY_REVISION: ${{ github.sha }}
