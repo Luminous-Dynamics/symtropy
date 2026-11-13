@@ -70,7 +70,9 @@ impl<'de> Visitor<'de> for StrictJsonVisitor {
         E: de::Error,
     {
         if value.unsigned_abs() > MAX_SAFE_JSON_INTEGER {
-            return Err(E::custom("JSON integer exceeds the IEEE-754 safe-integer range"));
+            return Err(E::custom(
+                "JSON integer exceeds the IEEE-754 safe-integer range",
+            ));
         }
         Ok(JsonValue::Integer(value))
     }
@@ -174,10 +176,7 @@ pub enum WireError {
     /// Integrity object is malformed.
     InvalidIntegrityField(&'static str),
     /// Claimed and recomputed payload digests differ.
-    DigestMismatch {
-        expected: String,
-        observed: String,
-    },
+    DigestMismatch { expected: String, observed: String },
 }
 
 impl fmt::Display for WireError {
@@ -380,10 +379,7 @@ pub fn validate_receipt(input: &[u8]) -> Result<ValidatedReceipt, WireError> {
     let payload = canonical_payload_bytes(&value)?;
     let observed = lowercase_hex(&Sha256::digest(payload));
     if observed != expected {
-        return Err(WireError::DigestMismatch {
-            expected,
-            observed,
-        });
+        return Err(WireError::DigestMismatch { expected, observed });
     }
 
     Ok(ValidatedReceipt {
@@ -398,10 +394,8 @@ pub fn validate_receipt(input: &[u8]) -> Result<ValidatedReceipt, WireError> {
 mod tests {
     use super::*;
 
-    const GOLDEN_PACKET: &str =
-        include_str!("../../fixtures/joint_receipt_v0_1_complete.json");
-    const GOLDEN_DIGEST: &str =
-        "cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8";
+    const GOLDEN_PACKET: &str = include_str!("../../fixtures/joint_receipt_v0_1_complete.json");
+    const GOLDEN_DIGEST: &str = "cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8";
 
     #[test]
     fn synthetic_golden_receipt_matches_rfc8785_sha256_known_answer() {
@@ -520,11 +514,13 @@ mod tests {
 
     #[test]
     fn protocol_version_mismatch_is_rejected() {
-        let changed = GOLDEN_PACKET.replace("\"schema_version\":\"0.1.0\"", "\"schema_version\":\"0.2.0\"");
+        let changed = GOLDEN_PACKET.replace(
+            "\"schema_version\":\"0.1.0\"",
+            "\"schema_version\":\"0.2.0\"",
+        );
         assert!(matches!(
             validate_receipt(changed.as_bytes()),
-            Err(WireError::InvalidField("schema_version"))
-                | Err(WireError::DigestMismatch { .. })
+            Err(WireError::InvalidField("schema_version")) | Err(WireError::DigestMismatch { .. })
         ));
     }
 
