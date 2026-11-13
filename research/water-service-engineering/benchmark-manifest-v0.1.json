@@ -231,5 +231,9 @@
     "manifest": "research/water-service-engineering/membrane-observation-manifest-v0.1.json",
     "case_count": 8,
     "status": "synthetic_schema_contract_only_no_real_dataset_admitted"
+  },
+  "membrane_evidence_twin_blueprint": {
+    "document": "research/water-service-engineering/MEMBRANE_EVIDENCE_TWIN_REFERENCE_ARCHITECTURE_V0_1.md",
+    "status": "reference_architecture_only_no_live_plant_twin_or_actuation"
   }
 }
