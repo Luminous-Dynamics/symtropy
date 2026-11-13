@@ -53,13 +53,13 @@ Coordinates are integer micrometres. Let d_i = z_observed_i - z_reference_i. Eve
 
 For a same-sign segment of width Δx, the doubled positive or negative lobe is Δx × (|d_0| + |d_1|). For an opposite-sign segment, the linearly interpolated zero crossing splits it into two triangles. The doubled positive lobe is:
 
-A⁺₂ = Δx × d⁺₀² / (|d₀| + |d₁|)
+A⁺₂ = Δx × p² / (p + n)
 
 and the doubled negative lobe is:
 
-A⁻₂ = Δx × d⁻₁² / (|d₀| + |d₁|)
+A⁻₂ = Δx × n² / (p + n)
 
-Each rational lobe is rounded to the nearest integer µm²×2, ties upward. Signed net area is added minus removed; absolute change is added plus removed. Mean absolute deviation is absolute doubled area divided by twice the supported profile length, rounded to nearest integer micrometre.
+Here p and n denote the magnitudes at the positive and negative endpoints, respectively. Each rational lobe is rounded to the nearest integer µm²×2, ties upward. Signed net area is added minus removed; absolute change is added plus removed. Mean absolute deviation is absolute doubled area divided by twice the supported profile length, rounded to nearest integer micrometre.
 
 At each supported station, the conservative vertical uncertainty radius is reference uncertainty + observed uncertainty + maximum registration residual. Its piecewise-linear integral is returned as a separate doubled-area upper bound. It is not folded into the measured signed geometry change.
 
@@ -70,8 +70,8 @@ All arithmetic uses checked integer operations. Overflow causes abstention, neve
 The JSON corpus defines:
 - 4 positive known-answer profiles: identical, constant positive offset, sign crossing and constant negative offset;
 - 1 explicit long-internal-gap known-answer rejection;
-- 21 additional named negative controls;
-- 25 total cases (4 positive / 21 negative).
+- 25 additional named negative controls;
+- 30 total cases (4 positive / 26 negative).
 
 The Rust library has 22 unit/mutation tests. A separate JavaScript replay should reproduce the four numeric positive controls and the negative-gap outcome. All quantities are synthetic; they are not scanner calibration or physical weld observations.
 
