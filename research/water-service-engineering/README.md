@@ -143,3 +143,8 @@ See [MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md](./MEMBRANE_INDUSTRY_BENCHMARK_M
 ### Observation semantics contract
 
 The [Membrane Observation Semantics Contract](./MEMBRANE_OBSERVATION_SEMANTICS_PROTOCOL_V0_1.md) has a versioned JSON Schema and nine positive/negative fixtures. It distinguishes instantaneous sensor values, rolling aggregates, laboratory samples, derived metrics and normalized metrics; it requires explicit units, time-window semantics, calibration/source metadata, lineage and normalization reference inputs. The workflow rejects missing-as-zero, derived-without-lineage, normalized-without-reference and rolling aggregates without a declared window.
+
+
+## Evidence-twin reference architecture
+
+The [Membrane Evidence Twin blueprint](./MEMBRANE_EVIDENCE_TWIN_REFERENCE_ARCHITECTURE_V0_1.md) connects data admission, sensor integrity, transport normalization, process estimation, mechanism evidence, independent quality/integrity, counterfactual decisions and human supervisory authority. It deliberately emits separate evidence-qualified state vectors rather than one "fouling probability" or an autonomous cleaning command.
