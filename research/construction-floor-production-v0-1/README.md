@@ -24,7 +24,7 @@ It intentionally does not create another scheduler, resource calendar, fleet pro
 
 ## Implemented in v0.1
 
-- A floor binding pins floor ID, site epoch, design revision digest and target frame.
+- A floor binding pins floor ID, site epoch, design revision digest, target frame, labour-time axis, benchmark profile ID/digest, reference fixture ID/digest and claim ceiling. The ledger records these references; it does not compute or authenticate their digests.
 - Required functional units bind a task-specific acceptance-contract reference before any attempt.
 - Attempts snapshot the existing `TaskMachine` state, robot-configuration digest and exact task/output/receipt references. Each attempt report retains the functional-unit acceptance-contract reference.
 - Rework requires a new task ID, contiguous attempt number and explicit corrective-work authorization.
