@@ -72,7 +72,7 @@ A control-aware diagnosis track is separately owned by [MARITIME-CONTROL-AWARE-D
 - controller/actuator state (outputs, feedback, saturation, mode and interlocks);
 - measured physical plant response.
 
-A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This was the fifteenth literature baseline when first added. The registry now contains 24 unique IDs and 24 unique DOIs, including the October 2026 physical WP4 digital-twin / inverse-identifiability baseline, September 2026 few-shot combustion diagnosis, July 2026 external-context maritime anomaly analysis, the December 2025 operational-vessel induced-fault study and additional transfer/OOD baselines. See the machine-readable registry for each study's separate evidence scope and limitations.
+A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This was the fifteenth literature baseline when first added. The registry now contains 29 unique IDs and 29 unique DOIs, including the October 2026 physical WP4 digital-twin / inverse-identifiability baseline, September 2026 few-shot combustion diagnosis, July 2026 external-context maritime anomaly analysis, the December 2025 operational-vessel induced-fault study and additional transfer/OOD baselines. See the machine-readable registry for each study's separate evidence scope and limitations.
 
 Command-conditioned residuals must account for actuator lag, load/ambient disturbances, controller mode, sensor bias, clock skew and shared dependencies. Commands are not physical measurements or independent corroboration. If a candidate dataset lacks verified control-signal semantics, this track remains NOT_EVALUATED for that dataset.
 
@@ -170,7 +170,7 @@ This programme currently establishes research artifacts, synthetic evidence-cont
 
 ## Literature update — transfer baselines (10 November 2026)
 
-The diagnostic baseline registry now contains **24 unique IDs and 24 unique source DOIs**. Every result remains bound to its data domain and split protocol; simulation, test-bench, one-vessel and multi-engine evidence are not merged into a single leaderboard. The December 2025 operational-vessel SVM result is a particularly strong reproduction target, but not a cross-engine/fleet benchmark.
+The diagnostic baseline registry now contains **29 unique IDs and 29 unique source DOIs**. Every result remains bound to its data domain and split protocol; simulation, test-bench, one-vessel and multi-engine evidence are not merged into a single leaderboard. The December 2025 operational-vessel SVM result is a particularly strong reproduction target, but not a cross-engine/fleet benchmark.
 
 - The 2025 Applied Energy cross-working-condition paper reports **95% accuracy** in its abstract and describes **18 transfer tasks** across two engine case studies (8V396SE, 500 kW, and 620 V16, 2,336 kW). Its evidence mix includes experimental bench lubrication-system data and virtual intake/exhaust task data. Keep each subsystem and source type separate. The exact per-task aggregation, sample grouping and split manifest must be recovered before reproduction. This is not a common-protocol or physical fleet-transfer score.
 - The 2025 Energy mean-value-model-assisted dual-transfer paper reports **more than 97.70% average accuracy** for cross-domain lubricating-oil diagnosis. It describes a simulation-to-measured transfer between a 16V396 simulation domain and an 8V396 experimental bench domain, nine transfer tasks, and 70%, 85% and 100% load points. The exact source/target assignments, run grouping, task-level scores and leakage controls need methods/table audit. It is a separate paper from the 18-task Applied Energy study and is not comparable to the Aalto MU323DGSC data.
@@ -398,3 +398,12 @@ A multiview model receives no independence credit from raw sensor count. The obs
 ### Competitive target
 
 The research target is to reproduce the published H-score baselines under their exact splits, then improve the **worst-stratum** C+F H-score and false-known rate without sacrificing known-fault event recall or calibration. A marine-engine superiority claim requires a matched marine dataset and independently audited physical fault labels; the three generic rotating-machinery datasets do not satisfy that requirement.
+
+
+### Geometric behavioural-set diagnosis review (May 2026)
+
+Sheikhi et al., *Fault Diagnosis in Dynamical Systems: Geometric Interpretation and Tractable Algorithms*, Annual Review of Control, Robotics, and Autonomous Systems 9:147–179, DOI 10.1146/annurev-control-030123-015422. The publisher lists publication in May 2026 and first online review publication on 10 December 2025. It surveys diagnosis for linear and nonlinear systems, model-based and data-driven filters, behavioural-set geometry, robust residual generation and passive/active diagnosis. It is a general dynamics review, not marine-engine validation and not a common-protocol accuracy score.
+
+The publisher lists an erratum published 5 June 2026 (DOI 10.1146/annurev-as-09-060526-200001). The erratum landing page has no abstract; detailed reproduction must inspect the corrected article rather than infer the erratum's scope.
+
+This review motivates #5040's set-valued diagnosability work. The benchmark must distinguish a certified disjointness result from an actual intersection witness and from mere overlap of conservative outer approximations. Do not promote geometric theory coverage into physical marine-engine performance.
