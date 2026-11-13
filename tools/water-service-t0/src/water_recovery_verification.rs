@@ -699,6 +699,8 @@ pub fn evaluate(
     }
 
     let mut scenario_ids = BTreeSet::new();
+    let mut event_refs = BTreeSet::new();
+    let mut event_lineage_refs = BTreeSet::new();
     let mut output_results = Vec::new();
     for case in cases {
         let scenario_id = match get_str(case, "scenario_id") {
@@ -740,14 +742,29 @@ pub fn evaluate(
         if scenario_class == "recurrence_after_prior_restoration_claim" {
             let prior = case.get("prior_restoration_claim").filter(|value| value.is_object());
             let prior_ref = prior.and_then(|value| get_str(value, "restoration_claim_ref"));
-            if prior_ref.is_none() || prior_ref == get_str(case, "event_ref") {
-                errors.push(format!("{context}: recurrence must bind a prior claim without reusing its event identity"));
+            let prior_time = prior.and_then(|value| get_str(value, "claimed_at"));
+            if prior_ref.is_none()
+                || prior_time.is_none()
+                || prior_ref == get_str(case, "event_ref")
+            {
+                errors.push(format!("{context}: recurrence must bind a prior claim/time without reusing its event identity"));
             }
         }
-        if required_string(case, "event_ref", &context).is_err()
-            || required_string(case, "event_lineage_ref", &context).is_err()
-        {
-            errors.push(format!("{context}: event identity/lineage is required"));
+        let event_ref = required_string(case, "event_ref", &context);
+        let event_lineage_ref = required_string(case, "event_lineage_ref", &context);
+        if let Ok(event_ref) = event_ref {
+            if !event_refs.insert(event_ref.clone()) {
+                errors.push(format!("{context}: duplicate event_ref {event_ref}"));
+            }
+        } else {
+            errors.push(format!("{context}: event identity is required"));
+        }
+        if let Ok(lineage_ref) = event_lineage_ref {
+            if !event_lineage_refs.insert(lineage_ref.clone()) {
+                errors.push(format!("{context}: duplicate event_lineage_ref {lineage_ref}"));
+            }
+        } else {
+            errors.push(format!("{context}: event lineage identity is required"));
         }
         let ticket = case.get("repair_ticket").unwrap_or(&Value::Null);
         let ticket_status = required_string(ticket, "status", &context);
