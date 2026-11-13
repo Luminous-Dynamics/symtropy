@@ -311,8 +311,34 @@ impl<Frame, const N: usize> Metric<Frame, N> {
         matrix: Matrix<N>,
         profile: UncertaintyProfileV1,
     ) -> Result<Self, UncertaintyErrorV1> {
-        let lower = cholesky(&matrix, profile)?;
-        Ok(Self { matrix, lower, profile, frame: PhantomData })
+        validate_matrix(&matrix)?;
+        validate_profile(profile)?;
+        let scale = matrix_inf(&matrix);
+        if !scale.is_finite() {
+            return Err(UncertaintyErrorV1::NonFiniteIntermediate);
+        }
+        let symmetry_threshold = profile.relative_symmetry_tolerance * scale;
+        if !symmetry_threshold.is_finite() {
+            return Err(UncertaintyErrorV1::NonFiniteIntermediate);
+        }
+        let mut effective = matrix;
+        for row in 0..N {
+            for column in (row + 1)..N {
+                if (matrix[row][column] - matrix[column][row]).abs() > symmetry_threshold {
+                    return Err(UncertaintyErrorV1::AsymmetricMassMetric { row, column });
+                }
+                let average = 0.5 * matrix[row][column] + 0.5 * matrix[column][row];
+                effective[row][column] = average;
+                effective[column][row] = average;
+            }
+        }
+        let lower = cholesky(&effective, profile)?;
+        Ok(Self {
+            matrix: effective,
+            lower,
+            profile,
+            frame: PhantomData,
+        })
     }
 
     pub fn matrix(&self) -> &Matrix<N> {
@@ -357,6 +383,7 @@ impl<Frame, const N: usize> Metric<Frame, N> {
         if !symmetry_threshold.is_finite() {
             return Err(UncertaintyErrorV1::NonFiniteIntermediate);
         }
+        let mut effective_perturbation = *perturbation;
         for row in 0..N {
             for column in (row + 1)..N {
                 if (perturbation[row][column] - perturbation[column][row]).abs()
@@ -364,13 +391,17 @@ impl<Frame, const N: usize> Metric<Frame, N> {
                 {
                     return Err(UncertaintyErrorV1::AsymmetricMassPerturbation { row, column });
                 }
+                let average = 0.5 * perturbation[row][column]
+                    + 0.5 * perturbation[column][row];
+                effective_perturbation[row][column] = average;
+                effective_perturbation[column][row] = average;
             }
         }
 
         // B = L^-1 ΔM, computed column by column.
         let mut left_whitened = [[0.0; N]; N];
         for column in 0..N {
-            let rhs = std::array::from_fn(|row| perturbation[row][column]);
+            let rhs = std::array::from_fn(|row| effective_perturbation[row][column]);
             let solved = solve_lower(&self.lower, &rhs)?;
             for row in 0..N {
                 left_whitened[row][column] = solved[row];
