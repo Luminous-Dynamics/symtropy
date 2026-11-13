@@ -198,7 +198,7 @@ jobs:
               if record["result_qualifier"] in ("BELOW_LOD", "BELOW_LOQ"):
                   if record["value"] is not None:
                       raise SystemExit(f"MEMBRANE_WQ_M2_CENSORED_RESULT_MUST_NOT_BE_NUMERIC: {case['case_id']}")
-                  if record["expected"] != "ADMISSIBLE_QUALIFIED_RESULT_NOT_ZERO":
+                  if case["expected"] != "ADMISSIBLE_QUALIFIED_RESULT_NOT_ZERO":
                       raise SystemExit(f"MEMBRANE_WQ_M2_QUALIFIER_SEMANTICS_FAIL: {case['case_id']}")
               if record["lab_qc_status"] != "ACCEPTED":
                   if case["expected"] != "NOT_A_TRAINING_LABEL":
@@ -212,7 +212,7 @@ jobs:
           ]
           if len(same_time) > 1 and len({x["sample_location_id"] for x in same_time}) != len(same_time):
               raise SystemExit("MEMBRANE_WQ_M2_LOCATION_IDENTITY_FAIL")
-          print("MEMBRANE_WQ_M2_PASS: 5 synthetic fixtures; sample-time-only, causal cutoff and qualifier semantics enforced")
+          print("MEMBRANE_WQ_M2_PASS: 6 synthetic fixtures; sample-time-only, causal cutoff and qualifier semantics enforced")
           PY
       - name: Evaluate membrane RO transport M0 at exact revision
         id: membrane_ro_m0
