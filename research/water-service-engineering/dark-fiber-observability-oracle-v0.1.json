@@ -24,7 +24,7 @@
         "geometric_candidate_length_m": 0,
         "observed_sensing_length_m": 0,
         "physical_sensing_qualified": false,
-        "route_status": "COUPLING_NOT_QUALIFIED",
+        "route_status": "OUTSIDE_GEOMETRIC_SCREEN",
         "leak_absence_claim_allowed": false
       }
     },
@@ -36,7 +36,7 @@
         "geometric_candidate_length_m": 0,
         "observed_sensing_length_m": 0,
         "physical_sensing_qualified": false,
-        "route_status": "COUPLING_NOT_QUALIFIED",
+        "route_status": "INDETERMINATE_GEOMETRY",
         "leak_absence_claim_allowed": false
       }
     },
@@ -71,7 +71,7 @@
         "geometry_disposition": "WITHIN_GEOMETRIC_SCREEN",
         "geometric_candidate_length_m": 1200,
         "observed_sensing_length_m": 0,
-        "physical_sensing_qualified": true,
+        "physical_sensing_qualified": false,
         "route_status": "ASSET_ATTRIBUTION_AMBIGUOUS",
         "leak_absence_claim_allowed": false,
         "unique_asset_localization_allowed": false
