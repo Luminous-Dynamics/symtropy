@@ -36,24 +36,24 @@ fn run() -> Result<i32, String> {
         );
     }
     let input_path = PathBuf::from(
-        args.first()
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/dark-fiber-observability-cases-v0.1.json"),
+        args.first().map(String::as_str).unwrap_or(
+            "research/water-service-engineering/dark-fiber-observability-cases-v0.1.json",
+        ),
     );
     let oracle_path = PathBuf::from(
-        args.get(1)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json"),
+        args.get(1).map(String::as_str).unwrap_or(
+            "research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json",
+        ),
     );
     let schema_path = PathBuf::from(
-        args.get(2)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/dark-fiber-observability.schema.json"),
+        args.get(2).map(String::as_str).unwrap_or(
+            "research/water-service-engineering/dark-fiber-observability.schema.json",
+        ),
     );
     let manifest_path = PathBuf::from(
-        args.get(3)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/dark-fiber-benchmark-manifest-v0.1.json"),
+        args.get(3).map(String::as_str).unwrap_or(
+            "research/water-service-engineering/dark-fiber-benchmark-manifest-v0.1.json",
+        ),
     );
     let receipt_path = PathBuf::from(
         args.get(4)
