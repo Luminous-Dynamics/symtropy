@@ -656,7 +656,8 @@ mod tests {
         let perturbed_mass: Matrix<3> = std::array::from_fn(|row| {
             std::array::from_fn(|column| metric.matrix()[row][column] + delta_mass[row][column])
         });
-        let perturbed_metric = Metric::new(perturbed_mass, profile).unwrap();
+        let perturbed_metric: Metric<CartesianFrame, 3> =
+            Metric::new(perturbed_mass, profile).unwrap();
         let nominal_force =
             Covector::new(apply(metric.matrix(), acceleration.components())).unwrap();
         let true_force = Covector::new(std::array::from_fn(|i| {
