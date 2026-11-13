@@ -1121,7 +1121,7 @@ mod tests {
         book.reserve(request("due", "robot-a", 100, 200, 200, 1), 0)
             .expect("due reservation");
         let before = book.clone();
-        let candidate = request("replacement", "robot-b", 100, 200, 300, 1);
+        let candidate = request("replacement", "robot-b", 300, 400, 500, 1);
 
         assert_eq!(
             book.preview_reservation(&candidate, 200),
