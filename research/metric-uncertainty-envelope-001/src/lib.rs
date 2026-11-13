@@ -302,7 +302,10 @@ impl<Frame, const N: usize> Tangent<Frame, N> {
 impl<Frame, const N: usize> Covector<Frame, N> {
     pub fn new(components: Vector<N>) -> Result<Self, UncertaintyErrorV1> {
         validate_vector(&components)?;
-        Ok(Self { components, frame: PhantomData })
+        Ok(Self {
+            components,
+            frame: PhantomData,
+        })
     }
     pub fn components(&self) -> &Vector<N> {
         &self.components
