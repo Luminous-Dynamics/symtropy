@@ -1,0 +1,324 @@
+{
+  "schema_version": "loco-decision-voi-known-answers-v0.1",
+  "probability_scale_ppb": 1000000000,
+  "loss_scale_ppb": 1000000000,
+  "interpretation": "All fixtures are synthetic exact known-answer cases. Probabilities and losses are integer fixed-point values; they are not physical measurements.",
+  "fixtures": [
+    {
+      "id": "A-irrelevant-perfect-information-zero-voi",
+      "purpose": "Positive EIG, zero decision value.",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "prior_ppb": 500000000,
+          "likelihood_ppb_by_outcome": [
+            1000000000,
+            0
+          ]
+        },
+        {
+          "id": "h2",
+          "prior_ppb": 500000000,
+          "likelihood_ppb_by_outcome": [
+            0,
+            1000000000
+          ]
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "observe-h1",
+          "kind": "known"
+        },
+        {
+          "id": "observe-h2",
+          "kind": "known"
+        }
+      ],
+      "decisions": [
+        {
+          "id": "hold",
+          "loss_ppb_by_hypothesis": [
+            100000000,
+            100000000
+          ],
+          "admission_receipt": "fixture:admitted:hold"
+        },
+        {
+          "id": "alternate",
+          "loss_ppb_by_hypothesis": [
+            500000000,
+            500000000
+          ],
+          "admission_receipt": "fixture:admitted:alternate"
+        }
+      ],
+      "probe_admission": {
+        "status": "admitted",
+        "receipt": "fixture:admitted:probe-A"
+      },
+      "expected": {
+        "prior_risk": "0.10",
+        "expected_posterior_risk": "0.10",
+        "voi": "0",
+        "eig_nats_approx": 0.6931471805599453,
+        "prior_optimal_decision": [
+          "hold"
+        ],
+        "posterior_optimal_decision_by_outcome": [
+          [
+            "hold"
+          ],
+          [
+            "hold"
+          ]
+        ],
+        "optimal_decision_change_probability": "0"
+      }
+    },
+    {
+      "id": "B-low-eig-positive-decision-value",
+      "purpose": "Low EIG but positive VOI; the posterior changes the preferred admitted action on one outcome.",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "prior_ppb": 510000000,
+          "likelihood_ppb_by_outcome": [
+            600000000,
+            400000000
+          ]
+        },
+        {
+          "id": "h2",
+          "prior_ppb": 490000000,
+          "likelihood_ppb_by_outcome": [
+            400000000,
+            600000000
+          ]
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "y-plus",
+          "kind": "known"
+        },
+        {
+          "id": "y-minus",
+          "kind": "known"
+        }
+      ],
+      "decisions": [
+        {
+          "id": "action-A",
+          "loss_ppb_by_hypothesis": [
+            0,
+            1000000000
+          ],
+          "admission_receipt": "fixture:admitted:action-A"
+        },
+        {
+          "id": "action-B",
+          "loss_ppb_by_hypothesis": [
+            1000000000,
+            0
+          ],
+          "admission_receipt": "fixture:admitted:action-B"
+        }
+      ],
+      "probe_admission": {
+        "status": "admitted",
+        "receipt": "fixture:admitted:probe-B"
+      },
+      "expected": {
+        "prior_risk": "0.49",
+        "outcome_probability": {
+          "y-plus": "0.502",
+          "y-minus": "0.498"
+        },
+        "posterior_optimal_decision_by_outcome": [
+          [
+            "action-A"
+          ],
+          [
+            "action-B"
+          ]
+        ],
+        "expected_posterior_risk": "0.40",
+        "voi": "0.09",
+        "eig_nats_approx": 0.020127513529355406,
+        "optimal_decision_change_probability": "0.498"
+      }
+    },
+    {
+      "id": "C-uninformative-zero-eig-zero-voi",
+      "purpose": "Observation distribution is identical under both hypotheses.",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "prior_ppb": 510000000,
+          "likelihood_ppb_by_outcome": [
+            500000000,
+            500000000
+          ]
+        },
+        {
+          "id": "h2",
+          "prior_ppb": 490000000,
+          "likelihood_ppb_by_outcome": [
+            500000000,
+            500000000
+          ]
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "y-left",
+          "kind": "known"
+        },
+        {
+          "id": "y-right",
+          "kind": "known"
+        }
+      ],
+      "decisions": [
+        {
+          "id": "action-A",
+          "loss_ppb_by_hypothesis": [
+            0,
+            1000000000
+          ],
+          "admission_receipt": "fixture:admitted:action-A"
+        },
+        {
+          "id": "action-B",
+          "loss_ppb_by_hypothesis": [
+            1000000000,
+            0
+          ],
+          "admission_receipt": "fixture:admitted:action-B"
+        }
+      ],
+      "probe_admission": {
+        "status": "admitted",
+        "receipt": "fixture:admitted:probe-C"
+      },
+      "expected": {
+        "prior_risk": "0.49",
+        "expected_posterior_risk": "0.49",
+        "voi": "0",
+        "eig_nats_approx": 0,
+        "prior_optimal_decision": [
+          "action-A"
+        ],
+        "posterior_optimal_decision_by_outcome": [
+          [
+            "action-A"
+          ],
+          [
+            "action-A"
+          ]
+        ],
+        "optimal_decision_change_probability": "0"
+      }
+    },
+    {
+      "id": "D-explicit-unknown-outcome-and-fallback",
+      "purpose": "Unknown evidence must use the admitted fallback and preserve its probability mass.",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "prior_ppb": 510000000,
+          "likelihood_ppb_by_outcome": [
+            600000000,
+            300000000,
+            100000000
+          ]
+        },
+        {
+          "id": "h2",
+          "prior_ppb": 490000000,
+          "likelihood_ppb_by_outcome": [
+            400000000,
+            400000000,
+            200000000
+          ]
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "y-plus",
+          "kind": "known"
+        },
+        {
+          "id": "y-minus",
+          "kind": "known"
+        },
+        {
+          "id": "out-of-model",
+          "kind": "unknown",
+          "required_fallback_decision": "abstain-hold"
+        }
+      ],
+      "decisions": [
+        {
+          "id": "action-A",
+          "loss_ppb_by_hypothesis": [
+            0,
+            1000000000
+          ],
+          "admission_receipt": "fixture:admitted:action-A"
+        },
+        {
+          "id": "action-B",
+          "loss_ppb_by_hypothesis": [
+            1000000000,
+            0
+          ],
+          "admission_receipt": "fixture:admitted:action-B"
+        },
+        {
+          "id": "abstain-hold",
+          "loss_ppb_by_hypothesis": [
+            600000000,
+            600000000
+          ],
+          "admission_receipt": "fixture:admitted:abstain-hold",
+          "fallback_only": true
+        }
+      ],
+      "probe_admission": {
+        "status": "admitted",
+        "receipt": "fixture:admitted:probe-D"
+      },
+      "expected": {
+        "outcome_probability": {
+          "y-plus": "0.502",
+          "y-minus": "0.349",
+          "out-of-model": "0.149"
+        },
+        "posterior_decision_by_outcome": [
+          "action-A",
+          "action-B",
+          "abstain-hold"
+        ],
+        "expected_risk_with_fallback": "0.4384",
+        "prior_risk": "0.49",
+        "voi": "0.0516",
+        "unknown_outcome_probability": "0.149",
+        "silent_renormalization": false
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-high-eig-probe-rejected-by-robust-admission",
+      "expected_disposition": "exclude-before-ranking",
+      "reason": "A rejected or Unknown physical admission receipt prevents probe evaluation regardless of EIG or VOI."
+    },
+    {
+      "id": "NC-unqualified-likelihood",
+      "expected_disposition": "unknown-or-reject",
+      "reason": "Uncalibrated, stale, OOD or identity-mismatched likelihoods cannot produce decision-value evidence."
+    }
+  ]
+}
