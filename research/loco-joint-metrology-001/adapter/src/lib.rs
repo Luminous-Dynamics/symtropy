@@ -10,6 +10,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod wire;
+
 use std::collections::BTreeSet;
 
 /// Closed interval for an event timestamp in one declared monotonic clock.
@@ -833,10 +835,10 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
-    fn reference_trace() -> JointTrace {
+    pub(crate) fn reference_trace() -> JointTrace {
         JointTrace {
             identity: CausalIdentity {
                 mission_id: "mission-01".into(),
