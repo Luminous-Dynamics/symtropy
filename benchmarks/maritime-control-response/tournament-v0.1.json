@@ -719,7 +719,8 @@
       "rejects_forged_eligibility_flags": true,
       "error": "SelectionReplayMismatch",
       "limitation": "deterministic integrity only; not signer or code authenticity"
-    }
+    },
+    "portfolio_replay_match": false
   },
   "streaming_contract": {
     "path": "streaming-contract-v0.1.json",
