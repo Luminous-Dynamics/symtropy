@@ -251,7 +251,6 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
         record.action_evidence.as_ref(),
         record.post_inspection.as_ref(),
     ) && action.tier == EvidenceTier::PhysicalObserved
-        && inspection.tier == EvidenceTier::IndependentlyInspected
         && matches!(
             record.outcome,
             RemovalOutcome::Removed | RemovalOutcome::Partial
@@ -535,9 +534,15 @@ mod tests {
     use super::*;
 
     fn evidence(id: &str, tier: EvidenceTier, calibration_id: Option<&str>) -> EvidenceRef {
+        let digest_char = match tier {
+            EvidenceTier::SyntheticFixture => 'd',
+            EvidenceTier::Simulation => 'c',
+            EvidenceTier::PhysicalObserved => 'a',
+            EvidenceTier::IndependentlyInspected => 'b',
+        };
         EvidenceRef {
             evidence_id: id.to_owned(),
-            sha256: "a".repeat(64),
+            sha256: digest_char.to_string().repeat(64),
             tier,
             calibration_id: calibration_id.map(str::to_owned),
         }
