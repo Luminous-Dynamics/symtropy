@@ -8,10 +8,10 @@
 //!
 //! The state ordering is (xi^0..xi^3, ell^0..ell^3), where xi is a connecting
 //! vector and ell is its covariant derivative along the fiducial geodesic.
-//! This module currently provides the transfer-operator algebra and the exact
-//! flat-spacetime BGO-0 reference. Curvature-driven integration and conversion
-//! to canonical (delta x, delta p) variables are separate, not-yet-implemented
-//! qualification steps.
+//! This module provides the transfer-operator algebra, exact flat-spacetime
+//! BGO-0 reference, and an endpoint-local map between canonical (delta x, delta p)
+//! and covariant (xi, ell) variations. Curvature-driven BGO integration and
+//! curved-space cross-formulation qualification remain separate open steps.
 //!
 //! The canonical bilinear form is Omega = [[0, I], [-I, 0]]. Any curvature
 //! generator added later must be derived from the declared Riemann convention
@@ -28,6 +28,9 @@ pub enum BilocalOperatorError {
     NonFinite(&'static str),
     InvalidTolerance(f64),
     SingularMatrix { pivot: usize, scaled_magnitude: f64 },
+    InvalidGeometry(&'static str),
+    InvalidStepCount,
+    TidalSymmetryResidual { residual: f64, tolerance: f64 },
 }
 
 impl fmt::Display for BilocalOperatorError {
@@ -43,6 +46,18 @@ impl fmt::Display for BilocalOperatorError {
             } => write!(
                 f,
                 "bilocal transfer is singular at pivot {pivot} (scaled magnitude {scaled_magnitude})"
+            ),
+            Self::InvalidGeometry(name) => write!(f, "cannot construct endpoint map: {name}"),
+            Self::InvalidStepCount => write!(
+                f,
+                "constant-tidal BGO integration requires at least one step"
+            ),
+            Self::TidalSymmetryResidual {
+                residual,
+                tolerance,
+            } => write!(
+                f,
+                "optical tidal matrix symmetry residual {residual} exceeds {tolerance}"
             ),
         }
     }
@@ -276,9 +291,417 @@ impl BilocalGeodesicOperator {
     }
 }
 
+/// Endpoint conversion between canonical coordinate variations (delta x, delta p)
+/// and covariant geodesic-deviation data (xi, ell).
+///
+/// The map is defined at one event in one coordinate chart and for one fiducial
+/// contravariant tangent k^mu. It is not a chart-independent 8x8 array: callers
+/// must build separate maps at both endpoints of a propagated canonical flow.
+///
+/// Given p_mu = g_mu_nu k^nu and delta p_mu =
+/// (partial_sigma g_mu_nu) xi^sigma k^nu + g_mu_nu delta k^nu,
+/// this implements xi=delta x and
+///
+/// ell^mu = delta k^mu + Gamma^mu_(alpha beta) k^alpha xi^beta.
+///
+/// Therefore S maps (delta x, delta p) -> (xi, ell), and a covariant BGO
+/// reconstructed from a canonical fundamental matrix is
+/// W = S_final * Phi_canonical * inverse(S_initial).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CanonicalCovariantEndpointMap {
+    matrix: [[f64; STATE_DIMENSION]; STATE_DIMENSION],
+    metric_covariant: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    lower_left: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+}
+
+impl CanonicalCovariantEndpointMap {
+    /// Construct the endpoint map from already validated geometry tensors.
+    ///
+    /// Metric derivatives use d[alpha][mu][nu] = partial_alpha g_mu_nu;
+    /// connection uses Gamma[rho][mu][nu]; tangent is k^mu in the same chart.
+    /// The metric inverse is computed without regularization.
+    pub fn from_geometry(
+        metric: &super::metric::MetricComponents4,
+        derivatives: &super::connection::MetricDerivatives4,
+        connection: &super::connection::LeviCivitaConnection4,
+        tangent: [f64; BLOCK_DIMENSION],
+    ) -> Result<Self, BilocalOperatorError> {
+        if tangent.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("endpoint tangent"));
+        }
+        let inverse = metric
+            .inverse()
+            .map_err(|_| BilocalOperatorError::InvalidGeometry("metric inverse"))?;
+        let covariant = *metric.covariant();
+        let d = derivatives.components();
+        let gamma = connection.symbols();
+        let mut lower_left = [[0.0; BLOCK_DIMENSION]; BLOCK_DIMENSION];
+
+        for mu in 0..BLOCK_DIMENSION {
+            for beta in 0..BLOCK_DIMENSION {
+                let mut connection_term = 0.0;
+                for alpha in 0..BLOCK_DIMENSION {
+                    connection_term += gamma[mu][alpha][beta] * tangent[alpha];
+                }
+
+                let mut metric_derivative_term = 0.0;
+                for nu in 0..BLOCK_DIMENSION {
+                    for rho in 0..BLOCK_DIMENSION {
+                        metric_derivative_term += inverse[mu][nu] * d[beta][nu][rho] * tangent[rho];
+                    }
+                }
+
+                lower_left[mu][beta] = connection_term - metric_derivative_term;
+            }
+        }
+
+        let mut matrix = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for index in 0..BLOCK_DIMENSION {
+            matrix[index][index] = 1.0;
+            for momentum_index in 0..BLOCK_DIMENSION {
+                matrix[index + BLOCK_DIMENSION][momentum_index + BLOCK_DIMENSION] =
+                    inverse[index][momentum_index];
+            }
+            for position_index in 0..BLOCK_DIMENSION {
+                matrix[index + BLOCK_DIMENSION][position_index] = lower_left[index][position_index];
+            }
+        }
+
+        for row in &matrix {
+            if row.iter().any(|value| !value.is_finite()) {
+                return Err(BilocalOperatorError::NonFinite(
+                    "endpoint conversion matrix",
+                ));
+            }
+        }
+
+        Ok(Self {
+            matrix,
+            metric_covariant: covariant,
+            lower_left,
+        })
+    }
+
+    /// Matrix S taking (delta x, delta p) to (xi, ell).
+    pub const fn matrix(&self) -> &[[f64; STATE_DIMENSION]; STATE_DIMENSION] {
+        &self.matrix
+    }
+
+    /// Convert a canonical variation to covariant deviation data.
+    pub fn to_covariant(
+        &self,
+        canonical: [f64; STATE_DIMENSION],
+    ) -> Result<[f64; STATE_DIMENSION], BilocalOperatorError> {
+        if canonical.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("canonical variation"));
+        }
+        let mut covariant = [0.0; STATE_DIMENSION];
+        for row in 0..STATE_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                covariant[row] =
+                    self.matrix[row][column].mul_add(canonical[column], covariant[row]);
+            }
+        }
+        if covariant.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("covariant variation"));
+        }
+        Ok(covariant)
+    }
+
+    /// Convert covariant deviation data (xi, ell) back to (delta x, delta p).
+    ///
+    /// This uses the inverse block-triangular relation delta p = g (ell - A xi),
+    /// avoiding a second numerical 8x8 inversion.
+    pub fn to_canonical(
+        &self,
+        covariant: [f64; STATE_DIMENSION],
+    ) -> Result<[f64; STATE_DIMENSION], BilocalOperatorError> {
+        if covariant.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("covariant variation"));
+        }
+        let mut canonical = [0.0; STATE_DIMENSION];
+        canonical[..BLOCK_DIMENSION].copy_from_slice(&covariant[..BLOCK_DIMENSION]);
+        for momentum_index in 0..BLOCK_DIMENSION {
+            let mut value = 0.0;
+            for mu in 0..BLOCK_DIMENSION {
+                let mut corrected_ell = covariant[mu + BLOCK_DIMENSION];
+                for position_index in 0..BLOCK_DIMENSION {
+                    corrected_ell -=
+                        self.lower_left[mu][position_index] * covariant[position_index];
+                }
+                value += self.metric_covariant[momentum_index][mu] * corrected_ell;
+            }
+            canonical[momentum_index + BLOCK_DIMENSION] = value;
+        }
+        if canonical.iter().any(|value| !value.is_finite()) {
+            return Err(BilocalOperatorError::NonFinite("canonical variation"));
+        }
+        Ok(canonical)
+    }
+
+    /// Transform a canonical fundamental matrix Phi between endpoint maps:
+    /// W_covariant = S_final * Phi_canonical * inverse(S_initial).
+    ///
+    /// The returned operator acts on (xi_initial, ell_initial) and produces
+    /// (xi_final, ell_final). Both endpoint maps must use their own chart,
+    /// metric, connection and fiducial tangent.
+    pub fn transform_canonical_flow(
+        canonical_flow: [[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        initial: &Self,
+        final_endpoint: &Self,
+    ) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
+        for row in &canonical_flow {
+            if row.iter().any(|value| !value.is_finite()) {
+                return Err(BilocalOperatorError::NonFinite(
+                    "canonical fundamental matrix",
+                ));
+            }
+        }
+
+        let mut transformed = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for column in 0..STATE_DIMENSION {
+            let mut covariant_basis = [0.0; STATE_DIMENSION];
+            covariant_basis[column] = 1.0;
+            let canonical_initial = initial.to_canonical(covariant_basis)?;
+
+            let mut canonical_final = [0.0; STATE_DIMENSION];
+            for row in 0..STATE_DIMENSION {
+                for inner in 0..STATE_DIMENSION {
+                    canonical_final[row] = canonical_flow[row][inner]
+                        .mul_add(canonical_initial[inner], canonical_final[row]);
+                }
+            }
+
+            let covariant_final = final_endpoint.to_covariant(canonical_final)?;
+            for row in 0..STATE_DIMENSION {
+                transformed[row][column] = covariant_final[row];
+            }
+        }
+        BilocalGeodesicOperator::from_matrix(transformed)
+    }
+}
+
+/// Integrate the first-order BGO equation for a constant symmetric tidal matrix.
+///
+/// The frame is declared orthonormal and parallel-propagated, the state is
+/// (xi, ell), and the convention is
+/// D xi/dlambda = ell, D ell/dlambda = T xi.
+///
+/// This is a controlled numerical kernel / analytic-limit fixture, not a
+/// curvature-derived Schwarzschild or Kerr transport result. It requires a
+/// finite symmetric 4x4 tidal matrix and uses classical fixed-step RK4.
+pub fn integrate_constant_tidal_fixed_step(
+    tidal: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    affine_interval: f64,
+    steps: usize,
+    symmetry_tolerance: f64,
+) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
+    if !affine_interval.is_finite() {
+        return Err(BilocalOperatorError::NonFinite("affine interval"));
+    }
+    if !symmetry_tolerance.is_finite() || symmetry_tolerance <= 0.0 {
+        return Err(BilocalOperatorError::InvalidTolerance(symmetry_tolerance));
+    }
+    if steps == 0 {
+        return Err(BilocalOperatorError::InvalidStepCount);
+    }
+
+    let mut symmetry_residual: f64 = 0.0;
+    for row in 0..BLOCK_DIMENSION {
+        for column in 0..BLOCK_DIMENSION {
+            if !tidal[row][column].is_finite() {
+                return Err(BilocalOperatorError::NonFinite("optical tidal matrix"));
+            }
+            symmetry_residual =
+                symmetry_residual.max((tidal[row][column] - tidal[column][row]).abs());
+        }
+    }
+    if symmetry_residual > symmetry_tolerance {
+        return Err(BilocalOperatorError::TidalSymmetryResidual {
+            residual: symmetry_residual,
+            tolerance: symmetry_tolerance,
+        });
+    }
+
+    fn rhs(
+        state: &[[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        tidal: &[[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    ) -> [[f64; STATE_DIMENSION]; STATE_DIMENSION] {
+        let mut derivative = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                derivative[row][column] = state[row + BLOCK_DIMENSION][column];
+                let mut value = 0.0;
+                for inner in 0..BLOCK_DIMENSION {
+                    value = tidal[row][inner].mul_add(state[inner][column], value);
+                }
+                derivative[row + BLOCK_DIMENSION][column] = value;
+            }
+        }
+        derivative
+    }
+
+    fn add_scaled(
+        state: &[[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        derivative: &[[f64; STATE_DIMENSION]; STATE_DIMENSION],
+        scale: f64,
+    ) -> [[f64; STATE_DIMENSION]; STATE_DIMENSION] {
+        let mut result = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+        for row in 0..STATE_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                result[row][column] = derivative[row][column].mul_add(scale, state[row][column]);
+            }
+        }
+        result
+    }
+
+    let mut state = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+    for index in 0..STATE_DIMENSION {
+        state[index][index] = 1.0;
+    }
+    let step = affine_interval / steps as f64;
+    for _ in 0..steps {
+        let k1 = rhs(&state, &tidal);
+        let stage2 = add_scaled(&state, &k1, 0.5 * step);
+        let k2 = rhs(&stage2, &tidal);
+        let stage3 = add_scaled(&state, &k2, 0.5 * step);
+        let k3 = rhs(&stage3, &tidal);
+        let stage4 = add_scaled(&state, &k3, step);
+        let k4 = rhs(&stage4, &tidal);
+
+        for row in 0..STATE_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                state[row][column] += step / 6.0
+                    * (k1[row][column]
+                        + 2.0 * k2[row][column]
+                        + 2.0 * k3[row][column]
+                        + k4[row][column]);
+                if !state[row][column].is_finite() {
+                    return Err(BilocalOperatorError::NonFinite(
+                        "constant-tidal BGO integration",
+                    ));
+                }
+            }
+        }
+    }
+
+    BilocalGeodesicOperator::from_matrix(state)
+}
+
+/// Integrate constant symmetric optical tides with the symplectic
+/// kick-drift-kick (Störmer-Verlet) method.
+///
+/// For xi' = ell, ell' = T xi, symmetric T defines a quadratic
+/// Hamiltonian system. Each half-kick and drift is a symplectic shear, so
+/// their composition preserves the canonical Wronskian up to floating-point
+/// roundoff. The method is second-order accurate and time-reversible for a
+/// fixed step. Unlike the RK4 reference kernel, it is structure-preserving by
+/// construction.
+///
+/// The frame is a declared parallel-propagated orthonormal frame. This remains
+/// a constant-tide numerical model, not a curvature-derived Schwarzschild/Kerr
+/// propagation result.
+pub fn integrate_constant_tidal_symplectic(
+    tidal: [[f64; BLOCK_DIMENSION]; BLOCK_DIMENSION],
+    affine_interval: f64,
+    steps: usize,
+    symmetry_tolerance: f64,
+) -> Result<BilocalGeodesicOperator, BilocalOperatorError> {
+    if !affine_interval.is_finite() {
+        return Err(BilocalOperatorError::NonFinite("affine interval"));
+    }
+    if !symmetry_tolerance.is_finite() || symmetry_tolerance <= 0.0 {
+        return Err(BilocalOperatorError::InvalidTolerance(symmetry_tolerance));
+    }
+    if steps == 0 {
+        return Err(BilocalOperatorError::InvalidStepCount);
+    }
+
+    let mut symmetry_residual: f64 = 0.0;
+    for row in 0..BLOCK_DIMENSION {
+        for column in 0..BLOCK_DIMENSION {
+            if !tidal[row][column].is_finite() {
+                return Err(BilocalOperatorError::NonFinite("optical tidal matrix"));
+            }
+            symmetry_residual =
+                symmetry_residual.max((tidal[row][column] - tidal[column][row]).abs());
+        }
+    }
+    if symmetry_residual > symmetry_tolerance {
+        return Err(BilocalOperatorError::TidalSymmetryResidual {
+            residual: symmetry_residual,
+            tolerance: symmetry_tolerance,
+        });
+    }
+
+    let mut state = [[0.0; STATE_DIMENSION]; STATE_DIMENSION];
+    for index in 0..STATE_DIMENSION {
+        state[index][index] = 1.0;
+    }
+    let step = affine_interval / steps as f64;
+    let half_step = 0.5 * step;
+
+    for _ in 0..steps {
+        // Half kick: ell_(n+1/2) = ell_n + h/2 T xi_n.
+        let mut half_kicked = state;
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                let mut acceleration = 0.0;
+                for inner in 0..BLOCK_DIMENSION {
+                    acceleration = tidal[row][inner].mul_add(state[inner][column], acceleration);
+                }
+                half_kicked[row + BLOCK_DIMENSION][column] =
+                    half_step.mul_add(acceleration, state[row + BLOCK_DIMENSION][column]);
+            }
+        }
+
+        // Drift: xi_(n+1) = xi_n + h ell_(n+1/2).
+        let mut next = half_kicked;
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                next[row][column] = step.mul_add(
+                    half_kicked[row + BLOCK_DIMENSION][column],
+                    state[row][column],
+                );
+            }
+        }
+
+        // Second half kick: ell_(n+1) = ell_(n+1/2) + h/2 T xi_(n+1).
+        for row in 0..BLOCK_DIMENSION {
+            for column in 0..STATE_DIMENSION {
+                let mut acceleration = 0.0;
+                for inner in 0..BLOCK_DIMENSION {
+                    acceleration = tidal[row][inner].mul_add(next[inner][column], acceleration);
+                }
+                next[row + BLOCK_DIMENSION][column] =
+                    half_step.mul_add(acceleration, half_kicked[row + BLOCK_DIMENSION][column]);
+            }
+        }
+
+        for row in &next {
+            if row.iter().any(|value| !value.is_finite()) {
+                return Err(BilocalOperatorError::NonFinite(
+                    "constant-tide symplectic integration",
+                ));
+            }
+        }
+        state = next;
+    }
+
+    BilocalGeodesicOperator::from_matrix(state)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{BilocalGeodesicOperator, BilocalOperatorError};
+    use super::{
+        BilocalGeodesicOperator, BilocalOperatorError, CanonicalCovariantEndpointMap,
+        integrate_constant_tidal_fixed_step, integrate_constant_tidal_symplectic,
+    };
+    use crate::{
+        MassKg, SchwarzschildBlackHole,
+        connection::{LeviCivitaConnection4, MetricDerivatives4},
+        metric::{MetricComponents4, schwarzschild_exterior_metric},
+    };
 
     const TOLERANCE: f64 = 1.0e-12;
 
@@ -362,6 +785,273 @@ mod tests {
         assert_eq!(
             operator.inverse(0.0),
             Err(BilocalOperatorError::InvalidTolerance(0.0))
+        );
+    }
+    #[test]
+    fn minkowski_endpoint_map_round_trips_canonical_variations() {
+        let metric = MetricComponents4::new([
+            [-1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        .unwrap();
+        let derivatives = MetricDerivatives4::zero();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            [1.0, 1.0, 0.0, 0.0],
+        )
+        .unwrap();
+
+        let canonical = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
+        let covariant = endpoint.to_covariant(canonical).unwrap();
+        let recovered = endpoint.to_canonical(covariant).unwrap();
+        for index in 0..8 {
+            assert!((recovered[index] - canonical[index]).abs() <= TOLERANCE);
+        }
+        assert_eq!(endpoint.matrix()[0][0], 1.0);
+        assert_eq!(endpoint.matrix()[0][4], 0.0);
+        assert_eq!(endpoint.matrix()[4][4], -1.0);
+    }
+
+    #[test]
+    fn schwarzschild_endpoint_map_round_trips_nontrivial_metric_and_connection() {
+        let hole = SchwarzschildBlackHole::new(MassKg::new(1.0e30).unwrap());
+        let radius = 4.0 * hole.gravitational_radius_m();
+        let theta = 1.1;
+        let metric = schwarzschild_exterior_metric(hole, radius, theta).unwrap();
+        let derivatives = MetricDerivatives4::schwarzschild_exterior(hole, radius, theta).unwrap();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        let lapse_squared = 1.0 - hole.horizon_radius_m() / radius;
+        // Outgoing radial null tangent normalized by conserved energy E=1.
+        let tangent = [1.0 / lapse_squared, 1.0, 0.0, 0.0];
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            tangent,
+        )
+        .unwrap();
+
+        let canonical = [0.13, -0.29, 0.31, -0.47, 0.53, -0.61, 0.71, -0.83];
+        let covariant = endpoint.to_covariant(canonical).unwrap();
+        let recovered = endpoint.to_canonical(covariant).unwrap();
+        for index in 0..8 {
+            let scale = canonical[index].abs().max(1.0);
+            assert!(
+                (recovered[index] - canonical[index]).abs() <= 2.0e-12 * scale,
+                "index={index}, canonical={}, recovered={}",
+                canonical[index],
+                recovered[index]
+            );
+        }
+    }
+
+    #[test]
+    fn identical_endpoint_maps_transform_canonical_identity_to_covariant_identity() {
+        let metric = MetricComponents4::new([
+            [-1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        .unwrap();
+        let derivatives = MetricDerivatives4::zero();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            [1.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+        let mut canonical_identity = [[0.0; 8]; 8];
+        for index in 0..8 {
+            canonical_identity[index][index] = 1.0;
+        }
+
+        let transformed = CanonicalCovariantEndpointMap::transform_canonical_flow(
+            canonical_identity,
+            &endpoint,
+            &endpoint,
+        )
+        .unwrap();
+        assert!(transformed.max_abs_difference(&BilocalGeodesicOperator::identity()) <= TOLERANCE);
+    }
+
+    #[test]
+    fn endpoint_map_rejects_nonfinite_tangent_and_variations() {
+        let metric = MetricComponents4::new([
+            [-1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        .unwrap();
+        let derivatives = MetricDerivatives4::zero();
+        let connection =
+            LeviCivitaConnection4::from_metric_and_derivatives(&metric, &derivatives).unwrap();
+        assert!(matches!(
+            CanonicalCovariantEndpointMap::from_geometry(
+                &metric,
+                &derivatives,
+                &connection,
+                [1.0, f64::NAN, 0.0, 0.0]
+            ),
+            Err(BilocalOperatorError::NonFinite("endpoint tangent"))
+        ));
+
+        let endpoint = CanonicalCovariantEndpointMap::from_geometry(
+            &metric,
+            &derivatives,
+            &connection,
+            [1.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+        assert!(matches!(
+            endpoint.to_covariant([0.0, 0.0, f64::INFINITY, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Err(BilocalOperatorError::NonFinite("canonical variation"))
+        ));
+    }
+
+    #[test]
+    fn constant_zero_tidal_integrator_reduces_to_exact_minkowski_transfer() {
+        let zero = [[0.0; 4]; 4];
+        let integrated = integrate_constant_tidal_fixed_step(zero, 1.25, 7, TOLERANCE).unwrap();
+        let exact = BilocalGeodesicOperator::minkowski(1.25).unwrap();
+        assert!(integrated.max_abs_difference(&exact) <= TOLERANCE);
+        assert!(integrated.symplectic_residual() <= TOLERANCE);
+    }
+
+    #[test]
+    fn constant_isotropic_tide_matches_analytic_oscillator_blocks() {
+        let omega: f64 = 0.7;
+        let interval: f64 = 1.1;
+        let mut tidal = [[0.0; 4]; 4];
+        for index in 0..4 {
+            tidal[index][index] = -omega * omega;
+        }
+        let integrated =
+            integrate_constant_tidal_fixed_step(tidal, interval, 512, TOLERANCE).unwrap();
+
+        let cosine = (omega * interval).cos();
+        let sine = (omega * interval).sin();
+        for index in 0..4 {
+            assert!((integrated.matrix()[index][index] - cosine).abs() <= 1.0e-10);
+            assert!((integrated.matrix()[index][index + 4] - sine / omega).abs() <= 1.0e-10);
+            assert!((integrated.matrix()[index + 4][index] + omega * sine).abs() <= 1.0e-10);
+            assert!((integrated.matrix()[index + 4][index + 4] - cosine).abs() <= 1.0e-10);
+        }
+        assert!(integrated.symplectic_residual() <= 1.0e-10);
+    }
+
+    #[test]
+    fn constant_tidal_transfers_compose_under_step_refinement() {
+        let mut tidal = [[0.0; 4]; 4];
+        tidal[0][0] = -0.49;
+        tidal[1][1] = -0.25;
+        tidal[2][2] = 0.16;
+        tidal[3][3] = 0.04;
+        let first = integrate_constant_tidal_fixed_step(tidal, 0.3, 256, TOLERANCE).unwrap();
+        let second = integrate_constant_tidal_fixed_step(tidal, 0.4, 256, TOLERANCE).unwrap();
+        let combined = second.compose(&first).unwrap();
+        let direct = integrate_constant_tidal_fixed_step(tidal, 0.7, 512, TOLERANCE).unwrap();
+        assert!(combined.max_abs_difference(&direct) <= 1.0e-9);
+        assert!(direct.symplectic_residual() <= 1.0e-9);
+    }
+
+    #[test]
+    fn constant_tidal_integrator_rejects_asymmetry_nonfinite_and_zero_steps() {
+        let mut asymmetric = [[0.0; 4]; 4];
+        asymmetric[0][1] = 1.0;
+        assert!(matches!(
+            integrate_constant_tidal_fixed_step(asymmetric, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::TidalSymmetryResidual { .. })
+        ));
+
+        let mut nonfinite = [[0.0; 4]; 4];
+        nonfinite[0][0] = f64::INFINITY;
+        assert_eq!(
+            integrate_constant_tidal_fixed_step(nonfinite, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::NonFinite("optical tidal matrix"))
+        );
+
+        assert_eq!(
+            integrate_constant_tidal_fixed_step([[0.0; 4]; 4], 1.0, 0, TOLERANCE),
+            Err(BilocalOperatorError::InvalidStepCount)
+        );
+    }
+
+    #[test]
+    fn symplectic_constant_zero_tide_reduces_to_exact_minkowski_transfer() {
+        let integrated =
+            integrate_constant_tidal_symplectic([[0.0; 4]; 4], 2.5, 17, TOLERANCE).unwrap();
+        let exact = BilocalGeodesicOperator::minkowski(2.5).unwrap();
+        assert!(integrated.max_abs_difference(&exact) <= TOLERANCE);
+        assert!(integrated.symplectic_residual() <= TOLERANCE);
+    }
+
+    #[test]
+    fn symplectic_constant_tide_is_wronskian_preserving_and_second_order() {
+        let omega: f64 = 0.7;
+        let interval: f64 = 1.1;
+        let mut tidal = [[0.0; 4]; 4];
+        for index in 0..4 {
+            tidal[index][index] = -omega * omega;
+        }
+
+        let coarse = integrate_constant_tidal_symplectic(tidal, interval, 64, TOLERANCE).unwrap();
+        let fine = integrate_constant_tidal_symplectic(tidal, interval, 128, TOLERANCE).unwrap();
+        let cosine = (omega * interval).cos();
+        let sine = (omega * interval).sin();
+
+        let coarse_error = (coarse.matrix()[0][0] - cosine).abs();
+        let fine_error = (fine.matrix()[0][0] - cosine).abs();
+        assert!(coarse_error / fine_error > 3.6);
+        assert!(coarse_error / fine_error < 4.4);
+        assert!(fine.symplectic_residual() <= 1.0e-12);
+        assert!((fine.matrix()[0][0] - cosine).abs() < 1.0e-4);
+        assert!((fine.matrix()[0][4] - sine / omega).abs() < 1.0e-4);
+    }
+
+    #[test]
+    fn symplectic_constant_tide_composes_for_equal_fixed_step_intervals() {
+        let mut tidal = [[0.0; 4]; 4];
+        tidal[0][0] = -0.49;
+        tidal[1][1] = -0.25;
+        tidal[2][2] = 0.16;
+        tidal[3][3] = 0.04;
+        let first = integrate_constant_tidal_symplectic(tidal, 0.35, 128, TOLERANCE).unwrap();
+        let second = integrate_constant_tidal_symplectic(tidal, 0.35, 128, TOLERANCE).unwrap();
+        let combined = second.compose(&first).unwrap();
+        let direct = integrate_constant_tidal_symplectic(tidal, 0.7, 256, TOLERANCE).unwrap();
+        assert!(combined.max_abs_difference(&direct) <= 1.0e-12);
+        assert!(direct.symplectic_residual() <= 1.0e-12);
+    }
+
+    #[test]
+    fn symplectic_constant_tide_rejects_asymmetry_nonfinite_and_zero_steps() {
+        let mut asymmetric = [[0.0; 4]; 4];
+        asymmetric[0][1] = 0.1;
+        assert!(matches!(
+            integrate_constant_tidal_symplectic(asymmetric, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::TidalSymmetryResidual { .. })
+        ));
+        let mut nonfinite = [[0.0; 4]; 4];
+        nonfinite[0][0] = f64::NAN;
+        assert_eq!(
+            integrate_constant_tidal_symplectic(nonfinite, 1.0, 8, TOLERANCE),
+            Err(BilocalOperatorError::NonFinite("optical tidal matrix"))
+        );
+        assert_eq!(
+            integrate_constant_tidal_symplectic([[0.0; 4]; 4], 1.0, 0, TOLERANCE),
+            Err(BilocalOperatorError::InvalidStepCount)
         );
     }
 }

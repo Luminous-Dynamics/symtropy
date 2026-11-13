@@ -2,8 +2,8 @@
   "schema": "luminous.symtropy.kerr_bilocal_geodesic_operator_benchmark.v1",
   "programme": "BH-KERR-RAY-BUNDLE-001",
   "title": "Kerr bilocal geodesic operator cross-formulation qualification",
-  "status": "BGO-0 Rust 1.96 audit passed 150/150; BGO-1 and BGO-2 remain open",
-  "execution_status": "BGO-0 source implemented and exact-head Rust checks passed; curvature-driven BGO and physical Kerr qualification not implemented",
+  "status": "BGO-0 passed; endpoint conversion and constant-tide RK4 source authored, validation pending",
+  "execution_status": "BGO-0 flat transfer algebra passed 150/150 at its qualified exact head. Endpoint conversion, constant-tide RK4 and the structure-preserving kick-drift-kick symplectic integrator are source-authored; latest Rust validation pending.",
   "repository": "Luminous-Dynamics/symtropy",
   "owner": "symtropy-relativity",
   "depends_on": {
@@ -71,14 +71,20 @@
     {
       "id": "BGO-0",
       "name": "Minkowski analytic transfer",
-      "status": "passed_rust_1_96",
+      "status": "passed_flat_algebra_constant_tide_integrators_source_authored_pending",
       "acceptance": [
         "W_XX=I4, W_XK=delta_lambda*I4, W_KX=0, W_KK=I4",
         "transfer composition equals affine-interval addition",
         "scaled-pivot inverse equals backward propagation",
         "W^T Omega W - Omega residual is within declared tolerance",
         "reject non-finite affine intervals and matrix entries",
-        "reject singular full transfer without regularization"
+        "reject singular full transfer without regularization",
+        "constant-tide RK4 analytic oscillator controls",
+        "constant-tide composition/refinement",
+        "RK4 analytic-oscillator convergence and Wronskian drift",
+        "Störmer-Verlet second-order convergence against analytic oscillator",
+        "symplectic Wronskian residual at roundoff on fixed-step constant tide",
+        "exact composition for equal fixed step intervals"
       ]
     },
     {
@@ -212,7 +218,14 @@
     "runtime",
     "peak_memory",
     "qualification_status",
-    "bgo0_validation_receipt"
+    "bgo0_validation_receipt",
+    "integrator_name",
+    "integration_order",
+    "step_count",
+    "step_size",
+    "Wronskian_residual",
+    "analytic_transfer_max_error",
+    "composition_residual"
   ],
   "execution_gates": [
     "Do not implement caustic classification before BGO-0 through BGO-4 pass.",
@@ -254,5 +267,64 @@
       ],
       "claim_ceiling": "Flat-spacetime BGO transfer algebra only."
     }
+  },
+  "constant_tidal_kernel": {
+    "path": "crates/domains/symtropy-relativity/src/bilocal.rs",
+    "api": "integrate_constant_tidal_fixed_step(tidal,affine_interval,steps,symmetry_tolerance)",
+    "equation": "d(xi)/dlambda=ell; d(ell)/dlambda=T xi in a parallel orthonormal frame",
+    "integrator": "fixed-step classical RK4 on the full 8x8 transfer matrix",
+    "authored_tests": [
+      "constant_zero_tidal_integrator_reduces_to_exact_minkowski_transfer",
+      "constant_isotropic_tide_matches_analytic_oscillator_blocks",
+      "constant_tidal_transfers_compose_under_step_refinement",
+      "constant_tidal_integrator_rejects_asymmetry_nonfinite_and_zero_steps"
+    ],
+    "status": "rk4_and_symplectic_source_authored_runner_pending",
+    "claim_ceiling": "Constant symmetric tidal matrix kernel only. Not a Schwarzschild/Kerr curvature-driven result.",
+    "integrators": {
+      "rk4": {
+        "api": "integrate_constant_tidal_fixed_step",
+        "order": 4,
+        "role": "higher-order reference integrator",
+        "authored_tests": [
+          "constant_zero_tidal_integrator_reduces_to_exact_minkowski_transfer",
+          "constant_isotropic_tide_matches_analytic_oscillator_blocks",
+          "constant_tidal_transfers_compose_under_step_refinement",
+          "constant_tidal_integrator_rejects_asymmetry_nonfinite_and_zero_steps"
+        ]
+      },
+      "symplectic": {
+        "api": "integrate_constant_tidal_symplectic",
+        "method": "kick-drift-kick (Störmer-Verlet)",
+        "order": 2,
+        "properties": [
+          "symplectic shear composition",
+          "time reversible at fixed step",
+          "canonical Wronskian preserved to roundoff for symmetric tides"
+        ],
+        "authored_tests": [
+          "symplectic_constant_zero_tide_reduces_to_exact_minkowski_transfer",
+          "symplectic_constant_tide_is_wronskian_preserving_and_second_order",
+          "symplectic_constant_tide_composes_for_equal_fixed_step_intervals",
+          "symplectic_constant_tide_rejects_asymmetry_nonfinite_and_zero_steps"
+        ],
+        "status": "source_authored_runner_pending"
+      }
+    }
+  },
+  "endpoint_map": {
+    "api": "CanonicalCovariantEndpointMap::from_geometry",
+    "status": "source_authored_runner_pending",
+    "operations": [
+      "canonical_to_covariant_variation",
+      "covariant_to_canonical_variation",
+      "S_final*Phi_canonical*S_initial_inverse"
+    ],
+    "authored_tests": [
+      "minkowski_endpoint_map_round_trips_canonical_variations",
+      "schwarzschild_endpoint_map_round_trips_nontrivial_metric_and_connection",
+      "identical_endpoint_maps_transform_canonical_identity_to_covariant_identity",
+      "endpoint_map_rejects_nonfinite_tangent_and_variations"
+    ]
   }
 }

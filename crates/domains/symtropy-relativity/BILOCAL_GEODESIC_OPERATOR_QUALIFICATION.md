@@ -80,6 +80,30 @@ For BGO-0 in Minkowski spacetime, the exact transfer over affine interval \(\Del
 | BGO-7 | External point-to-point reproduction | Matched source/observer geometry and image branch from the October 2026 EMRI Kerr self-lensing preprint |
 | BGO-8 | Cost to qualified result | Wall time, peak memory and energy (if measured) at matched map, delay and caustic error |
 
+
+## Constant-tide numerical transport kernel
+
+A fixed-step RK4 kernel is now authored in `src/bilocal.rs` for the first-order system `d(xi)/dλ=ell`, `d(ell)/dλ=T xi` in a declared parallel orthonormal frame with a constant symmetric 4×4 tidal matrix. Its tests include:
+- Zero tide reduces to the exact Minkowski transfer.
+- Isotropic negative tide matches analytic oscillator blocks.
+- An anisotropic constant-tide transfer composes across step-refined intervals.
+- Non-symmetric, non-finite tidal input and zero step count are rejected.
+
+This is a numerical transport-kernel control, not a curvature-derived Schwarzschild or Kerr result. Exact-head Rust validation is pending. The next physical step remains to derive T from the source Riemann tensor along an actual null geodesic and to parallel-transport the frame.
+
+
+## Structure-preserving constant-tide transport
+
+A second integrator is now authored for the same constant symmetric optical-tide system: kick–drift–kick (Störmer–Verlet). The quadratic Hamiltonian structure is
+\[
+H(\xi,\ell)=\frac12\,\ell^\mathsf{T}\ell-\frac12\,\xi^\mathsf{T}T\xi,
+\qquad
+\dot{\xi}=\ell,\quad \dot{\ell}=T\xi.
+\]
+For symmetric \(T\), each half-kick and drift is a symplectic shear. Their composition preserves the canonical Wronskian up to roundoff and is time-reversible for a fixed step. It is second-order accurate; RK4 remains the higher-order reference integrator for convergence cross-checks.
+
+The symplectic kernel has authored known-answer tests for zero-tide Minkowski reduction, second-order convergence against analytic oscillator blocks, fixed-step composition and roundoff-level Wronskian residual. These are source-authored until the exact-head Rust workflow reports a result. As before, this is not yet curvature-derived Schwarzschild or Kerr propagation.
+
 ## Prospective acceptance targets
 
 These are goals for well-conditioned cases, not claims about the current implementation and not universal tolerances for near-caustic configurations:
@@ -93,12 +117,13 @@ These are goals for well-conditioned cases, not claims about the current impleme
 
 ## Execution order
 
-1. Add a covariant first-order BGO state and fixed-step RK4 on the same already-qualified fiducial ray.
-2. Pass BGO-0 Minkowski analytic blocks, composition, inverse and Wronskian controls.
-3. Pass BGO-1 and BGO-2; retain nonzero tidal action as a mandatory negative control against a radial-only test suite.
-4. Implement endpoint chart/tetrad conversions and compare BGO screen reduction against the existing canonical 8×8 and Sachs/Jacobi paths on the exact same source event.
-5. Add independent finite-difference neighbouring rays, then adaptive step-doubling with separate ray/variation error channels.
-6. Only then implement finite-source intersection corrections, caustic event localization, branch continuation and the external EMRI reproduction.
+1. Qualify constant-tide RK4 and symplectic kernels independently against analytic oscillators, step refinement and Wronskian residuals.
+2. Feed curvature-derived optical tidal matrices along the same already-qualified fiducial ray, with an explicit parallel-transported frame.
+3. Pass BGO-0 Minkowski analytic blocks, composition, inverse and Wronskian controls.
+4. Pass BGO-1 and BGO-2; retain nonzero tidal action as a mandatory negative control against a radial-only test suite.
+5. Implement endpoint chart/tetrad conversions and compare BGO screen reduction against the existing canonical 8×8 and Sachs/Jacobi paths on the exact same source event.
+6. Add independent finite-difference neighbouring rays, then adaptive step-doubling with separate ray/variation error channels.
+7. Only then implement finite-source intersection corrections, caustic event localization, branch continuation and the external EMRI reproduction.
 
 ## Negative controls
 
