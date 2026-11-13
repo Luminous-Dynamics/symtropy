@@ -1203,6 +1203,85 @@ mod tests {
         );
     }
 
+    fn reseal_payload_digest(envelope: &mut Value) {
+        let digest = hex_digest(&sha256(
+            &serde_json::to_vec(&envelope["payload"]).unwrap()
+        ));
+        envelope["payload_sha256"] = json!(digest);
+    }
+
+    #[test]
+    fn unknown_nested_fields_are_rejected_even_with_a_recomputed_digest() {
+        let mut envelope: Value = serde_json::from_str(
+            include_str!("../../fixtures/normalized_joint_receipt_v0_1.json")
+        )
+        .unwrap();
+        envelope["payload"]["identity"]["unrecognized"] = json!("must-not-be-ignored");
+        reseal_payload_digest(&mut envelope);
+        let serialized = serde_json::to_string(&envelope).unwrap();
+        assert_eq!(
+            verify_normalized_receipt(&serialized),
+            Err(WireReceiptError::InvalidEnvelope)
+        );
+    }
+
+    #[test]
+    fn a_resealed_wrong_causal_edge_is_rejected_against_the_identity_chain() {
+        let mut envelope: Value = serde_json::from_str(
+            include_str!("../../fixtures/normalized_joint_receipt_v0_1.json")
+        )
+        .unwrap();
+        envelope["payload"]["report"]["causal_edges"][4]["from_event_id"] =
+            json!("different-command");
+        reseal_payload_digest(&mut envelope);
+        let serialized = serde_json::to_string(&envelope).unwrap();
+        assert_eq!(
+            verify_normalized_receipt(&serialized),
+            Err(WireReceiptError::InvalidEnvelope)
+        );
+    }
+
+    #[test]
+    fn a_recomputed_hash_cannot_promote_unknown_energy_to_qualified() {
+        let mut envelope: Value = serde_json::from_str(
+            include_str!("../../fixtures/normalized_joint_receipt_v0_1.json")
+        )
+        .unwrap();
+        envelope["payload"]["energy_input"]["boundary_complete"] = Value::Bool(false);
+        envelope["payload"]["energy_input"]["closure"] = json!({"status": "unknown"});
+        reseal_payload_digest(&mut envelope);
+        let serialized = serde_json::to_string(&envelope).unwrap();
+        assert_eq!(
+            verify_normalized_receipt(&serialized),
+            Err(WireReceiptError::ContradictoryPayloadBinding(
+                "energy_report_upgrades_unqualified_input"
+            ))
+        );
+    }
+
+    #[test]
+    fn unknown_energy_remains_unknown_without_claiming_mission_closure() {
+        let mut envelope: Value = serde_json::from_str(
+            include_str!("../../fixtures/normalized_joint_receipt_v0_1.json")
+        )
+        .unwrap();
+        envelope["payload"]["energy_input"]["boundary_complete"] = Value::Bool(false);
+        envelope["payload"]["energy_input"]["closure"] = json!({"status": "unknown"});
+        envelope["payload"]["report"]["energy"] = json!({
+            "status": "unknown",
+            "reason_code": "energy_receipt_unavailable"
+        });
+        envelope["payload"]["report"]["mission_closure"] = json!({
+            "status": "open",
+            "unqualified_domains": ["energy closure"]
+        });
+        reseal_payload_digest(&mut envelope);
+        let serialized = serde_json::to_string(&envelope).unwrap();
+        let verified = verify_normalized_receipt(&serialized).unwrap();
+        assert_eq!(verified["payload"]["report"]["energy"]["status"], "unknown");
+        assert_eq!(verified["payload"]["report"]["mission_closure"]["status"], "open");
+    }
+
     #[test]
     fn duplicated_identity_bindings_must_agree() {
         let mut envelope: Value = serde_json::from_str(
