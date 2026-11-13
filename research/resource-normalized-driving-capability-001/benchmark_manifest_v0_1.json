@@ -1,0 +1,1163 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "RESOURCE-NORMALIZED-DRIVING-CAPABILITY-001",
+  "as_of": "2026-11-13",
+  "status": "specification_only_no_model_runs",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4639",
+  "related_owners": {
+    "environment": "https://github.com/Luminous-Dynamics/symtropy/issues/4536",
+    "renderer": "https://github.com/Luminous-Dynamics/symtropy/pull/4616",
+    "learner": "https://github.com/Luminous-Dynamics/symthaea/issues/11414",
+    "visual_input_bridge": "https://github.com/Luminous-Dynamics/symthaea/pull/11480",
+    "experience_selection": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
+    "paired_deployment_fault_campaign": "https://github.com/Luminous-Dynamics/symtropy/issues/4681",
+    "degradation_recovery_envelope": "https://github.com/Luminous-Dynamics/symtropy/issues/4657",
+    "recoverable_experience_benchmark": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
+    "decision_sensitive_experience_selector": "https://github.com/Luminous-Dynamics/symtropy/pull/4575",
+    "anytime_imagination_allocator": "https://github.com/Luminous-Dynamics/symtropy/pull/4581",
+    "jurisdictional_driving_transfer": "https://github.com/Luminous-Dynamics/symtropy/issues/4774",
+    "observability_guided_driving": "https://github.com/Luminous-Dynamics/symtropy/pull/4983",
+    "selective_driving": "https://github.com/Luminous-Dynamics/symtropy/pull/4942"
+  },
+  "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
+  "hypotheses": [
+    "A learned visual front-end with structured HDC scene binding and continuous-time HDC-LTC/CfC memory can improve temporal irregularity, memory efficiency, missing-sensor robustness or adaptation cost versus matched compact recurrent and transformer baselines.",
+    "Action-conditioned latent prediction can improve closed-loop decision quality only when trained/evaluated on action-observation transitions under matched data and compute.",
+    "Decision-sensitive experience selection can reach a frozen competence gate with fewer simulator transitions or human intervention minutes than uniform sampling without worsening worst-family constraints.",
+    "At matched experience and human-label budgets, decision-sensitive experience selection (#4575) can reduce transitions/interventions per frozen skill gate compared with uniform, rarity, entropy and prediction-error baselines.",
+    "At a fixed inference compute and deadline budget, anytime imagination allocation (#4581) can improve decision quality by spending additional rollouts only where marginal regret reduction is positive and the actuation/recovery reserve remains intact.",
+    "A compact fast path plus selectively invoked slow reasoning/active observation can improve the risk–coverage–resource frontier over always-on reasoning, provided fallback coverage and deadline guarantees are evaluated separately."
+  ],
+  "comparison_views": [
+    {
+      "id": "matched_capability",
+      "description": "Same benchmark, evaluator, data/split, policy-visible inputs, action interface, scenario exposure and hardware where feasible."
+    },
+    {
+      "id": "capability_frontier",
+      "description": "Native task score plotted against measured inference energy, p99 latency, memory, training compute, simulator transitions and human correction effort."
+    }
+  ],
+  "model_arms": [
+    {
+      "id": "A",
+      "name": "legacy_state_hdc_ltc",
+      "input": "20 engineered vehicle-state channels",
+      "temporal_core": "HDC-LTC",
+      "training": "PD-teacher baseline",
+      "status": "existing_reference"
+    },
+    {
+      "id": "B",
+      "name": "vision_manifold_vehicle_fusion",
+      "input": "RGB/grayscale/RGBA frame plus permitted vehicle state",
+      "temporal_core": "Vision Manifold + vehicle HDC representation",
+      "training": "not a trained policy; representation control only",
+      "status": "input_bridge_only"
+    },
+    {
+      "id": "C",
+      "name": "compact_visual_gru_lstm",
+      "input": "same learned visual features and vehicle-state channels",
+      "temporal_core": "GRU or LSTM",
+      "training": "matched demonstrations and closed-loop transitions",
+      "status": "planned"
+    },
+    {
+      "id": "D",
+      "name": "compact_visual_transformer",
+      "input": "same learned visual features and vehicle-state channels",
+      "temporal_core": "compact transformer",
+      "training": "matched demonstrations and closed-loop transitions",
+      "status": "planned"
+    },
+    {
+      "id": "E",
+      "name": "visual_hdc_ltc_hybrid",
+      "input": "learned visual features + structured HDC scene representation",
+      "temporal_core": "HDC-LTC/CfC",
+      "training": "matched demonstrations and closed-loop transitions",
+      "status": "planned"
+    },
+    {
+      "id": "F",
+      "name": "hybrid_action_conditioned_world_model",
+      "input": "E plus action-conditioned latent state transitions",
+      "temporal_core": "HDC-LTC/CfC + latent dynamics",
+      "training": "matched transition corpus",
+      "status": "planned"
+    },
+    {
+      "id": "G",
+      "name": "hybrid_decision_sensitive_learning",
+      "input": "F plus qualified decision-sensitive query interface",
+      "temporal_core": "same as F; sampler varies",
+      "training": "matched total simulator and human-label budgets",
+      "status": "planned"
+    },
+    {
+      "id": "H",
+      "name": "industry_teacher_student_comparator",
+      "input": "publicly documented model inputs and permissions",
+      "temporal_core": "Alpamayo 2 Edge/Super where accessible",
+      "training": "record actual weights, licences, distillation and data",
+      "status": "availability_dependent"
+    },
+    {
+      "id": "HUMAN",
+      "name": "human_demonstration_reference",
+      "input": "consented virtual instructor observations and controls",
+      "temporal_core": "human driver",
+      "training": "reference distribution only; not an autonomous policy",
+      "status": "planned"
+    },
+    {
+      "id": "I",
+      "name": "tieriv_autoe2e_reactive_compact_baseline",
+      "input": "the exact policy-visible sensor profile supported by the released AutoE2E reactive component; pin any optional sensors",
+      "temporal_core": "TIER IV Fast–Slow architecture; compare the released reactive component only until World Model and Reasoning components are available",
+      "training": "external checkpoint/dataset/evaluator access; record exact release, licences, hardware, data and labels",
+      "status": "availability_dependent"
+    },
+    {
+      "id": "J",
+      "name": "tieriv_meteor_compact_bev_baseline",
+      "input": "one-to-eight camera configuration, with optional LiDAR/radar, pinned per run",
+      "temporal_core": "16M-parameter CNN/BEV mapless METEOR",
+      "training": "external checkpoint and supported runtime; count all camera preprocessing/sensor fusion/host costs",
+      "status": "availability_dependent"
+    },
+    {
+      "id": "K",
+      "name": "risk_constrained_observability_policy",
+      "input": "same visual/vehicle observation interface as E/F plus explicit measurement availability",
+      "temporal_core": "active observation action selector with risk-constrained VOI, compared to passive observation at identical decision boundaries",
+      "training": "paired passive/active interventions; account sensor request/reposition time, energy and residual risk",
+      "status": "planned"
+    },
+    {
+      "id": "L",
+      "name": "selective_risk_coverage_and_abstention",
+      "input": "same frozen model predictions and uncertainty/decision trace as the matched policy",
+      "temporal_core": "selective action/abstention gate plus separately measured fallback",
+      "training": "frozen predictions and outcomes; report risk–coverage curves, bootstrap intervals and fallback evidence",
+      "status": "reference_evaluator_in_progress"
+    }
+  ],
+  "comparator_register": [
+    {
+      "id": "bench2drive_v004_lead_current",
+      "class": "closed_loop_benchmark_result",
+      "name": "Bench2Drive v0.0.4 current release — LEAD",
+      "metric_values": {
+        "driving_score": 95.59,
+        "success_rate_percent": 87.28,
+        "efficiency": 201.55,
+        "comfort": 20.56
+      },
+      "capabilities": [
+        "maintainer README identifies v0.0.4 as currently in use",
+        "uniform Think2Drive training set: 44 scenarios × 25 routes = 1,100 routes",
+        "separate validation set: 44 scenarios × 5 routes = 220 routes",
+        "adds 3D occupancy as a supported modality"
+      ],
+      "protocol": "Bench2Drive v0.0.4, released 2026-08-06. The maintainer README's close-loop table reports LEAD 95.59 DS, 87.28 SR, 201.55 efficiency and 20.56 comfort. Dataset distribution and modality differ from v0.0.3; pin v0.0.4 evaluator, exact training/validation routes and sensor permissions for comparison.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v004_data_distribution",
+      "class": "benchmark_protocol_revision",
+      "name": "Bench2Drive v0.0.4 data and modality revision",
+      "metric_values": {
+        "training_scenarios": 44,
+        "training_routes": 1100,
+        "validation_scenarios": 44,
+        "validation_routes": 220
+      },
+      "capabilities": [
+        "strictly uniform training distribution over 44 scenarios × 25 routes",
+        "separate validation set of 44 scenarios × 5 routes",
+        "3D occupancy modality"
+      ],
+      "protocol": "Protocol resource for designing matched v0.0.4 experiments. This is a dataset distribution specification, not a driving-performance score.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_bridgedrive_lead",
+      "class": "self_reported_closed_loop_benchmark_leaderboard",
+      "name": "Bench2Drive v0.0.3 leaderboard — BridgeDrive (LEAD)",
+      "metric_values": {
+        "driving_score": 96.34,
+        "success_rate_percent": 89.25
+      },
+      "capabilities": [
+        "listed in non-privileged section of the public leaderboard",
+        "uses LEAD expert/data pipeline; not a matched architecture-only comparison"
+      ],
+      "protocol": "Bench2Drive leaderboard README states results are self-reported from v0.0.3. It explicitly notes that methods vary in data acquisition, pretraining, training/inference compute, model size and IL/RL setup. Use only as a current public comparator snapshot, not an independently verified head-to-head result.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_tfv6",
+      "class": "self_reported_closed_loop_benchmark_leaderboard",
+      "name": "Bench2Drive v0.0.3 leaderboard — TFv6",
+      "metric_values": {
+        "driving_score": 95.28,
+        "success_rate_percent": 86.81
+      },
+      "protocol": "Same self-reported Bench2Drive v0.0.3 leaderboard snapshot. Preserve native DS and SR.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_pdm_lite_privileged",
+      "class": "privileged_closed_loop_comparator",
+      "name": "Bench2Drive v0.0.3 leaderboard — PDM-Lite (privileged section)",
+      "metric_values": {
+        "driving_score": 97.02,
+        "success_rate_percent": 92.27
+      },
+      "capabilities": [
+        "listed below the leaderboard divider as a privileged method using ground-truth perception input",
+        "not a matched vision-only comparator"
+      ],
+      "protocol": "Same self-reported Bench2Drive v0.0.3 leaderboard snapshot. Must remain in a separate privileged comparator class; do not use as the fair vision-only SOTA target.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "driveworld_vla_2026",
+      "class": "paper_reported_result",
+      "name": "DriveWorld-VLA ICML 2026",
+      "metric_values": {
+        "navsimv1_pdms": 91.3,
+        "navsimv2_epdms": 86.8,
+        "nuscenes_3s_average_collision_rate": 0.16
+      },
+      "protocol": "paper-specific NAVSIMv1/NAVSIMv2/nuScenes protocols; do not pool metrics",
+      "source": "https://proceedings.mlr.press/v306/jia26f.html",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "world_in_world_2026",
+      "class": "benchmark_platform",
+      "name": "World-In-World ICLR 2026",
+      "metric_values": null,
+      "protocol": "closed-loop task success, action-conditioned controllability and action-observation post-training",
+      "source": "https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "alpamayo_2_edge_2026_11_10",
+      "class": "industry_model_card_and_deployment_recipe",
+      "name": "NVIDIA Alpamayo 2 Edge (model card released 2026-11-10)",
+      "metric_values": {
+        "backbone_parameters_billions": 2.45,
+        "action_expert_parameters_billions": 0.2,
+        "closed_loop_km_per_at_fault_incident_mean": 15.15,
+        "closed_loop_km_per_at_fault_incident_sd": 0.04,
+        "alpasim_scenarios": 875,
+        "alpasim_rollout_sets": 3,
+        "open_loop_minADE_6_at_5s_m": 0.52,
+        "lingo_judge_score": 75.2,
+        "training_multicamera_video_hours": 115000,
+        "training_chain_of_causation_traces": 3700000,
+        "h100_peak_gpu_process_memory_gib": 12.06
+      },
+      "capabilities": [
+        "2.45B parameter backbone (1.96B language model + 0.41B SigLIP2 vision encoder + 0.08B projector)",
+        "0.2B diffusion action expert; model card identifies BF16 weights",
+        "six-camera, 22-image multi-time-step trajectory input plus navigation text and 20 historical ego poses",
+        "64 future trajectory waypoints from 0.1 to 6.4 seconds",
+        "115,000 hours of multi-camera driving video and approximately 3.7 million Chain-of-Causation traces",
+        "AlpaGym closed-loop RL and adaptive reasoning; model card reports Lingo-Judge 75.2"
+      ],
+      "source": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "independent_symtropy_reproduction": false,
+      "protocol": "Keep native metrics distinct: AlpaSim closed-loop distance per at-fault incident (875 scenarios, 3 rollout sets), PhysicalAI-AV open-loop minADE_6 at 5s (1,392 samples), and Lingo-Judge reasoning score. Model-card hardware reference is H100 80GB with 22 images, 3,236 prompt tokens, BF16, FlashAttention 2, batch 1 and six trajectory candidates; it reports 12.06 GiB peak GPU-process memory and recommends at least 16 GB. Metrics are NVIDIA-published and not independently reproduced by Symtropy."
+    },
+    {
+      "id": "alpamayo_2_super_2026",
+      "class": "industry_teacher_model",
+      "name": "NVIDIA Alpamayo 2 Super",
+      "metric_values": null,
+      "capabilities": [
+        "34B reasoning model",
+        "trajectory generation",
+        "Chain-of-Causation labels",
+        "auto-labeling"
+      ],
+      "source": "https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super/",
+      "independent_symtropy_reproduction": false,
+      "protocol": "Teacher/reasoning and auto-labeling capability reference. No single native driving leaderboard metric is registered in this comparator row; count teacher-generated labels and privileged reasoning as training resources."
+    },
+    {
+      "id": "waymo_safety_impact_june_2026",
+      "class": "operational_safety_evidence",
+      "name": "Waymo Driver safety impact dashboard",
+      "metric_values": {
+        "rider_only_miles_millions": 271.3,
+        "serious_injury_or_worse_crash_reduction_percent": 95,
+        "injury_causing_crash_reduction_percent": 82
+      },
+      "protocol": "company-published retrospective, location-adjusted human crash benchmark; separate from formal pre-deployment safety case",
+      "source": "https://waymo.com/safety/impact/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "wod_e2e_cvpr_2026",
+      "class": "long_tail_dataset_benchmark",
+      "name": "Waymo Open Dataset for End-to-End Driving (WOD-E2E, CVPR 2026)",
+      "metric_values": {
+        "segment_count": 4021,
+        "recording_hours_approx": 12,
+        "long_tail_scenario_occurrence_prevalence_upper_percent": 0.03
+      },
+      "protocol": "4,021 segments curated for challenging long-tail E2E driving scenarios; offline dataset/evaluation resource, not a closed-loop recovery score.",
+      "source": "https://openaccess.thecvf.com/content/CVPR2026/html/Xu_WOD-E2E_Waymo_Open_Dataset_for_End-to-End_Driving_in_Challenging_Long-tail_CVPR_2026_paper.html",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "carla_leaderboard_2_historical",
+      "class": "historical_evaluator_protocol",
+      "name": "CARLA Leaderboard 2.0",
+      "metric_values": null,
+      "capabilities": [
+        "separate SENSORS and MAP tracks",
+        "route completion and infraction penalty are reported separately",
+        "official challenge submissions and evaluation servers are permanently closed"
+      ],
+      "protocol": "Historical protocol reference only; no current hosted submission path.",
+      "source": "https://leaderboard.carla.org/evaluation_v2_0/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_robust_2026",
+      "class": "closed_loop_deployment_robustness_protocol",
+      "name": "Bench2Drive-Robust (2026)",
+      "metric_values": null,
+      "capabilities": [
+        "model-agnostic closed-loop extension for Bench2Drive-compatible fixed policies",
+        "GPS localization noise: 5 m and 15 m",
+        "inference/control delay: 100 ms, 200 ms and 500 ms using delayed action buffering",
+        "burst camera frame drops: 20 ticks and 60 ticks",
+        "partial camera occlusion: 50% and 80% masks",
+        "multiplicative speed-estimation noise: means 0.5 or 0.2 with standard deviation 0.2",
+        "reports degradation relative to clean baseline under each perturbation; perturbations evolve the closed-loop feedback trajectory"
+      ],
+      "protocol": "Separate paired clean/perturbed runs with pinned robustness seed and exact perturbation schedule; preserve each perturbation family/severity as its own metric. Do not turn relative degradation into an aggregate score without publishing weights.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "navsim_v2_ntr_third_party_snapshot_2026_05",
+      "class": "third_party_leaderboard_snapshot",
+      "name": "NAVSIM v2 End-to-End Test — NTR 2026.05 (SOTA2 snapshot)",
+      "metric_values": {
+        "nc": 99.4,
+        "epdms": 90.9
+      },
+      "protocol": "Third-party SOTA2 snapshot, updated approximately five months before 2026-11-11. NAVSIM v2 end-to-end test native metrics only: NTR 90.9 EPDMS, NC 99.4. Not an official organizer result or Symtropy reproduction; re-verify live leaderboard, task split, model inputs and evaluator before using as target.",
+      "source": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_speed_2026",
+      "class": "closed_loop_speed_conditioned_capability_protocol",
+      "name": "Bench2Drive-Speed",
+      "metric_values": null,
+      "capabilities": [
+        "desired-speed-conditioned driving",
+        "follow/overtake intent and speed adherence",
+        "2,100 CARLA scenarios reported by benchmark repository",
+        "evaluates continuous speed control separately from route success"
+      ],
+      "protocol": "Separate speed-conditioned protocol; pin exact repository commit, speed command distribution, scenario list and native speed-adherence metrics. Do not pool with standard Bench2Drive Driving Score.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive-Speed",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "alpamayo_2_edge_drive_agx_thor_latency_2026_11_10",
+      "class": "industry_deployment_measurement",
+      "name": "NVIDIA Alpamayo 2 Edge optimized DRIVE AGX Thor deployment recipe",
+      "metric_values": {
+        "pixel_to_trajectory_latency_min_ms": 160,
+        "pixel_to_trajectory_latency_max_ms": 190
+      },
+      "protocol": "NVIDIA deployment recipe reports 160–190 ms depending on reasoning amount. Reference hardware: DRIVE AGX Thor-X; DRIVE OS 7.2.7.0; CUDA 13.4; TensorRT 11.3.1.9; TensorRT Edge-LLM/DFlash2 accelerated workflow. This is a vendor-declared deployment measurement, not an independently reproduced result. Do not compare to other hardware or incomplete stage timings.",
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "luminous_degradation_recovery_envelope_2026_11_11",
+      "class": "prospective_fault_envelope_protocol",
+      "name": "Luminous Degradation-and-Recovery Envelope v0.1",
+      "metric_values": null,
+      "capabilities": [
+        "paired clean/faulted closed-loop trace accounting",
+        "event-specific detection and containment latency",
+        "recovery quorum and premature recovery checks",
+        "camera, stale replay, pixel corruption, calibration, clock and compute fault families",
+        "independent, cascaded and declared common-cause event provenance",
+        "seven-family deterministic severity sweep generator"
+      ],
+      "protocol": "Software trace auditor and schedule generator; 35 scheduled events for seven fault families × five severity control values. No simulator injector or model performance is included in v0.1.",
+      "source": "https://github.com/Luminous-Dynamics/symtropy/issues/4657",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "traffic_sign_bench_2026",
+      "class": "rule_compliance_benchmark",
+      "name": "TrafficSignBench",
+      "metric_values": null,
+      "capabilities": [
+        "closed-loop traffic-sign compliance",
+        "Sign-Compliant Destination metric",
+        "5,800 held-out episodes",
+        "rule-supervised PlanT-2 fine-tuning comparison"
+      ],
+      "protocol": "Use native Sign-Compliant Destination task and evaluator; keep distinct from route Driving Score and NAVSIM metrics.",
+      "source": "https://github.com/emb-ai/traffic-sign-bench",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "geodrive_bench_2026",
+      "class": "regional_reasoning_benchmark",
+      "name": "GeoDrive-Bench",
+      "metric_values": null,
+      "capabilities": [
+        "5,053 region-specific questions",
+        "7,160 driving images",
+        "six listed countries: China, USA, UK, Japan, Singapore and India"
+      ],
+      "protocol": "Open-loop regional reasoning benchmark. Do not treat its QA accuracy as closed-loop driving competence. Current listed six-country coverage does not include South Africa.",
+      "source": "https://arxiv.org/abs/2606.02774",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "south_africa_source_profile_2026_11_11",
+      "class": "jurisdiction_source_skeleton",
+      "name": "South Africa ZA LHT profile v0.1",
+      "metric_values": null,
+      "capabilities": [
+        "explicit left-hand traffic declaration supported by official tourism guidance",
+        "Department of Transport traffic-sign manual source reference",
+        "National Road Traffic Act source reference",
+        "steering-wheel handedness and roundabout circulation remain unknown",
+        "all sources remain not-reviewed; profile is draft and not policy eligible"
+      ],
+      "protocol": "Symtropy #4774 jurisdiction profile schema and Rust structural auditor. This is a source skeleton, not a legally reviewed ZA driving rule pack.",
+      "source": "https://github.com/Luminous-Dynamics/symtropy/issues/4774",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "waymo_construction_zone_recall_26e035",
+      "class": "regulatory_recall_report",
+      "name": "NHTSA Part 573 Safety Recall Report 26E035 — freeway construction-zone entry",
+      "metric_values": null,
+      "capabilities": [
+        "Official recall report identifies failure to recognize ramp-closure signs and entry into pre-planned freeway construction zones in Phoenix on events from 11 and 19 April 2026",
+        "Report also describes seven events on 18 May 2026 in which vehicles entered freeway lanes between cones designating a lane closure in the San Francisco Bay Area",
+        "Manufacturer report attributes behavior to prioritizing avoidance of other freeway hazards and/or failing to recognize the construction zone",
+        "Described software remedy includes improved awareness/response to freeway closures and detecting when the ADS is inside a construction zone, plus operational protocols"
+      ],
+      "protocol": "Regulatory recall narrative and event chronology only. The report is not a controlled benchmark, fleet failure-rate denominator, independent root-cause study or estimate of public-road prevalence. Use it to motivate scenario families and negative controls, not to rank systems.",
+      "source": "https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "tieriv_autoe2e_2026_11_11",
+      "class": "industry_fast_slow_architecture",
+      "name": "TIER IV AutoE2E (announced 2026-11-11)",
+      "metric_values": {
+        "parameters_millions": 79.9,
+        "kitscenes_multimodal_validation_3s_ade_m": 0.744
+      },
+      "capabilities": [
+        "79.9 million parameters",
+        "Fast–Slow architecture: Reactive Model, World Model and Reasoning Model",
+        "Reactive Model released; World Model and Reasoning Model remain in development per the announcement",
+        "sensor profiles range from cameras-only to LiDAR/radar configurations",
+        "designed for deployment on compute platforms beyond NVIDIA",
+        "TIER IV reports 0.744 m average displacement error over a 3-second horizon on KITScenes-Multimodal validation",
+        "the announced released component is the reactive model; world-model and reasoning components are described as in development"
+      ],
+      "protocol": "TIER IV/Autoware announcement on 2026-11-11 reports 0.744 m 3-second ADE on KITScenes-Multimodal validation for a 79.9M-parameter AutoE2E model. This is an open-loop trajectory prediction metric on that dataset, not a closed-loop collision/safety score and not directly comparable to NAVSIM EPDMS or Bench2Drive DS. The announcement describes the Fast–Slow architecture (Reactive/World/Reasoning), while world/reasoning components remain development-stage; compare the available release/config separately.",
+      "source": "https://autoware.org/autoware-foundation-and-tier-iv-join-forces-to-releases-autoe2e-an-open-source-ai-model-for-end-to-end-autonomy/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_tfv6_scaledrive_unprivileged",
+      "class": "self_reported_closed_loop_benchmark_leaderboard",
+      "name": "Bench2Drive v0.0.3 — TFv6+ScaleDrive (non-privileged section)",
+      "metric_values": {
+        "driving_score": 96.65,
+        "success_rate_percent": 90.45
+      },
+      "capabilities": [
+        "public aggregated leaderboard lists this in the non-privileged section",
+        "leaderboard last updated 2026-11-06",
+        "scores copied from papers and self-reported by contributors"
+      ],
+      "protocol": "Bench2Drive v0.0.3. The leaderboard explicitly states methods vary in data, experts, training/inference compute, model size and IL/RL. This is a system-level self-reported comparator, not a matched architecture-only experiment; keep separate from v0.0.4.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_lead_privileged",
+      "class": "privileged_closed_loop_comparator",
+      "name": "Bench2Drive v0.0.3 — LEAD (privileged section)",
+      "metric_values": {
+        "driving_score": 96.78,
+        "success_rate_percent": 96.59
+      },
+      "capabilities": [
+        "listed below the leaderboard divider as privileged methods",
+        "ground-truth perception input"
+      ],
+      "protocol": "Bench2Drive v0.0.3 self-reported leaderboard snapshot, last updated 2026-11-06. Strictly separate from vision-only/non-privileged comparison; not a fair SOTA target for camera-only Symthaea.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "navsim_v2_sota2_tps_drive_2026_05",
+      "class": "third_party_leaderboard_snapshot",
+      "name": "NAVSIM v2 SOTA2 leaderboard — TPS-Drive 2026.05",
+      "metric_values": {
+        "nc": 98.5,
+        "epdms": 86.7
+      },
+      "protocol": "Third-party SOTA2 leaderboard snapshot; page states Updated 5mo ago. Preserve NC and EPDMS native metrics; not an official organizer run or Symtropy reproduction.",
+      "source": "https://www.sota2.com/research/sota/autonomous-driving-on-navsim-v2",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "navsim_v2_sota2_drivevla_w0_2026_05",
+      "class": "third_party_leaderboard_snapshot",
+      "name": "NAVSIM v2 SOTA2 leaderboard — DriveVLA-W0 2026.05",
+      "metric_values": {
+        "nc": 98.5,
+        "epdms": 86.1
+      },
+      "protocol": "Third-party SOTA2 leaderboard snapshot; page states Updated 5mo ago. Keep distinct from DriveVLA-W0 paper results if task splits/evaluator provenance differ.",
+      "source": "https://www.sota2.com/research/sota/autonomous-driving-on-navsim-v2",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "carla_leaderboard_2_1_protocol_closed",
+      "class": "historical_evaluator_protocol",
+      "name": "CARLA Leaderboard 2.1 — latest protocol, submissions closed",
+      "metric_values": null,
+      "capabilities": [
+        "Leaderboard 2.1 is the current published evaluation protocol",
+        "submission service and evaluation servers are permanently closed",
+        "retains local-evaluation route/infraction and privileged-information criteria"
+      ],
+      "protocol": "Use as a local benchmark methodology and evaluator reference only. No public submission path is available; it is not an active competition target.",
+      "source": "https://leaderboard.carla.org/evaluation_v2_1/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "tieriv_meteor_2026_11_11",
+      "class": "industry_lightweight_multisensor_driving_model",
+      "name": "TIER IV METEOR (announced 2026-11-11)",
+      "metric_values": {
+        "parameters_millions": 16
+      },
+      "capabilities": [
+        "16 million parameters",
+        "CNN with bird's-eye-view representation",
+        "mapless architecture",
+        "camera inputs from one to eight cameras, with optional LiDAR and radar",
+        "TIER IV describes multi-platform support including NVIDIA and Renesas"
+      ],
+      "protocol": "Architecture/model-size comparator only. The announcement does not provide a closed-loop driving score or a directly comparable trajectory prediction metric. Do not treat 16M parameters as evidence of lower end-to-end energy/latency until measured on matched hardware with full sensor/preprocessing costs.",
+      "source": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "independent_symtropy_reproduction": false
+    }
+  ],
+  "benchmark_ladder": [
+    {
+      "id": "analytic_control_fixtures",
+      "priority": 1,
+      "task": "analytic steering/braking, coordinate frames, camera projection and metamorphic tests",
+      "metric_family": [
+        "exact_fixture_agreement",
+        "negative_control_rejection"
+      ]
+    },
+    {
+      "id": "offscreen_observation",
+      "priority": 2,
+      "task": "20+ tick immutable action-linked camera observations",
+      "metric_family": [
+        "frame_digest_replay",
+        "observation_receipt_integrity",
+        "freshness_and_missingness"
+      ]
+    },
+    {
+      "id": "fresh_process_replay",
+      "priority": 3,
+      "task": "fresh-process frame, bridge and action/transition replay",
+      "metric_family": [
+        "pixel_digest_exactness",
+        "fused_input_digest_exactness",
+        "branch_receipt_completeness"
+      ]
+    },
+    {
+      "id": "internal_apprenticeship",
+      "priority": 4,
+      "task": "matched model arms on held-out maps and scenario families",
+      "metric_family": [
+        "route_success",
+        "worst_family_success",
+        "interventions_per_skill_gate",
+        "calibration"
+      ]
+    },
+    {
+      "id": "bench2drive_v004",
+      "priority": 5,
+      "task": "Bench2Drive v0.0.4 closed-loop",
+      "metric_family": [
+        "native_driving_score",
+        "native_success_rate",
+        "efficiency",
+        "comfort"
+      ]
+    },
+    {
+      "id": "bench2drive_robust",
+      "priority": 6,
+      "task": "Bench2Drive-Robust closed-loop deployment perturbations: burst frame drop (20/60 ticks), partial camera occlusion (50/80%), GPS noise (5/15 m), speed-estimation bias and control/inference delay (100/200/500 ms). Pair each perturbed run with the same clean scenario/seed and preserve each fault family/severity separately.",
+      "metric_family": [
+        "native_score_by_fault_family_and_severity",
+        "relative_degradation_vs_paired_clean_baseline",
+        "recovery_time_and_safe_fallback_rate",
+        "residual_control_age_and_deadline_miss_rate",
+        "worst_fault_family_lower_tail_success"
+      ]
+    },
+    {
+      "id": "bench2drive_speed",
+      "priority": 7,
+      "task": "Bench2Drive-Speed desired-speed/follow/overtake conditioning; preserve native speed adherence and closed-loop outcomes separate from standard route score.",
+      "metric_family": [
+        "speed_tracking_error",
+        "speed_command_adherence",
+        "overtake_and_follow_success",
+        "comfort_and_jerk",
+        "route_success"
+      ]
+    },
+    {
+      "id": "navsim_v2",
+      "priority": 8,
+      "task": "NAVSIM v2 native protocol; preserve end-to-end and planning tracks separately",
+      "metric_family": [
+        "native_pdms_or_epdms",
+        "native_task_success"
+      ]
+    },
+    {
+      "id": "world_in_world",
+      "priority": 9,
+      "task": "closed-loop action-conditioned world model utility",
+      "metric_family": [
+        "task_success",
+        "controllability",
+        "action_observation_scaling"
+      ]
+    },
+    {
+      "id": "hil_closed_course",
+      "priority": 10,
+      "task": "staged hardware-in-the-loop and closed-course validation under independent authority",
+      "metric_family": [
+        "instrumented_fault_response",
+        "fallback_integrity",
+        "independent_safety_case"
+      ]
+    },
+    {
+      "id": "operational_safety",
+      "priority": 11,
+      "task": "eventual fleet-scale mileage and incident-rate analysis after formal safety case",
+      "metric_family": [
+        "exposure_normalized_incident_rates",
+        "confidence_intervals",
+        "operational_coverage"
+      ]
+    },
+    {
+      "id": "degradation_recovery_envelope",
+      "priority": 12,
+      "task": "paired clean/faulted closed-loop deployment perturbations with event-specific detection, containment and recovery; consume #4657 protocol and report each family/severity independently",
+      "metric_family": [
+        "fault_event_detection_latency",
+        "fault_event_containment_latency",
+        "stale_or_corrupt_policy_input_acceptance",
+        "healthy_recovery_quorum_latency",
+        "premature_recovery",
+        "clean_control_false_positive_degradation",
+        "faulted_and_clean_deadline_miss",
+        "per_fault_family_and_severity_tail",
+        "measured_inference_energy_and_latency"
+      ]
+    },
+    {
+      "id": "recoverable_experience_selection",
+      "priority": 13,
+      "task": "matched-budget sampler ablation using #4550/#4575, comparing uniform, rarity, entropy, prediction-error, decision-margin, SAM value-of-information and recoverability-directed sampling",
+      "metric_family": [
+        "transitions_per_skill_gate",
+        "human_intervention_minutes_per_skill_gate",
+        "held_out_worst_family_competence",
+        "calibration_and_recoverability_non_inferiority",
+        "decision_value_per_query"
+      ]
+    },
+    {
+      "id": "deadline_aware_anytime_imagination",
+      "priority": 14,
+      "task": "fixed-budget and fixed-latency allocation comparison using #4581: fixed rollout count vs deadline-aware marginal decision-regret allocation",
+      "metric_family": [
+        "marginal_regret_reduction",
+        "rollouts_per_opportunity",
+        "p95_p99_policy_latency",
+        "actuation_reserve_preserved",
+        "compute_and_energy_per_decision",
+        "quality_under_matched_compute_and_matched_latency"
+      ]
+    },
+    {
+      "id": "jurisdictional_driving_transfer",
+      "priority": 15,
+      "task": "zero-shot and fixed-budget adaptation across left/right traffic, sign/rule semantics and regional driving contexts; begin with source-qualified ZA draft profile and geometry-only LHT/RHT metamorphic fixtures",
+      "metric_family": [
+        "native_closed_loop_route_success",
+        "traffic_sign_sign_compliant_destination",
+        "lane_association_and_passing_side_accuracy",
+        "turn_and_roundabout_convention_accuracy",
+        "jurisdiction_recognition_calibration",
+        "profile_missing_stale_and_contradicted_performance",
+        "few_shot_examples_and_human_interventions_per_region",
+        "worst_jurisdiction_and_worst_rule_family",
+        "false_rule_activation_and_fallback_rate",
+        "p99_latency_and_measured_energy"
+      ]
+    },
+    {
+      "id": "temporary_traffic_control",
+      "priority": 16,
+      "task": "source-qualified temporary traffic control and construction-zone response: closure signs, cones, barriers, lane shifts, changed lane geometry and conflicts between hazard avoidance and declared closure; include the NHTSA 26E035 event patterns as scenario motivation, not prevalence estimates",
+      "metric_family": [
+        "closure_sign_compliance",
+        "cone_and_barrier_channelization_compliance",
+        "work_zone_boundary_entry_violations",
+        "safe_reroute_completion",
+        "false_positive_closure_response",
+        "temporary_rule_change_detection_latency",
+        "worst_work_zone_scenario_family",
+        "jurisdiction_profile_source_validity"
+      ]
+    },
+    {
+      "id": "tieriv_compact_baseline_reproduction",
+      "priority": 11,
+      "task": "reproduce AutoE2E reactive and METEOR model configs where weights, licences and sensor profiles permit; keep their native task metric separate",
+      "metric_family": [
+        "native_trajectory_prediction_metrics",
+        "native_closed_loop_task_metrics_if_available",
+        "full_stack_latency_energy_memory"
+      ]
+    },
+    {
+      "id": "observability_voi",
+      "priority": 12,
+      "task": "paired passive versus active sensor acquisition/reposition at identical frozen decision boundaries, with risk-constrained action costs",
+      "metric_family": [
+        "brier_and_log_loss",
+        "ece_and_calibration",
+        "additional_entropy_reduction",
+        "decision_change_and_regret",
+        "information_action_duration_energy_risk"
+      ]
+    },
+    {
+      "id": "selective_risk_coverage",
+      "priority": 13,
+      "task": "selective risk-coverage evaluation on frozen policy outputs with explicit fallback and human intervention evidence",
+      "metric_family": [
+        "risk_coverage_area_failure_rate",
+        "fixed_coverage_risk",
+        "actual_autonomy_coverage",
+        "abstention_rate",
+        "fallback_success_and_latency",
+        "episode_cluster_bootstrap_intervals"
+      ]
+    }
+  ],
+  "budget_dimensions": [
+    "trainable_parameter_count",
+    "dataset_revision_and_frame_count",
+    "unique_episode_count",
+    "simulator_transition_count",
+    "human_demonstration_hours",
+    "human_intervention_count_and_minutes",
+    "teacher_generated_label_count",
+    "training_wall_clock_hours",
+    "training_gpu_hours",
+    "training_energy_kwh_measured",
+    "inference_flops_or_tokens_if_available",
+    "inference_energy_joules_per_frame_measured",
+    "inference_energy_per_successful_episode_measured",
+    "inference_p50_p95_p99_latency_ms",
+    "deadline_miss_rate",
+    "peak_memory_bytes",
+    "precision_and_quantization",
+    "accelerator_and_power_profile",
+    "perception_world_model_planning_rta_overhead",
+    "fault_campaign_seed_and_schedule_digest",
+    "fault_injection_events_per_episode",
+    "paired_clean_perturbed_episode_identity",
+    "fault_recovery_time_ms",
+    "control_age_ms_under_inference_delay",
+    "sensor_drop_and_occlusion_fraction",
+    "per_episode_outcome_records",
+    "scenario_cluster_identity",
+    "training_compute_energy_and_gpu_hours",
+    "fault_schedule_and_severity_manifest_sha256",
+    "fault_injection_count_by_family_and_severity",
+    "recovery_quorum_ticks_and_platform_deadlines",
+    "active_sampler_query_count_and_acquisition_cost",
+    "decision_query_deadline_misses_and_actuation_reserve",
+    "world_model_rollout_count_by_decision_opportunity",
+    "counterfactual_rollout_gpu_time_and_energy",
+    "jurisdiction_profile_revision_and_rule_bundle_digest",
+    "region_specific_training_examples_and_human_legal_review_hours",
+    "jurisdiction_adaptation_examples_and_intervention_minutes",
+    "rule_source_verification_and_content_digest_coverage",
+    "active_observation_time_energy_and_residual_risk",
+    "abstention_fallback_duration_and_human_intervention_minutes",
+    "model_checkpoint_and_preprocessing_revision_for_external_compact_baselines"
+  ],
+  "outcome_families": [
+    "native_benchmark_metrics",
+    "route_and_task_success",
+    "worst_family_and_lower_tail_performance",
+    "vulnerable_road_user_interaction",
+    "contacts_collisions_and_rule_violations_under_simulator_semantics",
+    "comfort_jerk_and_path_tracking",
+    "action_conditioned_prediction_error_and_calibration",
+    "counterfactual_action_ranking_regret",
+    "sensor_dropout_staleness_and_asynchrony_robustness",
+    "fallback_recoverability_and_residual_decision_time",
+    "inference_and_recovery_latency",
+    "training_and_inference_energy",
+    "memory_and_model_size",
+    "human_correction_minutes_and_simulator_transitions",
+    "replay_integrity_and_evidence_completeness",
+    "fault_family_relative_degradation_vs_paired_clean_baseline",
+    "time_to_recover_after_fault_injection",
+    "safe_fallback_and_degraded_mode_success",
+    "control_age_and_action_deadline_miss_rate",
+    "speed_command_adherence_under_dynamic_interactions",
+    "worst_case_fault_family_performance",
+    "paired_episode_cluster_bootstrap",
+    "scenario_family_stratified_confidence_interval",
+    "paired_clean_perturbed_effect_size",
+    "fault_detection_and_containment_by_event_id",
+    "degradation_area_and_duration_by_fault_severity",
+    "recovery_latency_and_quorum_by_event",
+    "common_cause_and_cascaded_fault_response",
+    "decision_value_per_human_intervention_minute",
+    "simulator_transitions_per_frozen_skill_gate",
+    "sampler_query_precision_and_decision_change_rate",
+    "marginal_decision_regret_reduction_per_rollout",
+    "inference_compute_allocated_vs_deadline_reserve",
+    "rollout_value_under_compute_matched_and_latency_matched_protocols",
+    "traffic_sign_rule_compliance_by_rule_family",
+    "left_right_traffic_transfer_and_metamorphic_geometry",
+    "jurisdiction_profile_staleness_and_contradiction_handling",
+    "region_specific_sign_and_marking_semantics",
+    "legal_source_provenance_coverage_and_profile_eligibility",
+    "temporary_traffic_control_compliance_by_sign_and_channelization_family",
+    "work_zone_boundary_entry_and_safe_reroute_outcomes",
+    "temporary_rule_change_detection_latency",
+    "risk_coverage_area_failure_rate_and_fixed_coverage_risk",
+    "autonomy_coverage_abstention_rate_and_fallback_success",
+    "active_observation_value_of_information_and_action_cost"
+  ],
+  "prospective_targets": {
+    "status": "not_measured",
+    "exact_analytic_fixture_agreement_percent": 100,
+    "expected_episode_denominator_accounting_percent": 100,
+    "hidden_privilege_leaks_allowed": 0,
+    "uniform_sampling_transition_or_human_minutes_reduction_percent": 20,
+    "matched_competitor_score_non_inferiority_margin_native_points": 1.5,
+    "matched_competitor_inference_energy_fraction_max": 0.5,
+    "hdc_ltc_advantage_dimensions_required": 1,
+    "note": "All thresholds are prospective, not measured, and not safety requirements."
+  },
+  "required_negative_controls": [
+    "policy_receives_evaluator_only_world_or_actor_truth",
+    "teacher_inputs_or_future_outcomes_leak_into_frozen_evaluation",
+    "stale_or_missing_camera_frame_relabelled_as_fresh",
+    "render_completion_timestamp_substituted_for_capture_timestamp",
+    "unmatched_teacher_labels_or_pretraining_left_unaccounted",
+    "baseline_gets_weaker_input_or_compute",
+    "model_or_checkpoint_mutates_during_frozen_evaluation",
+    "average_score_hides_worst_family_regression",
+    "active_sampler_uses_more_labels_or_transitions_without_accounting",
+    "renderer_or_simulator_revision_changes_without_new_experiment_identity",
+    "one_fault_event_claims_another_events_detection_or_containment",
+    "common_cause_or_cascade_parentage_is_misdeclared",
+    "fault_detection_or_containment_reference_precedes_fault_onset",
+    "normal_mode_restored_before_healthy_observation_quorum",
+    "severity_sweep_omits_a_fault_family_or_reuses_duplicate_levels",
+    "active_sampler_uses_future_outcomes_or_evaluator_only_privileges",
+    "entropy_or_rarity_is_claimed_as_decision_value_without_counterfactual_outcome_evidence",
+    "anytime_allocator_spends_reserved_actuation_or_recovery_budget",
+    "rollout_latency_bounds_are_stale_or_not_bound_to_model_checkpoint_and_hardware",
+    "traffic_side_used_to_infer_steering_wheel_position",
+    "draft_or_unreviewed_rule_profile_used_as_policy_eligible",
+    "stale_or_wrong_effective_date_rule_bundle_applied",
+    "jurisdiction_sign_or_traffic_side_profile_leaked_from_evaluator",
+    "left_right_geometry_mirror_claimed_as_legal_rule_equivalence",
+    "region_qa_accuracy_claimed_as_closed_loop_rule_compliance",
+    "temporary_closure_sign_or_cone_channelization_ignored",
+    "obstacle_avoidance_priority_overrides_a_declared_work_zone_closure",
+    "temporary_traffic_control_profile_or_effective_time_is_stale_or_unbound"
+  ],
+  "sources": [
+    {
+      "id": "bench2drive_v004",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "published": "2026-08-06",
+      "source_type": "tagged benchmark repository"
+    },
+    {
+      "id": "driveworld_vla",
+      "url": "https://proceedings.mlr.press/v306/jia26f.html",
+      "published": "2026-07",
+      "source_type": "ICML 2026 proceedings"
+    },
+    {
+      "id": "world_in_world",
+      "url": "https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html",
+      "published": "2026-04",
+      "source_type": "ICLR 2026 proceedings"
+    },
+    {
+      "id": "alpamayo_edge",
+      "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA technical blog"
+    },
+    {
+      "id": "alpamayo_super",
+      "url": "https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super/",
+      "published": "2026-08-04",
+      "source_type": "NVIDIA technical blog"
+    },
+    {
+      "id": "waymo_safety",
+      "url": "https://waymo.com/safety/impact/",
+      "published": "live dashboard through 2026-06",
+      "source_type": "company operational safety dashboard"
+    },
+    {
+      "id": "alpamayo_edge_model_card",
+      "url": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA Hugging Face model card"
+    },
+    {
+      "id": "wod_e2e_cvpr_2026",
+      "url": "https://openaccess.thecvf.com/content/CVPR2026/html/Xu_WOD-E2E_Waymo_Open_Dataset_for_End-to-End_Driving_in_Challenging_Long-tail_CVPR_2026_paper.html",
+      "published": "2026-06",
+      "source_type": "CVPR 2026 proceedings"
+    },
+    {
+      "id": "carla_leaderboard_2",
+      "url": "https://leaderboard.carla.org/evaluation_v2_0/",
+      "published": "historical; status verified 2026-11-11",
+      "source_type": "official CARLA benchmark documentation"
+    },
+    {
+      "id": "waymo_open_challenges_2026",
+      "url": "https://www.waymo.com/open/challenges/",
+      "published": "status checked 2026-11-11",
+      "source_type": "official dataset challenge status"
+    },
+    {
+      "id": "bench2drive_robust",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+      "published": "2026-05",
+      "source_type": "benchmark repository and perturbation protocol"
+    },
+    {
+      "id": "bench2drive_robust_paper",
+      "url": "https://arxiv.org/abs/2605.18059",
+      "published": "2026-05-18",
+      "source_type": "arXiv benchmark paper"
+    },
+    {
+      "id": "bench2drive_speed",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Speed",
+      "published": "2026",
+      "source_type": "benchmark repository"
+    },
+    {
+      "id": "navsim_ntr_third_party_snapshot",
+      "url": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
+      "published": "2026-05 snapshot; rechecked 2026-11-11",
+      "source_type": "third-party leaderboard aggregator"
+    },
+    {
+      "id": "alpamayo_edge_model_card",
+      "url": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA model card with model architecture, evaluation, training-data and inference disclosures"
+    },
+    {
+      "id": "alpamayo_edge_deployment_blog",
+      "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA deployment recipe blog; 160–190ms Thor-X latency and 48.9% relative closed-loop RL improvement"
+    },
+    {
+      "id": "bench2drive_robust",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+      "published": "2026-05-21",
+      "source_type": "closed-loop deployment robustness benchmark repository"
+    },
+    {
+      "id": "navsim_v2_e2e_test_snapshot",
+      "url": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
+      "published": "2026-05",
+      "source_type": "third-party leaderboard snapshot; not primary organizer source"
+    },
+    {
+      "id": "alpamayo_2_edge_model_card_2026_11_10",
+      "url": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA Hugging Face model card"
+    },
+    {
+      "id": "alpamayo_2_edge_deployment_blog_2026_11_10",
+      "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA deployment technical blog"
+    },
+    {
+      "id": "bench2drive_robust_2026",
+      "url": "https://arxiv.org/abs/2605.18059",
+      "published": "2026-05-18",
+      "source_type": "arXiv closed-loop deployment robustness benchmark"
+    },
+    {
+      "id": "traffic_sign_bench_2026",
+      "url": "https://github.com/emb-ai/traffic-sign-bench",
+      "published": "2026",
+      "source_type": "closed-loop traffic sign compliance benchmark"
+    },
+    {
+      "id": "geodrive_bench_2026",
+      "url": "https://arxiv.org/abs/2606.02774",
+      "published": "2026-06",
+      "source_type": "regional open-loop driving reasoning benchmark"
+    },
+    {
+      "id": "south_africa_left_traffic_guidance",
+      "url": "https://www.tourism.gov.za/Pages/Safety--Travel-Tips-Info.aspx",
+      "published": "live official government guidance; exact current revision not pinned",
+      "source_type": "South African government corroboration of left-hand traffic"
+    },
+    {
+      "id": "south_africa_sign_manual_reference",
+      "url": "https://www.transport.gov.za/wp-content/uploads/2023/02/V4C1.pdf",
+      "published": "manual source reference; local adoption/effective revision pending review",
+      "source_type": "South African Department of Transport traffic-sign manual source"
+    },
+    {
+      "id": "south_africa_road_traffic_act",
+      "url": "https://www.gov.za/documents/national-road-traffic-act",
+      "published": "Act 93 of 1996 source page; consolidated amendment/commencement status pending review",
+      "source_type": "South African statutory source"
+    },
+    {
+      "id": "waymo_construction_zone_recall_26e035",
+      "url": "https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf",
+      "published": "2026-06-17",
+      "source_type": "NHTSA Part 573 regulatory recall report; official event chronology and remedy description"
+    },
+    {
+      "id": "tieriv_autoe2e",
+      "url": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "published": "2026-11-11",
+      "source_type": "TIER IV press release"
+    },
+    {
+      "id": "bench2drive_v003_2026_11_snapshot",
+      "url": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "published": "last updated 2026-11-06",
+      "source_type": "self-reported paper-aggregated leaderboard"
+    },
+    {
+      "id": "navsim_v2_sota2_2026_05_snapshot",
+      "url": "https://www.sota2.com/research/sota/autonomous-driving-on-navsim-v2",
+      "published": "page marked updated five months before 2026-11-13; entries 2026.05",
+      "source_type": "third-party leaderboard snapshot"
+    },
+    {
+      "id": "carla_leaderboard_2_1",
+      "url": "https://leaderboard.carla.org/evaluation_v2_1/",
+      "published": "2026",
+      "source_type": "official benchmark protocol; submission service closed"
+    },
+    {
+      "id": "tieriv_autoe2e_2026_11_11",
+      "url": "https://autoware.org/autoware-foundation-and-tier-iv-join-forces-to-releases-autoe2e-an-open-source-ai-model-for-end-to-end-autonomy/",
+      "published": "2026-11-11",
+      "source_type": "Autoware Foundation announcement with TIER IV KITScenes-Multimodal 3s ADE report"
+    },
+    {
+      "id": "tieriv_meteor_2026_11_11",
+      "url": "https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving",
+      "published": "2026-11-11",
+      "source_type": "TIER IV press release; model size and sensor architecture"
+    }
+  ],
+  "statistical_method": {
+    "paired_unit": "episode_id",
+    "cluster_unit": "scenario_cluster_id",
+    "strata": "scenario_family",
+    "pairing_requirements": [
+      "identical episode IDs",
+      "identical scenario family, scenario cluster and disposition for each episode",
+      "explicit finite non-null native metric for every paired episode",
+      "same evaluator, split, seed manifest, policy inputs and teacher privileges"
+    ],
+    "estimator": "mean of scenario-cluster means of candidate-minus-baseline native metric differences",
+    "resampling": "10,000 deterministic percentile-bootstrap replicates; sample scenario clusters with replacement within each scenario_family while preserving family cluster counts",
+    "confidence_level": 0.95,
+    "random_seed": "first 64 bits of frozen seed_manifest_sha256",
+    "advantage_rule": {
+      "higher_is_better": "95% interval lower bound > 0",
+      "lower_is_better": "95% interval upper bound < 0"
+    },
+    "non_inferiority_rule": {
+      "higher_is_better": "95% interval lower bound >= -margin",
+      "lower_is_better": "95% interval upper bound <= margin"
+    },
+    "claim_ceiling": "Unadjusted percentile bootstrap interval, not multiplicity-adjusted; one primary metric must be preregistered. This is benchmark uncertainty, not safety assurance.",
+    "missing_data": "Reject paired inferential comparison when any episode is unmatched or its requested metric is null; never silently drop or impute an episode."
+  }
+}

@@ -1,0 +1,636 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/resource-normalized-driving-result-card-v0.2.schema.json",
+  "title": "Resource-normalized driving experiment result card v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "model_arm_id",
+    "benchmark_id",
+    "protocol_revision",
+    "model",
+    "data",
+    "experience_selection",
+    "inference_allocation",
+    "compute",
+    "outcomes",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "status": {
+      "enum": [
+        "not_run",
+        "running",
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
+    },
+    "model_arm_id": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H",
+        "HUMAN"
+      ]
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "protocol_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "seed_manifest_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code_revision",
+        "checkpoint_revision",
+        "trainable_parameters",
+        "input_privileges"
+      ],
+      "properties": {
+        "code_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trainable_parameters": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "input_privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "teacher_privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_revision",
+        "train_episodes",
+        "train_frames",
+        "simulator_transitions",
+        "human_intervention_minutes",
+        "teacher_generated_labels"
+      ],
+      "properties": {
+        "dataset_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "train_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "train_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_intervention_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "teacher_generated_labels": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "holdout_split_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "compute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hardware_id",
+        "training_gpu_hours",
+        "training_energy_kwh",
+        "inference_energy_joules_per_frame",
+        "inference_p50_ms",
+        "inference_p95_ms",
+        "inference_p99_ms",
+        "deadline_miss_rate",
+        "peak_memory_bytes"
+      ],
+      "properties": {
+        "hardware_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "training_gpu_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "training_energy_kwh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_energy_joules_per_frame": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_p50_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_p95_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_p99_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "deadline_miss_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "peak_memory_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "precision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "measurement_method": {
+          "type": "string"
+        }
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "native_metrics",
+        "completed_episodes",
+        "failed_episodes",
+        "incomplete_episodes",
+        "censored_episodes",
+        "worst_family_metrics",
+        "calibration_metrics",
+        "robustness_metrics",
+        "episode_outcomes"
+      ],
+      "properties": {
+        "native_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "completed_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "censored_episodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "worst_family_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "calibration_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "robustness_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "number",
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "replay_exact_match_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "episode_outcomes": {
+          "type": "array",
+          "maxItems": 1000000,
+          "description": "One typed record for every expected evaluation episode. Cluster IDs identify repeated rollouts/seeds from the same scenario.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "episode_id",
+              "scenario_family",
+              "scenario_cluster_id",
+              "disposition",
+              "native_metrics"
+            ],
+            "properties": {
+              "episode_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "scenario_family": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "scenario_cluster_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "disposition": {
+                "enum": [
+                  "completed",
+                  "failed",
+                  "incomplete",
+                  "censored"
+                ]
+              },
+              "native_metrics": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "number",
+                    "integer",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_artifact_manifest_sha256",
+        "evaluator_revision",
+        "expected_episode_count",
+        "observed_episode_count",
+        "notes"
+      ],
+      "properties": {
+        "raw_artifact_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_episode_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "experience_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy_id",
+        "selector_revision",
+        "candidate_pool_sha256",
+        "selection_receipt_manifest_sha256",
+        "candidates_scored",
+        "queries_issued",
+        "queries_accepted",
+        "queries_rejected",
+        "query_deadline_misses",
+        "query_simulator_transitions",
+        "query_human_intervention_minutes",
+        "query_compute_gpu_hours"
+      ],
+      "properties": {
+        "strategy_id": {
+          "enum": [
+            "uniform",
+            "rarity",
+            "entropy",
+            "prediction_error",
+            "decision_margin",
+            "sam_decision_value",
+            "sam_recoverability"
+          ]
+        },
+        "selector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_pool_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selection_receipt_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidates_scored": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries_issued": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries_accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries_rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_deadline_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_human_intervention_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "query_compute_gpu_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "inference_allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allocator_id",
+        "allocator_revision",
+        "allocation_receipt_manifest_sha256",
+        "latency_bound_manifest_sha256",
+        "decision_opportunities",
+        "additional_rollouts",
+        "rollout_compute_units_budgeted",
+        "rollout_compute_units_used",
+        "actuation_reserve_required_us",
+        "actuation_reserve_violations",
+        "deadline_skips",
+        "predicted_regret_reduction",
+        "observed_regret_reduction"
+      ],
+      "properties": {
+        "allocator_id": {
+          "enum": [
+            "fixed_rollouts",
+            "deadline_aware_anytime"
+          ]
+        },
+        "allocator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allocation_receipt_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latency_bound_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decision_opportunities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "additional_rollouts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rollout_compute_units_budgeted": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rollout_compute_units_used": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "actuation_reserve_required_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actuation_reserve_violations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_skips": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predicted_regret_reduction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "observed_regret_reduction": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "x-invariants": [
+    "status=not_run requires zero episode outcomes and empty metric maps; it is a template, not a performance result.",
+    "expected_episode_count must equal completed+failed+incomplete+censored+otherwise explicitly dispositioned episodes",
+    "training and inference measurements must identify the actual host/hardware/power profile",
+    "teacher/generated labels and all privileged inputs must be counted and declared",
+    "metrics from different benchmark versions or task tracks must never be pooled",
+    "Complete result cards contain exactly one episode_outcomes record per expected episode; aggregate dispositions equal the per-episode disposition counts.",
+    "Paired statistical comparison requires identical episode IDs, scenario families, scenario-cluster IDs, dispositions, and non-null per-episode values for the requested native metric.",
+    "Bootstrap resampling is by scenario cluster within scenario family, not by frame or repeated rollout; missing outcomes are never imputed as zero."
+  ]
+}

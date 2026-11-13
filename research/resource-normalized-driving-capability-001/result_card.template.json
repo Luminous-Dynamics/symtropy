@@ -1,0 +1,91 @@
+{
+  "schema_version": "0.2.0",
+  "run_id": "NOT_RUN",
+  "status": "not_run",
+  "model_arm_id": "B",
+  "benchmark_id": "offscreen_observation_fixture",
+  "protocol_revision": "resource-normalized-driving-capability-v0.1",
+  "model": {
+    "code_revision": "NOT_RUN",
+    "checkpoint_revision": null,
+    "trainable_parameters": null,
+    "input_privileges": [
+      "RGB camera frame",
+      "declared vehicle-state channels"
+    ],
+    "precision": null,
+    "teacher_privileges": []
+  },
+  "data": {
+    "dataset_revision": "NOT_RUN",
+    "train_episodes": 0,
+    "train_frames": 0,
+    "simulator_transitions": 0,
+    "human_intervention_minutes": 0,
+    "teacher_generated_labels": 0,
+    "holdout_split_sha256": null
+  },
+  "compute": {
+    "hardware_id": "NOT_MEASURED",
+    "training_gpu_hours": null,
+    "training_energy_kwh": null,
+    "inference_energy_joules_per_frame": null,
+    "inference_p50_ms": null,
+    "inference_p95_ms": null,
+    "inference_p99_ms": null,
+    "deadline_miss_rate": null,
+    "peak_memory_bytes": null,
+    "precision": null,
+    "measurement_method": "NOT_MEASURED"
+  },
+  "outcomes": {
+    "native_metrics": {},
+    "completed_episodes": 0,
+    "failed_episodes": 0,
+    "incomplete_episodes": 0,
+    "censored_episodes": 0,
+    "worst_family_metrics": {},
+    "calibration_metrics": {},
+    "robustness_metrics": {},
+    "replay_exact_match_percent": null,
+    "episode_outcomes": []
+  },
+  "evidence": {
+    "raw_artifact_manifest_sha256": null,
+    "evaluator_revision": "NOT_RUN",
+    "expected_episode_count": 0,
+    "observed_episode_count": 0,
+    "notes": [
+      "This file is a template, not an experiment result."
+    ]
+  },
+  "experience_selection": {
+    "strategy_id": "uniform",
+    "selector_revision": "NOT_RUN",
+    "candidate_pool_sha256": null,
+    "selection_receipt_manifest_sha256": null,
+    "candidates_scored": 0,
+    "queries_issued": 0,
+    "queries_accepted": 0,
+    "queries_rejected": 0,
+    "query_deadline_misses": 0,
+    "query_simulator_transitions": 0,
+    "query_human_intervention_minutes": 0,
+    "query_compute_gpu_hours": null
+  },
+  "inference_allocation": {
+    "allocator_id": "fixed_rollouts",
+    "allocator_revision": "NOT_RUN",
+    "allocation_receipt_manifest_sha256": null,
+    "latency_bound_manifest_sha256": null,
+    "decision_opportunities": 0,
+    "additional_rollouts": 0,
+    "rollout_compute_units_budgeted": null,
+    "rollout_compute_units_used": null,
+    "actuation_reserve_required_us": 0,
+    "actuation_reserve_violations": 0,
+    "deadline_skips": 0,
+    "predicted_regret_reduction": null,
+    "observed_regret_reduction": null
+  }
+}

@@ -1,0 +1,396 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/resource-normalized-driving-benchmark-manifest-v0.1.schema.json",
+  "title": "Resource-normalized driving capability benchmark manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "as_of",
+    "status",
+    "issue",
+    "claim_ceiling",
+    "hypotheses",
+    "comparison_views",
+    "model_arms",
+    "comparator_register",
+    "benchmark_ladder",
+    "budget_dimensions",
+    "outcome_families",
+    "prospective_targets",
+    "required_negative_controls",
+    "sources",
+    "statistical_method"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "protocol_id": {
+      "const": "RESOURCE-NORMALIZED-DRIVING-CAPABILITY-001"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "const": "specification_only_no_model_runs"
+    },
+    "issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "related_owners": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "format": "uri"
+      }
+    },
+    "hypotheses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "comparison_views": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "matched_capability",
+              "capability_frontier"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "model_arms": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "input",
+          "temporal_core",
+          "training",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "temporal_core": {
+            "type": "string"
+          },
+          "training": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "comparator_register": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "class",
+          "name",
+          "protocol",
+          "source",
+          "independent_symtropy_reproduction"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "metric_values": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "format": "uri"
+          },
+          "independent_symtropy_reproduction": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "benchmark_ladder": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "priority",
+          "task",
+          "metric_family"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "task": {
+            "type": "string"
+          },
+          "metric_family": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "budget_dimensions": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "outcome_families": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "prospective_targets": {
+      "type": "object",
+      "required": [
+        "status",
+        "note"
+      ],
+      "properties": {
+        "status": {
+          "const": "not_measured"
+        },
+        "exact_analytic_fixture_agreement_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "expected_episode_denominator_accounting_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "hidden_privilege_leaks_allowed": {
+          "const": 0
+        },
+        "uniform_sampling_transition_or_human_minutes_reduction_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "matched_competitor_score_non_inferiority_margin_native_points": {
+          "type": "number",
+          "minimum": 0
+        },
+        "matched_competitor_inference_energy_fraction_max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hdc_ltc_advantage_dimensions_required": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "required_negative_controls": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "published",
+          "source_type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "published": {
+            "type": "string"
+          },
+          "source_type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "statistical_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paired_unit",
+        "cluster_unit",
+        "strata",
+        "pairing_requirements",
+        "estimator",
+        "resampling",
+        "confidence_level",
+        "random_seed",
+        "advantage_rule",
+        "non_inferiority_rule",
+        "claim_ceiling",
+        "missing_data"
+      ],
+      "properties": {
+        "paired_unit": {
+          "const": "episode_id"
+        },
+        "cluster_unit": {
+          "const": "scenario_cluster_id"
+        },
+        "strata": {
+          "const": "scenario_family"
+        },
+        "pairing_requirements": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string"
+          }
+        },
+        "estimator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resampling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence_level": {
+          "const": 0.95
+        },
+        "random_seed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "advantage_rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "higher_is_better",
+            "lower_is_better"
+          ],
+          "properties": {
+            "higher_is_better": {
+              "type": "string"
+            },
+            "lower_is_better": {
+              "type": "string"
+            }
+          }
+        },
+        "non_inferiority_rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "higher_is_better",
+            "lower_is_better"
+          ],
+          "properties": {
+            "higher_is_better": {
+              "type": "string"
+            },
+            "lower_is_better": {
+              "type": "string"
+            }
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missing_data": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Comparator numbers retain their native metrics and must not be pooled across tasks, leaderboard variants or evidence classes.",
+    "A platform capability description without a public benchmark score must retain metric_values=null.",
+    "Prospective target status remains not_measured until exact-head empirical evidence exists.",
+    "A positive result must have a matching result card and raw-artifact manifest."
+  ]
+}
