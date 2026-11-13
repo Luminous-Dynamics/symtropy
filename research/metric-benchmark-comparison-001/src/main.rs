@@ -70,14 +70,8 @@ impl Lu6 {
         #[allow(clippy::needless_range_loop)]
         for column in 0..N {
             let pivot_row = (column..N)
-                .max_by(|left, right| {
-                    lu[*left][column]
-                        .abs()
-                        .total_cmp(&lu[*right][column].abs())
-                })
-                .ok_or_else(|| {
-                    io::Error::new(io::ErrorKind::InvalidData, "empty pivot range")
-                })?;
+                .max_by(|left, right| lu[*left][column].abs().total_cmp(&lu[*right][column].abs()))
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "empty pivot range"))?;
             let pivot = lu[pivot_row][column].abs();
             if !pivot.is_finite() || pivot <= threshold {
                 return Err(io::Error::new(
@@ -242,11 +236,7 @@ fn matrix_relative_defect(left: &Matrix<N>, right: &Matrix<N>) -> f64 {
     maximum / 1.0_f64.max(matrix_inf(left)).max(matrix_inf(right))
 }
 
-fn normwise_backward_error(
-    matrix: &Matrix<N>,
-    solution: &Vector<N>,
-    rhs: &Vector<N>,
-) -> f64 {
+fn normwise_backward_error(matrix: &Matrix<N>, solution: &Vector<N>, rhs: &Vector<N>) -> f64 {
     let residual = vector_sub(rhs, &matrix_apply(matrix, solution));
     let scale = matrix_inf(matrix) * vector_inf(solution) + vector_inf(rhs);
     if scale == 0.0 {
@@ -260,11 +250,7 @@ fn normwise_backward_error(
     }
 }
 
-fn componentwise_backward_error(
-    matrix: &Matrix<N>,
-    solution: &Vector<N>,
-    rhs: &Vector<N>,
-) -> f64 {
+fn componentwise_backward_error(matrix: &Matrix<N>, solution: &Vector<N>, rhs: &Vector<N>) -> f64 {
     let residual = vector_sub(rhs, &matrix_apply(matrix, solution));
     let mut maximum = 0.0_f64;
     for (row, matrix_row) in matrix.iter().enumerate() {
@@ -442,10 +428,14 @@ fn run_metrics(input: RunInput<'_>) -> Result<RunMetrics, Box<dyn Error>> {
         acceleration_q,
         acceleration_y,
     } = input;
-    let initial_velocity_q =
-        Tangent::<CartesianQ, N>::new([0.4711764705882353, -0.2476470588235294,
-            -0.14705882352941174, -0.04882352941176471, 0.07235294117647058,
-            0.2529411764705882])?;
+    let initial_velocity_q = Tangent::<CartesianQ, N>::new([
+        0.4711764705882353,
+        -0.2476470588235294,
+        -0.14705882352941174,
+        -0.04882352941176471,
+        0.07235294117647058,
+        0.2529411764705882,
+    ])?;
     let initial_velocity_y = rebasis.tangent_to_to(&initial_velocity_q)?;
 
     let acceleration_y_lifted = rebasis.tangent_to_from(acceleration_y)?;
@@ -548,12 +538,9 @@ fn run_metrics(input: RunInput<'_>) -> Result<RunMetrics, Box<dyn Error>> {
                 .admission_receipt()
                 .minimum_cholesky_pivot
         }),
-        "symtropy_reference_lu" => measure(|| {
-            Lu6::factor(matrix_y)
-                .expect("admitted dense operator")
-                .lu[0][0]
-                .abs()
-        }),
+        "symtropy_reference_lu" => {
+            measure(|| Lu6::factor(matrix_y).expect("admitted dense operator").lu[0][0].abs())
+        }
         _ => unreachable!("backend validated by caller"),
     };
     let evidence_timing = measure(|| {
@@ -748,11 +735,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for backend in ["symtropy_reference_cholesky", "symtropy_reference_lu"] {
         for family in [0, 2] {
             records.push(run_one_family(
-                backend,
-                family,
-                profile,
-                &metric_q,
-                &force_q,
+                backend, family, profile, &metric_q, &force_q,
             )?);
         }
     }
@@ -783,8 +766,7 @@ mod tests {
     fn wrong_covector_variance_is_detectably_different_after_dense_rebasis() {
         let profile = MetricProfileV1::default();
         let metric_q = Metric::<CartesianQ, N>::admit(mass_matrix(), profile).unwrap();
-        let force_q =
-            Cotangent::<CartesianQ, N>::new([0.18, -0.07, 0.11, 0.0, 0.0, 0.0]).unwrap();
+        let force_q = Cotangent::<CartesianQ, N>::new([0.18, -0.07, 0.11, 0.0, 0.0, 0.0]).unwrap();
         let basis = basis_matrix(2);
         let rebasis = Rebasis::<CartesianQ, DenseY, N>::new(basis, profile).unwrap();
         let metric_y = rebasis.metric_to_to(&metric_q, profile).unwrap();
