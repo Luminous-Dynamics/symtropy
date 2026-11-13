@@ -1,0 +1,280 @@
+{
+  "schema_version": "loco-capability-envelope-known-answers-v0.1",
+  "success_threshold_ppm": 500000,
+  "cvartail": "lower 25% reward tail, ranking and scoring on disjoint held-out evaluation partitions",
+  "fixtures": [
+    {
+      "id": "A-in-distribution-versus-heldout",
+      "morphology": "go2",
+      "method": "easy-start-curriculum",
+      "random_validation": {
+        "successes": 90,
+        "trials": 100
+      },
+      "heldout_structured": {
+        "successes": 35,
+        "trials": 100
+      },
+      "expected": {
+        "random_success_ppm": 900000,
+        "heldout_success_ppm": 350000,
+        "transfer_gap_ppm": 550000,
+        "heldout_leader_may_differ": true
+      }
+    },
+    {
+      "id": "B-mean-up-tail-down",
+      "baseline": {
+        "rewards": [
+          20,
+          40,
+          60,
+          80,
+          100
+        ]
+      },
+      "candidate": {
+        "rewards": [
+          -20,
+          100,
+          100,
+          100,
+          100
+        ]
+      },
+      "expected": {
+        "candidate_mean_gt_baseline": true,
+        "candidate_lower_cvar25_lt_baseline": true,
+        "aggregate_mean_only_is_misleading": true
+      }
+    },
+    {
+      "id": "C-monotone-capability-bracket",
+      "feature_id": "step_height_mm",
+      "levels": [
+        10,
+        20,
+        30,
+        40
+      ],
+      "successes": [
+        10,
+        9,
+        7,
+        3
+      ],
+      "trials": [
+        10,
+        10,
+        10,
+        10
+      ],
+      "expected": {
+        "largest_tested_level_ge_50pct": 30,
+        "smallest_tested_level_lt_50pct": 40,
+        "censored": false
+      }
+    },
+    {
+      "id": "D-nonmonotone-capability",
+      "feature_id": "gap_width_mm",
+      "levels": [
+        10,
+        20,
+        30,
+        40
+      ],
+      "successes": [
+        9,
+        4,
+        8,
+        2
+      ],
+      "trials": [
+        10,
+        10,
+        10,
+        10
+      ],
+      "expected": {
+        "monotone": false,
+        "single_threshold_suppressed": true,
+        "return_sampled_surface": true
+      }
+    },
+    {
+      "id": "E-coupled-axis-failure",
+      "axes": [
+        "friction_loss",
+        "impact_bound"
+      ],
+      "samples": [
+        {
+          "theta": [
+            0,
+            0
+          ],
+          "successes": 10,
+          "trials": 10
+        },
+        {
+          "theta": [
+            1,
+            0
+          ],
+          "successes": 9,
+          "trials": 10
+        },
+        {
+          "theta": [
+            0,
+            1
+          ],
+          "successes": 9,
+          "trials": 10
+        },
+        {
+          "theta": [
+            1,
+            1
+          ],
+          "successes": 0,
+          "trials": 10
+        }
+      ],
+      "expected": {
+        "both_axis_endpoints_pass": true,
+        "joint_high_high_fails": true,
+        "axiswise_threshold_does_not_imply_rectangle": true
+      }
+    },
+    {
+      "id": "F-train-test-leakage",
+      "train_level_digests": [
+        "level-a",
+        "level-b"
+      ],
+      "heldout_level_digests": [
+        "level-b",
+        "level-c"
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "train/test overlap"
+      }
+    },
+    {
+      "id": "G-morphology-pooling",
+      "baseline_morphology": "go1",
+      "candidate_morphology": "go2",
+      "expected": {
+        "comparison": "separate strata",
+        "pooled_envelope": false
+      }
+    },
+    {
+      "id": "H-crossfit-split-overlap",
+      "difficulty_rank_episode_ids": [
+        "e1",
+        "e2",
+        "e3"
+      ],
+      "tail_score_episode_ids": [
+        "e3",
+        "e4"
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "rank/score split overlap"
+      }
+    },
+    {
+      "id": "I-unequal-trials",
+      "baseline": {
+        "successes": 80,
+        "trials": 100
+      },
+      "candidate": {
+        "successes": 16,
+        "trials": 20
+      },
+      "expected": {
+        "point_estimates_equal": true,
+        "raw_denominators_preserved": true,
+        "uncertainty_not_assumed_equal": true
+      }
+    },
+    {
+      "id": "J-safety-taxonomy-mismatch",
+      "baseline_taxonomy_digest": "taxonomy-v1",
+      "candidate_taxonomy_digest": "taxonomy-v2",
+      "expected": {
+        "task_capability_may_be_reported": true,
+        "safety_vector_pooling": false
+      }
+    },
+    {
+      "id": "K-unknown-measurement-by-severity",
+      "levels": [
+        1,
+        2,
+        3
+      ],
+      "trials": [
+        100,
+        100,
+        100
+      ],
+      "known_successes": [
+        90,
+        70,
+        40
+      ],
+      "unknown_count": [
+        0,
+        10,
+        30
+      ],
+      "expected": {
+        "unknown_not_success": true,
+        "complete_capability_claim": false
+      }
+    },
+    {
+      "id": "L-probe-reduces-remaining-horizon",
+      "probe_duration_steps": 3,
+      "initial_horizon_steps": 20,
+      "post_probe_horizon_steps": 17,
+      "expected": {
+        "post_probe_success_and_recovery_use_17_steps": true
+      }
+    },
+    {
+      "id": "M-hardware-and-simulation",
+      "baseline_evidence_tier": "simulation",
+      "candidate_evidence_tier": "hardware",
+      "expected": {
+        "pooled_comparison": false,
+        "evidence_tiers_separate": true
+      }
+    },
+    {
+      "id": "N-wider-envelope-more-adverse-events",
+      "baseline": {
+        "capability_level": 30,
+        "falls": 1,
+        "foot_scuffs": 2
+      },
+      "candidate": {
+        "capability_level": 40,
+        "falls": 3,
+        "foot_scuffs": 8
+      },
+      "expected": {
+        "capability_envelope_improved": true,
+        "safety_improvement": false,
+        "tradeoff_visible": true
+      }
+    }
+  ]
+}
