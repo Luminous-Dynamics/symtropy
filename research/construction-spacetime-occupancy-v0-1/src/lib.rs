@@ -163,7 +163,7 @@ pub enum SpatialError {
     ReservationTaskMismatch,
     InvalidReservationInterval,
     OccupancyIdConflict(String),
-    PotentialConflict(ConflictRecord),
+    PotentialConflict(Box<ConflictRecord>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -271,7 +271,7 @@ impl SpatialOccupancyBook {
             if let Some(overlap_bounds_mm) =
                 expanded_candidate.intersection_closed(&expanded_existing)
             {
-                return Err(SpatialError::PotentialConflict(ConflictRecord {
+                return Err(SpatialError::PotentialConflict(Box::new(ConflictRecord {
                     existing_occupancy_id: existing.occupancy_id.clone(),
                     candidate_occupancy_id: occupancy.occupancy_id.clone(),
                     existing_task_id: existing.task_id.clone(),
@@ -282,7 +282,7 @@ impl SpatialOccupancyBook {
                     overlap_start_ms: overlap_start,
                     overlap_end_ms: overlap_end,
                     clock_domain_id: self.clock_domain_id.clone(),
-                }));
+                })));
             }
         }
 
