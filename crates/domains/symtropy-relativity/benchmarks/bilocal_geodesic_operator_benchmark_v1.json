@@ -40,11 +40,12 @@
     "fiducial_tangent": "k^mu = dx^mu/dlambda",
     "connecting_vector": "xi^mu",
     "covariant_tangent_deviation": "ell^mu = D xi^mu / d lambda",
-    "curvature_commutator": "[nabla_alpha,nabla_beta] v^mu = -R^mu_(nu alpha beta) v^nu",
+    "curvature_commutator": "[nabla_alpha,nabla_beta] v^mu = +R^mu_(nu alpha beta) v^nu; matches RiemannTensor4::from_metric_derivatives",
     "geodesic_deviation": "D xi/dlambda = ell; D ell/dlambda = +T xi",
     "optical_tidal_operator": "T^mu_nu = R^mu_(alpha nu beta) k^alpha k^beta",
     "endpoint_comparison": "Only compare after explicit event, chart, tetrad, affine normalization and source-surface matching.",
-    "sachs_screen_sign_policy": "Derive the projected 2x2 screen-tidal sign from the declared curvature convention and explicit screen projection. The existing Rust Sachs/Jacobi convention D''=-T_AB D must be mapped and tested; do not copy the full four-dimensional T sign by name."
+    "sachs_screen_sign_policy": "Derive the projected 2x2 screen-tidal sign from the declared curvature convention and explicit screen projection. The existing Rust Sachs/Jacobi convention D''=-T_AB D must be mapped and tested; do not copy the full four-dimensional T sign by name.",
+    "wronskian_basis_policy": "Use constant Omega only in a declared parallel-transported orthonormal frame; in a general coordinate basis use the metric-weighted bilinear form and endpoint basis transformations."
   },
   "operator": {
     "dimension": 8,
