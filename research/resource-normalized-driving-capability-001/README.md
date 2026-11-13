@@ -15,7 +15,7 @@ Autonomous-driving comparisons are misleading when they ignore input privileges,
 
 The aim is not to prove that an HDC model is smaller than a transformer. The aim is to find the best measured competence/constraint frontier and determine which Symthaea components actually contribute. Bench2Drive v0.0.4 is the maintainer-designated current benchmark release; its LEAD result is 95.59 DS / 87.28 SR. The separate community leaderboard snapshot reports methods on v0.0.3, including BridgeDrive (LEAD) at 96.34 / 89.25 and privileged PDM-Lite at 97.02 / 92.27. Do not compare v0.0.3 and v0.0.4 scores directly: v0.0.4 changes the scenario distribution and adds 3D occupancy. The public v0.0.3 leaderboard also warns that methods vary in data acquisition, expert use, compute and privileges.
 
-## What the field is doing (snapshot: 11 November 2026)
+## What the field is doing (snapshot: 13 November 2026)
 
 | Comparator | Public reference | How to use it |
 |---|---|---|
@@ -26,12 +26,25 @@ The aim is not to prove that an HDC model is smaller than a transformer. The aim
 | World-In-World, ICLR 2026 | Closed-loop platform emphasizing task success, controllability, action-observation post-training and inference-time compute | Evaluate whether predicted worlds improve agent success, not just video fidelity |
 | NVIDIA Alpamayo 2 Edge, released 10 Nov 2026 | Model card: 2.45B backbone + 0.2B action expert; 15.15 ± 0.04 km per at-fault incident on 875 AlpaSim scenarios / three rollout sets; minADE6 0.52m at 5s on 1,392 samples; Lingo-Judge 75.2; 115,000h video and about 3.7M CoC traces | Strong edge-VLA comparator. Keep closed-loop, open-loop, reasoning, training data and latency as distinct metric families |
 | Alpamayo 2 Edge deployment recipe | NVIDIA's named DRIVE AGX Thor-X recipe reports 160–190ms pixel-to-trajectory latency on DRIVE OS 7.2.7.0, CUDA 13.4 and TensorRT 11.3.1.9 | Latency comparator only on a matching hardware/software measurement configuration |
+| TIER IV AutoE2E (announced 11 Nov 2026) | 79.9M parameters; Fast–Slow architecture with a released Reactive Model and World Model/Reasoning Model components still in development; sensor support ranges from cameras-only to LiDAR/radar; intended for platforms beyond NVIDIA | Compact fast-path and cross-hardware architecture reference. Do not describe the developing full stack as a completed measured result; no native benchmark score was registered in the announcement |
 | Alpamayo 2 Super | 34B reasoning/teacher model with trajectory, CoC reasoning and auto-label outputs | High-capacity teacher; account for teacher privilege and generated supervision |
 | Waymo WOD-E2E, CVPR 2026 | 4,021 segments / approximately 12h curated for long-tail E2E scenarios with reported occurrence below 0.03% | Rare-event dataset reference; offline dataset, not a closed-loop recovery metric |
 | Waymo Open Dataset challenges | Formal challenges are not hosted in 2026, but public leaderboards remain active | Public evaluator/data route; pin the exact active leaderboard and track |
 | CARLA Leaderboard 2.0 | Separate SENSORS and MAP tracks with route completion and infraction penalties; official challenge is permanently closed | Historical methodology reference only, not an active submission path |
 | Waymo Driver | Company dashboard: 271.3M rider-only miles through June 2026; company-reported 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes against its location-adjusted human benchmark | Operational safety evidence class and eventual safety-case reference, not a simulator leaderboard |
 | NHTSA Part 573 Recall 26E035 (17 Jun 2026) | Official report describes freeway closure-sign nonrecognition, freeway construction-zone entry and cone-channelization events involving 5th-generation ADS | Failure-mode evidence for temporary traffic-control scenarios; not a rate, controlled benchmark or leaderboard result |
+
+### Why AutoE2E changes our architecture plan
+
+AutoE2E is a useful small-model comparison, but the release status matters: the reactive model is available, while the world-model and reasoning-model components are still under development. The 79.9M parameter headline is not a published end-to-end benchmark score. Evaluate the released reactive component separately and only compare the larger fast–slow system once its remaining components and evaluator protocol are available. Source: [TIER IV's 11 November 2026 announcement](https://tier4.co.jp/en/updates/press-release/20261111-tieriv-unveils-e2e-autonomous-driving).
+
+This motivates an explicit Symthaea **fast/slow cognitive budget** ablation:
+- Fast path: low-latency HDC/LTC/CfC state update, action candidates and independently enforced actuation deadline.
+- Slow path: invoke action-conditioned imagination, additional camera/sensor acquisition, simulation branches or a human query only when those can plausibly change the selected action or reduce a predeclared decision loss.
+- Reserve actuation time before spending any inference budget. If no query can finish with sufficient margin, choose a qualified fallback rather than wait.
+- Measure slow-path activation rate, incremental latency/energy, value of information, action-change rate, regret reduction, deadline skips and fallback preservation separately.
+
+The slow path must not self-certify the fast path or displace SAM. Candidate query selection is governed by #4550 and the decision-critical VOI work; runtime allocation evidence is already represented in the `inference_allocation` result-card section.
 
 ### Industry safety evidence needs both exposure metrics and failure-mode counterexamples
 
