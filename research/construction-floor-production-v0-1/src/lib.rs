@@ -93,15 +93,18 @@ pub struct LabourSlice {
     pub slice_id: String,
     pub person_id: String,
     pub role: String,
+    /// None denotes floor-wide/shared support not attributable to one task.
+    pub task_id: Option<String>,
     /// Integer minutes in one declared project accounting clock.
     pub start_minute: u64,
     pub end_minute: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MoneyPerUnit {
-    pub numerator_minor_units: u64,
-    pub denominator_accepted_units: u64,
+pub struct CrewTimeRollup {
+    pub task_id: Option<String>,
+    pub role: String,
+    pub crew_minutes: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -145,9 +148,12 @@ pub struct FloorReport {
     pub attempts: Vec<AttemptReport>,
     pub total_workflow_crew_minutes: u64,
     pub crew_minutes_by_role: BTreeMap<String, u64>,
+    pub crew_time_rollups: Vec<CrewTimeRollup>,
     pub total_cost_minor_units: u64,
     pub costs_by_category_minor_units: BTreeMap<CostCategory, u64>,
-    pub cost_per_accepted_unit: Option<MoneyPerUnit>,
+    /// Task-attributed cost only; floor-wide costs are never silently allocated.
+    pub costs_by_task_minor_units: BTreeMap<String, u64>,
+    pub unallocated_floor_cost_minor_units: u64,
     /// Present only when all required functional units are finally accepted.
     pub accepted_floor_cost_minor_units: Option<u64>,
 }
@@ -438,6 +444,11 @@ impl FloorLedger {
         if self.labour.contains_key(&slice.slice_id) {
             return Err(LedgerError::DuplicateLabourSlice(slice.slice_id));
         }
+        if let Some(task_id) = slice.task_id.as_deref() {
+            if !self.task_owners.contains_key(task_id) {
+                return Err(LedgerError::UnknownTask(task_id.to_owned()));
+            }
+        }
 
         for existing in self.labour.values() {
             if existing.person_id == slice.person_id
@@ -542,6 +553,8 @@ impl FloorLedger {
 
         let mut total_cost = 0_u64;
         let mut costs_by_category = BTreeMap::new();
+        let mut costs_by_task = BTreeMap::new();
+        let mut unallocated_floor_cost = 0_u64;
         for entry in self.costs.values() {
             total_cost = checked_add(total_cost, entry.amount_minor_units)?;
             let category_total = costs_by_category
@@ -552,10 +565,21 @@ impl FloorLedger {
                 entry.category.clone(),
                 checked_add(category_total, entry.amount_minor_units)?,
             );
+            if let Some(task_id) = entry.task_id.as_ref() {
+                let task_total = costs_by_task.get(task_id).copied().unwrap_or(0_u64);
+                costs_by_task.insert(
+                    task_id.clone(),
+                    checked_add(task_total, entry.amount_minor_units)?,
+                );
+            } else {
+                unallocated_floor_cost =
+                    checked_add(unallocated_floor_cost, entry.amount_minor_units)?;
+            }
         }
 
         let mut total_crew_minutes = 0_u64;
         let mut crew_by_role = BTreeMap::new();
+        let mut crew_by_task_role: BTreeMap<(Option<String>, String), u64> = BTreeMap::new();
         for slice in self.labour.values() {
             let duration = slice
                 .end_minute
@@ -564,14 +588,21 @@ impl FloorLedger {
             total_crew_minutes = checked_add(total_crew_minutes, duration)?;
             let role_total = crew_by_role.get(&slice.role).copied().unwrap_or(0_u64);
             crew_by_role.insert(slice.role.clone(), checked_add(role_total, duration)?);
+            let key = (slice.task_id.clone(), slice.role.clone());
+            let bucket_total = crew_by_task_role.get(&key).copied().unwrap_or(0_u64);
+            crew_by_task_role.insert(key, checked_add(bucket_total, duration)?);
         }
+        let crew_time_rollups = crew_by_task_role
+            .into_iter()
+            .map(|((task_id, role), crew_minutes)| CrewTimeRollup {
+                task_id,
+                role,
+                crew_minutes,
+            })
+            .collect();
 
         let required_units = u64::try_from(self.required_units.len())
             .map_err(|_| LedgerError::ArithmeticOverflow)?;
-        let cost_per_accepted_unit = (finally_accepted > 0).then_some(MoneyPerUnit {
-            numerator_minor_units: total_cost,
-            denominator_accepted_units: finally_accepted,
-        });
         let accepted_floor_cost = (finally_accepted == required_units).then_some(total_cost);
 
         Ok(FloorReport {
@@ -592,9 +623,11 @@ impl FloorLedger {
             attempts,
             total_workflow_crew_minutes: total_crew_minutes,
             crew_minutes_by_role: crew_by_role,
+            crew_time_rollups,
             total_cost_minor_units: total_cost,
             costs_by_category_minor_units: costs_by_category,
-            cost_per_accepted_unit,
+            costs_by_task_minor_units: costs_by_task,
+            unallocated_floor_cost_minor_units: unallocated_floor_cost,
             accepted_floor_cost_minor_units: accepted_floor_cost,
         })
     }
@@ -904,7 +937,6 @@ mod tests {
         let report = ledger.report().expect("report");
         assert_eq!(report.finally_accepted_units, 0);
         assert!(!report.floor_accepted());
-        assert_eq!(report.cost_per_accepted_unit, None);
         assert_eq!(report.accepted_floor_cost_minor_units, None);
     }
 
@@ -1103,6 +1135,7 @@ mod tests {
                 slice_id: "slice-1".to_owned(),
                 person_id: "worker-1".to_owned(),
                 role: "operator".to_owned(),
+                task_id: None,
                 start_minute: 0,
                 end_minute: 30,
             })
@@ -1113,6 +1146,7 @@ mod tests {
                 slice_id: "slice-overlap".to_owned(),
                 person_id: "worker-1".to_owned(),
                 role: "operator".to_owned(),
+                task_id: None,
                 start_minute: 29,
                 end_minute: 45,
             }),
@@ -1127,6 +1161,7 @@ mod tests {
                 slice_id: "slice-adjacent".to_owned(),
                 person_id: "worker-1".to_owned(),
                 role: "operator".to_owned(),
+                task_id: None,
                 start_minute: 30,
                 end_minute: 45,
             })
@@ -1135,6 +1170,10 @@ mod tests {
         let report = ledger.report().expect("report");
         assert_eq!(report.total_workflow_crew_minutes, 45);
         assert_eq!(report.crew_minutes_by_role.get("operator"), Some(&45));
+        assert_eq!(report.unallocated_floor_cost_minor_units, 0);
+        assert!(report.crew_time_rollups.iter().any(|row| {
+            row.task_id.is_none() && row.role == "operator" && row.crew_minutes == 45
+        }));
     }
 
     #[test]
@@ -1341,6 +1380,7 @@ mod tests {
                 slice_id: "labour-1".to_owned(),
                 person_id: "inspector-1".to_owned(),
                 role: "inspector".to_owned(),
+                task_id: Some("task-1".to_owned()),
                 start_minute: 0,
                 end_minute: 15,
             })
@@ -1381,6 +1421,15 @@ mod tests {
 
         let report = ledger.report().expect("report");
         assert_eq!(report.total_cost_minor_units, 1_000);
+        assert_eq!(
+            report.costs_by_task_minor_units.get("attempt-1"),
+            Some(&300)
+        );
+        assert_eq!(
+            report.costs_by_task_minor_units.get("attempt-2"),
+            Some(&700)
+        );
+        assert_eq!(report.unallocated_floor_cost_minor_units, 0);
         assert_eq!(
             report
                 .costs_by_category_minor_units
