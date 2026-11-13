@@ -767,11 +767,12 @@ pub fn evaluate(
             errors.push(format!("{context}: event lineage identity is required"));
         }
         let ticket = case.get("repair_ticket").unwrap_or(&Value::Null);
-        let ticket_status = required_string(ticket, "status", &context);
-        if ticket_status
-            .as_deref()
-            .is_ok_and(|status| !is_one_of(status, &["open", "closed", "unknown"]))
-        {
+        let ticket_status = required_string(ticket, "status", &context)
+            .unwrap_or_else(|error| {
+                errors.push(error);
+                "unknown".to_owned()
+            });
+        if !is_one_of(&ticket_status, &["open", "closed", "unknown"]) {
             errors.push(format!("{context}: unsupported repair ticket status"));
         }
         if required_string(ticket, "ticket_ref", &context).is_err() {
@@ -937,7 +938,7 @@ pub fn evaluate(
             "scenario_id": scenario_id,
             "verification_state": "Matched",
             "overall_disposition": overall,
-            "repair_ticket_status": ticket_status.ok(),
+            "repair_ticket_status": ticket_status,
             "alarm_status": alarm_status,
             "area_results": area_results.iter().map(|result| json!({
                 "area_id": result.area_id,
@@ -1194,4 +1195,32 @@ mod tests {
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("quality boundary change must fail");
         assert!(errors.iter().any(|error| error.contains("quality boundary")));
     }
+    #[test]
+    fn missing_repair_ticket_status_is_rejected() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][0]["repair_ticket"]["status"] = Value::Null;
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("missing ticket status must fail closed");
+        assert!(errors.iter().any(|error| error.contains("repair_ticket.status")));
+    }
+
+    #[test]
+    fn duplicate_event_lineage_is_rejected() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][1]["event_lineage_ref"] =
+            scenarios["scenarios"][0]["event_lineage_ref"].clone();
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("event lineage must be unique");
+        assert!(errors.iter().any(|error| error.contains("duplicate event_lineage_ref")));
+    }
+
+    #[test]
+    fn recurrence_requires_a_prior_claim_and_new_event_identity() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][12]["prior_restoration_claim"] = Value::Null;
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("recurrence must bind the prior restoration claim");
+        assert!(errors.iter().any(|error| error.contains("recurrence must bind a prior claim/time")));
+    }
+
 }
