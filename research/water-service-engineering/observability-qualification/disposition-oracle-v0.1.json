@@ -1,0 +1,284 @@
+{
+  "schema_version": "0.1.0",
+  "oracle_id": "water-network-observability-disposition-oracle-v0.1",
+  "corpus_id": "water-network-observability-qualification-v0.1",
+  "results": [
+    {
+      "scenario_id": "OBS-001",
+      "overall_disposition": "all_direct_observed",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-002",
+      "overall_disposition": "unobservable_under_declared_faults",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "unobservable_under_declared_faults"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-003",
+      "overall_disposition": "unobservable_under_declared_faults",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "unobservable_under_declared_faults"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-004",
+      "overall_disposition": "unobservable_under_declared_faults",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "unobservable_under_declared_faults"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-005",
+      "overall_disposition": "unobservable_under_declared_faults",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "unobservable_under_declared_faults"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-006",
+      "overall_disposition": "unobservable_under_declared_faults",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "unobservable_under_declared_faults"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-007",
+      "overall_disposition": "topology_invalidates_certificate",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "topology_invalidates_certificate"
+        }
+      ],
+      "structural_proof_reusable": false
+    },
+    {
+      "scenario_id": "OBS-008",
+      "overall_disposition": "structurally_observable_only",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "structurally_observable_only"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-009",
+      "overall_disposition": "topology_invalidates_certificate",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "topology_invalidates_certificate"
+        }
+      ],
+      "structural_proof_reusable": false
+    },
+    {
+      "scenario_id": "OBS-010",
+      "overall_disposition": "all_direct_observed",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-011",
+      "overall_disposition": "estimator_qualified_all",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "estimator_qualified_for_declared_scope"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "directly_observed_current"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "directly_observed_current"
+        }
+      ],
+      "structural_proof_reusable": true
+    },
+    {
+      "scenario_id": "OBS-012",
+      "overall_disposition": "topology_invalidates_certificate",
+      "state_dispositions": [
+        {
+          "state_id": "tank_level_1",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "tank_level_2",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "junction_pressure_1",
+          "disposition": "topology_invalidates_certificate"
+        },
+        {
+          "state_id": "junction_pressure_2",
+          "disposition": "topology_invalidates_certificate"
+        }
+      ],
+      "structural_proof_reusable": false
+    }
+  ],
+  "interpretation": "The oracle contains expected synthetic per-state and overall dispositions only; no actual sensor layout performance or state-estimation result is asserted."
+}
