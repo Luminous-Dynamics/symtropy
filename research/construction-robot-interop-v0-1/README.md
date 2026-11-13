@@ -133,7 +133,21 @@ The dependency-free `resources` module adds a deterministic calendar for exclusi
 
 The evaluator is scheduling-only: its `Granted` result is not a safety permit, work-zone clearance or motion authorization. The caller supplies a project-specific maximum clock uncertainty in the declared site clock domain; requests above that bound are rejected, interval overlap is conservatively expanded by each request's uncertainty, and reservation expiry uses the earliest possible expiry. This does not synchronize clocks or establish that the chosen uncertainty bound is physically justified. Spatial conflict geometry, external identity authorization and live dispatch remain outside this module.
 
-The Rust source currently contains 37 unit tests: 13 lifecycle, 17 resource-calendar and 7 synthetic-adapter cases.
+### Resource-calendar temporal broad phase (research branch / draft PR #4993)
+
+The current implementation under research in [RESOURCE-TEMPORAL-INDEX-001 #4992](https://github.com/Luminous-Dynamics/symtropy/issues/4992) adds two indexes while keeping the exact capacity rule unchanged:
+
+- Per-resource 60-second time buckets index every bucket touched by uncertainty-expanded half-open intervals. Reservations spanning more than 4,096 buckets use a per-resource global fallback; an oversized query falls back to the active-reservation set for that resource.
+- An ordered expiry index keyed by earliest possible expiry lets `expire(now)` visit only due reservations rather than scanning the full historical ledger.
+- Grant, owner-bound release, expiry and site-epoch invalidation keep active indexes synchronized. Historical records and consumed IDs remain in the reservation map.
+- The original exact `overlaps()` predicate and peak-concurrency event sweep remain authoritative. Bucket inclusion may create false-positive candidates; it may not omit a true overlap.
+- Public diagnostics expose indexed candidate counts and a deliberately full-scan reference count for differential tests/benchmarks. The reference method is never used for admission.
+
+The temporal-index test corpus checks bucket boundaries, uncertainty-expanded overlaps, per-resource partitioning, long-reservation fallback, duplicate idempotency, release/expiry/epoch cleanup, and agreement with full-history overlap/expiry reference scans. The research benchmark compares sparse, multi-resource, dense same-bucket and expiry-heavy workloads. It reports p50/p95/p99 insertion and query measurements where repeated samples exist, indexed candidate counts, reference overlap counts and expiry scan comparisons.
+
+This is an optimization experiment, not yet a production performance claim. It adds memory/index maintenance and may retain linear behavior for dense same-bucket or oversized-interval cases. The exact capacity oracle and full-scan reference must remain in the test suite.
+
+The Rust source currently contains 44 unit tests on the temporal-index branch: 13 lifecycle, 24 resource-calendar and 7 synthetic-adapter cases. Exact-head cross-platform CI is still required before calling this branch validated.
 
 ## Frozen reference corpus
 
