@@ -88,7 +88,8 @@
           "power_quadrature": 2000,
           "feed_quadrature": 1000,
           "clock_alignment": 1000
-        }
+        },
+        "sampling_qualification_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
       },
       "expected": {
         "leading_arc_energy_j": 12720,
