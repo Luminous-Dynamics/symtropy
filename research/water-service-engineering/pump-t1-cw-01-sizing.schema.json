@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/pump-t1-cw-01-sizing.schema.json",
+  "title": "PUMP-T1-CW-01 first-pass sizing inputs v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "basis",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pump-t1-cw-01-sizing-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_first_pass_design_arithmetic"
+    },
+    "evidence_ceiling": {
+      "const": "parametric_sizing_arithmetic_only_no_pump_product_or_safety_qualification"
+    },
+    "basis": {
+      "type": "object",
+      "required": [
+        "water_density_kg_m3",
+        "gravity_m_s2",
+        "assumed_wire_to_water_efficiency",
+        "reservoir_usable_volume_m3",
+        "illustrative_max_pipe_velocity_m_s",
+        "note"
+      ],
+      "properties": {
+        "water_density_kg_m3": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "gravity_m_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "assumed_wire_to_water_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "reservoir_usable_volume_m3": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "illustrative_max_pipe_velocity_m_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^PUMP-T1-CW-01-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "required": [
+              "flow_m3_s",
+              "head_m",
+              "pipe_internal_diameter_m"
+            ],
+            "properties": {
+              "flow_m3_s": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "head_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "pipe_internal_diameter_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  }
+}
