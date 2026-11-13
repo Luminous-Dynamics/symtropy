@@ -1,0 +1,306 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-MULTIRATE-EVENT-TIME-QUAL-001",
+  "source_scope": "synthetic_only",
+  "raw_bam_files_downloaded": false,
+  "note": "Contract corpus only; no BAM raw sample data are included.",
+  "clock_model": {
+    "timestamp_unit": "integer_nanoseconds",
+    "arithmetic": "checked_i128_intermediates",
+    "drift_unit": "parts_per_billion",
+    "rounding": "nearest_ties_away_from_zero",
+    "event_boundary_convention": "half_open_start_inclusive_end_exclusive"
+  },
+  "channel_profiles": [
+    {
+      "channel_id": "process_current_voltage",
+      "nominal_period_ns": 100000,
+      "maximum_jitter_ns": 20000,
+      "description": "Published current and voltage cadence 0.1 ms"
+    },
+    {
+      "channel_id": "robot_tcp_coordinates",
+      "nominal_period_ns": 8000000,
+      "maximum_jitter_ns": 1000000,
+      "description": "Published robot TCP cadence 8 ms; file minimum 1 ms"
+    },
+    {
+      "channel_id": "power_source_opcua",
+      "nominal_period_ns": 100000000,
+      "maximum_jitter_ns": 5000000,
+      "description": "Published power-source OPC-UA cadence 100 ms"
+    },
+    {
+      "channel_id": "control_power_gas_thermocouple",
+      "nominal_period_ns": 1000000,
+      "maximum_jitter_ns": 100000,
+      "description": "Published control, power, gas and thermocouple cadence 1 ms"
+    },
+    {
+      "channel_id": "laser_scan_profile_trigger",
+      "nominal_period_ns": 20000000,
+      "maximum_jitter_ns": 1000000,
+      "description": "Published scan-profile trigger 50 Hz"
+    },
+    {
+      "channel_id": "video_frame_trigger",
+      "nominal_period_ns": 25000000,
+      "maximum_jitter_ns": 1000000,
+      "description": "Published video trigger 40 Hz"
+    }
+  ],
+  "positive_control": {
+    "control_id": "MTIME-001",
+    "event_window": {
+      "event_id": "EV-SYNTH-02",
+      "event_type": "WELD_PASS",
+      "workpiece_id": "WID-SYNTH-01",
+      "joint_revision": "JOINT-R1",
+      "pass_id": "PASS-02",
+      "master_clock_id": "UTC-MASTER",
+      "start_ns": 0,
+      "end_ns": 500000000,
+      "start_uncertainty_ns": 1000,
+      "end_uncertainty_ns": 1000
+    },
+    "streams": [
+      {
+        "stream_id": "PROCESS-01",
+        "nominal_period_ns": 100000,
+        "expected_minimum_samples": 1666
+      },
+      {
+        "stream_id": "ROBOT-01",
+        "nominal_period_ns": 8000000,
+        "expected_minimum_samples": 60
+      },
+      {
+        "stream_id": "OPCUA-01",
+        "nominal_period_ns": 100000000,
+        "expected_minimum_samples": 4
+      }
+    ],
+    "expected_disposition": "QUALIFIED_SYNTHETIC_ALIGNMENT",
+    "claim_ceiling": "MULTIMODAL_EVENT_TIME_ALIGNMENT_ONLY"
+  },
+  "controls": [
+    {
+      "control_id": "MTIME-001",
+      "class": "positive_contract_control",
+      "expected_disposition": "QUALIFIED_SYNTHETIC_ALIGNMENT",
+      "mutation": "Align process, robot and OPC-UA streams with distinct declared rates and explicit transforms.",
+      "rationale": "Positive known-answer verifies cadence preservation and deterministic membership."
+    },
+    {
+      "control_id": "MTIME-002",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_UNKNOWN_CLOCK",
+      "mutation": "Unknown source clock is assigned the master clock by default.",
+      "rationale": "Clock domain identity must be explicit."
+    },
+    {
+      "control_id": "MTIME-003",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MASTER_CLOCK_MISMATCH",
+      "mutation": "Stream master clock differs from event clock.",
+      "rationale": "All event memberships share the declared master coordinate."
+    },
+    {
+      "control_id": "MTIME-004",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BAD_SOURCE_DIGEST",
+      "mutation": "Source SHA-256 is missing, malformed or zero.",
+      "rationale": "Receipts bind source evidence identity."
+    },
+    {
+      "control_id": "MTIME-005",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TRANSFORM_DIGEST_MISMATCH",
+      "mutation": "Calibration/source digest link is mismatched or malformed.",
+      "rationale": "Source and calibration receipt digests must match."
+    },
+    {
+      "control_id": "MTIME-006",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_EXPIRED_TRANSFORM",
+      "mutation": "Timestamp lies outside clock-transform validity.",
+      "rationale": "Expired clock calibration is not extrapolated."
+    },
+    {
+      "control_id": "MTIME-007",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_POSITIVE_NEGATIVE_DRIFT",
+      "mutation": "Positive or negative drift sign/magnitude is applied incorrectly.",
+      "rationale": "Transforms must reproduce integer known answers."
+    },
+    {
+      "control_id": "MTIME-008",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DRIFT_UNCERTAINTY",
+      "mutation": "Drift uncertainty is omitted or does not grow with epoch distance.",
+      "rationale": "Clock uncertainty grows with elapsed source time."
+    },
+    {
+      "control_id": "MTIME-009",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ZERO_CLOCK_UNCERTAINTY",
+      "mutation": "Common-clock declaration is treated as zero timing uncertainty.",
+      "rationale": "A shared clock is not a zero-uncertainty certificate."
+    },
+    {
+      "control_id": "MTIME-010",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ZERO_SAMPLE_UNCERTAINTY",
+      "mutation": "Sample timestamp uncertainty is missing or converted to zero.",
+      "rationale": "Unknown timing uncertainty is not zero."
+    },
+    {
+      "control_id": "MTIME-011",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIME_OVERFLOW",
+      "mutation": "Affine integer time arithmetic wraps on overflow.",
+      "rationale": "Checked arithmetic rejects overflow."
+    },
+    {
+      "control_id": "MTIME-012",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_NONPOSITIVE_SLOPE",
+      "mutation": "Affine clock slope is zero or negative.",
+      "rationale": "A non-monotonic clock transform is invalid."
+    },
+    {
+      "control_id": "MTIME-013",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DUPLICATE_SEQUENCE",
+      "mutation": "Duplicate sample sequence is silently accepted.",
+      "rationale": "Sequence identity must be unique."
+    },
+    {
+      "control_id": "MTIME-014",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_OUT_OF_ORDER_SEQUENCE",
+      "mutation": "Sequence number regresses without discontinuity policy.",
+      "rationale": "Ordering is verified, not inferred from row order."
+    },
+    {
+      "control_id": "MTIME-015",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DUPLICATE_TIMESTAMP",
+      "mutation": "Duplicate source timestamp is treated as another independent sample.",
+      "rationale": "Duplicate timestamp semantics must be resolved."
+    },
+    {
+      "control_id": "MTIME-016",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_OUT_OF_ORDER_TIMESTAMP",
+      "mutation": "Source timestamps regress despite increasing sequence.",
+      "rationale": "Event time is not replaced by sequence order."
+    },
+    {
+      "control_id": "MTIME-017",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MISSING_AS_EPOCH_ZERO",
+      "mutation": "Missing timestamp is replaced by Unix epoch or zero.",
+      "rationale": "Missing timestamps remain missing."
+    },
+    {
+      "control_id": "MTIME-018",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MISSING_RECEIVE_TIME",
+      "mutation": "Missing receive time is assumed available at decision cutoff.",
+      "rationale": "Point-in-time availability requires receive time."
+    },
+    {
+      "control_id": "MTIME-019",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_FUTURE_INFORMATION",
+      "mutation": "Sample received after decision cutoff influences decision.",
+      "rationale": "Future information leakage is forbidden."
+    },
+    {
+      "control_id": "MTIME-020",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_FUTURE_EVENT_TIME",
+      "mutation": "Mapped event timestamp is after decision cutoff.",
+      "rationale": "A future event-time sample cannot support a past decision."
+    },
+    {
+      "control_id": "MTIME-021",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_END_BOUNDARY_INCLUSIVE",
+      "mutation": "Sample at event end is included in adjacent half-open windows.",
+      "rationale": "Half-open boundaries prevent double counting."
+    },
+    {
+      "control_id": "MTIME-022",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BOUNDARY_UNCERTAINTY",
+      "mutation": "Uncertainty envelope crossing pass boundary is arbitrarily assigned.",
+      "rationale": "Ambiguous membership abstains."
+    },
+    {
+      "control_id": "MTIME-023",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_COMMON_CADENCE_FABRICATION",
+      "mutation": "Different stream cadences are coerced to one sample index or 0.1ms grid.",
+      "rationale": "A common clock does not imply a common sample cadence or index."
+    },
+    {
+      "control_id": "MTIME-024",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_STALE_OPCUA_HOLD_LAST",
+      "mutation": "100ms OPC-UA value is held beyond its declared maximum age.",
+      "rationale": "Stale state is excluded, not held silently."
+    },
+    {
+      "control_id": "MTIME-025",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LATE_ARRIVAL_RETIMING",
+      "mutation": "Late arrival event time is replaced with receive time.",
+      "rationale": "Event time and ingestion time are distinct."
+    },
+    {
+      "control_id": "MTIME-026",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BAD_QUALITY_COUNTS",
+      "mutation": "Clipped, dropped or invalid values count as valid coverage.",
+      "rationale": "Only valid samples support coverage."
+    },
+    {
+      "control_id": "MTIME-027",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MISSING_INTERPOLATION",
+      "mutation": "Missing or dropped samples are interpolated by default.",
+      "rationale": "No sample fabrication or interpolation by default."
+    },
+    {
+      "control_id": "MTIME-028",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CAUSAL_LAG_PROMOTION",
+      "mutation": "Lead/lag is asserted below combined time uncertainty.",
+      "rationale": "Temporal resolvability is not causality."
+    },
+    {
+      "control_id": "MTIME-029",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CROSS_WID_JOIN",
+      "mutation": "Sample from another WID, joint revision or pass is joined.",
+      "rationale": "Identity mismatch blocks cross-event joins."
+    },
+    {
+      "control_id": "MTIME-030",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BOUNDARY_GAP_HIDDEN",
+      "mutation": "Event-edge gaps are hidden by high interior point count.",
+      "rationale": "Maximum gap includes event-window edges."
+    },
+    {
+      "control_id": "MTIME-031",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LATE_SAMPLE_LOOKAHEAD",
+      "mutation": "Data received after a past decision are backdated into that decision.",
+      "rationale": "A decision may use only information received by its cutoff."
+    }
+  ],
+  "claim_ceiling": "Synthetic integer-time and uncertainty contract only; not proof of hardware synchronization."
+}
