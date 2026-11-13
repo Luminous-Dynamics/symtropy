@@ -1276,6 +1276,60 @@ mod tests {
     }
 
     #[test]
+    fn setup_reservation_must_match_transition_and_exact_interval() {
+        let (problem, mut wrong_family) = setup_required_case();
+        wrong_family.setup_reservations[0].to_family = "linen".to_owned();
+        assert!(has(
+            &validate(&problem, &wrong_family),
+            "SETUP_RESERVATION_TRANSITION_MISMATCH"
+        ));
+
+        let (problem, mut wrong_duration) = setup_required_case();
+        wrong_duration.setup_reservations[0].finish_tick = 4;
+        assert!(has(
+            &validate(&problem, &wrong_duration),
+            "SETUP_RESERVATION_DURATION_MISMATCH"
+        ));
+
+        let (problem, mut outside_gap) = setup_required_case();
+        outside_gap.setup_reservations[0].start_tick = 2;
+        outside_gap.setup_reservations[0].finish_tick = 4;
+        assert!(has(
+            &validate(&problem, &outside_gap),
+            "SETUP_RESERVATION_OUTSIDE_TRANSITION_GAP"
+        ));
+    }
+
+    #[test]
+    fn orphan_setup_reservation_cannot_satisfy_another_transition() {
+        let (problem, mut schedule) = setup_required_case();
+        schedule.setup_reservations[0].predecessor_operation_id =
+            Some("unrelated-operation".to_owned());
+        let report = validate(&problem, &schedule);
+        assert!(has(&report, "SETUP_RESERVATION_MISSING"));
+        assert!(has(&report, "ORPHAN_SETUP_RESERVATION"));
+    }
+
+    #[test]
+    fn zero_duration_transition_rejects_setup_labor_reservation() {
+        let (problem, mut schedule) = two_job_four_stage_case();
+        schedule.setup_reservations.push(SetupReservation {
+            machine_id: "cut-line".to_owned(),
+            from_family: "woven".to_owned(),
+            to_family: "woven".to_owned(),
+            predecessor_operation_id: None,
+            next_operation_id: "cut-a".to_owned(),
+            operator_id: "cutter".to_owned(),
+            start_tick: 0,
+            finish_tick: 1,
+        });
+        assert!(has(
+            &validate(&problem, &schedule),
+            "UNEXPECTED_SETUP_RESERVATION"
+        ));
+    }
+
+    #[test]
     fn precedence_is_checked_independently() {
         let (problem, mut schedule) = two_job_four_stage_case();
         let sew_a = schedule
