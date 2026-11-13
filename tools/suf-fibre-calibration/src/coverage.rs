@@ -22,8 +22,16 @@ pub enum CoverageError {
     IncompleteStatePartition,
     /// Allocated length does not equal the declared in-scope route length.
     LengthAccountingMismatch,
-    /// Detection count exceeds independent eligible event trials.
-    DetectionsExceedTrials,
+    /// A required physical-event identity is empty.
+    EmptyEventIdentity,
+    /// The same physical event was counted more than once.
+    DuplicateEventIdentity,
+    /// A detection references an event that is not an eligible independent trial.
+    DetectedEventNotEligible,
+    /// Event identities were supplied without independent event truth.
+    EventIdentitiesWithoutTruth,
+    /// False-alarm episode identities were supplied without independent background truth.
+    FalseAlarmEpisodesWithoutTruth,
     /// Event trials were declared but no observable exposure exists.
     TrialsWithoutObservableExposure,
 }
@@ -45,10 +53,19 @@ impl fmt::Display for CoverageError {
                 f,
                 "observability-state lengths do not account for the route"
             ),
-            Self::DetectionsExceedTrials => write!(
-                f,
-                "detected events cannot exceed independent eligible event trials"
-            ),
+            Self::EmptyEventIdentity => write!(f, "physical event identity must not be empty"),
+            Self::DuplicateEventIdentity => {
+                write!(f, "one physical event identity cannot be counted more than once")
+            }
+            Self::DetectedEventNotEligible => {
+                write!(f, "detected event identity is not in the eligible event-trial set")
+            }
+            Self::EventIdentitiesWithoutTruth => {
+                write!(f, "event identities require independently labelled event truth")
+            }
+            Self::FalseAlarmEpisodesWithoutTruth => {
+                write!(f, "false-alarm episode identities require independent background truth")
+            }
             Self::TrialsWithoutObservableExposure => {
                 write!(
                     f,
@@ -144,12 +161,12 @@ pub struct EventConditionedCoverageInput {
     pub independent_event_truth_available: bool,
     /// True only when no-event/background exposure is independently labelled for false-alarm rate.
     pub independent_background_truth_available: bool,
-    /// Event trials eligible for POD: truth events occurring in the declared observable envelope.
-    pub eligible_event_trials: u64,
-    /// Number of eligible events detected by the candidate method.
-    pub detected_events: u64,
-    /// False event alarms in the same observable exposure window.
-    pub false_alarm_count: u64,
+    /// Unique identities of independent physical events eligible for POD. Each identity represents one physical event, not a window, crop, frame or repeated observation.
+    pub eligible_event_ids: Vec<String>,
+    /// Unique identities of eligible physical events detected by the candidate method.
+    pub detected_event_ids: Vec<String>,
+    /// Unique identities of false-alarm episodes in independently labelled background exposure. Overlapping windows from one episode share one identity.
+    pub false_alarm_episode_ids: Vec<String>,
 }
 
 /// A two-sided Wilson score confidence interval for a binomial POD estimate.
@@ -209,6 +226,8 @@ pub struct CoverageAssessment {
     pub probability_of_detection: Option<f64>,
     /// 95% Wilson interval for POD, when estimable.
     pub pod_95_interval: Option<WilsonInterval>,
+    /// Unique false-alarm episode count, absent without independent background truth.
+    pub false_alarm_count: Option<u64>,
     /// False alarms per fully observable fibre-km-day.
     pub false_alarms_per_observable_km_day: Option<f64>,
 }
@@ -245,9 +264,27 @@ impl EventConditionedCoverageInput {
                 return Err(CoverageError::InvalidPositiveValue(name));
             }
         }
-        if self.detected_events > self.eligible_event_trials {
-            return Err(CoverageError::DetectionsExceedTrials);
+        if !self.independent_event_truth_available
+            && (!self.eligible_event_ids.is_empty() || !self.detected_event_ids.is_empty())
+        {
+            return Err(CoverageError::EventIdentitiesWithoutTruth);
         }
+        if !self.independent_background_truth_available
+            && !self.false_alarm_episode_ids.is_empty()
+        {
+            return Err(CoverageError::FalseAlarmEpisodesWithoutTruth);
+        }
+        validate_unique_event_ids(&self.eligible_event_ids)?;
+        validate_unique_event_ids(&self.detected_event_ids)?;
+        validate_unique_event_ids(&self.false_alarm_episode_ids)?;
+        for detected_id in &self.detected_event_ids {
+            if !self.eligible_event_ids.iter().any(|eligible_id| eligible_id == detected_id) {
+                return Err(CoverageError::DetectedEventNotEligible);
+            }
+        }
+        let eligible_event_trials = self.eligible_event_ids.len() as u64;
+        let detected_events = self.detected_event_ids.len() as u64;
+        let false_alarm_count = self.false_alarm_episode_ids.len() as u64;
         if self.allocations.len() != ObservabilityState::all().len() {
             return Err(CoverageError::IncompleteStatePartition);
         }
@@ -310,28 +347,28 @@ impl EventConditionedCoverageInput {
         let observable_length_fraction = observable_length_km / self.total_route_length_km;
 
         if self.independent_event_truth_available
-            && self.eligible_event_trials > 0
+            && eligible_event_trials > 0
             && observable_exposure_km_days <= 0.0
         {
             return Err(CoverageError::TrialsWithoutObservableExposure);
         }
 
-        let pod = if self.independent_event_truth_available && self.eligible_event_trials > 0 {
-            Some(self.detected_events as f64 / self.eligible_event_trials as f64)
+        let pod = if self.independent_event_truth_available && eligible_event_trials > 0 {
+            Some(detected_events as f64 / eligible_event_trials as f64)
         } else {
             None
         };
         let pod_disposition = if !self.independent_event_truth_available {
             CoverageDisposition::Indeterminate
-        } else if self.eligible_event_trials == 0 {
+        } else if eligible_event_trials == 0 {
             CoverageDisposition::NotAssessed
         } else {
             CoverageDisposition::Qualified
         };
         let pod_95_interval = if pod.is_some() {
             Some(wilson_interval(
-                self.detected_events,
-                self.eligible_event_trials,
+                detected_events,
+                eligible_event_trials,
                 1.959_963_984_540_054,
             ))
         } else {
@@ -339,7 +376,7 @@ impl EventConditionedCoverageInput {
         };
         let false_alarms_per_observable_km_day =
             if self.independent_background_truth_available && observable_exposure_km_days > 0.0 {
-                Some(self.false_alarm_count as f64 / observable_exposure_km_days)
+                Some(false_alarm_count as f64 / observable_exposure_km_days)
             } else {
                 None
             };
@@ -376,18 +413,33 @@ impl EventConditionedCoverageInput {
             degraded_exposure_km_days,
             eligible_event_trials: self
                 .independent_event_truth_available
-                .then_some(self.eligible_event_trials),
+                .then_some(eligible_event_trials),
             detected_events: self
                 .independent_event_truth_available
-                .then_some(self.detected_events),
+                .then_some(detected_events),
             missed_events: self
                 .independent_event_truth_available
-                .then_some(self.eligible_event_trials - self.detected_events),
+                .then_some(eligible_event_trials - detected_events),
             probability_of_detection: pod,
             pod_95_interval,
+            false_alarm_count: self
+                .independent_background_truth_available
+                .then_some(false_alarm_count),
             false_alarms_per_observable_km_day,
         })
     }
+}
+
+fn validate_unique_event_ids(ids: &[String]) -> CoverageResult<()> {
+    for (index, id) in ids.iter().enumerate() {
+        if id.trim().is_empty() {
+            return Err(CoverageError::EmptyEventIdentity);
+        }
+        if ids[index + 1..].iter().any(|other| other == id) {
+            return Err(CoverageError::DuplicateEventIdentity);
+        }
+    }
+    Ok(())
 }
 
 fn wilson_interval(successes: u64, trials: u64, z: f64) -> WilsonInterval {
@@ -455,9 +507,9 @@ mod tests {
             allocations: allocations(6.0, 2.0, 2.0),
             independent_event_truth_available: true,
             independent_background_truth_available: true,
-            eligible_event_trials: 10,
-            detected_events: 8,
-            false_alarm_count: 3,
+            eligible_event_ids: (0..10).map(|index| format!("physical-event-{index}")).collect(),
+            detected_event_ids: (0..8).map(|index| format!("physical-event-{index}")).collect(),
+            false_alarm_episode_ids: (0..3).map(|index| format!("false-alarm-episode-{index}")).collect(),
         }
     }
 
@@ -482,12 +534,15 @@ mod tests {
         assert_eq!(report.eligible_event_trials, Some(10));
         assert_eq!(report.detected_events, Some(8));
         assert_eq!(report.missed_events, Some(2));
+        assert_eq!(report.false_alarm_count, Some(3));
     }
 
     #[test]
     fn pod_requires_independent_event_truth_but_background_metric_can_still_qualify() {
         let report = EventConditionedCoverageInput {
             independent_event_truth_available: false,
+            eligible_event_ids: Vec::new(),
+            detected_event_ids: Vec::new(),
             ..input()
         }
         .evaluate()
@@ -509,9 +564,9 @@ mod tests {
     #[test]
     fn zero_trials_are_not_reported_as_zero_pod() {
         let report = EventConditionedCoverageInput {
-            eligible_event_trials: 0,
-            detected_events: 0,
-            false_alarm_count: 0,
+            eligible_event_ids: Vec::new(),
+            detected_event_ids: Vec::new(),
+            false_alarm_episode_ids: Vec::new(),
             ..input()
         }
         .evaluate()
@@ -567,12 +622,47 @@ mod tests {
     }
 
     #[test]
-    fn rejects_detections_greater_than_event_trials() {
+    fn rejects_detected_event_id_not_in_eligible_trial_set() {
         let value = EventConditionedCoverageInput {
-            detected_events: 11,
+            detected_event_ids: vec!["unmatched-physical-event".to_owned()],
             ..input()
         };
-        assert_eq!(value.evaluate(), Err(CoverageError::DetectionsExceedTrials));
+        assert_eq!(value.evaluate(), Err(CoverageError::DetectedEventNotEligible));
+    }
+
+    #[test]
+    fn rejects_duplicate_physical_event_identities() {
+        let mut value = input();
+        value.eligible_event_ids[1] = value.eligible_event_ids[0].clone();
+        assert_eq!(value.evaluate(), Err(CoverageError::DuplicateEventIdentity));
+    }
+
+    #[test]
+    fn rejects_event_windows_without_independent_event_truth() {
+        let value = EventConditionedCoverageInput {
+            independent_event_truth_available: false,
+            eligible_event_ids: vec!["window-1-from-event-1".to_owned()],
+            detected_event_ids: Vec::new(),
+            ..input()
+        };
+        assert_eq!(value.evaluate(), Err(CoverageError::EventIdentitiesWithoutTruth));
+    }
+
+    #[test]
+    fn rejects_duplicate_false_alarm_episode_identities() {
+        let mut value = input();
+        value.false_alarm_episode_ids[1] = value.false_alarm_episode_ids[0].clone();
+        assert_eq!(value.evaluate(), Err(CoverageError::DuplicateEventIdentity));
+    }
+
+    #[test]
+    fn rejects_false_alarm_episodes_without_background_truth() {
+        let value = EventConditionedCoverageInput {
+            independent_background_truth_available: false,
+            false_alarm_episode_ids: vec!["unverified-false-alarm".to_owned()],
+            ..input()
+        };
+        assert_eq!(value.evaluate(), Err(CoverageError::FalseAlarmEpisodesWithoutTruth));
     }
 
     #[test]
@@ -586,8 +676,8 @@ mod tests {
     fn does_not_claim_events_in_a_fully_blind_cell() {
         let value = EventConditionedCoverageInput {
             allocations: allocations(0.0, 0.0, 10.0),
-            eligible_event_trials: 1,
-            detected_events: 0,
+            eligible_event_ids: vec!["blind-physical-event".to_owned()],
+            detected_event_ids: Vec::new(),
             ..input()
         };
         assert_eq!(
@@ -600,11 +690,12 @@ mod tests {
     fn no_independent_truth_is_not_eligible_for_false_alarm_rate() {
         let report = EventConditionedCoverageInput {
             independent_background_truth_available: false,
-            false_alarm_count: 3,
+            false_alarm_episode_ids: Vec::new(),
             ..input()
         }
         .evaluate()
         .expect("valid input");
+        assert!(report.false_alarm_count.is_none());
         assert!(report.false_alarms_per_observable_km_day.is_none());
         assert_eq!(
             report.false_alarm_disposition,
