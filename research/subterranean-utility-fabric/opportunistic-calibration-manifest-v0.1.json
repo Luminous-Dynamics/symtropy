@@ -1,0 +1,290 @@
+{
+  "schema_version": "suf.opportunistic_calibration_manifest.v0.1",
+  "status": "synthetic_campaign_plan_only",
+  "created_date": "2026-11-13",
+  "workstream": "OPPORTUNISTIC-CALIBRATION-QUAL-001",
+  "claim_ceiling": "Synthetic experiment plan only. No adaptive calibration implementation, field trajectory data, route survey, absolute geolocation or economic improvement is claimed.",
+  "methods": [
+    "M0_UNCALIBRATED_NEGATIVE_CONTROL",
+    "M1_FIXED_OFFSET_SCALE",
+    "M2_FIXED_SPACED_TIEPOINTS",
+    "M3_PASSIVE_TRAFFIC",
+    "M4_CONTROLLED_EXCITATION",
+    "M5_HYBRID_CALIBRATION",
+    "M6_ADAPTIVE_VALUE_OF_INFORMATION",
+    "M7_TOPOLOGY_AWARE_MULTI_HYPOTHESIS"
+  ],
+  "metrics": [
+    "cross_track_error_p50_p95",
+    "along_track_error_p50_p95",
+    "absolute_geographic_error",
+    "relative_shape_error",
+    "interval_coverage_90_95",
+    "interval_width",
+    "ambiguity_preservation",
+    "false_high_confidence_absolute_geography",
+    "anchor_count_and_spacing",
+    "measurement_time_and_cost",
+    "information_gain",
+    "expected_value_of_sample_information",
+    "decision_regret",
+    "revision_invalidation_completeness"
+  ],
+  "scenarios": [
+    {
+      "id": "OCA-001",
+      "scenario_type": "ABSOLUTE_CONTROL_PRESENT",
+      "name": "Passive traffic observations with independently surveyed route ties",
+      "expected_disposition": "Accepted",
+      "conditions": "DAS and independently referenced vehicle paths; adequate survey anchors; declared CRS and time synchronization.",
+      "perturbations": [
+        "absolute_control_present"
+      ],
+      "oracle_requirement": "Compare M3/M5/M6 against held-out surveyed controls; never use held-out points for fitting."
+    },
+    {
+      "id": "OCA-002",
+      "scenario_type": "NO_ABSOLUTE_DATUM_TIE",
+      "name": "Traffic-only path shape without independent geographic control",
+      "expected_disposition": "Unsupported",
+      "conditions": "Relative traffic/DAS alignment but no surveyed control, known endpoint or independently referenced trajectory.",
+      "perturbations": [
+        "no_absolute_datum_tie"
+      ],
+      "oracle_requirement": "Do not issue absolute geographic coordinates; relative shape may be reported with unresolved gauge freedom."
+    },
+    {
+      "id": "OCA-003",
+      "scenario_type": "PARALLEL_ROUTES",
+      "name": "Two nearby parallel ducts with similar traffic excitation",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Two candidate fibre/duct paths fit measured strain maps within declared noise.",
+      "perturbations": [
+        "parallel_routes"
+      ],
+      "oracle_requirement": "Preserve both hypotheses; request an independent tie point or distinguishing excitation."
+    },
+    {
+      "id": "OCA-004",
+      "scenario_type": "CORRELATED_TRAJECTORIES",
+      "name": "All vehicle paths use the same narrow lane",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Large observation count but low geometric excitation diversity.",
+      "perturbations": [
+        "correlated_trajectories"
+      ],
+      "oracle_requirement": "Detect redundancy; do not treat repeated similar trajectories as independent calibration information."
+    },
+    {
+      "id": "OCA-005",
+      "scenario_type": "TRAJECTORY_DIVERSITY",
+      "name": "Independent trajectories cross the route from different directions",
+      "expected_disposition": "Accepted",
+      "conditions": "Known route endpoints and independent vehicle trajectories provide complementary excitation.",
+      "perturbations": [
+        "trajectory_diversity"
+      ],
+      "oracle_requirement": "Demonstrate increased identifiability on held-out controls; report covariance/interval change."
+    },
+    {
+      "id": "OCA-006",
+      "scenario_type": "GNSS_MULTIPATH",
+      "name": "Biased vehicle GNSS beside tall buildings",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Trajectory reports are spatially biased and the bias is not bounded by the source metadata.",
+      "perturbations": [
+        "gnss_multipath"
+      ],
+      "oracle_requirement": "Widen uncertainty or reject absolute registration; do not absorb unknown GNSS bias as fibre geometry."
+    },
+    {
+      "id": "OCA-007",
+      "scenario_type": "VIDEO_OCCLUSION",
+      "name": "Camera loses the vehicle during part of its path",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Trajectory has missing intervals and a partially constrained camera calibration.",
+      "perturbations": [
+        "video_occlusion"
+      ],
+      "oracle_requirement": "Preserve missingness and affected route interval; no extrapolated high-confidence trajectory."
+    },
+    {
+      "id": "OCA-008",
+      "scenario_type": "TIME_OFFSET",
+      "name": "DAS and trajectory clocks have an unknown offset",
+      "expected_disposition": "Rejected",
+      "conditions": "Time offset exceeds the frozen synchronization tolerance or is unbounded.",
+      "perturbations": [
+        "time_offset"
+      ],
+      "oracle_requirement": "Reject joint inversion until clock relation is independently calibrated."
+    },
+    {
+      "id": "OCA-009",
+      "scenario_type": "CLOCK_DRIFT",
+      "name": "Clock offset changes during acquisition",
+      "expected_disposition": "Rejected",
+      "conditions": "A single offset cannot align DAS and trajectory over the full acquisition interval.",
+      "perturbations": [
+        "clock_drift"
+      ],
+      "oracle_requirement": "Detect drift; require a time-varying clock model with independent calibration."
+    },
+    {
+      "id": "OCA-010",
+      "scenario_type": "ROAD_DUCT_DIVERGENCE",
+      "name": "Road centreline differs from buried duct route",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Traffic trajectory follows a road that diverges from the underground fibre alignment.",
+      "perturbations": [
+        "road_duct_divergence"
+      ],
+      "oracle_requirement": "Do not use road geometry as route truth; infer against independent tie points."
+    },
+    {
+      "id": "OCA-011",
+      "scenario_type": "SELF_NEAR_ROUTE",
+      "name": "Route crosses or passes close to itself",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Multiple chainage values are geographically close and share similar signal fits.",
+      "perturbations": [
+        "self_near_route"
+      ],
+      "oracle_requirement": "Preserve topology and multiple hypotheses; proximity is not identity."
+    },
+    {
+      "id": "OCA-012",
+      "scenario_type": "SPLICE_REVISION",
+      "name": "New splice or reroute after calibration",
+      "expected_disposition": "Rejected",
+      "conditions": "Existing optical path calibration references an older fibre topology revision.",
+      "perturbations": [
+        "splice_revision"
+      ],
+      "oracle_requirement": "Invalidate dependent transformations and require a new calibration receipt."
+    },
+    {
+      "id": "OCA-013",
+      "scenario_type": "CONDUIT_COUPLING",
+      "name": "Fibre in conduit has damping not present in direct burial",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Event/trajectory coupling assumptions are drawn from direct-burial baseline only.",
+      "perturbations": [
+        "conduit_coupling"
+      ],
+      "oracle_requirement": "Do not transfer direct-burial performance; qualify conduit coupling separately."
+    },
+    {
+      "id": "OCA-014",
+      "scenario_type": "SLACK_AND_PATCH_LEAD",
+      "name": "Unmeasured slack and launch/patch leads",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Optical range cannot be mapped to physical route distance with available metadata.",
+      "perturbations": [
+        "slack_and_patch_lead"
+      ],
+      "oracle_requirement": "Request path-length measurement or keep fibre-relative coordinate unresolved."
+    },
+    {
+      "id": "OCA-015",
+      "scenario_type": "DECISION_IRRELEVANT_INFORMATION",
+      "name": "Measurement reduces entropy but cannot change maintenance action",
+      "expected_disposition": "Accepted",
+      "conditions": "All posterior hypotheses select the same action under the declared loss function.",
+      "perturbations": [
+        "decision_irrelevant_information"
+      ],
+      "oracle_requirement": "Information gain may be positive; EVSI must be zero before acquisition cost."
+    },
+    {
+      "id": "OCA-016",
+      "scenario_type": "INCOMPARABLE_COST_UNITS",
+      "name": "Survey cost and decision loss use different units",
+      "expected_disposition": "Unsupported",
+      "conditions": "Action cost and decision loss have no defensible conversion or common utility scale.",
+      "perturbations": [
+        "incomparable_cost_units"
+      ],
+      "oracle_requirement": "Suppress net-value ranking; report information gain and costs separately."
+    },
+    {
+      "id": "OCA-017",
+      "scenario_type": "UNAUTHORIZED_VIDEO",
+      "name": "Traffic video cannot be lawfully accessed for the intended purpose",
+      "expected_disposition": "Rejected",
+      "conditions": "Data rights, privacy authority or retention basis is absent.",
+      "perturbations": [
+        "unauthorized_video"
+      ],
+      "oracle_requirement": "Do not acquire or process video; choose an authorized alternative measurement."
+    },
+    {
+      "id": "OCA-018",
+      "scenario_type": "CONFLICTING_SURVEY_CONTROLS",
+      "name": "Independent survey anchors disagree beyond their stated uncertainty",
+      "expected_disposition": "Indeterminate",
+      "conditions": "Two control sources produce mutually inconsistent route registration.",
+      "perturbations": [
+        "conflicting_survey_controls"
+      ],
+      "oracle_requirement": "Preserve conflict and source provenance; seek adjudication or a new independent control."
+    },
+    {
+      "id": "OCA-019",
+      "scenario_type": "ADVERSARIAL_TRAJECTORY",
+      "name": "Trajectory file contains injected or tampered positions",
+      "expected_disposition": "Rejected",
+      "conditions": "Source integrity or independent vehicle/trajectory authentication fails.",
+      "perturbations": [
+        "adversarial_trajectory"
+      ],
+      "oracle_requirement": "Reject affected evidence and do not optimize a route from it."
+    },
+    {
+      "id": "OCA-020",
+      "scenario_type": "SPARSE_ANCHOR_EFFICIENCY",
+      "name": "Adaptive method selects a high-value additional anchor",
+      "expected_disposition": "Accepted",
+      "conditions": "Same initial controls and budget as fixed-spacing baseline; candidate anchor is independently obtainable.",
+      "perturbations": [
+        "sparse_anchor_efficiency"
+      ],
+      "oracle_requirement": "Compare route-error reduction and decision regret per action and per unit cost."
+    },
+    {
+      "id": "OCA-021",
+      "scenario_type": "HELD_OUT_ROUTE_TRANSFER",
+      "name": "Candidate model is evaluated on an unseen route/campaign",
+      "expected_disposition": "Accepted",
+      "conditions": "Route, campaign and acquisition sessions are held out from all fitting/tuning.",
+      "perturbations": [
+        "held_out_route_transfer"
+      ],
+      "oracle_requirement": "Report transfer, calibration and abstention without test-time adaptation."
+    },
+    {
+      "id": "OCA-022",
+      "scenario_type": "SCALE_GAUGE_AMBIGUITY",
+      "name": "Relative reconstruction has unresolved scale or rotation",
+      "expected_disposition": "Unsupported",
+      "conditions": "Signal fit constrains path shape but leaves an absolute transform degree of freedom.",
+      "perturbations": [
+        "scale_gauge_ambiguity"
+      ],
+      "oracle_requirement": "Report relative geometry only; require control before geographic output."
+    }
+  ],
+  "global_controls": [
+    "Absolute geography requires an independent datum/control tie.",
+    "Relative path shape is not an absolute geographic route.",
+    "Asset attribution is a separate owner-authorized claim.",
+    "Repeated correlated trajectories do not count as independent geometric excitation.",
+    "Route ambiguity is preserved rather than collapsed to a single optimizer mode.",
+    "Information gain and expected decision value are distinct metrics.",
+    "Costs and losses in incomparable units suppress net-value ranking.",
+    "Held-out surveyed truth is not used for route fitting or hyperparameter tuning.",
+    "Rights and privacy authorization are preconditions for video/trajectory acquisition.",
+    "Fibre, route, endpoint, timebase and interrogator revisions bind all calibration results.",
+    "All results remain population-specific and synthetic until physical evidence exists."
+  ]
+}
