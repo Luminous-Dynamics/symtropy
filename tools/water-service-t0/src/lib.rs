@@ -664,6 +664,165 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_membrane_ro_m0(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 5;
+    const CEILING: &str =
+        "synthetic_transport_arithmetic_only_no_empirical_RO_performance_or_fouling_claim";
+
+    if string(inputs, &["schema_version"])? != "membrane-ro-m0-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_transport_arithmetic"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "membrane-ro-m0-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_transport_arithmetic"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("membrane RO M0 input/oracle identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "membrane RO M0 cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "membrane RO M0 oracle cases must be an array".to_owned())?;
+    if cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "membrane RO M0 expected {EXPECTED_CASES} input and oracle cases; got {} and {}",
+            cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["case_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("membrane RO M0 duplicate oracle case ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("membrane RO M0 duplicate input case ID: {id}"));
+        }
+        let input = at(case, &["inputs"])?;
+        let flux = number(input, &["flux_l_m2_h"])?;
+        let delta_pressure = number(input, &["delta_pressure_bar"])?;
+        let osmotic_wall = number(input, &["osmotic_pressure_wall_bar"])?;
+        let osmotic_permeate = number(input, &["osmotic_pressure_permeate_bar"])?;
+        let rejection = number(input, &["rejection_fraction"])?;
+        let mass_transfer = number(input, &["mass_transfer_coefficient_l_m2_h"])?;
+
+        if flux <= 0.0
+            || delta_pressure <= 0.0
+            || osmotic_wall < 0.0
+            || osmotic_permeate < 0.0
+            || !(0.0 < rejection && rejection < 1.0)
+            || mass_transfer <= 0.0
+        {
+            return Err(format!("{id}: invalid transport input domain"));
+        }
+
+        let net_driving_pressure = delta_pressure - (osmotic_wall - osmotic_permeate);
+        if !net_driving_pressure.is_finite() || net_driving_pressure <= 0.0 {
+            return Err(format!("{id}: net driving pressure must be positive"));
+        }
+
+        let cp_exponent = (flux / mass_transfer).exp();
+        if !cp_exponent.is_finite() {
+            return Err(format!("{id}: concentration-polarization exponential overflow"));
+        }
+        let cp_modulus = (1.0 - rejection) + rejection * cp_exponent;
+        let water_permeance_reference = flux / net_driving_pressure;
+        let water_permeance_pressure_only = flux / delta_pressure;
+        let solute_permeance_reference =
+            flux * (1.0 - rejection) / (rejection * cp_exponent);
+        let solute_permeance_no_cp = flux * (1.0 - rejection) / rejection;
+        if !cp_modulus.is_finite()
+            || !water_permeance_reference.is_finite()
+            || !solute_permeance_reference.is_finite()
+            || solute_permeance_reference <= 0.0
+        {
+            return Err(format!("{id}: non-finite or invalid transport result"));
+        }
+
+        let actual = json!({
+            "net_driving_pressure_bar": net_driving_pressure,
+            "concentration_polarization_modulus": cp_modulus,
+            "water_permeance_reference_l_m2_h_bar": water_permeance_reference,
+            "water_permeance_pressure_only_l_m2_h_bar": water_permeance_pressure_only,
+            "water_permeance_pressure_only_percent_error":
+                100.0 * (water_permeance_pressure_only - water_permeance_reference)
+                    / water_permeance_reference,
+            "solute_permeance_reference_l_m2_h": solute_permeance_reference,
+            "solute_permeance_no_concentration_polarization_l_m2_h": solute_permeance_no_cp,
+            "solute_permeance_no_concentration_polarization_percent_error":
+                100.0 * (solute_permeance_no_cp - solute_permeance_reference)
+                    / solute_permeance_reference
+        });
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("membrane RO M0 oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "family": "RO_TRANSPORT",
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "membrane RO M0 input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|a, b| {
+        a.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+
+    Ok(json!({
+        "schema_version": "membrane-ro-m0-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_transport_arithmetic",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "This is synthetic formula arithmetic, not a measured membrane result.",
+            "The cases do not qualify a fouling mechanism or a cleaning intervention.",
+            "No feed chemistry, membrane integrity, quality compliance or field performance is established.",
+            "The simplified pressure-only and no-CP calculations are diagnostic comparisons, not operational recommendations."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -682,9 +841,95 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "membrane_m0_inputs" => include_str!(
+                "../../../research/water-service-engineering/membrane-ro-m0-cases-v0.1.json"
+            ),
+            "membrane_m0_oracle" => include_str!(
+                "../../../research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_five_membrane_ro_m0_cases_match_separate_oracle() {
+        let result = evaluate_membrane_ro_m0(
+            &load("membrane_m0_inputs"),
+            &load("membrane_m0_oracle"),
+        )
+        .expect("M0 transport calculations must evaluate");
+        assert_eq!(result["result_count"], 5);
+        assert_eq!(result["matched_case_count"], 5);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn membrane_ro_m0_separates_hydraulic_pressure_from_net_driving_pressure() {
+        let result = evaluate_membrane_ro_m0(
+            &load("membrane_m0_inputs"),
+            &load("membrane_m0_oracle"),
+        )
+        .expect("M0 transport calculations must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "MRO-M0-001-high-rejection-moderate-CP")
+            .unwrap();
+        assert!(row["computed"]["net_driving_pressure_bar"].as_f64().unwrap() < 20.0);
+        assert!(
+            row["computed"]["water_permeance_reference_l_m2_h_bar"]
+                .as_f64()
+                .unwrap()
+                > row["computed"]["water_permeance_pressure_only_l_m2_h_bar"]
+                    .as_f64()
+                    .unwrap()
+        );
+    }
+
+    #[test]
+    fn membrane_ro_m0_no_cp_assumption_changes_solute_permeance() {
+        let result = evaluate_membrane_ro_m0(
+            &load("membrane_m0_inputs"),
+            &load("membrane_m0_oracle"),
+        )
+        .expect("M0 transport calculations must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "MRO-M0-003-lower-rejection-higher-CP")
+            .unwrap();
+        assert!(
+            row["computed"]["solute_permeance_no_concentration_polarization_l_m2_h"]
+                .as_f64()
+                .unwrap()
+                > row["computed"]["solute_permeance_reference_l_m2_h"]
+                    .as_f64()
+                    .unwrap()
+        );
+    }
+
+    #[test]
+    fn membrane_ro_m0_rejects_nonpositive_net_driving_pressure() {
+        let mut inputs = load("membrane_m0_inputs");
+        inputs["cases"][0]["inputs"]["osmotic_pressure_wall_bar"] = json!(30.0);
+        let result = evaluate_membrane_ro_m0(&inputs, &load("membrane_m0_oracle"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn membrane_ro_m0_oracle_mismatch_is_reported_not_hidden() {
+        let mut oracle = load("membrane_m0_oracle");
+        oracle["cases"][0]["expected"]["water_permeance_reference_l_m2_h_bar"] =
+            json!(999.0);
+        let result = evaluate_membrane_ro_m0(&load("membrane_m0_inputs"), &oracle)
+            .expect("mismatch should produce an evaluation result");
+        assert_eq!(result["verification_state"], "OracleMismatch");
+        assert_eq!(result["matched_case_count"], 4);
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
     }
 
     #[test]
