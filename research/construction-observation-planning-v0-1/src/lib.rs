@@ -282,7 +282,8 @@ fn choose_targeted_observation_inner<'a>(
         }
     }
 
-    let mut candidates: Vec<(&ObservationAction, Vec<String>)> = Vec::new();
+    let mut candidates: Vec<(&ObservationAction, Vec<String>, Option<ReservationOutcome>)> =
+        Vec::new();
     let mut rejected_conflicts = Vec::new();
     let mut irrelevant_action_ids = Vec::new();
 
@@ -584,7 +585,9 @@ mod tests {
         Bounds3Mm, OccupancyKind, SiteBinding, SpatialOccupancyBook,
     };
     use construction_spacetime_occupancy_core::SpatialOccupancy;
-    use construction_robot_interop_core::resources::ReservationRequest;
+    use construction_robot_interop_core::resources::{
+        ReservationBook, ReservationOutcome, ReservationRequest, ReservationError,
+    };
 
     fn binding() -> SiteBinding {
         SiteBinding {
@@ -658,6 +661,16 @@ mod tests {
 
     fn book() -> SpatialOccupancyBook {
         SpatialOccupancyBook::new(binding(), "site-clock-1").expect("valid occupancy book")
+    }
+
+    fn resource_book(resources: &[(&str, u32)]) -> ReservationBook {
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("valid resource book");
+        for (resource_id, capacity) in resources {
+            book.register_resource(*resource_id, *capacity)
+                .expect("register resource");
+        }
+        book
     }
 
     fn qualified_clear() -> ObservationOutcome {
@@ -960,6 +973,178 @@ mod tests {
             "blocked-survey"
         );
         assert_eq!(plan.rejected_conflicts[0].conflicts.len(), 1);
+    }
+
+    #[test]
+    fn resource_aware_policy_rejects_busy_hoist_without_mutation_and_selects_alternative() {
+        let mut resources = resource_book(&[("survey-resource", 1), ("survey-resource-alt", 1)]);
+        resources
+            .reserve(
+                reservation("existing-hoist", "existing-task", 50, 150),
+                0,
+            )
+            .expect("book the shared survey resource");
+        let before = resources.clone();
+
+        let blocked = action(
+            "survey-high-coverage",
+            &["region-a", "region-b"],
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            50,
+            150,
+            1,
+            10,
+        );
+        let mut alternative = action(
+            "survey-alternative",
+            &["region-a"],
+            bounds([3_000, 0, 0], [4_000, 1_000, 1_000]),
+            50,
+            150,
+            10,
+            30,
+        );
+        alternative.occupancy.reservation.resource_id = "survey-resource-alt".to_owned();
+
+        let needs = vec![
+            WorkNeed {
+                work_unit_id: "unit-a".to_owned(),
+                region_id: "region-a".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
+            },
+            WorkNeed {
+                work_unit_id: "unit-b".to_owned(),
+                region_id: "region-b".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
+            },
+        ];
+
+        let plan = choose_targeted_observation_with_resources(
+            &[blocked, alternative],
+            &needs,
+            &book(),
+            &resources,
+            0,
+        )
+        .expect("resource-aware observation plan");
+        let selected = plan.selected.expect("alternative remains feasible");
+        assert_eq!(selected.action_id, "survey-alternative");
+        assert_eq!(selected.reservation_outcome, Some(ReservationOutcome::Granted));
+        assert_eq!(plan.rejected_conflicts.len(), 1);
+        assert!(plan.rejected_conflicts[0].conflicts.is_empty());
+        assert_eq!(
+            plan.rejected_conflicts[0].reservation_error,
+            Some(ReservationError::CapacityExceeded {
+                capacity: 1,
+                requested_total: 2,
+            })
+        );
+        // A plan preview does not reserve the selected action or mutate any other row.
+        assert_eq!(resources, before);
+    }
+
+    #[test]
+    fn resource_aware_fixed_policy_reports_capacity_rejection_without_substitution() {
+        let mut resources = resource_book(&[("survey-resource", 1)]);
+        resources
+            .reserve(
+                reservation("busy-hoist", "existing-task", 50, 150),
+                0,
+            )
+            .expect("existing hoist booking");
+        let before = resources.clone();
+        let actions = vec![
+            action(
+                "fixed-scan",
+                &["region-a"],
+                bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+                50,
+                150,
+                5,
+                100,
+            ),
+            action(
+                "alternate-scan",
+                &["region-a"],
+                bounds([3_000, 0, 0], [4_000, 1_000, 1_000]),
+                50,
+                150,
+                10,
+                150,
+            ),
+        ];
+        let needs = vec![WorkNeed {
+            work_unit_id: "unit-a".to_owned(),
+            region_id: "region-a".to_owned(),
+            uncertainty_bound_mm: [100, 100, 100],
+        }];
+
+        let plan = choose_fixed_observation_with_resources(
+            "fixed-scan",
+            &actions,
+            &needs,
+            &book(),
+            &resources,
+            0,
+        )
+        .expect("fixed resource-aware baseline");
+        assert!(plan.selected.is_none());
+        assert_eq!(plan.rejected_conflicts.len(), 1);
+        assert_eq!(plan.rejected_conflicts[0].action_id, "fixed-scan");
+        assert_eq!(
+            plan.rejected_conflicts[0].reservation_error,
+            Some(ReservationError::CapacityExceeded {
+                capacity: 1,
+                requested_total: 2,
+            })
+        );
+        assert_eq!(resources, before);
+    }
+
+    #[test]
+    fn resource_aware_policy_ignores_due_bookings_without_expiring_them() {
+        let mut resources = resource_book(&[("survey-resource", 1)]);
+        resources
+            .reserve(
+                reservation("expired-in-time", "past-task", 50, 150),
+                0,
+            )
+            .expect("past reservation initially active");
+        let before = resources.clone();
+        let scan = action(
+            "scan-after-expiry",
+            &["region-a"],
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            300,
+            400,
+            5,
+            100,
+        );
+        let needs = vec![WorkNeed {
+            work_unit_id: "unit-a".to_owned(),
+            region_id: "region-a".to_owned(),
+            uncertainty_bound_mm: [100, 100, 100],
+        }];
+
+        let plan = choose_targeted_observation_with_resources(
+            &[scan],
+            &needs,
+            &book(),
+            &resources,
+            250,
+        )
+        .expect("expired reservation no longer consumes capacity");
+        assert_eq!(
+            plan.selected
+                .expect("scan selected")
+                .reservation_outcome,
+            Some(ReservationOutcome::Granted)
+        );
+        assert_eq!(resources, before);
+        assert_eq!(
+            resources.state("reservation-expired-in-time"),
+            Some(construction_robot_interop_core::resources::ReservationState::Active)
+        );
     }
 
     #[test]
