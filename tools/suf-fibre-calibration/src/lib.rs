@@ -9,6 +9,7 @@
 
 pub mod coverage;
 pub mod decision;
+pub mod policy;
 pub mod source;
 
 use core::fmt;
