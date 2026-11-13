@@ -125,9 +125,15 @@ The current #11480 bridge is only the deterministic visual/proprioceptive repres
 - **F — hybrid world model:** E + action-conditioned latent future/state prediction.
 - **G — decision-sensitive learning:** F + counterfactual-value experience selection and SAM-qualified evidence, using existing #4550/SAM owners.
 - **H — industry teacher/student reference:** Alpamayo 2 Edge/Super, only where weights, data, hardware, licences and evaluator access are actually available.
+- **I — TIER IV AutoE2E:** compare the released 79.9M-parameter reactive component; keep its developing World Model/Reasoning components out of the measured system until they are available and pinned.
+- **J — TIER IV METEOR:** 16M-parameter mapless CNN/BEV baseline; pin the camera count, optional LiDAR/radar inputs, preprocessing, platform and complete energy/latency measurement.
+- **K — risk-constrained observability:** paired passive observation versus active sensor request/safe reposition at the same frozen decision boundary; measure proper scores and information/action costs separately.
+- **L — selective risk-coverage:** evaluate the matched policy's frozen predictions with abstention and separately evidenced fallback; report risk–coverage curves, confidence intervals and actual autonomy coverage.
 - **Human reference:** demonstrations/corrections; not treated as an autonomous policy.
 
-All arms must expose the same policy-visible observation and action interface for matched comparisons. If a comparator requires a different sensor history, navigation input or teacher privilege, record that mismatch rather than hide it.
+The model arms and the decision-layer arms answer different questions. K and L are policy overlays, not new perception backbones. Run factorial ablations so any improvement can be attributed to the visual encoder, temporal core, action-conditioned model, active-observation policy, abstention gate or SAM evidence interface.
+
+All arms must expose the same policy-visible observation and action interface for matched comparisons. For external compact baselines, first reproduce each model's native sensor configuration and native evaluator, then run a separate matched-sensor comparison where possible. An input-profile mismatch (camera count, LiDAR/radar, BEV preprocessing, navigation/map inputs or history window) must be visible; never silently strip or enrich inputs to manufacture parity.
 
 ## Orthogonal learning and inference allocation experiments
 
@@ -200,6 +206,25 @@ Three evidence classes are kept separate:
 The first experiment is zero-shot LHT/RHT transfer plus fixed-budget adaptation. It separates traffic geometry, legal semantics and interaction ecology. A coordinate-mirror fixture validates geometry and task-identity plumbing only; it does not transform or certify local laws, signs, right-of-way rules or actor behaviour. Steering-wheel handedness and roundabout circulation are independent profile fields, not inferences from traffic side.
 
 The v0.1 source/profile validator and fixtures are under [`research/jurisdictional-driving-transfer-001/`](https://github.com/Luminous-Dynamics/symtropy/tree/main/research/jurisdictional-driving-transfer-001). A profile can be structurally valid as a draft without being policy eligible. Policy eligibility requires legally reviewed statute and traffic-sign-manual source records, explicit effective dates and digests plus a versioned rule-bundle digest. The validator checks declared structure; it does not fetch/authenticate sources or decide legal interpretation.
+
+## Compact-model competition and the new architecture split
+
+The 11 November 2026 TIER IV releases change the baseline strategy. AutoE2E contributes a 79.9M-parameter Fast–Slow reference and reports 0.744m 3-second ADE on KITScenes-Multimodal validation. METEOR contributes a 16M-parameter mapless CNN/BEV reference with camera/LiDAR/radar configurations. The AutoE2E ADE is an open-loop trajectory-prediction result, not a closed-loop driving score; METEOR's announcement does not provide a comparable task score.
+
+This suggests a four-layer Symthaea experiment:
+
+1. **Fast reactive path:** a compact camera/BEV encoder and low-latency policy proposal. HDC scene binding can retain identities and relations; the policy must still be trained and evaluated.
+2. **Persistent temporal state:** HDC-LTC/CfC state update on each accepted observation, with explicit clock and missingness semantics.
+3. **Conditional slow path:** action-conditioned imagination, active sensor acquisition and/or additional reasoning only when expected decision-loss reduction can justify the added latency, energy and risk.
+4. **Independent assurance and abstention:** SAM checks evidence/recoverability; a selective gate can yield/abstain and use separately measured fallback. The slow path cannot certify the fast path.
+
+The key comparison is not just model size. Measure the Pareto frontier across native driving capability, risk at fixed coverage, actual autonomy coverage, fallback success, p99 deadline compliance, inference joules, peak memory, simulator transitions and human interventions. A fast model that abstains constantly may have low accepted-action risk but poor useful coverage; an always-on reasoning model may improve decisions while missing actuation deadlines. Neither should win by collapsing the tradeoff into one composite.
+
+### New paired decision-layer tracks
+
+- **Observability / value of information (#4983):** use paired passive and active branches from the same decision checkpoint. Keep the hidden actor/outcome labels evaluator-only, preserve common exogenous randomness where valid, and price sensor requests/reposition by duration, energy, maneuver distance and residual risk. Evaluate Brier score, log loss, calibration, entropy reduction, decision changes and safety outcomes independently.
+- **Selective risk–coverage (#4942):** evaluate frozen failure probabilities against observed outcomes, with equal-score tie groups, episode-cluster bootstrap intervals, risk at fixed coverage, coverage at fixed risk, abstention timing, fallback success/duration and human interventions. A missing or censored outcome must not be imputed as success.
+- **Composition test:** run K and L over the same frozen backbone/checkpoint, then factorially add the action-conditioned world model and SAM. This isolates whether active sensing, abstention or imagination contributes anything beyond the backbone.
 
 ## What to measure
 
