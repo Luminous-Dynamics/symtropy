@@ -55,6 +55,8 @@ pub struct SequentialLikelihoodModel {
     /// Frozen block aggregation protocol and upstream dependence review.
     pub block_aggregation_protocol_sha256: String,
     pub dependence_review_receipt_sha256: String,
+    /// Must be set only after upstream signature, issuer and scope checks succeed.
+    pub dependence_review_verified_upstream: bool,
     /// Minimum temporal separation between the end of one block and start of the next.
     pub minimum_block_separation_seconds: f64,
     pub outcomes: Vec<SequentialOutcomeLikelihood>,
@@ -139,6 +141,7 @@ pub struct SequentialEvidenceReceipt {
     pub calibration_review_receipt_sha256: String,
     pub block_aggregation_protocol_sha256: String,
     pub dependence_review_receipt_sha256: String,
+    pub dependence_review_verified_upstream: bool,
     pub input_receipt_sha256: String,
     pub log_evalue: f64,
     pub log_threshold: f64,
@@ -268,6 +271,7 @@ pub fn sequential_likelihood_table_sha256(
         model.evidence_unit_kind,
         model.block_aggregation_protocol_sha256.as_str(),
         model.dependence_review_receipt_sha256.as_str(),
+        model.dependence_review_verified_upstream,
         model.minimum_block_separation_seconds,
         &model.outcomes,
     );
@@ -286,6 +290,7 @@ impl SequentialLikelihoodModel {
             || !is_sha256_hex(&self.calibration_review_receipt_sha256)
             || !is_sha256_hex(&self.block_aggregation_protocol_sha256)
             || !is_sha256_hex(&self.dependence_review_receipt_sha256)
+            || !self.dependence_review_verified_upstream
             || !self.minimum_block_separation_seconds.is_finite()
             || self.minimum_block_separation_seconds <= 0.0
             || self.evidence_unit_kind != SequentialEvidenceUnitKind::NonOverlappingCalibratedBlock
@@ -491,6 +496,7 @@ impl SequentialEvidenceSession {
             calibration_review_receipt_sha256: self.model.calibration_review_receipt_sha256.clone(),
             block_aggregation_protocol_sha256: self.model.block_aggregation_protocol_sha256.clone(),
             dependence_review_receipt_sha256: self.model.dependence_review_receipt_sha256.clone(),
+            dependence_review_verified_upstream: self.model.dependence_review_verified_upstream,
             input_receipt_sha256: observation.input_receipt_sha256.clone(),
             log_evalue: next_log_evalue,
             log_threshold,
@@ -587,6 +593,8 @@ pub fn validate_sequential_evidence_chain(
             || receipt.calibration_review_receipt_sha256 != model.calibration_review_receipt_sha256
             || receipt.block_aggregation_protocol_sha256 != model.block_aggregation_protocol_sha256
             || receipt.dependence_review_receipt_sha256 != model.dependence_review_receipt_sha256
+            || !model.dependence_review_verified_upstream
+            || !receipt.dependence_review_verified_upstream
         {
             return Err(SequentialEvidenceError::MixedModelChain);
         }
@@ -670,6 +678,7 @@ struct SequentialEvidenceReceiptDigest<'a> {
     calibration_review_receipt_sha256: &'a str,
     block_aggregation_protocol_sha256: &'a str,
     dependence_review_receipt_sha256: &'a str,
+    dependence_review_verified_upstream: bool,
     input_receipt_sha256: &'a str,
     log_evalue: f64,
     log_threshold: f64,
@@ -702,6 +711,7 @@ fn sequential_receipt_sha256(
         calibration_review_receipt_sha256: &receipt.calibration_review_receipt_sha256,
         block_aggregation_protocol_sha256: &receipt.block_aggregation_protocol_sha256,
         dependence_review_receipt_sha256: &receipt.dependence_review_receipt_sha256,
+        dependence_review_verified_upstream: receipt.dependence_review_verified_upstream,
         input_receipt_sha256: &receipt.input_receipt_sha256,
         log_evalue: receipt.log_evalue,
         log_threshold: receipt.log_threshold,
@@ -753,6 +763,7 @@ mod tests {
             evidence_unit_kind: SequentialEvidenceUnitKind::NonOverlappingCalibratedBlock,
             block_aggregation_protocol_sha256: digest('f'),
             dependence_review_receipt_sha256: digest('e'),
+            dependence_review_verified_upstream: true,
             minimum_block_separation_seconds: 10.0,
             outcomes: vec![
                 SequentialOutcomeLikelihood {
@@ -900,6 +911,18 @@ mod tests {
             validate_sequential_evidence_chain(&model, &config(), &[first, second]),
             Err(SequentialEvidenceError::ReceiptIntegrityFailure)
         );
+    }
+
+    #[test]
+    fn unverified_dependence_review_cannot_authorize_sequential_evidence() {
+        let mut model = model();
+        model.dependence_review_verified_upstream = false;
+        model.likelihood_table_sha256 = sequential_likelihood_table_sha256(&model).unwrap();
+        assert_eq!(model.validate(), Err(SequentialEvidenceError::InvalidModel));
+        assert!(matches!(
+            SequentialEvidenceSession::new(model, config(), "run-1"),
+            Err(SequentialEvidenceError::InvalidModel)
+        ));
     }
 
     #[test]
