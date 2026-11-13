@@ -793,3 +793,5 @@ mod tests {
 
 
 pub mod water_observability_qualification;
+
+pub mod water_recovery_verification;
