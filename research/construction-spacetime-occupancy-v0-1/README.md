@@ -1,8 +1,10 @@
 # Construction Space-Time Occupancy Core — v0.1
 
-**Status:** synthetic, conservative AABB overlap oracle. Not a collision-avoidance system, safety controller, site clearance authority, lift plan or physical qualification.
+**Status:** synthetic, conservative AABB overlap oracle with an end-to-end accepted-floor integration test. Not a collision-avoidance system, safety controller, site clearance authority, lift plan or physical qualification.
 
 Parent: [CONSTRUCTION-SPACETIME-OCCUPANCY-001 #4974](https://github.com/Luminous-Dynamics/symtropy/issues/4974).
+
+Stacked dependency order: [construction interop #3644](https://github.com/Luminous-Dynamics/symtropy/pull/3644) → [accepted-floor ledger #4960](https://github.com/Luminous-Dynamics/symtropy/pull/4960) → this occupancy integration.
 
 ## Purpose
 
@@ -22,6 +24,7 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 - `insert` remains fail-closed and rejects admission if any conflict exists.
 - A combined admission helper evaluates the #3644 resource reservation and spatial occupancy against cloned in-memory owners, committing both only when both accept.
 - If spatial occupancy rejects, the tentative reservation is not committed; if the resource calendar rejects, the tentative occupancy is not committed.
+- The cross-layer integration test uses the #4960 accepted-floor ledger: an independently accepted task is linked to workface/hoist occupancy, a second overlapping envelope is rejected without leaving a reservation, and task-attributed plus shared labour/cost reconcile into the same floor report.
 - Typed stale-context, malformed-geometry, overflow, clock and task-binding failures.
 - Conflict records include both occupancy/task IDs, occupancy classes, expanded overlap bounds, overlap time and clock domain.
 
@@ -61,6 +64,6 @@ The geometry producer must supply a conservative outer bound in the exact frame.
 
 A reported overlap is a potential conflict under the declared conservative bounds, not proof of physical collision or unsafe operation. No reported overlap is not proof of physical safety or clearance. Unknown, stale or unobserved geometry must be held/not evaluated by the upstream observation and authority owners; it is never treated as an empty envelope or a clear zone.
 
-The combined admission helper is a single-process in-memory transaction pattern. It is not a distributed transaction, durable commit or multi-controller serialization protocol.
+The combined admission helper is a single-process in-memory transaction pattern. It is not a distributed transaction, durable commit or multi-controller serialization protocol. The cross-layer test uses synthetic fixtures and structural receipt references; it is not physical inspection evidence or an authenticated acceptance authority.
 
 The v0.1 AABB model is a deterministic broad-phase research reference only. False positives are allowed and must remain visible. A later narrow-phase geometry implementation needs an independent reference oracle and independently measured/as-built envelopes before any physical claim.
