@@ -168,7 +168,10 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
         if str_at(tool_use, "rights_status") != Some("RIGHTS_RECONCILIATION_REQUIRED")
             || str_at(tool_use, "raw_file_license")
                 != Some(
-                    "DERIVATIVE_CLAIMS_CC-BY-4.0; OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD",
+                    concat!(
+                        "DERIVATIVE_CLAIMS_CC-BY-4.0; ",
+                        "OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD"
+                    ),
                 )
             || integer_at(tool_use, "independent_unit_count") != Some(5)
             || integer_at(tool_use, "task_count") != Some(160)
