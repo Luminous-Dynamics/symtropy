@@ -235,3 +235,19 @@ jobs:
           print("golden packet causal/physical-semantic preflight: PASS")
           print(f"mutation oracle inventory: PASS ({len(cases)} cases; not executed against Rust adapters)")
           PY
+
+  rust-wire-integrity:
+    name: Rust 1.96 strict JSON, JCS and SHA-256 reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml -- --check
+      - name: Run locked deterministic tests
+        run: cargo test --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml --all-targets -- -D warnings
