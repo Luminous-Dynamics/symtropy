@@ -172,19 +172,34 @@ fn check_component(
         || !nonempty(&component.authority)
         || !nonempty(&component.output_scope)
     {
-        add_failure(failures, id, FailureReason::InvalidComponentIdentity, required);
+        add_failure(
+            failures,
+            id,
+            FailureReason::InvalidComponentIdentity,
+            required,
+        );
     }
     if missing_or_zero_digest(&component.source_sha256) {
         add_failure(failures, id, FailureReason::MissingSourceDigest, required);
     }
     if missing_or_zero_digest(&component.transform_receipt_sha256) {
-        add_failure(failures, id, FailureReason::MissingTransformReceipt, required);
+        add_failure(
+            failures,
+            id,
+            FailureReason::MissingTransformReceipt,
+            required,
+        );
     }
     if component.owner != requirement.owner {
         add_failure(failures, id, FailureReason::OwnerMismatch, required);
     }
     if component.revision != requirement.expected_revision {
-        add_failure(failures, id, FailureReason::ComponentRevisionMismatch, required);
+        add_failure(
+            failures,
+            id,
+            FailureReason::ComponentRevisionMismatch,
+            required,
+        );
     }
     if component.authority != requirement.authority {
         add_failure(failures, id, FailureReason::AuthorityMismatch, required);
@@ -205,7 +220,12 @@ fn check_component(
             }
         }
     } else if requirement.maximum_data_age_ns.is_some() {
-        add_failure(failures, id, FailureReason::ObservationTimeUnknown, required);
+        add_failure(
+            failures,
+            id,
+            FailureReason::ObservationTimeUnknown,
+            required,
+        );
     }
 
     if let Some(maximum_interval_ns) = requirement.maximum_sample_interval_ns {
@@ -244,7 +264,12 @@ fn check_component(
         match component.clock_mapping_uncertainty_ns {
             None => add_failure(failures, id, FailureReason::ClockMappingUnknown, required),
             Some(actual) if actual > maximum_uncertainty_ns => {
-                add_failure(failures, id, FailureReason::ClockUncertaintyExceeded, required);
+                add_failure(
+                    failures,
+                    id,
+                    FailureReason::ClockUncertaintyExceeded,
+                    required,
+                );
             }
             Some(_) => {}
         }
@@ -252,9 +277,19 @@ fn check_component(
 
     if let Some(expected_frame) = &requirement.expected_coordinate_frame {
         match &component.coordinate_frame {
-            None => add_failure(failures, id, FailureReason::CoordinateFrameUnknown, required),
+            None => add_failure(
+                failures,
+                id,
+                FailureReason::CoordinateFrameUnknown,
+                required,
+            ),
             Some(actual) if actual != expected_frame => {
-                add_failure(failures, id, FailureReason::CoordinateFrameMismatch, required);
+                add_failure(
+                    failures,
+                    id,
+                    FailureReason::CoordinateFrameMismatch,
+                    required,
+                );
             }
             Some(_) => {}
         }
@@ -262,9 +297,19 @@ fn check_component(
 
     if let Some(maximum_error_um) = requirement.maximum_registration_error_um {
         match component.registration_error_um {
-            None => add_failure(failures, id, FailureReason::RegistrationErrorUnknown, required),
+            None => add_failure(
+                failures,
+                id,
+                FailureReason::RegistrationErrorUnknown,
+                required,
+            ),
             Some(actual) if actual > maximum_error_um => {
-                add_failure(failures, id, FailureReason::RegistrationErrorExceeded, required);
+                add_failure(
+                    failures,
+                    id,
+                    FailureReason::RegistrationErrorExceeded,
+                    required,
+                );
             }
             Some(_) => {}
         }
@@ -449,7 +494,13 @@ pub fn evaluate_readiness(
             );
             continue;
         };
-        check_component(requirement, component, profile, evaluated_at_ns, &mut failures);
+        check_component(
+            requirement,
+            component,
+            profile,
+            evaluated_at_ns,
+            &mut failures,
+        );
     }
 
     detect_common_cause_dependencies(profile, components, &mut failures);
@@ -723,11 +774,7 @@ mod tests {
 
     #[test]
     fn interpass_geometry_profile_is_ready_when_all_stream_contracts_pass() {
-        let receipt = evaluate_readiness(
-            &interpass_profile(),
-            &interpass_components(),
-            NOW,
-        );
+        let receipt = evaluate_readiness(&interpass_profile(), &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::Ready);
         assert!(receipt.failures.is_empty());
         assert_eq!(receipt.evaluated_components.len(), 4);
@@ -749,10 +796,12 @@ mod tests {
 
         let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::SampleTooSlow));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::SampleTooSlow)
+        );
     }
 
     #[test]
@@ -761,10 +810,12 @@ mod tests {
         components[0].p99_latency_ns = None;
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::LatencyUnknown));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::LatencyUnknown)
+        );
     }
 
     #[test]
@@ -773,10 +824,12 @@ mod tests {
         components[0].observed_at_ns = Some(NOW - 2_000_000_000);
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::ObservationTooOld));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::ObservationTooOld)
+        );
     }
 
     #[test]
@@ -785,10 +838,12 @@ mod tests {
         components[0].observed_at_ns = Some(NOW + 1);
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::ObservationFromFuture));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::ObservationFromFuture)
+        );
     }
 
     #[test]
@@ -797,10 +852,12 @@ mod tests {
         components[0].clock_mapping_uncertainty_ns = None;
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::ClockMappingUnknown));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::ClockMappingUnknown)
+        );
     }
 
     #[test]
@@ -809,10 +866,12 @@ mod tests {
         components[0].clock_mapping_uncertainty_ns = Some(20_000);
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::ClockUncertaintyExceeded));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::ClockUncertaintyExceeded)
+        );
     }
 
     #[test]
@@ -821,10 +880,12 @@ mod tests {
         components[0].coordinate_frame = Some("robot_base".to_owned());
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::CoordinateFrameMismatch));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::CoordinateFrameMismatch)
+        );
     }
 
     #[test]
@@ -833,10 +894,12 @@ mod tests {
         components[0].coverage_permille = Some(900);
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::CoverageBelowMinimum));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::CoverageBelowMinimum)
+        );
     }
 
     #[test]
@@ -845,10 +908,12 @@ mod tests {
         components[0].occlusion_permille = Some(100);
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::OcclusionExceeded));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::OcclusionExceeded)
+        );
     }
 
     #[test]
@@ -857,10 +922,12 @@ mod tests {
         components[0].transform_receipt_sha256 = [0; 32];
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::MissingTransformReceipt));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::MissingTransformReceipt)
+        );
     }
 
     #[test]
@@ -869,10 +936,12 @@ mod tests {
         components[0].revision = "R2".to_owned();
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::ComponentRevisionMismatch));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::ComponentRevisionMismatch)
+        );
     }
 
     #[test]
@@ -881,10 +950,12 @@ mod tests {
         components[0].authority = "planner-asserted".to_owned();
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::AuthorityMismatch));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::AuthorityMismatch)
+        );
     }
 
     #[test]
@@ -903,10 +974,12 @@ mod tests {
         profile.requirements.push(optional);
         let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::Degraded);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::MissingOptionalComponent));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::MissingOptionalComponent)
+        );
     }
 
     #[test]
@@ -929,10 +1002,12 @@ mod tests {
         profile.independent_sources_required = true;
         let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::CommonCauseDependency));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::CommonCauseDependency)
+        );
     }
 
     #[test]
@@ -949,10 +1024,12 @@ mod tests {
         ));
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::UnboundComponent));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::UnboundComponent)
+        );
     }
 
     #[test]
@@ -983,10 +1060,12 @@ mod tests {
         profile.supported = false;
         let receipt = evaluate_readiness(&profile, &interpass_components(), NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::UnsupportedTaskProfile));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::UnsupportedTaskProfile)
+        );
     }
 
     #[test]
@@ -995,9 +1074,11 @@ mod tests {
         components.push(components[0].clone());
         let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
         assert_eq!(receipt.status, ReadinessStatus::NotReady);
-        assert!(receipt
-            .failures
-            .iter()
-            .any(|failure| failure.reason == FailureReason::DuplicateComponentIdentity));
+        assert!(
+            receipt
+                .failures
+                .iter()
+                .any(|failure| failure.reason == FailureReason::DuplicateComponentIdentity)
+        );
     }
 }
