@@ -63,7 +63,7 @@ jobs:
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           input="benchmarks/maritime-observability/qualification-dependency-manifest.v0.1.json"
           digest="$(sha256sum "$input" | awk '{print $1}')"
-          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification-impact -- \
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification_impact -- \
             "$input" --source-commit "$source_commit" --change-set-sha256 "$digest" > maritime-qualification-impact-receipt.json
           jq -e --arg source "$source_commit" --arg digest "$digest" '
             .result == "pass"
