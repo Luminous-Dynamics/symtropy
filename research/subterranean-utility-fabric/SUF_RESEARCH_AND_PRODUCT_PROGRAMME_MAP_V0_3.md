@@ -55,6 +55,7 @@ Each arrow is a separate qualification boundary. A downstream transform cannot p
 | W11 | Owner authority, custody and acceptance | Mycelix existing workstreams | Existing authorization/provenance infrastructure to compose | Separate owner/ledger qualification | Bind gateway receipts to owner-issued authority without self-authorizing assets or journals |
 | W12 | Multi-utility urban DAS | Symtropy #5033 | 32-case / five-product benchmark across sewer hydraulics, pipe structure, traffic, geophysics and fusion | Research protocol; no multi-utility deployment | Reproduce one rights-cleared sewer or traffic baseline and identify a non-live testbed |
 | W13 | Superlet traffic reproduction audit | Symtropy #5034 | 22-case source/rights/split audit; missing source components and preprocessing dataflow discrepancy recorded | Metadata/source audit only; no execution or metric reproduction | Obtain rights and complete author pipeline, clarify unlabeled data, reproduce exact task before alternative models |
+| W14 | Investigation decision-value policy | Symtropy #5032 | 28-case policy benchmark; executable EVSI/EIG and budgeted advisory selector | Reference arithmetic and advisory policy code; no operational policy | Evaluate on frozen independent event/negative exposure and equal-resource scenarios |
 
 ## 4. Executable engineering already present
 
@@ -64,11 +65,12 @@ Standalone Rust crate: `tools/suf-fibre-calibration/`
 - **Route-station orientation:** station origin and increasing direction bind to physical endpoints; reverse B-to-A interrogation has explicit tests.
 - **Source envelope:** raw-vs-derived lineage, SHA-256 shape, axis/unit constraints, chainage calibration reference and sensing-modality boundaries.
 - **Decision value:** expected information gain and expected value of sample information are separate; net value is suppressed for incomparable cost/loss units.
+- **Budgeted advisory policy:** deterministic action selection using positive comparable net value, a common resource unit and required owner-authorization/safety receipt references; outputs advice only and never dispatches.
 - **Coverage:** complete route-length state partition; unique physical-event IDs and false-alarm episode IDs; separate independent truth gates; POD Wilson interval and false alarms per observable fibre-km-day; blind exposure remains explicit.
 - **Synthetic numeric benchmark:** 10,000 seeded optical-range inputs against independent bent-route oracle equations, with boundary and monotonicity checks.
 - **Sample-size planning:** idealized zero-miss one-sided binomial upper-bound calculation for a single independent event stratum.
 
-The tests establish arithmetic/contract behavior only. They do not establish DAS measurement accuracy, event detection performance, real fibre-to-asset geometry or field utility safety.
+Across the calibration, decision, policy, source-envelope, coverage and synthetic integration modules there are 78 authored Rust tests. The current exact-head CI run is still queued; earlier-head test/Clippy passes do not validate this full head. The tests establish arithmetic/contract behavior only. They do not establish DAS measurement accuracy, event detection performance, real fibre-to-asset geometry or field utility safety.
 
 ## 5. Industry and research comparison
 
