@@ -1,0 +1,1170 @@
+{
+  "schema_version": "membrane-observability-f1-traces-v0.1",
+  "evidence_class": "synthetic_time_indexed_fault_injection",
+  "evidence_ceiling": "synthetic_trace_evaluation_only_no_plant_detection_latency_or_alarm_rate_claim",
+  "baseline_thresholds": {
+    "pressure_pair_residual_fraction": 0.05,
+    "flow_pair_residual_fraction": 0.05,
+    "absolute_clock_skew_seconds": 60,
+    "critical_channel_missing_fraction": 0.1,
+    "absolute_temperature_shift_c": 3,
+    "feed_conductivity_ratio_deviation": 0.2,
+    "pump_speed_ratio_deviation": 0.15,
+    "normalized_resistance_ratio": 1.15,
+    "maximum_resistance_relative_uncertainty": 0.1
+  },
+  "traces": [
+    {
+      "trace_id": "MTR-001-stable-negative-control",
+      "sampling_interval_minutes": 5,
+      "event_class": "NONE",
+      "event_onset_step_index": null,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-002-gradual-normalized-resistance-growth",
+      "sampling_interval_minutes": 5,
+      "event_class": "FOULING",
+      "event_onset_step_index": 4,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.01,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.04,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.08,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.13,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.18,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.23,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.29,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.36,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-003-pressure-sensor-drift-only",
+      "sampling_interval_minutes": 5,
+      "event_class": "SENSOR_ONLY",
+      "event_onset_step_index": 3,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.02,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.07,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.1,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.14,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.18,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.22,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-004-temperature-regime-ramp",
+      "sampling_interval_minutes": 5,
+      "event_class": "REGIME_ONLY",
+      "event_onset_step_index": 2,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.5,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 1.5,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 2.8,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 3.5,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 4.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 5,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 5.8,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-005-pump-speed-regime-transition",
+      "sampling_interval_minutes": 5,
+      "event_class": "REGIME_ONLY",
+      "event_onset_step_index": 3,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1.02,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1.18,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1.22,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1.22,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1.22,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1.22,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-006-intermittent-critical-channel-dropout",
+      "sampling_interval_minutes": 5,
+      "event_class": "SENSOR_ONLY",
+      "event_onset_step_index": 2,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0.35,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0.4,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-007-fouling-plus-pressure-drift",
+      "sampling_interval_minutes": 5,
+      "event_class": "FOULING_AND_SENSOR",
+      "event_onset_step_index": 4,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.01,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.03,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.08,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.02,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.13,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.02,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.18,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.11,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.23,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.14,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.3,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.17,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.36,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-008-salinity-regime-shift-no-fouling",
+      "sampling_interval_minutes": 5,
+      "event_class": "REGIME_ONLY",
+      "event_onset_step_index": 2,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.04,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.16,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.03,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.24,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.03,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.31,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.04,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.36,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.04,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.36,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.04,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.36,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.04,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    },
+    {
+      "trace_id": "MTR-009-pressure-drift-clears",
+      "sampling_interval_minutes": 5,
+      "event_class": "SENSOR_ONLY",
+      "event_onset_step_index": 3,
+      "steps": [
+        {
+          "time_index": 0,
+          "elapsed_minutes": 0,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 1,
+          "elapsed_minutes": 5,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 2,
+          "elapsed_minutes": 10,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.02,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 3,
+          "elapsed_minutes": 15,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.15,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 4,
+          "elapsed_minutes": 20,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.16,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 5,
+          "elapsed_minutes": 25,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.12,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 6,
+          "elapsed_minutes": 30,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.03,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        },
+        {
+          "time_index": 7,
+          "elapsed_minutes": 35,
+          "inputs": {
+            "pressure_sensor_pair_delta_fraction": 0.01,
+            "flow_sensor_pair_delta_fraction": 0.01,
+            "clock_skew_seconds": 1,
+            "critical_channel_missing_fraction": 0,
+            "temperature_delta_c": 0.2,
+            "feed_conductivity_ratio": 1.01,
+            "pump_speed_ratio": 1,
+            "normalized_resistance_ratio": 1.02,
+            "normalized_resistance_relative_uncertainty": 0.04
+          }
+        }
+      ]
+    }
+  ]
+}
