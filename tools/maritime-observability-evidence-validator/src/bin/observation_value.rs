@@ -7,7 +7,6 @@ use serde_json::{json, Value};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process::ExitCode};
 
 const VERSION: &str = "0.1.0";
-const FIXTURE: &str = include_str!("../../../../benchmarks/maritime-observability/observation-value-fixture.v0.1.json");
 
 type Errors = Vec<Value>;
 type Probabilities = BTreeMap<String, f64>;
@@ -434,7 +433,7 @@ fn main()->ExitCode{
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn fixture()->Value{serde_json::from_str(FIXTURE).expect("EVSI fixture parses")}
+    fn fixture()->Value{serde_json::from_str(include_str!("../../../../benchmarks/maritime-observability/observation-value-fixture.v0.1.json")).expect("EVSI fixture parses")}
     #[test]
     fn frozen_fixture_is_valid_and_non_mutating(){
         let report=evaluate(&fixture()).unwrap();
