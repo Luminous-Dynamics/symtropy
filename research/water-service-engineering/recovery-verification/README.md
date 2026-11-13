@@ -22,3 +22,7 @@ Full JSON Schema Draft 2020-12 validation is not implemented; the tool checks th
 ## Claim ceiling
 
 Synthetic restoration semantics only. No repair outcome, physical service, potable-water quality, public-health, regulatory or utility operation is qualified. A closed ticket, cleared alarm or pump restart is never independent service proof.
+
+## Exact-head workflow
+
+`.github/workflows/water-recovery-verification.yml` runs package formatting, Rust tests, strict Clippy and the read-only evaluator at the exact checked-out revision. It uploads the scenario/schema/oracle inputs, Cargo.lock and digest-bound receipt. This workflow is authored but has not yet been observed passing.
