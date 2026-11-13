@@ -1,0 +1,520 @@
+{
+  "schema_version": "loco-safety-vector-known-answers-v0.1",
+  "exposure_unit": "One policy pair must use the same explicit exposure unit and matched exposure value; no implicit conversions.",
+  "taxonomy": {
+    "version": "safety-event-taxonomy-v0.1",
+    "digest": "taxonomy-v0.1",
+    "categories": [
+      {
+        "id": "fall",
+        "adverse": true,
+        "required": true,
+        "severity_unit_id": "severity_milli",
+        "definition": "unrecovered loss of balance"
+      },
+      {
+        "id": "foot_scuff",
+        "adverse": true,
+        "required": true,
+        "severity_unit_id": "severity_milli",
+        "definition": "unintended foot/toe contact with terrain"
+      },
+      {
+        "id": "shank_collision",
+        "adverse": true,
+        "required": true,
+        "severity_unit_id": "severity_milli",
+        "definition": "unintended shank contact with terrain/object"
+      },
+      {
+        "id": "slip",
+        "adverse": true,
+        "required": true,
+        "severity_unit_id": "severity_milli",
+        "definition": "unintended stance-foot motion"
+      },
+      {
+        "id": "emergency_recovery",
+        "adverse": true,
+        "required": true,
+        "severity_unit_id": "severity_milli",
+        "definition": "emergency recovery action or disturbance-triggered recovery"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "A-psc-style-proxy-shift",
+      "note": "Synthetic counts only; paper-reported PSC values are in cited publications.",
+      "primary_claim_categories": [
+        "shank_collision"
+      ],
+      "baseline": {
+        "policy_id": "learning-progress",
+        "stratum_digest": "rough-stairs-v1",
+        "taxonomy_digest": "taxonomy-v0.1",
+        "detector_digest": "detector-v1",
+        "exposure": {
+          "value": 300,
+          "unit_id": "crossings"
+        },
+        "categories": [
+          {
+            "id": "fall",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "foot_scuff",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "shank_collision",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "slip",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "emergency_recovery",
+            "observed_exposure": 300,
+            "objective_included": true
+          }
+        ],
+        "events": [
+          {
+            "event_id": "b-fall-1",
+            "physical_event_id": "b-incident-1",
+            "category_id": "fall",
+            "time_ns": 10,
+            "severity": 800,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "b-scuff-1",
+            "physical_event_id": "b-incident-2",
+            "category_id": "foot_scuff",
+            "time_ns": 20,
+            "severity": 100,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "b-scuff-2",
+            "physical_event_id": "b-incident-3",
+            "category_id": "foot_scuff",
+            "time_ns": 30,
+            "severity": 100,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "b-shank-1",
+            "physical_event_id": "b-incident-4",
+            "category_id": "shank_collision",
+            "time_ns": 40,
+            "severity": 300,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "b-shank-2",
+            "physical_event_id": "b-incident-5",
+            "category_id": "shank_collision",
+            "time_ns": 50,
+            "severity": 300,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "b-slip-1",
+            "physical_event_id": "b-incident-6",
+            "category_id": "slip",
+            "time_ns": 60,
+            "severity": 150,
+            "severity_unit_id": "severity_milli"
+          }
+        ],
+        "unknown_event_count": 0
+      },
+      "candidate": {
+        "policy_id": "psc",
+        "stratum_digest": "rough-stairs-v1",
+        "taxonomy_digest": "taxonomy-v0.1",
+        "detector_digest": "detector-v1",
+        "exposure": {
+          "value": 300,
+          "unit_id": "crossings"
+        },
+        "categories": [
+          {
+            "id": "fall",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "foot_scuff",
+            "observed_exposure": 300,
+            "objective_included": false
+          },
+          {
+            "id": "shank_collision",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "slip",
+            "observed_exposure": 300,
+            "objective_included": true
+          },
+          {
+            "id": "emergency_recovery",
+            "observed_exposure": 300,
+            "objective_included": true
+          }
+        ],
+        "events": [
+          {
+            "event_id": "c-fall-1",
+            "physical_event_id": "c-incident-1",
+            "category_id": "fall",
+            "time_ns": 10,
+            "severity": 800,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "c-scuff-1",
+            "physical_event_id": "c-incident-2",
+            "category_id": "foot_scuff",
+            "time_ns": 20,
+            "severity": 100,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "c-scuff-2",
+            "physical_event_id": "c-incident-3",
+            "category_id": "foot_scuff",
+            "time_ns": 30,
+            "severity": 100,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "c-scuff-3",
+            "physical_event_id": "c-incident-4",
+            "category_id": "foot_scuff",
+            "time_ns": 40,
+            "severity": 100,
+            "severity_unit_id": "severity_milli"
+          },
+          {
+            "event_id": "c-shank-1",
+            "physical_event_id": "c-incident-5",
+            "category_id": "shank_collision",
+            "time_ns": 50,
+            "severity": 300,
+            "severity_unit_id": "severity_milli"
+          }
+        ],
+        "unknown_event_count": 0
+      },
+      "expected": {
+        "shank_collision": "improved",
+        "foot_scuff": "worsened",
+        "proxy_shift_detected": true,
+        "complete_safety_improvement_claim": false,
+        "objective_coverage_gap": [
+          "foot_scuff"
+        ]
+      }
+    },
+    {
+      "id": "B-vector-improves",
+      "primary_claim_categories": [
+        "shank_collision"
+      ],
+      "baseline": {
+        "exposure": {
+          "value": 1000,
+          "unit_id": "steps"
+        },
+        "all_categories_fully_observed": true,
+        "events_by_category": {
+          "fall": 10,
+          "foot_scuff": 50,
+          "shank_collision": 80,
+          "slip": 20,
+          "emergency_recovery": 15
+        },
+        "unknown_event_count": 0
+      },
+      "candidate": {
+        "exposure": {
+          "value": 1000,
+          "unit_id": "steps"
+        },
+        "all_categories_fully_observed": true,
+        "events_by_category": {
+          "fall": 8,
+          "foot_scuff": 40,
+          "shank_collision": 60,
+          "slip": 10,
+          "emergency_recovery": 10
+        },
+        "unknown_event_count": 0
+      },
+      "expected": {
+        "all_required_categories_improved": true,
+        "complete_safety_improvement_claim": true,
+        "proxy_shift_detected": false
+      }
+    },
+    {
+      "id": "C-fall-rate-regression",
+      "primary_claim_categories": [
+        "shank_collision"
+      ],
+      "baseline": {
+        "exposure": {
+          "value": 100,
+          "unit_id": "crossings"
+        },
+        "events_by_category": {
+          "fall": 1,
+          "foot_scuff": 5,
+          "shank_collision": 10,
+          "slip": 4,
+          "emergency_recovery": 2
+        }
+      },
+      "candidate": {
+        "exposure": {
+          "value": 100,
+          "unit_id": "crossings"
+        },
+        "events_by_category": {
+          "fall": 4,
+          "foot_scuff": 4,
+          "shank_collision": 5,
+          "slip": 3,
+          "emergency_recovery": 2
+        }
+      },
+      "expected": {
+        "shank_collision": "improved",
+        "fall": "worsened",
+        "complete_safety_improvement_claim": false,
+        "proxy_shift_detected": true
+      }
+    },
+    {
+      "id": "D-frequency-improves-severity-worsens",
+      "baseline": {
+        "exposure": {
+          "value": 100,
+          "unit_id": "crossings"
+        },
+        "events": [
+          {
+            "category_id": "shank_collision",
+            "severity": 100
+          },
+          {
+            "category_id": "shank_collision",
+            "severity": 100
+          },
+          {
+            "category_id": "shank_collision",
+            "severity": 100
+          }
+        ]
+      },
+      "candidate": {
+        "exposure": {
+          "value": 100,
+          "unit_id": "crossings"
+        },
+        "events": [
+          {
+            "category_id": "shank_collision",
+            "severity": 900
+          },
+          {
+            "category_id": "shank_collision",
+            "severity": 900
+          }
+        ]
+      },
+      "expected": {
+        "event_rate": "improved",
+        "severity_load_per_exposure": "worsened",
+        "maximum_severity": "worsened",
+        "complete_safety_improvement_claim": false
+      }
+    },
+    {
+      "id": "E-unknown-and-missing-exposure",
+      "baseline": {
+        "exposure": {
+          "value": 1000,
+          "unit_id": "steps"
+        },
+        "unknown_event_count": 0,
+        "observed_exposure_by_category": 1000
+      },
+      "candidate": {
+        "exposure": {
+          "value": 1000,
+          "unit_id": "steps"
+        },
+        "unknown_event_count": 12,
+        "observed_exposure_by_category": 850
+      },
+      "expected": {
+        "complete_safety_improvement_claim": false,
+        "unknown_increased": true,
+        "missing_exposure_increased": true,
+        "zero_event_assumption_forbidden": true
+      }
+    },
+    {
+      "id": "F-incompatible-exposure",
+      "baseline": {
+        "exposure": {
+          "value": 100,
+          "unit_id": "crossings"
+        }
+      },
+      "candidate": {
+        "exposure": {
+          "value": 100,
+          "unit_id": "robot_hours"
+        }
+      },
+      "expected": {
+        "comparison": "withheld",
+        "reason": "exposure units differ"
+      }
+    },
+    {
+      "id": "G-adverse-category-omitted-from-objective",
+      "candidate": {
+        "safety_objective_included_categories": [
+          "fall",
+          "shank_collision",
+          "slip"
+        ],
+        "taxonomy_required_categories": [
+          "fall",
+          "foot_scuff",
+          "shank_collision",
+          "slip",
+          "emergency_recovery"
+        ]
+      },
+      "expected": {
+        "objective_coverage_gap": [
+          "foot_scuff",
+          "emergency_recovery"
+        ],
+        "complete_safety_improvement_claim": false
+      }
+    },
+    {
+      "id": "H-taxonomy-or-detector-changed",
+      "baseline": {
+        "taxonomy_digest": "taxonomy-v0.1",
+        "detector_digest": "detector-v1"
+      },
+      "candidate": {
+        "taxonomy_digest": "taxonomy-v0.2",
+        "detector_digest": "detector-v2"
+      },
+      "expected": {
+        "comparison": "withheld",
+        "reason": "version digests differ"
+      }
+    },
+    {
+      "id": "I-multi-category-one-physical-incident",
+      "events": [
+        {
+          "event_id": "event-shank",
+          "physical_event_id": "incident-1",
+          "category_id": "shank_collision",
+          "time_ns": 100,
+          "severity": 500,
+          "severity_unit_id": "severity_milli"
+        },
+        {
+          "event_id": "event-impact",
+          "physical_event_id": "incident-1",
+          "category_id": "impact_exceedance",
+          "time_ns": 100,
+          "severity": 700,
+          "severity_unit_id": "severity_milli"
+        }
+      ],
+      "expected": {
+        "shank_collision_count": 1,
+        "impact_exceedance_count": 1,
+        "unique_physical_incidents": 1
+      }
+    },
+    {
+      "id": "J-duplicate-event-identity",
+      "events": [
+        {
+          "event_id": "event-1",
+          "physical_event_id": "incident-1",
+          "category_id": "shank_collision",
+          "time_ns": 100,
+          "severity": 500,
+          "severity_unit_id": "severity_milli"
+        },
+        {
+          "event_id": "event-2",
+          "physical_event_id": "incident-1",
+          "category_id": "shank_collision",
+          "time_ns": 101,
+          "severity": 500,
+          "severity_unit_id": "severity_milli"
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "duplicate physical_event_id/category_id pair"
+      }
+    },
+    {
+      "id": "K-zero-exposure",
+      "exposure": {
+        "value": 0,
+        "unit_id": "crossings"
+      },
+      "events_by_category": {
+        "shank_collision": 0
+      },
+      "expected": {
+        "rate": "undefined",
+        "must_not_report_as_zero": true
+      }
+    },
+    {
+      "id": "L-event-category-outside-taxonomy",
+      "events": [
+        {
+          "event_id": "event-1",
+          "physical_event_id": "incident-1",
+          "category_id": "unlisted-contact",
+          "time_ns": 100,
+          "severity": 1,
+          "severity_unit_id": "severity_milli"
+        }
+      ],
+      "expected": {
+        "status": "invalid",
+        "reason": "undeclared adverse category"
+      }
+    }
+  ]
+}
