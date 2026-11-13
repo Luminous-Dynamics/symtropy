@@ -2,8 +2,8 @@
   "schema": "luminous.symtropy.kerr_bilocal_geodesic_operator_benchmark.v1",
   "programme": "BH-KERR-RAY-BUNDLE-001",
   "title": "Kerr bilocal geodesic operator cross-formulation qualification",
-  "status": "planned_only",
-  "execution_status": "not_implemented",
+  "status": "BGO-0 transfer algebra source authored; exact-head Rust validation pending",
+  "execution_status": "BGO-0 source implemented with authored tests; no runner receipt yet; curvature-driven BGO not implemented",
   "repository": "Luminous-Dynamics/symtropy",
   "owner": "symtropy-relativity",
   "depends_on": {
@@ -70,11 +70,14 @@
     {
       "id": "BGO-0",
       "name": "Minkowski analytic transfer",
-      "status": "planned",
+      "status": "source_authored_runner_pending",
       "acceptance": [
-        "all four blocks match closed form",
-        "composition and inverse",
-        "Wronskian preservation"
+        "W_XX=I4, W_XK=delta_lambda*I4, W_KX=0, W_KK=I4",
+        "transfer composition equals affine-interval addition",
+        "scaled-pivot inverse equals backward propagation",
+        "W^T Omega W - Omega residual is within declared tolerance",
+        "reject non-finite affine intervals and matrix entries",
+        "reject singular full transfer without regularization"
       ]
     },
     {
@@ -214,5 +217,20 @@
     "Do not claim a physical caustic until BGO-5 and BGO-6 pass at matched endpoints and independent refinement.",
     "Do not claim external SOTA parity until BGO-7 reproduces pinned published cases.",
     "Do not compare raw throughput outside matched qualified-observable bins."
-  ]
+  ],
+  "bgo0_source": {
+    "path": "crates/domains/symtropy-relativity/src/bilocal.rs",
+    "module_export": "crates/domains/symtropy-relativity/src/lib.rs",
+    "authored_tests": [
+      "minkowski_transfer_has_exact_four_block_known_answer",
+      "minkowski_transfers_compose_by_affine_interval_addition",
+      "minkowski_transfer_inverse_is_backward_propagation",
+      "minkowski_transfer_preserves_wronskian_symplectic_form",
+      "identity_and_zero_length_transfer_are_identical",
+      "constructors_reject_nonfinite_values_without_repair",
+      "inverse_rejects_singular_matrix_and_invalid_tolerance"
+    ],
+    "workflow": ".github/workflows/kerr-bgo-minkowski.yml",
+    "claim_ceiling": "Flat-spacetime BGO transfer algebra only. No curvature-driven transport, Kerr BGO, endpoint conversion, caustic classification or physical observable is qualified."
+  }
 }
