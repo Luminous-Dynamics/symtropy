@@ -196,6 +196,14 @@
         "below_LOD_LOQ_not_zero",
         "rejected_QC_not_training_label"
       ]
+    },
+    "m0b": {
+      "manifest": "research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json",
+      "inputs": "research/water-service-engineering/membrane-ro-m0b-regression-cases-v0.1.json",
+      "oracle": "research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json",
+      "schema": "research/water-service-engineering/membrane-ro-m0b-regression.schema.json",
+      "cli": "tools/water-service-t0/src/bin/membrane-ro-m0b-regression.rs",
+      "status": "synthetic_grouped_multi_pressure_regression_contract_only"
     }
   }
 }
