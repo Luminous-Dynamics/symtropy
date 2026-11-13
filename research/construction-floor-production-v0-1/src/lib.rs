@@ -847,9 +847,9 @@ mod tests {
             design_revision_digest: "design-digest-1".to_owned(),
             target_frame_id: "project-grid-1".to_owned(),
             benchmark_profile_id: "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001".to_owned(),
-            benchmark_profile_digest: "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6".to_owned(),
+            benchmark_profile_digest: "git-blob-sha1:25862337341f4c5ceb216e24bc49f6926082c1c6".into(),
             reference_fixture_id: "highrise-reference-floor-micro-oracle-001".to_owned(),
-            reference_fixture_digest: "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23".to_owned(),
+            reference_fixture_digest: "git-blob-sha1:9db3b46b8eb81d302f44b9bac9a515d4206dae23".into(),
             claim_ceiling: "synthetic_accepted_output_accounting_only".to_owned(),
             labour_time_axis_id: "project-labour-clock-1".to_owned(),
         }
