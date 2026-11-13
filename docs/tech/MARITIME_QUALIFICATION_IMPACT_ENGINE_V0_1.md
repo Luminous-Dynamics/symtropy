@@ -63,7 +63,7 @@ cargo clippy --locked -p maritime-observability-evidence-validator --all-targets
 source_commit="$(git rev-parse HEAD)"
 manifest="benchmarks/maritime-observability/qualification-dependency-manifest.v0.1.json"
 digest="$(sha256sum "$manifest" | awk '{print $1}')"
-cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification-impact -- \
+cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification_impact -- \
   "$manifest" --source-commit "$source_commit" --change-set-sha256 "$digest"
 ```
 
