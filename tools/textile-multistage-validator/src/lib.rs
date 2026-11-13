@@ -1031,6 +1031,8 @@ mod tests {
             from_family: "knit".to_owned(),
             to_family: "woven".to_owned(),
             duration_ticks: 2,
+            required_operator_skill: Some("changeover".to_owned()),
+            required_operator_certification: Some("changeover-qualified".to_owned()),
         });
         assert!(has(&validate(&problem, &schedule), "SETUP_TIME_VIOLATION"));
     }
@@ -1057,6 +1059,8 @@ mod tests {
             from_family: "woven".to_owned(),
             to_family: "cotton".to_owned(),
             duration_ticks: 2,
+            required_operator_skill: Some("changeover".to_owned()),
+            required_operator_certification: Some("changeover-qualified".to_owned()),
         });
         problem
             .operations
