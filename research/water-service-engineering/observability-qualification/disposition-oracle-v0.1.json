@@ -120,7 +120,7 @@
     },
     {
       "scenario_id": "OBS-006",
-      "overall_disposition": "unobservable_under_declared_faults",
+      "overall_disposition": "indeterminate_evidence",
       "state_dispositions": [
         {
           "state_id": "tank_level_1",
@@ -128,7 +128,7 @@
         },
         {
           "state_id": "tank_level_2",
-          "disposition": "unobservable_under_declared_faults"
+          "disposition": "indeterminate_evidence"
         },
         {
           "state_id": "junction_pressure_1",
@@ -147,19 +147,19 @@
       "state_dispositions": [
         {
           "state_id": "tank_level_1",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "tank_level_2",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "junction_pressure_1",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "junction_pressure_2",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         }
       ],
       "structural_proof_reusable": false
@@ -193,15 +193,15 @@
       "state_dispositions": [
         {
           "state_id": "tank_level_1",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "tank_level_2",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "junction_pressure_1",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "junction_pressure_2",
@@ -262,19 +262,19 @@
       "state_dispositions": [
         {
           "state_id": "tank_level_1",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "tank_level_2",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "junction_pressure_1",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         },
         {
           "state_id": "junction_pressure_2",
-          "disposition": "topology_invalidates_certificate"
+          "disposition": "directly_observed_current"
         }
       ],
       "structural_proof_reusable": false
