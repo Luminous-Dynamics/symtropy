@@ -12,7 +12,6 @@ use std::fs;
 use std::path::Path;
 
 use observability_guided_driving::{AuditReport, Campaign, audit_campaign};
-use serde_json::json;
 
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
