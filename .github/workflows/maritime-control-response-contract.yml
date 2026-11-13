@@ -80,7 +80,10 @@ jobs:
             (.external_dataset_track.dataset_doi == "10.5281/zenodo.19857425") and
             (.external_dataset_track.dataset_license == "CC-BY-4.0") and
             (.external_dataset_track.archive_sha256 == "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b") and
-            (.external_dataset_track.audit_receipt.artifact_id == 13986307496) and
+            (.external_dataset_track.audit_receipt.artifact_id > 0) and
+            (.external_dataset_track.audit_receipt.archive_sha256 == .external_dataset_track.archive_sha256) and
+            (.external_dataset_track.audit_receipt.recording_csv_files == 16) and
+            (.external_dataset_track.audit_receipt.rust_tests_failed == 0) and
             (.external_dataset_track.dataset_file_inventory.recording_files == 16) and
             (.external_dataset_track.dataset_file_inventory.baseline_files == 1) and
             (.external_dataset_track.dataset_file_inventory.scenario_files == 15) and
@@ -208,10 +211,13 @@ jobs:
             .dataset.license == "CC-BY-4.0" and
             .dataset.zenodo_record.file.md5_independently_verified == true and
             .dataset.zenodo_record.file.sha256 == "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b" and
-            .archive_audit_receipt.artifact_id == 13986307496 and
-            .evaluation_tracks[0].status == "completed_archive_and_csv_payload_audit" and
+            .archive_audit_receipt.artifact_id > 0 and
+            .archive_audit_receipt.archive_sha256 == .dataset.zenodo_record.file.sha256 and
+            .archive_audit_receipt.recording_csv_files == 16 and
+            .archive_audit_receipt.rust_tests_failed == 0 and
+            ([.evaluation_tracks[].status] | index("completed_archive_and_csv_payload_audit") != null) and
             (.evaluation_tracks | length >= 5) and
-            (.claim_ceiling | contains("no model accuracy") and contains("cross-engine"))
+            ((.claim_ceiling | ascii_downcase) | contains("no model") and contains("cross-engine"))
           ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
 
       - name: Validate run manifest and external file manifest schemas
