@@ -16,10 +16,10 @@ Use the declared curvature convention consistently throughout the implementation
 
 \[
 [\nabla_\alpha,\nabla_\beta]v^\mu
-= -R^\mu{}_{\nu\alpha\beta}v^\nu .
+= +R^\mu{}_{\nu\alpha\beta}v^\nu .
 \]
 
-For a fiducial affinely parameterized null geodesic with tangent \(k^\mu\), define the connecting vector \(\xi^\mu\) and covariant tangent deviation \(\ell^\mu=D\xi^\mu/d\lambda\). With this commutator convention, the full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
+For a fiducial affinely parameterized null geodesic with tangent \\(k^\\mu\\), define the connecting vector \\(\\xi^\\mu\\) and covariant tangent deviation \\(\\ell^\\mu=D\\xi^\\mu/d\\lambda\\). This positive commutator convention matches `RiemannTensor4::from_metric_derivatives` in Symtropy. The resulting full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
 
 \[
 \mathcal T^\mu{}_\nu
@@ -46,7 +46,7 @@ W_{KX}&W_{KK}
 \end{pmatrix}.
 \]
 
-The implementation must make endpoint tangent/covector and coordinate-chart conventions explicit. The full covariant deviation sign above follows the pinned BGO curvature convention; the existing Sachs/Jacobi implementation uses its own screen-tidal definition in \(D''=-T_{AB}D\). The endpoint projection must derive the mapping between those definitions and test its sign on the exact radial and nonradial Schwarzschild fixtures. A coordinate-component BGO is not directly comparable to a canonical \((x^\mu,p_\mu)\) fundamental matrix until the endpoint conversion includes the metric and the derivative of the metric in the momentum variation. Do not compare arrays merely because both happen to be 8×8.
+The implementation must make endpoint tangent/covector and coordinate-chart conventions explicit. The full-coordinate BGO is not automatically represented by a constant canonical symplectic matrix in arbitrary coordinates: evaluate the Wronskian using the declared parallel-transported orthonormal frame or the corresponding metric-weighted bilinear form. The flat Cartesian BGO-0 residual uses the constant Minkowski frame. The full covariant deviation sign above follows the pinned BGO curvature convention; the existing Sachs/Jacobi implementation uses its own screen-tidal definition in \\(D''=-T_{AB}D\\). The endpoint projection must derive the mapping between those definitions and test its sign on the exact radial and nonradial Schwarzschild fixtures. A coordinate-component BGO is not directly comparable to a canonical \\((x^\\mu,p_\\mu)\\) fundamental matrix until the endpoint conversion includes the metric and the derivative of the metric in the momentum variation. Do not compare arrays merely because both happen to be 8×8.
 
 ### Required identities
 
