@@ -325,6 +325,109 @@ jobs:
             research/water-service-engineering/membrane-ro-m0b-regression.schema.json \
             research/water-service-engineering/membrane-ro-m0b-regression-manifest-v0.1.json \
             artifacts/membrane-ro-m0b-regression/receipt.json
+            research/water-service-engineering/MEMBRANE_OBSERVABILITY_FAULT_BENCH_F0_V0_1.md
+            research/water-service-engineering/membrane-observability-fault-cases-v0.1.json
+            research/water-service-engineering/membrane-observability-fault-oracle-v0.1.json
+            research/water-service-engineering/membrane-observability-fault.schema.json
+            research/water-service-engineering/membrane-observability-fault-manifest-v0.1.json
+            artifacts/membrane-observability-fault-f0/receipt.json
+      - name: Validate membrane observability and sensor-fault F0 contracts
+        id: membrane_observability_f0_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-observability-fault.schema.json").read_text())
+          inputs = json.loads((root / "membrane-observability-fault-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "membrane-observability-fault-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-observability-fault-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_OBSERVABILITY_F0_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          expected_by_id = {row["scenario_id"]: row for row in oracle["cases"]}
+          ids = [row["scenario_id"] for row in inputs["scenarios"]]
+          if len(ids) != 13 or len(set(ids)) != 13 or len(expected_by_id) != 13:
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F0_CASE_IDENTITY_FAIL")
+          if sorted(ids) != sorted(expected_by_id) or manifest["scenario_count"] != 13:
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F0_INPUT_ORACLE_MANIFEST_FAIL")
+          if any("expected_disposition" in row for row in inputs["scenarios"]):
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F0_INPUT_EMBEDS_ORACLE_FAIL")
+
+          t = inputs["baseline_thresholds"]
+          def classify(i):
+              sensor_fault = (
+                  i["pressure_sensor_pair_delta_fraction"] > t["pressure_pair_residual_fraction"]
+                  or i["flow_sensor_pair_delta_fraction"] > t["flow_pair_residual_fraction"]
+                  or abs(i["clock_skew_seconds"]) > t["absolute_clock_skew_seconds"]
+                  or i["critical_channel_missing_fraction"] > t["critical_channel_missing_fraction"]
+              )
+              regime_shift = (
+                  abs(i["temperature_delta_c"]) > t["absolute_temperature_shift_c"]
+                  or abs(i["feed_conductivity_ratio"] - 1.0) > t["feed_conductivity_ratio_deviation"]
+                  or abs(i["pump_speed_ratio"] - 1.0) > t["pump_speed_ratio_deviation"]
+              )
+              r, u = i["normalized_resistance_ratio"], i["normalized_resistance_relative_uncertainty"]
+              observable = r is not None and u is not None and u <= t["maximum_resistance_relative_uncertainty"]
+              fouling = observable and r > t["normalized_resistance_ratio"]
+              if sensor_fault and (fouling or regime_shift):
+                  return "MULTIPLE_CAUSES"
+              if sensor_fault:
+                  return "SENSOR_FAULT_SUSPECTED"
+              if fouling and regime_shift:
+                  return "MULTIPLE_CAUSES"
+              if fouling:
+                  return "FOULING_SUSPECTED"
+              if regime_shift:
+                  return "OPERATING_REGIME_SHIFT"
+              if not observable:
+                  return "INDETERMINATE"
+              return "NO_FAULT"
+
+          false_sensor_fouling = 0
+          false_regime_fouling = 0
+          for case in inputs["scenarios"]:
+              scenario_id = case["scenario_id"]
+              expected = expected_by_id[scenario_id]
+              actual = classify(case["inputs"])
+              if actual != expected["expected_disposition"]:
+                  raise SystemExit(
+                      f"MEMBRANE_OBSERVABILITY_F0_ORACLE_MISMATCH: {scenario_id}: "
+                      f"{actual} != {expected['expected_disposition']}"
+                  )
+              if expected["expected_cip_recommendation"] is not False:
+                  raise SystemExit("MEMBRANE_OBSERVABILITY_F0_CIP_ORACLE_MUST_BE_FALSE")
+              if expected["expected_disposition"] == "SENSOR_FAULT_SUSPECTED" and actual == "FOULING_SUSPECTED":
+                  false_sensor_fouling += 1
+              if expected["expected_disposition"] == "OPERATING_REGIME_SHIFT" and actual == "FOULING_SUSPECTED":
+                  false_regime_fouling += 1
+          if false_sensor_fouling != 0 or false_regime_fouling != 0:
+              raise SystemExit("MEMBRANE_OBSERVABILITY_F0_NEGATIVE_CONTROL_FAIL")
+          print("MEMBRANE_OBSERVABILITY_F0_PASS: 13 synthetic matched/negative-control cases; no false fouling or CIP recommendation")
+          PY
+      - name: Evaluate membrane observability F0 at exact revision
+        id: membrane_observability_f0
+        env:
+          MEMBRANE_OBSERVABILITY_F0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin membrane-observability-fault-f0 -- \
+            research/water-service-engineering/membrane-observability-fault-cases-v0.1.json \
+            research/water-service-engineering/membrane-observability-fault-oracle-v0.1.json \
+            research/water-service-engineering/membrane-observability-fault.schema.json \
+            research/water-service-engineering/membrane-observability-fault-manifest-v0.1.json \
+            artifacts/membrane-observability-fault-f0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -364,6 +467,8 @@ jobs:
           MEMBRANE_WQ_M2_OUTCOME: ${{ steps.membrane_wq_m2.outcome }}
           MEMBRANE_RO_M0B_CONTRACTS_OUTCOME: ${{ steps.membrane_ro_m0b_contracts.outcome }}
           MEMBRANE_RO_M0B_OUTCOME: ${{ steps.membrane_ro_m0b.outcome }}
+          MEMBRANE_OBSERVABILITY_F0_CONTRACTS_OUTCOME: ${{ steps.membrane_observability_f0_contracts.outcome }}
+          MEMBRANE_OBSERVABILITY_F0_OUTCOME: ${{ steps.membrane_observability_f0.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
@@ -371,3 +476,5 @@ jobs:
           test "$MEMBRANE_WQ_M2_OUTCOME" = "success"
           test "$MEMBRANE_RO_M0B_CONTRACTS_OUTCOME" = "success"
           test "$MEMBRANE_RO_M0B_OUTCOME" = "success"
+          test "$MEMBRANE_OBSERVABILITY_F0_CONTRACTS_OUTCOME" = "success"
+          test "$MEMBRANE_OBSERVABILITY_F0_OUTCOME" = "success"

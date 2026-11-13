@@ -1022,6 +1022,229 @@ pub fn evaluate_membrane_ro_m0b(inputs: &Value, oracle: &Value) -> Result<Value,
     }))
 }
 
+pub fn evaluate_membrane_observability_f0(
+    inputs: &Value,
+    oracle: &Value,
+) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 13;
+    const CEILING: &str =
+        "synthetic_diagnostic_baseline_only_no_real_sensor_or_membrane_diagnosis";
+
+    if string(inputs, &["schema_version"])? != "membrane-observability-fault-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_observability_challenge"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "membrane-observability-fault-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_observability_challenge"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("membrane observability F0 input/oracle identity mismatch".to_owned());
+    }
+
+    let thresholds = at(inputs, &["baseline_thresholds"])?;
+    let pressure_threshold = number(thresholds, &["pressure_pair_residual_fraction"])?;
+    let flow_threshold = number(thresholds, &["flow_pair_residual_fraction"])?;
+    let clock_threshold = number(thresholds, &["absolute_clock_skew_seconds"])?;
+    let missing_threshold = number(thresholds, &["critical_channel_missing_fraction"])?;
+    let temperature_threshold = number(thresholds, &["absolute_temperature_shift_c"])?;
+    let conductivity_threshold = number(thresholds, &["feed_conductivity_ratio_deviation"])?;
+    let pump_threshold = number(thresholds, &["pump_speed_ratio_deviation"])?;
+    let resistance_threshold = number(thresholds, &["normalized_resistance_ratio"])?;
+    let uncertainty_threshold =
+        number(thresholds, &["maximum_resistance_relative_uncertainty"])?;
+
+    if [
+        pressure_threshold,
+        flow_threshold,
+        clock_threshold,
+        missing_threshold,
+        temperature_threshold,
+        conductivity_threshold,
+        pump_threshold,
+        resistance_threshold,
+        uncertainty_threshold,
+    ]
+    .iter()
+    .any(|value| !value.is_finite() || *value < 0.0)
+    {
+        return Err("membrane observability F0 thresholds must be finite and nonnegative".to_owned());
+    }
+
+    let scenarios = at(inputs, &["scenarios"])?
+        .as_array()
+        .ok_or_else(|| "membrane observability F0 scenarios must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "membrane observability F0 oracle cases must be an array".to_owned())?;
+    if scenarios.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "membrane observability F0 expected {EXPECTED_CASES} scenarios and oracle rows; got {} and {}",
+            scenarios.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["scenario_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("membrane observability F0 duplicate oracle ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+    let mut false_fouling_sensor_only = 0_u64;
+    let mut false_fouling_regime_only = 0_u64;
+    let mut false_cip_recommendations = 0_u64;
+
+    for scenario in scenarios {
+        let id = string(scenario, &["scenario_id"])?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("membrane observability F0 duplicate scenario ID: {id}"));
+        }
+        let input = at(scenario, &["inputs"])?;
+        let pressure_residual = number(input, &["pressure_sensor_pair_delta_fraction"])?;
+        let flow_residual = number(input, &["flow_sensor_pair_delta_fraction"])?;
+        let clock_skew = number(input, &["clock_skew_seconds"])?;
+        let missing_fraction = number(input, &["critical_channel_missing_fraction"])?;
+        let temperature_delta = number(input, &["temperature_delta_c"])?;
+        let conductivity_ratio = number(input, &["feed_conductivity_ratio"])?;
+        let pump_ratio = number(input, &["pump_speed_ratio"])?;
+        if [
+            pressure_residual,
+            flow_residual,
+            clock_skew,
+            missing_fraction,
+            temperature_delta,
+            conductivity_ratio,
+            pump_ratio,
+        ]
+        .iter()
+        .any(|value| !value.is_finite())
+            || pressure_residual < 0.0
+            || flow_residual < 0.0
+            || missing_fraction < 0.0
+            || missing_fraction > 1.0
+            || conductivity_ratio <= 0.0
+            || pump_ratio <= 0.0
+        {
+            return Err(format!("{id}: invalid membrane observability F0 input domain"));
+        }
+
+        let resistance_value = at(input, &["normalized_resistance_ratio"])?
+            .as_f64()
+            .filter(|value| value.is_finite() && *value > 0.0);
+        let uncertainty_value = at(input, &["normalized_resistance_relative_uncertainty"])?
+            .as_f64()
+            .filter(|value| value.is_finite() && *value >= 0.0);
+        let resistance_observable = resistance_value.is_some()
+            && uncertainty_value.is_some()
+            && uncertainty_value.unwrap_or(f64::INFINITY) <= uncertainty_threshold;
+
+        let sensor_fault = pressure_residual > pressure_threshold
+            || flow_residual > flow_threshold
+            || clock_skew.abs() > clock_threshold
+            || missing_fraction > missing_threshold;
+        let regime_shift = temperature_delta.abs() > temperature_threshold
+            || (conductivity_ratio - 1.0).abs() > conductivity_threshold
+            || (pump_ratio - 1.0).abs() > pump_threshold;
+        let fouling_suspected = resistance_observable
+            && resistance_value.unwrap_or(0.0) > resistance_threshold;
+
+        let disposition = if sensor_fault && (fouling_suspected || regime_shift) {
+            "MULTIPLE_CAUSES"
+        } else if sensor_fault {
+            "SENSOR_FAULT_SUSPECTED"
+        } else if fouling_suspected && regime_shift {
+            "MULTIPLE_CAUSES"
+        } else if fouling_suspected {
+            "FOULING_SUSPECTED"
+        } else if regime_shift {
+            "OPERATING_REGIME_SHIFT"
+        } else if !resistance_observable {
+            "INDETERMINATE"
+        } else {
+            "NO_FAULT"
+        };
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("membrane observability F0 oracle missing scenario {id}"))?;
+        let expected = string(oracle_row, &["expected_disposition"])?;
+        let expected_cip = at(oracle_row, &["expected_cip_recommendation"])?
+            .as_bool()
+            .ok_or_else(|| format!("{id}: expected_cip_recommendation must be boolean"))?;
+        let matched = disposition == expected && !expected_cip;
+        if !matched {
+            mismatches.push(json!({
+                "scenario_id": id,
+                "expected_disposition": expected,
+                "actual_disposition": disposition,
+                "expected_cip_recommendation": expected_cip
+            }));
+        }
+        if expected == "SENSOR_FAULT_SUSPECTED" && disposition == "FOULING_SUSPECTED" {
+            false_fouling_sensor_only += 1;
+        }
+        if expected == "OPERATING_REGIME_SHIFT" && disposition == "FOULING_SUSPECTED" {
+            false_fouling_regime_only += 1;
+        }
+        if expected_cip {
+            false_cip_recommendations += 1;
+        }
+        results.push(json!({
+            "scenario_id": id,
+            "expected_disposition": expected,
+            "actual_disposition": disposition,
+            "matched": matched,
+            "cip_recommendation_authorized": false,
+            "measurement_quarantine_required": sensor_fault,
+            "regime_shift_detected": regime_shift,
+            "fouling_proxy_observable": resistance_observable
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "membrane observability F0 input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|a, b| {
+        a.get("scenario_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("scenario_id").and_then(Value::as_str))
+    });
+    let matched = results.iter().filter(|row| row["matched"] == true).count();
+
+    Ok(json!({
+        "schema_version": "membrane-observability-fault-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_observability_challenge",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "false_fouling_alarms_sensor_only": false_fouling_sensor_only,
+        "false_fouling_alarms_regime_shift_only": false_fouling_regime_only,
+        "false_cip_recommendations": false_cip_recommendations,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "This is a transparent synthetic residual-rule baseline, not a trained diagnostic model.",
+            "Normalized resistance is an assumed observer input and is not estimated from real plant telemetry here.",
+            "No fouling chemistry, membrane integrity, water quality or cleaning need is established.",
+            "No diagnostic output authorizes a CIP or plant actuator command."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1052,9 +1275,62 @@ mod tests {
             "membrane_m0b_oracle" => include_str!(
                 "../../../research/water-service-engineering/membrane-ro-m0b-regression-oracle-v0.1.json"
             ),
+            "membrane_observability_inputs" => include_str!(
+                "../../../research/water-service-engineering/membrane-observability-fault-cases-v0.1.json"
+            ),
+            "membrane_observability_oracle" => include_str!(
+                "../../../research/water-service-engineering/membrane-observability-fault-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_thirteen_membrane_observability_f0_cases_match_separate_oracle() {
+        let result = evaluate_membrane_observability_f0(
+            &load("membrane_observability_inputs"),
+            &load("membrane_observability_oracle"),
+        )
+        .expect("membrane observability F0 must evaluate");
+        assert_eq!(result["result_count"], 13);
+        assert_eq!(result["matched_case_count"], 13);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["false_fouling_alarms_sensor_only"], 0);
+        assert_eq!(result["false_fouling_alarms_regime_shift_only"], 0);
+        assert_eq!(result["false_cip_recommendations"], 0);
+    }
+
+    #[test]
+    fn membrane_observability_f0_abstains_when_resistance_is_unobservable() {
+        let result = evaluate_membrane_observability_f0(
+            &load("membrane_observability_inputs"),
+            &load("membrane_observability_oracle"),
+        )
+        .expect("membrane observability F0 must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["scenario_id"] == "MOBS-012-resistance-unobservable")
+            .unwrap();
+        assert_eq!(row["actual_disposition"], "INDETERMINATE");
+    }
+
+    #[test]
+    fn membrane_observability_f0_preserves_multiple_cause_disposition() {
+        let result = evaluate_membrane_observability_f0(
+            &load("membrane_observability_inputs"),
+            &load("membrane_observability_oracle"),
+        )
+        .expect("membrane observability F0 must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["scenario_id"] == "MOBS-010-fouling-plus-pressure-sensor-drift")
+            .unwrap();
+        assert_eq!(row["actual_disposition"], "MULTIPLE_CAUSES");
     }
 
     #[test]

@@ -1,0 +1,72 @@
+{
+  "schema_version": "membrane-observability-fault-oracle-v0.1",
+  "evidence_class": "synthetic_observability_challenge",
+  "evidence_ceiling": "synthetic_diagnostic_baseline_only_no_real_sensor_or_membrane_diagnosis",
+  "cases": [
+    {
+      "scenario_id": "MOBS-001-healthy-reference",
+      "expected_disposition": "NO_FAULT",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-002-genuine-resistance-growth",
+      "expected_disposition": "FOULING_SUSPECTED",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-003-pressure-sensor-drift",
+      "expected_disposition": "SENSOR_FAULT_SUSPECTED",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-004-flow-meter-bias",
+      "expected_disposition": "SENSOR_FAULT_SUSPECTED",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-005-clock-skew",
+      "expected_disposition": "SENSOR_FAULT_SUSPECTED",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-006-critical-channel-dropout",
+      "expected_disposition": "SENSOR_FAULT_SUSPECTED",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-007-temperature-regime-shift",
+      "expected_disposition": "OPERATING_REGIME_SHIFT",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-008-feed-salinity-regime-shift",
+      "expected_disposition": "OPERATING_REGIME_SHIFT",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-009-pump-speed-regime-change",
+      "expected_disposition": "OPERATING_REGIME_SHIFT",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-010-fouling-plus-pressure-sensor-drift",
+      "expected_disposition": "MULTIPLE_CAUSES",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-011-fouling-plus-salinity-shift",
+      "expected_disposition": "MULTIPLE_CAUSES",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-012-resistance-unobservable",
+      "expected_disposition": "INDETERMINATE",
+      "expected_cip_recommendation": false
+    },
+    {
+      "scenario_id": "MOBS-013-resistance-uncertainty-too-high",
+      "expected_disposition": "INDETERMINATE",
+      "expected_cip_recommendation": false
+    }
+  ]
+}
