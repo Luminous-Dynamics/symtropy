@@ -806,7 +806,8 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!("../../../benchmarks/maritime-observability/synthetic-report-v0.1.json");
+    const FIXTURE: &str =
+        include_str!("../../../benchmarks/maritime-observability/synthetic-report-v0.1.json");
     fn fixture() -> Value {
         serde_json::from_str(FIXTURE).unwrap()
     }

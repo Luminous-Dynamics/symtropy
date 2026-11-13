@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/maritime-observability-evidence-validator/**"
       - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
       - "Cargo.toml"
@@ -15,6 +16,7 @@ on:
     paths:
       - "tools/maritime-observability-evidence-validator/**"
       - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
       - "Cargo.toml"
@@ -53,9 +55,32 @@ jobs:
           digest="$(sha256sum "$input" | awk '{print $1}')"
           cargo run --quiet --locked -p maritime-observability-evidence-validator -- "$input" --source-commit "$source_commit" --report-sha256 "$digest" > maritime-observability-evidence-receipt.json
           jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .report_sha256 == $digest and .sensor_count == 6 and .fault_count == 3 and .pair_count == 3 and .measured_input_pairs_eligible_for_independent_review == 2 and (.pair_audits | length == 3)' maritime-observability-evidence-receipt.json
+      - name: Execute qualification impact analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/qualification-dependency-manifest.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification-impact -- \
+            "$input" --source-commit "$source_commit" --change-set-sha256 "$digest" > maritime-qualification-impact-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .change_set_sha256 == $digest
+            and .change_count == 2
+            and .impacted_qualification_count == 5
+            and .requalification_required_count == 5
+            and .unaffected_qualification_count == 2
+            and .mutation_performed == false
+            and .authorization_granted == false
+          ' maritime-qualification-impact-receipt.json
       - uses: actions/upload-artifact@v4
         with:
-          name: maritime-observability-evidence-receipt
-          path: maritime-observability-evidence-receipt.json
+          name: maritime-observability-and-impact-receipts
+          path: |
+            maritime-observability-evidence-receipt.json
+            maritime-qualification-impact-receipt.json
           if-no-files-found: error
           retention-days: 90
