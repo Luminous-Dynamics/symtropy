@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     env, fs,
@@ -7,11 +7,16 @@ use std::{
 
 const VERSION: &str = "0.1.0";
 #[cfg(test)]
-const FIXTURE: &str =
-    include_str!("../../../../benchmarks/maritime-observability/qualification-dependency-manifest.v0.1.json");
+const FIXTURE: &str = include_str!(
+    "../../../../benchmarks/maritime-observability/qualification-dependency-manifest.v0.1.json"
+);
 
 fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
-    value.get(key).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty())
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -25,12 +30,7 @@ fn is_git_sha(value: &str) -> bool {
     value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn keys(
-    value: &Value,
-    required: &[&str],
-    path: &str,
-    violations: &mut Vec<Value>,
-) -> bool {
+fn keys(value: &Value, required: &[&str], path: &str, violations: &mut Vec<Value>) -> bool {
     let Some(object) = value.as_object() else {
         violations.push(json!({
             "code": "EXPECTED_OBJECT",
@@ -156,11 +156,7 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
     let scope = &manifest["asset_scope"];
     keys(
         scope,
-        &[
-            "asset_id",
-            "configuration_revision",
-            "configuration_sha256",
-        ],
+        &["asset_id", "configuration_revision", "configuration_sha256"],
         "$.asset_scope",
         &mut violations,
     );
@@ -325,8 +321,7 @@ fn validate(manifest: &Value) -> Result<Value, Vec<Value>> {
     }
 
     // Kahn topological pass: a cycle makes qualification propagation ambiguous.
-    let mut indegree: BTreeMap<String, usize> =
-        nodes.keys().map(|id| (id.clone(), 0)).collect();
+    let mut indegree: BTreeMap<String, usize> = nodes.keys().map(|id| (id.clone(), 0)).collect();
     for prerequisites in adjacency.values() {
         for prerequisite in prerequisites {
             *indegree.entry(prerequisite.clone()).or_default() += 1;
@@ -583,19 +578,14 @@ fn run(path: &str, source_commit: &str, manifest_sha256: &str) -> Result<Value, 
             receipt["change_set_sha256"] = json!(manifest_sha256);
             Ok(receipt)
         }
-        Err(violations) => Err(
-            serde_json::to_string(&json!({ "violations": violations }))
-                .unwrap_or_else(|_| "qualification impact validation failed".to_owned()),
-        ),
+        Err(violations) => Err(serde_json::to_string(&json!({ "violations": violations }))
+            .unwrap_or_else(|_| "qualification impact validation failed".to_owned())),
     }
 }
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 6
-        || args[2] != "--source-commit"
-        || args[4] != "--change-set-sha256"
-    {
+    if args.len() != 6 || args[2] != "--source-commit" || args[4] != "--change-set-sha256" {
         eprintln!(
             "usage: qualification-impact <change-set.json> --source-commit <40-hex> --change-set-sha256 <64-hex>"
         );
@@ -702,11 +692,14 @@ mod tests {
     #[test]
     fn dependency_cycle_fails_closed() {
         let mut input = fixture();
-        input["dependency_edges"].as_array_mut().unwrap().push(json!({
-            "dependent_id": "E-SENSOR-TOPOLOGY",
-            "prerequisite_id": "Q-OBSERVABILITY",
-            "dependency_type": "requires"
-        }));
+        input["dependency_edges"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "dependent_id": "E-SENSOR-TOPOLOGY",
+                "prerequisite_id": "Q-OBSERVABILITY",
+                "dependency_type": "requires"
+            }));
         let errors = validate(&input).unwrap_err();
         assert!(has_error(&errors, "DEPENDENCY_CYCLE"));
     }
@@ -714,11 +707,14 @@ mod tests {
     #[test]
     fn unknown_edge_endpoint_is_rejected() {
         let mut input = fixture();
-        input["dependency_edges"].as_array_mut().unwrap().push(json!({
-            "dependent_id": "Q-OBSERVABILITY",
-            "prerequisite_id": "E-UNKNOWN",
-            "dependency_type": "requires"
-        }));
+        input["dependency_edges"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "dependent_id": "Q-OBSERVABILITY",
+                "prerequisite_id": "E-UNKNOWN",
+                "dependency_type": "requires"
+            }));
         let errors = validate(&input).unwrap_err();
         assert!(has_error(&errors, "UNKNOWN_DEPENDENCY_NODE"));
     }
