@@ -360,14 +360,8 @@ mod tests {
         velocity: &Tangent<F, 2>,
         force: &Cotangent<F, 2>,
     ) {
-        let source = projected_circle_step(
-            mass_metric,
-            position,
-            velocity,
-            force,
-            STEP_PROFILE,
-        )
-        .unwrap();
+        let source =
+            projected_circle_step(mass_metric, position, velocity, force, STEP_PROFILE).unwrap();
         let action_position = transform_tangent(action, position).unwrap();
         let action_velocity = transform_tangent(action, velocity).unwrap();
         let action_force = transform_covector(action, force).unwrap();
@@ -449,22 +443,12 @@ mod tests {
         let velocity_y = rebasis.tangent_to_to(&velocity_q).unwrap();
         let force_y = rebasis.cotangent_to_to(&force_q).unwrap();
 
-        let step_q = projected_circle_step(
-            &mass_q,
-            &position_q,
-            &velocity_q,
-            &force_q,
-            STEP_PROFILE,
-        )
-        .unwrap();
-        let step_y = projected_circle_step(
-            &mass_y,
-            &position_y,
-            &velocity_y,
-            &force_y,
-            STEP_PROFILE,
-        )
-        .unwrap();
+        let step_q =
+            projected_circle_step(&mass_q, &position_q, &velocity_q, &force_q, STEP_PROFILE)
+                .unwrap();
+        let step_y =
+            projected_circle_step(&mass_y, &position_y, &velocity_y, &force_y, STEP_PROFILE)
+                .unwrap();
 
         close_vector(
             &step_q.position,
