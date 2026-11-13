@@ -82,7 +82,9 @@ impl<'de> Visitor<'de> for StrictJsonVisitor {
         E: de::Error,
     {
         if value > MAX_SAFE_JSON_INTEGER {
-            return Err(E::custom("JSON integer exceeds the IEEE-754 safe-integer range"));
+            return Err(E::custom(
+                "JSON integer exceeds the IEEE-754 safe-integer range",
+            ));
         }
         Ok(JsonValue::Integer(value as i64))
     }
