@@ -155,6 +155,65 @@ jobs:
           print("MEMBRANE_DATASET_ADMISSION_PASS: 4 records remain metadata-only; no hashes or splits fabricated")
           print("MEMBRANE_RO_M0_PASS: 5 synthetic transport cases match separate formula oracle")
           PY
+      - name: Validate sample-time-only M2 water-quality labels
+        id: membrane_wq_m2
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-wq-sample.schema.json").read_text())
+          fixtures = json.loads((root / "membrane-wq-sample-fixtures-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-wq-sample-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema, format_checker=FormatChecker())
+
+          if len(fixtures["cases"]) != 5 or manifest["case_count"] != 5:
+              raise SystemExit("MEMBRANE_WQ_M2_CASE_COUNT_FAIL")
+          ids = [case["case_id"] for case in fixtures["cases"]]
+          if len(set(ids)) != 5:
+              raise SystemExit("MEMBRANE_WQ_M2_DUPLICATE_CASE_ID")
+
+          for case in fixtures["cases"]:
+              record = case["record"]
+              errors = sorted(
+                  validator.iter_errors(record),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"MEMBRANE_WQ_M2_SCHEMA_FAIL: {case['case_id']} {pointer}: {error.message}")
+                  raise SystemExit(1)
+
+              sample_time = datetime.fromisoformat(record["sample_collection_time"].replace("Z", "+00:00"))
+              feature_cutoff = datetime.fromisoformat(record["telemetry_feature_cutoff"].replace("Z", "+00:00"))
+              if feature_cutoff > sample_time:
+                  if case["expected"] != "REJECT_POST_SAMPLE_FEATURE_LEAKAGE":
+                      raise SystemExit(f"MEMBRANE_WQ_M2_FUTURE_FEATURE_NOT_REJECTED: {case['case_id']}")
+              if record["result_qualifier"] in ("BELOW_LOD", "BELOW_LOQ"):
+                  if record["value"] is not None:
+                      raise SystemExit(f"MEMBRANE_WQ_M2_CENSORED_RESULT_MUST_NOT_BE_NUMERIC: {case['case_id']}")
+                  if record["expected"] != "ADMISSIBLE_QUALIFIED_RESULT_NOT_ZERO":
+                      raise SystemExit(f"MEMBRANE_WQ_M2_QUALIFIER_SEMANTICS_FAIL: {case['case_id']}")
+              if record["lab_qc_status"] != "ACCEPTED":
+                  if case["expected"] != "NOT_A_TRAINING_LABEL":
+                      raise SystemExit(f"MEMBRANE_WQ_M2_REJECTED_QC_NOT_EXCLUDED: {case['case_id']}")
+              if record["label_scope"] != "SAMPLE_TIME_LOCATION_ANALYTE_ONLY":
+                  raise SystemExit(f"MEMBRANE_WQ_M2_LABEL_SCOPE_FAIL: {case['case_id']}")
+
+          same_time = [
+              row["record"] for row in fixtures["cases"]
+              if row["record"]["sample_collection_time"] == "2030-01-01T10:20:00Z"
+          ]
+          if len(same_time) > 1 and len({x["sample_location_id"] for x in same_time}) != len(same_time):
+              raise SystemExit("MEMBRANE_WQ_M2_LOCATION_IDENTITY_FAIL")
+          print("MEMBRANE_WQ_M2_PASS: 5 synthetic fixtures; sample-time-only, causal cutoff and qualifier semantics enforced")
+          PY
       - name: Evaluate membrane RO transport M0 at exact revision
         id: membrane_ro_m0
         env:
@@ -186,6 +245,10 @@ jobs:
             research/water-service-engineering/membrane-ro-m0-oracle-v0.1.json
             research/water-service-engineering/membrane-ro-m0.schema.json
             research/water-service-engineering/membrane-ro-m0-manifest-v0.1.json
+            research/water-service-engineering/MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md
+            research/water-service-engineering/membrane-wq-sample.schema.json
+            research/water-service-engineering/membrane-wq-sample-fixtures-v0.1.json
+            research/water-service-engineering/membrane-wq-sample-manifest-v0.1.json
             artifacts/membrane-ro-m0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
@@ -194,7 +257,9 @@ jobs:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           MEMBRANE_CONTRACTS_OUTCOME: ${{ steps.membrane_contracts.outcome }}
           MEMBRANE_RO_M0_OUTCOME: ${{ steps.membrane_ro_m0.outcome }}
+          MEMBRANE_WQ_M2_OUTCOME: ${{ steps.membrane_wq_m2.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
           test "$MEMBRANE_RO_M0_OUTCOME" = "success"
+          test "$MEMBRANE_WQ_M2_OUTCOME" = "success"
