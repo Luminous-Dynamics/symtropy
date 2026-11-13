@@ -1,13 +1,13 @@
 #![forbid(unsafe_code)]
 
-//! Fixed-channel, anytime-valid sequential likelihood-ratio evidence.
+//! Fixed-channel, anytime-valid sequential likelihood-ratio evidence over
+//! predeclared calibrated evidence blocks.
 //!
-//! This is a model-conditional evidence process for a frozen measurement
-//! channel and a simple null/alternative pair. It can be inspected after every
-//! sample and stopped at any data-dependent time. Validity requires the declared
-//! conditional outcome law under the null to remain correct. The current v0.1
-//! model is stationary/i.i.d.; it is not robust to unmodeled temporal dependence,
-//! changing sensor-selection policies, covariate shift or model misspecification.
+//! Streaming inference may emit one result per sample, but this evidence
+//! accumulator accepts only non-overlapping calibrated blocks with an
+//! independently reviewed dependence receipt and a frozen minimum separation.
+//! The block aggregation and dependence assumptions remain model-conditional;
+//! this gate cannot prove independence or make misspecified likelihoods valid.
 //!
 //! A crossed threshold means "evidence against this declared null under this
 //! calibrated model", not "physical cause proved", "fault uniquely isolated",
@@ -19,8 +19,8 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::fmt;
 
-pub const SEQUENTIAL_EVIDENCE_MODEL_SCHEMA: &str = "symtropy-sequential-evidence-model-v0.1";
-pub const SEQUENTIAL_EVIDENCE_RECEIPT_SCHEMA: &str = "symtropy-sequential-evidence-receipt-v0.1";
+pub const SEQUENTIAL_EVIDENCE_MODEL_SCHEMA: &str = "symtropy-sequential-evidence-model-v0.2";
+pub const SEQUENTIAL_EVIDENCE_RECEIPT_SCHEMA: &str = "symtropy-sequential-evidence-receipt-v0.2";
 const PROBABILITY_TOLERANCE: f64 = 1e-9;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -29,6 +29,12 @@ pub struct SequentialOutcomeLikelihood {
     pub outcome_id: String,
     pub probability_under_null: f64,
     pub probability_under_alternative: f64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SequentialEvidenceUnitKind {
+    NonOverlappingCalibratedBlock,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -40,11 +46,17 @@ pub struct SequentialLikelihoodModel {
     pub alternative_hypothesis_id: String,
     /// Frozen model producing the outcome categories for this channel.
     pub model_sha256: String,
-    /// Independent calibration dataset/procedure digest.
+    /// Independent calibration dataset/procedure digest for block-level outcomes.
     pub calibration_sha256: String,
     /// Reference to an independently reviewed calibration receipt.
     /// This digest alone does not authenticate the issuer or reviewer.
     pub calibration_review_receipt_sha256: String,
+    pub evidence_unit_kind: SequentialEvidenceUnitKind,
+    /// Frozen block aggregation protocol and upstream dependence review.
+    pub block_aggregation_protocol_sha256: String,
+    pub dependence_review_receipt_sha256: String,
+    /// Minimum temporal separation between the end of one block and start of the next.
+    pub minimum_block_separation_seconds: f64,
     pub outcomes: Vec<SequentialOutcomeLikelihood>,
     /// Hash over the model and all outcome likelihoods, excluding this field.
     pub likelihood_table_sha256: String,
@@ -89,14 +101,21 @@ impl SequentialEvidenceConfig {
 #[serde(deny_unknown_fields)]
 pub struct SequentialEvidenceObservation {
     pub recording_id: String,
+    /// Contiguous block ordinal, not the raw 20 Hz sensor sample index.
     pub sample_index: u64,
     pub time_seconds: f64,
     pub outcome_id: String,
-    /// Input receipt from the append-only streaming contract.
+    pub evidence_unit_id: String,
+    pub block_start_seconds: f64,
+    pub block_end_seconds: f64,
+    pub block_manifest_sha256: String,
+    /// Input receipt from the append-only block aggregation/streaming contract.
     pub input_receipt_sha256: String,
     pub model_sha256: String,
     pub likelihood_table_sha256: String,
     pub calibration_sha256: String,
+    pub block_aggregation_protocol_sha256: String,
+    pub dependence_review_receipt_sha256: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -108,12 +127,18 @@ pub struct SequentialEvidenceReceipt {
     pub sample_index: u64,
     pub time_seconds: f64,
     pub outcome_id: String,
+    pub evidence_unit_id: String,
+    pub block_start_seconds: f64,
+    pub block_end_seconds: f64,
+    pub block_manifest_sha256: String,
     pub null_hypothesis_id: String,
     pub alternative_hypothesis_id: String,
     pub model_sha256: String,
     pub likelihood_table_sha256: String,
     pub calibration_sha256: String,
     pub calibration_review_receipt_sha256: String,
+    pub block_aggregation_protocol_sha256: String,
+    pub dependence_review_receipt_sha256: String,
     pub input_receipt_sha256: String,
     pub log_evalue: f64,
     pub log_threshold: f64,
@@ -145,6 +170,10 @@ pub enum SequentialEvidenceError {
     RecordingChanged,
     NonMonotonicSample,
     SampleSequenceGap,
+    InvalidEvidenceBlock,
+    DuplicateEvidenceUnit(String),
+    OverlappingEvidenceBlock,
+    InsufficientBlockSeparation,
     UnknownOutcome(String),
     SessionPoisoned,
     ReceiptChainBreak,
@@ -192,8 +221,12 @@ impl fmt::Display for SequentialEvidenceError {
             }
             Self::SampleSequenceGap => write!(
                 formatter,
-                "sequential evidence stream skipped one or more sample indices"
+                "sequential evidence stream skipped one or more block ordinals"
             ),
+            Self::InvalidEvidenceBlock => write!(formatter, "sequential evidence unit is not a valid calibrated block"),
+            Self::DuplicateEvidenceUnit(id) => write!(formatter, "duplicate sequential evidence unit: {id}"),
+            Self::OverlappingEvidenceBlock => write!(formatter, "sequential evidence blocks overlap"),
+            Self::InsufficientBlockSeparation => write!(formatter, "sequential evidence blocks violate the frozen minimum separation"),
             Self::UnknownOutcome(id) => write!(
                 formatter,
                 "observation is outside the frozen likelihood support: {id}"
@@ -232,6 +265,10 @@ pub fn sequential_likelihood_table_sha256(
         model.model_sha256.as_str(),
         model.calibration_sha256.as_str(),
         model.calibration_review_receipt_sha256.as_str(),
+        model.evidence_unit_kind,
+        model.block_aggregation_protocol_sha256.as_str(),
+        model.dependence_review_receipt_sha256.as_str(),
+        model.minimum_block_separation_seconds,
         &model.outcomes,
     );
     sha256_serializable(b"symtropy-sequential-likelihood-table-v1\0", &payload)
@@ -247,6 +284,11 @@ impl SequentialLikelihoodModel {
             || !is_sha256_hex(&self.model_sha256)
             || !is_sha256_hex(&self.calibration_sha256)
             || !is_sha256_hex(&self.calibration_review_receipt_sha256)
+            || !is_sha256_hex(&self.block_aggregation_protocol_sha256)
+            || !is_sha256_hex(&self.dependence_review_receipt_sha256)
+            || !self.minimum_block_separation_seconds.is_finite()
+            || self.minimum_block_separation_seconds <= 0.0
+            || self.evidence_unit_kind != SequentialEvidenceUnitKind::NonOverlappingCalibratedBlock
             || !is_sha256_hex(&self.likelihood_table_sha256)
             || self.outcomes.len() < 2
         {
@@ -299,6 +341,8 @@ pub struct SequentialEvidenceSession {
     recording_id: String,
     previous_sample_index: Option<u64>,
     previous_time_seconds: Option<f64>,
+    previous_block_end_seconds: Option<f64>,
+    evidence_unit_ids: BTreeSet<String>,
     previous_receipt_sha256: Option<String>,
     log_evalue: f64,
     observation_count: u64,
@@ -324,6 +368,8 @@ impl SequentialEvidenceSession {
             recording_id,
             previous_sample_index: None,
             previous_time_seconds: None,
+            previous_block_end_seconds: None,
+            evidence_unit_ids: BTreeSet::new(),
             previous_receipt_sha256: None,
             log_evalue: 0.0,
             observation_count: 0,
@@ -332,7 +378,8 @@ impl SequentialEvidenceSession {
         })
     }
 
-    /// Append one outcome from the same frozen evidence channel.
+    /// Append one calibrated non-overlapping block outcome. Raw adjacent sensor
+    /// samples are not independent evidence units and cannot be appended directly.
     ///
     /// An outcome outside the declared support poisons the session. It is not
     /// assigned infinite evidence, because that would turn model misspecification
@@ -350,17 +397,46 @@ impl SequentialEvidenceSession {
         if observation.recording_id != self.recording_id {
             return Err(SequentialEvidenceError::RecordingChanged);
         }
-        if !observation.time_seconds.is_finite()
-            || observation.time_seconds < 0.0
-            || !is_sha256_hex(&observation.input_receipt_sha256)
+        if observation.evidence_unit_id.trim().is_empty()
+            || !observation.time_seconds.is_finite()
+            || !observation.block_start_seconds.is_finite()
+            || !observation.block_end_seconds.is_finite()
+            || observation.block_start_seconds < 0.0
+            || observation.block_end_seconds <= observation.block_start_seconds
+            || (observation.time_seconds - observation.block_end_seconds).abs() > 1e-9
+        {
+            return Err(SequentialEvidenceError::InvalidEvidenceBlock);
+        }
+        if !is_sha256_hex(&observation.input_receipt_sha256)
+            || !is_sha256_hex(&observation.block_manifest_sha256)
         {
             return Err(SequentialEvidenceError::InvalidDigest);
         }
         if observation.model_sha256 != self.model.model_sha256
             || observation.likelihood_table_sha256 != self.model.likelihood_table_sha256
             || observation.calibration_sha256 != self.model.calibration_sha256
+            || observation.block_aggregation_protocol_sha256
+                != self.model.block_aggregation_protocol_sha256
+            || observation.dependence_review_receipt_sha256
+                != self.model.dependence_review_receipt_sha256
         {
             return Err(SequentialEvidenceError::ModelBindingMismatch);
+        }
+        if self.evidence_unit_ids.contains(&observation.evidence_unit_id) {
+            return Err(SequentialEvidenceError::DuplicateEvidenceUnit(
+                observation.evidence_unit_id.clone(),
+            ));
+        }
+        if let Some(previous_end) = self.previous_block_end_seconds {
+            if observation.block_start_seconds < previous_end - 1e-9 {
+                return Err(SequentialEvidenceError::OverlappingEvidenceBlock);
+            }
+            if observation.block_start_seconds - previous_end
+                + 1e-9
+                < self.model.minimum_block_separation_seconds
+            {
+                return Err(SequentialEvidenceError::InsufficientBlockSeparation);
+            }
         }
         if let Some(previous) = self.previous_sample_index {
             if observation.sample_index <= previous {
@@ -403,12 +479,18 @@ impl SequentialEvidenceSession {
             sample_index: observation.sample_index,
             time_seconds: observation.time_seconds,
             outcome_id: observation.outcome_id.clone(),
+            evidence_unit_id: observation.evidence_unit_id.clone(),
+            block_start_seconds: observation.block_start_seconds,
+            block_end_seconds: observation.block_end_seconds,
+            block_manifest_sha256: observation.block_manifest_sha256.clone(),
             null_hypothesis_id: self.model.null_hypothesis_id.clone(),
             alternative_hypothesis_id: self.model.alternative_hypothesis_id.clone(),
             model_sha256: self.model.model_sha256.clone(),
             likelihood_table_sha256: self.model.likelihood_table_sha256.clone(),
             calibration_sha256: self.model.calibration_sha256.clone(),
             calibration_review_receipt_sha256: self.model.calibration_review_receipt_sha256.clone(),
+            block_aggregation_protocol_sha256: self.model.block_aggregation_protocol_sha256.clone(),
+            dependence_review_receipt_sha256: self.model.dependence_review_receipt_sha256.clone(),
             input_receipt_sha256: observation.input_receipt_sha256.clone(),
             log_evalue: next_log_evalue,
             log_threshold,
@@ -423,6 +505,8 @@ impl SequentialEvidenceSession {
         self.log_evalue = next_log_evalue;
         self.previous_sample_index = Some(observation.sample_index);
         self.previous_time_seconds = Some(observation.time_seconds);
+        self.previous_block_end_seconds = Some(observation.block_end_seconds);
+        self.evidence_unit_ids.insert(observation.evidence_unit_id.clone());
         self.previous_receipt_sha256 = Some(receipt.receipt_sha256.clone());
         self.observation_count += 1;
         self.threshold_crossed = crossed;
@@ -476,6 +560,8 @@ pub fn validate_sequential_evidence_chain(
     let recording_id = receipts[0].recording_id.as_str();
     let mut previous_hash: Option<&str> = None;
     let mut previous_time: Option<f64> = None;
+    let mut previous_block_end: Option<f64> = None;
+    let mut evidence_unit_ids = BTreeSet::new();
     let mut log_evalue = 0.0;
     let mut threshold_crossed = false;
 
@@ -483,6 +569,12 @@ pub fn validate_sequential_evidence_chain(
         if receipt.schema_version != SEQUENTIAL_EVIDENCE_RECEIPT_SCHEMA
             || receipt.recording_id != recording_id
             || receipt.recording_id.trim().is_empty()
+            || receipt.evidence_unit_id.trim().is_empty()
+            || receipt.block_start_seconds < 0.0
+            || !receipt.block_start_seconds.is_finite()
+            || !receipt.block_end_seconds.is_finite()
+            || receipt.block_end_seconds <= receipt.block_start_seconds
+            || (receipt.time_seconds - receipt.block_end_seconds).abs() > 1e-9
             || receipt.channel_id != model.channel_id
             || receipt.null_hypothesis_id != model.null_hypothesis_id
             || receipt.alternative_hypothesis_id != model.alternative_hypothesis_id
@@ -493,6 +585,8 @@ pub fn validate_sequential_evidence_chain(
             || receipt.likelihood_table_sha256 != model.likelihood_table_sha256
             || receipt.calibration_sha256 != model.calibration_sha256
             || receipt.calibration_review_receipt_sha256 != model.calibration_review_receipt_sha256
+            || receipt.block_aggregation_protocol_sha256 != model.block_aggregation_protocol_sha256
+            || receipt.dependence_review_receipt_sha256 != model.dependence_review_receipt_sha256
         {
             return Err(SequentialEvidenceError::MixedModelChain);
         }
@@ -511,6 +605,21 @@ pub fn validate_sequential_evidence_chain(
         }
         if receipt.previous_receipt_sha256.as_deref() != previous_hash {
             return Err(SequentialEvidenceError::ReceiptChainBreak);
+        }
+        if !evidence_unit_ids.insert(receipt.evidence_unit_id.as_str()) {
+            return Err(SequentialEvidenceError::DuplicateEvidenceUnit(
+                receipt.evidence_unit_id.clone(),
+            ));
+        }
+        if let Some(previous_end) = previous_block_end {
+            if receipt.block_start_seconds < previous_end - 1e-9 {
+                return Err(SequentialEvidenceError::OverlappingEvidenceBlock);
+            }
+            if receipt.block_start_seconds - previous_end + 1e-9
+                < model.minimum_block_separation_seconds
+            {
+                return Err(SequentialEvidenceError::InsufficientBlockSeparation);
+            }
         }
         if (receipt.log_threshold - expected_threshold).abs() > 1e-12
             || receipt.per_alternative_alpha_ppm != expected_alpha
@@ -535,6 +644,7 @@ pub fn validate_sequential_evidence_chain(
         }
         previous_hash = Some(receipt.receipt_sha256.as_str());
         previous_time = Some(receipt.time_seconds);
+        previous_block_end = Some(receipt.block_end_seconds);
     }
     Ok(())
 }
@@ -547,12 +657,18 @@ struct SequentialEvidenceReceiptDigest<'a> {
     sample_index: u64,
     time_seconds: f64,
     outcome_id: &'a str,
+    evidence_unit_id: &'a str,
+    block_start_seconds: f64,
+    block_end_seconds: f64,
+    block_manifest_sha256: &'a str,
     null_hypothesis_id: &'a str,
     alternative_hypothesis_id: &'a str,
     model_sha256: &'a str,
     likelihood_table_sha256: &'a str,
     calibration_sha256: &'a str,
     calibration_review_receipt_sha256: &'a str,
+    block_aggregation_protocol_sha256: &'a str,
+    dependence_review_receipt_sha256: &'a str,
     input_receipt_sha256: &'a str,
     log_evalue: f64,
     log_threshold: f64,
@@ -573,12 +689,18 @@ fn sequential_receipt_sha256(
         sample_index: receipt.sample_index,
         time_seconds: receipt.time_seconds,
         outcome_id: &receipt.outcome_id,
+        evidence_unit_id: &receipt.evidence_unit_id,
+        block_start_seconds: receipt.block_start_seconds,
+        block_end_seconds: receipt.block_end_seconds,
+        block_manifest_sha256: &receipt.block_manifest_sha256,
         null_hypothesis_id: &receipt.null_hypothesis_id,
         alternative_hypothesis_id: &receipt.alternative_hypothesis_id,
         model_sha256: &receipt.model_sha256,
         likelihood_table_sha256: &receipt.likelihood_table_sha256,
         calibration_sha256: &receipt.calibration_sha256,
         calibration_review_receipt_sha256: &receipt.calibration_review_receipt_sha256,
+        block_aggregation_protocol_sha256: &receipt.block_aggregation_protocol_sha256,
+        dependence_review_receipt_sha256: &receipt.dependence_review_receipt_sha256,
         input_receipt_sha256: &receipt.input_receipt_sha256,
         log_evalue: receipt.log_evalue,
         log_threshold: receipt.log_threshold,
@@ -627,6 +749,10 @@ mod tests {
             model_sha256: digest('a'),
             calibration_sha256: digest('b'),
             calibration_review_receipt_sha256: digest('c'),
+            evidence_unit_kind: SequentialEvidenceUnitKind::NonOverlappingCalibratedBlock,
+            block_aggregation_protocol_sha256: digest('f'),
+            dependence_review_receipt_sha256: digest('e'),
+            minimum_block_separation_seconds: 10.0,
             outcomes: vec![
                 SequentialOutcomeLikelihood {
                     outcome_id: "nominal_signature".into(),
@@ -657,12 +783,18 @@ mod tests {
         SequentialEvidenceObservation {
             recording_id: "run-1".into(),
             sample_index: index,
-            time_seconds: index as f64 * 0.05,
+            time_seconds: index as f64 * 20.0 + 10.0,
             outcome_id: outcome_id.into(),
+            evidence_unit_id: format!("run-1-block-{index:03}"),
+            block_start_seconds: index as f64 * 20.0,
+            block_end_seconds: index as f64 * 20.0 + 10.0,
+            block_manifest_sha256: digest('9'),
             input_receipt_sha256: digest('d'),
             model_sha256: model.model_sha256,
             likelihood_table_sha256: model.likelihood_table_sha256,
             calibration_sha256: model.calibration_sha256,
+            block_aggregation_protocol_sha256: digest('f'),
+            dependence_review_receipt_sha256: digest('e'),
         }
     }
 
