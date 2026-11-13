@@ -114,3 +114,10 @@ The 23-case input corpus now has a **separate expected-output oracle**. The Rust
 The 2026 model-free ENC pump-control paper gives a strong new comparator, but its own discussion identifies full direct measurement of all regulated pressures and tank levels as a limitation. The new child benchmark [#5018](https://github.com/Luminous-Dynamics/symtropy/issues/5018) therefore compares tuned rule/PI, hydraulic MPC, DeePC/data-driven MPC, model-free ENC and qualified-estimator hybrids under matched sparse-sensor, bias, common-mode, stale-time, topology, pump, source, power and communications faults.
 
 See [sparse-sensor control robustness protocol](./pump-control-robustness/PUMP_CONTROL_ROBUSTNESS_V0_1.md) and the 15-case synthetic scenario pack. This is a controller admission/disposition contract, not a controller implementation or measured performance. The ENC paper's data remain available on request; exact reproduction is blocked pending authorized source files and code.
+
+ 
+## Failure-domain observability qualification
+
+A new synthetic challenge pack [#5045](https://github.com/Luminous-Dynamics/symtropy/issues/5045) consumes candidate layouts from #4006 and qualifies them under topology revision changes, sensor dropout, shared calibration/power/gateway/clock domains, estimator ill-conditioning and independent measurement fallback. It distinguishes direct observation, numerical estimator qualification, structural-only observability, unobservability, invalid topology certificates and indeterminate time evidence.
+
+See [protocol](./observability-qualification/OBSERVABILITY_QUALIFICATION_V0_1.md), [12-case scenarios](./observability-qualification/scenarios-v0.1.json), [schema](./observability-qualification/scenarios-v0.1.schema.json) and [separate oracle](./observability-qualification/disposition-oracle-v0.1.json). All IDs, topology, failure domains and thresholds are synthetic and non-normative. The challenge does not implement another sensor-placement optimizer.
