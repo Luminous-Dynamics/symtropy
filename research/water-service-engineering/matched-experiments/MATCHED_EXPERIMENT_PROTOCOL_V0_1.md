@@ -97,3 +97,16 @@ The schema/fixture/oracle validate **pair admission only**. They do not contain 
 ## Claim ceiling
 
 This contract can qualify only paired-input equivalence, baseline identity/configuration and resource disclosure. It does not measure controller quality, leak accuracy, community service, restoration, safety, commercial competitiveness or physical performance.
+
+## Current external comparison anchors — 13 November 2026
+
+- Ranganathan et al. (May 2026), *Journal of Water Process Engineering*, DOI [10.1016/j.jwpe.2026.110114](https://doi.org/10.1016/j.jwpe.2026.110114), report a unified Net3 benchmark with 47,000+ EPANET/WNTR scenarios. They report >95% binary detection accuracy while localization remains harder, with Random Forest/XGBoost/LightGBM Top-1 localization around 75–77% in their setting. These are Net3 synthetic scenario results, not real-utility performance.
+- Babela et al. (17 April 2026), *Scientific Data*, DOI [10.1038/s41597-026-07203-5](https://doi.org/10.1038/s41597-026-07203-5), publish a one-year real water-utility SCADA leak dataset. It is a distinct retrospective population and must not be pooled with Net3 simulation; rights/admission and source-level event adjudication remain separate.
+- Bentley WaterSight's product documentation advertises SCADA/GIS/hydraulic/IoT/AMI/CRM integration, near-real-time leak/burst monitoring and geolocation, pump dashboards/optimization and emergency-response simulation. This is a commercial capability benchmark, not an independent measured-accuracy result. OpenFlows Water separately advertises steady/extended-period hydraulic modelling and transient analysis.
+
+### Implications for matched experiments
+
+1. Detection accuracy alone is no longer a useful headline target on a known synthetic population. Localization error/Top-k, event onset delay, false alarm burden and calibrated uncertainty must be primary.
+2. Report Net3, LeakDB, physical HIL, retrospective SCADA and prospective utility populations separately; #5053/#4979 continue to own data split and population admission.
+3. Compare commercial products first on integration/data-source coverage and operating workflow. Numeric performance comparisons require authorized access to the same sensor/traces/outputs and an independent truth set.
+4. The Luminous competitive hypothesis is not broader dashboard functionality. It is cross-vendor evidence integrity: exact source/configuration, topology/geometry/time binding, calibration/uncertainty, common-cause awareness, service-floor preservation and independently verified restoration.
