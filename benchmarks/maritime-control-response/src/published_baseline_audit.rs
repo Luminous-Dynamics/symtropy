@@ -25,10 +25,16 @@ impl fmt::Display for LiteratureAuditError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidMarineBaseline(reason) => {
-                write!(formatter, "marine-engine literature audit contract is invalid: {reason}")
+                write!(
+                    formatter,
+                    "marine-engine literature audit contract is invalid: {reason}"
+                )
             }
             Self::InvalidMultisourceTransfer(reason) => {
-                write!(formatter, "multi-source transfer contract is invalid: {reason}")
+                write!(
+                    formatter,
+                    "multi-source transfer contract is invalid: {reason}"
+                )
             }
         }
     }
@@ -39,22 +45,22 @@ impl std::error::Error for LiteratureAuditError {}
 /// Validate the published iScience result against the observed public GitHub
 /// code/data snapshot. The test deliberately refuses to convert a one-class
 /// public CSV into evidence for an eleven-state reproduction.
-pub fn validate_marine_engine_baseline_audit(
-    audit: &Value,
-) -> Result<(), LiteratureAuditError> {
-    let invalid = |reason: &str| {
-        LiteratureAuditError::InvalidMarineBaseline(reason.to_owned())
-    };
+pub fn validate_marine_engine_baseline_audit(audit: &Value) -> Result<(), LiteratureAuditError> {
+    let invalid = |reason: &str| LiteratureAuditError::InvalidMarineBaseline(reason.to_owned());
     if audit["schema_version"] != MARINE_ENGINE_BASELINE_AUDIT_SCHEMA {
         return Err(invalid("unexpected schema version"));
     }
     if audit["status"] != "public_release_preflight_incomplete_not_reproduced" {
-        return Err(invalid("incomplete public release must remain explicitly unreproduced"));
+        return Err(invalid(
+            "incomplete public release must remain explicitly unreproduced",
+        ));
     }
     if audit["publication"]["doi"] != "10.1016/j.isci.2025.114345"
         || audit["publication"]["article_reported_accuracy_percent"] != 99.45
     {
-        return Err(invalid("publication identity or reported reference score changed"));
+        return Err(invalid(
+            "publication identity or reported reference score changed",
+        ));
     }
     let sample = &audit["public_code_repository"]["sample_csv"];
     if sample["parsed_rows"] != 1025
@@ -64,14 +70,18 @@ pub fn validate_marine_engine_baseline_audit(
         || sample["paper_described_state_count"] != 11
         || sample["label_coverage_complete"] != false
     {
-        return Err(invalid("public CSV no longer matches the recorded one-class snapshot"));
+        return Err(invalid(
+            "public CSV no longer matches the recorded one-class snapshot",
+        ));
     }
     if audit["public_code_repository"]["observed_commit_sha"]
         != "aa9b0e41598f17f89750f9cf68aefad95cbbd9ab"
         || audit["public_code_repository"]["sample_csv"]["git_blob_sha"]
             != "80eb557243fcf982cfa9d84aa4d1bb590e8b7eda"
     {
-        return Err(invalid("public source snapshot identity changed; audit must be refreshed"));
+        return Err(invalid(
+            "public source snapshot identity changed; audit must be refreshed",
+        ));
     }
     if audit["implementation_review"]["repository_script_split"]["test_fraction"] != 0.2
         || audit["implementation_review"]["repository_script_split"]["shuffle"] != true
@@ -84,7 +94,9 @@ pub fn validate_marine_engine_baseline_audit(
         || audit["audit_disposition"]["model_score_claim_allowed"] != false
         || audit["audit_disposition"]["independent_vessel_transfer_claim_allowed"] != false
     {
-        return Err(invalid("incomplete public release must not permit a reproduced-score claim"));
+        return Err(invalid(
+            "incomplete public release must not permit a reproduced-score claim",
+        ));
     }
     Ok(())
 }
@@ -95,9 +107,8 @@ pub fn validate_marine_engine_baseline_audit(
 pub fn validate_multisource_transfer_reference(
     reference: &Value,
 ) -> Result<(), LiteratureAuditError> {
-    let invalid = |reason: &str| {
-        LiteratureAuditError::InvalidMultisourceTransfer(reason.to_owned())
-    };
+    let invalid =
+        |reason: &str| LiteratureAuditError::InvalidMultisourceTransfer(reason.to_owned());
     if reference["schema_version"] != MULTISOURCE_TRANSFER_SCHEMA {
         return Err(invalid("unexpected schema version"));
     }
@@ -117,13 +128,17 @@ pub fn validate_multisource_transfer_reference(
         || dataset["health_states"]["representative_thermal_fault_modes"] != 10
         || dataset["source_domains"].as_array().map(Vec::len) != Some(4)
     {
-        return Err(invalid("published dataset scope or source-domain inventory changed"));
+        return Err(invalid(
+            "published dataset scope or source-domain inventory changed",
+        ));
     }
     let transfer = &dataset["published_transfer_result"];
     if transfer["value_percent"] != 70.18
         || transfer["status"] != "published_reference_not_reproduced"
     {
-        return Err(invalid("zero-shot virtual-to-real reference must remain unreproduced"));
+        return Err(invalid(
+            "zero-shot virtual-to-real reference must remain unreproduced",
+        ));
     }
     if reference["hard_gates"]
         .as_array()
@@ -148,10 +163,22 @@ mod tests {
         ))
         .unwrap();
         assert!(validate_marine_engine_baseline_audit(&audit).is_ok());
-        assert_eq!(audit["publication"]["article_reported_accuracy_percent"], 99.45);
-        assert_eq!(audit["public_code_repository"]["sample_csv"]["parsed_rows"], 1025);
-        assert_eq!(audit["public_code_repository"]["sample_csv"]["observed_unique_labels"], 1);
-        assert_eq!(audit["audit_disposition"]["model_score_claim_allowed"], false);
+        assert_eq!(
+            audit["publication"]["article_reported_accuracy_percent"],
+            99.45
+        );
+        assert_eq!(
+            audit["public_code_repository"]["sample_csv"]["parsed_rows"],
+            1025
+        );
+        assert_eq!(
+            audit["public_code_repository"]["sample_csv"]["observed_unique_labels"],
+            1
+        );
+        assert_eq!(
+            audit["audit_disposition"]["model_score_claim_allowed"],
+            false
+        );
     }
 
     #[test]
@@ -178,7 +205,10 @@ mod tests {
             reference["reported_dataset"]["published_transfer_result"]["value_percent"],
             70.18
         );
-        assert_eq!(reference["publication"]["dataset_license"], "not_verified_from_accessible_record");
+        assert_eq!(
+            reference["publication"]["dataset_license"],
+            "not_verified_from_accessible_record"
+        );
     }
 
     #[test]
