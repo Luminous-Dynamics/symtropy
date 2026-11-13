@@ -28,6 +28,8 @@ pub struct Profile {
     pub scan_id: String,
     pub scan_sha256: String,
     pub coordinate_frame: String,
+    /// Producer-supplied digest of canonical ordered x stations + unit.
+    pub x_grid_sha256: String,
     pub captured_at_tick: u64,
     pub points: Vec<ProfilePoint>,
 }
@@ -76,6 +78,7 @@ pub enum AbstainReason {
     TransitionMismatch,
     ScanIdentityMismatch,
     CoordinateFrameMismatch,
+    XGridDigestMismatch,
     RegistrationReceiptMismatch,
     RegistrationResidualTooLarge,
     InvalidRegion,
@@ -124,6 +127,14 @@ pub struct QualifiedComparison {
     pub observed_scan_sha256: String,
     pub registration_receipt_sha256: String,
     pub target_frame: String,
+    pub reference_scan_id: String,
+    pub observed_scan_id: String,
+    pub x_grid_sha256: String,
+    pub length_unit: &'static str,
+    pub maximum_unsupported_gap_units: u64,
+    pub largest_unsupported_gap_units: u64,
+    pub minimum_coverage_permille: u16,
+    pub maximum_area_uncertainty_units: u128,
     pub metrics: GeometryMetrics,
     pub claim_ceiling: &'static str,
 }
@@ -227,6 +238,8 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
         reference.transition_id.as_str(),
         reference.scan_id.as_str(),
         reference.coordinate_frame.as_str(),
+        reference.x_grid_sha256.as_str(),
+        observed.x_grid_sha256.as_str(),
         observed.workpiece_id.as_str(),
         observed.joint_revision.as_str(),
         observed.transition_id.as_str(),
@@ -248,6 +261,8 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
     }
     if !valid_sha256(&reference.scan_sha256)
         || !valid_sha256(&observed.scan_sha256)
+        || !valid_sha256(&reference.x_grid_sha256)
+        || !valid_sha256(&observed.x_grid_sha256)
         || !valid_sha256(&registration.receipt_sha256)
         || !valid_sha256(&registration.reference_scan_sha256)
         || !valid_sha256(&registration.observed_scan_sha256)
@@ -274,6 +289,9 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
         || reference.coordinate_frame != registration.target_frame
     {
         return Err(AbstainReason::CoordinateFrameMismatch);
+    }
+    if reference.x_grid_sha256 != observed.x_grid_sha256 {
+        return Err(AbstainReason::XGridDigestMismatch);
     }
     if registration.maximum_residual_um > registration.declared_residual_limit_um
         || registration.maximum_residual_um > limits.maximum_registration_residual_um
@@ -508,6 +526,14 @@ fn compare_profiles_inner(
         observed_scan_sha256: observed.scan_sha256.clone(),
         registration_receipt_sha256: request.registration.receipt_sha256.clone(),
         target_frame: request.registration.target_frame.clone(),
+        reference_scan_id: reference.scan_id.clone(),
+        observed_scan_id: observed.scan_id.clone(),
+        x_grid_sha256: reference.x_grid_sha256.clone(),
+        length_unit: "mm",
+        maximum_unsupported_gap_units: limits.maximum_unsupported_gap_um,
+        largest_unsupported_gap_units: maximum_unsupported_gap,
+        minimum_coverage_permille: limits.minimum_coverage_permille,
+        maximum_area_uncertainty_units: limits.maximum_integrated_uncertainty_area2_um2,
         metrics: GeometryMetrics {
             signed_net_area2_um2: signed_net_area2,
             added_area2_um2: added_area2,
@@ -557,6 +583,7 @@ mod tests {
             scan_id: "SCAN-BEFORE".to_owned(),
             scan_sha256: reference_sha.clone(),
             coordinate_frame: "WELD-FRAME-R1".to_owned(),
+            x_grid_sha256: digest('d'),
             captured_at_tick: 90,
             points: points(&xs, reference_z, Some(2)),
         };
@@ -568,6 +595,7 @@ mod tests {
             scan_id: "SCAN-AFTER".to_owned(),
             scan_sha256: observed_sha.clone(),
             coordinate_frame: "WELD-FRAME-R1".to_owned(),
+            x_grid_sha256: digest('d'),
             captured_at_tick: 95,
             points: points(&xs, observed_z, Some(3)),
         };
@@ -710,6 +738,13 @@ mod tests {
         let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         request.observed.scan_sha256 = digest('d');
         abstains(&request, AbstainReason::ScanIdentityMismatch);
+    }
+
+    #[test]
+    fn mismatched_x_grid_digest_is_rejected() {
+        let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.x_grid_sha256 = digest('e');
+        abstains(&request, AbstainReason::XGridDigestMismatch);
     }
 
     #[test]
