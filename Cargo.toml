@@ -121,6 +121,9 @@ bytemuck = { version = "1.18", features = ["derive"] }
 resolver = "2"
 exclude = [
     "crates/bridges/symtropy-robotics-bridge",
+    "crates/tools/shipyard-weld-physics-vvuq",
+    "crates/tools/shipyard-distortion-co-design",
+    "crates/tools/shipyard-tandem-gmaw-admission",
 ]
 members = [
     ".",
