@@ -188,6 +188,67 @@ Public feature pages do not establish whether SYNCHRO, Navisworks or other enter
 
 A valid first competitive milestone is **matched semantic parity plus stronger evidence traceability**. A performance win comes only after independent replication on at least two site datasets and an equal-scope vendor baseline.
 
+## 4B. Updated competitive baseline — 13 November 2026
+
+A stricter review changes the novelty claim: **time-space clash detection, 4D schedule/resource linking, and resource-cost tracking are already established commercial capabilities.** Luminous should integrate with them, not claim to originate them.
+
+### Product capabilities that must be treated as parity baselines
+
+- **Autodesk Navisworks:** TimeLiner links external schedules to model objects, compares planned and actual dates, assigns task costs and updates simulations when models/schedules change. Autodesk documents linking TimeLiner, Object Animation and Clash Detective to run clash tests on fully animated schedules, including moving cranes and adjacent workgroups. This is already a time-dependent workspace-conflict capability. [TimeLiner overview](https://help.autodesk.com/cloudhelp/2025/ENU/Navisworks-Timeliner/files/GUID-D0D36E3D-F1D0-43B6-AB4E-2E7799B340A3.htm) · [Clash Detective overview](https://help.autodesk.com/cloudhelp/2024/ENU/Navisworks-Clash-Detective/files/GUID-36D9904E-12F3-4F82-8DD3-C2103DB0BC29.htm).
+- **Bentley SYNCHRO 4D Pro:** vendor documentation lists a CPM engine, schedule import/synchronization, resource assignment for people/material/equipment/space, cost and earned-value tracking, plus 4D spatial-coordination tests for dynamic clashes between objects, equipment and work zones. This is a very close product baseline for our initial scheduling/occupancy thesis. [SYNCHRO feature list](https://bentleysystems.service-now.com/community?id=kb_article&sysparm_article=KB0017688) · [SYNCHRO 4D product](https://www.bentley.com/products/synchro-4d/).
+- **Oracle Primavera P6 / ALICE / nPlan:** retain these as schedule, optimization and forecasting comparators. They are not to be represented as inferior merely because our synthetic prototype is easier to inspect.
+
+Accordingly, do not position a 3D AABB grid, 4D timeline, named resource reservation, dynamic clash report, or cost roll-up as a field-level paradigm breakthrough. Those are implementation primitives or existing product categories.
+
+### Current research baselines that narrow the gap further
+
+- **Sensing-to-scheduling with explicit acceptance evidence:** Isaac and Lucko's 2026 ISARC paper separates production-facing work measurement from time-based schedule control and translates measured work, backlog/forelog and QA/inspection/approval evidence into schedule forecasts and recovery targets. This reinforces the importance of keeping work quantities, time forecasts and formal acceptance distinct. [ISARC 2026, DOI 10.22260/ISARC2026/0106](https://doi.org/10.22260/ISARC2026/0106).
+- **Frequent robotic site digitalization:** Haage, Erikshammar and Stehn's 2026 field-grounded roadmap shifts attention from robot capture to the complete capture-to-consumption chain. It proposes a persistent production-phase evidence layer and explicitly cautions against direct overwrite of the digital twin/Site Utilization Plan from raw robot observations. The study is a longitudinal single-case roadmap hypothesis, not a validated universal operating model. This is a strong reason to make evidence admission and controlled revision proposals central to our product. [Buildings 2026, 16(15), 2988](https://doi.org/10.3390/buildings16152988).
+- **Construction AMR logistics:** a 2026 study of resource scheduling and delivery combined a construction-constrained VRP, adaptive optimization and 6-DoF grasping, reporting a 39.2% reduction in total waiting time in its experimental setup. Treat this as a study-specific result; reproduce the waiting-time/task/robot conditions before comparison. It means that material delivery, resource reuse, pick reliability and idle time must be part of our competitive benchmark, not just schedule makespan. [Automation in Construction, S0926580526002098](https://www.sciencedirect.com/science/article/pii/S0926580526002098).
+- **Robot component measurement:** NIST's Performance Assessment Framework composes task-driven perception, mobility, dexterity and safety measurements into system-level performance models. We should map these component measures to construction tasks while retaining accepted work and project economics as separate system outcomes. [NIST Performance Assessment Framework](https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems).
+- **Productivity as effectiveness plus efficiency:** ICE's 9 November 2026 guidance to PAS 4010:2026 puts Avoid → Switch → Improve in order and emphasizes lifecycle outcomes, cross-value-chain collaboration and project-specific baselines/indicators. We should not assume the correct intervention is always more automation or another crane; avoiding or redesigning a movement may dominate optimizing it. [ICE PAS 4010:2026 guidance](https://knowledgehub.ice.org.uk/guidance/pas-4010/) · [ICE launch note](https://www.ice.org.uk/news-views-insights/latest-news/pas-4010-productivity-standard-and-guidance-launched).
+
+### What Luminous should actually attempt to make better
+
+Our differentiator hypothesis is the evidence/authority composition across an existing industrial toolchain:
+
+1. **Evidence freshness as a hard execution dependency:** every work proposal binds the exact design revision, site epoch, frame/control evidence, machine/tool configuration and relevant calibration. A changed dependency invalidates affected work eligibility and triggers reconciliation.
+2. **Resource + geometry admission with explicit uncertainty:** keep the existing resource-calendar semantics and geometry/time conflict semantics distinct, but compose them with all blockers visible. A reservation is not a physical clearance or lift permit.
+3. **Independent acceptance as the production unit:** a robot completion, schedule percent-complete, scan observation or installation event is not accepted output. Only a task-bound independent acceptance record earns output credit; rejection, corrective work and reinspection stay in the cost denominator.
+4. **Active metrology with decision value:** choose surveys/inspections only where they change a downstream decision; unknown, occluded, stale or unavailable evidence remains unknown. Report observation burden and scenario-wise VOI separately.
+5. **Whole-floor economics:** reconcile task-attributed and shared labour, equipment, materials, logistics, inspection, energy, rework, maintenance and unallocated cost against finally accepted functional units. Do not compare a robot's cycle rate with a project's delivered value.
+6. **Lifecycle reuse:** connect accepted component identity, approved substitutions, custody, inspection, warranty, repair, replacement and disassembly—not merely installation.
+
+This is not yet demonstrated as superior to SYNCHRO/Navisworks. The current public work is a synthetic research prototype, and product pages do not prove what a particular customer's configured deployment can or cannot do. The missing proof is a real adapter/conformance experiment and independent field comparison.
+
+### Required head-to-head benchmark
+
+Freeze one common data pack for every comparator: identical IFC/model export, task graph, schedule and calendar, work-zone/temporary-works geometry, equipment paths/envelopes, capacity, site epoch/revision, uncertainty inputs, observation/inspection records, hidden faults and acceptance contract.
+
+Compare at least:
+- **C0:** Navisworks TimeLiner + animated Clash Detective workflow;
+- **C1:** SYNCHRO 4D resources + 4D spatial-coordination workflow;
+- **C2:** current reference full-scan resource calendar and exact AABB conflict oracle;
+- **C3:** indexed temporal + spatial broad phases with exact final predicates;
+- **C4:** resource-constrained schedule/adaptive-recovery baseline (e.g. P6/ALICE-supported export or an independent exact micro-oracle on small cases);
+- **C5:** Luminous evidence-qualified execution and accepted-floor accounting, using the same upstream schedule/geometry outputs.
+
+Report separate metric families—no single weighted score may hide a hard failure:
+
+| Metric family | Measures |
+|---|---|
+| Geometry/time conflicts | Precision, recall, F1, false-clear, false-conflict, conflict localization and time-to-resolution |
+| Context/evidence | Stale revision/frame/epoch detection, evidence provenance completeness, calibration/coverage validity, invalidation latency |
+| Scheduling | Feasibility, makespan, tardiness, critical-resource utilization, solve time p50/p95/p99, incumbent/optimality gap and incomplete-search rate |
+| Logistics | Material on-time/kitted rate, hoist/crane queue and wait, rehandling, delivery reliability, pick/grasp success and recovery time |
+| Robot task capability | NIST-aligned perception, mobility, dexterity and safety tests for the specific task family |
+| Quality/output | First-pass yield, final acceptance, defect/rework/reinspection, accepted functional units per workflow crew-hour |
+| Project economics | Fully burdened cost per accepted unit and floor; direct/shared/unallocated costs, labour, energy, equipment, materials and lifecycle maintenance |
+| Observation value | Observations per accepted unit, time/crew/energy per qualified observation, decision-changing rate, scenario-wise VOI/regret and false-clear controls |
+| Transferability | Held-out disruptions, second-site reproduction, independent adapter implementation and assessor agreement |
+
+For the first synthetic milestone, require exact agreement with independent small-case oracles, zero false-clear negative controls, zero stale-context admission, 100% attempt/acceptance/cost reconciliation and deterministic replay. For physical trials, use matched scopes, measured baselines, independent acceptance, raw evidence and confidence intervals. The existing target of >=20% crew-hour reduction remains a hypothesis until a matched field study supports it.
+
 ## 5. Target ladder
 
 The following are proposed research targets, not achieved results:
