@@ -250,15 +250,19 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
     if let (Some(action), Some(inspection)) = (
         record.action_evidence.as_ref(),
         record.post_inspection.as_ref(),
-    ) && matches!(
-        record.outcome,
-        RemovalOutcome::Removed | RemovalOutcome::Partial
-    ) && action.evidence_id == inspection.evidence_id
+    ) && action.tier == EvidenceTier::PhysicalObserved
+        && inspection.tier == EvidenceTier::IndependentlyInspected
+        && matches!(
+            record.outcome,
+            RemovalOutcome::Removed | RemovalOutcome::Partial
+        )
+        && (action.evidence_id == inspection.evidence_id
+            || action.sha256 == inspection.sha256)
     {
         add(
             &mut findings,
             "ACTION_AND_INSPECTION_REUSE_EVIDENCE",
-            "physical removal action and independent post-inspection must use distinct evidence references",
+            "physical action and independent inspection must have distinct evidence IDs and byte digests",
         );
     }
 
@@ -758,6 +762,18 @@ mod tests {
                 .any(|item| item.code == "ACTION_AND_INSPECTION_REUSE_EVIDENCE")
         );
         assert_eq!(report.evidence_ceiling, EvidenceCeiling::ContractOnly);
+
+        let mut same_bytes = physical_removed();
+        let mut inspection = same_bytes.action_evidence.clone().unwrap();
+        inspection.evidence_id = "independent-name-same-bytes".to_owned();
+        same_bytes.post_inspection = Some(inspection);
+        let report = validate(&same_bytes);
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|item| item.code == "ACTION_AND_INSPECTION_REUSE_EVIDENCE")
+        );
     }
 
     #[test]
