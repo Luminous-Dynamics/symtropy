@@ -6,8 +6,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-/// Temporal broad-phase cell width. This is an index parameter, not a scheduling tolerance.
-const RESERVATION_TIME_BUCKET_MS: u64 = 60_000;
+/// Multi-resolution temporal broad-phase cells. Each active interval is indexed at
+/// the finest level that can represent it within the bounded bucket budget.
+const RESERVATION_TIME_BUCKET_WIDTHS_MS: [u64; 4] = [1_000, 10_000, 60_000, 600_000];
 /// Very long reservations use a per-resource fallback rather than allocating thousands of buckets.
 const MAX_RESERVATION_TIME_BUCKETS: u64 = 4_096;
 
@@ -92,7 +93,7 @@ pub struct ReservationBook {
     resources: BTreeMap<String, u32>,
     reservations: BTreeMap<String, ReservationRecord>,
     active_by_resource: BTreeMap<String, BTreeSet<String>>,
-    time_buckets: BTreeMap<(String, u64), BTreeSet<String>>,
+    time_buckets: BTreeMap<(String, usize, u64), BTreeSet<String>>,
     global_by_resource: BTreeMap<String, BTreeSet<String>>,
     expiry_index: BTreeMap<u64, BTreeSet<String>>,
 }
@@ -166,21 +167,21 @@ impl ReservationBook {
             .or_default()
             .insert(id.clone());
 
-        match reservation_time_buckets(start, end) {
-            Some(buckets) => {
-                for bucket in buckets {
-                    self.time_buckets
-                        .entry((resource_id.clone(), bucket))
-                        .or_default()
-                        .insert(id.clone());
-                }
-            }
-            None => {
-                self.global_by_resource
-                    .entry(resource_id)
+        if let Some(level) = reservation_time_bucket_level(start, end) {
+            let width = RESERVATION_TIME_BUCKET_WIDTHS_MS[level];
+            for bucket in reservation_time_buckets(start, end, width)
+                .expect("selected temporal bucket level fits")
+            {
+                self.time_buckets
+                    .entry((resource_id.clone(), level, bucket))
                     .or_default()
-                    .insert(id);
+                    .insert(id.clone());
             }
+        } else {
+            self.global_by_resource
+                .entry(resource_id)
+                .or_default()
+                .insert(id);
         }
     }
 
@@ -212,25 +213,23 @@ impl ReservationBook {
             .interval_end_ms
             .saturating_add(request.clock_uncertainty_ms);
 
-        match reservation_time_buckets(start, end) {
-            Some(buckets) => {
-                for bucket in buckets {
-                    let key = (resource_id.to_owned(), bucket);
-                    if let Some(ids) = self.time_buckets.get_mut(&key) {
-                        ids.remove(id);
-                        if ids.is_empty() {
-                            self.time_buckets.remove(&key);
-                        }
+        if let Some(level) = reservation_time_bucket_level(start, end) {
+            let width = RESERVATION_TIME_BUCKET_WIDTHS_MS[level];
+            for bucket in reservation_time_buckets(start, end, width)
+                .expect("selected temporal bucket level fits")
+            {
+                let key = (resource_id.to_owned(), level, bucket);
+                if let Some(ids) = self.time_buckets.get_mut(&key) {
+                    ids.remove(id);
+                    if ids.is_empty() {
+                        self.time_buckets.remove(&key);
                     }
                 }
             }
-            None => {
-                if let Some(ids) = self.global_by_resource.get_mut(resource_id) {
-                    ids.remove(id);
-                    if ids.is_empty() {
-                        self.global_by_resource.remove(resource_id);
-                    }
-                }
+        } else if let Some(ids) = self.global_by_resource.get_mut(resource_id) {
+            ids.remove(id);
+            if ids.is_empty() {
+                self.global_by_resource.remove(resource_id);
             }
         }
     }
@@ -241,22 +240,26 @@ impl ReservationBook {
         start_ms: u64,
         end_ms: u64,
     ) -> BTreeSet<String> {
-        let Some(buckets) = reservation_time_buckets(start_ms, end_ms) else {
-            return self
-                .active_by_resource
-                .get(resource_id)
-                .cloned()
-                .unwrap_or_default();
-        };
-
         let mut candidates = self
             .global_by_resource
             .get(resource_id)
             .cloned()
             .unwrap_or_default();
-        for bucket in buckets {
-            if let Some(ids) = self.time_buckets.get(&(resource_id.to_owned(), bucket)) {
-                candidates.extend(ids.iter().cloned());
+        for (level, width) in RESERVATION_TIME_BUCKET_WIDTHS_MS.iter().copied().enumerate() {
+            let Some(buckets) = reservation_time_buckets(start_ms, end_ms, width) else {
+                return self
+                    .active_by_resource
+                    .get(resource_id)
+                    .cloned()
+                    .unwrap_or_default();
+            };
+            for bucket in buckets {
+                if let Some(ids) = self
+                    .time_buckets
+                    .get(&(resource_id.to_owned(), level, bucket))
+                {
+                    candidates.extend(ids.iter().cloned());
+                }
             }
         }
         candidates
@@ -572,15 +575,31 @@ impl ReservationBook {
     }
 }
 
+/// Select the finest temporal bucket level that can represent an interval within
+/// the fixed index-entry budget. Very long intervals use the resource-wide fallback.
+fn reservation_time_bucket_level(start_ms: u64, end_ms: u64) -> Option<usize> {
+    RESERVATION_TIME_BUCKET_WIDTHS_MS
+        .iter()
+        .copied()
+        .enumerate()
+        .find_map(|(level, width)| {
+            reservation_time_buckets(start_ms, end_ms, width).map(|_| level)
+        })
+}
+
 /// Conservative inclusive broad-phase buckets for an uncertainty-expanded
 /// half-open interval. Including the end bucket may add candidates at exact boundaries;
 /// the final `overlaps` predicate still enforces half-open semantics.
-fn reservation_time_buckets(start_ms: u64, end_ms: u64) -> Option<Vec<u64>> {
-    if start_ms >= end_ms {
+fn reservation_time_buckets(
+    start_ms: u64,
+    end_ms: u64,
+    bucket_width_ms: u64,
+) -> Option<Vec<u64>> {
+    if start_ms >= end_ms || bucket_width_ms == 0 {
         return None;
     }
-    let first = start_ms / RESERVATION_TIME_BUCKET_MS;
-    let last = end_ms / RESERVATION_TIME_BUCKET_MS;
+    let first = start_ms / bucket_width_ms;
+    let last = end_ms / bucket_width_ms;
     let count = last.checked_sub(first)?.checked_add(1)?;
     if count > MAX_RESERVATION_TIME_BUCKETS {
         return None;
@@ -801,7 +820,8 @@ mod tests {
     #[test]
     fn long_reservations_use_per_resource_global_fallback() {
         let mut book = book(10);
-        let long_end = (MAX_RESERVATION_TIME_BUCKETS + 100) * RESERVATION_TIME_BUCKET_MS;
+        let long_end =
+            (MAX_RESERVATION_TIME_BUCKETS + 100) * RESERVATION_TIME_BUCKET_WIDTHS_MS[3];
         let long = request(
             "long-global",
             "robot-long",
