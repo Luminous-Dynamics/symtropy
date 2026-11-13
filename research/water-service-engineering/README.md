@@ -118,3 +118,8 @@ The first records are: 34-month Bristol POU UF telemetry under OGL v3; a separat
 ### RO transport M0
 
 The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](./membrane-ro-m0-manifest-v0.1.json), with five synthetic [inputs](./membrane-ro-m0-cases-v0.1.json), a separate [oracle](./membrane-ro-m0-oracle-v0.1.json), and a [Draft 2020-12 schema](./membrane-ro-m0.schema.json). The Rust evaluator and `membrane-ro-m0` CLI live in `tools/water-service-t0`. They test net driving pressure, concentration polarization, reference permeance and the error from pressure-only/no-CP simplifications. This is formula arithmetic, not an empirical fouling or membrane-performance claim.
+
+
+### M2 sample-time quality label contract
+
+The new [M2 sample-time contract](./MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md), [schema](./membrane-wq-sample.schema.json), five [synthetic fixtures](./membrane-wq-sample-fixtures-v0.1.json) and [manifest](./membrane-wq-sample-manifest-v0.1.json) ensure lab values remain labels only at exact sample time/location/analyte. The workflow rejects post-sample telemetry features, zero-imputation of below-LOD/LOQ results and rejected lab QC labels. No actual Bristol sample records are present in these synthetic fixtures.
