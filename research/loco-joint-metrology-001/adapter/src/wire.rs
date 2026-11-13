@@ -807,6 +807,22 @@ mod tests {
     }
 
     #[test]
+    fn frozen_positive_fixture_has_the_declared_payload_digest() {
+        let serialized = include_str!("../../fixtures/normalized_joint_receipt_v0_1.json");
+        let envelope = verify_normalized_receipt(serialized).unwrap();
+        assert_eq!(
+            envelope["payload_sha256"],
+            "94137cc32ebeb908b2e0ad50ad6f05fb9836f455056d7b88eb54dffc0c290aad"
+        );
+        let trace = reference_trace();
+        let report = adapt_joint_trace(&trace).unwrap();
+        let generated = build_normalized_receipt(&trace, &report).unwrap();
+        let generated: Value = serde_json::from_str(&generated).unwrap();
+        assert_eq!(generated["payload"], envelope["payload"]);
+        assert_eq!(generated["payload_sha256"], envelope["payload_sha256"]);
+    }
+
+    #[test]
     fn receipt_digest_detects_payload_mutation() {
         let trace = reference_trace();
         let report = adapt_joint_trace(&trace).unwrap();
@@ -834,16 +850,16 @@ mod tests {
     #[test]
     fn duplicated_identity_bindings_must_agree() {
         let mut envelope: Value = serde_json::from_str(
-            include_str!("../fixtures/normalized_joint_receipt_v0_1.json")
+            include_str!("../../fixtures/normalized_joint_receipt_v0_1.json")
         )
         .unwrap();
         envelope["payload"]["report"]["mission_id"] = json!("other-mission");
         // Recompute the payload digest to prove the structural cross-binding
         // check independently catches a self-consistent hash over bad data.
-        let payload = &envelope["payload"];
-        envelope["payload_sha256"] = json!(hex_digest(&sha256(
-            &serde_json::to_vec(payload).unwrap()
-        )));
+        let digest = hex_digest(&sha256(
+            &serde_json::to_vec(&envelope["payload"]).unwrap()
+        ));
+        envelope["payload_sha256"] = json!(digest);
         let serialized = serde_json::to_string(&envelope).unwrap();
         assert_eq!(
             verify_normalized_receipt(&serialized),
