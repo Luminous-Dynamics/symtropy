@@ -421,6 +421,8 @@ pub struct RankReceiptV1<const K: usize> {
     pub eigenvalues: Vector<K>,
     pub rank_cutoff: f64,
     pub psd_tolerance: f64,
+    pub delassus_symmetry_defect: f64,
+    pub jacobi_residual_off_diagonal: f64,
     pub condition_nonzero_spectrum: Option<f64>,
     pub condition_full_operator: Option<f64>,
     pub status: RankStatusV1,
@@ -470,6 +472,7 @@ pub struct RankAwareDelassusV1<const N: usize, const K: usize> {
     eigen: EigenSystemV1<K>,
     rank_receipt: RankReceiptV1<K>,
     active: [bool; K],
+    profile: RankProfileV1,
 }
 
 impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
@@ -496,7 +499,29 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
                 delassus[row][column] = dot(&jacobian[row], &mass_inverse_jt_column);
             }
         }
-        // Symmetrize only floating-point asymmetry, recording no rank change.
+        // Measure symmetry defect before canonicalization; never silently
+        // turn a materially asymmetric assembly into a symmetric operator.
+        let delassus_scale = matrix_max_abs(&delassus);
+        let mut delassus_symmetry_defect = 0.0_f64;
+        let mut defect_pair = (0usize, 0usize);
+        for i in 0..K {
+            for j in (i + 1)..K {
+                let defect = (delassus[i][j] - delassus[j][i]).abs();
+                if defect > delassus_symmetry_defect {
+                    delassus_symmetry_defect = defect;
+                    defect_pair = (i, j);
+                }
+            }
+        }
+        let symmetry_limit =
+            profile.absolute_psd_tolerance + profile.relative_psd_tolerance * delassus_scale;
+        if !delassus_symmetry_defect.is_finite() || delassus_symmetry_defect > symmetry_limit {
+            return Err(RankErrorV1::NonSymmetric {
+                row: defect_pair.0,
+                column: defect_pair.1,
+                defect: delassus_symmetry_defect,
+            });
+        }
         for i in 0..K {
             for j in (i + 1)..K {
                 let mean = 0.5 * (delassus[i][j] + delassus[j][i]);
@@ -508,9 +533,19 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
             return Err(RankErrorV1::NonFiniteIntermediate);
         }
 
-        // G = L L^T; W_hat = L^T W L.
+        // G = L L^T; W_hat = L^T W L. Canonicalize only final roundoff.
         let lower = constraint_metric.lower;
-        let normalized_delassus = multiply(&multiply(&transpose(&lower), &delassus), &lower);
+        let mut normalized_delassus = multiply(&multiply(&transpose(&lower), &delassus), &lower);
+        if !finite_matrix(&normalized_delassus) {
+            return Err(RankErrorV1::NonFiniteIntermediate);
+        }
+        for i in 0..K {
+            for j in (i + 1)..K {
+                let mean = 0.5 * (normalized_delassus[i][j] + normalized_delassus[j][i]);
+                normalized_delassus[i][j] = mean;
+                normalized_delassus[j][i] = mean;
+            }
+        }
         let eigen = jacobi_eigen(&normalized_delassus, profile)?;
         let max_eigen = eigen.values.iter().map(|x| x.abs()).fold(0.0_f64, f64::max);
         let rank_cutoff =
@@ -593,6 +628,8 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
             eigenvalues: eigen.values,
             rank_cutoff,
             psd_tolerance,
+            delassus_symmetry_defect,
+            jacobi_residual_off_diagonal: eigen.residual_off_diagonal,
             condition_nonzero_spectrum,
             condition_full_operator,
             status,
@@ -607,6 +644,7 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
             eigen,
             rank_receipt,
             active,
+            profile,
         })
     }
 
@@ -629,9 +667,8 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
     pub fn analyze_rhs(
         &self,
         rhs: Vector<K>,
-        profile: RankProfileV1,
     ) -> Result<ConstraintSolveOutcomeV1<N, K>, RankErrorV1> {
-        validate_profile(profile)?;
+        let profile = self.profile;
         if self.rank_receipt.status == RankStatusV1::InconclusiveNearThreshold {
             return Ok(ConstraintSolveOutcomeV1::Inconclusive {
                 rank: self.rank_receipt,
@@ -645,8 +682,10 @@ impl<const N: usize, const K: usize> RankAwareDelassusV1<N, K> {
         let lower = self.constraint_metric.lower;
         let rhs_hat = mat_vec(&transpose(&lower), &rhs);
         let rhs_norm = norm(&rhs_hat);
-        let range_tolerance = profile.absolute_range_tolerance
-            + profile.relative_range_tolerance * rhs_norm.max(1.0e-300);
+        // ||r|| <= atol + rtol ||b||, expressed as a relative defect.
+        // Dividing atol by ||b|| makes the decision invariant to common scaling.
+        let range_tolerance = profile.relative_range_tolerance
+            + profile.absolute_range_tolerance / rhs_norm.max(1.0e-300);
 
         let mut coefficients = [0.0; K];
         let mut range_residual_hat = [0.0; K];
@@ -740,6 +779,9 @@ impl ExactRankTwoWitnessV1 {
     pub fn verify(self) -> Result<(), RankErrorV1> {
         let j = self.jacobian;
         let n = self.left_null_vector;
+        if n.iter().all(|value| *value == 0) {
+            return Err(RankErrorV1::InvalidExactRankWitness);
+        }
         for col in 0..3 {
             let value = n[0] * j[0][col] + n[1] * j[1][col] + n[2] * j[2][col];
             if value != 0 {
@@ -830,7 +872,7 @@ mod tests {
         .unwrap();
         let lambda0 = [2.0, -1.0, 0.5];
         let rhs = mat_vec(operator.delassus(), &lambda0);
-        let result = operator.analyze_rhs(rhs, profile()).unwrap();
+        let result = operator.analyze_rhs(rhs).unwrap();
         let ConstraintSolveOutcomeV1::Compatible(receipt) = result else {
             panic!("exact compatible rhs must be admitted");
         };
@@ -876,7 +918,7 @@ mod tests {
             profile(),
         )
         .unwrap();
-        let result = operator.analyze_rhs([1.0, 0.0, 0.0], profile()).unwrap();
+        let result = operator.analyze_rhs([1.0, 0.0, 0.0]).unwrap();
         assert!(matches!(
             result,
             ConstraintSolveOutcomeV1::Inconsistent { .. }
@@ -913,7 +955,7 @@ mod tests {
         let op_old = RankAwareDelassusV1::new(mass, j_old, g_old, profile()).unwrap();
         let lambda0 = [2.0, -1.0, 0.5];
         let rhs_old = mat_vec(op_old.delassus(), &lambda0);
-        let solve_old = op_old.analyze_rhs(rhs_old, profile()).unwrap();
+        let solve_old = op_old.analyze_rhs(rhs_old).unwrap();
         let ConstraintSolveOutcomeV1::Compatible(old_receipt) = solve_old else {
             panic!("old system should be compatible");
         };
@@ -946,7 +988,7 @@ mod tests {
         assert_eq!(op_old.rank_receipt().nullity, op_new.rank_receipt().nullity);
 
         let rhs_new = mat_vec(&transform, &rhs_old);
-        let solve_new = op_new.analyze_rhs(rhs_new, profile()).unwrap();
+        let solve_new = op_new.analyze_rhs(rhs_new).unwrap();
         let ConstraintSolveOutcomeV1::Compatible(new_receipt) = solve_new else {
             panic!("new system should be compatible");
         };
@@ -990,11 +1032,47 @@ mod tests {
             operator.rank_receipt().status,
             RankStatusV1::InconclusiveNearThreshold
         );
-        let outcome = operator.analyze_rhs([1.0, 1.0], tuned).unwrap();
+        let outcome = operator.analyze_rhs([1.0, 1.0]).unwrap();
         assert!(matches!(
             outcome,
             ConstraintSolveOutcomeV1::Inconclusive { .. }
         ));
+    }
+
+    #[test]
+    fn range_compatibility_is_invariant_under_rhs_scaling() {
+        let operator = RankAwareDelassusV1::new(
+            mass(),
+            redundant_j(),
+            identity_constraint_metric(),
+            profile(),
+        )
+        .unwrap();
+        let rhs = mat_vec(operator.delassus(), &[0.5, -1.0, 2.0]);
+        let base = operator.analyze_rhs(rhs).unwrap();
+        let scaled_rhs = rhs.map(|value| value * 1.0e8);
+        let scaled = operator.analyze_rhs(scaled_rhs).unwrap();
+        let ConstraintSolveOutcomeV1::Compatible(base_receipt) = base else {
+            panic!("base rhs should be compatible");
+        };
+        let ConstraintSolveOutcomeV1::Compatible(scaled_receipt) = scaled else {
+            panic!("scaled rhs should remain compatible");
+        };
+        close(
+            base_receipt.relative_range_defect,
+            scaled_receipt.relative_range_defect,
+            2.0e-12,
+        );
+    }
+
+    #[test]
+    fn zero_exact_null_vector_is_rejected() {
+        let witness = ExactRankTwoWitnessV1 {
+            jacobian: [[1, 0, 0], [0, 1, 0], [1, 1, 0]],
+            left_null_vector: [0, 0, 0],
+            independent_minor_determinant: 1,
+        };
+        assert_eq!(witness.verify(), Err(RankErrorV1::InvalidExactRankWitness));
     }
 
     #[test]
