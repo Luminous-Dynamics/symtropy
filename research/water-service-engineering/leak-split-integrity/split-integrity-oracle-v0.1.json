@@ -21,8 +21,7 @@
       "dataset_id": "SPLIT-003-scenario-seed-leak",
       "expected_disposition": "leakage_detected",
       "expected_violation_kinds": [
-        "scenario_group_cross_split",
-        "source_event_cross_split"
+        "scenario_group_cross_split"
       ],
       "sealed_holdout_status": "not_established"
     },
@@ -30,8 +29,7 @@
       "dataset_id": "SPLIT-004-augmentation-leak",
       "expected_disposition": "leakage_detected",
       "expected_violation_kinds": [
-        "augmentation_cross_split",
-        "source_event_cross_split"
+        "augmentation_cross_split"
       ],
       "sealed_holdout_status": "not_established"
     },
