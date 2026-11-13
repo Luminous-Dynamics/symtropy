@@ -1,0 +1,41 @@
+# Construction Observation Planning Core — v0.1
+
+**Status:** synthetic active-observation selector and scenario-wise value-of-information evaluator. Not a sensor model, survey solution, inspection authority, safety controller or field productivity system.
+
+Parent: [CONSTRUCTION-OBSERVATION-PLANNING-001 #4988](https://github.com/Luminous-Dynamics/symtropy/issues/4988).
+
+Stacked dependency order:
+[interop #3644](https://github.com/Luminous-Dynamics/symtropy/pull/3644)
+→ [accepted-floor ledger #4960](https://github.com/Luminous-Dynamics/symtropy/pull/4960)
+→ [space-time occupancy #4976](https://github.com/Luminous-Dynamics/symtropy/pull/4976)
+→ this observation-planning adapter.
+
+## Implemented v0.1
+
+- Declares observation actions with coverage-profile and calibration references, regions, a space-time access envelope, duration, crew time, cost and energy.
+- Selects one targeted observation using a deterministic lexicographic rule: maximize currently blocked work units covered, then minimize crew minutes, cost, duration and action ID.
+- Uses the existing space-time occupancy owner to reject or report access conflicts and stale site/design/frame context; no geometry checker is duplicated.
+- Keeps hidden scenario truth in a separate scenario oracle, never in the planner's selection inputs.
+- Evaluates each scenario separately; there are no invented probabilities or expected-value averages.
+- Calculates `net_voi = no_observation_loss - observation_cost - residual_loss_after_result` in integer minor currency units.
+- Distinguishes qualified clear, finding, incomplete, invalidated and unavailable outcomes.
+- A qualified clear only makes work `ReadyForIndependentAcceptance`; findings require professional/site disposition; incomplete, stale or unavailable results remain `HeldUnknown`.
+- A missing scenario result is a typed error, not a clear outcome.
+
+## Local commands
+
+```sh
+cargo fmt --manifest-path research/construction-observation-planning-v0-1/Cargo.toml -- --check
+cargo test --manifest-path research/construction-observation-planning-v0-1/Cargo.toml --locked
+cargo clippy --manifest-path research/construction-observation-planning-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+```
+
+## Interpretation
+
+The scenario oracle supplies explicit no-observation and residual-loss figures for a frozen synthetic case. They are scenario inputs, not probability-weighted estimates, sensor detection rates or project cost estimates. A positive VOI is useful only within that declared case; negative VOI is a valid result.
+
+This adapter records references and consumes the occupancy index. It does not compute coverage, verify calibration, authenticate evidence, update survey adjustments or authorize work. Only qualified external observation/acceptance owners can establish those facts.
+
+## Claim ceiling
+
+V0.1 establishes only deterministic synthetic policy semantics. It does not establish real sensor performance, survey accuracy, safety, inspection validity, access authorization, construction productivity, cost savings or suitability for a real site.
