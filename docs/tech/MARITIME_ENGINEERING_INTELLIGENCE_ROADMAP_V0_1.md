@@ -90,6 +90,7 @@ Command-conditioned residuals must account for actuator lag, load/ambient distur
 | RUL / prognostics | MAE/RMSE, interval coverage/sharpness, proper scores, calibration, prognostic horizon, censoring-aware survival metrics | Whole engines/runs; intervention censoring; competing risks; future-data leakage |
 | Narrative causal risk | Source-span precision/recall, attribution, causal-edge fidelity, expert agreement, Brier/log score, prior sensitivity | Duplicated/copied reports, source hallucination, post-event leakage, symptom-conditioned vs unconditional risk |
 | Maintenance decision utility | Downtime, unplanned intervention, inspection burden, spares, missed-fault exposure, lifecycle cost | Same event tape, explicit cost/logistics assumptions and human practice baselines |
+| Passive value of information | EVSI/net EVSI, posterior decision-risk reduction, ambiguity resolution per observation, observation/review burden, regret at matched risk | Already-available records only; calibrated likelihood models; priors/loss frozen before confirmatory evaluation; no derived/shared/stale evidence, active excitation or new measurements |
 | Cross-OEM evidence interoperability | Asset/config match, source lineage completeness, replay agreement, schema/protocol conformance, unknown retention | Different OEMs, version drift, offline/partition behavior, revoked/stale inputs |
 
 ### Hard non-compensatory gates
@@ -107,6 +108,8 @@ Command-conditioned residuals must account for actuator lag, load/ambient distur
 - Zero false-safe restoration or mode-transition claims from partial evidence.
 - Zero D0/reliable-normal or D3/D4/high-severity status promotion when required evidence is missing, stale, uncalibrated or outside the qualified feature-group envelope; diagnostic status is not maintenance or vessel operating authorization.
 - Zero unauthorized maintenance/work-order/ODD/actuation effects.
+- Zero positive EVSI claims from unqualified likelihood models, derived/shared/stale observations or evidence already included in the prior; score retrieval/review burden in the same declared decision-loss units.
+- Passive EVSI ranking never initiates a measurement, control excitation, machinery test or inspection; it is an information-priority estimate, not authorization.
 - No benchmark score can compensate for a hard-gate failure.
 
 A model that abstains on everything also fails: positive controls, coverage, capability retention and useful workload must be measured.
@@ -352,3 +355,8 @@ On the simulated 3500-DEFault benchmark at fixed 2500 rpm and four SNR levels, i
 Luo et al., published online 21 October 2026, propose a Control-Aware Affine Network (CAAN) for marine diesel injector diagnosis in dynamic maneuvers. Unlike simple feature concatenation, CAAN uses control signals to dynamically calibrate fault features, then separates severity-bearing and maneuver-invariant representations using knowledge distillation and adversarial training.
 
 This is an important comparator for #4628: compare (1) command/context-conditioned physical residuals, (2) CAAN-style control-conditioned feature calibration, (3) severity retention, and (4) selective rejection under unsupported maneuvers. The accessible abstract does not report numeric performance metrics. The authors state that the simulation data and self-developed model are unavailable for public sharing under confidentiality/IP restrictions. It is therefore a reported-but-not-reproduced architecture baseline, not a score we can claim to beat.
+
+
+### Passive information prioritization
+
+The maritime observability work now supplies a synthetic EVSI evaluator for already-available independent records. The same methodology should be applied to #4444: rank existing telemetry, archived OEM records, calibration evidence and human-reviewed records by expected reduction in diagnostic decision loss. A likelihood model must be independently qualified, and a candidate that shares dependencies with current evidence must not be counted as new information. The experiment should compare EVSI ranking with a fixed-checklist baseline at matched decision risk and report the number of observations/reviews needed to resolve the same ambiguity class. Active diagnostic excitation remains outside this read-only programme.
