@@ -126,6 +126,16 @@ pub fn choose_threshold_observation(
     threshold_mm: [u64; 3],
     occupancy_book: &SpatialOccupancyBook,
 ) -> Result<TargetedPlan, ObservationPlanError> {
+    let mut seen_work_units = BTreeSet::new();
+    for need in work_needs {
+        need.validate()?;
+        if !seen_work_units.insert(need.work_unit_id.as_str()) {
+            return Err(ObservationPlanError::DuplicateWorkUnit(
+                need.work_unit_id.clone(),
+            ));
+        }
+    }
+
     let triggered_needs: Vec<WorkNeed> = work_needs
         .iter()
         .filter(|need| {
@@ -851,6 +861,9 @@ mod tests {
         );
         assert_eq!(result.net_voi_minor_units, 1_650);
         assert_eq!(result.action_id.as_deref(), Some("scan-clear"));
+        assert_eq!(result.observation_duration_minutes, 10);
+        assert_eq!(result.observation_crew_minutes, 5);
+        assert_eq!(result.observation_energy_wh, 50);
     }
 
     #[test]
@@ -936,6 +949,9 @@ mod tests {
         assert_eq!(result.action_id, None);
         assert_eq!(result.net_voi_minor_units, 0);
         assert_eq!(result.residual_loss_minor_units, 1_000);
+        assert_eq!(result.observation_duration_minutes, 0);
+        assert_eq!(result.observation_crew_minutes, 0);
+        assert_eq!(result.observation_energy_wh, 0);
     }
 
     #[test]
