@@ -4,18 +4,18 @@
 #![allow(clippy::needless_range_loop)]
 // Fixed-size 8x8 transfer algebra uses explicit index loops.
 
- //! Bilocal geodesic transfer operators for convention-explicit ray-bundle work.
- //!
- //! The state ordering is (xi^0..xi^3, ell^0..ell^3), where xi is a connecting
- //! vector and ell is its covariant derivative along the fiducial geodesic.
- //! This module currently provides the transfer-operator algebra and the exact
- //! flat-spacetime BGO-0 reference. Curvature-driven integration and conversion
- //! to canonical (delta x, delta p) variables are separate, not-yet-implemented
- //! qualification steps.
- //!
- //! The canonical bilinear form is Omega = [[0, I], [-I, 0]]. Any curvature
- //! generator added later must be derived from the declared Riemann convention
- //! and checked for Hamiltonian structure; this type does not guess that sign.
+//! Bilocal geodesic transfer operators for convention-explicit ray-bundle work.
+//!
+//! The state ordering is (xi^0..xi^3, ell^0..ell^3), where xi is a connecting
+//! vector and ell is its covariant derivative along the fiducial geodesic.
+//! This module currently provides the transfer-operator algebra and the exact
+//! flat-spacetime BGO-0 reference. Curvature-driven integration and conversion
+//! to canonical (delta x, delta p) variables are separate, not-yet-implemented
+//! qualification steps.
+//!
+//! The canonical bilinear form is Omega = [[0, I], [-I, 0]]. Any curvature
+//! generator added later must be derived from the declared Riemann convention
+//! and checked for Hamiltonian structure; this type does not guess that sign.
 
 use core::fmt;
 
