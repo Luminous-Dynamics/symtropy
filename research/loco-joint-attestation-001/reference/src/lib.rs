@@ -18,25 +18,57 @@ pub enum SourceRole {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SignatureDisposition { Verified, Failed, Unknown }
+pub enum SignatureDisposition {
+    Verified,
+    Failed,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RoleDisposition { Authorized, Unauthorized, Unknown }
+pub enum RoleDisposition {
+    Authorized,
+    Unauthorized,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FreshnessDisposition { Fresh, Stale, Replayed, Unknown }
+pub enum FreshnessDisposition {
+    Fresh,
+    Stale,
+    Replayed,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SequenceDisposition { Advance, Duplicate, Rollback, Unknown }
+pub enum SequenceDisposition {
+    Advance,
+    Duplicate,
+    Rollback,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BootEpochDisposition { SameEpoch, AuthorizedNewEpoch, Rollback, Unknown }
+pub enum BootEpochDisposition {
+    SameEpoch,
+    AuthorizedNewEpoch,
+    Rollback,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RevocationDisposition { NotRevoked, Revoked, Unknown }
+pub enum RevocationDisposition {
+    NotRevoked,
+    Revoked,
+    Unknown,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppraisalDisposition { Pass, Fail, Inconclusive, NotAssessed }
+pub enum AppraisalDisposition {
+    Pass,
+    Fail,
+    Inconclusive,
+    NotAssessed,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointReceiptContext {
@@ -173,20 +205,47 @@ pub fn bind_joint_receipt_attestation(
 ) -> Result<JointAttestationAssessment, AttestationBindingError> {
     for (name, value) in [
         ("payload_sha256", context.payload_sha256.as_str()),
-        ("robot_identity_digest", context.robot_identity_digest.as_str()),
-        ("robot_configuration_digest", context.robot_configuration_digest.as_str()),
+        (
+            "robot_identity_digest",
+            context.robot_identity_digest.as_str(),
+        ),
+        (
+            "robot_configuration_digest",
+            context.robot_configuration_digest.as_str(),
+        ),
         ("source_subject_id", context.source_subject_id.as_str()),
-        ("actuator_identity_digest", context.actuator_identity_digest.as_str()),
+        (
+            "actuator_identity_digest",
+            context.actuator_identity_digest.as_str(),
+        ),
         ("joint_channel_id", context.joint_channel_id.as_str()),
-        ("acquisition_session_id", context.acquisition_session_id.as_str()),
+        (
+            "acquisition_session_id",
+            context.acquisition_session_id.as_str(),
+        ),
         ("boot_epoch_digest", context.boot_epoch_digest.as_str()),
-        ("challenge_nonce_digest", context.challenge_nonce_digest.as_str()),
+        (
+            "challenge_nonce_digest",
+            context.challenge_nonce_digest.as_str(),
+        ),
         ("audience", context.audience.as_str()),
-        ("calibration_profile_digest", context.calibration_profile_digest.as_str()),
+        (
+            "calibration_profile_digest",
+            context.calibration_profile_digest.as_str(),
+        ),
         ("verifier_identity", profile.verifier_identity.as_str()),
-        ("verifier_profile_digest", profile.verifier_profile_digest.as_str()),
-        ("appraisal_policy_digest", profile.appraisal_policy_digest.as_str()),
-        ("trust_anchor_set_digest", profile.trust_anchor_set_digest.as_str()),
+        (
+            "verifier_profile_digest",
+            profile.verifier_profile_digest.as_str(),
+        ),
+        (
+            "appraisal_policy_digest",
+            profile.appraisal_policy_digest.as_str(),
+        ),
+        (
+            "trust_anchor_set_digest",
+            profile.trust_anchor_set_digest.as_str(),
+        ),
     ] {
         check_identity(name, value)?;
     }
@@ -204,35 +263,90 @@ pub fn bind_joint_receipt_attestation(
     };
 
     for (name, value) in [
-        ("appraisal_result_id", appraisal.appraisal_result_id.as_str()),
-        ("appraisal_receipt_digest", appraisal.appraisal_receipt_digest.as_str()),
+        (
+            "appraisal_result_id",
+            appraisal.appraisal_result_id.as_str(),
+        ),
+        (
+            "appraisal_receipt_digest",
+            appraisal.appraisal_receipt_digest.as_str(),
+        ),
         ("verifier_identity", appraisal.verifier_identity.as_str()),
-        ("verifier_profile_digest", appraisal.verifier_profile_digest.as_str()),
-        ("appraisal_policy_digest", appraisal.appraisal_policy_digest.as_str()),
-        ("trust_anchor_set_digest", appraisal.trust_anchor_set_digest.as_str()),
+        (
+            "verifier_profile_digest",
+            appraisal.verifier_profile_digest.as_str(),
+        ),
+        (
+            "appraisal_policy_digest",
+            appraisal.appraisal_policy_digest.as_str(),
+        ),
+        (
+            "trust_anchor_set_digest",
+            appraisal.trust_anchor_set_digest.as_str(),
+        ),
         ("issuer_identity", appraisal.issuer_identity.as_str()),
-        ("issuer_key_epoch_digest", appraisal.issuer_key_epoch_digest.as_str()),
-        ("evidence_bytes_digest", appraisal.evidence_bytes_digest.as_str()),
+        (
+            "issuer_key_epoch_digest",
+            appraisal.issuer_key_epoch_digest.as_str(),
+        ),
+        (
+            "evidence_bytes_digest",
+            appraisal.evidence_bytes_digest.as_str(),
+        ),
         ("payload_sha256", appraisal.payload_sha256.as_str()),
         ("source_subject_id", appraisal.source_subject_id.as_str()),
-        ("robot_identity_digest", appraisal.robot_identity_digest.as_str()),
-        ("robot_configuration_digest", appraisal.robot_configuration_digest.as_str()),
-        ("actuator_identity_digest", appraisal.actuator_identity_digest.as_str()),
+        (
+            "robot_identity_digest",
+            appraisal.robot_identity_digest.as_str(),
+        ),
+        (
+            "robot_configuration_digest",
+            appraisal.robot_configuration_digest.as_str(),
+        ),
+        (
+            "actuator_identity_digest",
+            appraisal.actuator_identity_digest.as_str(),
+        ),
         ("joint_channel_id", appraisal.joint_channel_id.as_str()),
-        ("acquisition_session_id", appraisal.acquisition_session_id.as_str()),
+        (
+            "acquisition_session_id",
+            appraisal.acquisition_session_id.as_str(),
+        ),
         ("boot_epoch_digest", appraisal.boot_epoch_digest.as_str()),
-        ("challenge_nonce_digest", appraisal.challenge_nonce_digest.as_str()),
+        (
+            "challenge_nonce_digest",
+            appraisal.challenge_nonce_digest.as_str(),
+        ),
         ("audience", appraisal.audience.as_str()),
-        ("calibration_profile_digest", appraisal.calibration_profile_digest.as_str()),
+        (
+            "calibration_profile_digest",
+            appraisal.calibration_profile_digest.as_str(),
+        ),
     ] {
         check_identity(name, value)?;
     }
 
     for (field, observed, expected) in [
-        ("verifier_identity", appraisal.verifier_identity.as_str(), profile.verifier_identity.as_str()),
-        ("verifier_profile_digest", appraisal.verifier_profile_digest.as_str(), profile.verifier_profile_digest.as_str()),
-        ("appraisal_policy_digest", appraisal.appraisal_policy_digest.as_str(), profile.appraisal_policy_digest.as_str()),
-        ("trust_anchor_set_digest", appraisal.trust_anchor_set_digest.as_str(), profile.trust_anchor_set_digest.as_str()),
+        (
+            "verifier_identity",
+            appraisal.verifier_identity.as_str(),
+            profile.verifier_identity.as_str(),
+        ),
+        (
+            "verifier_profile_digest",
+            appraisal.verifier_profile_digest.as_str(),
+            profile.verifier_profile_digest.as_str(),
+        ),
+        (
+            "appraisal_policy_digest",
+            appraisal.appraisal_policy_digest.as_str(),
+            profile.appraisal_policy_digest.as_str(),
+        ),
+        (
+            "trust_anchor_set_digest",
+            appraisal.trust_anchor_set_digest.as_str(),
+            profile.trust_anchor_set_digest.as_str(),
+        ),
     ] {
         if observed != expected {
             return Err(AttestationBindingError::VerifierProfileMismatch(field));
@@ -240,17 +354,61 @@ pub fn bind_joint_receipt_attestation(
     }
 
     for (field, observed, expected) in [
-        ("payload_sha256", appraisal.payload_sha256.as_str(), context.payload_sha256.as_str()),
-        ("source_subject_id", appraisal.source_subject_id.as_str(), context.source_subject_id.as_str()),
-        ("robot_identity_digest", appraisal.robot_identity_digest.as_str(), context.robot_identity_digest.as_str()),
-        ("robot_configuration_digest", appraisal.robot_configuration_digest.as_str(), context.robot_configuration_digest.as_str()),
-        ("actuator_identity_digest", appraisal.actuator_identity_digest.as_str(), context.actuator_identity_digest.as_str()),
-        ("joint_channel_id", appraisal.joint_channel_id.as_str(), context.joint_channel_id.as_str()),
-        ("acquisition_session_id", appraisal.acquisition_session_id.as_str(), context.acquisition_session_id.as_str()),
-        ("boot_epoch_digest", appraisal.boot_epoch_digest.as_str(), context.boot_epoch_digest.as_str()),
-        ("challenge_nonce_digest", appraisal.challenge_nonce_digest.as_str(), context.challenge_nonce_digest.as_str()),
-        ("audience", appraisal.audience.as_str(), context.audience.as_str()),
-        ("calibration_profile_digest", appraisal.calibration_profile_digest.as_str(), context.calibration_profile_digest.as_str()),
+        (
+            "payload_sha256",
+            appraisal.payload_sha256.as_str(),
+            context.payload_sha256.as_str(),
+        ),
+        (
+            "source_subject_id",
+            appraisal.source_subject_id.as_str(),
+            context.source_subject_id.as_str(),
+        ),
+        (
+            "robot_identity_digest",
+            appraisal.robot_identity_digest.as_str(),
+            context.robot_identity_digest.as_str(),
+        ),
+        (
+            "robot_configuration_digest",
+            appraisal.robot_configuration_digest.as_str(),
+            context.robot_configuration_digest.as_str(),
+        ),
+        (
+            "actuator_identity_digest",
+            appraisal.actuator_identity_digest.as_str(),
+            context.actuator_identity_digest.as_str(),
+        ),
+        (
+            "joint_channel_id",
+            appraisal.joint_channel_id.as_str(),
+            context.joint_channel_id.as_str(),
+        ),
+        (
+            "acquisition_session_id",
+            appraisal.acquisition_session_id.as_str(),
+            context.acquisition_session_id.as_str(),
+        ),
+        (
+            "boot_epoch_digest",
+            appraisal.boot_epoch_digest.as_str(),
+            context.boot_epoch_digest.as_str(),
+        ),
+        (
+            "challenge_nonce_digest",
+            appraisal.challenge_nonce_digest.as_str(),
+            context.challenge_nonce_digest.as_str(),
+        ),
+        (
+            "audience",
+            appraisal.audience.as_str(),
+            context.audience.as_str(),
+        ),
+        (
+            "calibration_profile_digest",
+            appraisal.calibration_profile_digest.as_str(),
+            context.calibration_profile_digest.as_str(),
+        ),
     ] {
         if observed != expected {
             if field == "payload_sha256" {
@@ -260,7 +418,9 @@ pub fn bind_joint_receipt_attestation(
         }
     }
 
-    if !profile.allowed_source_roles.contains(&appraisal.source_role)
+    if !profile
+        .allowed_source_roles
+        .contains(&appraisal.source_role)
         || appraisal.source_role != context.expected_source_role
     {
         return Err(AttestationBindingError::UnauthorizedSourceRole);
@@ -273,7 +433,9 @@ pub fn bind_joint_receipt_attestation(
     }
     match appraisal.role_authorization {
         RoleDisposition::Authorized => {}
-        RoleDisposition::Unauthorized => return Err(AttestationBindingError::UnauthorizedSourceRole),
+        RoleDisposition::Unauthorized => {
+            return Err(AttestationBindingError::UnauthorizedSourceRole);
+        }
         RoleDisposition::Unknown => return Ok(inconclusive(context, appraisal)),
     }
     match appraisal.revocation {
@@ -298,9 +460,11 @@ pub fn bind_joint_receipt_attestation(
     match appraisal.boot_epoch {
         BootEpochDisposition::SameEpoch => {}
         BootEpochDisposition::AuthorizedNewEpoch => {
-            if context.previous_sequence.as_ref().is_some_and(|previous| {
-                previous.boot_epoch_digest == context.boot_epoch_digest
-            }) {
+            if context
+                .previous_sequence
+                .as_ref()
+                .is_some_and(|previous| previous.boot_epoch_digest == context.boot_epoch_digest)
+            {
                 return Err(AttestationBindingError::SequenceReplayOrRollback);
             }
         }
@@ -424,8 +588,12 @@ mod tests {
 
     #[test]
     fn exact_current_packet_device_session_and_verifier_binding_passes() {
-        let result = bind_joint_receipt_attestation(&context(), &profile(), Some(&appraisal())).unwrap();
-        assert_eq!(result.disposition, AuthenticationDisposition::AuthenticatedWithinDeclaredPolicy);
+        let result =
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&appraisal())).unwrap();
+        assert_eq!(
+            result.disposition,
+            AuthenticationDisposition::AuthenticatedWithinDeclaredPolicy
+        );
         assert!(!result.physical_validity_assessed);
         assert!(!result.actuation_authorized);
         assert_eq!(result.sequence_number, Some(41));
@@ -443,68 +611,94 @@ mod tests {
     fn wrong_packet_digest_is_rejected() {
         let mut receipt = appraisal();
         receipt.payload_sha256 = "another-packet".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::PayloadDigestMismatch));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::PayloadDigestMismatch)
+        );
     }
 
     #[test]
     fn wrong_robot_configuration_or_joint_channel_is_rejected() {
         let mut receipt = appraisal();
         receipt.robot_configuration_digest = "other-config".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::ScopeMismatch("robot_configuration_digest")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::ScopeMismatch(
+                "robot_configuration_digest"
+            ))
+        );
         let mut receipt = appraisal();
         receipt.joint_channel_id = "joint-2-torque".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::ScopeMismatch("joint_channel_id")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::ScopeMismatch("joint_channel_id"))
+        );
     }
 
     #[test]
     fn wrong_source_subject_or_acquisition_session_is_rejected() {
         let mut receipt = appraisal();
         receipt.source_subject_id = "daq-other-robot".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::ScopeMismatch("source_subject_id")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::ScopeMismatch("source_subject_id"))
+        );
         let mut receipt = appraisal();
         receipt.acquisition_session_id = "old-session".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::ScopeMismatch("acquisition_session_id")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::ScopeMismatch(
+                "acquisition_session_id"
+            ))
+        );
     }
 
     #[test]
     fn verifier_identity_profile_policy_and_trust_anchors_are_pinned() {
         let mut receipt = appraisal();
         receipt.appraisal_policy_digest = "untrusted-policy".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::VerifierProfileMismatch("appraisal_policy_digest")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::VerifierProfileMismatch(
+                "appraisal_policy_digest"
+            ))
+        );
     }
 
     #[test]
     fn failed_signature_or_revoked_key_is_rejected() {
         let mut receipt = appraisal();
         receipt.signature = SignatureDisposition::Failed;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::SignatureFailed));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::SignatureFailed)
+        );
         let mut receipt = appraisal();
         receipt.revocation = RevocationDisposition::Revoked;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::RevokedCredential));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::RevokedCredential)
+        );
     }
 
     #[test]
     fn valid_signature_does_not_bypass_unauthorized_source_role() {
         let mut receipt = appraisal();
         receipt.source_role = SourceRole::ServiceInstrument;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::UnauthorizedSourceRole));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::UnauthorizedSourceRole)
+        );
     }
 
     #[test]
     fn stale_or_replayed_challenge_is_rejected() {
         let mut receipt = appraisal();
         receipt.freshness = FreshnessDisposition::Replayed;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::StaleOrReplayedEvidence));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::StaleOrReplayedEvidence)
+        );
         let mut receipt = appraisal();
         receipt.freshness = FreshnessDisposition::Stale;
         assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
@@ -515,8 +709,10 @@ mod tests {
     fn duplicate_or_rollback_sequence_is_rejected() {
         let mut receipt = appraisal();
         receipt.sequence_number = 40;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::SequenceReplayOrRollback));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::SequenceReplayOrRollback)
+        );
         let mut receipt = appraisal();
         receipt.sequence = SequenceDisposition::Rollback;
         assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
@@ -536,21 +732,27 @@ mod tests {
             boot_epoch_digest: "boot-epoch-8".into(),
             last_sequence: 2,
         });
-        assert_eq!(bind_joint_receipt_attestation(&ctx, &profile(), Some(&receipt)),
-            Err(AttestationBindingError::SequenceReplayOrRollback));
+        assert_eq!(
+            bind_joint_receipt_attestation(&ctx, &profile(), Some(&receipt)),
+            Err(AttestationBindingError::SequenceReplayOrRollback)
+        );
     }
 
     #[test]
     fn stale_or_future_appraisal_interval_is_rejected() {
         let mut receipt = appraisal();
         receipt.expires_at_tick = 105;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::EvidenceExpired));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::EvidenceExpired)
+        );
         let mut receipt = appraisal();
         receipt.issued_at_tick = 120;
         receipt.expires_at_tick = 150;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::InvalidAppraisalInterval));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::InvalidAppraisalInterval)
+        );
     }
 
     #[test]
@@ -569,8 +771,12 @@ mod tests {
     fn unknown_role_revocation_or_sequence_evidence_does_not_authenticate() {
         let mut receipt = appraisal();
         receipt.role_authorization = RoleDisposition::Unknown;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)).unwrap().disposition,
-            AuthenticationDisposition::Inconclusive);
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt))
+                .unwrap()
+                .disposition,
+            AuthenticationDisposition::Inconclusive
+        );
         let mut receipt = appraisal();
         receipt.revocation = RevocationDisposition::Unknown;
         assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)).unwrap().disposition,
@@ -585,8 +791,12 @@ mod tests {
     fn calibration_profile_binding_is_exact_but_does_not_prove_calibration_truth() {
         let mut receipt = appraisal();
         receipt.calibration_profile_digest = "other-calibration".into();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::ScopeMismatch("calibration_profile_digest")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::ScopeMismatch(
+                "calibration_profile_digest"
+            ))
+        );
         let result = bind_joint_receipt_attestation(&context(), &profile(), Some(&appraisal())).unwrap();
         assert!(!result.physical_validity_assessed);
     }
@@ -595,15 +805,21 @@ mod tests {
     fn valid_signature_and_exact_scope_do_not_bypass_failed_appraisal() {
         let mut receipt = appraisal();
         receipt.appraisal = AppraisalDisposition::Fail;
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::AppraisalFailed));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::AppraisalFailed)
+        );
     }
 
     #[test]
     fn missing_verifier_receipt_identity_is_rejected() {
         let mut receipt = appraisal();
         receipt.appraisal_receipt_digest.clear();
-        assert_eq!(bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
-            Err(AttestationBindingError::EmptyIdentity("appraisal_receipt_digest")));
+        assert_eq!(
+            bind_joint_receipt_attestation(&context(), &profile(), Some(&receipt)),
+            Err(AttestationBindingError::EmptyIdentity(
+                "appraisal_receipt_digest"
+            ))
+        );
     }
 }
