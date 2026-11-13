@@ -360,13 +360,17 @@ impl ReservationBook {
 
     /// Reserve capacity in a declared clock domain and current site epoch.
     /// Overlap is evaluated on half-open intervals [start, end).
-    pub fn reserve(
-        &mut self,
-        request: ReservationRequest,
+    /// Read-only admission preview using the same exact interval and peak-capacity
+    /// semantics as `reserve`. This method does not expire, insert, release or otherwise
+    /// mutate records or indexes. An active record whose earliest possible expiry is
+    /// already due at `now_ms` is treated exactly as `reserve` would treat it after
+    /// lazy expiry (historical ID consumed, no longer capacity-consuming).
+    pub fn preview_reservation(
+        &self,
+        request: &ReservationRequest,
         now_ms: u64,
     ) -> Result<ReservationOutcome, ReservationError> {
-        validate_request(&request)?;
-        self.expire(now_ms);
+        validate_request(request)?;
 
         if request.site_epoch != self.current_site_epoch {
             return Err(ReservationError::StaleSiteEpoch);
@@ -388,10 +392,16 @@ impl ReservationBook {
             .ok_or(ReservationError::UnknownResource)?;
 
         if let Some(existing) = self.reservations.get(&request.reservation_id) {
-            if existing.state != ReservationState::Active {
+            if existing.state != ReservationState::Active
+                || existing
+                    .request
+                    .expires_at_ms
+                    .saturating_sub(existing.request.clock_uncertainty_ms)
+                    <= now_ms
+            {
                 return Err(ReservationError::ReservationIdConsumed);
             }
-            return if existing.request == request {
+            return if existing.request == *request {
                 Ok(ReservationOutcome::Duplicate)
             } else {
                 Err(ReservationError::ReservationIdConflict)
@@ -420,10 +430,20 @@ impl ReservationBook {
                 .reservations
                 .get(&existing_id)
                 .ok_or_else(|| ReservationError::IndexInconsistent(existing_id.clone()))?;
-            if existing.state != ReservationState::Active
-                || existing.request.resource_id != request.resource_id
-            {
+            if existing.request.resource_id != request.resource_id {
                 return Err(ReservationError::IndexInconsistent(existing_id));
+            }
+            if existing.state != ReservationState::Active {
+                return Err(ReservationError::IndexInconsistent(existing_id));
+            }
+            let existing_earliest_expiry = existing
+                .request
+                .expires_at_ms
+                .saturating_sub(existing.request.clock_uncertainty_ms);
+            if existing_earliest_expiry <= now_ms {
+                // The real mutating path would expire and unindex this record before
+                // capacity admission. Preview preserves state and simply ignores it.
+                continue;
             }
 
             let existing_start = existing
@@ -467,6 +487,25 @@ impl ReservationBook {
                 requested_total: u32::try_from(peak_units)
                     .map_err(|_| ReservationError::CapacityOverflow)?,
             });
+        }
+
+        Ok(ReservationOutcome::Granted)
+    }
+
+    /// Reserve capacity in a declared clock domain and current site epoch.
+    /// Overlap is evaluated on half-open intervals [start, end).
+    pub fn reserve(
+        &mut self,
+        request: ReservationRequest,
+        now_ms: u64,
+    ) -> Result<ReservationOutcome, ReservationError> {
+        // Preserve the prior side-effect order: malformed requests do not trigger
+        // lazy expiry of unrelated records.
+        validate_request(&request)?;
+        self.expire(now_ms);
+        let outcome = self.preview_reservation(&request, now_ms)?;
+        if outcome == ReservationOutcome::Duplicate {
+            return Ok(outcome);
         }
 
         let indexed_request = request.clone();
@@ -1005,6 +1044,92 @@ mod tests {
         assert_eq!(
             book.expiry_index.values().map(BTreeSet::len).sum::<usize>(),
             1
+        );
+    }
+
+    #[test]
+    fn preview_matches_reserve_without_mutating_the_book() {
+        let mut book = book(1);
+        book.reserve(request("existing", "robot-a", 100, 200, 300, 1), 0)
+            .expect("existing reservation");
+        let before = book.clone();
+        let candidate = request("candidate", "robot-b", 150, 250, 350, 1);
+
+        assert_eq!(
+            book.preview_reservation(&candidate, 0),
+            Err(ReservationError::CapacityExceeded {
+                capacity: 1,
+                requested_total: 2
+            })
+        );
+        assert_eq!(book, before);
+
+        let mut reference = before;
+        assert_eq!(
+            reference.reserve(candidate, 0),
+            Err(ReservationError::CapacityExceeded {
+                capacity: 1,
+                requested_total: 2
+            })
+        );
+        assert_eq!(book, reference);
+    }
+
+    #[test]
+    fn preview_handles_duplicate_stale_expired_and_future_requests_like_reserve() {
+        let mut book = book_with_uncertainty(2, 10);
+        let mut active = request("active", "robot-a", 100, 200, 240, 1);
+        active.clock_uncertainty_ms = 10;
+        book.reserve(active.clone(), 0).expect("active reservation");
+        let before = book.clone();
+
+        assert_eq!(
+            book.preview_reservation(&active, 0),
+            Ok(ReservationOutcome::Duplicate)
+        );
+        assert_eq!(book, before);
+
+        let mut stale = active.clone();
+        stale.site_epoch = "old-site-epoch".to_owned();
+        assert_eq!(
+            book.preview_reservation(&stale, 0),
+            Err(ReservationError::StaleSiteEpoch)
+        );
+        assert_eq!(book, before);
+
+        assert_eq!(
+            book.preview_reservation(&active, 230),
+            Err(ReservationError::ReservationIdConsumed)
+        );
+        assert_eq!(book, before);
+
+        let future = request("future", "robot-b", 300, 400, 500, 1);
+        assert_eq!(
+            book.preview_reservation(&future, 0),
+            Ok(ReservationOutcome::Granted)
+        );
+        // Preview did not create the new booking or mutate expiry/index state.
+        assert_eq!(book, before);
+        assert_eq!(book.state("future"), None);
+    }
+
+    #[test]
+    fn preview_ignores_due_records_without_mutating_expiry_or_time_indexes() {
+        let mut book = book(1);
+        book.reserve(request("due", "robot-a", 100, 200, 200, 1), 0)
+            .expect("due reservation");
+        let before = book.clone();
+        let candidate = request("replacement", "robot-b", 100, 200, 300, 1);
+
+        assert_eq!(
+            book.preview_reservation(&candidate, 200),
+            Ok(ReservationOutcome::Granted)
+        );
+        assert_eq!(book, before);
+        assert_eq!(book.state("due"), Some(ReservationState::Active));
+        assert_eq!(
+            book.candidate_count_for_interval("work-zone-A", 100, 200),
+            Ok(1)
         );
     }
 
