@@ -289,7 +289,10 @@ fn solve_spd<const N: usize>(
 impl<Frame, const N: usize> Tangent<Frame, N> {
     pub fn new(components: Vector<N>) -> Result<Self, UncertaintyErrorV1> {
         validate_vector(&components)?;
-        Ok(Self { components, frame: PhantomData })
+        Ok(Self {
+            components,
+            frame: PhantomData,
+        })
     }
     pub fn components(&self) -> &Vector<N> {
         &self.components
@@ -360,7 +363,10 @@ impl<Frame, const N: usize> Metric<Frame, N> {
     }
 
     /// Return L^-1 alpha, whose Euclidean norm is the M^-1 dual norm.
-    pub fn whiten_covector(&self, covector: &Covector<Frame, N>) -> Result<Vector<N>, UncertaintyErrorV1> {
+    pub fn whiten_covector(
+        &self,
+        covector: &Covector<Frame, N>,
+    ) -> Result<Vector<N>, UncertaintyErrorV1> {
         solve_lower(&self.lower, &covector.components)
     }
 
@@ -391,8 +397,7 @@ impl<Frame, const N: usize> Metric<Frame, N> {
                 {
                     return Err(UncertaintyErrorV1::AsymmetricMassPerturbation { row, column });
                 }
-                let average = 0.5 * perturbation[row][column]
-                    + 0.5 * perturbation[column][row];
+                let average = 0.5 * perturbation[row][column] + 0.5 * perturbation[column][row];
                 effective_perturbation[row][column] = average;
                 effective_perturbation[column][row] = average;
             }
@@ -517,7 +522,10 @@ impl<From, To, const N: usize> CoordinateRebase<From, To, N> {
         &self,
         covector: &Covector<From, N>,
     ) -> Result<Covector<To, N>, UncertaintyErrorV1> {
-        Covector::new(apply(&transpose(&self.source_from_target), &covector.components))
+        Covector::new(apply(
+            &transpose(&self.source_from_target),
+            &covector.components,
+        ))
     }
 
     pub fn metric_to_target(
@@ -556,8 +564,7 @@ pub fn estimate_acceleration_uncertainty<Frame, const N: usize>(
     if !frobenius.is_finite() {
         return Err(UncertaintyErrorV1::NonFiniteIntermediate);
     }
-    let rho = frobenius
-        * (1.0 + metric.profile.relative_frobenius_roundoff_inflation);
+    let rho = frobenius * (1.0 + metric.profile.relative_frobenius_roundoff_inflation);
     if !rho.is_finite() {
         return Err(UncertaintyErrorV1::NonFiniteIntermediate);
     }
@@ -574,8 +581,7 @@ pub fn estimate_acceleration_uncertainty<Frame, const N: usize>(
         });
     }
 
-    let numerator =
-        force_uncertainty_dual_norm + rho * nominal_acceleration_mass_norm;
+    let numerator = force_uncertainty_dual_norm + rho * nominal_acceleration_mass_norm;
     let denominator = 1.0 - rho;
     let bound = numerator / denominator;
     if !bound.is_finite() {
@@ -612,17 +618,10 @@ mod tests {
         Covector<CartesianFrame, 3>,
     ) {
         let profile = UncertaintyProfileV1::default();
-        let metric = Metric::new(
-            [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
-            profile,
-        )
-        .unwrap();
-        let rebase = CoordinateRebase::new([
-            [1.0, 2.0, 1.0],
-            [0.0, 1.0, 1.0],
-            [0.0, 0.0, 1.0],
-        ])
-        .unwrap();
+        let metric =
+            Metric::new([[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]], profile).unwrap();
+        let rebase =
+            CoordinateRebase::new([[1.0, 2.0, 1.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]]).unwrap();
         let acceleration = Tangent::new([0.5, -2.0 / 3.0, 0.8]).unwrap();
         let force = Covector::new(apply(metric.matrix(), acceleration.components())).unwrap();
         (metric, rebase, acceleration, force)
@@ -642,13 +641,9 @@ mod tests {
         let delta_mass = diagonal_mass_perturbation();
         let delta_force = Covector::new(force_perturbation()).unwrap();
         let profile = UncertaintyProfileV1::default();
-        let envelope = estimate_acceleration_uncertainty(
-            &metric,
-            &acceleration,
-            &delta_mass,
-            &delta_force,
-        )
-        .unwrap();
+        let envelope =
+            estimate_acceleration_uncertainty(&metric, &acceleration, &delta_mass, &delta_force)
+                .unwrap();
         assert!(matches!(
             envelope.status,
             EnvelopeStatusV1::InformativeEstimate | EnvelopeStatusV1::WeakEstimate
@@ -659,7 +654,8 @@ mod tests {
             std::array::from_fn(|column| metric.matrix()[row][column] + delta_mass[row][column])
         });
         let perturbed_metric = Metric::new(perturbed_mass, profile).unwrap();
-        let nominal_force = Covector::new(apply(metric.matrix(), acceleration.components())).unwrap();
+        let nominal_force =
+            Covector::new(apply(metric.matrix(), acceleration.components())).unwrap();
         let true_force = Covector::new(std::array::from_fn(|i| {
             nominal_force.components()[i] + delta_force.components()[i]
         }))
@@ -699,8 +695,7 @@ mod tests {
         .unwrap();
 
         assert!(
-            (envelope_q.relative_mass_perturbation_rho
-                - envelope_y.relative_mass_perturbation_rho)
+            (envelope_q.relative_mass_perturbation_rho - envelope_y.relative_mass_perturbation_rho)
                 .abs()
                 < 2.0e-12
         );
@@ -709,15 +704,14 @@ mod tests {
                 < 2.0e-12
         );
         assert!(
-            (envelope_q.nominal_acceleration_mass_norm
-                - envelope_y.nominal_acceleration_mass_norm)
+            (envelope_q.nominal_acceleration_mass_norm - envelope_y.nominal_acceleration_mass_norm)
                 .abs()
                 < 2.0e-12
         );
         assert!(
             (envelope_q.acceleration_error_bound_mass_norm.unwrap()
                 - envelope_y.acceleration_error_bound_mass_norm.unwrap())
-                .abs()
+            .abs()
                 < 3.0e-12
         );
     }
@@ -727,39 +721,28 @@ mod tests {
         let (metric, _, acceleration, _) = fixture();
         let delta_force = Covector::new(force_perturbation()).unwrap();
         let zero_mass = [[0.0; 3]; 3];
-        let envelope = estimate_acceleration_uncertainty(
-            &metric,
-            &acceleration,
-            &zero_mass,
-            &delta_force,
-        )
-        .unwrap();
+        let envelope =
+            estimate_acceleration_uncertainty(&metric, &acceleration, &zero_mass, &delta_force)
+                .unwrap();
         let exact_error = metric.solve(&delta_force).unwrap();
         let observed = metric.tangent_norm(&exact_error).unwrap();
         assert!((observed - envelope.force_uncertainty_dual_norm).abs() < 1.0e-12);
-        assert!(
-            (observed - envelope.acceleration_error_bound_mass_norm.unwrap()).abs() < 1.0e-12
-        );
+        assert!((observed - envelope.acceleration_error_bound_mass_norm.unwrap()).abs() < 1.0e-12);
     }
 
     #[test]
     fn rho_at_or_above_one_abstains_without_a_finite_bound() {
         let (metric, _, acceleration, _) = fixture();
-        let perturbation = [
-            [2.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-            [0.0, 0.0, 5.0],
-        ];
+        let perturbation = [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]];
         let delta_force = Covector::new([0.0; 3]).unwrap();
-        let envelope = estimate_acceleration_uncertainty(
-            &metric,
-            &acceleration,
-            &perturbation,
-            &delta_force,
-        )
-        .unwrap();
+        let envelope =
+            estimate_acceleration_uncertainty(&metric, &acceleration, &perturbation, &delta_force)
+                .unwrap();
         assert!(envelope.relative_mass_perturbation_rho >= 1.0);
-        assert_eq!(envelope.status, EnvelopeStatusV1::OutsidePerturbationEnvelope);
+        assert_eq!(
+            envelope.status,
+            EnvelopeStatusV1::OutsidePerturbationEnvelope
+        );
         assert!(envelope.acceleration_error_bound_mass_norm.is_none());
     }
 
@@ -769,12 +752,7 @@ mod tests {
         let asymmetric = [[0.0, 0.1, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]];
         let delta_force = Covector::new([0.0; 3]).unwrap();
         assert!(matches!(
-            estimate_acceleration_uncertainty(
-                &metric,
-                &acceleration,
-                &asymmetric,
-                &delta_force
-            ),
+            estimate_acceleration_uncertainty(&metric, &acceleration, &asymmetric, &delta_force),
             Err(UncertaintyErrorV1::AsymmetricMassPerturbation { .. })
         ));
     }
@@ -811,7 +789,7 @@ mod tests {
         assert!(
             (envelope_q.acceleration_error_bound_mass_norm.unwrap()
                 - wrong.acceleration_error_bound_mass_norm.unwrap())
-                .abs()
+            .abs()
                 > 1.0e-3
         );
     }
@@ -826,12 +804,7 @@ mod tests {
             [0.0, 0.0, f64::MAX],
         ];
         assert_eq!(
-            estimate_acceleration_uncertainty(
-                &metric,
-                &acceleration,
-                &perturbation,
-                &delta_force
-            ),
+            estimate_acceleration_uncertainty(&metric, &acceleration, &perturbation, &delta_force),
             Err(UncertaintyErrorV1::NonFiniteIntermediate)
         );
     }
