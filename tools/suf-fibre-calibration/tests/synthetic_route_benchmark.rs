@@ -40,6 +40,8 @@ fn benchmark_model() -> CalibrationModel {
     };
     let route = RouteGeometry::new(
         "route-r1".to_owned(),
+        "endpoint-a".to_owned(),
+        "endpoint-b".to_owned(),
         CoordinateFrame {
             crs_id: "urn:ogc:def:crs:EPSG::32735".to_owned(),
             kind: CoordinateKind::ProjectedMetric,
