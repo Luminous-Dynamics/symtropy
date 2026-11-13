@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process::ExitCode};
 
 const VERSION: &str = "0.1.0";
-const FIXTURE: &str = include_str!("../../../benchmarks/maritime-observability/observation-value-fixture.v0.1.json");
+const FIXTURE: &str = include_str!("../../../../benchmarks/maritime-observability/observation-value-fixture.v0.1.json");
 
 type Errors = Vec<Value>;
 type Probabilities = BTreeMap<String, f64>;
