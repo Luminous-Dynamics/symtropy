@@ -116,3 +116,42 @@ No single composite metric may hide blind sections, critical misses, invalid map
 ## 8. Claim ceiling
 
 This benchmark does not authorize any physical corridor design or establish optimal fibre placement, safe utility separation, coupling quality, construction cost or field benefit. Real designs require competent engineering, utility-owner requirements, permits and independent acceptance.
+
+
+## 9. Additional paradigm-shift gates
+
+### 9.1 Design for calibratability, not merely sensor installation
+
+The as-designed corridor must expose the gauge freedoms that remain in route registration. A design is not geographically calibratable merely because it has a fibre, a known endpoint or a CAD centreline. Specify which independent controls fix translation, orientation, scale, endpoint order and branch identity for the actual topology. Where controls are insufficient, preserve relative geometry and abstain from absolute registration.
+
+### 9.2 Redundancy must be independent where it matters
+
+A second DAS span that shares the same trench, chamber, power, clock, backhaul and ownership authority may fail with the primary. The design benchmark therefore includes common-cause cut sets and failure-domain diversity. Count independent failure domains, not sensor devices. Do not claim high availability by multiplying independent failure probabilities unless independence is supported.
+
+### 9.3 Design for lifecycle requalification
+
+Every splice, reroute, endpoint reversal, firmware/configuration change, coupling repair or datum/as-built change needs an explicit change-impact map. The design must identify which transformations and event-class qualifications become stale, and how to restore service without silently retaining obsolete geographic outputs.
+
+### 9.4 Procure outcomes, not interrogator specifications
+
+The acceptance object should be a qualified service cell (segment × event class × minimum magnitude × profile × time), with POD/false-alarm evidence, localization uncertainty, blind exposure, calibration freshness and owner access. Vendor range, gauge length and channel pitch are explanatory inputs, not service-level guarantees.
+
+## 10. Lifecycle comparison rules
+
+Report the same lifecycle boundary and price year for all alternatives. Include:
+- acquisition/lease and owner-access cost for existing fibre;
+- trench/duct, chamber, fibre, splice and reinstatement CAPEX;
+- interrogator lease/purchase, calibration and commissioning;
+- power, backhaul, storage, compute, retention and support;
+- survey, periodic requalification, maintenance, repair and outage;
+- human review, false dispatch, verification and post-event work;
+- replacement, decommissioning and residual value.
+
+Report undiscounted CAPEX/OPEX separately from discounted lifecycle cost, with discount rate and horizon explicit. Avoid assigning a monetary avoided-outage benefit without a defensible counterfactual and independently verified event outcomes. If risk reduction and financial cost do not share a defensible unit, show a Pareto frontier and do not invent a net-value ranking.
+
+## 11. Standards and sources
+
+- OGC MUDDI Part 1 v1.0 explicitly treats traceability to survey measurements, sensor observations and supporting evidence as a design requirement, and requires a mandatory core of underground network concepts with optional extensions. It is a conceptual model, not a complete implementation or security policy: https://docs.ogc.org/is/23-024/23-024.html
+- OGC SensorThings API 2.0 supports HTTP and MQTT sensing interfaces. Its 2026 standard states authorization and stored-data integrity/confidentiality are implementation responsibilities: https://docs.ogc.org/is/23-019/23-019.html
+- Li et al. (2026), DAS engineering-infrastructure review, DOI 10.1016/j.autcon.2026.106784: https://doi.org/10.1016/j.autcon.2026.106784
+- Cohen et al. (2026), buried-fibre geolocalization, DOI 10.1109/TGRS.2026.3729504: https://doi.org/10.1109/TGRS.2026.3729504
