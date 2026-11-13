@@ -171,12 +171,28 @@ pub struct DerivedResultReceipt {
     pub upstream_disposition: EvidenceDisposition,
 }
 
+/// Explicit applicability decision for a measurement channel.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MeasurementApplicability {
+    Required,
+    NotApplicable { reason: String },
+}
+
+/// One predeclared channel requirement. Applicability is not inferred from
+/// whether a measurement happens to be present in the packet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MeasurementRequirement {
+    pub measurement_id: String,
+    pub kind: MeasurementKind,
+    pub applicability: MeasurementApplicability,
+}
+
 /// Complete robotics measurement-uncertainty evidence profile.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UncertaintyProfile {
     pub scope: ScopeBinding,
     pub evaluation_tick: u64,
-    pub required_measurement_ids: Vec<String>,
+    pub measurement_requirements: Vec<MeasurementRequirement>,
     pub measurements: Vec<MeasurementReceipt>,
     pub uncertainty_receipts: Vec<UncertaintyReceipt>,
     pub derived_results: Vec<DerivedResultReceipt>,
@@ -766,14 +782,35 @@ pub fn audit_measurement_uncertainty(
     validate_scope(&profile.scope, &mut report);
 
     let mut required_ids = BTreeSet::new();
-    for id in &profile.required_measurement_ids {
-        if !nonempty(id) || !required_ids.insert(id.as_str()) {
+    let mut required_kinds = BTreeSet::new();
+    for requirement in &profile.measurement_requirements {
+        let id = requirement.measurement_id.as_str();
+        if !nonempty(id) || !required_kinds.insert(&requirement.kind) {
             push(
                 &mut report,
                 EvidenceDisposition::Rejected,
-                "REQUIRED_MEASUREMENT_ID_EMPTY_OR_DUPLICATE",
+                "MEASUREMENT_REQUIREMENT_ID_EMPTY_OR_DUPLICATE_KIND",
                 id,
             );
+        }
+        match &requirement.applicability {
+            MeasurementApplicability::Required => {
+                if !required_ids.insert(id) {
+                    push(
+                        &mut report,
+                        EvidenceDisposition::Rejected,
+                        "REQUIRED_MEASUREMENT_ID_DUPLICATE",
+                        id,
+                    );
+                }
+            }
+            MeasurementApplicability::NotApplicable { reason } if !nonempty(reason) => push(
+                &mut report,
+                EvidenceDisposition::Rejected,
+                "NOT_APPLICABLE_MEASUREMENT_REQUIRES_RATIONALE",
+                id,
+            ),
+            MeasurementApplicability::NotApplicable { .. } => {}
         }
     }
 
@@ -848,6 +885,22 @@ pub fn audit_measurement_uncertainty(
         }
     }
 
+    for requirement in &profile.measurement_requirements {
+        if let MeasurementApplicability::NotApplicable { reason } = &requirement.applicability {
+            if profile.measurements.iter().any(|measurement| {
+                measurement.kind == requirement.kind
+            }) {
+                push(
+                    &mut report,
+                    EvidenceDisposition::Rejected,
+                    "NOT_APPLICABLE_MEASUREMENT_WAS_SUPPLIED",
+                    &requirement.measurement_id,
+                );
+            }
+            let _ = reason;
+        }
+    }
+
     for required_id in &required_ids {
         if !measurement_map.contains_key(required_id) {
             push(
@@ -910,8 +963,33 @@ pub fn audit_measurement_uncertainty(
         }
     }
 
+    let mut derived_output_ids = BTreeSet::new();
     for derived in &profile.derived_results {
+        if !derived_output_ids.insert(derived.output_measurement_id.as_str()) {
+            push(
+                &mut report,
+                EvidenceDisposition::Rejected,
+                "DUPLICATE_DERIVED_OUTPUT_ID",
+                &derived.output_measurement_id,
+            );
+        }
         validate_derived_result(derived, &measurement_map, &uncertainty_map, &mut report);
+    }
+    for measurement in &profile.measurements {
+        if matches!(
+            &measurement.kind,
+            MeasurementKind::DerivedElectricalEnergy
+                | MeasurementKind::DerivedShaftWork
+                | MeasurementKind::DerivedEnergyResidual
+        ) && !derived_output_ids.contains(measurement.measurement_id.as_str())
+        {
+            push(
+                &mut report,
+                EvidenceDisposition::Unknown,
+                "DERIVED_MEASUREMENT_HAS_NO_DERIVED_RESULT_RECEIPT",
+                &measurement.measurement_id,
+            );
+        }
     }
 
     report
@@ -990,11 +1068,22 @@ mod tests {
         }
     }
 
+    fn requirement(id: &str, kind: MeasurementKind) -> MeasurementRequirement {
+        MeasurementRequirement {
+            measurement_id: id.into(),
+            kind,
+            applicability: MeasurementApplicability::Required,
+        }
+    }
+
     fn profile() -> UncertaintyProfile {
         UncertaintyProfile {
             scope: scope(),
             evaluation_tick: 150,
-            required_measurement_ids: vec!["torque-001".into()],
+            measurement_requirements: vec![requirement(
+                "torque-001",
+                MeasurementKind::ShaftTorque,
+            )],
             measurements: vec![measurement(
                 "torque-001",
                 MeasurementKind::ShaftTorque,
@@ -1133,7 +1222,10 @@ mod tests {
     #[test]
     fn derived_receipt_with_exact_input_identity_set_is_qualified() {
         let mut audit = profile();
-        audit.required_measurement_ids.push("voltage-001".into());
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
         audit.measurements.push(measurement(
             "voltage-001",
             MeasurementKind::ElectricalVoltage,
@@ -1168,7 +1260,10 @@ mod tests {
     #[test]
     fn derived_receipt_omitting_an_input_uncertainty_is_rejected() {
         let mut audit = profile();
-        audit.required_measurement_ids.push("voltage-001".into());
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
         audit.measurements.push(measurement(
             "voltage-001",
             MeasurementKind::ElectricalVoltage,
@@ -1241,6 +1336,57 @@ mod tests {
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
         assert!(report.findings.iter().any(|finding| {
             finding.code == "UNCERTAINTY_UNIT_OR_SCALE_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn not_applicable_channel_requires_a_reason_and_must_not_be_supplied() {
+        let mut audit = profile();
+        audit.measurement_requirements.push(MeasurementRequirement {
+            measurement_id: "optional-temp".into(),
+            kind: MeasurementKind::ThermalNode("gearbox".into()),
+            applicability: MeasurementApplicability::NotApplicable {
+                reason: "No gearbox thermal node in this single-joint fixture".into(),
+            },
+        });
+        assert_eq!(
+            audit_measurement_uncertainty(&audit).disposition,
+            EvidenceDisposition::Qualified
+        );
+
+        audit.measurement_requirements[1].applicability =
+            MeasurementApplicability::NotApplicable { reason: "".into() };
+        assert_eq!(
+            audit_measurement_uncertainty(&audit).disposition,
+            EvidenceDisposition::Rejected
+        );
+
+        audit.measurement_requirements[1].applicability =
+            MeasurementApplicability::NotApplicable {
+                reason: "No gearbox thermal node in this single-joint fixture".into(),
+            };
+        audit.measurements.push(measurement(
+            "optional-temp",
+            MeasurementKind::ThermalNode("gearbox".into()),
+            None,
+        ));
+        assert!(audit_measurement_uncertainty(&audit).findings.iter().any(|finding| {
+            finding.code == "NOT_APPLICABLE_MEASUREMENT_WAS_SUPPLIED"
+        }));
+    }
+
+    #[test]
+    fn derived_measurement_without_derived_result_receipt_is_unknown() {
+        let mut audit = profile();
+        audit.measurements.push(measurement(
+            "orphan-energy",
+            MeasurementKind::DerivedElectricalEnergy,
+            None,
+        ));
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Unknown);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "DERIVED_MEASUREMENT_HAS_NO_DERIVED_RESULT_RECEIPT"
         }));
     }
 
