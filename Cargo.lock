@@ -9190,6 +9190,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-animal-observation"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "symtropy-fauna-core",
+]
+
+[[package]]
+name = "symtropy-animal-replay"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "symtropy-animal-observation",
+ "symtropy-fauna-core",
+]
+
+[[package]]
+name = "symtropy-fauna-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "symtropy-lifesim-core"
 version = "0.1.0"
 dependencies = [

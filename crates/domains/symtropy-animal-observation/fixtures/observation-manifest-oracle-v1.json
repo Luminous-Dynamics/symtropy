@@ -1,0 +1,526 @@
+{
+  "schema_version": "ANIMAL-OBSERVATION-ORACLE-V1",
+  "note": "Every case uses synthetic test metadata and placeholder identifiers. This is a manifest/split decision oracle, not a licensed dataset or a measured biological observation.",
+  "cases": [
+    {
+      "id": "valid_synthetic_manifest",
+      "mutation": "none",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "unsupported_schema",
+      "mutation": "unsupported_schema_version",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "unsupported_schema_version"
+      ]
+    },
+    {
+      "id": "empty_pack_id",
+      "mutation": "empty_pack_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_pack_id"
+      ]
+    },
+    {
+      "id": "empty_source_id",
+      "mutation": "empty_source_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_source_id"
+      ]
+    },
+    {
+      "id": "empty_dataset_id",
+      "mutation": "empty_dataset_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_dataset_id"
+      ]
+    },
+    {
+      "id": "empty_source_version",
+      "mutation": "empty_source_version",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "empty_source_version"
+      ]
+    },
+    {
+      "id": "empty_immutable_reference",
+      "mutation": "empty_immutable_reference",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "empty_immutable_reference"
+      ]
+    },
+    {
+      "id": "missing_required_digest",
+      "mutation": "missing_required_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_required_digest"
+      ]
+    },
+    {
+      "id": "malformed_digest",
+      "mutation": "malformed_digest",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "malformed_digest"
+      ]
+    },
+    {
+      "id": "empty_taxonomy_source",
+      "mutation": "empty_taxonomy_source",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "empty_taxonomy_source"
+      ]
+    },
+    {
+      "id": "empty_taxonomy_release",
+      "mutation": "empty_taxonomy_release",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "empty_taxonomy_release"
+      ]
+    },
+    {
+      "id": "missing_taxon_ids",
+      "mutation": "missing_taxon_ids",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "empty_taxon_id"
+      ]
+    },
+    {
+      "id": "duplicate_taxon_binding",
+      "mutation": "duplicate_taxon_binding",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_taxon_binding"
+      ]
+    },
+    {
+      "id": "missing_taxonomy_mapping",
+      "mutation": "missing_taxonomy_mapping",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxonomy_mapping_reference"
+      ]
+    },
+    {
+      "id": "no_measurement_fields",
+      "mutation": "no_measurement_fields",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "no_measurement_fields"
+      ]
+    },
+    {
+      "id": "empty_field_id",
+      "mutation": "empty_field_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_field_id"
+      ]
+    },
+    {
+      "id": "duplicate_field_id",
+      "mutation": "duplicate_field_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_field_id"
+      ]
+    },
+    {
+      "id": "missing_quantity_unit",
+      "mutation": "missing_quantity_unit",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_quantity_unit"
+      ]
+    },
+    {
+      "id": "missing_coordinate_frame",
+      "mutation": "missing_coordinate_frame",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_coordinate_frame"
+      ]
+    },
+    {
+      "id": "missing_temporal_semantics",
+      "mutation": "missing_temporal_semantics",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_temporal_semantics"
+      ]
+    },
+    {
+      "id": "no_requested_operations",
+      "mutation": "no_requested_operations",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_requested_operations"
+      ]
+    },
+    {
+      "id": "duplicate_requested_operation",
+      "mutation": "duplicate_requested_operation",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_requested_operation"
+      ]
+    },
+    {
+      "id": "missing_permission_receipt",
+      "mutation": "missing_permission_receipt",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_receipt"
+      ]
+    },
+    {
+      "id": "duplicate_permission_receipt",
+      "mutation": "duplicate_permission_receipt",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_permission_receipt"
+      ]
+    },
+    {
+      "id": "unknown_permission",
+      "mutation": "unknown_permission",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "permission_unknown"
+      ]
+    },
+    {
+      "id": "restricted_permission",
+      "mutation": "restricted_permission",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "permission_restricted"
+      ]
+    },
+    {
+      "id": "revoked_permission",
+      "mutation": "revoked_permission",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "permission_revoked"
+      ]
+    },
+    {
+      "id": "missing_permission_authority",
+      "mutation": "missing_permission_authority",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_authority"
+      ]
+    },
+    {
+      "id": "missing_permission_scope",
+      "mutation": "missing_permission_scope",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_scope"
+      ]
+    },
+    {
+      "id": "missing_permission_review_date",
+      "mutation": "missing_permission_review_date",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_review_date"
+      ]
+    },
+    {
+      "id": "missing_attribution",
+      "mutation": "missing_attribution",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_required_attribution"
+      ]
+    },
+    {
+      "id": "empty_claim_lists",
+      "mutation": "empty_claim_lists",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "empty_claim_list"
+      ]
+    },
+    {
+      "id": "duplicate_claim",
+      "mutation": "duplicate_claim",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_claim"
+      ]
+    },
+    {
+      "id": "claim_exceeds_modality_envelope",
+      "mutation": "claim_exceeds_modality_envelope",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "claim_exceeds_measurement_envelope"
+      ]
+    },
+    {
+      "id": "no_split_records",
+      "mutation": "no_split_records",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "no_split_records",
+        "missing_required_split_role"
+      ]
+    },
+    {
+      "id": "empty_record_id",
+      "mutation": "empty_record_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_record_id"
+      ]
+    },
+    {
+      "id": "duplicate_record_id",
+      "mutation": "duplicate_record_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_record_id"
+      ]
+    },
+    {
+      "id": "empty_study_id",
+      "mutation": "empty_study_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_study_id"
+      ]
+    },
+    {
+      "id": "empty_subject_id",
+      "mutation": "empty_subject_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_subject_id"
+      ]
+    },
+    {
+      "id": "empty_track_id",
+      "mutation": "empty_track_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_track_id"
+      ]
+    },
+    {
+      "id": "empty_record_taxon",
+      "mutation": "empty_record_taxon",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_record_taxon"
+      ]
+    },
+    {
+      "id": "record_taxon_mismatch",
+      "mutation": "record_taxon_mismatch",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "record_taxon_mismatch"
+      ]
+    },
+    {
+      "id": "invalid_time_range",
+      "mutation": "invalid_time_range",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_time_range"
+      ]
+    },
+    {
+      "id": "provenance_promotion",
+      "mutation": "provenance_promotion",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "provenance_promotion"
+      ]
+    },
+    {
+      "id": "unseen_subject_leak",
+      "mutation": "unseen_subject_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "split_identity_leakage"
+      ]
+    },
+    {
+      "id": "duplicate_observation_leak",
+      "mutation": "duplicate_observation_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_observation_leakage"
+      ]
+    },
+    {
+      "id": "future_time_leak",
+      "mutation": "future_time_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "temporal_leakage"
+      ]
+    },
+    {
+      "id": "missing_required_site",
+      "mutation": "missing_required_site",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_required_site"
+      ]
+    },
+    {
+      "id": "invalid_temporal_gap",
+      "mutation": "invalid_temporal_gap",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_temporal_gap"
+      ]
+    },
+    {
+      "id": "invalid_sampling_interval",
+      "mutation": "invalid_sampling_interval",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "invalid_sampling_interval"
+      ]
+    },
+    {
+      "id": "missing_training_role",
+      "mutation": "missing_training_role",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_required_split_role"
+      ]
+    },
+    {
+      "id": "conflicting_permission_receipts",
+      "mutation": "conflicting_permission_receipts",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_permission_receipt",
+        "permission_restricted"
+      ]
+    },
+    {
+      "id": "multi_taxon_pack",
+      "mutation": "multi_taxon_pack",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "unseen_taxon_leak",
+      "mutation": "unseen_taxon_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "split_identity_leakage"
+      ]
+    },
+    {
+      "id": "future_time_same_track_disjoint",
+      "mutation": "future_time_same_track_disjoint",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "future_time_boundary_touch",
+      "mutation": "future_time_boundary_touch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "temporal_leakage"
+      ]
+    },
+    {
+      "id": "whitespace_permission_scope",
+      "mutation": "whitespace_permission_scope",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_scope"
+      ]
+    },
+    {
+      "id": "whitespace_attribution",
+      "mutation": "whitespace_attribution",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_required_attribution"
+      ]
+    },
+    {
+      "id": "granular_location_missing_policy",
+      "mutation": "granular_location_missing_policy",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_location_privacy_policy"
+      ]
+    },
+    {
+      "id": "granular_location_too_fine",
+      "mutation": "granular_location_too_fine",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "granular_location_privacy_violation"
+      ]
+    },
+    {
+      "id": "granular_location_safe_aggregation",
+      "mutation": "granular_location_safe",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "granular_location_missing_resolution",
+      "mutation": "granular_location_missing_resolution",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_location_resolution"
+      ]
+    },
+    {
+      "id": "within_subject_interpolation_overlap",
+      "mutation": "within_subject_interpolation_overlap",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "temporal_leakage"
+      ]
+    },
+    {
+      "id": "within_subject_interpolation_disjoint",
+      "mutation": "within_subject_interpolation_disjoint",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "within_subject_interpolation_no_continuity",
+      "mutation": "within_subject_interpolation_no_continuity",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_within_subject_continuity"
+      ]
+    },
+    {
+      "id": "cross_study_linked_subject_leak",
+      "mutation": "cross_study_linked_subject_leak",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "split_identity_leakage"
+      ]
+    }
+  ]
+}

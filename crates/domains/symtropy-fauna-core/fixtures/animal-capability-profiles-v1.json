@@ -1,0 +1,1089 @@
+{
+  "schema_version": "ANIMAL-CAPABILITY-PROFILES-V1",
+  "note": "All profiles and non-reference values in this corpus are synthetic test fixtures. The real_taxon_bound template deliberately uses TEST:1 and test:// placeholders to exercise validation branches only; it is not a real animal record or a measured biological claim.",
+  "synthetic_template": {
+    "id": "synthetic/template",
+    "kind": "synthetic_archetype",
+    "taxon": null,
+    "stage": "adult",
+    "provenance": "synthetic",
+    "capabilities": [
+      {
+        "axis": "body_plan",
+        "key": "generic_archetype",
+        "state": "present",
+        "evidence": {
+          "class": "synthetic",
+          "source_ref": null,
+          "permission": "synthetic_only",
+          "taxon_id": null,
+          "stage": "adult",
+          "attribution": null,
+          "permission_scope": null
+        },
+        "stage_requirement": null
+      }
+    ]
+  },
+  "real_template": {
+    "id": "real/template",
+    "kind": "real_taxon_bound",
+    "taxon": {
+      "source": "test-taxonomy",
+      "release": "test-release-1",
+      "taxon_id": "TEST:1"
+    },
+    "stage": "adult",
+    "provenance": "modeled",
+    "capabilities": [
+      {
+        "axis": "locomotion",
+        "key": "walking",
+        "state": "present",
+        "evidence": {
+          "class": "modeled",
+          "source_ref": "test://synthetic-validation-fixture/reference",
+          "permission": "granted",
+          "taxon_id": "TEST:1",
+          "stage": "adult",
+          "attribution": null,
+          "permission_scope": "test-fixture-only"
+        },
+        "stage_requirement": null
+      }
+    ]
+  },
+  "archetypes": [
+    {
+      "id": "synthetic/sponge-filter-feeder",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "feeding",
+          "key": "water_filter_feeding",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/jellyfish-drifter",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "passive_drift_and_pulsation",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/sea-anemone-sessile",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "anchored_sessile",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/earthworm-segmented",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "peristaltic_burrowing",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/nematode-worm",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "undulatory_crawling",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/snail-muscular-foot",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "muscular_foot",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/clam-filter-feeder",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "feeding",
+          "key": "suspension_feeding",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/octopus-soft-bodied",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "jet_propulsion_and_crawling",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/sea-star-tube-feet",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "tube_foot_crawling",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/sea-urchin-test",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "body_plan",
+          "key": "rigid_test_and_spines",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/crab-lateral-walker",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "jointed_lateral_walking",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/spider-web-hunter",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "feeding",
+          "key": "web_assisted_predation",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/beetle-molting",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "development",
+          "key": "molting_exoskeleton",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/butterfly-metamorphosis",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "development",
+          "key": "complete_metamorphosis",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/ant-colony",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "social",
+          "key": "colony_level_coordination",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/honeybee-pollinator",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "ecology",
+          "key": "pollination",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/fish-undulator",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "aquatic_undulation",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/shark-electroreception",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "sensation",
+          "key": "electroreception",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/frog-amphibious",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "amphibious_locomotion",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/snake-undulator",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "terrestrial_undulation",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/turtle-shell",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "body_plan",
+          "key": "shell_supported_body",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/bird-powered-flight",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "powered_flight",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/bat-echolocator",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "sensation",
+          "key": "echolocation",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/rodent-social",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "social",
+          "key": "pair_or_group_interaction",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/seal-diver",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "aquatic_locomotion",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    },
+    {
+      "id": "synthetic/horse-cursorial",
+      "kind": "synthetic_archetype",
+      "taxon": null,
+      "stage": "adult",
+      "provenance": "synthetic",
+      "capabilities": [
+        {
+          "axis": "movement",
+          "key": "cursorial_running",
+          "state": "present",
+          "evidence": {
+            "class": "synthetic",
+            "source_ref": null,
+            "permission": "synthetic_only",
+            "taxon_id": null,
+            "stage": "adult",
+            "attribution": null,
+            "permission_scope": null
+          },
+          "stage_requirement": null
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "valid_synthetic",
+      "base_profile": "synthetic",
+      "mutation": "none",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "valid_real",
+      "base_profile": "real",
+      "mutation": "none",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "empty_profile_id",
+      "base_profile": "synthetic",
+      "mutation": "empty_profile_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_profile_id"
+      ]
+    },
+    {
+      "id": "whitespace_profile_id",
+      "base_profile": "synthetic",
+      "mutation": "whitespace_profile_id",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_profile_id"
+      ]
+    },
+    {
+      "id": "synthetic_taxon_binding",
+      "base_profile": "synthetic",
+      "mutation": "synthetic_taxon_binding",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "synthetic_profile_has_taxon"
+      ]
+    },
+    {
+      "id": "synthetic_measured_provenance",
+      "base_profile": "synthetic",
+      "mutation": "synthetic_measured_provenance",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "synthetic_provenance_mismatch"
+      ]
+    },
+    {
+      "id": "real_missing_taxon",
+      "base_profile": "real",
+      "mutation": "real_missing_taxon",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxon_binding"
+      ]
+    },
+    {
+      "id": "real_empty_taxon_source",
+      "base_profile": "real",
+      "mutation": "real_empty_taxon_source",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxon_source"
+      ]
+    },
+    {
+      "id": "real_empty_taxon_release",
+      "base_profile": "real",
+      "mutation": "real_empty_taxon_release",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxon_release"
+      ]
+    },
+    {
+      "id": "real_empty_taxon_id",
+      "base_profile": "real",
+      "mutation": "real_empty_taxon_id",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxon_id"
+      ]
+    },
+    {
+      "id": "real_synthetic_provenance",
+      "base_profile": "real",
+      "mutation": "real_synthetic_provenance",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "real_profile_uses_synthetic_provenance"
+      ]
+    },
+    {
+      "id": "real_synthetic_claim_evidence",
+      "base_profile": "real",
+      "mutation": "real_synthetic_claim_evidence",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "synthetic_evidence_for_real_taxon"
+      ]
+    },
+    {
+      "id": "empty_capability_axis",
+      "base_profile": "synthetic",
+      "mutation": "empty_capability_axis",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_capability_axis"
+      ]
+    },
+    {
+      "id": "whitespace_capability_axis",
+      "base_profile": "synthetic",
+      "mutation": "whitespace_capability_axis",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_capability_axis"
+      ]
+    },
+    {
+      "id": "empty_capability_key",
+      "base_profile": "synthetic",
+      "mutation": "empty_capability_key",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "empty_capability_key"
+      ]
+    },
+    {
+      "id": "duplicate_capability_key",
+      "base_profile": "synthetic",
+      "mutation": "duplicate_capability_key",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "duplicate_capability_key"
+      ]
+    },
+    {
+      "id": "real_missing_evidence_source",
+      "base_profile": "real",
+      "mutation": "real_missing_evidence_source",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_evidence_source"
+      ]
+    },
+    {
+      "id": "real_unknown_rights",
+      "base_profile": "real",
+      "mutation": "real_unknown_rights",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_unknown"
+      ]
+    },
+    {
+      "id": "real_restricted_rights",
+      "base_profile": "real",
+      "mutation": "real_restricted_rights",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_restricted"
+      ]
+    },
+    {
+      "id": "real_synthetic_only_rights",
+      "base_profile": "real",
+      "mutation": "real_synthetic_only_rights",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "synthetic_only_evidence_for_real_taxon"
+      ]
+    },
+    {
+      "id": "real_attribution_missing",
+      "base_profile": "real",
+      "mutation": "real_attribution_missing",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_required_attribution"
+      ]
+    },
+    {
+      "id": "real_evidence_taxon_mismatch",
+      "base_profile": "real",
+      "mutation": "real_evidence_taxon_mismatch",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_taxon_mismatch"
+      ]
+    },
+    {
+      "id": "real_evidence_taxon_missing",
+      "base_profile": "real",
+      "mutation": "real_evidence_taxon_missing",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_evidence_taxon_id"
+      ]
+    },
+    {
+      "id": "real_stage_requirement_mismatch",
+      "base_profile": "real",
+      "mutation": "real_stage_requirement_mismatch",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "stage_requirement_mismatch"
+      ]
+    },
+    {
+      "id": "real_evidence_stage_mismatch",
+      "base_profile": "real",
+      "mutation": "real_evidence_stage_mismatch",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "evidence_stage_mismatch"
+      ]
+    },
+    {
+      "id": "real_unknown_capability",
+      "base_profile": "real",
+      "mutation": "real_unknown_capability",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_not_measured_capability",
+      "base_profile": "real",
+      "mutation": "real_not_measured_capability",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_conflicted_capability",
+      "base_profile": "real",
+      "mutation": "real_conflicted_capability",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_no_capability_claims",
+      "base_profile": "real",
+      "mutation": "real_no_capability_claims",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "no_capability_claims"
+      ]
+    },
+    {
+      "id": "real_whitespace_source_ref",
+      "base_profile": "real",
+      "mutation": "real_whitespace_source_ref",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_evidence_source"
+      ]
+    },
+    {
+      "id": "real_unknown_rights_for_absence",
+      "base_profile": "real",
+      "mutation": "real_unknown_rights_for_absence",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_unknown"
+      ]
+    },
+    {
+      "id": "synthetic_modeled_provenance",
+      "base_profile": "synthetic",
+      "mutation": "synthetic_modeled_provenance",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "synthetic_provenance_mismatch"
+      ]
+    },
+    {
+      "id": "real_absent_claim_valid",
+      "base_profile": "real",
+      "mutation": "real_absent_claim_valid",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "real_not_applicable_claim_valid",
+      "base_profile": "real",
+      "mutation": "real_not_applicable_claim_valid",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "real_modeled_evidence_valid",
+      "base_profile": "real",
+      "mutation": "real_modeled_evidence_valid",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "real_reconstructed_evidence_valid",
+      "base_profile": "real",
+      "mutation": "real_reconstructed_evidence_valid",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "synthetic_absent_claim_valid",
+      "base_profile": "synthetic",
+      "mutation": "synthetic_absent_claim_valid",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "synthetic_unknown_claim_valid_as_unknown",
+      "base_profile": "synthetic",
+      "mutation": "synthetic_unknown_claim_valid",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "real_attribution_present",
+      "base_profile": "real",
+      "mutation": "real_attribution_present",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "real_stage_requirement_matched",
+      "base_profile": "real",
+      "mutation": "real_stage_requirement_matched",
+      "expected_disposition": "eligible",
+      "expected_reason_codes": []
+    },
+    {
+      "id": "real_taxon_source_whitespace",
+      "base_profile": "real",
+      "mutation": "real_taxon_source_whitespace",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxon_source"
+      ]
+    },
+    {
+      "id": "real_taxon_id_whitespace",
+      "base_profile": "real",
+      "mutation": "real_taxon_id_whitespace",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_taxon_id"
+      ]
+    },
+    {
+      "id": "real_restricted_rights_unasserted",
+      "base_profile": "real",
+      "mutation": "real_restricted_rights_unasserted",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_restricted",
+        "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_unknown_rights_unasserted",
+      "base_profile": "real",
+      "mutation": "real_unknown_rights_unasserted",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evidence_rights_unknown",
+        "unresolved_capability_evidence"
+      ]
+    },
+    {
+      "id": "real_missing_permission_scope",
+      "base_profile": "real",
+      "mutation": "real_missing_permission_scope",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_scope"
+      ]
+    },
+    {
+      "id": "real_whitespace_permission_scope",
+      "base_profile": "real",
+      "mutation": "real_whitespace_permission_scope",
+      "expected_disposition": "indeterminate",
+      "expected_reason_codes": [
+        "missing_permission_scope"
+      ]
+    },
+    {
+      "id": "real_attribution_whitespace",
+      "base_profile": "real",
+      "mutation": "real_attribution_whitespace",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "missing_required_attribution"
+      ]
+    }
+  ]
+}
