@@ -1029,18 +1029,12 @@ mod tests {
             report.benchmark_profile_id,
             "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001"
         );
-        assert_eq!(
-            report.benchmark_profile_digest,
-            BENCHMARK_PROFILE_BLOB_ID
-        );
+        assert_eq!(report.benchmark_profile_digest, BENCHMARK_PROFILE_BLOB_ID);
         assert_eq!(
             report.reference_fixture_id,
             "highrise-reference-floor-micro-oracle-001"
         );
-        assert_eq!(
-            report.reference_fixture_digest,
-            REFERENCE_FIXTURE_BLOB_ID
-        );
+        assert_eq!(report.reference_fixture_digest, REFERENCE_FIXTURE_BLOB_ID);
         assert_eq!(
             report.claim_ceiling,
             "synthetic_accepted_output_accounting_only"
