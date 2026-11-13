@@ -1,260 +1,170 @@
 # Symtropy
 
-State-coupled N-dimensional physics engine. Any metric you define modulates forces, friction, and energy budgets in real-time through a thermodynamically-closed system.
+**Symtropy is a Rust physics and simulation substrate for games, robotics research and engineering scenarios.** It combines const-generic geometric mathematics, rigid-body dynamics, collision and constraint machinery, replay primitives, and adapters for higher-level systems.
 
-Ships with Phi (integrated information) as the default metric and 68 research experiments. But the coupling framework is generic — plug in health, wealth, trust, skill, or any [0,1] value per body.
+The project also contains an optional consciousness-physics research layer. That layer is an experiment built on the physics core; it is not a prerequisite for ordinary physics use, a theory of robot safety, or evidence that a simulated system is conscious.
 
-**827 tests | 5 shapes | 5 joints | CCD | raycasting | warm-starting | island sleeping | 11 crates on crates.io**
+> **Maturity and claim boundary:** Symtropy is an actively developed research and software-engineering project. A working API, passing unit test, deterministic replay or successful simulation does not by itself establish physical-model validity, product qualification, functional safety, environmental protection or production readiness. Use the validation envelopes and evidence classes linked below.
 
-## The Symtropy Adoption Story
+## What Symtropy owns
 
-Symtropy is more than a physics engine; it is the physical substrate for a **Type 1 Civilization**.
-
-Why choose Symtropy over traditional solutions?
-
-| Traditional Need | The Symtropy Stack |
+| Layer | Responsibility |
 |---|---|
-| AI (behavior trees) | **Symthaea** cognitive loop — ethics-aware, Phi-gated, Free Energy Principle |
-| Player accounts | **Mycelix** DIDs (W3C standard, ZKP selective disclosure) |
-| Cloud save | **Mycelix** personal cluster vault |
-| In-game economy | **TEND** time-exchange with demurrage |
-| UGC attribution | **Mycelix-craft** talent marketplace |
-| Governance/voting | **Mycelix** DHT-backed proposals |
+| `symtropy-math` | Const-generic geometric primitives, transforms, rotors, bivectors and support-mapped shapes |
+| `symtropy-physics` | Rigid-body stepping, collision detection, contact/constraint handling, joints, queries, events and replay primitives |
+| `symtropy-bevy-core` | Bevy integration for the generic physics core |
+| `symtropy-robotics-bridge-core` | Dependency-light platform and agent interfaces, motor-planning abstractions and a simple per-joint attenuation helper |
+| `symtropy-robotics-bridge` | AGPL integration with Symthaea/Bevy and research embodiments |
+| `symtropy-consciousness-physics` | Optional AGPL research coupling for Φ, energy bookkeeping, harmony fields and related experiments |
 
-### 1. The Permissive Core (Track B)
-For game developers and industrial simulation, Symtropy provides a high-performance, N-dimensional rigid body engine on Bevy. Use it for standard games where you need deterministic replay, 4D physics, or custom per-body metrics (health, trust, wealth) without any copyleft obligations.
-- **Crates:** `symtropy-core`, `symtropy-physics`, `symtropy-bevy-core`.
-- **License:** Apache-2.0 OR MIT.
+The math and physics crates are const-generic and have active 2D/3D/4D research and test paths. Generic type support must not be confused with equal qualification of every shape pair, dimension, collision mode or solver path.
 
-### 2. The Research Hero (Track A)
-For researchers in AI, A-Life, and Integrated Information Theory (IIT), Symtropy integrates Φ (integrated information) as a first-class physical law. This enables simulations where an agent's internal complexity (consciousness) meaningfully modulates its motor authority and energy efficiency.
-- **Crates:** `symtropy-consciousness-physics`, `symtropy-bevy`.
-- **License:** GNU AGPL v3.
+## What Symtropy does not own
 
-### 3. The Civilizational Stack (Symthaea + Mycelix)
-When combined with **Symthaea** (cognitive loop) and **Mycelix** (decentralized governance), Symtropy becomes a test-bed for autonomous societies.
-- **Cognition:** FEP-driven agents (`symthaea-fep`) with multi-theory consciousness.
-- **Governance:** Real-time peer-to-peer voting and resource allocation via Holochain DHT.
-- **Metabolism:** Digital twins of physical bootstrap hardware (plastic shredders, solar grids).
+Symtropy is not an all-in-one CAD, FEA, EDA, CAM, MES or product-lifecycle-management system. It should connect those specialist systems and preserve their revision-bound outputs—not replace them.
 
-## Will NOT Do (Scope Boundaries)
-To maintain focus on our core differentiators (4D physics, consciousness coupling, decentralized governance), we explicitly scope out the following:
-- **No bespoke game editor** — We rely entirely on `bevy_inspector_egui` for in-engine tooling.
-- **No custom wgpu renderer** — Bevy owns the render graph.
-- **No Jacobian solver** — PBD (Position Based Dynamics) + impulse at <1000 bodies is our chosen constraint.
-- **No mobile (iOS/Android)** — Mobile support is out of scope. WebXR (WASM) is the reach target.
-- **No GPU broadphase in core** — `symtropy-physics-gpu` is provided as an ecosystem crate, not core engine logic.
-- **No soft-body in core** — Expected to be community-owned ecosystem crates.
+| System | Authoritative responsibility |
+|---|---|
+| **Symthaea** | Cognitive reasoning, planning, perception, belief and human interaction; proposes typed intent, not unrestricted actuator commands |
+| **Symtropy** | Physics, mechanics, dynamics and reproducible scenario execution within declared model capabilities |
+| **Sol-Atlas** | Spatial intelligence, geometry, reference frames, scene/map relationships, localization and spatial provenance |
+| **Mycelix** | Identity, permissions, custody/provenance, attestations and governance |
+| **Luminous engineering platform** | Requirements, candidate selection, configuration baselines, EBOM/MBOM/service BOM, technical documents, engineering changes, production and as-built/service records |
 
-## Architecture
+The **target** Luminous engineering digital-thread layer is intended to become the product-lifecycle authority; this Symtropy repository does not implement a complete PLM system. The current Luminous workspace contains engineering, digital-twin, simulation and fabrication components, but still needs a unified product identity/configuration model, controlled product structures, engineering changes/effectivity, and as-built/service configuration. Symtropy supplies simulation execution and model outputs. A result is evidence only within its declared model, solver, configuration, uncertainty and context of use.
 
+## Current physics capabilities and known limits
+
+The physics core includes:
+- Const-generic geometric and rigid-body types.
+- GJK/EPA collision machinery and transformed-shape paths.
+- Contact resolution, friction, sleeping and constraint/joint primitives.
+- Ray/query support, collision events and replay/snapshot primitives.
+- A `PhysicsCallback` extension point for explicitly selected custom force, impulse, friction and observation coupling.
+
+The public validation notes are intentionally narrower than a general-purpose simulator claim:
+
+- [Physics research validity envelope](crates/core/symtropy-physics/RESEARCH_VALIDATION.md)
+- [Orientation-aware collision validation](crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md)
+- [Engine-wide physics qualification corpus #460](https://github.com/Luminous-Dynamics/symtropy/issues/460)
+- [Exact engine capability/model-path census #1472](https://github.com/Luminous-Dynamics/symtropy/issues/1472)
+
+Known gaps include limitations in general convex/rotational CCD, asymmetric rigid-body inertia and gyroscopic behavior, full contact manifolds for some rotated geometry, mesh-path validation, reduced-coordinate multibody dynamics, and cross-architecture bitwise deterministic guarantees. The exact gap depends on the requested operation and configuration; consult the validation notes and capability-census work before selecting Symtropy as the authority for an engineering question.
+
+**Do not describe Symtropy as a MuJoCo, Drake, Newton, PhysX or FEA replacement.** For articulated robot dynamics, compare against mature independent solvers such as MuJoCo and Newton. Use specialist FEA/thermal/EM tools for structural, thermal and electrical analyses. Symtropy's opportunity is to compose these sources, identify the model path actually used, and preserve reproducible evidence across them.
+
+## Robotics: honest maturity boundary
+
+The robotics bridge is an integration and research surface, not a complete robot-control stack.
+
+- `UniformGainPlanner` is a simple scalar baseline, not a per-joint controller.
+- `spawn_robot_body` creates a coarse physics proxy; it is not an articulated humanoid assembly.
+- The current humanoid demo's controller is explicitly a PD neutral-pose balance demonstrator with 21 actuators receiving a uniform attenuation gain. It is not a walking, manipulation or whole-body locomotion controller.
+- A per-joint gain helper is not an independent, safety-rated safety function. Zeroing torque is not a universal safe state; each physical platform needs an independently engineered safety authority and defined fault response.
+
+The target authority split is cognition → typed, expiring intent → embodiment adapter → platform-specific local controller → independent safety supervision → actuator/hardware or qualified simulation plant → explicit outcome returned to cognition.
+
+Existing work to build on:
+- [SYMPTHAEA-CONTROL-BOUNDARY-001 #2828](https://github.com/Luminous-Dynamics/symtropy/issues/2828)
+- [Typed embodiment contract PR #2829](https://github.com/Luminous-Dynamics/symtropy/pull/2829) and the follow-on assurance/dispatch/outcome work
+- [Matched locomotion benchmark #3357](https://github.com/Luminous-Dynamics/symtropy/issues/3357)
+- [Multimodal failover and recoverability #4332](https://github.com/Luminous-Dynamics/symtropy/issues/4332)
+- [Actuator electrical/mechanical loss maps #4179](https://github.com/Luminous-Dynamics/symtropy/issues/4179)
+- [Repairable humanoid rotary-joint demonstrator #4337](https://github.com/Luminous-Dynamics/symtropy/issues/4337)
+
+## Evidence-driven engineering workflow
+
+Make simulation a falsifiable, configuration-bound engineering process:
+
+`requirement → candidate → controlled configuration → model admission → simulation → prototype → physical measurement → correlation → release → field/service evidence`
+
+Each run should identify:
+- Exact source/tree and scenario/configuration identity.
+- Geometry, mass/inertia, materials, boundary conditions and component revisions.
+- Solver/backend, timestep, substeps, tolerances and numerical settings.
+- Supported, approximated, unknown and unsupported model semantics.
+- Requested observables, measurement/model uncertainty and acceptance rules.
+- Raw input/output digests, warnings, failures and result classification.
+
+A simulation is not promoted to physical qualification by a green dashboard. Synthetic, analytical, differential, hardware-in-the-loop, bench-measured and field-observed evidence remain separate.
+
+The engineering scenario/replay envelope is being developed in [ENG-SYNTH #1172](https://github.com/Luminous-Dynamics/symtropy/issues/1172). The humanoid-specific execution strategy is in [the engineering execution plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md).
+
+## Benchmarks and external comparators
+
+| Question | Reference lane | Symtropy work |
+|---|---|---|
+| Rigid-body/contact correctness | Analytical fixtures, Rapier differential tests, matched Jolt/PhysX cases where useful | [#460 physics qualification](https://github.com/Luminous-Dynamics/symtropy/issues/460) |
+| Articulated robot dynamics | MuJoCo; Newton for GPU/differentiable and multiphysics comparisons | [#1172 engineering scenario substrate](https://github.com/Luminous-Dynamics/symtropy/issues/1172) and [#1472 capability census](https://github.com/Luminous-Dynamics/symtropy/issues/1472) |
+| Locomotion and recovery | Version-pinned FlyGym/NeuroMechFly, simple PID/reflex and matched learned baselines | [#3357 locomotion benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/3357), [#4332 failover](https://github.com/Luminous-Dynamics/symtropy/issues/4332) |
+| Actuator and whole-robot energy | Calibrated electrical/mechanical measurements and matched duty cycles | [#4044 energy accounting](https://github.com/Luminous-Dynamics/symtropy/issues/4044), [#4179 actuator loss maps](https://github.com/Luminous-Dynamics/symtropy/issues/4179) |
+| Spatial understanding and execution | ESI-Bench, BEHAVIOR-Spatial, VA-Bench and held-out physical-scene trials | [Humanoid engineering plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md) |
+| Humanoid application readiness | NIST's proposed baseline and Fraunhofer IPA's independent six-area assessment | [Humanoid engineering plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md) |
+
+A performance comparison is valid only when model semantics, scenario, timestep, solver tolerance, observations, controller rate, hardware/compute budget, seeds and measurement boundary are matched and disclosed.
+
+## Quick start: physics core
+
+For a minimal physics-only project, the published `symtropy-math` and `symtropy-physics` crates are sufficient:
+
+```toml
+[dependencies]
+symtropy-math = "0.2.1"
+symtropy-physics = "0.2.1"
+nalgebra = "0.34"
 ```
-symtropy-math                  N-dimensional geometric algebra (const-generic, stack-allocated)
-  |-- symtropy-physics         GJK+EPA collision, CCD, joints, raycasting, replay
-  |     |-- symtropy-consciousness-physics   Phi-coupling, thermodynamics, harmony fields
-  |     |     |-- symtropy-world             Macro/micro simulation bridge
-  |     |-- symtropy-render-bridge           ND-to-Bevy projection, 4D cross-section slicing
-  |     |-- symtropy-robotics-bridge         FEP agents, 6 embodied platforms
-  |     |-- symtropy-net                     P2P spatial authority, lockstep protocol
-```
-
-See [ARCHITECTURE.md](docs/tech/ARCHITECTURE.md) for the full crate guide.
-
-## Quick Start: Generic State-Coupling
 
 ```rust
-use symtropy_physics::PhysicsWorld;
-use symtropy_consciousness_physics::SimpleCoupledField;
-use symtropy_math::Point;
 use nalgebra::SVector;
+use symtropy_math::Point;
+use symtropy_physics::PhysicsWorld;
 
-// 1. Create a 2D physics world
-let mut world = PhysicsWorld::<2>::new(SVector::from([0.0, -9.81]));
+fn main() {
+    let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
+    let _body = world.add_sphere(Point::new([0.0, 2.0, 0.0]), 0.25, 1.0);
 
-// 2. Add bodies
-let agent = world.add_sphere(Point::new([0.0, 10.0]), 1.0, 1.0);
-
-// 3. Create a state-coupled field (works with ANY metric)
-let mut field = SimpleCoupledField::<2>::new();
-field.register(agent, 100.0, 10.0);
-field.set_metric(agent, 0.8);  // your metric: health, trust, skill, wealth...
-
-// 4. Step — forces and friction are modulated by your metric
-world.step_with_callback(0.016, &mut field);
+    for _ in 0..100 {
+        world.step(0.016);
+    }
+}
 ```
 
-For Phi-specific research (IIT, Master Consciousness Equation, 7-theory synthesis), use `ConsciousnessField` instead:
+For custom coupling, implement `PhysicsCallback` with an explicitly defined metric and limits. The generic callback is a mechanism, not an endorsement of any particular metric or control policy.
 
-```rust
-use symtropy_consciousness_physics::ConsciousnessField;
+The Φ / consciousness-physics implementation is an optional **AGPL research dependency**. Its coupling experiments and energy accounting should be kept out of an engineering-deterministic profile unless that research mode is explicitly selected and reported.
 
-let mut phi_field = ConsciousnessField::<3>::new();
-phi_field.register(handle, 100.0, 10.0);
-// Phi computed from ConsciousnessInputs via the Master Equation
-world.step_with_callback(0.016, &mut phi_field);
-```
+## Build and validate
 
-## Five Coupling Channels
-
-Any metric (Phi, health, trust, wealth) couples to physics through 5 channels:
-
-| Channel | Direction | Mechanism |
-|---------|-----------|-----------|
-| 1. Metric -> Force | Metric-gated motor authority (see note below) |
-| 2. Metric -> Energy | Metric-dependent energy budget (higher metric = higher maintenance cost) |
-| 3. Harmony -> Impulse | Sanctuary zones dampen collision impulses |
-| 4. Harmony -> Friction | 1/r^(D-1) spatial fields modulate friction coefficients |
-| 5. Collision -> Metric | Prediction error from unexpected collisions reduces motor precision |
-
-See [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) for the mathematical details (written in terms of Phi).
-
-**Note on channel 1 — two mappings exist, and the NRC one is not what the demos run.**
-`symtropy-consciousness-physics` ships both an NRC-inspired 4-tier ladder
-(`SafetyTier::from_phi` + `motor_gain`, cut points at Phi = 0.6 / 0.3 / 0.1) and a two-level
-sprint/floor gate (`sprint_floor_gain`) taking platform-specific thresholds. **Every platform
-demo in this workspace uses the latter.** Measured Phi on these platforms clusters around 0.1
-— AUV and humanoid calibrate at 0.130, flight 0.110, vehicle 0.101, helicopter 0.100 — a band
-that falls entirely inside the 4-tier ladder's Red/Orange range, so feeding real platform Phi
-into `from_phi` would pin motor gain at 0.0 or 0.3 permanently. Measure your own platform's
-band (`symtropy-cli` prints a suggested threshold; see also `MANIP_BENCH_PHI_TRACE=1`) before
-choosing a mapping. Full detail in the `safety` module docs.
-
-## Performance
-
-Measured on NixOS, Rust stable, AMD Ryzen (single-threaded):
-
-| Operation | Time |
-|-----------|------|
-| GJK sphere-sphere 3D | 156 ns |
-| GJK capsule-capsule 3D | 173 ns |
-| GJK HyperBox 3D | 116 ns |
-| GJK HyperBox 4D | 101 ns |
-| EPA sphere-sphere 3D | 30 ns |
-| Raycast 100 bodies | 14 us |
-| Step 10 bodies | 5.8 us |
-| Step 100 bodies | 135 us |
-| Step 500 bodies | 910 us |
-
-Zero heap allocation in the physics hot path. All types use `const D: usize` generics with stack-allocated `nalgebra::SVector`.
-
-## Collision Shapes
-
-| Shape | Dimensions | Support Complexity |
-|-------|------------|-------------------|
-| `Sphere<D>` | Any | O(1) |
-| `Capsule<D>` | Any | O(1) |
-| `HyperBox<D>` | Any | O(D) |
-| `HalfSpace<D>` | Any | Analytical contacts |
-| `ConvexHull<D>` | Any | O(vertices) |
-
-## Joint Types
-
-| Joint | DOF Removed |
-|-------|------------|
-| `FixedJoint<D>` | All (rigid attachment) |
-| `BallJoint<D>` | D translational |
-| `HingeJoint<D>` | D translational + (n-1) rotational |
-| `DistanceConstraint<D>` | Maintains fixed distance |
-
-## Feature Flags
-
-| Flag | What it enables |
-|------|----------------|
-| `consciousness-curvature` | Conformal geometry: Phi curves space, agents follow geodesics |
-| `consciousness-hdc` | 16,384D hyperdimensional computing substrate for Phi |
-| `mycelix` | Governance/economy/crypto integration (game-specific) |
-| `atlas` | Sol Atlas planetary globe view (game-specific) |
-| `live-audio` | Real-time Phi-driven music synthesis (requires ALSA) |
-| `net` | P2P networking with spatial authority |
-
-## Research Experiments
-
-68 experiments in `crates/domains/symtropy-consciousness-physics/examples/`:
+With a Rust 2024 toolchain:
 
 ```bash
-# Core cooperation emergence (the definitive experiment)
-cargo run --example cooperation_emergence
+# Core library regressions
+cargo test -p symtropy-math --lib --locked
+cargo test -p symtropy-physics --lib --locked
 
-# J/Phi convergence (novel thermodynamic metric)
-cargo run --example jphi_convergence
-
-# All examples
-cargo run --example cooperation_1000    # scaling to large populations
-cargo run --example inequality_emergence # wealth gap self-organization
-cargo run --example tragedy_commons      # tragedy of the commons
-cargo run --example dunbar_number        # social network size limits
-cargo run --example anesthesia_transition # Phi level transitions
-# ... and 62 more
+# Reproducible, machine-readable physics checks
+cargo run --release -p symtropy-physics --example free_fall_validation
+cargo run --release -p symtropy-physics --example oriented_collision_validation
 ```
 
-3 experiments require feature flags:
-```bash
-cargo run --example curvature_lensing --features consciousness-curvature
-cargo run --example curvature_selforg --features consciousness-curvature
-cargo run --example hdc_cooperation --features consciousness-hdc
-```
+The root Bevy launcher uses Bevy 0.19. A full launcher build may require the Linux system libraries and graphics/audio development packages documented in the contributor guide; the physics-only crates do not require the full Bevy runtime.
 
-## Key Results
+## Documentation and active plans
 
-- **81.3% tighter clustering** under thermodynamic enforcement (cooperation emerges as a thermodynamic necessity)
-- **J/Phi converges** to a stable substrate-characteristic value (~10K J/Phi)
-- **Prediction 1 confirmed**: Solo agents collapse within ~4 minutes; cooperative agents sustain indefinitely
+- [Architecture guide](docs/tech/ARCHITECTURE.md)
+- [Engine guide](docs/tech/ENGINE.md)
+- [Formal coupling specification](docs/tech/FORMAL_SPECIFICATION.md) — research model, not a safety standard
+- [Research validity protocol](crates/core/symtropy-physics/RESEARCH_VALIDATION.md)
+- [Transformed-collision validation](crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md)
+- [Humanoid engineering execution plan](docs/research/HUMANOID_ENGINEERING_EXECUTION_PLAN_2026-11-09.md)
+- [Existing operations roadmap](docs/ops/ROADMAP.md)
+- [Contributing guide](docs/CONTRIBUTING.md)
 
-## Documentation
+## Licensing
 
-| Document | What it covers |
-|----------|---------------|
-| [ENGINE.md](docs/tech/ENGINE.md) | Deep technical dive: architecture, unique features, Bevy integration |
-| [ARCHITECTURE.md](docs/tech/ARCHITECTURE.md) | Crate dependency graph, key types, extension guide |
-| [FORMAL_SPECIFICATION.md](docs/tech/FORMAL_SPECIFICATION.md) | Mathematical specification of all 5 coupling channels |
-| [ROADMAP.md](docs/ops/ROADMAP.md) | Completed features, current priorities, future plans |
-| [MK0_BOOTSTRAPPER_PROTOCOL.md](docs/tech/MK0_BOOTSTRAPPER_PROTOCOL.md) | One-room bootstrapper protocol for the immediate deployable starting loop |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | How to contribute (determinism is a hard requirement) |
+Symtropy is dual-track. The permissive crates are separate from the AGPL research and integration layers. See [LICENSING.md](LICENSING.md) for the crate-by-crate position.
 
-## Building
+- **Apache-2.0 OR MIT:** `symtropy-math`, `symtropy-physics`, `symtropy-bevy-core`, and `symtropy-robotics-bridge-core`.
+- **AGPL-3.0-or-later:** `symtropy-consciousness-physics`, `symtropy-bevy`, `symtropy-robotics-bridge`, and the root launcher.
 
-```bash
-# Run all engine tests
-cd symtropy
-cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
-
-# Run benchmarks
-cd crates/symtropy-physics && cargo bench
-
-# Build the game (requires Bevy 0.18)
-cargo build --release
-
-# Build with Mycelix governance integration
-cargo build --release --features mycelix
-```
-
-### Building without Nix
-
-The `justfile` / `run.sh` workflow assumes a Nix environment, but you don't need Nix to build Symtropy — you need a Rust toolchain plus (on Linux, for the full game/launcher build only) the same system libraries CI installs (`.github/workflows/ci.yml`):
-
-```bash
-# Debian/Ubuntu
-sudo apt-get update
-sudo apt-get install -y libasound2-dev libudev-dev pkg-config
-```
-
-These are required because Bevy pulls in ALSA (audio) and udev (input device enumeration) on Linux. **The pure-library quickstart — `symtropy-math`, `symtropy-physics`, `symtropy-consciousness-physics`, no Bevy — needs none of this.** Only `cargo build --release` (the Bevy-based game/launcher) requires these system packages.
-
-macOS and Windows builds need no extra system packages beyond a standard Rust toolchain.
-
-## License
-
-**Dual-track license model** — see [LICENSING.md](docs/LICENSING.md) for the full breakdown.
-
-- **Permissive today** (`symtropy-math`, `symtropy-physics`, `symtropy-render-bridge`): **Apache-2.0 OR MIT** — zero AGPL deps, ship in proprietary products freely.
-- **AGPL today, permissive `-core` variants in Phase 0.5** (`symtropy-bevy`, `symtropy-robotics-bridge`, `symtropy-net`): each currently requires an AGPL dep; see [LICENSING.md](docs/LICENSING.md) for the split plan.
-- **Research layer** (`symtropy-consciousness-physics`, `symtropy-sim-bridge`, game crates): **AGPL-3.0-or-later** — modifications must be shared back under AGPL, or negotiate a [commercial license](docs/COMMERCIAL_LICENSE.md).
-
-## References
-
-- Tononi, G. (2004). An information integration theory of consciousness. *BMC Neuroscience*.
-- Friston, K. (2019). A Free Energy Principle for a Particular Physics. *arXiv*.
-- Adams, Shipp & Friston (2013). Predictions not commands. *Brain Structure & Function*.
-- McFadden, J. (2020). CEMI field theory. *Neuroscience of Consciousness*.
-- Landauer, R. (1961). Irreversibility and Heat Generation. *IBM J. Res. Dev*.
-- ten Bosch, M. (2020). N-Dimensional Rigid Body Dynamics. *SIGGRAPH*.
+The permissive robotics core is intentionally kept separate from Symthaea and consciousness-physics dependencies. Always verify the exact package and dependency graph for the version being used; do not infer a repository-wide licence from one crate's licence field.

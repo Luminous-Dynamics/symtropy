@@ -13,4 +13,4 @@ pub use agent::{RoboticAgent, spawn_robot_body};
 pub use haptic::{HapticAttestation, HapticOracle};
 pub use motor::{MotorPlanner, UniformGainPlanner};
 pub use platform::PlatformType;
-pub use safety::JointSafetyAuthority;
+pub use safety::{JointAuthorityTier, JointSafetyAuthority};
