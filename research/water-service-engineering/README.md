@@ -133,3 +133,8 @@ The new M0B increment adds synthetic pressure series grouped by replicate, with 
 ### M1 measurement integrity — distinguish process movement from instrumentation defects
 
 The [M1 protocol](./MEMBRANE_MEASUREMENT_INTEGRITY_PROTOCOL_V0_1.md) and eight-case synthetic corpus, oracle, schema and manifest test stable operation, coherent process movement, stuck-at flux, channel dropout, common historian outage, cross-channel bias, out-of-domain values and an ambiguous case that must abstain. A separate Rust evaluator/CLI and independent Python replay are required workflow gates. These synthetic cases do not diagnose real sensors or identify fouling.
+
+
+## Industry and SOTA benchmark matrix
+
+See [MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md](./MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md) for a source-linked comparison with current DuPont RO/NF normalized-performance and cleaning guidance, EPA low-pressure MF/UF integrity optimization goals, and the 2026 mechanism-aligned, drinking-water and RO sensing reviews. It defines an evidence maturity ladder and a non-collapsed M0–M6 benchmark stack. These industry thresholds are context-specific references, not universal acceptance limits.
