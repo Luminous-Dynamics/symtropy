@@ -867,11 +867,9 @@ mod tests {
 
     #[test]
     fn membrane_ro_m0_separates_hydraulic_pressure_from_net_driving_pressure() {
-        let result = evaluate_membrane_ro_m0(
-            &load("membrane_m0_inputs"),
-            &load("membrane_m0_oracle"),
-        )
-        .expect("M0 transport calculations must evaluate");
+        let result =
+            evaluate_membrane_ro_m0(&load("membrane_m0_inputs"), &load("membrane_m0_oracle"))
+                .expect("M0 transport calculations must evaluate");
         let row = result["results"]
             .as_array()
             .unwrap()
@@ -896,11 +894,9 @@ mod tests {
 
     #[test]
     fn membrane_ro_m0_no_cp_assumption_changes_solute_permeance() {
-        let result = evaluate_membrane_ro_m0(
-            &load("membrane_m0_inputs"),
-            &load("membrane_m0_oracle"),
-        )
-        .expect("M0 transport calculations must evaluate");
+        let result =
+            evaluate_membrane_ro_m0(&load("membrane_m0_inputs"), &load("membrane_m0_oracle"))
+                .expect("M0 transport calculations must evaluate");
         let row = result["results"]
             .as_array()
             .unwrap()
