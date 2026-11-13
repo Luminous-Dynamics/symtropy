@@ -51,7 +51,14 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for pump sizing schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
       - name: Validate PUMP-T1-CW-01 sizing cases and arithmetic oracle
+        id: pump_t1_sizing
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -137,9 +144,16 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/pump-t1-cw-01-sizing-cases-v0.1.json
+            research/water-service-engineering/pump-t1-cw-01-sizing-oracle-v0.1.json
+            research/water-service-engineering/pump-t1-cw-01-sizing.schema.json
+            research/water-service-engineering/PUMP_T1_CW_01_DESIGN_BASIS_V0_1.md
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          PUMP_T1_SIZING_OUTCOME: ${{ steps.pump_t1_sizing.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$PUMP_T1_SIZING_OUTCOME" = "success"
