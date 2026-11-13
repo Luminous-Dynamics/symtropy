@@ -555,7 +555,10 @@ mod tests {
         }
         let doubled = calculate_ede(&input).expect("doubled feed");
         assert!((doubled.total_arc_energy_j - baseline.total_arc_energy_j).abs() < 1e-9);
-        assert!((doubled.total_estimated_mass_g - 2.0 * baseline.total_estimated_mass_g).abs() < 1e-12);
+        assert!(
+            (doubled.total_estimated_mass_g - 2.0 * baseline.total_estimated_mass_g).abs()
+                < 1e-12
+        );
         assert!((doubled.ede_g_per_kwh - 2.0 * baseline.ede_g_per_kwh).abs() < 1e-9);
     }
 
@@ -570,8 +573,14 @@ mod tests {
             sample.voltage_v *= 2.0;
         }
         let doubled_voltage = calculate_ede(&input).expect("doubled voltage");
-        assert!((doubled_voltage.total_arc_energy_j - 2.0 * baseline.total_arc_energy_j).abs() < 1e-9);
-        assert!((doubled_voltage.total_estimated_mass_g - baseline.total_estimated_mass_g).abs() < 1e-12);
+        assert!(
+            (doubled_voltage.total_arc_energy_j - 2.0 * baseline.total_arc_energy_j).abs()
+                < 1e-9
+        );
+        assert!(
+            (doubled_voltage.total_estimated_mass_g - baseline.total_estimated_mass_g).abs()
+                < 1e-12
+        );
         assert!((doubled_voltage.ede_g_per_kwh - 0.5 * baseline.ede_g_per_kwh).abs() < 1e-9);
     }
 
@@ -596,7 +605,10 @@ mod tests {
         }
         let stretched = calculate_ede(&input).expect("stretched observation window");
         assert!((stretched.total_arc_energy_j - 2.0 * baseline.total_arc_energy_j).abs() < 1e-9);
-        assert!((stretched.total_estimated_mass_g - 2.0 * baseline.total_estimated_mass_g).abs() < 1e-12);
+        assert!(
+            (stretched.total_estimated_mass_g - 2.0 * baseline.total_estimated_mass_g).abs()
+                < 1e-12
+        );
         assert!((stretched.ede_g_per_kwh - baseline.ede_g_per_kwh).abs() < 1e-9);
     }
 
