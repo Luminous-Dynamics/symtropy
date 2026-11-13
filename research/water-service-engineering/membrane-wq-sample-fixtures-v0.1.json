@@ -1,0 +1,132 @@
+{
+  "schema_version": "membrane-wq-sample-fixtures-v0.1",
+  "evidence_class": "synthetic_contract_fixture",
+  "evidence_ceiling": "label_schema_semantics_only_no_real_Bristol_lab_data_or_water_quality_claim",
+  "cases": [
+    {
+      "case_id": "M2-001-quantified-sample",
+      "record": {
+        "schema_version": "membrane-wq-sample-v0.1",
+        "evidence_class": "synthetic_contract_fixture",
+        "dataset_id": "BRISTOL_POU_WQ_12W",
+        "sample_id": "SYN-SAMPLE-001",
+        "sample_collection_time": "2030-01-01T10:00:00Z",
+        "sample_location_id": "SYN-OUTLET",
+        "analyte_id": "SYN-ANALYTE-A",
+        "result_qualifier": "QUANTIFIED",
+        "value": 0.12,
+        "unit": "mg/L",
+        "method_id": "SYN-METHOD-01",
+        "lod": 0.01,
+        "loq": 0.03,
+        "lab_qc_status": "ACCEPTED",
+        "accreditation_scope": "synthetic_fixture_only",
+        "replicate_id": null,
+        "result_note": null,
+        "label_scope": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY",
+        "telemetry_feature_cutoff": "2030-01-01T10:00:00Z"
+      },
+      "expected": "ADMISSIBLE_SAMPLE_ONLY"
+    },
+    {
+      "case_id": "M2-002-below-LOQ-preserve-qualifier",
+      "record": {
+        "schema_version": "membrane-wq-sample-v0.1",
+        "evidence_class": "synthetic_contract_fixture",
+        "dataset_id": "BRISTOL_POU_WQ_12W",
+        "sample_id": "SYN-SAMPLE-002",
+        "sample_collection_time": "2030-01-01T10:05:00Z",
+        "sample_location_id": "SYN-OUTLET",
+        "analyte_id": "SYN-ANALYTE-B",
+        "result_qualifier": "BELOW_LOQ",
+        "value": null,
+        "unit": "mg/L",
+        "method_id": "SYN-METHOD-02",
+        "lod": 0.01,
+        "loq": 0.05,
+        "lab_qc_status": "ACCEPTED",
+        "accreditation_scope": "synthetic_fixture_only",
+        "replicate_id": null,
+        "result_note": "Preserve the below-LOQ qualifier; do not encode as zero.",
+        "label_scope": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY",
+        "telemetry_feature_cutoff": "2030-01-01T10:05:00Z"
+      },
+      "expected": "ADMISSIBLE_QUALIFIED_RESULT_NOT_ZERO"
+    },
+    {
+      "case_id": "M2-003-post-sample-feature-leakage",
+      "record": {
+        "schema_version": "membrane-wq-sample-v0.1",
+        "evidence_class": "synthetic_contract_fixture",
+        "dataset_id": "BRISTOL_POU_WQ_12W",
+        "sample_id": "SYN-SAMPLE-003",
+        "sample_collection_time": "2030-01-01T10:10:00Z",
+        "sample_location_id": "SYN-RAW",
+        "analyte_id": "SYN-ANALYTE-C",
+        "result_qualifier": "QUANTIFIED",
+        "value": 2.1,
+        "unit": "mg/L",
+        "method_id": "SYN-METHOD-03",
+        "lod": 0.1,
+        "loq": 0.2,
+        "lab_qc_status": "ACCEPTED",
+        "accreditation_scope": "synthetic_fixture_only",
+        "replicate_id": null,
+        "result_note": null,
+        "label_scope": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY",
+        "telemetry_feature_cutoff": "2030-01-01T10:15:00Z"
+      },
+      "expected": "REJECT_POST_SAMPLE_FEATURE_LEAKAGE"
+    },
+    {
+      "case_id": "M2-004-rejected-lab-QC",
+      "record": {
+        "schema_version": "membrane-wq-sample-v0.1",
+        "evidence_class": "synthetic_contract_fixture",
+        "dataset_id": "BRISTOL_POU_WQ_12W",
+        "sample_id": "SYN-SAMPLE-004",
+        "sample_collection_time": "2030-01-01T10:15:00Z",
+        "sample_location_id": "SYN-TREATMENT-1",
+        "analyte_id": "SYN-ANALYTE-D",
+        "result_qualifier": "INVALID",
+        "value": null,
+        "unit": "mg/L",
+        "method_id": "SYN-METHOD-04",
+        "lod": 0.1,
+        "loq": 0.2,
+        "lab_qc_status": "REJECTED",
+        "accreditation_scope": null,
+        "replicate_id": null,
+        "result_note": "Synthetic QC rejection.",
+        "label_scope": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY",
+        "telemetry_feature_cutoff": "2030-01-01T10:15:00Z"
+      },
+      "expected": "NOT_A_TRAINING_LABEL"
+    },
+    {
+      "case_id": "M2-005-same-time-different-location",
+      "record": {
+        "schema_version": "membrane-wq-sample-v0.1",
+        "evidence_class": "synthetic_contract_fixture",
+        "dataset_id": "BRISTOL_POU_WQ_12W",
+        "sample_id": "SYN-SAMPLE-005",
+        "sample_collection_time": "2030-01-01T10:20:00Z",
+        "sample_location_id": "SYN-PRETREATMENT",
+        "analyte_id": "SYN-ANALYTE-A",
+        "result_qualifier": "QUANTIFIED",
+        "value": 0.41,
+        "unit": "mg/L",
+        "method_id": "SYN-METHOD-01",
+        "lod": 0.01,
+        "loq": 0.03,
+        "lab_qc_status": "ACCEPTED",
+        "accreditation_scope": "synthetic_fixture_only",
+        "replicate_id": null,
+        "result_note": "Distinct location; must not be joined to outlet label.",
+        "label_scope": "SAMPLE_TIME_LOCATION_ANALYTE_ONLY",
+        "telemetry_feature_cutoff": "2030-01-01T10:20:00Z"
+      },
+      "expected": "ADMISSIBLE_DISTINCT_LOCATION_SAMPLE"
+    }
+  ]
+}
