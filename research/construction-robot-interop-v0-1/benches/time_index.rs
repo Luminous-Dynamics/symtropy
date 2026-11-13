@@ -1,9 +1,7 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use construction_robot_interop_core::resources::{
-    ReservationBook, ReservationRequest,
-};
+use construction_robot_interop_core::resources::{ReservationBook, ReservationRequest};
 
 fn request(index: u64, resource_id: &str, start_ms: u64, end_ms: u64) -> ReservationRequest {
     ReservationRequest {
