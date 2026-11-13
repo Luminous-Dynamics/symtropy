@@ -517,7 +517,7 @@ fn validate_pair(
     if pair.pair_id.trim().is_empty() || pair.scenario_id.trim().is_empty() {
         findings.insert(Finding::EmptyIdentity);
     }
-    if !pair_ids.insert(pair.pair_id.as_str()) {
+    if !pair_ids.insert(pair.pair_id.clone()) {
         findings.insert(Finding::DuplicatePairId);
     }
     if pair.decision_tick == 0 {
@@ -538,8 +538,8 @@ fn validate_pair(
     {
         findings.insert(Finding::EmptyIdentity);
     }
-    if !branch_ids.insert(pair.passive_control.branch_id.as_str())
-        || !branch_ids.insert(pair.active_observation.branch_id.as_str())
+    if !branch_ids.insert(pair.passive_control.branch_id.clone())
+        || !branch_ids.insert(pair.active_observation.branch_id.clone())
     {
         findings.insert(Finding::DuplicateBranchId);
     }
@@ -855,7 +855,10 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         passive_cost: summarize_cost(&campaign.pairs, BranchRole::PassiveControl),
         active_cost: summarize_cost(&campaign.pairs, BranchRole::ActiveObservation),
         pair_metrics,
-        findings: findings.into_iter().map(Finding::as_str).collect(),
+        findings: findings
+            .into_iter()
+            .map(|finding| finding.as_str().to_string())
+            .collect(),
     }
 }
 
