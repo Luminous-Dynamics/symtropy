@@ -499,7 +499,10 @@ pub fn evaluate(
 ) -> Result<Value, String> {
     let manifest_ceiling = string(manifest, &["evidence_ceiling"])?;
     let network_ceiling = string(network_manifest, &["evidence_ceiling"])?;
-    if string(inputs, &["evidence_class"])? != "synthetic_only"
+    if string(inputs, &["schema_version"])? != "0.1.0"
+        || string(manifest, &["schema_version"])? != "0.1.0"
+        || string(network_manifest, &["schema_version"])? != "0.1.0"
+        || string(inputs, &["evidence_class"])? != "synthetic_only"
         || string(inputs, &["evidence_ceiling"])? != CLAIM_CEILING
         || !manifest_ceiling.contains("no_physical_qualification")
         || !manifest_ceiling.contains("no_health_or_regulatory_claim")
@@ -751,5 +754,34 @@ mod tests {
         let output = compute_diagnostics(&case).expect("diagnostic calculation");
         assert_eq!(output["diagnostic_disposition"], "INDETERMINATE");
         assert!(output["sensor_consensus_is_not_independent"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn oracle_mismatch_is_reported_not_hidden() {
+        let mut oracle = load("oracle");
+        oracle["cases"][0]["expected"]["hydraulic_power_w"] = json!(1.0);
+        let result = evaluate(
+            &load("inputs"),
+            &load("manifest"),
+            &load("network"),
+            &oracle,
+        )
+        .expect("mismatch should produce an evaluation receipt");
+        assert_eq!(result["verification_state"], "OracleMismatch");
+        assert_eq!(result["matched_case_count"], 22);
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn incompatible_network_evidence_ceiling_is_rejected() {
+        let mut network = load("network");
+        network["evidence_ceiling"] = json!("field_detector_qualified");
+        let result = evaluate(
+            &load("inputs"),
+            &load("manifest"),
+            &network,
+            &load("oracle"),
+        );
+        assert!(result.is_err());
     }
 }
