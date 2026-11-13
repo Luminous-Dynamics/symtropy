@@ -186,7 +186,7 @@
       "warning": "The Zenodo record lists a related Data in Brief DOI 10.1016/j.dib.2023.109148; that DOI describes the separate Aghashahi LeakTestbed dataset. Do not assume the two records are the same dataset without archive/file inspection."
     },
     {
-      "dataset_id": "LEAKTESTBED_AGHASHahi_2023",
+      "dataset_id": "LEAKTESTBED_AGHASHASHI_2023",
       "title": "Benchmarking dataset for leak detection and localization in water distribution systems",
       "creators": [
         "Mohsen Aghashahi",
