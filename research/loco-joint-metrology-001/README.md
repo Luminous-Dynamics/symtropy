@@ -117,8 +117,11 @@ The schema and fixtures qualify only synthetic contract semantics. They do not q
 
 A dependency-free Rust package now lives at `adapter/`:
 
-- `adapter/Cargo.toml` — standalone edition-2024 package, isolated from the application crate and with no third-party dependencies.
+- `adapter/Cargo.toml` — standalone edition-2024 package, isolated from the application crate; the wire layer pins `serde_json = 1.0.150`.
 - `adapter/src/lib.rs` — typed normalized-trace adapter for causal identities, bounded clocks, AoI, command-to-motion, decision sufficiency, thermal continuity, upstream energy closure, sampling and terminal safe-stop.
+- `adapter/src/wire.rs` — versioned 0.1.0 receipt envelope, canonical payload digest, duplicate-binding verifier and no-actuation invariant.
+- `protocol/normalized_joint_receipt_v0_1.schema.json` — strict Draft 2020-12 schema.
+- `fixtures/normalized_joint_receipt_v0_1.json` — frozen synthetic positive receipt used for serializer/report conformance.
 - `adapter/Cargo.lock` — committed lockfile for reproducible `--locked` runs.
 
 Run the reference package with the repository-pinned Rust 1.96 toolchain:
@@ -131,6 +134,22 @@ cargo clippy --locked --manifest-path research/loco-joint-metrology-001/adapter/
 
 The reference source contains 29 deterministic unit tests covering complete trace closure, independent AoI and actuator response, bounded and unknown clock relations, interval uncertainty, timestamp inversions, missing thermal nodes, thermal resets and predecessor mismatch, decision regret/expiry/prefix mismatch, energy boundary incompleteness and upstream receipt rejection, sampling limits, terminal safe-stop, and causal identity/sequence integrity. These are authored tests; exact-head CI is the execution gate.
 
+### Cross-repository normalized receipt 0.1.0
+
+The producer branch for LOCO-JOINT-WIRE-CONTRACT-001 #5000 adds a versioned JSON receipt envelope with:
+- schema ID/version and producer package identity;
+- original causal identities and event sequences;
+- instrument/configuration/calibration digests and expected/observed executed-prefix digests;
+- bounded clock relation and timestamp intervals;
+- the original decision, thermal, first-law and sampling evidence;
+- the normalized report, with AoI and command-to-motion separate;
+- qualified / Unknown / Inconclusive / Rejected reason-coded outcomes;
+- a SHA-256 digest over the canonical payload representation;
+- actuation_authorized = false as an invariant.
+
+The canonicalization profile is RFC 8785/JCS over the receipt's JSON payload. The current producer implementation uses serde_json's sorted object map plus integer/string/boolean-only payload fields; floating-point values are excluded. The frozen positive fixture fixes the payload digest to `94137cc32ebeb908b2e0ad50ad6f05fb9836f455056d7b88eb54dffc0c290aad`. The verifier rejects payload mutation, schema/version mismatch, missing or contradictory repeated identity/calibration bindings and any actuation-authorized report.
+
+The consumer-side Symthaea conformance adapter and shared cross-repository negative mutation corpus are separate acceptance obligations under #5000. A producer round trip alone does not prove end-to-end integration. Schema/fixture compatibility, parser verification, exact MissionTrace/instrument/first-law join, and exact-head Rust 1.96 workflow results must all pass before the wire contract is considered cross-repository qualified.
 The adapter accepts typed, normalized upstream receipts. It does not parse raw DAQ files, establish transducer calibration, estimate motor/thermal state, compute first-law closure, generate causal event IDs, or authorize actuation. An energy PASS requires a complete boundary and an upstream balanced receipt. A retrospective report always has `actuation_authorized = false`. Raw traces and calibration artifacts remain separately stored and digest-bound.
 
 A dedicated `LOCO Joint Trace Adapter (Rust 1.96)` workflow job now runs format, tests and strict Clippy directly against this standalone manifest; the main application workspace does not include it.
