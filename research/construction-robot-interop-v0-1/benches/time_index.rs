@@ -246,19 +246,22 @@ fn expiry_run(size: u64) {
     book.register_resource("expiry-load", u32::MAX)
         .expect("expiry resource");
     for index in 0..size {
-        let start = index * 2_000 + 10_000;
-        let end = start + 100;
-        let expiry = if index < 100 { 1_000 } else { 10_000_000_000 };
-        let request_expiry = expiry.max(end);
+        let (start, end, expiry) = if index < 100 {
+            let start = 10_000 + index * 100;
+            (start, start + 50, start + 150)
+        } else {
+            let start = 1_000_000 + (index - 100) * 2_000;
+            (start, start + 100, 10_000_000_000)
+        };
         book.reserve(
-            request(index, "expiry-load", start, end, request_expiry),
+            request(index, "expiry-load", start, end, expiry),
             0,
         )
         .expect("expiry benchmark reservation");
     }
 
     let start = Instant::now();
-    let expired = book.expire(1_000);
+    let expired = book.expire(20_000);
     let elapsed = start.elapsed();
     let remaining = book
         .active_reservation_count_for_resource("expiry-load")
