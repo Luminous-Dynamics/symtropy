@@ -60,6 +60,13 @@
       "all_quality_claims_bind_methods_profiles_uncertainty_and_revision",
       "unknown_stale_or_out_of_envelope_critical_evidence_is_indeterminate_or_unsupported",
       "no_generic_sensor_proxy_or_ai_score_mints_potability"
+    ],
+    "specialized_benchmarks": [
+      {
+        "id": "MEMBRANE-FOULING-QUAL-001",
+        "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+        "scope": "MF_UF_NF_RO_fouling_state_prediction_cleaning_decisions_membrane_integrity_and_quality_preservation"
+      }
     ]
   },
   "pump_system": {
@@ -144,5 +151,14 @@
       "model_only_alerts_never_authorize_physical_actuation",
       "saved_water_and_repair_claims_require_independent_post_repair_measurements"
     ]
+  },
+  "t0_evaluator": {
+    "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4978",
+    "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4962",
+    "package": "tools/water-service-t0",
+    "input_corpus": "research/water-service-engineering/t0-known-answer-vectors-v0.1.json",
+    "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
+    "case_count": 23,
+    "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
   }
 }
