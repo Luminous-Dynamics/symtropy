@@ -150,7 +150,7 @@
         }
       ],
       "aggregate_diagnostic": {
-        "value": 0.9893,
+        "value": 0.9842657342657343,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -268,6 +268,25 @@
           "time_grid_id": "SYNTHETIC-TGRID-01",
           "diagnostic_weight": 100,
           "expected_area_disposition": "indeterminate"
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-FLOOR-PROFILE-2026-A",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "evidence_state": "observed_current",
+          "observation_ref": "SYNTHETIC-OBS-DMA-C-90",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "time_grid_id": "SYNTHETIC-TGRID-01",
+          "diagnostic_weight": 100,
+          "expected_area_disposition": "meets_floor"
         }
       ],
       "aggregate_diagnostic": {
@@ -599,6 +618,25 @@
           "time_grid_id": "SYNTHETIC-TGRID-01",
           "diagnostic_weight": 100,
           "expected_area_disposition": "invalid"
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-FLOOR-PROFILE-2026-A",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "evidence_state": "observed_current",
+          "observation_ref": "SYNTHETIC-OBS-DMA-C-90",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "time_grid_id": "SYNTHETIC-TGRID-01",
+          "diagnostic_weight": 100,
+          "expected_area_disposition": "meets_floor"
         }
       ],
       "aggregate_diagnostic": {
@@ -650,6 +688,25 @@
           "time_grid_id": "SYNTHETIC-TGRID-01",
           "diagnostic_weight": 100,
           "expected_area_disposition": "invalid"
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-FLOOR-PROFILE-2026-A",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "evidence_state": "observed_current",
+          "observation_ref": "SYNTHETIC-OBS-DMA-C-90",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "time_grid_id": "SYNTHETIC-TGRID-01",
+          "diagnostic_weight": 100,
+          "expected_area_disposition": "meets_floor"
         }
       ],
       "aggregate_diagnostic": {
@@ -701,6 +758,25 @@
           "time_grid_id": "SYNTHETIC-TGRID-02",
           "diagnostic_weight": 100,
           "expected_area_disposition": "invalid"
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-FLOOR-PROFILE-2026-A",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "evidence_state": "observed_current",
+          "observation_ref": "SYNTHETIC-OBS-DMA-C-90",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "time_grid_id": "SYNTHETIC-TGRID-01",
+          "diagnostic_weight": 100,
+          "expected_area_disposition": "meets_floor"
         }
       ],
       "aggregate_diagnostic": {
