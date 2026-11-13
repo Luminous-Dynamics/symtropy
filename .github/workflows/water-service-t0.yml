@@ -90,8 +90,8 @@ jobs:
                   print(f"WDN_DATASET_ADMISSION_SCHEMA_FAIL: {pointer}: {error.message}")
               raise SystemExit(1)
           datasets = register["datasets"]
-          if len(datasets) != 7:
-              raise SystemExit(f"WDN_DATASET_COUNT_FAIL: expected 7, got {len(datasets)}")
+          if len(datasets) != 8:
+              raise SystemExit(f"WDN_DATASET_COUNT_FAIL: expected 8, got {len(datasets)}")
           if any(row["intake"]["files_acquired"] for row in datasets):
               raise SystemExit("WDN_DATASET_UNVERIFIED_BYTES_MUST_NOT_BE_MARKED_ACQUIRED")
           print("WDN_DATASET_ADMISSION_SCHEMA_PASS: 8 metadata-only records; no hashes or splits fabricated")
