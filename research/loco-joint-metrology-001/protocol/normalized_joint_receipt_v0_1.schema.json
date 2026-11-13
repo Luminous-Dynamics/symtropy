@@ -451,6 +451,7 @@
         "energy_input": {"$ref": "#/$defs/energyInput"},
         "sampling_input": {"$ref": "#/$defs/samplingInput"},
         "terminal_safe_stop_qualified": {"type": "boolean"},
+        "terminal_reserve_state_digest": {"$ref": "#/$defs/nonEmpty"},
         "report": {"$ref": "#/$defs/report"}
       }
     }
