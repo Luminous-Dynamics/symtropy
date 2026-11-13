@@ -45,7 +45,11 @@ jobs:
             ([.comparators[].id] | unique | length == 17) and
             (.hard_evidence_gates | length >= 90) and
             (.research_targets_not_achieved | length >= 30) and
-            ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
+            ([.research_targets_not_achieved[].status] | all(
+              . == "aspirational" or
+              . == "blocked_on_full_data_and_split_provenance" or
+              . == "blocked_on_dataset_access_and_protocol_audit"
+            )) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
             (.calibration.minimum_independent_episodes["900000"] == 9) and
             (.calibration.minimum_independent_episodes["950000"] == 19) and
