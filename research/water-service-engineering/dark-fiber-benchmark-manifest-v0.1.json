@@ -1,0 +1,60 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "DARK-FIBER-WDN-DIAGNOSTICS-001",
+  "status": "synthetic_f0_route_geometry_contract_only",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4991",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4963",
+  "dataset_crosswalk_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4979",
+  "primary_comparator": {
+    "title": "Urban Water Leakage Detection System over Dark Fiber Networks Based on Distributed Acoustic Sensing and Sparse Autoencoders",
+    "date": "2026-03-31",
+    "doi": "10.3390/s26072152",
+    "route_length_km": 17,
+    "effective_gauge_length_m": 2.6,
+    "pipe_diameter_mm": 400,
+    "approximate_fibre_pipe_lateral_offset_m": 1,
+    "controlled_leak_flow_range_l_s": [
+      0.14,
+      3.75
+    ],
+    "normal_baseline_acquisitions": 300,
+    "samples_per_acquisition_s": 5,
+    "effective_acoustic_bandwidth_hz": 1000,
+    "data_availability": "reasonable_request_from_corresponding_author",
+    "limitations": [
+      "controlled_valve_events_not_natural_failure_population",
+      "site_specific_pipe_soil_conduit_coupling",
+      "rayleigh_fading",
+      "traffic_and_pedestrian_disturbances",
+      "persistent_transformer_harmonics",
+      "autoencoder_can_flag_non_leak_persistent_environment_changes"
+    ]
+  },
+  "measurands": [
+    "distributed_acoustic_dynamic_strain",
+    "distributed_temperature_separate_profile",
+    "distributed_static_strain_separate_profile"
+  ],
+  "f0": {
+    "purpose": "candidate_route_geometry_and_observability_screening_only",
+    "screen_policy": "5m synthetic illustrative screening radius; not a validated detection threshold",
+    "input_corpus": "research/water-service-engineering/dark-fiber-observability-cases-v0.1.json",
+    "oracle": "research/water-service-engineering/dark-fiber-observability-oracle-v0.1.json",
+    "case_count": 10,
+    "hard_rules": [
+      "geometric_candidate_coverage_is_not_physical_sensing_qualification",
+      "fibre_offline_or_bad_signal_is_unobserved_not_no_leak",
+      "shared_corridor_asset_ambiguity_blocks_unique_asset_localization",
+      "gauge_length_is_not_P95_localization_error",
+      "pipe_route_coverage_is_not_monitored_pipe_coverage_without_survey_and_coupling"
+    ]
+  },
+  "evidence_tiers": {
+    "F0": "route_mapping_and_geometry_candidate_coverage",
+    "F1": "controlled_lab_testbed_and_component_coupling",
+    "F2": "authorized_controlled_field_trial",
+    "F3": "approved_retrospective_natural_utility_event_evaluation",
+    "F4": "replicated_held_out_routes_networks_and_seasons"
+  },
+  "evidence_ceiling": "no_detector_or_fibre_route_or_leak_or_water_saving_qualified"
+}
