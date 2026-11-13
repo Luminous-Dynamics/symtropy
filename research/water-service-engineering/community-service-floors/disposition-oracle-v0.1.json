@@ -1,0 +1,232 @@
+{
+  "schema_version": "0.1.0",
+  "oracle_id": "community-water-service-floor-disposition-oracle-v0.1",
+  "corpus_id": "community-water-service-floor-v0.1",
+  "results": [
+    {
+      "scenario_id": "WSF-001",
+      "expected_overall_disposition": "meets_all_floors",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-002",
+      "expected_overall_disposition": "breached_floor",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "breached_floor"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-003",
+      "expected_overall_disposition": "breached_floor",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "breached_floor"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-004",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "indeterminate"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-005",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "indeterminate"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-006",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "indeterminate"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-007",
+      "expected_overall_disposition": "indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "indeterminate"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-008",
+      "expected_overall_disposition": "breached_with_indeterminate",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "breached_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "indeterminate"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-009",
+      "expected_overall_disposition": "invalid",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "invalid"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-010",
+      "expected_overall_disposition": "invalid",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "invalid"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-011",
+      "expected_overall_disposition": "invalid",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "invalid"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    },
+    {
+      "scenario_id": "WSF-012",
+      "expected_overall_disposition": "meets_all_floors",
+      "expected_area_dispositions": [
+        {
+          "area_id": "DMA-A",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-B",
+          "disposition": "meets_floor"
+        },
+        {
+          "area_id": "DMA-C",
+          "disposition": "meets_floor"
+        }
+      ],
+      "aggregate_can_override_area_floor": false,
+      "evidence_ceiling": "synthetic_design_only"
+    }
+  ],
+  "interpretation": "Expected semantic dispositions only; no hydraulic trajectories or customer outcomes are measured."
+}
