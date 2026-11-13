@@ -793,6 +793,29 @@ mod tests {
     }
 
     #[test]
+    fn complete_cross_talk_plan_without_edge_measurements_is_blocked() {
+        let mut value = fixture_value();
+        value["scenarios"][1]["cross_talk"]["coverage_status"] =
+            serde_json::json!("COMPLETE");
+        value["scenarios"][1]["cross_talk"]["sampling_plan_id"] =
+            serde_json::json!("synthetic-incomplete-edge-plan");
+        value["scenarios"][1]["cross_talk"]["required_pair_ids"] =
+            serde_json::json!(["cell-001--cell-002"]);
+        value["scenarios"][1]["cross_talk"]["observed_pair_ids"] =
+            serde_json::json!(["cell-001--cell-002"]);
+        value["scenarios"][1]["cross_talk"]["edges"] = serde_json::json!([]);
+        assert_eq!(run(&value).results[1].disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn frozen_expected_metric_mismatch_is_rejected() {
+        let mut value = fixture_value();
+        value["scenarios"][1]["expected_metrics"]["scaleout_efficiency"] =
+            serde_json::json!(0.5);
+        assert_eq!(run(&value).results[1].disposition, "REJECTED");
+    }
+
+    #[test]
     fn negative_neighbor_output_delta_is_checked_by_magnitude() {
         let mut value = fixture_value();
         value["scenarios"][5]["cross_talk"]["edges"][0]["neighbor_output_delta_fraction"] =
