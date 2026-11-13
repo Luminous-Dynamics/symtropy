@@ -170,11 +170,12 @@ fn parse_profile(scenarios: &Value) -> Result<Profile, String> {
         unsigned_integer(profile, "minimum_stable_dwell_seconds", "profile")?;
     let minimum_independent_paths =
         unsigned_integer(profile, "minimum_independent_paths", "profile")? as usize;
-    if maximum_observation_age_seconds == 0
-        || minimum_stable_dwell_seconds == 0
-        || minimum_independent_paths < 2
+    if (minimum_floor - 0.8).abs() > 1.0e-12
+        || maximum_observation_age_seconds != 600
+        || minimum_stable_dwell_seconds != 3600
+        || minimum_independent_paths != 2
     {
-        return Err("profile freshness, dwell or independent-path threshold is invalid".to_owned());
+        return Err("synthetic v0.1 floor/freshness/dwell/independent-path constants changed".to_owned());
     }
 
     Ok(Profile {
@@ -712,9 +713,37 @@ pub fn evaluate(
         if !scenario_id.starts_with("WRV-") || !scenario_ids.insert(scenario_id.to_owned()) {
             errors.push(format!("{context}: invalid or duplicate scenario ID"));
         }
-        let scenario_class = required_string(case, "scenario_class", &context);
-        if scenario_class.is_err() {
-            errors.push(scenario_class.err().unwrap_or_default());
+        let scenario_class = required_string(case, "scenario_class", &context)
+            .unwrap_or_else(|error| {
+                errors.push(error);
+                String::new()
+            });
+        if !is_one_of(
+            &scenario_class,
+            &[
+                "complete_verified_restoration",
+                "closed_ticket_service_breach",
+                "single_independent_path",
+                "dwell_incomplete",
+                "aggregate_masks_local_breach",
+                "stale_observation_after_recovery",
+                "missing_required_area_observation",
+                "interval_crosses_service_floor",
+                "shared_gateway_false_independence",
+                "stale_service_area_binding",
+                "known_breach_plus_unknown",
+                "alarm_still_active_after_candidate_service",
+                "recurrence_after_prior_restoration_claim",
+            ],
+        ) {
+            errors.push(format!("{context}: unsupported scenario_class"));
+        }
+        if scenario_class == "recurrence_after_prior_restoration_claim" {
+            let prior = case.get("prior_restoration_claim").filter(|value| value.is_object());
+            let prior_ref = prior.and_then(|value| get_str(value, "restoration_claim_ref"));
+            if prior_ref.is_none() || prior_ref == get_str(case, "event_ref") {
+                errors.push(format!("{context}: recurrence must bind a prior claim without reusing its event identity"));
+            }
         }
         if required_string(case, "event_ref", &context).is_err()
             || required_string(case, "event_lineage_ref", &context).is_err()
@@ -784,7 +813,16 @@ pub fn evaluate(
                 errors.push(format!("{context}: unexpected area_id {area_id}"));
             }
             match area_disposition(area, &profile, &failed_domains, &context) {
-                Ok(result) => area_results.push(result),
+                Ok(result) => {
+                    let expected = get_str(area, "expected_area_disposition").unwrap_or("");
+                    if result.disposition != expected {
+                        errors.push(format!(
+                            "{context}/{area_id}: expected area disposition {expected}, recomputed {}",
+                            result.disposition
+                        ));
+                    }
+                    area_results.push(result);
+                }
                 Err(error) => errors.push(error),
             }
         }
