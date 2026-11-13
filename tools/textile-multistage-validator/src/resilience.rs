@@ -1206,6 +1206,78 @@ mod tests {
     }
 
     #[test]
+    fn replan_cannot_remove_a_setup_reservation_that_already_started() {
+        let (problem, baseline) = setup_in_progress_case();
+        let mut replan = baseline.clone();
+        replan.setup_reservations.clear();
+
+        let error = evaluate_replan(
+            &problem,
+            &baseline,
+            &replan,
+            &DisruptionScenario {
+                scenario_id: "late-material-with-started-setup".to_owned(),
+                observed_at_tick: 4,
+                events: vec![Disruption::MaterialAvailableAt {
+                    operation_id: "cut-b".to_owned(),
+                    available_at_tick: 8,
+                }],
+            },
+            None,
+        )
+        .unwrap_err();
+
+        assert_eq!(
+            error,
+            ResilienceError::StartedSetupChanged("cut-b".to_owned())
+        );
+    }
+
+    #[test]
+    fn outage_prefix_before_observation_does_not_retroactively_invalidate_history() {
+        let (problem, baseline) = two_job_four_stage_case();
+        let mut replan = baseline.clone();
+        for (operation_id, start_tick, finish_tick) in [
+            ("cut-b", 5, 7),
+            ("sew-b", 7, 11),
+            ("finish-b", 11, 13),
+            ("inspect-b", 13, 14),
+        ] {
+            let assignment = replan
+                .assignments
+                .iter_mut()
+                .find(|assignment| assignment.operation_id == operation_id)
+                .unwrap();
+            assignment.start_tick = start_tick;
+            assignment.finish_tick = finish_tick;
+        }
+
+        let report = evaluate_replan(
+            &problem,
+            &baseline,
+            &replan,
+            &DisruptionScenario {
+                scenario_id: "outage-observed-after-cut-a".to_owned(),
+                observed_at_tick: 3,
+                events: vec![Disruption::MachineUnavailable {
+                    machine_id: "cut-line".to_owned(),
+                    interval: Interval {
+                        start_tick: 0,
+                        end_tick: 5,
+                    },
+                }],
+            },
+            None,
+        )
+        .unwrap();
+
+        assert!(report.replan_feasible, "{:#?}", report.schedule_validation.findings);
+        assert_eq!(report.replan_makespan_ticks, Some(14));
+        assert_eq!(report.post_event_completion_horizon_ticks, Some(11));
+        assert_eq!(report.churn.start_shift_count, 4);
+    }
+
+    #[test]
     fn duplicate_and_historical_events_are_rejected() {
         let (problem, baseline) = two_job_four_stage_case();
         let duplicate = evaluate_replan(
