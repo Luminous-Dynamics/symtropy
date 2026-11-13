@@ -1,0 +1,40 @@
+name: Construction Space-Time Occupancy v0.1
+
+on:
+  pull_request:
+    branches:
+      - "research/construction-floor-production-stacked-v0-1"
+    paths:
+      - "research/construction-spacetime-occupancy-v0-1/**"
+      - ".github/workflows/construction-spacetime-occupancy-v0-1.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-spacetime-occupancy-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify package metadata and committed lockfile
+        run: cargo metadata --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --format-version 1
+      - name: Formatting
+        run: cargo fmt --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Deterministic scale benchmark
+        if: runner.os == 'Linux'
+        run: cargo bench --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --bench scale
