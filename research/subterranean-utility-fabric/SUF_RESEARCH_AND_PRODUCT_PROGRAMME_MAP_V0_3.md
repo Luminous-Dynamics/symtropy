@@ -54,6 +54,7 @@ Each arrow is a separate qualification boundary. A downstream transform cannot p
 | W10 | Spatial evidence interoperability | Sol-Atlas #755 / PR #757 | MUDDI/SensorThings profile, authorization/query boundaries | Profile proposal, not conformance | Add implementation-level conformance tests on an actual service |
 | W11 | Owner authority, custody and acceptance | Mycelix existing workstreams | Existing authorization/provenance infrastructure to compose | Separate owner/ledger qualification | Bind gateway receipts to owner-issued authority without self-authorizing assets or journals |
 | W12 | Multi-utility urban DAS | Symtropy #5033 | 32-case / five-product benchmark across sewer hydraulics, pipe structure, traffic, geophysics and fusion | Research protocol; no multi-utility deployment | Reproduce one rights-cleared sewer or traffic baseline and identify a non-live testbed |
+| W13 | Superlet traffic reproduction audit | Symtropy #5034 | 22-case source/rights/split audit; missing source components and preprocessing dataflow discrepancy recorded | Metadata/source audit only; no execution or metric reproduction | Obtain rights and complete author pipeline, clarify unlabeled data, reproduce exact task before alternative models |
 
 ## 4. Executable engineering already present
 
@@ -169,3 +170,12 @@ The initial benchmark protocol is `MULTIUTILITY_URBAN_DAS_BENCHMARK_V0_1.md` and
 ## 11. Claim ceiling
 
 This programme map documents public research and executable reference components. It does not assert a production gateway, vendor adapter, utility partner, live pilot, field result, cost saving, commercial deployment, engineering approval or autonomous operational authority.
+
+
+## 12. Superlet traffic reproduction status
+
+The 2026 Superlet traffic paper provides useful task-specific traffic baselines (trajectory IoU, vehicle classification accuracy and per-sample latency), and its authors have published a public repository. The audit is in `SUPERLET_TRAFFIC_REPRODUCIBILITY_AUDIT_V0_1.md` and issue #5034.
+
+Do not describe this as a reproduced SOTA baseline yet. The public tree lacks an explicit code licence and several README-described training/metric/extraction/environment components. The training split includes unlabeled rows; the main preprocessing path computes but discards wavelet-denoised data; and the Superlet dependency relies on a developer-specific path. The visible train/validation sample paths do not overlap, but recording/site/event independence is unproven. Dataset payload and usage rights remain unresolved.
+
+The next evidence step is author clarification and a rights-compatible full reproduction environment, not training a competing model on an incomplete pipeline.
