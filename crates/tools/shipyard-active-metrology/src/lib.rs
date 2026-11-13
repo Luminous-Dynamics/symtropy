@@ -225,8 +225,7 @@ fn profile_for<'a>(
     option: &MeasurementOption,
 ) -> Option<&'a MeasurementProfile> {
     profiles.iter().find(|profile| {
-        profile.profile_id == option.profile_id
-            && profile.revision == option.profile_revision
+        profile.profile_id == option.profile_id && profile.revision == option.profile_revision
     })
 }
 
@@ -248,9 +247,7 @@ fn exclusion_for(
     if option.source_scan_sha256 != observation.scan_sha256 {
         return Some(ExclusionReason::WrongScanDigest);
     }
-    if option.source_registration_receipt_sha256
-        != observation.registration_receipt_sha256
-    {
+    if option.source_registration_receipt_sha256 != observation.registration_receipt_sha256 {
         return Some(ExclusionReason::WrongRegistrationReceipt);
     }
 
@@ -277,9 +274,7 @@ fn exclusion_for(
     {
         return Some(ExclusionReason::ClaimedUncertaintyBetterThanProfile);
     }
-    if option.declared_post_uncertainty_bound_units
-        >= observation.uncertainty_upper_bound_units
-    {
+    if option.declared_post_uncertainty_bound_units >= observation.uncertainty_upper_bound_units {
         return Some(ExclusionReason::NoUncertaintyReduction);
     }
     if !option.resource_feasible {
@@ -303,10 +298,7 @@ fn exclusion_for(
     None
 }
 
-fn dominates(
-    left: &MeasurementObjectiveVector,
-    right: &MeasurementObjectiveVector,
-) -> bool {
+fn dominates(left: &MeasurementObjectiveVector, right: &MeasurementObjectiveVector) -> bool {
     let left_values = [
         left.post_uncertainty_bound_units,
         left.acquisition_time_units,
@@ -345,9 +337,7 @@ pub fn select_measurements(input: &SelectorInput) -> Decision {
     }
 
     let observation = &input.observation;
-    if observation.uncertainty_upper_bound_units
-        <= observation.decision_threshold_units
-    {
+    if observation.uncertainty_upper_bound_units <= observation.decision_threshold_units {
         return Decision::NoAdditionalMeasurementRequired {
             current_uncertainty_bound_units: observation.uncertainty_upper_bound_units,
             decision_threshold_units: observation.decision_threshold_units,
@@ -378,8 +368,7 @@ pub fn select_measurements(input: &SelectorInput) -> Decision {
         eligible.push(MeasurementRecommendation {
             action_id: option.action_id.clone(),
             objectives: MeasurementObjectiveVector {
-                post_uncertainty_bound_units: option
-                    .declared_post_uncertainty_bound_units,
+                post_uncertainty_bound_units: option.declared_post_uncertainty_bound_units,
                 acquisition_time_units: option.acquisition_time_units,
                 energy_units: option.energy_units,
                 interruption_risk_units: option.interruption_risk_units,
@@ -430,11 +419,7 @@ pub fn select_measurements(input: &SelectorInput) -> Decision {
 mod tests {
     use super::*;
 
-    fn profile(
-        id: &str,
-        bound: u64,
-        output: MeasurementOutput,
-    ) -> MeasurementProfile {
+    fn profile(id: &str, bound: u64, output: MeasurementOutput) -> MeasurementProfile {
         MeasurementProfile {
             profile_id: id.to_owned(),
             revision: "R1".to_owned(),
@@ -497,7 +482,11 @@ mod tests {
                 profile("ALTERNATE-VIEW", 5, MeasurementOutput::ResidualFillGeometry),
                 profile("FAST-RESCAN", 8, MeasurementOutput::ResidualFillGeometry),
                 profile("LOW-RES", 12, MeasurementOutput::ResidualFillGeometry),
-                profile("SLOW-DOMINATED", 10, MeasurementOutput::ResidualFillGeometry),
+                profile(
+                    "SLOW-DOMINATED",
+                    10,
+                    MeasurementOutput::ResidualFillGeometry,
+                ),
             ],
             options: vec![
                 option("HIGH-RES", "HIGH-RES", 3, 10, 8, 1),
@@ -624,9 +613,7 @@ mod tests {
     fn wrong_scan_digest_is_excluded() {
         let mut input = base_input();
         input.options[0].source_scan_sha256 = [0x33; 32];
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::WrongScanDigest);
@@ -636,9 +623,7 @@ mod tests {
     fn wrong_registration_receipt_is_excluded() {
         let mut input = base_input();
         input.options[0].source_registration_receipt_sha256 = [0x44; 32];
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(
@@ -651,9 +636,7 @@ mod tests {
     fn stale_predecessor_identity_is_excluded() {
         let mut input = base_input();
         input.options[0].predecessor_pass_id = "PASS-01".to_owned();
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(
@@ -666,9 +649,7 @@ mod tests {
     fn profile_revision_mismatch_is_excluded() {
         let mut input = base_input();
         input.options[0].profile_revision = "R0".to_owned();
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(
@@ -681,9 +662,7 @@ mod tests {
     fn unqualified_profile_is_excluded() {
         let mut input = base_input();
         input.profiles[0].qualified = false;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::ProfileNotQualified);
@@ -693,9 +672,7 @@ mod tests {
     fn wrong_measurement_output_is_excluded() {
         let mut input = base_input();
         input.profiles[0].output = MeasurementOutput::Other;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::WrongMeasurementOutput);
@@ -705,9 +682,7 @@ mod tests {
     fn measured_profile_is_not_admitted() {
         let mut input = base_input();
         input.profiles[0].evidence_class = EvidenceClass::Measured;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(
@@ -720,9 +695,7 @@ mod tests {
     fn profile_outside_domain_is_excluded() {
         let mut input = base_input();
         input.profiles[0].operating_domain_supported = false;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(
@@ -735,9 +708,7 @@ mod tests {
     fn option_cannot_claim_more_accuracy_than_profile_supports() {
         let mut input = base_input();
         input.options[0].declared_post_uncertainty_bound_units = 2;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(
@@ -750,9 +721,7 @@ mod tests {
     fn non_reducing_option_is_excluded() {
         let mut input = base_input();
         input.options[0].declared_post_uncertainty_bound_units = 20;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::NoUncertaintyReduction);
@@ -762,9 +731,7 @@ mod tests {
     fn resource_infeasible_option_is_excluded() {
         let mut input = base_input();
         input.options[0].resource_feasible = false;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::ResourceInfeasible);
@@ -774,9 +741,7 @@ mod tests {
     fn access_infeasible_option_is_excluded() {
         let mut input = base_input();
         input.options[0].access_feasible = false;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::AccessInfeasible);
@@ -786,9 +751,7 @@ mod tests {
     fn already_observed_option_is_excluded() {
         let mut input = base_input();
         input.options[0].already_observed = true;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::AlreadyObserved);
@@ -798,9 +761,7 @@ mod tests {
     fn future_information_option_is_excluded() {
         let mut input = base_input();
         input.options[0].future_information_used = true;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::FutureInformation);
@@ -810,9 +771,7 @@ mod tests {
     fn live_action_is_excluded() {
         let mut input = base_input();
         input.options[0].live_action_requested = true;
-        let Decision::MeasurementParetoSet { excluded, .. } =
-            select_measurements(&input)
-        else {
+        let Decision::MeasurementParetoSet { excluded, .. } = select_measurements(&input) else {
             panic!("remaining options should be eligible");
         };
         assert_eq!(excluded[0].reason, ExclusionReason::LiveActionForbidden);
