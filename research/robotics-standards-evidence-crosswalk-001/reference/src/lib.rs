@@ -231,6 +231,8 @@ pub enum CrosswalkError {
     EvidenceForUnknownStandard(StandardId),
     /// Evidence is supplied for a standard explicitly marked not applicable/out of scope.
     EvidenceForNonApplicableStandard(StandardId),
+    /// Evidence is supplied before applicability has been established.
+    EvidenceForUnknownApplicability(StandardId),
     /// Applicability record is incomplete.
     IncompleteApplicabilityRecord(StandardId),
     /// NotApplicable or OutOfScope record has no rationale.
@@ -377,7 +379,7 @@ fn validate_profile(profile: &StandardsEvidenceProfile) -> Result<(), CrosswalkE
         match record.disposition {
             ApplicabilityDisposition::Applicable => {}
             ApplicabilityDisposition::Unknown => {
-                return Err(CrosswalkError::EvidenceForNonApplicableStandard(
+                return Err(CrosswalkError::EvidenceForUnknownApplicability(
                     receipt.standard,
                 ));
             }
@@ -702,11 +704,26 @@ mod tests {
     }
 
     #[test]
-    fn unknown_applicability_is_incomplete_not_pass() {
+    fn unknown_applicability_without_evidence_is_incomplete_not_pass() {
         let mut audit = profile();
         audit.standards[0].disposition = ApplicabilityDisposition::Unknown;
+        audit
+            .evidence
+            .retain(|receipt| receipt.standard != StandardId::Iso18646Part5_2026);
         let report = assess_standards_evidence(&audit).unwrap();
         assert!(!report.complete_within_declared_scope);
+    }
+
+    #[test]
+    fn evidence_before_applicability_is_established_is_rejected() {
+        let mut audit = profile();
+        audit.standards[0].disposition = ApplicabilityDisposition::Unknown;
+        assert_eq!(
+            assess_standards_evidence(&audit),
+            Err(CrosswalkError::EvidenceForUnknownApplicability(
+                StandardId::Iso18646Part5_2026
+            ))
+        );
     }
 
     #[test]
