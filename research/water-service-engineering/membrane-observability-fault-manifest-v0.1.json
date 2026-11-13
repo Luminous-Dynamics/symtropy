@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "MEMBRANE-OBSERVABILITY-FAULT-F0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5056",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4977",
+  "input_corpus": "research/water-service-engineering/membrane-observability-fault-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/membrane-observability-fault-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/membrane-observability-fault.schema.json",
+  "scenario_count": 13,
+  "status": "synthetic_residual_rule_baseline",
+  "output_classes": [
+    "NO_FAULT",
+    "FOULING_SUSPECTED",
+    "SENSOR_FAULT_SUSPECTED",
+    "OPERATING_REGIME_SHIFT",
+    "MULTIPLE_CAUSES",
+    "INDETERMINATE"
+  ],
+  "sensor_fault_families": [
+    "pressure_pair_bias_or_drift",
+    "flow_pair_bias_or_drift",
+    "clock_skew",
+    "critical_channel_dropout"
+  ],
+  "process_confounder_families": [
+    "temperature_shift",
+    "feed_conductivity_or_salinity_shift",
+    "pump_speed_regime_change"
+  ],
+  "required_metrics": [
+    "macro_f1",
+    "per_class_precision_recall",
+    "fault_family_recall",
+    "confusion_matrix",
+    "false_fouling_alarms_on_sensor_fault_only",
+    "false_fouling_alarms_on_regime_shift_only",
+    "false_CIP_recommendations_on_all_diagnostic_only_cases",
+    "abstention_rate",
+    "indeterminate_selective_risk"
+  ],
+  "hard_rules": [
+    "no_CIP_action_authority",
+    "missing_or_uncertain_resistance_cannot_be_labelled_normal",
+    "coexisting_faults_must_not_be_forced_into_single_cause",
+    "synthetic_outputs_are_not_empirical_diagnoses"
+  ],
+  "stretch_targets_not_achieved": {
+    "macro_f1_on_heldout_synthetic_challenge": 0.9,
+    "correct_abstention_when_unobservable": 0.9,
+    "false_cleaning_recommendations_on_sensor_fault_only": 0
+  }
+}
