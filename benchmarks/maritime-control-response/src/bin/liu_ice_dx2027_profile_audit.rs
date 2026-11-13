@@ -10,7 +10,7 @@ use std::error::Error;
 const PROFILE: &str = include_str!("../../liu-ice-dx2027-profile-v0.1.json");
 const SCHEMA_VERSION: &str = "liu-ice-dx2027-profile-v0.1";
 
-fn require_str<'a>(value: &'a Value, key: &str, expected: &str) -> Result<(), String> {
+fn require_str(value: &Value, key: &str, expected: &str) -> Result<(), String> {
     if value.get(key).and_then(Value::as_str) == Some(expected) {
         Ok(())
     } else {
@@ -175,13 +175,12 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
     }
 
     let labels = string_array(dataset, "fault_labels_as_published")?;
-    if labels
-        != vec![
-            "f_pic".to_owned(),
-            "y_pim".to_owned(),
-            "y_waf".to_owned(),
-            "f_iml".to_owned(),
-        ]
+    let expected_labels = ["f_pic", "y_pim", "y_waf", "f_iml"];
+    if labels.len() != expected_labels.len()
+        || labels
+            .iter()
+            .zip(expected_labels)
+            .any(|(actual, expected)| actual.as_str() != expected)
     {
         return Err("published fault-label spellings changed; refresh the crosswalk".into());
     }
@@ -212,14 +211,13 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
     require_bool(interface, "historical_outputs_may_be_revised", false)?;
     require_str(interface, "detection_type", "boolean")?;
     require_u64(interface, "isolation_vector_length", 5)?;
-    if string_array(interface, "isolation_class_order")?
-        != vec![
-            "f_pic".to_owned(),
-            "f_pim".to_owned(),
-            "f_waf".to_owned(),
-            "f_iml".to_owned(),
-            "f_x".to_owned(),
-        ]
+    let isolation_order = string_array(interface, "isolation_class_order")?;
+    let expected_order = ["f_pic", "f_pim", "f_waf", "f_iml", "f_x"];
+    if isolation_order.len() != expected_order.len()
+        || isolation_order
+            .iter()
+            .zip(expected_order)
+            .any(|(actual, expected)| actual.as_str() != expected)
     {
         return Err("five-way isolation class order changed".into());
     }
