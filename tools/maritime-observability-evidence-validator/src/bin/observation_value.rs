@@ -579,7 +579,7 @@ mod tests {
     fn positive_evsi_candidate_ranks_first(){
         let report=evaluate(&fixture()).unwrap();
         assert_eq!(report["ranked_candidates"][0]["candidate_id"],"needle-lift-existing-trace");
-        assert_eq!(report["ranked_candidates"][0]["status"],"POSITIVE_NET_VALUE");
+        assert_eq!(report["ranked_candidates"][0]["status"],"ROBUST_POSITIVE_NET_VALUE");
         let net=report["ranked_candidates"][0]["net_evsi"].as_f64().unwrap();
         assert!((net-0.0295).abs()<1e-9);
     }
@@ -587,7 +587,7 @@ mod tests {
     fn non_positive_candidate_is_not_recommended(){
         let report=evaluate(&fixture()).unwrap();
         assert_eq!(report["ranked_candidates"][1]["candidate_id"],"independent-exhaust-temperature-record");
-        assert_eq!(report["ranked_candidates"][1]["status"],"NON_POSITIVE_NET_VALUE");
+        assert_eq!(report["ranked_candidates"][1]["status"],"NOT_ROBUST_POSITIVE_NET_VALUE");
     }
     #[test]
     fn derived_or_shared_evidence_is_not_scored(){
