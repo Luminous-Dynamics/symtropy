@@ -1000,10 +1000,10 @@ mod tests {
             4
         );
         assert!(
-            protocol["validity_conditions"]["observations"]
+            protocol["validity_conditions"]["block_independence"]
                 .as_str()
                 .unwrap()
-                .contains("conditionally independent")
+                .contains("not inferred from non-overlap alone")
         );
         assert!(
             protocol["validity_conditions"]["optional_stopping"]
@@ -1015,7 +1015,7 @@ mod tests {
             protocol["claim_ceiling"]
                 .as_str()
                 .unwrap()
-                .contains("temporal-dependence assumptions are reviewed")
+                .contains("dependence assumptions reviewed")
         );
         assert_eq!(
             protocol["model"]["evidence_unit_kind"],
