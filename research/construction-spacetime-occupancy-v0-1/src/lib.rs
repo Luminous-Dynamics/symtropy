@@ -6,7 +6,14 @@
 //! It is not a collision-avoidance system, safety controller, clearance authority,
 //! trajectory planner, BIM parser, coordinate transform engine, or motion authority.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Broad-phase cell edge. This is an acceleration parameter, not a clearance rule.
+const SPATIAL_CELL_SIZE_MM: i64 = 10_000;
+/// Oversized envelopes use a conservative global candidate bucket.
+const MAX_GRID_CELLS_PER_OCCUPANCY: u128 = 4_096;
+
+type CellKey = (i64, i64, i64);
 
 use construction_robot_interop_core::resources::{
     ReservationBook, ReservationOutcome, ReservationRequest,
@@ -171,6 +178,7 @@ pub enum SpatialError {
     ReservationTaskMismatch,
     InvalidReservationInterval,
     OccupancyIdConflict(String),
+    IndexInconsistent(String),
     PotentialConflict(Box<ConflictRecord>),
     Reservation(construction_robot_interop_core::resources::ReservationError),
 }
@@ -180,6 +188,10 @@ pub struct SpatialOccupancyBook {
     binding: SiteBinding,
     clock_domain_id: String,
     occupancies: BTreeMap<String, SpatialOccupancy>,
+    expanded_bounds: BTreeMap<String, Bounds3Mm>,
+    expanded_intervals: BTreeMap<String, (u64, u64)>,
+    spatial_cells: BTreeMap<CellKey, BTreeSet<String>>,
+    global_occupancies: BTreeSet<String>,
 }
 
 impl SpatialOccupancyBook {
@@ -195,6 +207,10 @@ impl SpatialOccupancyBook {
             binding,
             clock_domain_id,
             occupancies: BTreeMap::new(),
+            expanded_bounds: BTreeMap::new(),
+            expanded_intervals: BTreeMap::new(),
+            spatial_cells: BTreeMap::new(),
+            global_occupancies: BTreeSet::new(),
         })
     }
 
@@ -286,25 +302,65 @@ impl SpatialOccupancyBook {
         Ok(expanded)
     }
 
+    fn spatial_candidate_ids(&self, bounds: &Bounds3Mm) -> BTreeSet<String> {
+        let Some(cells) = grid_cells(bounds) else {
+            return self.occupancies.keys().cloned().collect();
+        };
+
+        let mut candidate_ids = self.global_occupancies.clone();
+        for cell in cells {
+            if let Some(ids) = self.spatial_cells.get(&cell) {
+                candidate_ids.extend(ids.iter().cloned());
+            }
+        }
+        candidate_ids
+    }
+
+    fn index_occupancy(&mut self, occupancy_id: &str, expanded_bounds: &Bounds3Mm) {
+        match grid_cells(expanded_bounds) {
+            Some(cells) => {
+                for cell in cells {
+                    self.spatial_cells
+                        .entry(cell)
+                        .or_default()
+                        .insert(occupancy_id.to_owned());
+                }
+            }
+            None => {
+                self.global_occupancies.insert(occupancy_id.to_owned());
+            }
+        }
+    }
+
     fn find_conflicts_validated(
         &self,
         occupancy: &SpatialOccupancy,
         expanded_candidate: Bounds3Mm,
+        (candidate_start, candidate_end): (u64, u64),
     ) -> Result<Vec<ConflictRecord>, SpatialError> {
-        let (candidate_start, candidate_end) = expanded_time_interval(&occupancy.reservation)?;
         let mut conflicts = Vec::new();
 
-        for existing in self.occupancies.values() {
-            let (existing_start, existing_end) = expanded_time_interval(&existing.reservation)?;
+        for existing_id in self.spatial_candidate_ids(&expanded_candidate) {
+            let existing = self
+                .occupancies
+                .get(&existing_id)
+                .ok_or_else(|| SpatialError::IndexInconsistent(existing_id.clone()))?;
+            let (existing_start, existing_end) = self
+                .expanded_intervals
+                .get(&existing_id)
+                .copied()
+                .ok_or_else(|| SpatialError::IndexInconsistent(existing_id.clone()))?;
             let overlap_start = candidate_start.max(existing_start);
             let overlap_end = candidate_end.min(existing_end);
             if overlap_start >= overlap_end {
                 continue;
             }
 
-            let expanded_existing = existing
-                .bounds
-                .expanded(existing.uncertainty_margin_mm, existing.clearance_margin_mm)?;
+            let expanded_existing = self
+                .expanded_bounds
+                .get(&existing_id)
+                .copied()
+                .ok_or_else(|| SpatialError::IndexInconsistent(existing_id.clone()))?;
             if let Some(overlap_bounds_mm) =
                 expanded_candidate.intersection_closed(&expanded_existing)
             {
@@ -344,7 +400,28 @@ impl SpatialOccupancyBook {
             };
         }
 
-        self.find_conflicts_validated(occupancy, expanded_candidate)
+        let candidate_interval = expanded_time_interval(&occupancy.reservation)?;
+        self.find_conflicts_validated(occupancy, expanded_candidate, candidate_interval)
+    }
+
+    /// Number of broad-phase candidates considered by the spatial index. This is
+    /// a diagnostic for benchmark/reporting only; exact conflict results come from
+    /// `conflicts_for`, which applies interval and AABB overlap tests.
+    pub fn candidate_count_for(
+        &self,
+        occupancy: &SpatialOccupancy,
+    ) -> Result<usize, SpatialError> {
+        let expanded_candidate = self.validate_occupancy(occupancy)?;
+        if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
+            return if previous == occupancy {
+                Ok(0)
+            } else {
+                Err(SpatialError::OccupancyIdConflict(
+                    occupancy.occupancy_id.clone(),
+                ))
+            };
+        }
+        Ok(self.spatial_candidate_ids(&expanded_candidate).len())
     }
 
     /// Insert a planned occupancy after its corresponding time/resource request has
@@ -362,18 +439,56 @@ impl SpatialOccupancyBook {
             };
         }
 
+        let candidate_interval = expanded_time_interval(&occupancy.reservation)?;
         if let Some(conflict) = self
-            .find_conflicts_validated(&occupancy, expanded_candidate)?
+            .find_conflicts_validated(&occupancy, expanded_candidate, candidate_interval)?
             .into_iter()
             .next()
         {
             return Err(SpatialError::PotentialConflict(Box::new(conflict)));
         }
 
-        self.occupancies
-            .insert(occupancy.occupancy_id.clone(), occupancy);
+        let occupancy_id = occupancy.occupancy_id.clone();
+        self.expanded_bounds
+            .insert(occupancy_id.clone(), expanded_candidate);
+        self.expanded_intervals
+            .insert(occupancy_id.clone(), candidate_interval);
+        self.index_occupancy(&occupancy_id, &expanded_candidate);
+        self.occupancies.insert(occupancy_id, occupancy);
         Ok(InsertOutcome::AdmittedToSpatialIndex)
     }
+}
+
+/// Return the conservative broad-phase cells for an already expanded AABB.
+/// An envelope spanning too many cells returns None and is tracked in a global
+/// fallback bucket. The exact closed AABB test remains authoritative.
+fn grid_cells(bounds: &Bounds3Mm) -> Option<Vec<CellKey>> {
+    let minimum = bounds
+        .min
+        .map(|coordinate| coordinate.div_euclid(SPATIAL_CELL_SIZE_MM));
+    let maximum = bounds
+        .max
+        .map(|coordinate| coordinate.div_euclid(SPATIAL_CELL_SIZE_MM));
+
+    let counts: [u128; 3] = std::array::from_fn(|axis| {
+        (i128::from(maximum[axis]) - i128::from(minimum[axis]) + 1) as u128
+    });
+    let cell_count = counts
+        .into_iter()
+        .try_fold(1_u128, |product, count| product.checked_mul(count))?;
+    if cell_count > MAX_GRID_CELLS_PER_OCCUPANCY {
+        return None;
+    }
+
+    let mut cells = Vec::with_capacity(usize::try_from(cell_count).ok()?);
+    for x in minimum[0]..=maximum[0] {
+        for y in minimum[1]..=maximum[1] {
+            for z in minimum[2]..=maximum[2] {
+                cells.push((x, y, z));
+            }
+        }
+    }
+    Some(cells)
 }
 
 /// Expand the existing reservation interval conservatively using its clock bound.
