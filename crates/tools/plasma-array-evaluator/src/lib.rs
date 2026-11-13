@@ -4,25 +4,31 @@ use std::collections::HashSet;
 const FLOAT_TOLERANCE: f64 = 1.0e-8;
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Manifest {
     pub schema_version: String,
     pub benchmark_id: String,
+    pub frozen_at: String,
     pub evidence_class: String,
     pub physical_measurements: bool,
     pub plasma_solver_outputs: bool,
+    pub service_unit_policy: String,
     pub scaleout_reference_scenario_id: String,
     pub research_targets: ResearchTargets,
     pub scenarios: Vec<Scenario>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResearchTargets {
     pub minimum_scaleout_efficiency: f64,
     pub maximum_active_cell_cv: f64,
     pub maximum_neighbor_cross_talk_fraction: f64,
+    pub minimum_faulted_service_floor: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Scenario {
     pub id: String,
     pub evidence_class: String,
@@ -36,9 +42,19 @@ pub struct Scenario {
     pub cross_talk: CrossTalk,
     pub attempts: Attempts,
     pub expected: Expected,
+    pub expected_metrics: Option<ExpectedMetrics>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExpectedMetrics {
+    pub scaleout_efficiency: Option<serde_json::Value>,
+    pub active_cell_cv: Option<serde_json::Value>,
+    pub service_retention: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Service {
     pub unit: String,
     pub reference_unit: String,
@@ -49,12 +65,14 @@ pub struct Service {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Baseline {
     pub scenario_id: String,
     pub service_per_cell: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Cell {
     pub id: String,
     pub state: String,
@@ -63,6 +81,7 @@ pub struct Cell {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Energy {
     pub grid_energy_wh: f64,
     pub meter_ids: Vec<String>,
@@ -73,19 +92,27 @@ pub struct Energy {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Gas {
     pub consumption_normal_l: f64,
     pub unit: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CrossTalk {
     pub max_allowed_fraction: f64,
+    pub coverage_status: String,
+    pub sampling_plan_id: Option<String>,
+    pub required_pair_ids: Vec<String>,
+    pub observed_pair_ids: Vec<String>,
     pub edges: Vec<CrossTalkEdge>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CrossTalkEdge {
+    pub pair_id: String,
     pub from: String,
     pub to: String,
     pub intervention: String,
@@ -93,6 +120,7 @@ pub struct CrossTalkEdge {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Attempts {
     pub attempted: u64,
     pub succeeded: u64,
@@ -101,8 +129,10 @@ pub struct Attempts {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Expected {
     pub disposition: String,
+    pub reasons: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -265,17 +295,6 @@ fn evaluate_scenario(
         }
     }
 
-    if scenario.energy.grid_energy_wh.is_finite()
-        && scenario.energy.grid_energy_wh > 0.0
-        && scenario.service.accepted_total.is_finite()
-        && scenario.service.accepted_total > 0.0
-    {
-        grid_energy_per_service =
-            Some(scenario.energy.grid_energy_wh / scenario.service.accepted_total);
-    } else {
-        reject("grid energy and accepted service must be finite and positive", &mut rejected);
-    }
-
     if scenario.energy.meter_ids.is_empty() {
         block("system energy boundary has no meter identities", &mut blocked);
     } else {
@@ -311,26 +330,123 @@ fn evaluate_scenario(
         || scenario.cross_talk.max_allowed_fraction < 0.0
     {
         reject("cross-talk limit is invalid", &mut rejected);
+    } else if scenario.cells.len() == 1 {
+        if scenario.cross_talk.coverage_status != "NOT_APPLICABLE"
+            || scenario.cross_talk.sampling_plan_id.is_some()
+            || !scenario.cross_talk.required_pair_ids.is_empty()
+            || !scenario.cross_talk.observed_pair_ids.is_empty()
+            || !scenario.cross_talk.edges.is_empty()
+        {
+            block("single-cell cross-talk coverage must be explicitly NOT_APPLICABLE", &mut blocked);
+        }
     } else {
+        let required_pairs: HashSet<_> =
+            scenario.cross_talk.required_pair_ids.iter().map(String::as_str).collect();
+        let observed_pairs: HashSet<_> =
+            scenario.cross_talk.observed_pair_ids.iter().map(String::as_str).collect();
+        if required_pairs.len() != scenario.cross_talk.required_pair_ids.len()
+            || observed_pairs.len() != scenario.cross_talk.observed_pair_ids.len()
+        {
+            reject("cross-talk pair identities are duplicated", &mut rejected);
+        }
+        if scenario.cross_talk.coverage_status != "COMPLETE" {
+            block("multi-cell cross-talk is NOT_MEASURED or incomplete; it cannot be treated as zero", &mut blocked);
+        } else if scenario.cross_talk.sampling_plan_id.as_deref().is_none_or(str::is_empty)
+            || required_pairs.is_empty()
+            || required_pairs != observed_pairs
+        {
+            block("cross-talk sampling plan does not fully cover its declared neighbor-pair set", &mut blocked);
+        }
         let declared_limit = scenario
             .cross_talk
             .max_allowed_fraction
             .min(manifest.research_targets.maximum_neighbor_cross_talk_fraction);
+        let mut edge_pairs = HashSet::new();
         for edge in &scenario.cross_talk.edges {
-            if edge.from.is_empty()
+            if edge.pair_id.trim().is_empty()
+                || !edge_pairs.insert(edge.pair_id.as_str())
+                || !required_pairs.contains(edge.pair_id.as_str())
+                || edge.from.is_empty()
                 || edge.to.is_empty()
                 || !cell_ids.contains(edge.from.as_str())
                 || !cell_ids.contains(edge.to.as_str())
                 || edge.from == edge.to
                 || edge.intervention.is_empty()
                 || !edge.neighbor_output_delta_fraction.is_finite()
-                || edge.neighbor_output_delta_fraction < 0.0
             {
-                reject("cross-talk edge identity or magnitude is invalid", &mut rejected);
-            } else if edge.neighbor_output_delta_fraction > declared_limit {
-                reject("neighbor cross-talk exceeds the declared limit", &mut rejected);
+                reject("cross-talk edge identity, pair coverage or signed delta is invalid", &mut rejected);
+            } else if edge.neighbor_output_delta_fraction.abs() > declared_limit {
+                reject("neighbor cross-talk magnitude exceeds the declared limit", &mut rejected);
             }
         }
+        if scenario.cross_talk.coverage_status == "COMPLETE"
+            && edge_pairs != required_pairs
+        {
+            block("cross-talk edge records do not match the complete declared pair set", &mut blocked);
+        }
+    }
+
+    if let Some(expected) = &scenario.expected_metrics {
+        match expected.scaleout_efficiency.as_ref() {
+            Some(value) => match value.as_f64() {
+                Some(expected_value) if scaleout_efficiency.is_some_and(|actual| close_enough(actual, expected_value)) => {}
+                _ => reject("scale-out efficiency does not match the frozen independent expected metric", &mut rejected),
+            },
+            None if scaleout_efficiency.is_none() => {}
+            None => reject("frozen expected metrics omit a computed scale-out efficiency", &mut rejected),
+        }
+
+        match expected.active_cell_cv.as_ref() {
+            None if active_cell_cv.is_none() => {}
+            None => reject("expected null active-cell CV but evaluator computed a value", &mut rejected),
+            Some(value) => {
+                if let Some(expected_value) = value.as_f64() {
+                    if !active_cell_cv.is_some_and(|actual| close_enough(actual, expected_value)) {
+                        reject("active-cell CV does not match the frozen independent expected metric", &mut rejected);
+                    }
+                } else if value.as_str() == Some("computed_from_cells") {
+                    if active_cell_cv.is_none() {
+                        reject("active-cell CV was expected to be computed from cells but is undefined", &mut rejected);
+                    }
+                } else {
+                    reject("unsupported expected active-cell CV representation", &mut rejected);
+                }
+            }
+        }
+
+        if let Some(expected_retention) = expected.service_retention {
+            if !faulted_service_retention
+                .is_some_and(|actual| close_enough(actual, expected_retention))
+            {
+                reject("faulted service retention does not match the frozen expected metric", &mut rejected);
+            }
+        }
+    }
+
+    let energy_boundary_complete = scenario.energy.boundary_complete
+        && !scenario.energy.meter_ids.is_empty()
+        && scenario.energy.includes_supply_losses
+        && scenario.energy.includes_gas_supply
+        && scenario.energy.includes_cooling_pumps_controls_exhaust
+        && scenario.gas.consumption_normal_l.is_finite()
+        && scenario.gas.consumption_normal_l >= 0.0
+        && !scenario.gas.unit.is_empty()
+        && {
+            let mut ids = HashSet::new();
+            scenario.energy.meter_ids.iter().all(|id| !id.is_empty() && ids.insert(id))
+        };
+    if energy_boundary_complete
+        && scenario.energy.grid_energy_wh.is_finite()
+        && scenario.energy.grid_energy_wh > 0.0
+        && scenario.service.accepted_total.is_finite()
+        && scenario.service.accepted_total > 0.0
+    {
+        grid_energy_per_service =
+            Some(scenario.energy.grid_energy_wh / scenario.service.accepted_total);
+    } else if !scenario.energy.grid_energy_wh.is_finite() || scenario.energy.grid_energy_wh <= 0.0 {
+        reject("grid energy must be finite and positive", &mut rejected);
+    } else {
+        grid_energy_per_service = None;
     }
 
     if failed_count > 0 {
@@ -386,6 +502,12 @@ pub fn audit_manifest_json(input: &str) -> Result<AuditReport, String> {
     {
         return Err("manifest must remain synthetic with no physical or plasma-solver evidence".to_owned());
     }
+    if manifest.frozen_at.trim().is_empty()
+        || manifest.service_unit_policy.trim().is_empty()
+        || manifest.research_targets.minimum_faulted_service_floor != "scenario-specific"
+    {
+        return Err("manifest metadata or service-floor policy is invalid".to_owned());
+    }
     if manifest.scenarios.is_empty() {
         return Err("manifest contains no scenarios".to_owned());
     }
@@ -427,6 +549,20 @@ pub fn audit_manifest_json(input: &str) -> Result<AuditReport, String> {
         return Err("reference scenario must contain one valid active cell with reconciled service".to_owned());
     }
     let reference_service_per_cell = reference.cells[0].accepted_service;
+    let reference_result = evaluate_scenario(
+        reference,
+        &manifest,
+        &manifest.scaleout_reference_scenario_id,
+        reference_service_per_cell,
+        &reference.service.unit,
+        &reference.service.quality_gate_id,
+    );
+    if reference_result.disposition != "SYNTHETIC_PASS" {
+        return Err(format!(
+            "one-cell reference scenario is not independently qualified by the evaluator: {}",
+            reference_result.reasons.join("; ")
+        ));
+    }
 
     let results: Vec<ScenarioResult> = manifest
         .scenarios
@@ -590,6 +726,57 @@ mod tests {
         let result = &report.results[4];
         assert_eq!(result.disposition, "SYNTHETIC_PASS");
         assert!(result.faulted_service_retention.unwrap() >= 0.90);
+    }
+
+    #[test]
+    fn unmeasured_multi_cell_cross_talk_blocks_otherwise_passing_array() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture parses");
+        assert_eq!(report.results[1].disposition, "BLOCKED");
+        assert_eq!(report.results[4].disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn single_cell_cross_talk_is_explicitly_not_applicable() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture parses");
+        assert_eq!(report.results[0].disposition, "SYNTHETIC_PASS");
+    }
+
+    #[test]
+    fn expected_scaleout_efficiency_is_checked_for_n5_and_n100() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture parses");
+        assert!(close_enough(report.results[1].scaleout_efficiency.unwrap(), 0.96));
+        assert!(close_enough(report.results[4].scaleout_efficiency.unwrap(), 0.9405));
+        assert_eq!(report.results[1].disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn incomplete_energy_boundary_has_no_scoreable_energy_intensity() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture parses");
+        assert_eq!(report.results[7].disposition, "BLOCKED");
+        assert_eq!(report.results[7].grid_energy_per_service, None);
+    }
+
+    #[test]
+    fn negative_neighbor_output_delta_is_checked_by_magnitude() {
+        let mut value = fixture_value();
+        value["scenarios"][5]["cross_talk"]["edges"][0]["neighbor_output_delta_fraction"] =
+            serde_json::json!(-0.12);
+        assert_eq!(run(&value).results[5].disposition, "REJECTED");
+    }
+
+    #[test]
+    fn reference_scenario_must_pass_its_complete_boundary() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["energy"]["boundary_complete"] = serde_json::json!(false);
+        let error = audit_manifest_json(&value.to_string()).unwrap_err();
+        assert!(error.contains("one-cell reference scenario"));
+    }
+
+    #[test]
+    fn unknown_scenario_fields_are_rejected() {
+        let mut value = fixture_value();
+        value["scenarios"][1]["unrecognized_typo_field"] = serde_json::json!(true);
+        assert!(audit_manifest_json(&value.to_string()).is_err());
     }
 
     #[test]
