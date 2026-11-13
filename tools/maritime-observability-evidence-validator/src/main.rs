@@ -245,11 +245,24 @@ fn audit_pair(pair: &Value, sensors: &BTreeMap<String, &Value>, errors: &mut Vec
     } else {
         "SINGLE_DECLARED_PRINCIPLE_NO_INDEPENDENCE_CLAIM"
     };
-    json!({"pair_id":id,"declared_pair_state":text(pair,"state").unwrap_or("unknown"),
+    let declared_state = text(pair,"state").unwrap_or("unknown");
+    let measured_isolability_claim_status = if declared_state != "isolable" {
+        "NO_MEASURED_ISOLABILITY_CLAIM"
+    } else if disposition != "MEASURED_INPUTS_ELIGIBLE_FOR_INDEPENDENT_REVIEW"
+        || !shared.is_empty()
+        || principles.len() < 2
+        || timebases.len() != 1 {
+        "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE"
+    } else {
+        "ELIGIBLE_FOR_INDEPENDENT_REVIEW_ONLY"
+    };
+    json!({"pair_id":id,"declared_pair_state":declared_state,
         "evidence_disposition":disposition,"reason_codes":reasons.into_iter().collect::<Vec<_>>(),
         "referenced_channel_ids":channels.into_iter().collect::<Vec<_>>(),
         "declared_measurement_principle_count":principles.len(),"shared_dependency_groups":shared,
         "independence_review":independence,
+        "measured_isolability_claim_status":measured_isolability_claim_status,
+        "physical_pair_separability_recomputed":false,
         "claim_boundary":"Evidence admission only; this does not recompute fault-pair separability or certify physical diagnosability."})
 }
 fn validate(report: &Value) -> Result<Value, Vec<Value>> {
@@ -756,12 +769,18 @@ fn validate(report: &Value) -> Result<Value, Vec<Value>> {
         .iter()
         .filter(|p| p["evidence_disposition"] == "MEASURED_INPUTS_ELIGIBLE_FOR_INDEPENDENT_REVIEW")
         .count();
+    let unsupported_isolability_claims = pair_audits
+        .iter()
+        .filter(|p| p["measured_isolability_claim_status"] == "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE")
+        .count();
     Ok(
         json!({"result":"pass","validator_version":VERSION,"assessment_id":text(report,"assessment_id").unwrap_or(""),
         "asset_configuration_sha256":report["asset"]["configuration_sha256"],
         "sensor_count":inventory.len(),"derived_or_reconstructed_sensor_count":inventory.iter().filter(|s|matches!(text(s,"source_role"),Some("derived"|"reconstructed"))).count(),
         "fault_count":faults.len(),"pair_count":pairs.len(),"pair_audits":pair_audits,
         "measured_input_pairs_eligible_for_independent_review":eligible,
+        "declared_isolability_claims_not_supported_by_measured_inputs":unsupported_isolability_claims,
+        "physical_pair_separability_recomputed":false,
         "claim_ceiling":"Evidence-admission preflight only; no pairwise fault separation, physical diagnosability, machinery health, safety or operating authority is established."}),
     )
 }
@@ -820,6 +839,53 @@ mod tests {
         assert_eq!(r["pair_count"], 3);
         assert_eq!(r["measured_input_pairs_eligible_for_independent_review"], 2);
     }
+    #[test]
+    fn declared_isolability_is_only_admitted_for_review_not_certified() {
+        let r = validate(&fixture()).unwrap();
+        assert_eq!(
+            r["pair_audits"][0]["measured_isolability_claim_status"],
+            "ELIGIBLE_FOR_INDEPENDENT_REVIEW_ONLY"
+        );
+        assert_eq!(r["pair_audits"][0]["physical_pair_separability_recomputed"], false);
+        assert_eq!(r["declared_isolability_claims_not_supported_by_measured_inputs"], 0);
+    }
+
+    #[test]
+    fn derived_evidence_cannot_support_declared_isolability() {
+        let mut x = fixture();
+        x["pair_assessments"][0]["evidence_refs"][0]["channel_ids"] = json!(["inferred-load"]);
+        let r = validate(&x).unwrap();
+        assert_eq!(
+            r["pair_audits"][0]["measured_isolability_claim_status"],
+            "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE"
+        );
+        assert_eq!(r["pair_audits"][0]["physical_pair_separability_recomputed"], false);
+    }
+
+    #[test]
+    fn shared_dependency_cannot_support_declared_isolability() {
+        let mut x = fixture();
+        x["sensor_inventory"][0]["dependency_groups"].as_array_mut().unwrap().push(json!("shared-clock"));
+        x["sensor_inventory"][1]["dependency_groups"].as_array_mut().unwrap().push(json!("shared-clock"));
+        let r = validate(&x).unwrap();
+        assert_eq!(
+            r["pair_audits"][0]["measured_isolability_claim_status"],
+            "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE"
+        );
+    }
+
+    #[test]
+    fn one_measurement_principle_cannot_support_isolability_review() {
+        let mut x = fixture();
+        x["sensor_inventory"][1]["measurement_principle"] =
+            x["sensor_inventory"][0]["measurement_principle"].clone();
+        let r = validate(&x).unwrap();
+        assert_eq!(
+            r["pair_audits"][0]["measured_isolability_claim_status"],
+            "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE"
+        );
+    }
+
     #[test]
     fn derived_channel_cannot_be_measured_evidence() {
         let mut x = fixture();

@@ -305,3 +305,10 @@ The maritime evidence validator performs identity, reference, derivation-DAG, ca
 - `NOT_PHYSICALLY_ELIGIBLE`: at least one evidence reference is derived, simulated, uninstalled, stale, uncalibrated, timebase-unknown or otherwise unsupported.
 
 Declared common dependencies and measurement principles are surfaced for independent review; the adapter does not assert independence from identifiers alone. Derived-channel lineage must resolve to known channels and form an acyclic graph. The synthetic six-channel fixture is fabricated software-conformance data only.
+
+
+### Measured support for declared isolability
+
+The evidence-admission receipt now audits a report's declared isolability state without recomputing physical separability. A pair declared isolable is labelled ELIGIBLE_FOR_INDEPENDENT_REVIEW_ONLY only when its referenced inputs are all eligible measured channels, share exactly one qualified timebase, use at least two declared measurement principles, and contain no shared dependency group among the referenced channels.
+
+If these conditions fail, the receipt labels the declared isolability as unsupported by the referenced measured evidence. Non-isolable and not-evaluated pair states do not create an isolability claim. Every pair audit and the top-level receipt explicitly record physical_pair_separability_recomputed=false. This prevents an evidence-admission pass from being mistaken for a fault-separation proof.

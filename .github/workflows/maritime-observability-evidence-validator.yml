@@ -54,7 +54,7 @@ jobs:
           input="benchmarks/maritime-observability/synthetic-report-v0.1.json"
           digest="$(sha256sum "$input" | awk '{print $1}')"
           cargo run --quiet --locked -p maritime-observability-evidence-validator --bin maritime-observability-evidence-validator -- "$input" --source-commit "$source_commit" --report-sha256 "$digest" > maritime-observability-evidence-receipt.json
-          jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .report_sha256 == $digest and .sensor_count == 6 and .fault_count == 3 and .pair_count == 3 and .measured_input_pairs_eligible_for_independent_review == 2 and (.pair_audits | length == 3)' maritime-observability-evidence-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .report_sha256 == $digest and .sensor_count == 6 and .fault_count == 3 and .pair_count == 3 and .measured_input_pairs_eligible_for_independent_review == 2 and .declared_isolability_claims_not_supported_by_measured_inputs == 0 and .physical_pair_separability_recomputed == false and (.pair_audits | length == 3) and (.pair_audits | all(.physical_pair_separability_recomputed == false))' maritime-observability-evidence-receipt.json
       - name: Execute qualification impact analysis
         shell: bash
         run: |
