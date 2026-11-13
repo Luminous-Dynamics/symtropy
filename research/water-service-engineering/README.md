@@ -138,3 +138,8 @@ The [M1 protocol](./MEMBRANE_MEASUREMENT_INTEGRITY_PROTOCOL_V0_1.md) and eight-c
 ## Industry and SOTA benchmark matrix
 
 See [MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md](./MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md) for a source-linked comparison with current DuPont RO/NF normalized-performance and cleaning guidance, EPA low-pressure MF/UF integrity optimization goals, and the 2026 mechanism-aligned, drinking-water and RO sensing reviews. It defines an evidence maturity ladder and a non-collapsed M0–M6 benchmark stack. These industry thresholds are context-specific references, not universal acceptance limits.
+
+
+### Observation semantics contract
+
+The [Membrane Observation Semantics Contract](./MEMBRANE_OBSERVATION_SEMANTICS_PROTOCOL_V0_1.md) has a versioned JSON Schema and eight positive/negative fixtures. It distinguishes instantaneous sensor values, rolling aggregates, laboratory samples, derived metrics and normalized metrics; it requires explicit units, time-window semantics, calibration/source metadata, lineage and normalization reference inputs. The workflow rejects missing-as-zero, derived-without-lineage, normalized-without-reference and rolling aggregates without a declared window.
