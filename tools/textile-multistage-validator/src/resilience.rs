@@ -1086,7 +1086,7 @@ mod tests {
         .unwrap_err();
         assert_eq!(
             error,
-            ResilienceError::DisruptionInterruptsInProgressOperation("cut-a".to_owned())
+            ResilienceError::DisruptionInterruptsInProgressOperation("cut-b".to_owned())
         );
     }
 
