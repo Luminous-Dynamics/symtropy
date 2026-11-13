@@ -575,7 +575,7 @@ fn render_result(
     source_sha: Option<&str>,
     run_id: &str,
 ) -> String {
-    let (basis_condition_2, _) = condition_metadata(family);
+    let (basis_condition_2, transformed_mass_condition_2) = condition_metadata(family);
     let (implementation_name, reason) = match backend {
         "symtropy_reference_cholesky" => (
             "Symtropy frame-typed Cholesky/Riesz reference",
@@ -598,7 +598,7 @@ fn render_result(
             "  \"schema_version\": \"luminous.metric_physics_benchmark_result.v0.1\",\n",
             "  \"record_kind\": \"measured_result\",\n",
             "  \"run_id\": {},\n",
-            "  \"case_binding\": {{\"case_id\":\"DUMBBELL-DENSE-REBASIS-001\",\"repository\":\"Luminous-Dynamics/symtropy\",\"commit_sha\":\"{}\",\"path\":\"{}\",\"git_blob_sha\":\"{}\"}},\n",
+            "  \"case_binding\": {{\"case_id\":\"DUMBBELL-DENSE-REBASIS-001\",\"coordinate_family\":{{\"family\":{},\"basis_condition_2\":{},\"transformed_mass_condition_2\":{}}},\"repository\":\"Luminous-Dynamics/symtropy\",\"commit_sha\":\"{}\",\"path\":\"{}\",\"git_blob_sha\":\"{}\"}},\n",
             "  \"implementation\": {{\"backend_id\":{},\"implementation_name\":{},\"version\":\"0.1.0\",\"source_commit_sha\":{}}},\n",
             "  \"model_mapping\": {{\n",
             "    \"status\":\"MATCHED\",\n",
@@ -636,6 +636,9 @@ fn render_result(
             "}}\n"
         ),
         unique_run_id,
+        family,
+        json_number(basis_condition_2),
+        json_number(transformed_mass_condition_2),
         CASE_COMMIT,
         CASE_PATH,
         CASE_BLOB,
