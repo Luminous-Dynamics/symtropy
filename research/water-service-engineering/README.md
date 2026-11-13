@@ -114,3 +114,10 @@ The 23-case input corpus now has a **separate expected-output oracle**. The Rust
 The 2026 model-free ENC pump-control paper gives a strong new comparator, but its own discussion identifies full direct measurement of all regulated pressures and tank levels as a limitation. The new child benchmark [#5018](https://github.com/Luminous-Dynamics/symtropy/issues/5018) therefore compares tuned rule/PI, hydraulic MPC, DeePC/data-driven MPC, model-free ENC and qualified-estimator hybrids under matched sparse-sensor, bias, common-mode, stale-time, topology, pump, source, power and communications faults.
 
 See [sparse-sensor control robustness protocol](./pump-control-robustness/PUMP_CONTROL_ROBUSTNESS_V0_1.md) and the 15-case synthetic scenario pack. This is a controller admission/disposition contract, not a controller implementation or measured performance. The ENC paper's data remain available on request; exact reproduction is blocked pending authorized source files and code.
+
+
+## Non-compensatory community service-floor benchmark
+
+A companion benchmark tests whether network averages can hide individual community service-floor breaches. It contains 12 synthetic three-area scenarios and a separate expected-disposition oracle. It distinguishes known breach, indeterminate evidence, breach-plus-unknown and invalid policy/unit/time-grid states; the aggregate weighted average is diagnostic only.
+
+See [community service-floor benchmark protocol](./community-service-floors/COMMUNITY_SERVICE_FLOOR_BENCHMARK_V0_1.md), [scenario pack](./community-service-floors/scenarios-v0.1.json), [schema](./community-service-floors/scenarios-v0.1.schema.json) and [disposition oracle](./community-service-floors/disposition-oracle-v0.1.json). All values and weights are synthetic and non-normative.
