@@ -591,6 +591,7 @@ pub fn validate_sequential_evidence_chain(
             return Err(SequentialEvidenceError::MixedModelChain);
         }
         if !is_sha256_hex(&receipt.input_receipt_sha256)
+            || !is_sha256_hex(&receipt.block_manifest_sha256)
             || !is_sha256_hex(&receipt.receipt_sha256)
             || !receipt.time_seconds.is_finite()
             || receipt.time_seconds < 0.0
@@ -902,12 +903,63 @@ mod tests {
     }
 
     #[test]
-    fn sequential_protocol_discloses_stationarity_and_optional_stopping_assumptions() {
+    fn adjacent_sample_windows_are_not_counted_as_independent_evidence_blocks() {
+        let model = model();
+        let mut session = SequentialEvidenceSession::new(model, config(), "run-1").unwrap();
+        session
+            .append(&observation(0, "fault_signature"))
+            .unwrap();
+
+        let mut adjacent = observation(1, "fault_signature");
+        adjacent.block_start_seconds = 10.05;
+        adjacent.block_end_seconds = 10.10;
+        adjacent.time_seconds = 10.10;
+        assert_eq!(
+            session.append(&adjacent),
+            Err(SequentialEvidenceError::InsufficientBlockSeparation)
+        );
+        assert_eq!(session.observation_count(), 1);
+    }
+
+    #[test]
+    fn overlapping_blocks_and_reused_independent_unit_ids_are_rejected() {
+        let model = model();
+        let mut overlapping_session =
+            SequentialEvidenceSession::new(model.clone(), config(), "run-1").unwrap();
+        overlapping_session
+            .append(&observation(0, "fault_signature"))
+            .unwrap();
+        let mut overlap = observation(1, "fault_signature");
+        overlap.block_start_seconds = 9.0;
+        overlap.block_end_seconds = 19.0;
+        overlap.time_seconds = 19.0;
+        assert_eq!(
+            overlapping_session.append(&overlap),
+            Err(SequentialEvidenceError::OverlappingEvidenceBlock)
+        );
+
+        let mut duplicate_session =
+            SequentialEvidenceSession::new(model, config(), "run-1").unwrap();
+        duplicate_session
+            .append(&observation(0, "fault_signature"))
+            .unwrap();
+        let mut duplicate = observation(1, "fault_signature");
+        duplicate.evidence_unit_id = "run-1-block-000".into();
+        assert_eq!(
+            duplicate_session.append(&duplicate),
+            Err(SequentialEvidenceError::DuplicateEvidenceUnit(
+                "run-1-block-000".into()
+            ))
+        );
+    }
+
+    #[test]
+    fn sequential_protocol_binds_calibrated_non_overlapping_block_semantics() {
         let protocol: serde_json::Value =
-            serde_json::from_str(include_str!("../sequential-evidence-v0.1.json")).unwrap();
+            serde_json::from_str(include_str!("../sequential-evidence-v0.2.json")).unwrap();
         assert_eq!(
             protocol["schema_version"],
-            "symtropy-sequential-evidence-v0.1"
+            "symtropy-sequential-evidence-v0.2"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(
@@ -965,6 +1017,26 @@ mod tests {
                 .unwrap()
                 .contains("temporal-dependence assumptions are reviewed")
         );
+        assert_eq!(
+            protocol["model"]["evidence_unit_kind"],
+            "non_overlapping_calibrated_block"
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["no_raw_sample_pseudoreplication"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["minimum_block_separation_required"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["dependence_review_bound_to_model"],
+            true
+        );
+        assert!(protocol["validity_conditions"]["block_independence"]
+            .as_str()
+            .unwrap()
+            .contains("not proof of independence"));
         assert!(
             protocol["research_targets_not_achieved"]
                 .as_array()
