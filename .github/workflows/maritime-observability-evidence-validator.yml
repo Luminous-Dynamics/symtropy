@@ -43,6 +43,9 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy
+      - name: Format workspace Rust sources
+        run: cargo fmt --all
+
       - name: Test evidence validator
         run: cargo test --locked -p maritime-observability-evidence-validator
       - name: Strict Clippy
@@ -108,6 +111,23 @@ jobs:
             and .ranked_candidates[0].status == "POSITIVE_NET_VALUE"
             and .ranked_candidates[1].status == "NON_POSITIVE_NET_VALUE"
           ' maritime-observation-value-receipt.json
+      - name: Archive rustfmt-normalized maritime sources
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin
+          cp tools/maritime-observability-evidence-validator/src/bin/observation_value.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/qualification_impact.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/main.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
+          tar -czf maritime-rustfmt-sources.tar.gz -C /tmp/maritime-rustfmt .
+      - name: Upload rustfmt-normalized maritime sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-rustfmt-sources
+          path: maritime-rustfmt-sources.tar.gz
+          if-no-files-found: error
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: maritime-observability-and-impact-receipts
