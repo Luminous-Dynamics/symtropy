@@ -1,0 +1,79 @@
+{
+  "schema_version": "membrane-ro-m0-cases-v0.1",
+  "evidence_class": "synthetic_transport_arithmetic",
+  "evidence_ceiling": "synthetic_transport_arithmetic_only_no_empirical_RO_performance_or_fouling_claim",
+  "model": "solution_diffusion_with_film_concentration_polarization",
+  "units": {
+    "flux": "L m-2 h-1",
+    "pressure": "bar",
+    "osmotic_pressure": "bar",
+    "mass_transfer_coefficient": "L m-2 h-1",
+    "rejection": "fraction"
+  },
+  "formulas": {
+    "net_driving_pressure_bar": "delta_pressure_bar - (osmotic_pressure_wall_bar - osmotic_pressure_permeate_bar)",
+    "concentration_polarization_modulus": "(1 - rejection) + rejection * exp(flux / mass_transfer_coefficient)",
+    "water_permeance_reference": "flux / net_driving_pressure_bar",
+    "water_permeance_pressure_only": "flux / delta_pressure_bar",
+    "solute_permeance_reference": "flux * (1 - rejection) / (rejection * exp(flux / mass_transfer_coefficient))",
+    "solute_permeance_no_concentration_polarization": "flux * (1 - rejection) / rejection",
+    "percent_error": "100 * (simplified - reference) / reference"
+  },
+  "cases": [
+    {
+      "case_id": "MRO-M0-001-high-rejection-moderate-CP",
+      "inputs": {
+        "flux_l_m2_h": 30,
+        "delta_pressure_bar": 20,
+        "osmotic_pressure_wall_bar": 5,
+        "osmotic_pressure_permeate_bar": 1,
+        "rejection_fraction": 0.98,
+        "mass_transfer_coefficient_l_m2_h": 100
+      }
+    },
+    {
+      "case_id": "MRO-M0-002-moderate-rejection",
+      "inputs": {
+        "flux_l_m2_h": 20,
+        "delta_pressure_bar": 15,
+        "osmotic_pressure_wall_bar": 3,
+        "osmotic_pressure_permeate_bar": 0.5,
+        "rejection_fraction": 0.9,
+        "mass_transfer_coefficient_l_m2_h": 50
+      }
+    },
+    {
+      "case_id": "MRO-M0-003-lower-rejection-higher-CP",
+      "inputs": {
+        "flux_l_m2_h": 15,
+        "delta_pressure_bar": 12,
+        "osmotic_pressure_wall_bar": 4,
+        "osmotic_pressure_permeate_bar": 0.2,
+        "rejection_fraction": 0.75,
+        "mass_transfer_coefficient_l_m2_h": 25
+      }
+    },
+    {
+      "case_id": "MRO-M0-004-very-high-rejection",
+      "inputs": {
+        "flux_l_m2_h": 40,
+        "delta_pressure_bar": 33,
+        "osmotic_pressure_wall_bar": 16,
+        "osmotic_pressure_permeate_bar": 2,
+        "rejection_fraction": 0.995,
+        "mass_transfer_coefficient_l_m2_h": 130
+      }
+    },
+    {
+      "case_id": "MRO-M0-005-low-flux-low-driving-pressure",
+      "inputs": {
+        "flux_l_m2_h": 10,
+        "delta_pressure_bar": 8,
+        "osmotic_pressure_wall_bar": 1.5,
+        "osmotic_pressure_permeate_bar": 0.1,
+        "rejection_fraction": 0.85,
+        "mass_transfer_coefficient_l_m2_h": 80
+      }
+    }
+  ]
+}
