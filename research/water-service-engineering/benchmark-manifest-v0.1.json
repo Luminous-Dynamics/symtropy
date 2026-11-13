@@ -217,5 +217,10 @@
     "cli": "tools/water-service-t0/src/bin/membrane-measurement-integrity.rs",
     "case_count": 8,
     "status": "synthetic_signal_diagnostics_only_no_real_sensor_or_fouling_claim"
+  },
+  "industry_comparison": {
+    "document": "research/water-service-engineering/MEMBRANE_INDUSTRY_BENCHMARK_MATRIX_V0_1.md",
+    "status": "literature_and_manufacturer_reference_matrix_not_field_performance",
+    "maturity_level": "L1_synthetic_contract_and_arithmetic_benchmarks"
   }
 }
