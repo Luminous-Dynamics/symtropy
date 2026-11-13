@@ -30,7 +30,8 @@
         "maximum_interval_width",
         "minimum_calibration_samples",
         "maximum_condition_number",
-        "values_are_normative"
+        "values_are_normative",
+        "maximum_estimator_coverage"
       ],
       "properties": {
         "profile_id": {
@@ -68,6 +69,11 @@
         },
         "values_are_normative": {
           "const": false
+        },
+        "maximum_estimator_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
