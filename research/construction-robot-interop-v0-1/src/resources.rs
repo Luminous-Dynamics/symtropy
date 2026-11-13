@@ -8,6 +8,13 @@ use std::fmt;
 
 /// Temporal broad-phase cell width. This is an index parameter, not a scheduling tolerance.
 const RESERVATION_TIME_BUCKET_MS: u64 = 60_000;
+/// Fine child buckets are activated only inside dense coarse buckets.
+const RESERVATION_FINE_BUCKET_MS: u64 = 100;
+/// Promotion/demotion hysteresis bounds for coarse buckets.
+const PROMOTE_COARSE_BUCKET_AT: usize = 128;
+const DEMOTE_COARSE_BUCKET_BELOW: usize = 64;
+/// Short queries use fine buckets when the containing coarse bucket is promoted.
+const MAX_FINE_QUERY_DURATION_MS: u64 = 5_000;
 /// Very long reservations use a per-resource fallback rather than allocating thousands of buckets.
 const MAX_RESERVATION_TIME_BUCKETS: u64 = 4_096;
 
@@ -93,6 +100,8 @@ pub struct ReservationBook {
     reservations: BTreeMap<String, ReservationRecord>,
     active_by_resource: BTreeMap<String, BTreeSet<String>>,
     time_buckets: BTreeMap<(String, u64), BTreeSet<String>>,
+    promoted_coarse_buckets: BTreeSet<(String, u64)>,
+    fine_time_buckets: BTreeMap<(String, u64), BTreeSet<String>>,
     global_by_resource: BTreeMap<String, BTreeSet<String>>,
     expiry_index: BTreeMap<u64, BTreeSet<String>>,
 }
@@ -116,6 +125,8 @@ impl ReservationBook {
             reservations: BTreeMap::new(),
             active_by_resource: BTreeMap::new(),
             time_buckets: BTreeMap::new(),
+            promoted_coarse_buckets: BTreeSet::new(),
+            fine_time_buckets: BTreeMap::new(),
             global_by_resource: BTreeMap::new(),
             expiry_index: BTreeMap::new(),
         })
@@ -144,6 +155,94 @@ impl ReservationBook {
         Ok(())
     }
 
+    fn fine_buckets_within_coarse(
+        start_ms: u64,
+        end_ms: u64,
+        coarse_bucket: u64,
+    ) -> Vec<u64> {
+        if start_ms >= end_ms {
+            return Vec::new();
+        }
+        let coarse_start = coarse_bucket.saturating_mul(RESERVATION_TIME_BUCKET_MS);
+        let coarse_end = coarse_start.saturating_add(RESERVATION_TIME_BUCKET_MS);
+        let clipped_start = start_ms.max(coarse_start);
+        let clipped_end = end_ms.min(coarse_end);
+        if clipped_start >= clipped_end {
+            return Vec::new();
+        }
+
+        let first = clipped_start / RESERVATION_FINE_BUCKET_MS;
+        let last = clipped_end.saturating_sub(1) / RESERVATION_FINE_BUCKET_MS;
+        (first..=last).collect()
+    }
+
+    fn fine_bucket_range_for_coarse(coarse_bucket: u64) -> (u64, u64) {
+        let first = coarse_bucket
+            .saturating_mul(RESERVATION_TIME_BUCKET_MS / RESERVATION_FINE_BUCKET_MS);
+        let last = first
+            .saturating_add(RESERVATION_TIME_BUCKET_MS / RESERVATION_FINE_BUCKET_MS - 1);
+        (first, last)
+    }
+
+    fn index_fine_reservation_for_coarse(
+        &mut self,
+        request: &ReservationRequest,
+        coarse_bucket: u64,
+    ) {
+        let start = request
+            .interval_start_ms
+            .saturating_sub(request.clock_uncertainty_ms);
+        let end = request
+            .interval_end_ms
+            .saturating_add(request.clock_uncertainty_ms);
+        for fine_bucket in Self::fine_buckets_within_coarse(start, end, coarse_bucket) {
+            self.fine_time_buckets
+                .entry((request.resource_id.clone(), fine_bucket))
+                .or_default()
+                .insert(request.reservation_id.clone());
+        }
+    }
+
+    fn promote_coarse_bucket(&mut self, resource_id: &str, coarse_bucket: u64) {
+        let coarse_key = (resource_id.to_owned(), coarse_bucket);
+        if self.promoted_coarse_buckets.contains(&coarse_key) {
+            return;
+        }
+        let Some(ids) = self.time_buckets.get(&coarse_key).cloned() else {
+            return;
+        };
+        if ids.len() < PROMOTE_COARSE_BUCKET_AT {
+            return;
+        }
+
+        // Do not publish a partial fine index. If any coarse member cannot be resolved,
+        // retain the complete coarse set as the conservative query path.
+        let requests: Option<Vec<ReservationRequest>> = ids
+            .iter()
+            .map(|id| self.reservations.get(id).map(|record| record.request.clone()))
+            .collect();
+        let Some(requests) = requests else {
+            return;
+        };
+
+        self.promoted_coarse_buckets.insert(coarse_key);
+        for request in requests {
+            self.index_fine_reservation_for_coarse(&request, coarse_bucket);
+        }
+    }
+
+    fn demote_coarse_bucket(&mut self, resource_id: &str, coarse_bucket: u64) {
+        let coarse_key = (resource_id.to_owned(), coarse_bucket);
+        if !self.promoted_coarse_buckets.remove(&coarse_key) {
+            return;
+        }
+        let (first_fine, last_fine) = Self::fine_bucket_range_for_coarse(coarse_bucket);
+        for fine_bucket in first_fine..=last_fine {
+            self.fine_time_buckets
+                .remove(&(resource_id.to_owned(), fine_bucket));
+        }
+    }
+
     fn index_active_reservation(&mut self, request: &ReservationRequest) {
         let id = request.reservation_id.clone();
         let resource_id = request.resource_id.clone();
@@ -168,11 +267,20 @@ impl ReservationBook {
 
         match reservation_time_buckets(start, end) {
             Some(buckets) => {
-                for bucket in buckets {
-                    self.time_buckets
-                        .entry((resource_id.clone(), bucket))
-                        .or_default()
-                        .insert(id.clone());
+                for coarse_bucket in buckets {
+                    let coarse_key = (resource_id.clone(), coarse_bucket);
+                    let is_promoted = self.promoted_coarse_buckets.contains(&coarse_key);
+                    let coarse_count = {
+                        let ids = self.time_buckets.entry(coarse_key).or_default();
+                        ids.insert(id.clone());
+                        ids.len()
+                    };
+
+                    if is_promoted {
+                        self.index_fine_reservation_for_coarse(request, coarse_bucket);
+                    } else if coarse_count >= PROMOTE_COARSE_BUCKET_AT {
+                        self.promote_coarse_bucket(&resource_id, coarse_bucket);
+                    }
                 }
             }
             None => {
@@ -213,14 +321,36 @@ impl ReservationBook {
             .saturating_add(request.clock_uncertainty_ms);
 
         match reservation_time_buckets(start, end) {
-            Some(buckets) => {
-                for bucket in buckets {
-                    let key = (resource_id.to_owned(), bucket);
-                    if let Some(ids) = self.time_buckets.get_mut(&key) {
+            Some(coarse_buckets) => {
+                for coarse_bucket in coarse_buckets {
+                    let coarse_key = (resource_id.to_owned(), coarse_bucket);
+                    let was_promoted = self.promoted_coarse_buckets.contains(&coarse_key);
+                    let coarse_count = if let Some(ids) = self.time_buckets.get_mut(&coarse_key) {
                         ids.remove(id);
-                        if ids.is_empty() {
-                            self.time_buckets.remove(&key);
+                        Some(ids.len())
+                    } else {
+                        None
+                    };
+
+                    if was_promoted {
+                        for fine_bucket in
+                            Self::fine_buckets_within_coarse(start, end, coarse_bucket)
+                        {
+                            let fine_key = (resource_id.to_owned(), fine_bucket);
+                            if let Some(ids) = self.fine_time_buckets.get_mut(&fine_key) {
+                                ids.remove(id);
+                                if ids.is_empty() {
+                                    self.fine_time_buckets.remove(&fine_key);
+                                }
+                            }
                         }
+                    }
+
+                    if coarse_count.is_some_and(|count| count < DEMOTE_COARSE_BUCKET_BELOW) {
+                        self.demote_coarse_bucket(resource_id, coarse_bucket);
+                    }
+                    if coarse_count == Some(0) {
+                        self.time_buckets.remove(&coarse_key);
                     }
                 }
             }
@@ -241,7 +371,7 @@ impl ReservationBook {
         start_ms: u64,
         end_ms: u64,
     ) -> BTreeSet<String> {
-        let Some(buckets) = reservation_time_buckets(start_ms, end_ms) else {
+        let Some(coarse_buckets) = reservation_time_buckets(start_ms, end_ms) else {
             return self
                 .active_by_resource
                 .get(resource_id)
@@ -254,12 +384,39 @@ impl ReservationBook {
             .get(resource_id)
             .cloned()
             .unwrap_or_default();
-        for bucket in buckets {
-            if let Some(ids) = self.time_buckets.get(&(resource_id.to_owned(), bucket)) {
+        let use_fine = end_ms.saturating_sub(start_ms) <= MAX_FINE_QUERY_DURATION_MS;
+
+        for coarse_bucket in coarse_buckets {
+            let coarse_key = (resource_id.to_owned(), coarse_bucket);
+            if use_fine && self.promoted_coarse_buckets.contains(&coarse_key) {
+                for fine_bucket in
+                    Self::fine_buckets_within_coarse(start_ms, end_ms, coarse_bucket)
+                {
+                    if let Some(ids) = self
+                        .fine_time_buckets
+                        .get(&(resource_id.to_owned(), fine_bucket))
+                    {
+                        candidates.extend(ids.iter().cloned());
+                    }
+                }
+            } else if let Some(ids) = self.time_buckets.get(&coarse_key) {
                 candidates.extend(ids.iter().cloned());
             }
         }
         candidates
+    }
+
+    /// Number of density-promoted coarse buckets for one resource.
+    pub fn promoted_bucket_count_for_resource(&self, resource_id: &str) -> Result<usize, ReservationError> {
+        require_non_empty("resource_id", resource_id)?;
+        if !self.resources.contains_key(resource_id) {
+            return Err(ReservationError::UnknownResource);
+        }
+        Ok(self
+            .promoted_coarse_buckets
+            .iter()
+            .filter(|(indexed_resource, _)| indexed_resource == resource_id)
+            .count())
     }
 
     /// Diagnostic broad-phase candidate count for one resource and uncertainty-expanded
@@ -529,6 +686,8 @@ impl ReservationBook {
         }
         self.active_by_resource.clear();
         self.time_buckets.clear();
+        self.promoted_coarse_buckets.clear();
+        self.fine_time_buckets.clear();
         self.global_by_resource.clear();
         self.expiry_index.clear();
         Ok(())
