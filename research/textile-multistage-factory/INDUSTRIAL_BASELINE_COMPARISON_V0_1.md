@@ -18,6 +18,20 @@ This is a real industrial process comparator, but it is a post-cutting/clipping-
 
 The supplier's public descriptions do not provide an independently reproduced, matched-lot performance dataset for every feedstock, damage mode, residual-trim level, operating cost or accepted downstream grade. Do not turn supplier descriptions into validated quantitative claims.
 
+### Trimclean capacity — supplier-stated, not a measured comparator result
+
+The Trimclean leaflet lists **up to 1,000 kg/h maximum**. It qualifies that figure as capacity observed under tests with industrial loads in best-possible conditions; actual throughput depends on the specific weight of clippings and conveyor coverage ratio, and the stated operating context is dry textile waste at regular humidity.
+
+This is a supplier-stated clipping-feed capacity envelope. It is **not** an independently measured Fibersort capacity, accepted recovered-textile output rate, whole-garment processing rate or guaranteed continuous throughput. In the matched benchmark, report:
+- incoming clipping mass / active hour;
+- total line input mass / elapsed hour;
+- textile clipping output accepted downstream / hour;
+- trim-bearing clipping reject/rework mass;
+- uptime, conveyor coverage, clipping specific weight and moisture;
+- purity and contamination of both separated streams.
+
+Never compare 1,000 kg/h of clipping feed directly against accepted kg/h from a pre-shredder garment-disassembly process.
+
 ### Adjacent incumbent: reuse grading and plant capacity
 
 Valvan's **Hypersort** is an adjacent comparator for whole-item reuse grading/pricing, not a like-for-like fibre-recycling sorter. Valvan advertises up to 1,200 garments/hour for an automated grading line and 50% higher throughput for its automated machine; these are supplier-stated figures that require site-specific measurement and a defined denominator (items presented, accepted grades, operators, uptime).
