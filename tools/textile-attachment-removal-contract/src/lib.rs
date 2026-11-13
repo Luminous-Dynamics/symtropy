@@ -170,7 +170,7 @@ fn evidence_ceiling(record: &AttemptRecord) -> EvidenceCeiling {
         (
             Some(EvidenceTier::PhysicalObserved),
             Some(EvidenceTier::IndependentlyInspected),
-            RemovalOutcome::Removed,
+            RemovalOutcome::Removed | RemovalOutcome::Partial,
         ) if record.mass_balance.is_some() && record.damage.is_some() => {
             EvidenceCeiling::PhysicalRemovalIndependentlyInspected
         }
@@ -725,4 +725,32 @@ mod tests {
                 .any(|item| { item.code == "SIMULATION_PROMOTED_TO_PHYSICAL_INSPECTION" })
         );
     }
+    #[test]
+    fn independently_inspected_physical_partial_removal_retains_inspection_ceiling() {
+        let mut record = physical_removed();
+        record.outcome = RemovalOutcome::Partial;
+        let report = validate(&record);
+        assert!(report.valid, "{:#?}", report.findings);
+        assert_eq!(
+            report.evidence_ceiling,
+            EvidenceCeiling::PhysicalRemovalIndependentlyInspected
+        );
+    }
+
+    #[test]
+    fn partial_removal_without_mass_balance_or_damage_is_rejected() {
+        let mut record = physical_removed();
+        record.outcome = RemovalOutcome::Partial;
+        record.mass_balance = None;
+        record.damage = None;
+        let report = validate(&record);
+        assert!(
+            report.findings.iter().any(|item| item.code == "MISSING_MASS_BALANCE")
+        );
+        assert!(
+            report.findings.iter().any(|item| item.code == "MISSING_TEXTILE_DAMAGE_OBSERVATION")
+        );
+        assert_eq!(report.evidence_ceiling, EvidenceCeiling::ContractOnly);
+    }
+
 }
