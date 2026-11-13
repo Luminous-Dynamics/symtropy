@@ -531,6 +531,7 @@ pub fn build_normalized_receipt(
         "energy_input": energy_input_value(&trace.energy),
         "sampling_input": sampling_input_value(&trace.sampling),
         "terminal_safe_stop_qualified": trace.terminal_safe_stop_qualified,
+        "terminal_reserve_state_digest": trace.terminal_reserve_state_digest,
         "report": report_value(report)
     });
     let canonical_payload =
@@ -941,7 +942,8 @@ fn validate_report_input_consistency(payload: &Value) -> Result<(), WireReceiptE
 
     if evidence_is_qualified(&report["terminal_safe_stop"])
         && (payload["terminal_safe_stop_qualified"] != Value::Bool(true)
-            || report["terminal_safe_stop"]["value"] != Value::Bool(true))
+            || report["terminal_safe_stop"]["value"] != Value::Bool(true)
+            || !non_empty_string(&payload["terminal_reserve_state_digest"]))
     {
         return Err(WireReceiptError::ContradictoryPayloadBinding(
             "terminal_report_upgrades_unqualified_input",
