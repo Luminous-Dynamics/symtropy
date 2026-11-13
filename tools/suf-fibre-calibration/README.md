@@ -11,6 +11,11 @@ A dependency-free Rust reference implementation for the **single, already-disamb
 - Interpolates along a versioned route polyline only when the caller explicitly declares a projected-metre CRS and easting/northing axis order.
 - Produces a conservative horizontal uncertainty bound by summing declared absolute error bounds. This is not a statistical confidence interval.
 - Returns route positioning only. It does not attribute the result to a utility asset.
+- Includes a discrete expected-information / expected-value-of-sample-information evaluator that keeps information gain separate from decision-loss reduction and suppresses net-value rankings when cost and loss units are incomparable.
+
+## Decision-value evaluator
+
+The decision module accepts a declared prior, decision-loss matrix and per-hypothesis measurement-outcome likelihoods. It computes expected information gain in bits and expected value of sample information in the declared loss unit. It only computes net value when the measurement cost uses exactly the same declared unit. A high-information measurement that cannot change the optimal decision is not recommended when it costs more than zero. This is an offline mathematical evaluator, not a learned probability model or dispatch/authorization system.
 
 ## Explicit non-goals
 
