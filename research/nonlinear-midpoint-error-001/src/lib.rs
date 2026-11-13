@@ -977,9 +977,9 @@ mod tests {
         assert!(receipt.strict_inclusion);
         assert!(receipt.contraction_upper_bound.unwrap() < 1.0);
         let image = receipt.krawczyk_image.unwrap();
-        for coordinate in 0..KKT_DIMENSION {
-            assert!(image[coordinate][0] > receipt.center[coordinate] - receipt.radius);
-            assert!(image[coordinate][1] < receipt.center[coordinate] + receipt.radius);
+        for (coordinate, interval) in image.iter().enumerate() {
+            assert!(interval[0] > receipt.center[coordinate] - receipt.radius);
+            assert!(interval[1] < receipt.center[coordinate] + receipt.radius);
         }
     }
 
