@@ -73,3 +73,30 @@ The example sweeps mass ratios and time steps and prints residual, Newton correc
     cargo test --locked --manifest-path research/nonlinear-midpoint-error-001/Cargo.toml
     cargo clippy --locked --manifest-path research/nonlinear-midpoint-error-001/Cargo.toml --all-targets -- -D warnings
     cargo run --release --locked --manifest-path research/nonlinear-midpoint-error-001/Cargo.toml --example kkt_condition_ladder
+
+## Validated local root for the exact dyadic fixture
+
+The Krawczyk extension adds a separate proof tier for exactly one frozen input:
+
+- parameters: (q_0=v_0=0), (h=m=1), applied force (=0);
+- positive-branch root: (z^*=(q_1,v_1,\lambda)=(2,4,2));
+- exact dyadic inverse preconditioner:
+  [
+  C=\begin{bmatrix}
+  0&0&1\\
+  -1&0&2\\
+  -1/2&-1/2&0
+  \end{bmatrix};
+  ]
+- closed box centred on (z^*), with a declared radius;
+- outward-rounded IEEE-754 interval enclosure of the analytic Jacobian over the full box;
+- exact verification of (C J(z^*)=I);
+- strict Krawczyk image inclusion (K(X)\subset\operatorname{int}(X));
+- an outward-rounded sup-norm contraction upper bound strictly below one.
+
+Together, strict self-mapping and contraction give a Banach fixed-point proof for (T(z)=z-CF(z)). Since (C) is verified nonsingular, its fixed point is exactly a root of (F), and the contraction establishes uniqueness in the box. The implementation therefore emits `ValidatedUniqueRoot` only when all of these checks pass. A wrong preconditioner, a box touching the positive-branch boundary, or any unmatched physical input is rejected or inconclusive.
+
+This is a **formal local uniqueness result for the exact declared polynomial fixture and interval enclosure**, not a validated solution of the production dumbbell, not a general nonlinear DAE proof, and not a global root-completeness claim. The earlier Newton–Kantorovich estimates remain numerical estimates because their inverse-norm inflation is not an interval proof.
+
+The checker uses outward rounding at every interval arithmetic operation. For background on interval Newton and Krawczyk verification, see [Alefeld and Mayer (2000), *Theoretical and Numerical Analysis of Interval Methods*](https://na.math.kit.edu/alefeld/download/1994_Efficient_Numerical_Validation_of_Solution_of_Nonlinear_Systems.pdf) and [Moore, Kearfott and Cloud, *Introduction to Interval Analysis*](https://doi.org/10.1137/1.9780898717716).
+
