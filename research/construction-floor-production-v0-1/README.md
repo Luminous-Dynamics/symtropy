@@ -30,8 +30,10 @@ It intentionally does not create another scheduler, resource calendar, fleet pro
 - Rework requires a new task ID, contiguous attempt number and explicit corrective-work authorization.
 - First-pass yield and final acceptance are reported separately.
 - Only `IndependentlyAccepted` from the existing task machine receives accepted-output credit.
-- Person-time slices use half-open intervals on a declared floor labour-time axis and reject overlapping work by the same person.
+- Person-time slices use half-open intervals on a declared floor labour-time axis, optionally bind to a task ID, and reject overlapping work by the same person.
 - Cost entries use integer minor currency units, explicit currency, unique IDs and optional known task IDs.
+- Reports separate task-attributed costs from floor-wide/shared costs that have not been allocated.
+- Crew-time rollups retain task/role and role-only totals; unallocated shared time remains visible.
 - Failed/rejected/rework/setup/inspection costs remain in total cost.
 - Accepted-floor cost is unavailable until every required functional unit is finally accepted.
 - A small adapter function passes floor-bound resource requests to the existing `ReservationBook`; it adds no second calendar.
@@ -51,6 +53,7 @@ cargo clippy --manifest-path research/construction-floor-production-v0-1/Cargo.t
 - The integration crate is stacked on draft #3644. Its path dependency is not available from main until the base PR is merged or the stack is otherwise integrated.
 - The reference-floor schedule values remain abstract planning ticks. They are not hours, crew rates or cost inputs.
 - The cost and observation examples are synthetic integer arithmetic; they do not encode prices, probabilities, project labour rates or actual savings. The paired observation experiment compares the same declared hidden-fault scenario without assigning a probability distribution.
+- The floor report deliberately omits an aggregate cost-per-unit figure because its required work packages may be heterogeneous. Compare cost per functional unit only within a declared homogeneous output class with an explicit shared-cost allocation rule.
 - The acceptance-contract reference is recorded as an intent pointer; the crate does not inspect or authenticate the external acceptance contract or receipt authority. The ledger checks references and task states exposed by the local lifecycle oracle. It does not authenticate signatures or authorities, independently inspect physical work, verify receipt cryptography, or determine engineering tolerances.
 - Currency validation checks a three-letter uppercase code shape only; it does not prove that the code is a currently valid ISO 4217 currency.
 - The resource reservation is not a safety permit, clearance or motion authorization.
