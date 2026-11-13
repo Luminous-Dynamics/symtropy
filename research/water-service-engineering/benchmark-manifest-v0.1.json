@@ -236,5 +236,14 @@
     "manifest": "research/water-service-engineering/membrane-observability-f1-trace-manifest-v0.1.json",
     "cli": "tools/water-service-t0/src/bin/membrane-observability-f1.rs",
     "status": "synthetic_9_trace_72_window_baseline_contract_only"
+  },
+  "membrane_physical_graph_f2": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5063",
+    "protocol": "research/water-service-engineering/MEMBRANE_PHYSICAL_GRAPH_F2_PROTOCOL_V0_1.md",
+    "graph": "research/water-service-engineering/membrane-physical-process-graph-synthetic-v0.1.json",
+    "schema": "research/water-service-engineering/membrane-physical-process-graph.schema.json",
+    "ablation_manifest": "research/water-service-engineering/membrane-physical-graph-ablation-manifest-v0.1.json",
+    "manifest": "research/water-service-engineering/membrane-physical-graph-f2-manifest-v0.1.json",
+    "status": "synthetic_graph_contract_only_no_real_plant_topology"
   }
 }
