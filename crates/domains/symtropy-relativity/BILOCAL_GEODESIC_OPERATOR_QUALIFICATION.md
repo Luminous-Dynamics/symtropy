@@ -1,6 +1,6 @@
 # Bilocal geodesic operators: Kerr cross-formulation qualification
 
-**Status:** BGO-0 transfer algebra and Minkowski known-answer source are now authored in `src/bilocal.rs`; the exact-head Rust runner is pending. No curvature-driven BGO integrator or BGO-to-canonical comparison is claimed.
+**Status:** BGO-0 transfer algebra and Minkowski known-answer source are implemented in `src/bilocal.rs`. Exact-head Rust 1.96 formatting, Clippy and the complete crate test suite passed at source head `b1218ea4caccf21c55965128b89f3acf4bb6cbbd` (150 passed, 0 failed). No curvature-driven BGO integrator or BGO-to-canonical comparison is claimed.
 
 ## Why this is the next step
 
@@ -12,7 +12,7 @@ The October 2026 EMRI self-lensing preprint uses BGOs to derive the point-to-poi
 
 ## Executable BGO-0 slice
 
-`BilocalGeodesicOperator` now represents the 8×8 transfer in `(xi, ell)` ordering and exposes checked construction from a full matrix or four 4×4 blocks, composition, scaled-pivot inversion, and a symplectic residual. `minkowski(delta_lambda)` implements the exact transfer `W_XX=I`, `W_XK=delta_lambda I`, `W_KX=0`, `W_KK=I`. Authored Rust tests cover all four blocks, affine-interval composition, inverse/backward propagation, Wronskian preservation, the zero-interval identity, non-finite rejection and singular-matrix rejection. These tests are source-authored; do not call them passed until the exact-head Rust 1.96 workflow succeeds.
+`BilocalGeodesicOperator` now represents the 8×8 transfer in `(xi, ell)` ordering and exposes checked construction from a full matrix or four 4×4 blocks, composition, scaled-pivot inversion, and a symplectic residual. `minkowski(delta_lambda)` implements the exact transfer `W_XX=I`, `W_XK=delta_lambda I`, `W_KX=0`, `W_KK=I`. Authored Rust tests cover all four blocks, affine-interval composition, inverse/backward propagation, Wronskian preservation, the zero-interval identity, non-finite rejection and singular-matrix rejection. The exact-head Rust 1.96 workflow passed all 150 crate tests, including these seven BGO-0 tests. This qualifies the crate test suite at the recorded source head; it does not qualify curved-space transport.
 
 The type deliberately does not yet evolve a Kerr curvature tensor. Its BGO-1 and BGO-2 milestones remain open.
 
