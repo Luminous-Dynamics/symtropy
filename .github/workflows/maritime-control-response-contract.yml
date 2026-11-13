@@ -80,6 +80,7 @@ jobs:
             (.active_evidence_selection.portfolio_replay.status == "source_contract_implemented_ci_pending") and
             (.active_evidence_selection.portfolio_replay.replays_rank_diagnostic_probes_before_baseline_selection == true) and
             (.active_evidence_selection.portfolio_replay.rejects_forged_eligibility_flags == true) and
+            (.active_evidence_selection.portfolio_replay.error == "SelectionReplayMismatch") and
             (.active_evidence_selection.portfolio_replay_match == false) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.status == "protocol_only_not_executed") and
@@ -145,6 +146,9 @@ jobs:
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
             (.method.sequential_update_policy.status == "joint_hypothesis_scenario_ledger_supported") and
             (.method.sequential_update_policy.no_silent_fallback == true) and
+            (.method.portfolio_replay.status == "source_contract_implemented_ci_pending") and
+            (.method.portfolio_replay.replay_rule | contains("reruns rank_diagnostic_probes")) and
+            (.method.portfolio_replay.forged_assessment_control | contains("SelectionReplayMismatch")) and
             (.hard_gates | length >= 50) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             (.evidence_boundaries.authority_status | contains("external mandatory checks"))
