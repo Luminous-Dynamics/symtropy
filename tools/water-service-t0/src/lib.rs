@@ -664,10 +664,18 @@ mod tests {
 
     fn load(name: &str) -> Value {
         let text = match name {
-            "inputs" => include_str!("../../../research/water-service-engineering/t0-known-answer-vectors-v0.1.json"),
-            "manifest" => include_str!("../../../research/water-service-engineering/benchmark-manifest-v0.1.json"),
-            "network" => include_str!("../../../research/water-service-engineering/network-diagnostics-manifest-v0.1.json"),
-            "oracle" => include_str!("../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"),
+            "inputs" => include_str!(
+                "../../../research/water-service-engineering/t0-known-answer-vectors-v0.1.json"
+            ),
+            "manifest" => include_str!(
+                "../../../research/water-service-engineering/benchmark-manifest-v0.1.json"
+            ),
+            "network" => include_str!(
+                "../../../research/water-service-engineering/network-diagnostics-manifest-v0.1.json"
+            ),
+            "oracle" => include_str!(
+                "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
