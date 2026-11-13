@@ -107,3 +107,14 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Membrane fouling dataset and benchmark track
+
+The rights-aware crosswalk is in [MEMBRANE_FOULING_DATASET_CROSSWALK_V0_1.md](./MEMBRANE_FOULING_DATASET_CROSSWALK_V0_1.md), with a [four-population admission register](./membrane-dataset-admission-v0.1.json), Draft 2020-12 [admission schema](./membrane-dataset-admission.schema.json), and [benchmark manifest](./membrane-fouling-benchmark-manifest-v0.1.json).
+
+The first records are: 34-month Bristol POU UF telemetry under OGL v3; a separate 12-week Bristol trial with nine laboratory sampling timepoints at three locations under OGL v3; a six-year Moroccan industrial RO SCADA result whose raw data are available on request; and Armstrong et al.'s controlled RO cross-flow transport dataset, whose repository file-level licence still needs confirmation. None of their raw files is acquired in this branch.
+
+### RO transport M0
+
+The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](./membrane-ro-m0-manifest-v0.1.json), with five synthetic [inputs](./membrane-ro-m0-cases-v0.1.json), a separate [oracle](./membrane-ro-m0-oracle-v0.1.json), and a [Draft 2020-12 schema](./membrane-ro-m0.schema.json). The Rust evaluator and `membrane-ro-m0` CLI live in `tools/water-service-t0`. They test net driving pressure, concentration polarization, reference permeance and the error from pressure-only/no-CP simplifications. This is formula arithmetic, not an empirical fouling or membrane-performance claim.
