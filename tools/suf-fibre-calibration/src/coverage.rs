@@ -32,13 +32,28 @@ impl fmt::Display for CoverageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyIdentifier(name) => write!(f, "coverage identifier is empty: {name}"),
-            Self::InvalidPositiveValue(name) => write!(f, "coverage value must be finite and positive: {name}"),
-            Self::InvalidExposureLength => write!(f, "exposure length must be finite and non-negative"),
-            Self::IncompleteStatePartition => write!(f, "each observability state must occur exactly once"),
-            Self::LengthAccountingMismatch => write!(f, "observability-state lengths do not account for the route"),
-            Self::DetectionsExceedTrials => write!(f, "detected events cannot exceed independent eligible event trials"),
+            Self::InvalidPositiveValue(name) => {
+                write!(f, "coverage value must be finite and positive: {name}")
+            }
+            Self::InvalidExposureLength => {
+                write!(f, "exposure length must be finite and non-negative")
+            }
+            Self::IncompleteStatePartition => {
+                write!(f, "each observability state must occur exactly once")
+            }
+            Self::LengthAccountingMismatch => write!(
+                f,
+                "observability-state lengths do not account for the route"
+            ),
+            Self::DetectionsExceedTrials => write!(
+                f,
+                "detected events cannot exceed independent eligible event trials"
+            ),
             Self::TrialsWithoutObservableExposure => {
-                write!(f, "eligible event trials require non-zero observable exposure")
+                write!(
+                    f,
+                    "eligible event trials require non-zero observable exposure"
+                )
             }
         }
     }
@@ -210,7 +225,10 @@ impl EventConditionedCoverageInput {
             ("event_class", self.event_class.as_str()),
             ("minimum_magnitude", self.minimum_magnitude.as_str()),
             ("profile_id", self.profile_id.as_str()),
-            ("interrogator_config_revision", self.interrogator_config_revision.as_str()),
+            (
+                "interrogator_config_revision",
+                self.interrogator_config_revision.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 return Err(CoverageError::EmptyIdentifier(name));
@@ -235,7 +253,13 @@ impl EventConditionedCoverageInput {
         }
 
         for required_state in ObservabilityState::all() {
-            if self.allocations.iter().filter(|item| item.state == required_state).count() != 1 {
+            if self
+                .allocations
+                .iter()
+                .filter(|item| item.state == required_state)
+                .count()
+                != 1
+            {
                 return Err(CoverageError::IncompleteStatePartition);
             }
         }
@@ -254,7 +278,9 @@ impl EventConditionedCoverageInput {
         let state_exposures: Vec<StateExposure> = ObservabilityState::all()
             .iter()
             .map(|state| {
-                let length_km = self.allocations.iter()
+                let length_km = self
+                    .allocations
+                    .iter()
                     .find(|allocation| allocation.state == *state)
                     .map(|allocation| allocation.length_km)
                     .unwrap_or(0.0);
@@ -266,15 +292,18 @@ impl EventConditionedCoverageInput {
             })
             .collect();
 
-        let observable_exposure_km_days = state_exposures.iter()
+        let observable_exposure_km_days = state_exposures
+            .iter()
             .find(|item| item.state == ObservabilityState::Observable)
             .map(|item| item.exposure_km_days)
             .unwrap_or(0.0);
-        let degraded_exposure_km_days = state_exposures.iter()
+        let degraded_exposure_km_days = state_exposures
+            .iter()
             .find(|item| item.state == ObservabilityState::Degraded)
             .map(|item| item.exposure_km_days)
             .unwrap_or(0.0);
-        let observable_length_km = state_exposures.iter()
+        let observable_length_km = state_exposures
+            .iter()
             .find(|item| item.state == ObservabilityState::Observable)
             .map(|item| item.length_km)
             .unwrap_or(0.0);
@@ -300,7 +329,11 @@ impl EventConditionedCoverageInput {
             CoverageDisposition::Qualified
         };
         let pod_95_interval = if pod.is_some() {
-            Some(wilson_interval(self.detected_events, self.eligible_event_trials, 1.959_963_984_540_054))
+            Some(wilson_interval(
+                self.detected_events,
+                self.eligible_event_trials,
+                1.959_963_984_540_054,
+            ))
         } else {
             None
         };
@@ -310,11 +343,12 @@ impl EventConditionedCoverageInput {
             } else {
                 None
             };
-        let false_alarm_disposition = if !self.independent_background_truth_available || observable_exposure_km_days <= 0.0 {
-            CoverageDisposition::Indeterminate
-        } else {
-            CoverageDisposition::Qualified
-        };
+        let false_alarm_disposition =
+            if !self.independent_background_truth_available || observable_exposure_km_days <= 0.0 {
+                CoverageDisposition::Indeterminate
+            } else {
+                CoverageDisposition::Qualified
+            };
 
         let disposition = if pod_disposition == CoverageDisposition::Qualified
             && false_alarm_disposition == CoverageDisposition::Qualified
@@ -340,9 +374,14 @@ impl EventConditionedCoverageInput {
             observable_length_fraction,
             observable_exposure_km_days,
             degraded_exposure_km_days,
-            eligible_event_trials: self.independent_event_truth_available.then_some(self.eligible_event_trials),
-            detected_events: self.independent_event_truth_available.then_some(self.detected_events),
-            missed_events: self.independent_event_truth_available
+            eligible_event_trials: self
+                .independent_event_truth_available
+                .then_some(self.eligible_event_trials),
+            detected_events: self
+                .independent_event_truth_available
+                .then_some(self.detected_events),
+            missed_events: self
+                .independent_event_truth_available
                 .then_some(self.eligible_event_trials - self.detected_events),
             probability_of_detection: pod,
             pod_95_interval,
@@ -371,13 +410,34 @@ mod tests {
 
     fn allocations(observable: f64, degraded: f64, unobserved: f64) -> Vec<LengthAllocation> {
         vec![
-            LengthAllocation { state: ObservabilityState::Observable, length_km: observable },
-            LengthAllocation { state: ObservabilityState::Degraded, length_km: degraded },
-            LengthAllocation { state: ObservabilityState::Unobserved, length_km: unobserved },
-            LengthAllocation { state: ObservabilityState::Unusable, length_km: 0.0 },
-            LengthAllocation { state: ObservabilityState::Unavailable, length_km: 0.0 },
-            LengthAllocation { state: ObservabilityState::NotAssessed, length_km: 0.0 },
-            LengthAllocation { state: ObservabilityState::Unknown, length_km: 0.0 },
+            LengthAllocation {
+                state: ObservabilityState::Observable,
+                length_km: observable,
+            },
+            LengthAllocation {
+                state: ObservabilityState::Degraded,
+                length_km: degraded,
+            },
+            LengthAllocation {
+                state: ObservabilityState::Unobserved,
+                length_km: unobserved,
+            },
+            LengthAllocation {
+                state: ObservabilityState::Unusable,
+                length_km: 0.0,
+            },
+            LengthAllocation {
+                state: ObservabilityState::Unavailable,
+                length_km: 0.0,
+            },
+            LengthAllocation {
+                state: ObservabilityState::NotAssessed,
+                length_km: 0.0,
+            },
+            LengthAllocation {
+                state: ObservabilityState::Unknown,
+                length_km: 0.0,
+            },
         ]
     }
 
@@ -411,7 +471,14 @@ mod tests {
         assert!((report.observable_length_fraction - 0.6).abs() < 1e-12);
         assert!((report.observable_exposure_km_days - 6.0).abs() < 1e-12);
         assert!((report.degraded_exposure_km_days - 2.0).abs() < 1e-12);
-        assert!((report.false_alarms_per_observable_km_day.expect("false alarm rate") - 0.5).abs() < 1e-12);
+        assert!(
+            (report
+                .false_alarms_per_observable_km_day
+                .expect("false alarm rate")
+                - 0.5)
+                .abs()
+                < 1e-12
+        );
         assert_eq!(report.eligible_event_trials, Some(10));
         assert_eq!(report.detected_events, Some(8));
         assert_eq!(report.missed_events, Some(2));
@@ -422,10 +489,15 @@ mod tests {
         let report = EventConditionedCoverageInput {
             independent_event_truth_available: false,
             ..input()
-        }.evaluate().expect("input is structurally valid");
+        }
+        .evaluate()
+        .expect("input is structurally valid");
         assert_eq!(report.disposition, CoverageDisposition::Indeterminate);
         assert_eq!(report.pod_disposition, CoverageDisposition::Indeterminate);
-        assert_eq!(report.false_alarm_disposition, CoverageDisposition::Qualified);
+        assert_eq!(
+            report.false_alarm_disposition,
+            CoverageDisposition::Qualified
+        );
         assert!(report.probability_of_detection.is_none());
         assert!(report.pod_95_interval.is_none());
         assert!(report.eligible_event_trials.is_none());
@@ -441,7 +513,9 @@ mod tests {
             detected_events: 0,
             false_alarm_count: 0,
             ..input()
-        }.evaluate().expect("input is structurally valid");
+        }
+        .evaluate()
+        .expect("input is structurally valid");
         assert_eq!(report.disposition, CoverageDisposition::NotAssessed);
         assert!(report.probability_of_detection.is_none());
         assert!(report.false_alarms_per_observable_km_day.is_some());
@@ -452,7 +526,12 @@ mod tests {
         let report = input().evaluate().expect("valid input");
         assert!((report.observable_exposure_km_days - 6.0).abs() < 1e-12);
         assert_eq!(
-            report.state_exposures.iter().find(|x| x.state == ObservabilityState::Unobserved).unwrap().length_km,
+            report
+                .state_exposures
+                .iter()
+                .find(|x| x.state == ObservabilityState::Unobserved)
+                .unwrap()
+                .length_km,
             2.0
         );
     }
@@ -461,21 +540,30 @@ mod tests {
     fn rejects_unaccounted_route_length() {
         let mut value = input();
         value.allocations = allocations(6.0, 1.0, 2.0);
-        assert_eq!(value.evaluate(), Err(CoverageError::LengthAccountingMismatch));
+        assert_eq!(
+            value.evaluate(),
+            Err(CoverageError::LengthAccountingMismatch)
+        );
     }
 
     #[test]
     fn rejects_duplicate_observability_state() {
         let mut value = input();
         value.allocations[1].state = ObservabilityState::Observable;
-        assert_eq!(value.evaluate(), Err(CoverageError::IncompleteStatePartition));
+        assert_eq!(
+            value.evaluate(),
+            Err(CoverageError::IncompleteStatePartition)
+        );
     }
 
     #[test]
     fn rejects_missing_observability_state() {
         let mut value = input();
         value.allocations.pop();
-        assert_eq!(value.evaluate(), Err(CoverageError::IncompleteStatePartition));
+        assert_eq!(
+            value.evaluate(),
+            Err(CoverageError::IncompleteStatePartition)
+        );
     }
 
     #[test]
@@ -502,7 +590,10 @@ mod tests {
             detected_events: 0,
             ..input()
         };
-        assert_eq!(value.evaluate(), Err(CoverageError::TrialsWithoutObservableExposure));
+        assert_eq!(
+            value.evaluate(),
+            Err(CoverageError::TrialsWithoutObservableExposure)
+        );
     }
 
     #[test]
@@ -511,8 +602,13 @@ mod tests {
             independent_background_truth_available: false,
             false_alarm_count: 3,
             ..input()
-        }.evaluate().expect("valid input");
+        }
+        .evaluate()
+        .expect("valid input");
         assert!(report.false_alarms_per_observable_km_day.is_none());
-        assert_eq!(report.false_alarm_disposition, CoverageDisposition::Indeterminate);
+        assert_eq!(
+            report.false_alarm_disposition,
+            CoverageDisposition::Indeterminate
+        );
     }
 }
