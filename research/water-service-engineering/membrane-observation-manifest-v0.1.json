@@ -4,7 +4,7 @@
   "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5039",
   "schema": "research/water-service-engineering/membrane-observation.schema.json",
   "fixtures": "research/water-service-engineering/membrane-observation-fixtures-v0.1.json",
-  "case_count": 8,
+  "case_count": 9,
   "evidence_classes": [
     "RAW_INSTANT_MEASUREMENT",
     "ROLLING_AGGREGATE",
