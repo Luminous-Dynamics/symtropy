@@ -182,6 +182,20 @@
       "cli": "tools/water-service-t0/src/bin/membrane-ro-m0.rs",
       "status": "synthetic_transport_arithmetic_only"
     },
-    "evidence_ceiling": "no_raw_dataset_file_acquired_no_fouling_model_or_cleaning_performance_claim"
+    "evidence_ceiling": "no_raw_dataset_file_acquired_no_fouling_model_or_cleaning_performance_claim",
+    "sample_time_quality_contract": {
+      "manifest": "research/water-service-engineering/membrane-wq-sample-manifest-v0.1.json",
+      "schema": "research/water-service-engineering/membrane-wq-sample.schema.json",
+      "synthetic_fixtures": "research/water-service-engineering/membrane-wq-sample-fixtures-v0.1.json",
+      "protocol": "research/water-service-engineering/MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md",
+      "status": "synthetic_contract_fixtures_only_no_real_lab_samples",
+      "invariants": [
+        "sample_time_location_analyte_only",
+        "no_lab_label_interpolation",
+        "feature_cutoff_at_or_before_sample_time",
+        "below_LOD_LOQ_not_zero",
+        "rejected_QC_not_training_label"
+      ]
+    }
   }
 }
