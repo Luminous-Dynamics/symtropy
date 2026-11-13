@@ -1,0 +1,500 @@
+{
+  "schema_version": "loco-viable-voi-known-answers-v0.1",
+  "probability_scale": 1000000000,
+  "loss_scale": "integer decision-loss units; no hidden weighting",
+  "semantics": {
+    "joint_mass": "J(h,b,y) supplied directly, sums to probability_scale exactly",
+    "robust_possibility": "physical_branch_observation_pairs are checked independently of joint mass; zero-mass physical branches remain in robust admission",
+    "decision": "for each outcome, minimize unnormalized joint expected loss only over that outcome's robust_admitted_action_ids",
+    "resources": "hard resource feasibility is checked before decision ranking",
+    "unknown": "unknown outcome mass retained; only the named fallback action may be selected",
+    "joint_support": "An explicit possibility relation over (hypothesis, physical branch, observation) is supplied separately from probability mass. Its (hypothesis, branch) projection must equal the declared hypothesis-branch support and its (branch, observation) projection must equal the physical branch-observation support. Positive mass outside this exact triple relation is invalid, even when both pairwise projections are individually allowed."
+  },
+  "fixtures": [
+    {
+      "id": "A-low-eig-positive-viable-voi",
+      "hypotheses": [
+        "h-good",
+        "h-bad"
+      ],
+      "branches": [
+        "b-good",
+        "b-degraded"
+      ],
+      "outcomes": [
+        "good-contact",
+        "degraded-contact"
+      ],
+      "prior_hypothesis_mass": {
+        "h-good": 500000000,
+        "h-bad": 500000000
+      },
+      "physical_branch_observation_pairs": [
+        [
+          "b-good",
+          "good-contact"
+        ],
+        [
+          "b-degraded",
+          "degraded-contact"
+        ]
+      ],
+      "joint_cells": [
+        {
+          "h": "h-good",
+          "b": "b-good",
+          "y": "good-contact",
+          "mass": 500000000
+        },
+        {
+          "h": "h-bad",
+          "b": "b-degraded",
+          "y": "degraded-contact",
+          "mass": 500000000
+        }
+      ],
+      "physical_branch_probability_ppb": {
+        "b-good": 500000000,
+        "b-degraded": 500000000
+      },
+      "robust_probe_admission": "admitted",
+      "post_probe_successor_states": {
+        "good-contact": [
+          "state-good"
+        ],
+        "degraded-contact": [
+          "state-degraded"
+        ]
+      },
+      "robust_admitted_actions": {
+        "good-contact": [
+          "advance",
+          "retreat"
+        ],
+        "degraded-contact": [
+          "retreat"
+        ]
+      },
+      "loss_by_action_and_cell": {
+        "advance": {
+          "h-good|b-good|good-contact": 0,
+          "h-bad|b-degraded|degraded-contact": 800000000
+        },
+        "retreat": {
+          "h-good|b-good|good-contact": 600000000,
+          "h-bad|b-degraded|degraded-contact": 200000000
+        }
+      },
+      "passive_admitted_actions": [
+        "passive-A",
+        "passive-B"
+      ],
+      "passive_risk_numerator": 500000000000000000,
+      "expected_post_probe_risk_numerator": 100000000000000000,
+      "expected_viable_voi_numerator": 400000000000000000,
+      "expected_viable_voi_units": "0.4",
+      "chosen_action_by_outcome": {
+        "good-contact": "advance",
+        "degraded-contact": "retreat"
+      },
+      "possible_hypothesis_branch_outcomes": [
+        {
+          "hypothesis_id": "h-good",
+          "branch_id": "b-good",
+          "outcome_id": "good-contact"
+        },
+        {
+          "hypothesis_id": "h-bad",
+          "branch_id": "b-degraded",
+          "outcome_id": "degraded-contact"
+        }
+      ]
+    },
+    {
+      "id": "B-high-eig-probe-without-robust-continuation",
+      "hypotheses": [
+        "h1",
+        "h2"
+      ],
+      "branches": [
+        "b1",
+        "b2"
+      ],
+      "outcomes": [
+        "y1",
+        "y2"
+      ],
+      "physical_branch_observation_pairs": [
+        [
+          "b1",
+          "y1"
+        ],
+        [
+          "b2",
+          "y2"
+        ]
+      ],
+      "joint_cells": [
+        {
+          "h": "h1",
+          "b": "b1",
+          "y": "y1",
+          "mass": 500000000
+        },
+        {
+          "h": "h2",
+          "b": "b2",
+          "y": "y2",
+          "mass": 500000000
+        }
+      ],
+      "robust_probe_admission": "rejected",
+      "rejection_witness": {
+        "branch": "b2",
+        "reason": "post-probe state has empty robust admitted continuation set"
+      },
+      "robust_admitted_actions": {
+        "y1": [
+          "advance"
+        ],
+        "y2": []
+      },
+      "expected_decision_value": "not_evaluated",
+      "high_eig_must_not_override": true,
+      "possible_hypothesis_branch_outcomes": [
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "b1",
+          "outcome_id": "y1"
+        },
+        {
+          "hypothesis_id": "h2",
+          "branch_id": "b2",
+          "outcome_id": "y2"
+        }
+      ]
+    },
+    {
+      "id": "C-observation-aliases-physical-successors",
+      "hypotheses": [
+        "h1",
+        "h2"
+      ],
+      "branches": [
+        "b1",
+        "b2"
+      ],
+      "outcomes": [
+        "ambiguous"
+      ],
+      "physical_branch_observation_pairs": [
+        [
+          "b1",
+          "ambiguous"
+        ],
+        [
+          "b2",
+          "ambiguous"
+        ]
+      ],
+      "joint_cells": [
+        {
+          "h": "h1",
+          "b": "b1",
+          "y": "ambiguous",
+          "mass": 500000000
+        },
+        {
+          "h": "h2",
+          "b": "b2",
+          "y": "ambiguous",
+          "mass": 500000000
+        }
+      ],
+      "robust_probe_admission": "admitted",
+      "post_probe_successor_states": {
+        "ambiguous": [
+          "state-a",
+          "state-b"
+        ]
+      },
+      "robust_admitted_actions": {
+        "ambiguous": [
+          "retreat"
+        ]
+      },
+      "rejected_action_example": {
+        "id": "exploit-a",
+        "safe_from": [
+          "state-a"
+        ],
+        "unsafe_from": [
+          "state-b"
+        ]
+      },
+      "expected_action_by_outcome": {
+        "ambiguous": "retreat"
+      },
+      "possible_hypothesis_branch_outcomes": [
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "b1",
+          "outcome_id": "ambiguous"
+        },
+        {
+          "hypothesis_id": "h2",
+          "branch_id": "b2",
+          "outcome_id": "ambiguous"
+        }
+      ]
+    },
+    {
+      "id": "D-unknown-outcome-fallback",
+      "hypotheses": [
+        "h1",
+        "h2"
+      ],
+      "branches": [
+        "b1",
+        "b2"
+      ],
+      "outcomes": [
+        "known",
+        "unknown"
+      ],
+      "physical_branch_observation_pairs": [
+        [
+          "b1",
+          "known"
+        ],
+        [
+          "b1",
+          "unknown"
+        ],
+        [
+          "b2",
+          "known"
+        ],
+        [
+          "b2",
+          "unknown"
+        ]
+      ],
+      "joint_cells": [
+        {
+          "h": "h1",
+          "b": "b1",
+          "y": "known",
+          "mass": 400000000
+        },
+        {
+          "h": "h1",
+          "b": "b1",
+          "y": "unknown",
+          "mass": 100000000
+        },
+        {
+          "h": "h2",
+          "b": "b2",
+          "y": "known",
+          "mass": 400000000
+        },
+        {
+          "h": "h2",
+          "b": "b2",
+          "y": "unknown",
+          "mass": 100000000
+        }
+      ],
+      "robust_probe_admission": "admitted",
+      "robust_admitted_actions": {
+        "known": [
+          "advance",
+          "retreat"
+        ],
+        "unknown": [
+          "fallback-hold"
+        ]
+      },
+      "losses": {
+        "advance": [
+          0,
+          1000000000
+        ],
+        "retreat": [
+          500000000,
+          0
+        ],
+        "fallback-hold": [
+          600000000,
+          600000000
+        ]
+      },
+      "expected_unknown_mass": 200000000,
+      "unknown_mass_must_not_be_renormalized": true,
+      "expected_post_probe_risk_numerator": 320000000000000000,
+      "possible_hypothesis_branch_outcomes": [
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "b1",
+          "outcome_id": "known"
+        },
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "b1",
+          "outcome_id": "unknown"
+        },
+        {
+          "hypothesis_id": "h2",
+          "branch_id": "b2",
+          "outcome_id": "known"
+        },
+        {
+          "hypothesis_id": "h2",
+          "branch_id": "b2",
+          "outcome_id": "unknown"
+        }
+      ]
+    },
+    {
+      "id": "E-zero-mass-physical-branch",
+      "hypotheses": [
+        "h1"
+      ],
+      "branches": [
+        "ordinary",
+        "dead-end"
+      ],
+      "outcomes": [
+        "observed"
+      ],
+      "physical_branch_observation_pairs": [
+        [
+          "ordinary",
+          "observed"
+        ],
+        [
+          "dead-end",
+          "observed"
+        ]
+      ],
+      "joint_cells": [
+        {
+          "h": "h1",
+          "b": "ordinary",
+          "y": "observed",
+          "mass": 1000000000
+        },
+        {
+          "h": "h1",
+          "b": "dead-end",
+          "y": "observed",
+          "mass": 0
+        }
+      ],
+      "robust_probe_admission": "rejected",
+      "rejection_witness": {
+        "branch": "dead-end",
+        "probability_mass": 0,
+        "reason": "physical successor outside viable/recovery set"
+      },
+      "possible_hypothesis_branch_outcomes": [
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "ordinary",
+          "outcome_id": "observed"
+        },
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "dead-end",
+          "outcome_id": "observed"
+        }
+      ]
+    },
+    {
+      "id": "F-resource-hard-limit",
+      "robust_probe_admission": "admitted",
+      "expected_viable_voi_units": "0.4",
+      "probe_cost": {
+        "energy_mj": 120000,
+        "time_ms": 240,
+        "actuator_peak_fraction_ppm": 950000,
+        "risk_alpha_ppb": 1000000
+      },
+      "hard_limits": {
+        "energy_mj": 100000,
+        "time_ms": 200,
+        "actuator_peak_fraction_ppm": 900000,
+        "risk_alpha_ppb": 1000000
+      },
+      "expected_policy_disposition": "exclude-probe-before-ranking",
+      "decision_value_cannot_trade_against_resource_hard_limits": true
+    },
+    {
+      "id": "G-correlated-joint-mass",
+      "hypotheses": [
+        "h1",
+        "h2"
+      ],
+      "branches": [
+        "b1",
+        "b2"
+      ],
+      "outcomes": [
+        "y1",
+        "y2"
+      ],
+      "joint_cells": [
+        {
+          "h": "h1",
+          "b": "b1",
+          "y": "y1",
+          "mass": 450000000
+        },
+        {
+          "h": "h1",
+          "b": "b2",
+          "y": "y2",
+          "mass": 50000000
+        },
+        {
+          "h": "h2",
+          "b": "b1",
+          "y": "y1",
+          "mass": 50000000
+        },
+        {
+          "h": "h2",
+          "b": "b2",
+          "y": "y2",
+          "mass": 450000000
+        }
+      ],
+      "robust_probe_admission": "admitted",
+      "expected_joint_mass_total": 1000000000,
+      "instruction": "Use these joint cells directly. Do not replace them with products of independent hypothesis, branch or observation marginals.",
+      "possible_hypothesis_branch_outcomes": [
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "b1",
+          "outcome_id": "y1"
+        },
+        {
+          "hypothesis_id": "h1",
+          "branch_id": "b2",
+          "outcome_id": "y2"
+        },
+        {
+          "hypothesis_id": "h2",
+          "branch_id": "b1",
+          "outcome_id": "y1"
+        },
+        {
+          "hypothesis_id": "h2",
+          "branch_id": "b2",
+          "outcome_id": "y2"
+        }
+      ]
+    }
+  ]
+}
