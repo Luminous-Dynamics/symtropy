@@ -1,0 +1,295 @@
+{
+  "schema_version": "membrane-physical-process-graph-v0.1",
+  "evidence_class": "synthetic_physical_topology_fixture",
+  "evidence_ceiling": "illustrative_graph_structure_only_not_a_real_plant_P_and_ID",
+  "graph_id": "SYN-RO-TRAIN-001",
+  "process_family": "reverse_osmosis",
+  "revision": "synthetic-v0.1",
+  "nodes": [
+    {
+      "node_id": "feed_source",
+      "node_type": "process_unit",
+      "variable": "feed_water",
+      "unit": null,
+      "description": "Synthetic raw-water source"
+    },
+    {
+      "node_id": "pretreatment_outlet",
+      "node_type": "process_unit",
+      "variable": "pretreatment_outlet",
+      "unit": null,
+      "description": "Synthetic pretreatment outlet"
+    },
+    {
+      "node_id": "feed_flow_sensor",
+      "node_type": "sensor",
+      "variable": "feed_flow",
+      "unit": "m3/h",
+      "description": "Synthetic feed-flow measurement"
+    },
+    {
+      "node_id": "hp_pump",
+      "node_type": "process_unit",
+      "variable": "pump_discharge",
+      "unit": null,
+      "description": "Synthetic high-pressure pump"
+    },
+    {
+      "node_id": "pump_discharge_pressure",
+      "node_type": "sensor",
+      "variable": "pump_discharge_pressure",
+      "unit": "bar",
+      "description": "Synthetic pump discharge pressure"
+    },
+    {
+      "node_id": "feed_conductivity_sensor",
+      "node_type": "sensor",
+      "variable": "feed_conductivity",
+      "unit": "uS/cm",
+      "description": "Synthetic feed conductivity measurement"
+    },
+    {
+      "node_id": "osmotic_pressure_state",
+      "node_type": "virtual_state",
+      "variable": "osmotic_pressure",
+      "unit": "bar",
+      "description": "Synthetic osmotic-pressure state estimate"
+    },
+    {
+      "node_id": "membrane_feed_header",
+      "node_type": "process_unit",
+      "variable": "membrane_feed",
+      "unit": null,
+      "description": "Synthetic membrane feed header"
+    },
+    {
+      "node_id": "membrane_module",
+      "node_type": "process_unit",
+      "variable": "membrane_transport",
+      "unit": null,
+      "description": "Synthetic membrane module"
+    },
+    {
+      "node_id": "normalized_resistance_state",
+      "node_type": "virtual_state",
+      "variable": "normalized_hydraulic_resistance",
+      "unit": "dimensionless",
+      "description": "Synthetic normalized resistance estimate"
+    },
+    {
+      "node_id": "concentrate_pressure_sensor",
+      "node_type": "sensor",
+      "variable": "concentrate_pressure",
+      "unit": "bar",
+      "description": "Synthetic concentrate-side pressure"
+    },
+    {
+      "node_id": "permeate_flow_sensor",
+      "node_type": "sensor",
+      "variable": "permeate_flow",
+      "unit": "m3/h",
+      "description": "Synthetic permeate flow"
+    },
+    {
+      "node_id": "permeate_conductivity_sensor",
+      "node_type": "sensor",
+      "variable": "permeate_conductivity",
+      "unit": "uS/cm",
+      "description": "Synthetic permeate conductivity"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "E01",
+      "source": "feed_source",
+      "target": "pretreatment_outlet",
+      "relation": "hydraulic_flow_path",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 300,
+      "evidence_class": "synthetic_engineering_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 1,
+      "regimes": [
+        "steady_state",
+        "startup"
+      ]
+    },
+    {
+      "edge_id": "E02",
+      "source": "pretreatment_outlet",
+      "target": "feed_flow_sensor",
+      "relation": "flow_measurement",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 30,
+      "evidence_class": "synthetic_measurement_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 1,
+      "regimes": [
+        "steady_state",
+        "startup"
+      ]
+    },
+    {
+      "edge_id": "E03",
+      "source": "pretreatment_outlet",
+      "target": "hp_pump",
+      "relation": "pump_suction_flow",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 120,
+      "evidence_class": "synthetic_engineering_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 1,
+      "regimes": [
+        "steady_state",
+        "startup"
+      ]
+    },
+    {
+      "edge_id": "E04",
+      "source": "hp_pump",
+      "target": "pump_discharge_pressure",
+      "relation": "pressure_measurement",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 30,
+      "evidence_class": "synthetic_measurement_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 1,
+      "regimes": [
+        "steady_state",
+        "startup"
+      ]
+    },
+    {
+      "edge_id": "E05",
+      "source": "hp_pump",
+      "target": "membrane_feed_header",
+      "relation": "hydraulic_pressure_supply",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 60,
+      "evidence_class": "synthetic_engineering_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 1,
+      "regimes": [
+        "steady_state",
+        "startup"
+      ]
+    },
+    {
+      "edge_id": "E06",
+      "source": "feed_conductivity_sensor",
+      "target": "osmotic_pressure_state",
+      "relation": "salinity_to_osmotic_pressure",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 300,
+      "evidence_class": "synthetic_transport_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.95,
+      "regimes": [
+        "steady_state",
+        "feed_change"
+      ]
+    },
+    {
+      "edge_id": "E07",
+      "source": "osmotic_pressure_state",
+      "target": "membrane_module",
+      "relation": "osmotic_opposition_to_net_driving_pressure",
+      "sign": -1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 60,
+      "evidence_class": "synthetic_transport_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.95,
+      "regimes": [
+        "steady_state",
+        "feed_change"
+      ]
+    },
+    {
+      "edge_id": "E08",
+      "source": "membrane_feed_header",
+      "target": "membrane_module",
+      "relation": "feed_pressure_to_net_driving_pressure",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 60,
+      "evidence_class": "synthetic_transport_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.95,
+      "regimes": [
+        "steady_state",
+        "pump_transition"
+      ]
+    },
+    {
+      "edge_id": "E09",
+      "source": "normalized_resistance_state",
+      "target": "membrane_module",
+      "relation": "resistance_reduces_hydraulic_permeance",
+      "sign": -1,
+      "lag_min_seconds": 300,
+      "lag_max_seconds": 86400,
+      "evidence_class": "synthetic_transport_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.9,
+      "regimes": [
+        "steady_state",
+        "fouling_progression"
+      ]
+    },
+    {
+      "edge_id": "E10",
+      "source": "membrane_module",
+      "target": "concentrate_pressure_sensor",
+      "relation": "concentrate_pressure_response",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 120,
+      "evidence_class": "synthetic_measurement_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.9,
+      "regimes": [
+        "steady_state",
+        "fouling_progression"
+      ]
+    },
+    {
+      "edge_id": "E11",
+      "source": "membrane_module",
+      "target": "permeate_flow_sensor",
+      "relation": "permeate_flow_response",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 120,
+      "evidence_class": "synthetic_measurement_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.95,
+      "regimes": [
+        "steady_state",
+        "fouling_progression"
+      ]
+    },
+    {
+      "edge_id": "E12",
+      "source": "membrane_module",
+      "target": "permeate_conductivity_sensor",
+      "relation": "solute_transport_response",
+      "sign": 1,
+      "lag_min_seconds": 0,
+      "lag_max_seconds": 600,
+      "evidence_class": "synthetic_measurement_assumption",
+      "provenance": "synthetic-fixture",
+      "confidence": 0.85,
+      "regimes": [
+        "steady_state",
+        "integrity_anomaly"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Signed lag-aware membrane physical process graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "graph_id",
+    "process_family",
+    "revision",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "membrane-physical-process-graph-v0.1"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_physical_topology_fixture",
+        "verified_plant_topology"
+      ]
+    },
+    "evidence_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "graph_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "process_family": {
+      "enum": [
+        "ultrafiltration",
+        "nanofiltration",
+        "reverse_osmosis",
+        "membrane_bioreactor"
+      ]
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "node_type",
+          "variable",
+          "unit",
+          "description"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "node_type": {
+            "enum": [
+              "process_unit",
+              "sensor",
+              "virtual_state"
+            ]
+          },
+          "variable": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "edge_id",
+          "source",
+          "target",
+          "relation",
+          "sign",
+          "lag_min_seconds",
+          "lag_max_seconds",
+          "evidence_class",
+          "provenance",
+          "confidence",
+          "regimes"
+        ],
+        "properties": {
+          "edge_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sign": {
+            "enum": [
+              -1,
+              0,
+              1
+            ]
+          },
+          "lag_min_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lag_max_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidence_class": {
+            "enum": [
+              "measured",
+              "derived",
+              "engineering_design",
+              "literature_supported",
+              "synthetic_engineering_assumption",
+              "synthetic_measurement_assumption",
+              "synthetic_transport_assumption",
+              "unknown"
+            ]
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "regimes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

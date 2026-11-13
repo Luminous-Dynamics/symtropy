@@ -143,3 +143,8 @@ See [MEMBRANE_SOTA_COMPARISON_AND_BENCHMARK_TARGETS_V0_1.md](./MEMBRANE_SOTA_COM
 ### Temporal observability F1 traces
 
 The follow-on [F1 protocol](./MEMBRANE_OBSERVABILITY_FAULT_F1_TRACE_PROTOCOL_V0_1.md) contains nine synthetic 8-step traces (72 windows), a separate oracle, schema and manifest. It measures event detection delay, false fouling windows under sensor-only/regime-only/stable negative controls, and recovery when injected sensor faults clear. The Rust F1 evaluator and digest-bound CLI are integrated with required Python replay and exact-head receipt gates. Synthetic onset delay is not a plant lead-time claim.
+
+
+### Physics-informed process graph F2
+
+The new [F2 protocol](./MEMBRANE_PHYSICAL_GRAPH_F2_PROTOCOL_V0_1.md) defines signed process dependencies and lag intervals with evidence provenance. It includes a synthetic 13-node/12-edge RO topology, schema and ablation matrix. A required workflow validates node/edge identity, source/target references, sign/lag domains and synthetic provenance. A real graph remains blocked on a verified P&ID/tag map and qualified engineering review.

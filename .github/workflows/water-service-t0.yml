@@ -337,6 +337,11 @@ jobs:
             research/water-service-engineering/membrane-observability-f1-traces.schema.json
             research/water-service-engineering/membrane-observability-f1-trace-manifest-v0.1.json
             artifacts/membrane-observability-f1/receipt.json
+            research/water-service-engineering/MEMBRANE_PHYSICAL_GRAPH_F2_PROTOCOL_V0_1.md
+            research/water-service-engineering/membrane-physical-process-graph-synthetic-v0.1.json
+            research/water-service-engineering/membrane-physical-process-graph.schema.json
+            research/water-service-engineering/membrane-physical-graph-ablation-manifest-v0.1.json
+            research/water-service-engineering/membrane-physical-graph-f2-manifest-v0.1.json
       - name: Validate membrane observability and sensor-fault F0 contracts
         id: membrane_observability_f0_contracts
         run: |
@@ -554,6 +559,59 @@ jobs:
             research/water-service-engineering/membrane-observability-f1-traces.schema.json \
             research/water-service-engineering/membrane-observability-f1-trace-manifest-v0.1.json \
             artifacts/membrane-observability-f1/receipt.json
+      - name: Validate membrane physical graph F2 topology and provenance
+        id: membrane_physical_graph_f2
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "membrane-physical-process-graph.schema.json").read_text())
+          graph = json.loads((root / "membrane-physical-process-graph-synthetic-v0.1.json").read_text())
+          manifest = json.loads((root / "membrane-physical-graph-f2-manifest-v0.1.json").read_text())
+          ablation = json.loads((root / "membrane-physical-graph-ablation-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(graph),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"MEMBRANE_PHYSICAL_GRAPH_F2_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          node_ids = [node["node_id"] for node in graph["nodes"]]
+          edge_ids = [edge["edge_id"] for edge in graph["edges"]]
+          if len(node_ids) != 13 or len(set(node_ids)) != 13:
+              raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_NODE_IDENTITY_FAIL")
+          if len(edge_ids) != 12 or len(set(edge_ids)) != 12:
+              raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_EDGE_IDENTITY_FAIL")
+          known_nodes = set(node_ids)
+          for edge in graph["edges"]:
+              if edge["source"] not in known_nodes or edge["target"] not in known_nodes:
+                  raise SystemExit(f"MEMBRANE_PHYSICAL_GRAPH_F2_UNKNOWN_EDGE_NODE: {edge['edge_id']}")
+              if edge["source"] == edge["target"]:
+                  raise SystemExit(f"MEMBRANE_PHYSICAL_GRAPH_F2_SELF_EDGE: {edge['edge_id']}")
+              if edge["lag_min_seconds"] > edge["lag_max_seconds"]:
+                  raise SystemExit(f"MEMBRANE_PHYSICAL_GRAPH_F2_INVALID_LAG: {edge['edge_id']}")
+              if graph["evidence_class"] == "synthetic_physical_topology_fixture" and not edge["evidence_class"].startswith("synthetic_"):
+                  raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_SYNTHETIC_PROVENANCE_MISMATCH")
+              if not edge["provenance"]:
+                  raise SystemExit(f"MEMBRANE_PHYSICAL_GRAPH_F2_MISSING_PROVENANCE: {edge['edge_id']}")
+          if manifest["benchmark_id"] != "MEMBRANE-PHYSICAL-GRAPH-F2-001":
+              raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_MANIFEST_ID_FAIL")
+          if manifest["status"] != "synthetic_topology_contract_only":
+              raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_EVIDENCE_CEILING_FAIL")
+          if len(ablation["variants"]) != 6 or len(ablation["perturbations"]) != 7:
+              raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_ABLATION_MATRIX_FAIL")
+          if any("physical" in edge["evidence_class"] and edge["provenance"] == "P&ID" for edge in graph["edges"]):
+              raise SystemExit("MEMBRANE_PHYSICAL_GRAPH_F2_FAKE_PLANT_PROVENANCE_FAIL")
+          print("MEMBRANE_PHYSICAL_GRAPH_F2_PASS: 13 nodes / 12 signed lag-aware synthetic edges; provenance and ablation contract validated")
+          PY
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -597,6 +655,7 @@ jobs:
           MEMBRANE_OBSERVABILITY_F0_OUTCOME: ${{ steps.membrane_observability_f0.outcome }}
           MEMBRANE_OBSERVABILITY_F1_CONTRACTS_OUTCOME: ${{ steps.membrane_observability_f1_contracts.outcome }}
           MEMBRANE_OBSERVABILITY_F1_OUTCOME: ${{ steps.membrane_observability_f1.outcome }}
+          MEMBRANE_PHYSICAL_GRAPH_F2_OUTCOME: ${{ steps.membrane_physical_graph_f2.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$MEMBRANE_CONTRACTS_OUTCOME" = "success"
@@ -608,3 +667,4 @@ jobs:
           test "$MEMBRANE_OBSERVABILITY_F0_OUTCOME" = "success"
           test "$MEMBRANE_OBSERVABILITY_F1_CONTRACTS_OUTCOME" = "success"
           test "$MEMBRANE_OBSERVABILITY_F1_OUTCOME" = "success"
+          test "$MEMBRANE_PHYSICAL_GRAPH_F2_OUTCOME" = "success"
