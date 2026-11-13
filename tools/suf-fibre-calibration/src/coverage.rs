@@ -125,8 +125,10 @@ pub struct EventConditionedCoverageInput {
     pub duration_days: f64,
     /// Mutually exclusive, complete length allocation.
     pub allocations: Vec<LengthAllocation>,
-    /// True only when event/no-event truth is independently sourced.
-    pub independent_truth_available: bool,
+    /// True only when event labels/truth are independently sourced for POD.
+    pub independent_event_truth_available: bool,
+    /// True only when no-event/background exposure is independently labelled for false-alarm rate.
+    pub independent_background_truth_available: bool,
     /// Event trials eligible for POD: truth events occurring in the declared observable envelope.
     pub eligible_event_trials: u64,
     /// Number of eligible events detected by the candidate method.
@@ -168,8 +170,12 @@ pub struct CoverageAssessment {
     pub minimum_magnitude: String,
     /// Profile identity.
     pub profile_id: String,
-    /// Disposition for POD qualification.
+    /// Overall disposition: Qualified only when both POD and false-alarm metrics are qualified.
     pub disposition: CoverageDisposition,
+    /// Independent-truth disposition for the POD metric.
+    pub pod_disposition: CoverageDisposition,
+    /// Independent-background-truth disposition for the false-alarm metric.
+    pub false_alarm_disposition: CoverageDisposition,
     /// Per-state length/exposure accounting.
     pub state_exposures: Vec<StateExposure>,
     /// Fraction of nominal route length in the fully observable state.
@@ -278,10 +284,17 @@ impl EventConditionedCoverageInput {
             return Err(CoverageError::TrialsWithoutObservableExposure);
         }
 
-        let pod = if self.independent_truth_available && self.eligible_event_trials > 0 {
+        let pod = if self.independent_event_truth_available && self.eligible_event_trials > 0 {
             Some(self.detected_events as f64 / self.eligible_event_trials as f64)
         } else {
             None
+        };
+        let pod_disposition = if !self.independent_event_truth_available {
+            CoverageDisposition::Indeterminate
+        } else if self.eligible_event_trials == 0 {
+            CoverageDisposition::NotAssessed
+        } else {
+            CoverageDisposition::Qualified
         };
         let pod_95_interval = if pod.is_some() {
             Some(wilson_interval(self.detected_events, self.eligible_event_trials, 1.959_963_984_540_054))
@@ -289,18 +302,27 @@ impl EventConditionedCoverageInput {
             None
         };
         let false_alarms_per_observable_km_day =
-            if self.independent_truth_available && observable_exposure_km_days > 0.0 {
+            if self.independent_background_truth_available && observable_exposure_km_days > 0.0 {
                 Some(self.false_alarm_count as f64 / observable_exposure_km_days)
             } else {
                 None
             };
-
-        let disposition = if !self.independent_truth_available || observable_exposure_km_days <= 0.0 {
+        let false_alarm_disposition = if !self.independent_background_truth_available || observable_exposure_km_days <= 0.0 {
             CoverageDisposition::Indeterminate
-        } else if self.eligible_event_trials == 0 {
-            CoverageDisposition::NotAssessed
         } else {
             CoverageDisposition::Qualified
+        };
+
+        let disposition = if pod_disposition == CoverageDisposition::Qualified
+            && false_alarm_disposition == CoverageDisposition::Qualified
+        {
+            CoverageDisposition::Qualified
+        } else if pod_disposition == CoverageDisposition::Indeterminate
+            || false_alarm_disposition == CoverageDisposition::Indeterminate
+        {
+            CoverageDisposition::Indeterminate
+        } else {
+            CoverageDisposition::NotAssessed
         };
 
         Ok(CoverageAssessment {
@@ -309,6 +331,8 @@ impl EventConditionedCoverageInput {
             minimum_magnitude: self.minimum_magnitude.clone(),
             profile_id: self.profile_id.clone(),
             disposition,
+            pod_disposition,
+            false_alarm_disposition,
             state_exposures,
             observable_length_fraction,
             observable_exposure_km_days,
@@ -365,7 +389,8 @@ mod tests {
             total_route_length_km: 10.0,
             duration_days: 1.0,
             allocations: allocations(6.0, 2.0, 2.0),
-            independent_truth_available: true,
+            independent_event_truth_available: true,
+            independent_background_truth_available: true,
             eligible_event_trials: 10,
             detected_events: 8,
             false_alarm_count: 3,
@@ -387,15 +412,17 @@ mod tests {
     }
 
     #[test]
-    fn refuses_pod_without_independent_truth() {
+    fn pod_requires_independent_event_truth_but_background_metric_can_still_qualify() {
         let report = EventConditionedCoverageInput {
-            independent_truth_available: false,
+            independent_event_truth_available: false,
             ..input()
         }.evaluate().expect("input is structurally valid");
         assert_eq!(report.disposition, CoverageDisposition::Indeterminate);
+        assert_eq!(report.pod_disposition, CoverageDisposition::Indeterminate);
+        assert_eq!(report.false_alarm_disposition, CoverageDisposition::Qualified);
         assert!(report.probability_of_detection.is_none());
         assert!(report.pod_95_interval.is_none());
-        assert!(report.false_alarms_per_observable_km_day.is_none());
+        assert!(report.false_alarms_per_observable_km_day.is_some());
     }
 
     #[test]
@@ -472,10 +499,11 @@ mod tests {
     #[test]
     fn no_independent_truth_is_not_eligible_for_false_alarm_rate() {
         let report = EventConditionedCoverageInput {
-            independent_truth_available: false,
+            independent_background_truth_available: false,
             false_alarm_count: 3,
             ..input()
         }.evaluate().expect("valid input");
         assert!(report.false_alarms_per_observable_km_day.is_none());
+        assert_eq!(report.false_alarm_disposition, CoverageDisposition::Indeterminate);
     }
 }
