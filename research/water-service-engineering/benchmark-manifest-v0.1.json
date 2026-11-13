@@ -176,6 +176,24 @@
       "qualified_estimator_plus_controller"
     ],
     "status": "synthetic_scenario_contract_only_no_controller_reproduction_or_physical_qualification",
-    "hard_gate": "stale_conflicting_or_unobservable_critical_state_requires_abstention_or_independent_local_safety_policy"
+    "hard_gate": "stale_conflicting_or_unobservable_critical_state_requires_abstention_or_independent_local_safety_policy",
+    "evaluator": {
+      "package": "tools/water-service-t0",
+      "binary": "water-control-robustness",
+      "source": "tools/water-service-t0/src/bin/water-control-robustness.rs",
+      "workflow": ".github/workflows/water-service-t0.yml",
+      "outputs": "artifacts/water-control-robustness/receipt.json",
+      "status": "source_authored_native_rust_tests_and_ci_unverified",
+      "authored_unit_tests": 9,
+      "validation_scope": "scenario_and_expected_disposition_contract_only"
+    },
+    "coverage_semantics": "fraction_is_derived_from_named_required_and_directly_measured_critical_state_variables",
+    "dispositions": [
+      "run_nominal",
+      "run_with_qualified_estimator",
+      "abstain_supervisory",
+      "local_safety_only",
+      "stop_and_reconcile"
+    ]
   }
 }
