@@ -382,6 +382,77 @@ mod tests {
         SpatialOccupancyBook::new(binding(), "site-clock-1").expect("valid book")
     }
 
+    fn lattice_oracle_intersection(
+        left: Bounds3Mm,
+        right: Bounds3Mm,
+    ) -> Option<Bounds3Mm> {
+        let mut points = Vec::new();
+        for x in 0_i64..=4 {
+            for y in 0_i64..=4 {
+                for z in 0_i64..=4 {
+                    let point = [x, y, z];
+                    let in_left = (0..3).all(|axis| {
+                        left.min[axis] <= point[axis] && point[axis] <= left.max[axis]
+                    });
+                    let in_right = (0..3).all(|axis| {
+                        right.min[axis] <= point[axis] && point[axis] <= right.max[axis]
+                    });
+                    if in_left && in_right {
+                        points.push(point);
+                    }
+                }
+            }
+        }
+
+        if points.is_empty() {
+            return None;
+        }
+
+        let mut minimum = points[0];
+        let mut maximum = points[0];
+        for point in points.iter().skip(1) {
+            for axis in 0..3 {
+                minimum[axis] = minimum[axis].min(point[axis]);
+                maximum[axis] = maximum[axis].max(point[axis]);
+            }
+        }
+        Some(Bounds3Mm {
+            min: minimum,
+            max: maximum,
+        })
+    }
+
+    #[test]
+    fn closed_aabb_intersection_matches_exhaustive_lattice_oracle() {
+        let mut boxes = Vec::new();
+        for x in 0_i64..=2 {
+            for y in 0_i64..=2 {
+                for z in 0_i64..=2 {
+                    for dx in 1_i64..=2 {
+                        for dy in 1_i64..=2 {
+                            for dz in 1_i64..=2 {
+                                boxes.push(bounds(
+                                    [x, y, z],
+                                    [x + dx, y + dy, z + dz],
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for left in &boxes {
+            for right in &boxes {
+                assert_eq!(
+                    left.intersection_closed(right),
+                    lattice_oracle_intersection(*left, *right),
+                    "left={left:?}, right={right:?}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn same_volume_and_overlapping_time_are_a_potential_conflict() {
         let mut book = book();
