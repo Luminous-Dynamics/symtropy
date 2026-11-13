@@ -110,3 +110,17 @@ Symthaea may rank inspection candidates and explain evidence with uncertainty. S
 ## 9. Nonclaims
 
 No leak detector, field dataset, municipal outcome, saved-water quantity, localization accuracy or repair workflow is qualified by this document. Literature and dataset performance are comparators only. No model result authorizes isolation, excavation, pump/valve actuation or service restoration.
+
+
+## Updated benchmark-reporting minimum — 13 November 2026
+
+The September 2026 90-study review identifies a major comparability problem: a nominally public-benchmark study may use only topology reuse or a nonstandard dataset, and most studies concentrate on pressure signals. We therefore require each reported run to freeze and disclose:
+- dataset category (public benchmark, custom synthetic, lab/testbed, field/utility);
+- exact data source/revision/licence and acquisition digest;
+- network/pipe population, topology, material, leak mechanism/size and event truth;
+- sensor modalities, locations, sample rates, calibration and missingness;
+- event-level train/validation/test separation and held-out-network status;
+- class prevalence, baseline methods, event matching tolerance and operational denominators;
+- localization and detection metrics, uncertainty/abstention, robustness and reproducibility receipt.
+
+This benchmark also explicitly reports synthetic-to-real transfer separately from in-domain and cross-network performance, and budgets sensor count, communications and operational maintenance.
