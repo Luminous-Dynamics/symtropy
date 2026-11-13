@@ -489,9 +489,14 @@ pub fn evaluate(
     network_manifest: &Value,
     oracle: &Value,
 ) -> Result<Value, String> {
+    let manifest_ceiling = string(manifest, &["evidence_ceiling"])?;
+    let network_ceiling = string(network_manifest, &["evidence_ceiling"])?;
     if string(inputs, &["evidence_class"])? != "synthetic_only"
         || string(inputs, &["evidence_ceiling"])? != CLAIM_CEILING
-        || string(manifest, &["evidence_ceiling"])? != CLAIM_CEILING
+        || !manifest_ceiling.contains("no_physical_qualification")
+        || !manifest_ceiling.contains("no_health_or_regulatory_claim")
+        || !network_ceiling.contains("no_detector_or_field_network_qualified")
+        || !network_ceiling.contains("no_verified_savings_or_repair_claim")
         || string(oracle, &["schema_version"])? != ORACLE_SCHEMA_VERSION
         || string(oracle, &["evidence_class"])? != "synthetic_only"
         || string(oracle, &["evidence_ceiling"])? != CLAIM_CEILING
@@ -709,7 +714,7 @@ mod tests {
         case["inputs"]["absolute_uncertainty_mg_l"] = json!(0.05);
         let output = compute_potable(&case).expect("synthetic calculation");
         assert_eq!(output["assessment_disposition"], "SYNTHETIC_INDETERMINATE");
-        assert_eq!(output["release_allowed"], false);
+        assert!(!output["release_allowed"].as_bool().unwrap());
     }
 
     #[test]
@@ -717,6 +722,6 @@ mod tests {
         let case = load("inputs")["network_diagnostics_cases"][3].clone();
         let output = compute_diagnostics(&case).expect("diagnostic calculation");
         assert_eq!(output["diagnostic_disposition"], "INDETERMINATE");
-        assert_eq!(output["sensor_consensus_is_not_independent"], true);
+        assert!(output["sensor_consensus_is_not_independent"].as_bool().unwrap());
     }
 }
