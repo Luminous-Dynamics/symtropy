@@ -43,7 +43,8 @@
         "media_type",
         "byte_length",
         "sha256",
-        "binding_state"
+        "binding_state",
+        "source_native"
       ],
       "properties": {
         "artifact_uri": {
@@ -367,8 +368,6 @@
             "strain_rate",
             "phase",
             "amplitude",
-            "temperature",
-            "electrical_current",
             "other"
           ]
         },
@@ -1348,6 +1347,110 @@
             "properties": {
               "stage": {
                 "const": "raw_vendor_native"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processing": {
+            "properties": {
+              "stage": {
+                "const": "raw_vendor_native"
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          }
+        },
+        "required": [
+          "processing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_artifact": {
+            "properties": {
+              "source_native": {
+                "const": true
+              }
+            },
+            "required": [
+              "source_native"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processing": {
+            "properties": {
+              "stage": {
+                "enum": [
+                  "normalized_derivative",
+                  "processed_derivative",
+                  "feature_derivative"
+                ]
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          }
+        },
+        "required": [
+          "processing"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source_artifact": {
+            "properties": {
+              "source_native": {
+                "const": false
+              }
+            },
+            "required": [
+              "source_native"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "time": {
+            "properties": {
+              "synchronization_state": {
+                "enum": [
+                  "synchronized",
+                  "bounded_offset"
+                ]
+              }
+            },
+            "required": [
+              "synchronization_state"
+            ]
+          }
+        },
+        "required": [
+          "time"
+        ]
+      },
+      "then": {
+        "properties": {
+          "time": {
+            "properties": {
+              "max_clock_offset_ms": {
+                "type": "number",
+                "minimum": 0
               }
             }
           }
