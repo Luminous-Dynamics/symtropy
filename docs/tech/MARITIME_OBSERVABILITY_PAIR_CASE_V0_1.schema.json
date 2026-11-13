@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json",
+  "title": "Maritime pairwise observability adapter case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "asset",
+    "operating_domain",
+    "channels",
+    "pairs",
+    "dependency_cut_scenarios",
+    "authority_boundary",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "MEASURED",
+        "SYNTHETIC_CONFORMANCE_FIXTURE"
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_revision",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "operating_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regime_id",
+        "qualification_state"
+      ],
+      "properties": {
+        "regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_state": {
+          "enum": [
+            "qualified",
+            "unsupported",
+            "not_evaluated"
+          ]
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sensor_id",
+          "channel_id",
+          "installed",
+          "measurement_principle",
+          "independence_group_ref",
+          "unit",
+          "source_role",
+          "quality_state",
+          "calibration_state",
+          "configuration_sha256",
+          "dependency_groups",
+          "derived_from_channel_ids",
+          "timebase_id",
+          "timestamp_uncertainty_ms",
+          "timebase_qualification_state",
+          "timebase_qualification_sha256"
+        ],
+        "properties": {
+          "sensor_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "measurement_principle": {
+            "type": "string",
+            "minLength": 1
+          },
+          "independence_group_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_role": {
+            "enum": [
+              "measured",
+              "derived",
+              "reconstructed",
+              "simulated",
+              "synthetic_fixture"
+            ]
+          },
+          "quality_state": {
+            "enum": [
+              "current",
+              "missing",
+              "stale",
+              "rejected",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "calibration_state": {
+            "enum": [
+              "current",
+              "expired",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "configuration_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "dependency_groups": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "derived_from_channel_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "timebase_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timestamp_uncertainty_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "timebase_qualification_state": {
+            "enum": [
+              "qualified",
+              "unqualified",
+              "unknown"
+            ]
+          },
+          "timebase_qualification_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pair_id",
+          "fault_a",
+          "fault_b",
+          "critical",
+          "minimum_independent_principles",
+          "responses"
+        ],
+        "properties": {
+          "pair_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault_a": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault_b": {
+            "type": "string",
+            "minLength": 1
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "minimum_independent_principles": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "expected_status": {
+            "enum": [
+              "IDENTIFIABLE",
+              "NOT_IDENTIFIABLE",
+              "INSUFFICIENT_EVIDENCE"
+            ]
+          },
+          "responses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "channel_id",
+                "unit",
+                "interval_a",
+                "interval_b",
+                "availability_a",
+                "availability_b",
+                "evidence_role_a",
+                "evidence_role_b"
+              ],
+              "properties": {
+                "channel_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "interval_a": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "interval_b": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "availability_a": {
+                  "enum": [
+                    "VALID",
+                    "DECLARED_FAULT_UNAVAILABLE",
+                    "UNEXPECTED_UNAVAILABLE",
+                    "UNKNOWN"
+                  ]
+                },
+                "availability_b": {
+                  "enum": [
+                    "VALID",
+                    "DECLARED_FAULT_UNAVAILABLE",
+                    "UNEXPECTED_UNAVAILABLE",
+                    "UNKNOWN"
+                  ]
+                },
+                "evidence_role_a": {
+                  "enum": [
+                    "INDEPENDENT_MEASUREMENT",
+                    "SYNTHETIC_CONFORMANCE_FIXTURE",
+                    "DERIVED",
+                    "RECONSTRUCTED",
+                    "SIMULATED",
+                    "EXPERT_AUTHORED",
+                    "UNKNOWN"
+                  ]
+                },
+                "evidence_role_b": {
+                  "enum": [
+                    "INDEPENDENT_MEASUREMENT",
+                    "SYNTHETIC_CONFORMANCE_FIXTURE",
+                    "DERIVED",
+                    "RECONSTRUCTED",
+                    "SIMULATED",
+                    "EXPERT_AUTHORED",
+                    "UNKNOWN"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dependency_cut_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "disabled_dependency_groups"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "disabled_dependency_groups": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expected_statuses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "pair_id",
+                "status"
+              ],
+              "properties": {
+                "pair_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": [
+                    "IDENTIFIABLE",
+                    "NOT_IDENTIFIABLE",
+                    "INSUFFICIENT_EVIDENCE"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "actuation",
+        "maintenance_authorization",
+        "mode_transition_authorization",
+        "restriction_clearance"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "actuation": {
+          "const": false
+        },
+        "maintenance_authorization": {
+          "const": false
+        },
+        "mode_transition_authorization": {
+          "const": false
+        },
+        "restriction_clearance": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    }
+  }
+}

@@ -11781,4 +11781,13 @@ name = "maritime-observability-evidence-validator"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+ "symtropy-sensor-observability-bench",
+]
+
+[[package]]
+name = "symtropy-sensor-observability-bench"
+version = "0.1.0"
+source = "git+https://github.com/Luminous-Dynamics/symtropy?rev=3c4a86de830a24bbf97c7d7fe30d79de299999c5#3c4a86de830a24bbf97c7d7fe30d79de299999c5"
+dependencies = [
+ "serde_json",
 ]

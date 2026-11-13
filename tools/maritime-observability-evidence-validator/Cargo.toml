@@ -7,3 +7,4 @@ publish = false
 
 [dependencies]
 serde_json = "1.0"
+symtropy-sensor-observability-bench = { git = "https://github.com/Luminous-Dynamics/symtropy", rev = "3c4a86de830a24bbf97c7d7fe30d79de299999c5" }

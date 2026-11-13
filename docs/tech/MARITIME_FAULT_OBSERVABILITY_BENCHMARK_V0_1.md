@@ -342,3 +342,25 @@ A single qualified likelihood matrix can create a falsely precise EVSI. P0.2 req
 A candidate is labelled `ROBUST_POSITIVE_NET_VALUE` only when its **minimum net EVSI across the nominal model and every declared qualified scenario is strictly positive**. Otherwise it is `NOT_ROBUST_POSITIVE_NET_VALUE`. If any scenario lacks qualification, the candidate is `NOT_EVALUATED`. Ranking uses minimum scenario net EVSI, not nominal estimate.
 
 The receipt preserves nominal EVSI, minimum/maximum scenario EVSI, worst-case scenario ID and each scenario's posterior risks. The minimum is a deterministic envelope over the declared finite scenario set; it is not a confidence interval and does not prove coverage of every possible likelihood-model error. Scenario construction and qualification require independent support. The fixture's scenario variants are fabricated conformance models only.
+
+
+## Executable maritime-to-generic observability adapter — P0
+
+The maritime observability PR now includes a thin adapter over the reusable `symtropy-sensor-observability-bench` kernel, pinned to immutable upstream revision `3c4a86de830a24bbf97c7d7fe30d79de299999c5`. The maritime layer validates asset/configuration digest, regime, channel identity/unit, source role, calibration, quality, common timebase qualification, uncertainty metadata, dependency groups and response-matrix completeness. It maps eligible response intervals and provenance into the generic kernel's `ChannelPairSignature` values and delegates pairwise interval separation, availability, independent-principle de-duplication and dependency-cut re-evaluation.
+
+This is deliberately not a copied implementation of the generic pairwise algorithm. The maritime layer owns evidence admission and domain identity; the generic package owns pair classification.
+
+### Frozen synthetic fixture
+
+`benchmarks/maritime-observability/pairwise-observability-case.v0.1.json` uses four synthetic channels across three measurement-principle groups. Two pressure transducers share one pressure principle and therefore count once. The fixture tests:
+- nominal separation requiring independent pressure, rotational-speed and vibration principles;
+- loss of gateway B, which removes both rotational-speed and vibration evidence and makes the pair NOT_IDENTIFIABLE;
+- loss of shared pressure power, which removes both pressure channels but preserves independent speed and vibration principles.
+
+Additional Rust tests cover expired calibration, derived-channel non-independence, overlapping response intervals, configuration mismatch, response-unit mismatch and read-only authority. The fixture is synthetic conformance evidence only. It is not a real engine fault signature or installation layout.
+
+### Reproduction
+
+The `maritime_pairwise_observability` binary records the exact pinned generic-kernel Git revision, source commit and input case digest. It emits nominal pair classifications and per-dependency-cut re-evaluations. The focused workflow verifies expected statuses and confirms that physical diagnosability and authorization remain explicitly false.
+
+Measured mode admits `INDEPENDENT_MEASUREMENT` roles only when sensor installation, calibration, quality, exact asset configuration and a shared qualified timebase with valid uncertainty and qualification digest are established. Mismatched timebases or incomplete qualification produce unresolved evidence, not independent measurement credit.

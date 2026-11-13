@@ -1,0 +1,210 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "MARITIME-PAIR-OBSERVABILITY-SYNTHETIC-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "asset": {
+    "asset_id": "synthetic-main-engine-01",
+    "configuration_revision": "cfg-r3",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "operating_domain": {
+    "regime_id": "steady-load-50",
+    "qualification_state": "qualified"
+  },
+  "channels": [
+    {
+      "sensor_id": "pressure-sensor-a",
+      "channel_id": "injection-pressure-a",
+      "installed": true,
+      "measurement_principle": "pressure-transducer",
+      "independence_group_ref": "pressure-principle",
+      "unit": "bar",
+      "source_role": "synthetic_fixture",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "pressure-power",
+        "gateway-a"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "synthetic-common-clock-v1",
+      "timestamp_uncertainty_ms": 0.5,
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "sensor_id": "pressure-sensor-b",
+      "channel_id": "injection-pressure-b",
+      "installed": true,
+      "measurement_principle": "pressure-transducer",
+      "independence_group_ref": "pressure-principle",
+      "unit": "bar",
+      "source_role": "synthetic_fixture",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "pressure-power",
+        "gateway-a"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "synthetic-common-clock-v1",
+      "timestamp_uncertainty_ms": 0.5,
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "sensor_id": "speed-sensor",
+      "channel_id": "shaft-speed",
+      "installed": true,
+      "measurement_principle": "magnetic-pickup",
+      "independence_group_ref": "rotational-principle",
+      "unit": "rpm",
+      "source_role": "synthetic_fixture",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "tachometer-power",
+        "gateway-b"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "synthetic-common-clock-v1",
+      "timestamp_uncertainty_ms": 0.5,
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "sensor_id": "vibration-sensor",
+      "channel_id": "combustion-vibration",
+      "installed": true,
+      "measurement_principle": "accelerometer",
+      "independence_group_ref": "vibration-principle",
+      "unit": "g",
+      "source_role": "synthetic_fixture",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "vibration-power",
+        "gateway-b"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "synthetic-common-clock-v1",
+      "timestamp_uncertainty_ms": 0.5,
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "pairs": [
+    {
+      "pair_id": "fuel-restriction-vs-injector-degradation",
+      "fault_a": "fuel-delivery-restriction",
+      "fault_b": "injector-degradation",
+      "critical": true,
+      "minimum_independent_principles": 2,
+      "expected_status": "IDENTIFIABLE",
+      "responses": [
+        {
+          "channel_id": "injection-pressure-a",
+          "unit": "bar",
+          "interval_a": [
+            10,
+            12
+          ],
+          "interval_b": [
+            17,
+            19
+          ],
+          "availability_a": "VALID",
+          "availability_b": "VALID",
+          "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+        },
+        {
+          "channel_id": "injection-pressure-b",
+          "unit": "bar",
+          "interval_a": [
+            11,
+            13
+          ],
+          "interval_b": [
+            18,
+            20
+          ],
+          "availability_a": "VALID",
+          "availability_b": "VALID",
+          "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+        },
+        {
+          "channel_id": "shaft-speed",
+          "unit": "rpm",
+          "interval_a": [
+            590,
+            595
+          ],
+          "interval_b": [
+            620,
+            625
+          ],
+          "availability_a": "VALID",
+          "availability_b": "VALID",
+          "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+        },
+        {
+          "channel_id": "combustion-vibration",
+          "unit": "g",
+          "interval_a": [
+            0.2,
+            0.4
+          ],
+          "interval_b": [
+            0.8,
+            1
+          ],
+          "availability_a": "VALID",
+          "availability_b": "VALID",
+          "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+        }
+      ]
+    }
+  ],
+  "dependency_cut_scenarios": [
+    {
+      "scenario_id": "loss-of-shared-gateway-b",
+      "disabled_dependency_groups": [
+        "gateway-b"
+      ],
+      "expected_statuses": [
+        {
+          "pair_id": "fuel-restriction-vs-injector-degradation",
+          "status": "NOT_IDENTIFIABLE"
+        }
+      ]
+    },
+    {
+      "scenario_id": "loss-of-shared-pressure-power",
+      "disabled_dependency_groups": [
+        "pressure-power"
+      ],
+      "expected_statuses": [
+        {
+          "pair_id": "fuel-restriction-vs-injector-degradation",
+          "status": "IDENTIFIABLE"
+        }
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition_authorization": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic pairwise-kernel adapter conformance only. It does not establish physical fault separability, installed sensor independence, actual engine diagnosability, machinery health, shipboard safety, maintenance authority, seaworthiness or permission to operate."
+}

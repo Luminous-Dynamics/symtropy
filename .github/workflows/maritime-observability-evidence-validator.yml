@@ -87,6 +87,34 @@ jobs:
             and .mutation_performed == false
             and .authorization_granted == false
           ' maritime-qualification-impact-receipt.json
+      - name: Execute maritime pairwise observability adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/pairwise-observability-case.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin maritime_pairwise_observability -- \
+            "$input" --source-commit "$source_commit" --case-sha256 "$digest" > maritime-pairwise-observability-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .case_sha256 == $digest
+            and .reused_kernel.crate == "symtropy-sensor-observability-bench"
+            and .reused_kernel.git_revision == "3c4a86de830a24bbf97c7d7fe30d79de299999c5"
+            and .pair_count == 1
+            and .identifiable_pair_count == 1
+            and .base_pair_results[0].status == "IDENTIFIABLE"
+            and .base_pair_results[0].observed_independent_principles == 3
+            and .dependency_cut_results[0].pair_results[0].status == "NOT_IDENTIFIABLE"
+            and .dependency_cut_results[1].pair_results[0].status == "IDENTIFIABLE"
+            and .pair_separability_computed_by_reused_kernel == true
+            and .physical_diagnosability_established == false
+            and .mutation_performed == false
+            and .authorization_granted == false
+          ' maritime-pairwise-observability-receipt.json
+
       - name: Execute passive observation value-of-information evaluator
         shell: bash
         run: |
