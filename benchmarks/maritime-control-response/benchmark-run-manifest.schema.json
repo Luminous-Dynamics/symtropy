@@ -1541,11 +1541,22 @@
             "observation_count",
             "threshold_crossed",
             "unsupported_outcome_count",
-            "validity_assumption_review_sha256"
+            "validity_assumption_review_sha256",
+            "evidence_unit_kind",
+            "block_aggregation_protocol_sha256",
+            "dependence_review_receipt_sha256",
+            "minimum_block_separation_seconds",
+            "block_manifest_sha256",
+            "independent_evidence_block_count",
+            "duplicate_evidence_unit_rejection_count",
+            "overlap_rejection_count",
+            "insufficient_separation_rejection_count",
+            "raw_sample_pseudoreplication_attempt_rejection_count",
+            "dependence_review_verified_upstream"
           ],
           "properties": {
             "schema_version": {
-              "const": "symtropy-sequential-evidence-v0.1"
+              "const": "symtropy-sequential-evidence-v0.2"
             },
             "status": {
               "enum": [
@@ -1677,8 +1688,118 @@
                   "type": "null"
                 }
               ]
+            },
+            "evidence_unit_kind": {
+              "enum": [
+                "not_evaluated",
+                "non_overlapping_calibrated_block"
+              ]
+            },
+            "block_aggregation_protocol_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dependence_review_receipt_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "minimum_block_separation_seconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "block_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "independent_evidence_block_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "duplicate_evidence_unit_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "overlap_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "insufficient_separation_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "raw_sample_pseudoreplication_attempt_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dependence_review_verified_upstream": {
+              "type": "boolean"
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "evaluated_model_conditional"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "evidence_unit_kind": {
+                    "const": "non_overlapping_calibrated_block"
+                  },
+                  "block_aggregation_protocol_sha256": {
+                    "type": "string"
+                  },
+                  "dependence_review_receipt_sha256": {
+                    "type": "string"
+                  },
+                  "minimum_block_separation_seconds": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "block_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "independent_evidence_block_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "dependence_review_verified_upstream": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     },
@@ -2569,6 +2690,39 @@
                   },
                   "unsupported_outcome_count": {
                     "const": 0
+                  },
+                  "evidence_unit_kind": {
+                    "const": "not_evaluated"
+                  },
+                  "block_aggregation_protocol_sha256": {
+                    "type": "null"
+                  },
+                  "dependence_review_receipt_sha256": {
+                    "type": "null"
+                  },
+                  "minimum_block_separation_seconds": {
+                    "type": "null"
+                  },
+                  "block_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "independent_evidence_block_count": {
+                    "const": 0
+                  },
+                  "duplicate_evidence_unit_rejection_count": {
+                    "const": 0
+                  },
+                  "overlap_rejection_count": {
+                    "const": 0
+                  },
+                  "insufficient_separation_rejection_count": {
+                    "const": 0
+                  },
+                  "raw_sample_pseudoreplication_attempt_rejection_count": {
+                    "const": 0
+                  },
+                  "dependence_review_verified_upstream": {
+                    "const": false
                   }
                 }
               }
