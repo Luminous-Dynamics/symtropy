@@ -123,3 +123,8 @@ The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](.
 ### M2 sample-time quality label contract
 
 The new [M2 sample-time contract](./MEMBRANE_WQ_SAMPLE_TIME_CONTRACT_V0_1.md), [schema](./membrane-wq-sample.schema.json), five [synthetic fixtures](./membrane-wq-sample-fixtures-v0.1.json) and [manifest](./membrane-wq-sample-manifest-v0.1.json) ensure lab values remain labels only at exact sample time/location/analyte. The workflow rejects post-sample telemetry features, zero-imputation of below-LOD/LOQ results and rejected lab QC labels. A paired same-time/different-location synthetic fixture verifies that treatment-chain locations remain distinct. No actual Bristol sample records are present in these synthetic fixtures.
+
+
+### RO transport M0B: grouped multi-pressure permeance fit
+
+The new M0B increment adds synthetic pressure series grouped by replicate, with a through-origin least-squares fit of flux against net driving pressure for each replicate. It reports replicate slopes, residual RMSE, mean slope and sample standard deviation. The Rust evaluator/CLI, three grouped cases, separate oracle, schema and manifest are integrated into the exact-head workflow. It tests the regression procedure only; it does not reproduce Armstrong's OSF workbook or measured reference-A values.
