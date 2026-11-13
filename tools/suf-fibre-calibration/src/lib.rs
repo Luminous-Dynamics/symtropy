@@ -7,9 +7,9 @@
 //! This crate deliberately does not perform asset attribution, datum conversion,
 //! geodetic projection, DAS event detection, or physical qualification.
 
+pub mod coverage;
 pub mod decision;
 pub mod source;
-pub mod coverage;
 
 use core::fmt;
 
@@ -111,21 +111,41 @@ impl fmt::Display for CalibrationError {
             Self::NegativeUncertainty(name) => write!(f, "negative uncertainty: {name}"),
             Self::TooFewAnchors => write!(f, "piecewise map requires at least two anchors"),
             Self::NonMonotoneInputAnchors => write!(f, "input anchors must be strictly increasing"),
-            Self::NonMonotoneOutputAnchors => write!(f, "output anchors must be strictly increasing"),
-            Self::OutOfRange { axis, value, min, max } => {
+            Self::NonMonotoneOutputAnchors => {
+                write!(f, "output anchors must be strictly increasing")
+            }
+            Self::OutOfRange {
+                axis,
+                value,
+                min,
+                max,
+            } => {
                 write!(f, "{axis} value {value} is outside [{min}, {max}]")
             }
             Self::BindingMismatch(name) => write!(f, "observation binding mismatch: {name}"),
             Self::InvalidSha256 => write!(f, "source digest must be 64 hexadecimal characters"),
             Self::InvalidRouteGeometry(reason) => write!(f, "invalid route geometry: {reason}"),
             Self::UnsupportedCoordinateFrame => {
-                write!(f, "only projected metre coordinates with easting/northing order are supported")
+                write!(
+                    f,
+                    "only projected metre coordinates with easting/northing order are supported"
+                )
             }
             Self::UnsupportedTopology => {
-                write!(f, "branched or ambiguous fibre topology is unsupported by this single-span kernel")
+                write!(
+                    f,
+                    "branched or ambiguous fibre topology is unsupported by this single-span kernel"
+                )
             }
-            Self::OutsideValidityInterval { observed_at_unix_ms, valid_from_unix_ms, valid_until_unix_ms } => {
-                write!(f, "observation time {observed_at_unix_ms} is outside calibration validity [{valid_from_unix_ms}, {valid_until_unix_ms}]")
+            Self::OutsideValidityInterval {
+                observed_at_unix_ms,
+                valid_from_unix_ms,
+                valid_until_unix_ms,
+            } => {
+                write!(
+                    f,
+                    "observation time {observed_at_unix_ms} is outside calibration validity [{valid_from_unix_ms}, {valid_until_unix_ms}]"
+                )
             }
             Self::RouteStationOutsideGeometry => {
                 write!(f, "mapped route station is outside the route geometry")
@@ -269,7 +289,10 @@ impl CalibrationBinding {
             ("fibre_id", self.fibre_id.as_str()),
             ("fibre_revision", self.fibre_revision.as_str()),
             ("route_revision", self.route_revision.as_str()),
-            ("interrogator_config_revision", self.interrogator_config_revision.as_str()),
+            (
+                "interrogator_config_revision",
+                self.interrogator_config_revision.as_str(),
+            ),
             ("calibration_revision", self.calibration_revision.as_str()),
             ("method_revision", self.method_revision.as_str()),
             ("endpoint_a_id", self.endpoint_a_id.as_str()),
@@ -282,10 +305,14 @@ impl CalibrationBinding {
         validate_sha256(&self.calibration_artifact_sha256)?;
         validate_sha256(&self.route_geometry_sha256)?;
         if self.endpoint_a_id == self.endpoint_b_id {
-            return Err(CalibrationError::BindingMismatch("endpoints must be distinct"));
+            return Err(CalibrationError::BindingMismatch(
+                "endpoints must be distinct",
+            ));
         }
         if self.valid_from_unix_ms > self.valid_until_unix_ms {
-            return Err(CalibrationError::BindingMismatch("calibration validity interval"));
+            return Err(CalibrationError::BindingMismatch(
+                "calibration validity interval",
+            ));
         }
         Ok(())
     }
@@ -357,24 +384,34 @@ impl RouteGeometry {
             return Err(CalibrationError::EmptyIdentifier("route_revision"));
         }
         if station_origin_endpoint_id.trim().is_empty() {
-            return Err(CalibrationError::EmptyIdentifier("station_origin_endpoint_id"));
+            return Err(CalibrationError::EmptyIdentifier(
+                "station_origin_endpoint_id",
+            ));
         }
         if station_increasing_to_endpoint_id.trim().is_empty() {
-            return Err(CalibrationError::EmptyIdentifier("station_increasing_to_endpoint_id"));
+            return Err(CalibrationError::EmptyIdentifier(
+                "station_increasing_to_endpoint_id",
+            ));
         }
         if station_origin_endpoint_id == station_increasing_to_endpoint_id {
-            return Err(CalibrationError::BindingMismatch("route station endpoints must be distinct"));
+            return Err(CalibrationError::BindingMismatch(
+                "route station endpoints must be distinct",
+            ));
         }
         frame.validate()?;
         if vertices.len() < 2 {
-            return Err(CalibrationError::InvalidRouteGeometry("at least two vertices are required"));
+            return Err(CalibrationError::InvalidRouteGeometry(
+                "at least two vertices are required",
+            ));
         }
         for vertex in &vertices {
             if !vertex.station_m.is_finite()
                 || !vertex.easting_m.is_finite()
                 || !vertex.northing_m.is_finite()
             {
-                return Err(CalibrationError::InvalidRouteGeometry("all coordinates must be finite"));
+                return Err(CalibrationError::InvalidRouteGeometry(
+                    "all coordinates must be finite",
+                ));
             }
         }
         for pair in vertices.windows(2) {
@@ -426,7 +463,9 @@ impl RouteGeometry {
                 let easting = left.easting_m + fraction * (right.easting_m - left.easting_m);
                 let northing = left.northing_m + fraction * (right.northing_m - left.northing_m);
                 if !easting.is_finite() || !northing.is_finite() {
-                    return Err(CalibrationError::NonFinite("interpolated projected position"));
+                    return Err(CalibrationError::NonFinite(
+                        "interpolated projected position",
+                    ));
                 }
                 return Ok((easting, northing));
             }
@@ -463,7 +502,10 @@ impl UncertaintyBudget {
     /// Validate and sum the conservative component bounds.
     pub fn total_bound_m(self) -> CalibrationResult<f64> {
         for (name, value) in [
-            ("optical_measurement_bound_m", self.optical_measurement_bound_m),
+            (
+                "optical_measurement_bound_m",
+                self.optical_measurement_bound_m,
+            ),
             ("optical_to_fibre_bound_m", self.optical_to_fibre_bound_m),
             ("fibre_to_route_bound_m", self.fibre_to_route_bound_m),
             ("route_geometry_bound_m", self.route_geometry_bound_m),
@@ -595,7 +637,9 @@ impl CalibrationModel {
         if &route_geometry.station_origin_endpoint_id != expected_origin
             || &route_geometry.station_increasing_to_endpoint_id != expected_increasing_to
         {
-            return Err(CalibrationError::BindingMismatch("route geometry station orientation"));
+            return Err(CalibrationError::BindingMismatch(
+                "route geometry station orientation",
+            ));
         }
         let uncertainty_total = uncertainty.total_bound_m()?;
         if !uncertainty_total.is_finite() {
@@ -649,7 +693,9 @@ impl CalibrationModel {
             return Err(CalibrationError::BindingMismatch("route_revision"));
         }
         if observation.interrogator_config_revision != self.binding.interrogator_config_revision {
-            return Err(CalibrationError::BindingMismatch("interrogator_config_revision"));
+            return Err(CalibrationError::BindingMismatch(
+                "interrogator_config_revision",
+            ));
         }
         if observation.direction != self.binding.direction {
             return Err(CalibrationError::BindingMismatch("direction"));
@@ -816,7 +862,9 @@ mod tests {
 
     #[test]
     fn composes_distinct_coordinate_axes_without_asset_attribution() {
-        let position = model().locate(&observation()).expect("position should qualify");
+        let position = model()
+            .locate(&observation())
+            .expect("position should qualify");
         assert!((position.physical_fibre_chainage_m - 70.0).abs() < 1e-9);
         assert!((position.route_station_m - 60.0).abs() < 1e-9);
         assert!((position.easting_m - 150.0).abs() < 1e-9);
@@ -848,7 +896,10 @@ mod tests {
                 optical_range_m: 101.0,
                 ..observation()
             }),
-            Err(CalibrationError::OutOfRange { axis: "optical_range_m", .. })
+            Err(CalibrationError::OutOfRange {
+                axis: "optical_range_m",
+                ..
+            })
         ));
     }
 
@@ -881,7 +932,9 @@ mod tests {
                 interrogator_config_revision: "config-r4".to_owned(),
                 ..observation()
             }),
-            Err(CalibrationError::BindingMismatch("interrogator_config_revision"))
+            Err(CalibrationError::BindingMismatch(
+                "interrogator_config_revision"
+            ))
         );
     }
 
@@ -944,8 +997,14 @@ mod tests {
     fn rejects_non_monotone_input_anchors() {
         assert_eq!(
             PiecewiseLinearMap::new(vec![
-                CalibrationAnchor { input_m: 0.0, output_m: 0.0 },
-                CalibrationAnchor { input_m: 0.0, output_m: 1.0 },
+                CalibrationAnchor {
+                    input_m: 0.0,
+                    output_m: 0.0
+                },
+                CalibrationAnchor {
+                    input_m: 0.0,
+                    output_m: 1.0
+                },
             ]),
             Err(CalibrationError::NonMonotoneInputAnchors)
         );
@@ -955,8 +1014,14 @@ mod tests {
     fn rejects_non_monotone_output_anchors() {
         assert_eq!(
             PiecewiseLinearMap::new(vec![
-                CalibrationAnchor { input_m: 0.0, output_m: 10.0 },
-                CalibrationAnchor { input_m: 1.0, output_m: 9.0 },
+                CalibrationAnchor {
+                    input_m: 0.0,
+                    output_m: 10.0
+                },
+                CalibrationAnchor {
+                    input_m: 1.0,
+                    output_m: 9.0
+                },
             ]),
             Err(CalibrationError::NonMonotoneOutputAnchors)
         );
@@ -1004,8 +1069,16 @@ mod tests {
                 "chamber-B".to_owned(),
                 frame(),
                 vec![
-                    RouteVertex { station_m: 0.0, easting_m: 0.0, northing_m: 0.0 },
-                    RouteVertex { station_m: 0.0, easting_m: 1.0, northing_m: 1.0 },
+                    RouteVertex {
+                        station_m: 0.0,
+                        easting_m: 0.0,
+                        northing_m: 0.0
+                    },
+                    RouteVertex {
+                        station_m: 0.0,
+                        easting_m: 1.0,
+                        northing_m: 1.0
+                    },
                 ],
             ),
             Err(CalibrationError::InvalidRouteGeometry(_))
@@ -1076,11 +1149,24 @@ mod tests {
             "chamber-A".to_owned(),
             frame(),
             vec![
-                RouteVertex { station_m: 0.0, easting_m: 150.0, northing_m: 250.0 },
-                RouteVertex { station_m: 50.0, easting_m: 150.0, northing_m: 200.0 },
-                RouteVertex { station_m: 100.0, easting_m: 100.0, northing_m: 200.0 },
+                RouteVertex {
+                    station_m: 0.0,
+                    easting_m: 150.0,
+                    northing_m: 250.0,
+                },
+                RouteVertex {
+                    station_m: 50.0,
+                    easting_m: 150.0,
+                    northing_m: 200.0,
+                },
+                RouteVertex {
+                    station_m: 100.0,
+                    easting_m: 100.0,
+                    northing_m: 200.0,
+                },
             ],
-        ).expect("reversed route geometry is valid");
+        )
+        .expect("reversed route geometry is valid");
 
         assert_eq!(
             CalibrationModel::new(
@@ -1091,7 +1177,9 @@ mod tests {
                 reversed_route,
                 base.uncertainty,
             ),
-            Err(CalibrationError::BindingMismatch("route geometry station orientation"))
+            Err(CalibrationError::BindingMismatch(
+                "route geometry station orientation"
+            ))
         );
     }
 
@@ -1106,11 +1194,24 @@ mod tests {
             "chamber-A".to_owned(),
             frame(),
             vec![
-                RouteVertex { station_m: 0.0, easting_m: 150.0, northing_m: 250.0 },
-                RouteVertex { station_m: 50.0, easting_m: 150.0, northing_m: 200.0 },
-                RouteVertex { station_m: 100.0, easting_m: 100.0, northing_m: 200.0 },
+                RouteVertex {
+                    station_m: 0.0,
+                    easting_m: 150.0,
+                    northing_m: 250.0,
+                },
+                RouteVertex {
+                    station_m: 50.0,
+                    easting_m: 150.0,
+                    northing_m: 200.0,
+                },
+                RouteVertex {
+                    station_m: 100.0,
+                    easting_m: 100.0,
+                    northing_m: 200.0,
+                },
             ],
-        ).expect("reverse-oriented route geometry is valid");
+        )
+        .expect("reverse-oriented route geometry is valid");
         let reverse_model = CalibrationModel::new(
             binding,
             FibreTopology::SingleSpan,
@@ -1118,7 +1219,8 @@ mod tests {
             base.fibre_to_route,
             reversed_route,
             base.uncertainty,
-        ).expect("reverse-oriented calibration should qualify");
+        )
+        .expect("reverse-oriented calibration should qualify");
 
         let reverse_observation = FibreObservation {
             direction: FibreDirection::BToA,
@@ -1126,7 +1228,9 @@ mod tests {
             endpoint_to_id: "chamber-A".to_owned(),
             ..observation()
         };
-        let position = reverse_model.locate(&reverse_observation).expect("reverse observation");
+        let position = reverse_model
+            .locate(&reverse_observation)
+            .expect("reverse observation");
         assert!((position.route_station_m - 60.0).abs() < 1e-9);
         assert!((position.easting_m - 140.0).abs() < 1e-9);
         assert!((position.northing_m - 200.0).abs() < 1e-9);
@@ -1153,7 +1257,9 @@ mod tests {
         };
         assert_eq!(
             budget.total_bound_m(),
-            Err(CalibrationError::NegativeUncertainty("optical_to_fibre_bound_m"))
+            Err(CalibrationError::NegativeUncertainty(
+                "optical_to_fibre_bound_m"
+            ))
         );
     }
 
