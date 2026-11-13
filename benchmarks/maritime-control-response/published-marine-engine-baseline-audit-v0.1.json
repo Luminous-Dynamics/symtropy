@@ -1,0 +1,135 @@
+{
+  "schema_version": "symtropy-published-marine-engine-baseline-audit-v0.1",
+  "status": "public_release_preflight_incomplete_not_reproduced",
+  "publication": {
+    "doi": "10.1016/j.isci.2025.114345",
+    "title": "Marine diesel engine reliable intelligent fault diagnosis method based on the generalized multi-source information fusion",
+    "journal": "iScience",
+    "publication_date": "2026-01-16",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12811478/",
+    "article_reported_accuracy_percent": 99.45,
+    "reported_task": "11-state marine diesel thermal fault diagnosis; 24 thermal parameters",
+    "reported_acquisition": "real-vessel operating data collected every six seconds, with a calibrated one-dimensional simulation model",
+    "reported_data_availability": "Requests for diesel-engine thermal-parameter data are directed to the corresponding author; code is publicly deposited on GitHub.",
+    "reported_protocol": {
+      "data_description_samples": 2567,
+      "data_description_basis": "GT-Power one-dimensional thermodynamic simulation representing eleven health states with approximately 233 samples per state",
+      "article_methods_split": "70/30 random stratified train/test split and five-fold cross-validation",
+      "article_methods_feature_count": 24,
+      "article_reported_small_sample_test_accuracy_percent": 97.37,
+      "article_reported_small_sample_test_recall_percent": 98.16,
+      "article_reported_small_sample_test_f1_percent": 98.2,
+      "comparability_note": "These are paper-reported figures under the paper's own methods; they are not Symtropy measurements and are not independent-vessel transfer scores."
+    }
+  },
+  "public_code_repository": {
+    "repository": "xiezaimi-png/Thermal-fault-diagnosis-of-diesel-engines",
+    "url": "https://github.com/xiezaimi-png/Thermal-fault-diagnosis-of-diesel-engines",
+    "default_branch": "main",
+    "observed_commit_sha": "aa9b0e41598f17f89750f9cf68aefad95cbbd9ab",
+    "observed_commit_date": "2025-11-16T01:28:54Z",
+    "code_file": {
+      "path": "Diesel_engine_fault_diagnosis_code.py",
+      "git_blob_sha": "b6ece57108d042d28b875ad1c3afadb45d04af32",
+      "bytes": 50585
+    },
+    "sample_csv": {
+      "path": "Engine_dataset.csv",
+      "git_blob_sha": "80eb557243fcf982cfa9d84aa4d1bb590e8b7eda",
+      "bytes": 241455,
+      "parsed_rows": 1025,
+      "columns": 25,
+      "label_column": "y_label",
+      "observed_label_counts": {
+        "10": 1025
+      },
+      "observed_unique_labels": 1,
+      "paper_described_state_count": 11,
+      "label_coverage_complete": false,
+      "claim": "The single CSV currently visible at the repository root is a one-class 1,025-row sample. It is not the eleven-state, 2,567-row data resource described in the paper and cannot reproduce the published multi-class result."
+    },
+    "related_test_files": [
+      {
+        "path": "Test_DFCSSAES-WDS.py",
+        "git_blob_sha": "31b833f1f8fc436380aa8e646b62b3055c151926",
+        "bytes": 11880
+      },
+      {
+        "path": "Test_MGCN-TMIF-DST.py",
+        "git_blob_sha": "2339f3ce667d1f34b9740b072bd4ca65d5609fa3",
+        "bytes": 7955
+      },
+      {
+        "path": "Test_SDAE-BSD-DS.py",
+        "git_blob_sha": "33ff89e9bdbb32d75032dbfb11abbe3f8bcdc572",
+        "bytes": 9665
+      }
+    ]
+  },
+  "implementation_review": {
+    "repository_script_split": {
+      "train_fraction": 0.8,
+      "test_fraction": 0.2,
+      "shuffle": true,
+      "stratified": true,
+      "random_state": 42,
+      "distinction": "The public script uses a shuffled 80/20 split, which differs from the article's described 70/30 split. Both are sample-level splits; neither establishes leave-run, leave-load, leave-vessel or voyage-level transfer."
+    },
+    "transformations_and_selection": [
+      {
+        "operation": "mutual_info_classif(X, y)",
+        "timing": "before train_test_split",
+        "status": "pre-split label-informed exploratory analysis",
+        "caveat": "The script later uses a hard-coded feature-index list for the RF input. Do not assert that this exploratory MI calculation directly caused test leakage without reproducing the exact feature selection path; the entire selection process must be fitted inside training folds in a clean reproduction."
+      },
+      {
+        "operation": "X = X + 0.02 * X * np.random.randn(...)",
+        "timing": "before train_test_split",
+        "status": "unseeded noise augmentation",
+        "caveat": "The noise generator is not seeded in the public script; this prevents exact pipeline replay. It is not by itself proof of train/test leakage."
+      },
+      {
+        "operation": "StandardScaler.fit_transform(X_train)",
+        "timing": "after train_test_split",
+        "status": "train-only scaling",
+        "caveat": "This part of the public script is correctly fitted on the training split and applied to the test split."
+      },
+      {
+        "operation": "cross_val_score(... X_train_scaled, y_train, cv=3)",
+        "timing": "within training split",
+        "status": "training-only hyperparameter search",
+        "caveat": "The public script's optimizer objective uses three-fold CV, while the article describes five-fold validation in its Methods. The split and nested evaluation must be reconciled before reproduction."
+      }
+    ],
+    "reference_model_skeletons": {
+      "todo_markers_in_main_script": 18,
+      "placeholder_markers_in_main_script": 11,
+      "mgcn_prediction": "The public script labels the MGCN prediction path as a placeholder and generates random Dirichlet alpha values rather than performing out-of-sample graph inference.",
+      "dfcssaes_fusion": "The public implementation calls the fusion a placeholder and averages probabilities rather than implementing the stated Dempster-Shafer procedure.",
+      "sdae_uncertainty": "The public implementation uses random uncertainty and random conflict matrices as placeholders for Deng entropy and Belief Sinkhorn distance.",
+      "interpretation": "These are source-level limitations of the public repository snapshot; they do not establish that the article's private research implementation used these placeholders."
+    }
+  },
+  "audit_disposition": {
+    "reproduced": false,
+    "public_data_reproduced": false,
+    "model_score_claim_allowed": false,
+    "independent_vessel_transfer_claim_allowed": false,
+    "benchmark_action": "Treat 99.45% as a literature reference only. Request the full data package, variable dictionary, sample/run provenance, original preprocessing, exact split manifest, and executable implementation from the corresponding author before reproducing.",
+    "required_reproduction_protocol": [
+      "Obtain the complete 11-state dataset and license/access terms; bind bytes and provenance.",
+      "Reconcile paper split (70/30, five-fold) with the public script split (80/20, shuffled, three-fold tuning).",
+      "Recover original identifiers for voyage, engine, operating run, load and fault intervention; random row splits are not enough.",
+      "Run a within-source stratified reproduction only as a reference track.",
+      "Run leave-run and leave-load holdouts; freeze feature selection, scaling, tuning and calibration inside training partitions.",
+      "Test simulation-to-vessel and vessel-to-held-out-vessel separately; do not call simulation mixtures real-vessel generalization.",
+      "Report per-state macro recall, event recall, false alarms per observed hour, calibration, open-set false-known and cluster uncertainty.",
+      "Archive exact model, dataset, split, evaluator, code and dependency digests."
+    ],
+    "claim_ceiling": "Public-source preflight only: a one-class sample CSV and incomplete public model skeletons were inspected. The paper's complete data and private/reproducible implementation were not obtained. No paper score was reproduced or disproved."
+  },
+  "evidence_sources": [
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC12811478/",
+    "https://github.com/xiezaimi-png/Thermal-fault-diagnosis-of-diesel-engines"
+  ]
+}
