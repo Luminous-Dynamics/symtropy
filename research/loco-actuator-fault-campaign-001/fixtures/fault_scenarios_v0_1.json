@@ -1,0 +1,891 @@
+{
+  "schema_version": "loco-actuator-fault-campaign-scenarios-v0.1",
+  "campaign_id": "LOCO-ACTUATOR-FAULT-CAMPAIGN-001",
+  "status": "synthetic_design_manifest_only",
+  "evaluator_truth_access": "sealed_from_deployable_controller",
+  "default_platform_strata": [
+    "go2_locomotion",
+    "go2_with_arm",
+    "kyon_68kg",
+    "heavy_legged_robot"
+  ],
+  "severity_convention": "Each fault-family parameter has its own declared unit; no scalar severity is shared across physically different fault mechanisms.",
+  "controller_observations": "Only listed runtime channels and their timestamps/health states. Fault truth, scenario ID and future onset are evaluator-only.",
+  "shared_environment": {
+    "terrain_manifest": "terrain-heldout-v0",
+    "command_manifest": "command-set-v0",
+    "payload_manifest": "payload-set-v0",
+    "evidence_tiers": [
+      "simulation",
+      "test_rig",
+      "hardware",
+      "field"
+    ],
+    "exposure_unit": "fault_runs"
+  },
+  "method_matrix": [
+    "nominal_fault_unaware_negative_control",
+    "passive_fault_augmented_robust",
+    "residual_observer_plus_fixed_compensator",
+    "adaptive_gait_timing_arxiv_2608_07328",
+    "diagnosis_conditioned_moe_arxiv_2606_25965",
+    "ft_wbc_arxiv_2606_24466_whole_body_stratum",
+    "arer_metarl_locked_joint_simulation_stratum",
+    "active_diagnosis_gated_recovery_ssrn_exploratory",
+    "symtropy_set_valued_fault_and_viability_gated_reconfiguration",
+    "oracle_fault_label_upper_bound_only",
+    "lo_composition_task_constraint_energy_separation_go2",
+    "anticipatory_gait_switching_lookahead_mdp_go2",
+    "reference_free_sampling_mppi_go2",
+    "insectron_passive_magnetic_overload_clutch_microhexapod",
+    "psc_safety_curriculum_training_allocation_only",
+    "ued_cross_morphology_heldout_curriculum"
+  ],
+  "scenarios": [
+    {
+      "id": "F01-weakening-stance-step",
+      "split": "validation",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_hip",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 500000,
+            "profile": "step"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 12000,
+        "gait_phase": "stance"
+      },
+      "terrain": "low_step_sequence",
+      "task": "walk_forward",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "admit_only_if_all_plausible_fault_successors_preserve_viability_and_recovery"
+    },
+    {
+      "id": "F02-weakening-ramp",
+      "split": "heldout_fault",
+      "platform_stratum": "kyon_68kg",
+      "faults": [
+        {
+          "component": "RL_calf",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "start_authority_ppm": 1000000,
+            "end_authority_ppm": 350000,
+            "ramp_duration_ms": 5000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 10000,
+        "gait_phase": "unspecified_randomized"
+      },
+      "terrain": "flat_then_rough",
+      "task": "walk_and_turn",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "uncertainty_set_retained_until_diagnosis_is_qualified"
+    },
+    {
+      "id": "F03-locked-hip",
+      "split": "train",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FL_hip",
+          "family": "actuator",
+          "type": "locked_joint",
+          "parameters": {
+            "lock_position_mdeg": 35000,
+            "lock_compliance_ppm": 0
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 8000,
+        "gait_phase": "swing"
+      },
+      "terrain": "flat",
+      "task": "walk_forward",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "fault_label_hidden; robust_intersection_or_controlled_stop"
+    },
+    {
+      "id": "F04-locked-thigh-unseen",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "RR_thigh",
+          "family": "actuator",
+          "type": "locked_joint",
+          "parameters": {
+            "lock_position_mdeg": -25000,
+            "lock_compliance_ppm": 100000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 14000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "uneven_stone",
+      "task": "walk_and_turn",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "unseen_component_fault_must_return_unknown_or_contained_fault_set"
+    },
+    {
+      "id": "F05-free_swing_zero_torque",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "RL_calf",
+          "family": "actuator",
+          "type": "free_swinging",
+          "parameters": {
+            "torque_authority_ppm": 0,
+            "passive_damping_mNm_s_per_rad": 150
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 9000,
+        "gait_phase": "stance"
+      },
+      "terrain": "grass",
+      "task": "controlled_stop_then_recovery",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "passive_joint_dynamics_remain_in_physical_successor_set"
+    },
+    {
+      "id": "F06-intermittent-driver-dropout",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_calf",
+          "family": "actuator",
+          "type": "intermittent_torque_dropout",
+          "parameters": {
+            "authority_on_ppm": 1000000,
+            "authority_off_ppm": 0,
+            "burst_ms": 120,
+            "duty_cycle_ppm": 650000,
+            "period_ms": 400
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 11000,
+        "gait_phase": "stance"
+      },
+      "terrain": "rough_gravel",
+      "task": "walk_forward",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "burst_timing_and_all_intermediate_states_are_admitted"
+    },
+    {
+      "id": "F07-slew-rate-limit",
+      "split": "validation",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FL_thigh",
+          "family": "actuator",
+          "type": "slew_rate_limit",
+          "parameters": {
+            "max_joint_rate_mdeg_s": 60000,
+            "nominal_rate_mdeg_s": 240000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 10000,
+        "gait_phase": "gait_transition"
+      },
+      "terrain": "small_steps",
+      "task": "walk_over_steps",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "commanded_motion_must_not_be_substituted_for_delivered_motion"
+    },
+    {
+      "id": "F08-thermal-derating",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_with_arm",
+      "faults": [
+        {
+          "component": "FR_hip",
+          "family": "actuator",
+          "type": "thermal_derating",
+          "parameters": {
+            "temperature_start_mdeg_c": 70000,
+            "temperature_end_mdeg_c": 95000,
+            "authority_at_start_ppm": 1000000,
+            "authority_at_end_ppm": 400000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 30000,
+        "gait_phase": "sustained_load"
+      },
+      "terrain": "stairs",
+      "task": "walk_and_reach",
+      "payload_kg": 2,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "motor_temperature",
+        "imu"
+      ],
+      "expected_gate": "fresh_thermal_receipt_required_before_each_new_action"
+    },
+    {
+      "id": "F09-voltage-sag-common-bus",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "shared_drive_bus",
+          "family": "power",
+          "type": "supply_voltage_sag",
+          "parameters": {
+            "voltage_start_mv": 28000,
+            "voltage_end_mv": 22000,
+            "drop_duration_ms": 200
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 15000,
+        "gait_phase": "turn"
+      },
+      "terrain": "low_friction_turn",
+      "task": "turn_in_place",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "bus_voltage",
+        "imu"
+      ],
+      "expected_gate": "all_actuator_channels_in_joint_common_cause_group"
+    },
+    {
+      "id": "F10-encoder-stuck-actuator-healthy",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "RL_hip_encoder",
+          "family": "sensor",
+          "type": "stuck_at",
+          "parameters": {
+            "stuck_position_mdeg": 12000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 9000,
+        "gait_phase": "swing"
+      },
+      "terrain": "flat",
+      "task": "walk_forward",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "actuator_fault_must_not_be_assumed_from_encoder_fault_alone"
+    },
+    {
+      "id": "F11-encoder-bias-and-torque-loss",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_thigh",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 700000,
+            "profile": "step"
+          }
+        },
+        {
+          "component": "FR_thigh_encoder",
+          "family": "sensor",
+          "type": "position_bias",
+          "parameters": {
+            "offset_mdeg": 8000,
+            "profile": "step"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 16000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "rough_gravel",
+      "task": "walk_forward",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "joint_common_cause_hypothesis_set_preserved"
+    },
+    {
+      "id": "F12-two-joint-loss",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FL_hip",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 500000,
+            "profile": "step"
+          }
+        },
+        {
+          "component": "RR_calf",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 400000,
+            "profile": "step"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 17000,
+        "gait_phase": "stance"
+      },
+      "terrain": "uneven_stone",
+      "task": "walk_then_recover",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "two_fault_higher_order_signature_not_replaced_by_single_fault_label"
+    },
+    {
+      "id": "F13-fault-during-gap-crossing",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "RR_hip",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 250000,
+            "profile": "step"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 13000,
+        "gait_phase": "swing_before_touchdown"
+      },
+      "terrain": "gap_width_180mm",
+      "task": "cross_gap",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu",
+        "D1_contact",
+        "D2_wrench"
+      ],
+      "expected_gate": "no_action_admitted_without_complete_touchdown_and_recovery_successors"
+    },
+    {
+      "id": "F14-low-friction-payload-fault",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_with_arm",
+      "faults": [
+        {
+          "component": "RL_thigh",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 600000,
+            "profile": "ramp",
+            "ramp_duration_ms": 1000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 18000,
+        "gait_phase": "turn"
+      },
+      "terrain": "low_friction_0p25",
+      "task": "carry_payload_and_turn",
+      "payload_kg": 4,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu",
+        "arm_state"
+      ],
+      "expected_gate": "locomotion_and_manipulation_reachability_are_separately_reported"
+    },
+    {
+      "id": "F15-high-information-probe-consumes-reserve",
+      "split": "adversarial",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_hip",
+          "family": "actuator",
+          "type": "loss_of_effectiveness",
+          "parameters": {
+            "authority_fraction_ppm": 550000,
+            "profile": "step"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 10000,
+        "gait_phase": "stance"
+      },
+      "terrain": "narrow_support",
+      "task": "diagnostic_probe_then_continue",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "diagnostic_probe": {
+        "duration_ms": 300,
+        "energy_mj": 120000,
+        "remaining_recovery_reserve_mj": 80000,
+        "expected_eig_bits": 4
+      },
+      "expected_gate": "reject_probe_before_information_ranking_when_reserve_budget_is_exceeded"
+    },
+    {
+      "id": "F16-ambiguous-fault-hypotheses",
+      "split": "adversarial",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_calf",
+          "family": "actuator_or_sensor",
+          "type": "ambiguous_partial_response",
+          "parameters": {
+            "candidate_faults": [
+              "torque_effectiveness_0p7",
+              "encoder_bias_trajectory"
+            ],
+            "indistinguishable_observation_window_ms": 250
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 12000,
+        "gait_phase": "stance"
+      },
+      "terrain": "rough_gravel",
+      "task": "continue_or_abstain",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "action_must_be_admitted_for_intersection_of_both_plausible_fault_hypotheses"
+    },
+    {
+      "id": "F17-out_of_model-fault",
+      "split": "adversarial",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "drive_controller",
+          "family": "unknown",
+          "type": "unmodelled_phase_current_fault",
+          "parameters": {
+            "ground_truth_evaluator_only": true
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 20000,
+        "gait_phase": "randomized"
+      },
+      "terrain": "heldout_terrain_family",
+      "task": "safe_recovery_or_stop",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu"
+      ],
+      "expected_gate": "unknown_fault_must_not_map_to_closest_known_fault_without_evidence"
+    },
+    {
+      "id": "F18-observation-coverage-loss",
+      "split": "adversarial",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "shared_proprioception_bus",
+          "family": "sensor_common_cause",
+          "type": "dropout",
+          "parameters": {
+            "dropout_duration_ms": 500
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 11000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "mixed_obstacles",
+      "task": "walk_and_recover",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "imu",
+        "D1_contact",
+        "D2_wrench"
+      ],
+      "expected_gate": "missingness_is_not_scored_as_no_fault_or_no_adverse_event"
+    },
+    {
+      "id": "F19-overload-clutch-slip",
+      "split": "heldout_fault",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "FR_leg_magnetic_coupler",
+          "family": "mechanical_transmission",
+          "type": "overload_slip",
+          "parameters": {
+            "nominal_torque_mNm": 12,
+            "slip_threshold_mNm": 20,
+            "load_pulse_peak_mNm": 28,
+            "pulse_duration_ms": 180
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 5000,
+        "gait_phase": "stance"
+      },
+      "terrain": "obstacle_contact",
+      "task": "walk_through_contact_perturbation",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "Hall_phase_left",
+        "Hall_phase_right",
+        "motor_current",
+        "body_pose"
+      ],
+      "expected_gate": "slip_must_prevent_drive_stall_and_reengage_within_declared_phase_error_and_deadline"
+    },
+    {
+      "id": "F20-nuisance-clutch-slip",
+      "split": "adversarial",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "shared_drive_module_coupler",
+          "family": "mechanical_transmission",
+          "type": "nuisance_slip_under_nominal_load",
+          "parameters": {
+            "nominal_torque_mNm": 18,
+            "slip_threshold_mNm": 17,
+            "terrain": "flat",
+            "task_load_class": "nominal"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 0,
+        "gait_phase": "continuous"
+      },
+      "terrain": "flat",
+      "task": "nominal_velocity_tracking",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "Hall_phase_left",
+        "Hall_phase_right",
+        "motor_current",
+        "body_pose"
+      ],
+      "expected_gate": "nominal_nuisance_slip_is_counted_as_capability_and_energy_regression"
+    },
+    {
+      "id": "F21-clutch-fails-to-reengage",
+      "split": "adversarial",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "RR_leg_magnetic_coupler",
+          "family": "mechanical_transmission",
+          "type": "failed_reengagement_after_slip",
+          "parameters": {
+            "slip_event": true,
+            "reengagement_timeout_ms": 250,
+            "post_slip_phase_error_mdeg": 45000
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 6000,
+        "gait_phase": "stance"
+      },
+      "terrain": "asymmetric_load",
+      "task": "recover_after_overload",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "Hall_phase_left",
+        "Hall_phase_right",
+        "motor_current",
+        "body_pose"
+      ],
+      "expected_gate": "mode_must_not_be_marked_recovered_without_valid_coupling_and_phase_receipt"
+    },
+    {
+      "id": "F22-thermal-derating-slope-payload-lookahead",
+      "split": "heldout_fault",
+      "platform_stratum": "go2_with_arm",
+      "faults": [
+        {
+          "component": "FR_hip",
+          "family": "actuator",
+          "type": "thermal_derating",
+          "parameters": {
+            "temperature_start_mdeg_c": 68000,
+            "temperature_end_mdeg_c": 92000,
+            "authority_start_ppm": 1000000,
+            "authority_end_ppm": 420000,
+            "ramp_duration_ms": 9000
+          }
+        },
+        {
+          "component": "payload_centre_of_mass",
+          "family": "environment",
+          "type": "payload_shift",
+          "parameters": {
+            "payload_kg": 4,
+            "com_offset_mm": [
+              80,
+              0,
+              35
+            ]
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 14000,
+        "gait_phase": "late_stance"
+      },
+      "terrain": "slope_to_rough_stair_transition",
+      "task": "walk_and_carry",
+      "payload_kg": 4,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "joint_temperature",
+        "imu",
+        "height_map"
+      ],
+      "expected_gate": "retain_fault_uncertainty; gait_lookahead_may_propose_but_only_viability_and_fresh_actuator_evidence_authorize_reconfiguration",
+      "matched_methods": [
+        "adaptive_gait_timing_arxiv_2608_07328",
+        "lo_composition_task_constraint_energy_separation_go2",
+        "anticipatory_gait_switching_lookahead_mdp_go2",
+        "symtropy_set_valued_fault_and_viability_gated_reconfiguration"
+      ]
+    },
+    {
+      "id": "F23-passive-clutch-plus-active-controller",
+      "split": "heldout_fault",
+      "platform_stratum": "microhexapod_mechanical_coupling",
+      "faults": [
+        {
+          "component": "FR_leg_magnetic_coupler",
+          "family": "mechanical_transmission",
+          "type": "overload_slip",
+          "parameters": {
+            "nominal_torque_mNm": 12,
+            "slip_threshold_mNm": 20,
+            "load_pulse_peak_mNm": 28,
+            "pulse_duration_ms": 180
+          }
+        },
+        {
+          "component": "shared_drive_module_coupler",
+          "family": "mechanical_transmission",
+          "type": "nuisance_slip_under_nominal_load",
+          "parameters": {
+            "nominal_torque_mNm": 18,
+            "slip_threshold_mNm": 17,
+            "terrain": "flat",
+            "task_load_class": "nominal"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 5000,
+        "gait_phase": "push_off"
+      },
+      "terrain": "mixed_slope_and_compliant_substrate",
+      "task": "walk_and_turn",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "hall_coupler_state",
+        "motor_phase",
+        "joint_position",
+        "body_imu"
+      ],
+      "expected_gate": "compare_passive_only_active_only_and_combined_mechanical_control_arms; require_reengagement_and_phase_receipt_before_recoverable_status",
+      "matched_methods": [
+        "insectron_passive_magnetic_overload_clutch_microhexapod",
+        "symtropy_set_valued_fault_and_viability_gated_reconfiguration"
+      ]
+    },
+    {
+      "id": "F24-unknown-fault-hidden-from-encoder",
+      "split": "adversarial",
+      "platform_stratum": "go2_locomotion",
+      "faults": [
+        {
+          "component": "FR_calf_drive",
+          "family": "actuator",
+          "type": "unmodelled_phase_current_fault",
+          "parameters": {
+            "current_waveform_digest": "evaluator-only",
+            "torque_ripple_ppm": 280000
+          }
+        },
+        {
+          "component": "FR_calf_encoder",
+          "family": "sensor",
+          "type": "position_bias",
+          "parameters": {
+            "offset_mdeg": 5000,
+            "profile": "ramp"
+          }
+        }
+      ],
+      "onset": {
+        "time_ms": 7000,
+        "gait_phase": "touchdown"
+      },
+      "terrain": "low_friction_staggered_blocks",
+      "task": "walk_and_stop",
+      "payload_kg": 0,
+      "runtime_channels": [
+        "joint_position",
+        "joint_velocity",
+        "motor_current",
+        "imu",
+        "contact_wrench"
+      ],
+      "expected_gate": "unmodelled_fault_stays_unknown; no_nearest_class_substitution; robust_action_intersection_or_controlled_stop",
+      "matched_methods": [
+        "residual_observer_plus_fixed_compensator",
+        "diagnosis_conditioned_moe_arxiv_2606_25965",
+        "symtropy_set_valued_fault_and_viability_gated_reconfiguration"
+      ]
+    }
+  ],
+  "comparator_roles": {
+    "arer_metarl_locked_joint_simulation_stratum": "Fault adaptation baseline only for fixed-angle locked joints in Isaac Sim; do not extrapolate to other fault families.",
+    "lo_composition_task_constraint_energy_separation_go2": "Separate task reward, operational constraints, energy minimization and terrain adaptation; not a fault detector.",
+    "anticipatory_gait_switching_lookahead_mdp_go2": "Look-ahead gait supervisor baseline for terrain transitions; not a fault detector or viability certificate.",
+    "reference_free_sampling_mppi_go2": "Gait/contact replanning baseline without handcrafted gait schedules; keep hardware and simulation behaviors separate.",
+    "insectron_passive_magnetic_overload_clutch_microhexapod": "Passive mechanical overload adaptation, kept in its own morphology/scale stratum.",
+    "psc_safety_curriculum_training_allocation_only": "Training/diagnostic-case allocation method, not an online fault-tolerant controller.",
+    "ued_cross_morphology_heldout_curriculum": "Training-distribution and held-out terrain curriculum benchmark, not a fault model."
+  },
+  "standardized_performance_profile": {
+    "standard_id": "ISO 18646-5:2026",
+    "publication_date": "2026-07-24",
+    "official_record": "https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/08/68/86850.html",
+    "applies_to": "complete-machine nominal and fault-degraded performance test pairs where the test item is applicable",
+    "test_items": [
+      "rated_speed",
+      "stopping_distance",
+      "maximum_climbing_height",
+      "stair_capacity",
+      "maximum_slope",
+      "dragging_force",
+      "crossing_capacity",
+      "minimum_pass_through_height",
+      "minimum_travel_width"
+    ],
+    "trial_binding": "Bind the test facility, environmental/surface conditions, operating conditions, robot configuration, load, command, route, and fault state for the before/after pair.",
+    "claim_boundary": "This standard evaluates locomotion performance and does not verify or validate safety requirements. Robust viability/recovery and adverse-outcome evidence remain separate."
+  }
+}
