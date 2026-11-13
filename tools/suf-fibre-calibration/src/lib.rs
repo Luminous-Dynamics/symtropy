@@ -1068,6 +1068,71 @@ mod tests {
     }
 
     #[test]
+    fn rejects_route_station_orientation_opposite_to_interrogator_direction() {
+        let base = model();
+        let reversed_route = RouteGeometry::new(
+            "route-r7".to_owned(),
+            "chamber-B".to_owned(),
+            "chamber-A".to_owned(),
+            frame(),
+            vec![
+                RouteVertex { station_m: 0.0, easting_m: 150.0, northing_m: 250.0 },
+                RouteVertex { station_m: 50.0, easting_m: 150.0, northing_m: 200.0 },
+                RouteVertex { station_m: 100.0, easting_m: 100.0, northing_m: 200.0 },
+            ],
+        ).expect("reversed route geometry is valid");
+
+        assert_eq!(
+            CalibrationModel::new(
+                base.binding,
+                FibreTopology::SingleSpan,
+                base.optical_to_fibre,
+                base.fibre_to_route,
+                reversed_route,
+                base.uncertainty,
+            ),
+            Err(CalibrationError::BindingMismatch("route geometry station orientation"))
+        );
+    }
+
+    #[test]
+    fn reverse_interrogation_uses_a_reverse_oriented_route_station_axis() {
+        let base = model();
+        let mut binding = base.binding;
+        binding.direction = FibreDirection::BToA;
+        let reversed_route = RouteGeometry::new(
+            "route-r7".to_owned(),
+            "chamber-B".to_owned(),
+            "chamber-A".to_owned(),
+            frame(),
+            vec![
+                RouteVertex { station_m: 0.0, easting_m: 150.0, northing_m: 250.0 },
+                RouteVertex { station_m: 50.0, easting_m: 150.0, northing_m: 200.0 },
+                RouteVertex { station_m: 100.0, easting_m: 100.0, northing_m: 200.0 },
+            ],
+        ).expect("reverse-oriented route geometry is valid");
+        let reverse_model = CalibrationModel::new(
+            binding,
+            FibreTopology::SingleSpan,
+            base.optical_to_fibre,
+            base.fibre_to_route,
+            reversed_route,
+            base.uncertainty,
+        ).expect("reverse-oriented calibration should qualify");
+
+        let reverse_observation = FibreObservation {
+            direction: FibreDirection::BToA,
+            endpoint_from_id: "chamber-B".to_owned(),
+            endpoint_to_id: "chamber-A".to_owned(),
+            ..observation()
+        };
+        let position = reverse_model.locate(&reverse_observation).expect("reverse observation");
+        assert!((position.route_station_m - 60.0).abs() < 1e-9);
+        assert!((position.easting_m - 140.0).abs() < 1e-9);
+        assert!((position.northing_m - 200.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn uncertainty_is_conservatively_summed_not_rss_combined() {
         let budget = UncertaintyBudget {
             optical_measurement_bound_m: 1.0,
