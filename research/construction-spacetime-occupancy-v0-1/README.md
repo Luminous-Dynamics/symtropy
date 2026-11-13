@@ -18,6 +18,8 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 - Half-open time windows and clock uncertainty taken from the existing #3644 `ReservationRequest`.
 - Closed spatial-boundary policy: touching after expansion is a potential conflict.
 - Idempotent repeated occupancy IDs; conflicting reuse is rejected.
+- A combined admission helper evaluates the #3644 resource reservation and spatial occupancy against cloned in-memory owners, committing both only when both accept.
+- If spatial occupancy rejects, the tentative reservation is not committed; if the resource calendar rejects, the tentative occupancy is not committed.
 - Typed stale-context, malformed-geometry, overflow, clock and task-binding failures.
 - Conflict records include both occupancy/task IDs, occupancy classes, expanded overlap bounds, overlap time and clock domain.
 
@@ -38,5 +40,7 @@ The geometry producer must supply a conservative outer bound in the exact frame.
 ## Claim boundary
 
 A reported overlap is a potential conflict under the declared conservative bounds, not proof of physical collision or unsafe operation. No reported overlap is not proof of physical safety or clearance. Unknown, stale or unobserved geometry must be held/not evaluated by the upstream observation and authority owners; it is never treated as an empty envelope or a clear zone.
+
+The combined admission helper is a single-process in-memory transaction pattern. It is not a distributed transaction, durable commit or multi-controller serialization protocol.
 
 The v0.1 AABB model is a deterministic broad-phase research reference only. False positives are allowed and must remain visible. A later narrow-phase geometry implementation needs an independent reference oracle and independently measured/as-built envelopes before any physical claim.
