@@ -150,10 +150,26 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
         .iter()
         .find(|source| str_at(source, "dataset_id") == Some(expected_ids[3]));
     if let Some(tool_use) = tool_use {
-        let known_limitations = string_list(tool_use, "known_limitations").unwrap_or_default();
+        let limitations = tool_use
+            .get("known_limitations")
+            .and_then(Value::as_array);
+        let has_rights_conflict_note = limitations.is_some_and(|items| {
+            items.iter().any(|item| {
+                item.as_str()
+                    .is_some_and(|text| text.contains("rights conflict is unresolved"))
+            })
+        });
+        let has_score_ceiling_note = limitations.is_some_and(|items| {
+            items.iter().any(|item| {
+                item.as_str()
+                    .is_some_and(|text| text.contains("observed score ceiling"))
+            })
+        });
         if str_at(tool_use, "rights_status") != Some("RIGHTS_RECONCILIATION_REQUIRED")
             || str_at(tool_use, "raw_file_license")
-                != Some("DERIVATIVE_CLAIMS_CC-BY-4.0; OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD")
+                != Some(
+                    "DERIVATIVE_CLAIMS_CC-BY-4.0; OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD",
+                )
             || integer_at(tool_use, "independent_unit_count") != Some(5)
             || integer_at(tool_use, "task_count") != Some(160)
             || integer_at(tool_use, "answerable_task_count") != Some(130)
@@ -163,16 +179,15 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
             || bool_at(tool_use, "published_models_all_solved_test_ceiling") != Some(true)
             || bool_at(tool_use, "raw_files_downloaded") != Some(false)
             || bool_at(tool_use, "raw_files_vendored") != Some(false)
-            || !known_limitations
-                .iter()
-                .any(|item| item.contains("rights conflict is unresolved"))
-            || !known_limitations
-                .iter()
-                .any(|item| item.contains("observed score ceiling"))
+            || !has_rights_conflict_note
+            || !has_score_ceiling_note
         {
             errors.push(
-                "BAM scientific tool-use derivative must remain rights-reconciliation-required, five-WID and ceiling-limited"
-                    .to_owned(),
+                concat!(
+                    "BAM scientific tool-use derivative must remain rights-reconciliation-required, ",
+                    "five-WID and ceiling-limited"
+                )
+                .to_owned(),
             );
         }
     } else {
@@ -444,7 +459,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_three_domain_registry_is_admitted_metadata_only() {
+    fn frozen_four_domain_registry_is_admitted_metadata_only() {
         let summary=validate_registry(REGISTRY_SCHEMA,REGISTRY_MANIFEST).expect("registry baseline");
         assert_eq!(summary,RegistrySummary{sources:4,controls:46,positive:1,negative:45});
     }
