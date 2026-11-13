@@ -18,6 +18,9 @@ use construction_spacetime_occupancy_core::{
 pub struct WorkNeed {
     pub work_unit_id: String,
     pub region_id: String,
+    /// Current conservative geometric uncertainty bound from the survey owner.
+    /// This is not a probability or a sensor-quality estimate.
+    pub uncertainty_bound_mm: [u64; 3],
 }
 
 impl WorkNeed {
@@ -112,6 +115,29 @@ pub fn choose_fixed_observation(
     }
 
     choose_targeted_observation(std::slice::from_ref(action), work_needs, occupancy_book)
+}
+
+/// Threshold-triggered baseline: only work needs whose declared uncertainty bound
+/// exceeds the configured per-axis threshold are treated as observation targets.
+/// The threshold is a benchmark policy input, not a safety or measurement tolerance.
+pub fn choose_threshold_observation(
+    actions: &[ObservationAction],
+    work_needs: &[WorkNeed],
+    threshold_mm: [u64; 3],
+    occupancy_book: &SpatialOccupancyBook,
+) -> Result<TargetedPlan, ObservationPlanError> {
+    let triggered_needs: Vec<WorkNeed> = work_needs
+        .iter()
+        .filter(|need| {
+            need.uncertainty_bound_mm
+                .iter()
+                .zip(threshold_mm.iter())
+                .any(|(uncertainty, threshold)| uncertainty > threshold)
+        })
+        .cloned()
+        .collect();
+
+    choose_targeted_observation(actions, &triggered_needs, occupancy_book)
 }
 
 /// Select one observation without access to hidden scenario truth.
@@ -563,14 +589,17 @@ mod tests {
             WorkNeed {
                 work_unit_id: "rebar-a".to_owned(),
                 region_id: "region-a".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
             },
             WorkNeed {
                 work_unit_id: "embed-b".to_owned(),
                 region_id: "region-b".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
             },
             WorkNeed {
                 work_unit_id: "mep-c".to_owned(),
                 region_id: "region-c".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
             },
         ];
 
@@ -612,10 +641,12 @@ mod tests {
             WorkNeed {
                 work_unit_id: "unit-a".to_owned(),
                 region_id: "region-a".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
             },
             WorkNeed {
                 work_unit_id: "unit-b".to_owned(),
                 region_id: "region-b".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
             },
         ];
 
@@ -662,6 +693,7 @@ mod tests {
         let needs = vec![WorkNeed {
             work_unit_id: "unit-a".to_owned(),
             region_id: "region-a".to_owned(),
+            uncertainty_bound_mm: [100, 100, 100],
         }];
 
         let plan = choose_fixed_observation("fixed-survey", &actions, &needs, &index)
@@ -669,6 +701,80 @@ mod tests {
         assert!(plan.selected.is_none());
         assert_eq!(plan.rejected_conflicts.len(), 1);
         assert_eq!(plan.rejected_conflicts[0].action_id, "fixed-survey");
+    }
+
+    #[test]
+    fn threshold_policy_targets_only_regions_above_declared_uncertainty_bounds() {
+        let actions = vec![
+            action(
+                "scan-high-uncertainty",
+                &["region-high"],
+                bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+                0,
+                100,
+                10,
+                200,
+            ),
+            action(
+                "scan-low-uncertainty",
+                &["region-low"],
+                bounds([3_000, 0, 0], [4_000, 1_000, 1_000]),
+                0,
+                100,
+                1,
+                10,
+            ),
+        ];
+        let needs = vec![
+            WorkNeed {
+                work_unit_id: "high-unit".to_owned(),
+                region_id: "region-high".to_owned(),
+                uncertainty_bound_mm: [250, 20, 10],
+            },
+            WorkNeed {
+                work_unit_id: "low-unit".to_owned(),
+                region_id: "region-low".to_owned(),
+                uncertainty_bound_mm: [20, 20, 10],
+            },
+        ];
+
+        let plan = choose_threshold_observation(
+            &actions,
+            &needs,
+            [100, 100, 100],
+            &book(),
+        )
+        .expect("threshold policy");
+        let selected = plan.selected.expect("high uncertainty scan selected");
+        assert_eq!(selected.action_id, "scan-high-uncertainty");
+        assert_eq!(selected.covered_work_unit_ids, vec!["high-unit"]);
+        assert_eq!(
+            plan.irrelevant_action_ids,
+            vec!["scan-low-uncertainty"]
+        );
+    }
+
+    #[test]
+    fn threshold_policy_with_no_triggered_need_performs_no_observation() {
+        let actions = vec![action(
+            "scan-low",
+            &["region-low"],
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+            5,
+            100,
+        )];
+        let needs = vec![WorkNeed {
+            work_unit_id: "low-unit".to_owned(),
+            region_id: "region-low".to_owned(),
+            uncertainty_bound_mm: [10, 10, 10],
+        }];
+        let plan =
+            choose_threshold_observation(&actions, &needs, [100, 100, 100], &book())
+                .expect("threshold plan");
+        assert!(plan.selected.is_none());
+        assert_eq!(plan.irrelevant_action_ids, vec!["scan-low"]);
     }
 
     #[test]
@@ -705,6 +811,7 @@ mod tests {
         let needs = vec![WorkNeed {
             work_unit_id: "unit-a".to_owned(),
             region_id: "region-a".to_owned(),
+            uncertainty_bound_mm: [100, 100, 100],
         }];
 
         let plan = choose_targeted_observation(&[blocked, feasible], &needs, &index)
@@ -906,6 +1013,7 @@ mod tests {
         let need = WorkNeed {
             work_unit_id: "unit-a".to_owned(),
             region_id: "region-a".to_owned(),
+            uncertainty_bound_mm: [100, 100, 100],
         };
 
         assert_eq!(
@@ -940,6 +1048,7 @@ mod tests {
             &[WorkNeed {
                 work_unit_id: "unit-a".to_owned(),
                 region_id: "region-a".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
             }],
             &book(),
         )
