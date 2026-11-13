@@ -114,15 +114,15 @@ impl IntervalV1 {
         self.lower.abs().max(self.upper.abs())
     }
 
-    pub fn add(self, other: Self) -> Result<Self, IntervalErrorV1> {
+    pub fn checked_add(self, other: Self) -> Result<Self, IntervalErrorV1> {
         Self::outward(self.lower + other.lower, self.upper + other.upper)
     }
 
-    pub fn sub(self, other: Self) -> Result<Self, IntervalErrorV1> {
+    pub fn checked_sub(self, other: Self) -> Result<Self, IntervalErrorV1> {
         Self::outward(self.lower - other.upper, self.upper - other.lower)
     }
 
-    pub fn mul(self, other: Self) -> Result<Self, IntervalErrorV1> {
+    pub fn checked_mul(self, other: Self) -> Result<Self, IntervalErrorV1> {
         let products = [
             self.lower * other.lower,
             self.lower * other.upper,
@@ -137,7 +137,7 @@ impl IntervalV1 {
         Self::outward(lower, upper)
     }
 
-    pub fn div(self, other: Self) -> Result<Self, IntervalErrorV1> {
+    pub fn checked_div(self, other: Self) -> Result<Self, IntervalErrorV1> {
         if other.contains_zero() {
             return Err(IntervalErrorV1::DivisionByZeroInterval);
         }
@@ -150,7 +150,7 @@ impl IntervalV1 {
             reciprocal_a.min(reciprocal_b),
             reciprocal_a.max(reciprocal_b),
         )?;
-        self.mul(reciprocal)
+        self.checked_mul(reciprocal)
     }
 
     pub fn sqrt_upper(self) -> Result<f64, IntervalErrorV1> {
@@ -240,9 +240,9 @@ impl RootCertificateV1 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RootOutcomeV1 {
-    CertifiedUniqueRoot(RootCertificateV1),
+    CertifiedUniqueRoot(Box<RootCertificateV1>),
     Inconclusive {
         candidate_multiplier: f64,
         starting_interval: IntervalV1,
@@ -335,7 +335,7 @@ fn interval_dot3(
 ) -> Result<IntervalV1, IntervalErrorV1> {
     let mut total = IntervalV1::point(0.0)?;
     for index in 0..3 {
-        total = total.add(left[index].mul(right[index])?)?;
+        total = total.checked_add(left[index].checked_mul(right[index])?)?;
     }
     Ok(total)
 }
@@ -345,13 +345,13 @@ fn interval_solve3(
     rhs: &[IntervalV1; 3],
 ) -> Result<[IntervalV1; 3], IntervalErrorV1> {
     let a = matrix;
-    let c00 = a[1][1].mul(a[2][2])?.sub(a[1][2].mul(a[2][1])?)?;
-    let c01 = a[1][2].mul(a[2][0])?.sub(a[1][0].mul(a[2][2])?)?;
-    let c02 = a[1][0].mul(a[2][1])?.sub(a[1][1].mul(a[2][0])?)?;
+    let c00 = a[1][1].checked_mul(a[2][2])?.checked_sub(a[1][2].checked_mul(a[2][1])?)?;
+    let c01 = a[1][2].checked_mul(a[2][0])?.checked_sub(a[1][0].checked_mul(a[2][2])?)?;
+    let c02 = a[1][0].checked_mul(a[2][1])?.checked_sub(a[1][1].checked_mul(a[2][0])?)?;
     let determinant = a[0][0]
-        .mul(c00)?
-        .add(a[0][1].mul(c01)?)?
-        .add(a[0][2].mul(c02)?)?;
+        .checked_mul(c00)?
+        .checked_add(a[0][1].checked_mul(c01)?)?
+        .checked_add(a[0][2].checked_mul(c02)?)?;
     if determinant.contains_zero() {
         return Err(IntervalErrorV1::SingularMatrixInterval);
     }
@@ -359,18 +359,18 @@ fn interval_solve3(
     let adjugate = [
         [
             c00,
-            a[0][2].mul(a[2][1])?.sub(a[0][1].mul(a[2][2])?)?,
-            a[0][1].mul(a[1][2])?.sub(a[0][2].mul(a[1][1])?)?,
+            a[0][2].checked_mul(a[2][1])?.checked_sub(a[0][1].checked_mul(a[2][2])?)?,
+            a[0][1].checked_mul(a[1][2])?.checked_sub(a[0][2].checked_mul(a[1][1])?)?,
         ],
         [
             c01,
-            a[0][0].mul(a[2][2])?.sub(a[0][2].mul(a[2][0])?)?,
-            a[0][2].mul(a[1][0])?.sub(a[0][0].mul(a[1][2])?)?,
+            a[0][0].checked_mul(a[2][2])?.checked_sub(a[0][2].checked_mul(a[2][0])?)?,
+            a[0][2].checked_mul(a[1][0])?.checked_sub(a[0][0].checked_mul(a[1][2])?)?,
         ],
         [
             c02,
-            a[0][1].mul(a[2][0])?.sub(a[0][0].mul(a[2][1])?)?,
-            a[0][0].mul(a[1][1])?.sub(a[0][1].mul(a[1][0])?)?,
+            a[0][1].checked_mul(a[2][0])?.checked_sub(a[0][0].checked_mul(a[2][1])?)?,
+            a[0][0].checked_mul(a[1][1])?.checked_sub(a[0][1].checked_mul(a[1][0])?)?,
         ],
     ];
 
@@ -378,9 +378,9 @@ fn interval_solve3(
     for row in 0..3 {
         let mut numerator = IntervalV1::point(0.0)?;
         for column in 0..3 {
-            numerator = numerator.add(adjugate[row][column].mul(rhs[column])?)?;
+            numerator = numerator.checked_add(adjugate[row][column].checked_mul(rhs[column])?)?;
         }
-        result[row] = numerator.div(determinant)?;
+        result[row] = numerator.checked_div(determinant)?;
     }
     Ok(result)
 }
@@ -390,10 +390,10 @@ fn interval_matrix_vector3(
     vector: &[IntervalV1; 3],
 ) -> Result<[IntervalV1; 3], IntervalErrorV1> {
     let mut result = [IntervalV1::point(0.0)?; 3];
-    for row in 0..3 {
-        for column in 0..3 {
-            result[row] =
-                result[row].add(IntervalV1::point(matrix[row][column])?.mul(vector[column])?)?;
+    for (result_entry, matrix_row) in result.iter_mut().zip(matrix.iter()) {
+        for (matrix_entry, vector_entry) in matrix_row.iter().zip(vector.iter()) {
+            *result_entry = (*result_entry)
+                .checked_add(IntervalV1::point(*matrix_entry)?.checked_mul(*vector_entry)?)?;
         }
     }
     Ok(result)
@@ -404,15 +404,15 @@ fn reduced_system(
     lambda: IntervalV1,
 ) -> Result<([[IntervalV1; 3]; 3], IntervalV1), IntervalErrorV1> {
     let h = IntervalV1::point(problem.time_step)?;
-    let coefficient = h.mul(h)?.div(IntervalV1::point(4.0)?)?;
-    let scaled_lambda = coefficient.mul(lambda)?;
+    let coefficient = h.checked_mul(h)?.checked_div(IntervalV1::point(4.0)?)?;
+    let scaled_lambda = coefficient.checked_mul(lambda)?;
     let mut matrix = [[IntervalV1::point(0.0)?; 3]; 3];
     for row in 0..3 {
         for column in 0..3 {
             let identity = IntervalV1::point(if row == column { 1.0 } else { 0.0 })?;
             let correction =
-                scaled_lambda.mul(IntervalV1::point(problem.delassus[row][column])?)?;
-            matrix[row][column] = identity.sub(correction)?;
+                scaled_lambda.checked_mul(IntervalV1::point(problem.delassus[row][column])?)?;
+            matrix[row][column] = identity.checked_sub(correction)?;
         }
     }
     Ok((matrix, coefficient))
@@ -435,38 +435,38 @@ fn evaluate_reduced_equation(
     ];
     let relative_midpoint = interval_solve3(&system, &free)?;
     let relative_difference = [
-        relative_midpoint[0].sub(initial[0])?,
-        relative_midpoint[1].sub(initial[1])?,
-        relative_midpoint[2].sub(initial[2])?,
+        relative_midpoint[0].checked_sub(initial[0])?,
+        relative_midpoint[1].checked_sub(initial[1])?,
+        relative_midpoint[2].checked_sub(initial[2])?,
     ];
-    let h_scale = IntervalV1::point(2.0)?.div(IntervalV1::point(problem.time_step)?)?;
+    let h_scale = IntervalV1::point(2.0)?.checked_div(IntervalV1::point(problem.time_step)?)?;
     let mapped_midpoint_velocity = [
-        h_scale.mul(relative_difference[0])?,
-        h_scale.mul(relative_difference[1])?,
-        h_scale.mul(relative_difference[2])?,
+        h_scale.checked_mul(relative_difference[0])?,
+        h_scale.checked_mul(relative_difference[1])?,
+        h_scale.checked_mul(relative_difference[2])?,
     ];
     let residual = interval_dot3(&relative_midpoint, &mapped_midpoint_velocity)?;
 
     let delassus_times_relative = interval_matrix_vector3(&problem.delassus, &relative_midpoint)?;
     let relative_prime_unscaled = interval_solve3(&system, &delassus_times_relative)?;
     let relative_prime = [
-        coefficient.mul(relative_prime_unscaled[0])?,
-        coefficient.mul(relative_prime_unscaled[1])?,
-        coefficient.mul(relative_prime_unscaled[2])?,
+        coefficient.checked_mul(relative_prime_unscaled[0])?,
+        coefficient.checked_mul(relative_prime_unscaled[1])?,
+        coefficient.checked_mul(relative_prime_unscaled[2])?,
     ];
     let twice_relative_minus_initial = [
         relative_midpoint[0]
-            .add(relative_midpoint[0])?
-            .sub(initial[0])?,
+            .checked_add(relative_midpoint[0])?
+            .checked_sub(initial[0])?,
         relative_midpoint[1]
-            .add(relative_midpoint[1])?
-            .sub(initial[1])?,
+            .checked_add(relative_midpoint[1])?
+            .checked_sub(initial[1])?,
         relative_midpoint[2]
-            .add(relative_midpoint[2])?
-            .sub(initial[2])?,
+            .checked_add(relative_midpoint[2])?
+            .checked_sub(initial[2])?,
     ];
-    let derivative_scale = IntervalV1::point(2.0)?.div(IntervalV1::point(problem.time_step)?)?;
-    let derivative = derivative_scale.mul(interval_dot3(
+    let derivative_scale = IntervalV1::point(2.0)?.checked_div(IntervalV1::point(problem.time_step)?)?;
+    let derivative = derivative_scale.checked_mul(interval_dot3(
         &relative_prime,
         &twice_relative_minus_initial,
     )?)?;
@@ -476,25 +476,25 @@ fn evaluate_reduced_equation(
 
 fn cholesky_check<const N: usize>(matrix: &[[f64; N]; N], symmetry_tolerance: f64) -> bool {
     let mut scale = 0.0_f64;
-    for row in 0..N {
-        for column in 0..N {
-            scale = scale.max(matrix[row][column].abs());
+    for matrix_row in matrix {
+        for value in matrix_row {
+            scale = scale.max(value.abs());
         }
     }
     if !scale.is_finite() || scale == 0.0 {
         return false;
     }
     let mut lower = [[0.0; N]; N];
-    for row in 0..N {
-        for column in 0..N {
-            if (matrix[row][column] - matrix[column][row]).abs() > symmetry_tolerance * scale {
+    for (row, matrix_row) in matrix.iter().enumerate() {
+        for (column, value) in matrix_row.iter().enumerate() {
+            if (*value - matrix[column][row]).abs() > symmetry_tolerance * scale {
                 return false;
             }
         }
-        for column in 0..=row {
-            let mut value = 0.5 * (matrix[row][column] + matrix[column][row]) / scale;
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+        for (column, value) in matrix_row.iter().enumerate().take(row + 1) {
+            let mut value = 0.5 * (*value + matrix[column][row]) / scale;
+            for (left, right) in lower[row].iter().zip(lower[column].iter()).take(column) {
+                value -= left * right;
             }
             if row == column {
                 if !value.is_finite() || value <= 0.0 {
@@ -541,11 +541,11 @@ impl MidpointProblemV1 {
 
 fn solve3_point(matrix: &Matrix3, rhs: &Vector3) -> Result<Vector3, IntervalErrorV1> {
     let mut augmented = [[0.0; 4]; 3];
-    for row in 0..3 {
-        for column in 0..3 {
-            augmented[row][column] = matrix[row][column];
-        }
-        augmented[row][3] = rhs[row];
+    for ((augmented_row, matrix_row), rhs_value) in
+        augmented.iter_mut().zip(matrix.iter()).zip(rhs.iter())
+    {
+        augmented_row[..3].copy_from_slice(matrix_row);
+        augmented_row[3] = *rhs_value;
     }
     for column in 0..3 {
         let pivot_row = (column..3)
@@ -562,16 +562,21 @@ fn solve3_point(matrix: &Matrix3, rhs: &Vector3) -> Result<Vector3, IntervalErro
             augmented.swap(pivot_row, column);
         }
         let pivot = augmented[column][column];
-        for entry in column..4 {
-            augmented[column][entry] /= pivot;
+        for entry in augmented[column].iter_mut().skip(column) {
+            *entry /= pivot;
         }
-        for row in 0..3 {
-            if row == column {
+        let pivot_values = augmented[column];
+        for (row_index, row_values) in augmented.iter_mut().enumerate() {
+            if row_index == column {
                 continue;
             }
-            let factor = augmented[row][column];
-            for entry in column..4 {
-                augmented[row][entry] -= factor * augmented[column][entry];
+            let factor = row_values[column];
+            for (entry, pivot_entry) in row_values
+                .iter_mut()
+                .zip(pivot_values.iter())
+                .skip(column)
+            {
+                *entry -= factor * pivot_entry;
             }
         }
     }
@@ -588,19 +593,28 @@ fn candidate_step(
 ) -> Result<(Vector6, Vector6), IntervalErrorV1> {
     let h2_over_four = problem.time_step * problem.time_step / 4.0;
     let mut system = [[0.0; 3]; 3];
-    for row in 0..3 {
-        for column in 0..3 {
-            system[row][column] = (if row == column { 1.0 } else { 0.0 })
-                - h2_over_four * lambda * problem.delassus[row][column];
+    for (row, (system_row, delassus_row)) in
+        system.iter_mut().zip(problem.delassus.iter()).enumerate()
+    {
+        for (column, (system_value, delassus_value)) in
+            system_row.iter_mut().zip(delassus_row.iter()).enumerate()
+        {
+            *system_value = (if row == column { 1.0 } else { 0.0 })
+                - h2_over_four * lambda * delassus_value;
         }
     }
     let relative = solve3_point(&system, &problem.free_relative_position)?;
     let mut midpoint_velocity = problem.free_midpoint_velocity;
-    for row in 0..6 {
-        let correction: f64 = (0..3)
-            .map(|axis| problem.mass_inverse_jacobian_transpose[row][axis] * relative[axis])
+    for (midpoint_entry, b_row) in midpoint_velocity
+        .iter_mut()
+        .zip(problem.mass_inverse_jacobian_transpose.iter())
+    {
+        let correction: f64 = b_row
+            .iter()
+            .zip(relative.iter())
+            .map(|(b_component, relative_component)| b_component * relative_component)
             .sum();
-        midpoint_velocity[row] += problem.time_step * lambda * 0.5 * correction;
+        *midpoint_entry += problem.time_step * lambda * 0.5 * correction;
     }
     let position_next = std::array::from_fn(|index| {
         problem.initial_position[index] + problem.time_step * midpoint_velocity[index]
@@ -624,25 +638,26 @@ fn interval_step(
 ) -> Result<([IntervalV1; 6], [IntervalV1; 6]), IntervalErrorV1> {
     let (_, _, relative) = evaluate_reduced_equation(problem, lambda)?;
     let lambda_half_h = IntervalV1::point(problem.time_step)?
-        .mul(lambda)?
-        .div(IntervalV1::point(2.0)?)?;
+        .checked_mul(lambda)?
+        .checked_div(IntervalV1::point(2.0)?)?;
     let mut position = [IntervalV1::point(0.0)?; 6];
     let mut velocity = [IntervalV1::point(0.0)?; 6];
     for row in 0..6 {
         let mut correction = IntervalV1::point(0.0)?;
-        for axis in 0..3 {
-            correction = correction.add(
-                IntervalV1::point(problem.mass_inverse_jacobian_transpose[row][axis])?
-                    .mul(relative[axis])?,
+        for (b_component, relative_component) in
+            problem.mass_inverse_jacobian_transpose[row].iter().zip(relative.iter())
+        {
+            correction = correction.checked_add(
+                IntervalV1::point(*b_component)?.checked_mul(*relative_component)?,
             )?;
         }
         let midpoint = IntervalV1::point(problem.free_midpoint_velocity[row])?
-            .add(lambda_half_h.mul(correction)?)?;
+            .checked_add(lambda_half_h.checked_mul(correction)?)?;
         position[row] = IntervalV1::point(problem.initial_position[row])?
-            .add(IntervalV1::point(problem.time_step)?.mul(midpoint)?)?;
+            .checked_add(IntervalV1::point(problem.time_step)?.checked_mul(midpoint)?)?;
         velocity[row] = IntervalV1::point(2.0)?
-            .mul(midpoint)?
-            .sub(IntervalV1::point(problem.initial_velocity[row])?)?;
+            .checked_mul(midpoint)?
+            .checked_sub(IntervalV1::point(problem.initial_velocity[row])?)?;
     }
     Ok((position, velocity))
 }
@@ -650,7 +665,7 @@ fn interval_step(
 fn euclidean_radius_upper(radii: &Vector6) -> Result<f64, IntervalErrorV1> {
     let mut squared = IntervalV1::point(0.0)?;
     for radius in radii {
-        squared = squared.add(IntervalV1::point(*radius)?.mul(IntervalV1::point(*radius)?)?)?;
+        squared = squared.checked_add(IntervalV1::point(*radius)?.checked_mul(IntervalV1::point(*radius)?)?)?;
     }
     squared.sqrt_upper()
 }
@@ -660,9 +675,9 @@ fn mass_metric_radius_upper(metric: &Matrix6, radii: &Vector6) -> Result<f64, In
     for row in 0..6 {
         for column in 0..6 {
             let term = IntervalV1::point(metric[row][column].abs())?
-                .mul(IntervalV1::point(radii[row])?)?
-                .mul(IntervalV1::point(radii[column])?)?;
-            upper = upper.add(term)?;
+                .checked_mul(IntervalV1::point(radii[row])?)?
+                .checked_mul(IntervalV1::point(radii[column])?)?;
+            upper = upper.checked_add(term)?;
         }
     }
     upper.sqrt_upper()
@@ -674,7 +689,7 @@ fn interval_error_radii(
 ) -> Result<Vector6, IntervalErrorV1> {
     let mut radii = [0.0; 6];
     for index in 0..6 {
-        let error = exact_interval[index].sub(IntervalV1::point(candidate[index])?)?;
+        let error = exact_interval[index].checked_sub(IntervalV1::point(candidate[index])?)?;
         radii[index] = error.max_abs();
     }
     Ok(radii)
@@ -704,8 +719,8 @@ pub fn certify_midpoint_step(
 
     let initial_interval = IntervalV1::point(candidate_multiplier).and_then(|center| {
         let width = IntervalV1::point(radius)?;
-        let lower = center.sub(width)?;
-        let upper = center.add(width)?;
+        let lower = center.checked_sub(width)?;
+        let upper = center.checked_add(width)?;
         IntervalV1::new(lower.lower, upper.upper)
     });
     let starting_interval = match initial_interval {
@@ -759,7 +774,7 @@ pub fn certify_midpoint_step(
             InconclusiveReasonV1::DerivativeIntervalContainsZero,
         ));
     }
-    let residual_over_derivative = match residual_at_candidate.div(derivative_on_starting_interval)
+    let residual_over_derivative = match residual_at_candidate.checked_div(derivative_on_starting_interval)
     {
         Ok(value) => value,
         Err(error) => {
@@ -770,7 +785,7 @@ pub fn certify_midpoint_step(
             ));
         }
     };
-    let interval_newton_image = match point_lambda.sub(residual_over_derivative) {
+    let interval_newton_image = match point_lambda.checked_sub(residual_over_derivative) {
         Ok(value) => value,
         Err(error) => {
             return Ok(inconclusive(
@@ -805,7 +820,7 @@ pub fn certify_midpoint_step(
         certified_root_interval,
         problem_binding: *problem,
     };
-    Ok(RootOutcomeV1::CertifiedUniqueRoot(root))
+    Ok(RootOutcomeV1::CertifiedUniqueRoot(Box::new(root)))
 }
 
 pub fn certify_step_error_bounds(
@@ -885,18 +900,18 @@ mod tests {
     fn interval_arithmetic_encloses_exact_dyadic_operations() {
         let left = IntervalV1::new(0.25, 0.5).unwrap();
         let right = IntervalV1::new(2.0, 4.0).unwrap();
-        let product = left.mul(right).unwrap();
+        let product = left.checked_mul(right).unwrap();
         assert!(product.contains(0.5));
         assert!(product.contains(2.0));
 
-        let quotient = right.div(left).unwrap();
+        let quotient = right.checked_div(left).unwrap();
         assert!(quotient.contains(4.0));
         assert!(quotient.contains(16.0));
 
         assert_eq!(
             IntervalV1::new(-1.0, 1.0)
                 .unwrap()
-                .div(IntervalV1::new(-0.1, 0.2).unwrap()),
+                .checked_div(IntervalV1::new(-0.1, 0.2).unwrap()),
             Err(IntervalErrorV1::DivisionByZeroInterval)
         );
     }
@@ -920,7 +935,7 @@ mod tests {
     fn outward_square_root_accepts_zero_lower_bound_inflation() {
         let widened_zero = IntervalV1::point(0.0)
             .unwrap()
-            .mul(IntervalV1::point(0.0).unwrap())
+            .checked_mul(IntervalV1::point(0.0).unwrap())
             .unwrap();
         assert!(widened_zero.lower < 0.0);
         assert!(widened_zero.sqrt_upper().is_ok());
@@ -939,14 +954,14 @@ mod tests {
             problem.initial_relative_position[0] - problem.free_relative_position[0],
         )
         .unwrap()
-        .div(
+        .checked_div(
             IntervalV1::point(problem.time_step)
                 .unwrap()
-                .mul(IntervalV1::point(problem.time_step).unwrap())
+                .checked_mul(IntervalV1::point(problem.time_step).unwrap())
                 .unwrap()
-                .div(IntervalV1::point(4.0).unwrap())
+                .checked_div(IntervalV1::point(4.0).unwrap())
                 .unwrap()
-                .mul(IntervalV1::point(problem.delassus[0][0]).unwrap())
+                .checked_mul(IntervalV1::point(problem.delassus[0][0]).unwrap())
                 .unwrap(),
         )
         .unwrap();
