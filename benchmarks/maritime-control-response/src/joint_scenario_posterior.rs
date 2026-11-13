@@ -16,8 +16,8 @@ use std::fmt;
 
 use crate::active_probe::{
     candidate_manifest_sha256, hypothesis_manifest_sha256, rank_diagnostic_probes,
-    select_probe_baseline, DiagnosticProbeCandidate, HypothesisPrior, ProbeBaseline,
-    ProbeBaselineSelection, ProbePortfolio, ProbeSelectionPolicy,
+    select_probe_baseline, DiagnosticProbeCandidate, HypothesisPrior, ProbeBaselineSelection,
+    ProbePortfolio, ProbeSelectionPolicy,
 };
 
 const PROBABILITY_TOLERANCE: f64 = 1e-9;
