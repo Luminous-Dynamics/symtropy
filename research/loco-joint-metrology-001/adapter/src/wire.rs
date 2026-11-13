@@ -590,6 +590,7 @@ pub fn verify_normalized_receipt(serialized: &str) -> Result<Value, WireReceiptE
             "energy_input",
             "sampling_input",
             "terminal_safe_stop_qualified",
+            "terminal_reserve_state_digest",
             "report",
         ],
     ) {
@@ -606,6 +607,9 @@ pub fn verify_normalized_receipt(serialized: &str) -> Result<Value, WireReceiptE
         return Err(WireReceiptError::InvalidEnvelope);
     }
     validate_report_input_consistency(payload)?;
+    if !non_empty_string(&payload["terminal_reserve_state_digest"]) {
+        return false;
+    }
     let identity = &payload["identity"];
     let configuration = &payload["configuration"];
     let decision = &payload["decision_input"];
