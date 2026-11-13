@@ -8,3 +8,8 @@ publish = false
 path = "src/lib.rs"
 
 [workspace]
+
+[[bench]]
+name = "time_index"
+path = "benches/time_index.rs"
+harness = false
