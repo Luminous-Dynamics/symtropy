@@ -155,11 +155,7 @@ impl ReservationBook {
         Ok(())
     }
 
-    fn fine_buckets_within_coarse(
-        start_ms: u64,
-        end_ms: u64,
-        coarse_bucket: u64,
-    ) -> Vec<u64> {
+    fn fine_buckets_within_coarse(start_ms: u64, end_ms: u64, coarse_bucket: u64) -> Vec<u64> {
         if start_ms >= end_ms {
             return Vec::new();
         }
@@ -177,10 +173,10 @@ impl ReservationBook {
     }
 
     fn fine_bucket_range_for_coarse(coarse_bucket: u64) -> (u64, u64) {
-        let first = coarse_bucket
-            .saturating_mul(RESERVATION_TIME_BUCKET_MS / RESERVATION_FINE_BUCKET_MS);
-        let last = first
-            .saturating_add(RESERVATION_TIME_BUCKET_MS / RESERVATION_FINE_BUCKET_MS - 1);
+        let first =
+            coarse_bucket.saturating_mul(RESERVATION_TIME_BUCKET_MS / RESERVATION_FINE_BUCKET_MS);
+        let last =
+            first.saturating_add(RESERVATION_TIME_BUCKET_MS / RESERVATION_FINE_BUCKET_MS - 1);
         (first, last)
     }
 
@@ -219,7 +215,11 @@ impl ReservationBook {
         // retain the complete coarse set as the conservative query path.
         let requests: Option<Vec<ReservationRequest>> = ids
             .iter()
-            .map(|id| self.reservations.get(id).map(|record| record.request.clone()))
+            .map(|id| {
+                self.reservations
+                    .get(id)
+                    .map(|record| record.request.clone())
+            })
             .collect();
         let Some(requests) = requests else {
             return;
@@ -389,8 +389,7 @@ impl ReservationBook {
         for coarse_bucket in coarse_buckets {
             let coarse_key = (resource_id.to_owned(), coarse_bucket);
             if use_fine && self.promoted_coarse_buckets.contains(&coarse_key) {
-                for fine_bucket in
-                    Self::fine_buckets_within_coarse(start_ms, end_ms, coarse_bucket)
+                for fine_bucket in Self::fine_buckets_within_coarse(start_ms, end_ms, coarse_bucket)
                 {
                     if let Some(ids) = self
                         .fine_time_buckets
@@ -407,7 +406,10 @@ impl ReservationBook {
     }
 
     /// Number of density-promoted coarse buckets for one resource.
-    pub fn promoted_bucket_count_for_resource(&self, resource_id: &str) -> Result<usize, ReservationError> {
+    pub fn promoted_bucket_count_for_resource(
+        &self,
+        resource_id: &str,
+    ) -> Result<usize, ReservationError> {
         require_non_empty("resource_id", resource_id)?;
         if !self.resources.contains_key(resource_id) {
             return Err(ReservationError::UnknownResource);
@@ -980,11 +982,8 @@ mod tests {
         );
 
         for index in 0..64_u64 {
-            book.release(
-                &format!("hysteresis-{index}"),
-                &format!("robot-{index}"),
-            )
-            .expect("release to the low watermark");
+            book.release(&format!("hysteresis-{index}"), &format!("robot-{index}"))
+                .expect("release to the low watermark");
         }
         assert_eq!(
             book.promoted_bucket_count_for_resource("work-zone-A"),
@@ -1084,14 +1083,11 @@ mod tests {
             book.promoted_bucket_count_for_resource("work-zone-A"),
             Ok(1)
         );
-        for start in [9_950_u64, 10_000, 10_050, 10_099, 10_100, 10_150, 15_000, 22_700] {
+        for start in [
+            9_950_u64, 10_000, 10_050, 10_099, 10_100, 10_150, 15_000, 22_700,
+        ] {
             for end in [start + 1, start + 25, start + 100, start + 250] {
-                assert_index_contains_every_exact_overlap(
-                    &book,
-                    "work-zone-A",
-                    start,
-                    end,
-                );
+                assert_index_contains_every_exact_overlap(&book, "work-zone-A", start, end);
             }
         }
     }
