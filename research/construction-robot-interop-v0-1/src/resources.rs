@@ -919,6 +919,184 @@ mod tests {
     }
 
     #[test]
+    fn dense_coarse_bucket_promotes_to_fine_index_and_filters_local_query() {
+        let mut book = book(u32::MAX);
+        for index in 0..1_000_u64 {
+            let start = 1_000 + index * 40;
+            let end = start + 20;
+            book.reserve(
+                request(
+                    &format!("dense-{index}"),
+                    &format!("robot-{index}"),
+                    start,
+                    end,
+                    end + 500,
+                    1,
+                ),
+                0,
+            )
+            .expect("dense fixture reservation");
+        }
+
+        assert_eq!(
+            book.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(1)
+        );
+        assert_eq!(
+            book.candidate_count_for_interval("work-zone-A", 20_000, 20_100),
+            Ok(3)
+        );
+        assert_eq!(
+            book.reference_candidate_count_for_interval("work-zone-A", 20_000, 20_100),
+            Ok(3)
+        );
+        assert_eq!(
+            book.candidate_count_for_interval("work-zone-A", 0, 60_000),
+            Ok(1_000)
+        );
+    }
+
+    #[test]
+    fn adaptive_index_hysteresis_demotes_only_below_low_watermark() {
+        let mut book = book(u32::MAX);
+        for index in 0..128_u64 {
+            let start = 1_000 + index * 10;
+            book.reserve(
+                request(
+                    &format!("hysteresis-{index}"),
+                    &format!("robot-{index}"),
+                    start,
+                    start + 5,
+                    start + 100,
+                    1,
+                ),
+                0,
+            )
+            .expect("hysteresis fixture reservation");
+        }
+        assert_eq!(
+            book.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(1)
+        );
+
+        for index in 0..64_u64 {
+            book.release(
+                &format!("hysteresis-{index}"),
+                &format!("robot-{index}"),
+            )
+            .expect("release to the low watermark");
+        }
+        assert_eq!(
+            book.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(1)
+        );
+
+        book.release("hysteresis-64", "robot-64")
+            .expect("release below the low watermark");
+        assert_eq!(
+            book.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(0)
+        );
+        assert!(book.fine_time_buckets.is_empty());
+        assert_eq!(
+            book.candidate_count_for_interval("work-zone-A", 1_000, 2_300),
+            Ok(63)
+        );
+    }
+
+    #[test]
+    fn expiry_and_epoch_invalidation_clear_promoted_fine_indexes() {
+        let mut expired = book(u32::MAX);
+        for index in 0..128_u64 {
+            let start = 1_000 + index * 10;
+            expired
+                .reserve(
+                    request(
+                        &format!("expire-fine-{index}"),
+                        &format!("robot-{index}"),
+                        start,
+                        start + 5,
+                        start + 100,
+                        1,
+                    ),
+                    0,
+                )
+                .expect("fine-index expiry fixture");
+        }
+        assert_eq!(
+            expired.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(1)
+        );
+        assert_eq!(expired.expire(10_000), 128);
+        assert_eq!(
+            expired.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(0)
+        );
+        assert!(expired.fine_time_buckets.is_empty());
+        assert!(expired.time_buckets.is_empty());
+
+        let mut invalidated = book(u32::MAX);
+        for index in 0..128_u64 {
+            let start = 1_000 + index * 10;
+            invalidated
+                .reserve(
+                    request(
+                        &format!("epoch-fine-{index}"),
+                        &format!("robot-{index}"),
+                        start,
+                        start + 5,
+                        start + 10_000,
+                        1,
+                    ),
+                    0,
+                )
+                .expect("fine-index epoch fixture");
+        }
+        invalidated
+            .advance_site_epoch("site-epoch-2")
+            .expect("advance site epoch");
+        assert_eq!(
+            invalidated.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(0)
+        );
+        assert!(invalidated.fine_time_buckets.is_empty());
+        assert!(invalidated.time_buckets.is_empty());
+    }
+
+    #[test]
+    fn promoted_fine_index_keeps_uncertainty_boundary_candidates() {
+        let mut book = book_with_uncertainty(u32::MAX, 50);
+        for index in 0..128_u64 {
+            let start = 10_000 + index * 100;
+            let mut item = request(
+                &format!("fine-boundary-{index}"),
+                &format!("robot-{index}"),
+                start,
+                start + 50,
+                start + 150,
+                1,
+            );
+            item.clock_uncertainty_ms = 50;
+            book.reserve(item, 0).expect("fine boundary fixture");
+        }
+
+        assert_eq!(
+            book.promoted_bucket_count_for_resource("work-zone-A"),
+            Ok(1)
+        );
+        for start in [9_950_u64, 10_000, 10_050, 10_099, 10_100, 10_150, 15_000, 22_700] {
+            for end in [start + 1, start + 25, start + 100, start + 250] {
+                assert_index_contains_every_exact_overlap(
+                    &book,
+                    "work-zone-A",
+                    start,
+                    end,
+                );
+            }
+        }
+    }
+
+    #[test]
     fn temporal_index_has_no_false_negatives_across_bucket_boundaries() {
         let mut book = book_with_uncertainty(100, 1_000);
         let cases = [
