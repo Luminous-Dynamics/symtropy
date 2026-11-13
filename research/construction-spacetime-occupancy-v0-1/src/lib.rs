@@ -1294,7 +1294,7 @@ mod tests {
             },
         )
         .expect("independent inspection acceptance");
-        drop(send);
+        
 
         assert_eq!(
             ledger.observe_attempt("rebar-functional-unit-001", &machine, None),
