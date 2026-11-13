@@ -44,6 +44,25 @@ Sources:
 
 The research-review finding that attachment-removal AI is sparse concerns the published research corpus. It does not establish that commercial trim-removal systems do not exist.
 
+### Wider industrial landscape — sorting plants and integrated recycling networks
+
+The incumbent set must not be reduced to a single Valvan line.
+
+| System / programme | Publicly stated scope and scale | Benchmark interpretation |
+|---|---|---|
+| Valvan semi-automatic Fibersort | Supplier says one textile/second; up to approximately 1,200 kg/h, derived using its estimate of about three used textiles per kg | Supplier estimate; actual kg/h depends on garment mass and presentation. Measure item/s, input kg/h and accepted output separately |
+| Valvan Trimclean | Up to 1,000 kg/h maximum of clipping feed under best-possible industrial-load conditions | Clipping-level separation only; depends on specific clipping weight, conveyor coverage and dry/regular-humidity conditions |
+| ANDRITZ / Nouvelle Fibres Textiles, France | ANDRITZ's October 2026 company presentation lists an automated post-consumer textile sorting installation, 5,000 t/y capacity and 2023 start-up; it describes AI-based material/colour identification and contaminant removal | Important industrial-scale sorting comparator. The public slide does not specify annual operating hours, exact boundary of the 5,000 t/y, uptime, output purity, accepted downstream grade or whether the capacity is nameplate vs achieved. Do not convert to kg/h without verified operating hours and process boundary |
+| Valvan Hypersort | Supplier advertises up to 1,200 garments/hour for automated reuse grading/pricing | Whole-item reuse grading, not a fibre-composition sorter; compare in a reuse/grade lane, not against Fibersort NIR accuracy |
+| Rieter / Säntis Textiles / Valvan Recycling Powerhouse | Venture announced July 2026 to standardize and scale recycling into certified yarns; first blueprint franchise planned for early 2027 in Qatar; Rieter contributes tearing/spinning, Valvan sorting including Fibersort/Trimclean | Announced future integrated competitor/partner, not an already operating global franchise network. Its end-to-end model makes accepted yarn quality, traceability and plant replication central competitive benchmarks |
+
+Primary supplier/company sources:
+- Fibersort capacity description: https://www.fibersort.com/en/products/semi-automatic-fibersort
+- ANDRITZ October 2026 company presentation, page 18: https://www.andritz.com/resource/blob/105244/327cba4881dab1af236a52cd8f0caa92/download-company-presentation-april-2025-en-group-data.pdf
+- Rieter Recycling Powerhouse announcement (17 July 2026): https://www.rieter.com/media/media-releases/newsdetail/recycling-powerhouse-circularity-at-industrial-scale
+
+These figures have different denominators and evidence levels: garments/hour, clipping kg/hour and annual facility tonnes are not directly comparable. Record rated capacity, measured throughput, uptime and accepted downstream output separately. Company announcements and supplier brochures do not replace matched-lot or independent receiver evidence.
+
 ## 2. Matched process arms
 
 ### Arm A — incumbent Fibersort + Trimclean line
