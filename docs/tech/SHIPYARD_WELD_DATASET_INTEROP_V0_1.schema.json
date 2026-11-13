@@ -240,7 +240,69 @@
         "published_models_all_solved_test_ceiling": {
           "type": "boolean"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dataset_id": {
+                "const": "bam-scientific-tool-use-v0.1.0"
+              }
+            },
+            "required": [
+              "dataset_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "task_count",
+              "answerable_task_count",
+              "constructed_withheld_task_count",
+              "introductory_sft_example_count",
+              "heldout_test_workpiece_count",
+              "published_models_all_solved_test_ceiling"
+            ],
+            "properties": {
+              "rights_status": {
+                "const": "RIGHTS_RECONCILIATION_REQUIRED"
+              },
+              "raw_file_license": {
+                "const": "DERIVATIVE_CLAIMS_CC-BY-4.0; OFFICIAL_ZENODO_SOURCE_RECORD_SHOWS_COPYRIGHT_AND_BLANK_LICENSE_FIELD"
+              },
+              "independent_unit_count": {
+                "const": 5
+              },
+              "grouping_field": {
+                "const": "workpiece_id"
+              },
+              "task_count": {
+                "const": 160
+              },
+              "answerable_task_count": {
+                "const": 130
+              },
+              "constructed_withheld_task_count": {
+                "const": 30
+              },
+              "introductory_sft_example_count": {
+                "const": 480
+              },
+              "heldout_test_workpiece_count": {
+                "const": 1
+              },
+              "published_models_all_solved_test_ceiling": {
+                "const": true
+              },
+              "raw_files_downloaded": {
+                "const": false
+              },
+              "raw_files_vendored": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
     },
     "split_policy": {
       "type": "object",
