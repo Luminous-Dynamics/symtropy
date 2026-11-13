@@ -32,7 +32,7 @@ A fast delivery does not prove a source is fresh. A shared schema does not prove
 
 ## Frozen corpus
 
-The v0.1 corpus contains 12 finite cases:
+The v0.1 corpus contains 13 finite cases:
 - 4 positive cases: integrated, unified, federated and mixed topologies;
 - 9 negative cases: update frequency, sample frequency, jitter, p95 latency, stale source, semantic fidelity, provenance/authority, clock synchronization and uncertainty.
 
@@ -79,3 +79,10 @@ A PASS proves only that the frozen synthetic corpus matches its commissioning or
 Each interface now declares both `sample_interval_us` / `max_sample_interval_us` and `update_interval_ms` / `max_update_interval_ms`. The former describes acquisition resolution at the source; the latter describes how often the interface publishes or updates a value. A gateway can publish 10 ms updates while forwarding a value originally sampled every 50 ms; that does not make the underlying measurement a 10 ms sample.
 
 The BAM companion article provides an explicit example of heterogeneous source cadence: current/voltage at 0.1 ms (100 µs), robot TCP coordinates at 8 ms (8,000 µs), and power-source OPC-UA variables at 100 ms (100,000 µs). These are not interchangeable with interface delivery latency or update frequency. The new DTC-013 negative control keeps the update interval within budget while violating the sampling-resolution limit; the only expected failure is `SAMPLE_FREQUENCY`.
+
+
+## Sampling cadence is distinct from update cadence
+
+Every interface now declares a source sampling interval in microseconds and a separate interface update interval in milliseconds. They are different properties: an adapter may publish a value frequently even though the underlying sensor acquired it less frequently. A compliant update cadence cannot compensate for insufficient sampling resolution.
+
+The BAM Tandem-GMAW paper describes current/voltage sampled every 0.1 ms (100 µs), robot TCP coordinates every 8 ms (8,000 µs) and power-source OPC-UA variables every 100 ms (100,000 µs). These rates are preserved per modality; they are not collapsed into one update rate. DTC-013 is the negative control: the interface update interval passes, but the source sample interval exceeds its task limit, so the evaluator must report only `SAMPLE_FREQUENCY`.
