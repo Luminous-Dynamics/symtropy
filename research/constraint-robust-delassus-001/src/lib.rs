@@ -33,6 +33,8 @@ pub enum RobustConstraintErrorV1 {
     AsymmetricMassPerturbation { row: usize, column: usize },
     NonPositiveDefiniteMassMetric { pivot: usize },
     NegativeConstraintMetric { pivot: usize },
+    NonSymmetricDelassus { row: usize, column: usize },
+    EigenSolveDidNotConverge,
 }
 
 impl fmt::Display for RobustConstraintErrorV1 {
@@ -339,12 +341,30 @@ fn symmetric_min_eigenvalue<const K: usize>(
     if !scale.is_finite() {
         return Err(RobustConstraintErrorV1::NonFiniteIntermediate);
     }
+    if scale == 0.0 {
+        return Ok(0.0);
+    }
+    for row in 0..K {
+        for column in (row + 1)..K {
+            let asymmetry = (a[row][column] - a[column][row]).abs();
+            if asymmetry > 128.0 * f64::EPSILON * scale {
+                return Err(RobustConstraintErrorV1::NonSymmetricDelassus { row, column });
+            }
+            let average = 0.5 * a[row][column] + 0.5 * a[column][row];
+            a[row][column] = average / scale;
+            a[column][row] = average / scale;
+        }
+        a[row][row] /= scale;
+    }
     if K == 1 {
-        return Ok(a[0][0]);
+        return Ok(a[0][0] * scale);
     }
 
-    let tolerance = 64.0 * f64::EPSILON * scale.max(1.0);
+    // Normalize first so the convergence test is scale-relative even when
+    // physical units make W very small or very large.
+    let tolerance = 64.0 * f64::EPSILON;
     let max_iterations = 64 * K * K;
+    let mut converged = false;
     for _ in 0..max_iterations {
         let mut p = 0usize;
         let mut q = 1usize;
@@ -360,6 +380,7 @@ fn symmetric_min_eigenvalue<const K: usize>(
             }
         }
         if largest <= tolerance {
+            converged = true;
             break;
         }
 
@@ -394,9 +415,13 @@ fn symmetric_min_eigenvalue<const K: usize>(
         }
     }
 
+    if !converged {
+        return Err(RobustConstraintErrorV1::EigenSolveDidNotConverge);
+    }
     let minimum = (0..K)
         .map(|index| a[index][index])
-        .fold(f64::INFINITY, f64::min);
+        .fold(f64::INFINITY, f64::min)
+        * scale;
     if !minimum.is_finite() {
         Err(RobustConstraintErrorV1::NonFiniteIntermediate)
     } else {
