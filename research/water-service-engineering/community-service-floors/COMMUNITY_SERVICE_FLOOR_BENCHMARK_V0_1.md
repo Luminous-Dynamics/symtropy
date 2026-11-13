@@ -26,7 +26,7 @@ The companion files contain 12 cases, 3 required areas per scenario, a Draft 202
 
 They cover:
 - all service floors met;
-- a weighted average of 98.93% that hides one area's 25% delivery;
+- a weighted average of 98.43% that hides one area's 25% delivery;
 - a floor breach while the aggregate remains above the floor;
 - missing, stale and partially covered evidence;
 - a measurement interval crossing the floor;
