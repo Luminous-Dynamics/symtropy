@@ -36,6 +36,21 @@ cargo bench --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo
 
 The scale harness reports insertion and full-conflict-query timings for 10, 100, 1,000 and 10,000 synthetic sparse occupancy records. These are measurements of this implementation and runner only; they are not deployment latency thresholds or field performance claims.
 
+## First synthetic scale baseline
+
+Dedicated Rust 1.96 run [#43380765824](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43380765824), Ubuntu runner, exact head `b1cbfe0f0991e496b521351c180e447d9cb0ec03`:
+
+| Sparse occupancy records | Insert all records (ms) | One candidate query (ms) | Conflicts |
+|---:|---:|---:|---:|
+| 10 | 0.013 | 0.000 | 0 |
+| 100 | 0.178 | 0.001 | 0 |
+| 1,000 | 7.069 | 0.012 | 0 |
+| 10,000 | 757.243 | 0.147 | 0 |
+
+This is one synthetic run, not a repeated distribution, benchmark leaderboard, deployment SLO or physical-site result. The fixture uses spatially separated AABBs with overlapping time windows. The implementation checks each new insert against the existing occupancy map, so batch insertion exhibits quadratic aggregate work; one candidate conflict query is a linear scan. At 10,000 sparse records, the initial reference implementation remains sub-second on this CI runner, but it needs a spatial/time broad-phase accelerator before being considered for high-rate replanning or much larger site models.
+
+Next performance work should add warm-up and repeated runs, sparse/dense/adversarial overlap distributions, p50/p95/p99, memory and candidate-pair counts, plus an independently validated indexed alternative. Do not improve latency by shrinking uncertainty/clearance margins or by omitting conflict pairs.
+
 ## Required caller contract
 
 The caller must first use the existing #3644 `ReservationBook` to admit the corresponding time/resource reservation and pass the same `ReservationRequest` into this occupancy index. This crate checks its task, epoch, clock and interval fields but cannot prove a reservation was granted or cryptographically authenticate its issuer.
