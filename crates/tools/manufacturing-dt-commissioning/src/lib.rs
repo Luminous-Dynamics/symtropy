@@ -31,6 +31,7 @@ pub enum FailureReason {
     MissingSourceDigest,
     MissingTransformReceipt,
     OwnerMismatch,
+    ComponentRevisionMismatch,
     AuthorityMismatch,
     OutputScopeMismatch,
     ClockDomainMissing,
@@ -89,6 +90,7 @@ pub struct ComponentEvidence {
 pub struct ComponentRequirement {
     pub component_id: String,
     pub owner: String,
+    pub expected_revision: String,
     pub authority: String,
     pub output_scope: String,
     pub required: bool,
@@ -180,6 +182,9 @@ fn check_component(
     }
     if component.owner != requirement.owner {
         add_failure(failures, id, FailureReason::OwnerMismatch, required);
+    }
+    if component.revision != requirement.expected_revision {
+        add_failure(failures, id, FailureReason::ComponentRevisionMismatch, required);
     }
     if component.authority != requirement.authority {
         add_failure(failures, id, FailureReason::AuthorityMismatch, required);
@@ -327,12 +332,14 @@ fn detect_common_cause_dependencies(
         .map(|requirement| requirement.component_id.as_str())
         .collect();
 
-    for left_index in 0..required_ids.len() {
-        for right_index in (left_index + 1)..required_ids.len() {
-            let left_id = required_ids[left_index];
-            let right_id = required_ids[right_index];
-            let left = components.iter().find(|component| component.component_id == left_id);
-            let right = components.iter().find(|component| component.component_id == right_id);
+    for (left_index, left_id) in required_ids.iter().enumerate() {
+        for right_id in required_ids.iter().skip(left_index + 1) {
+            let left = components
+                .iter()
+                .find(|component| component.component_id == *left_id);
+            let right = components
+                .iter()
+                .find(|component| component.component_id == *right_id);
             let (Some(left), Some(right)) = (left, right) else {
                 continue;
             };
@@ -560,6 +567,7 @@ mod tests {
             component_id: id.to_owned(),
             revision: "R1".to_owned(),
             owner: owner.to_owned(),
+            expected_revision: "R1".to_owned(),
             authority: authority.to_owned(),
             output_scope: output_scope.to_owned(),
             source_sha256: [0x11; 32],
@@ -853,6 +861,18 @@ mod tests {
             .failures
             .iter()
             .any(|failure| failure.reason == FailureReason::MissingTransformReceipt));
+    }
+
+    #[test]
+    fn component_revision_mismatch_causes_not_ready() {
+        let mut components = interpass_components();
+        components[0].revision = "R2".to_owned();
+        let receipt = evaluate_readiness(&interpass_profile(), &components, NOW);
+        assert_eq!(receipt.status, ReadinessStatus::NotReady);
+        assert!(receipt
+            .failures
+            .iter()
+            .any(|failure| failure.reason == FailureReason::ComponentRevisionMismatch));
     }
 
     #[test]
