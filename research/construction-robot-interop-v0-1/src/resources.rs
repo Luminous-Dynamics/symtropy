@@ -245,9 +245,12 @@ impl ReservationBook {
             .get(resource_id)
             .cloned()
             .unwrap_or_default();
-        for (level, width) in RESERVATION_TIME_BUCKET_WIDTHS_MS.iter().copied().enumerate() {
-            let Some((first, last)) =
-                reservation_time_bucket_bounds(start_ms, end_ms, width)
+        for (level, width) in RESERVATION_TIME_BUCKET_WIDTHS_MS
+            .iter()
+            .copied()
+            .enumerate()
+        {
+            let Some((first, last)) = reservation_time_bucket_bounds(start_ms, end_ms, width)
             else {
                 return self
                     .active_by_resource
@@ -890,8 +893,7 @@ mod tests {
     #[test]
     fn long_reservations_use_per_resource_global_fallback() {
         let mut book = book(10);
-        let long_end =
-            (MAX_RESERVATION_TIME_BUCKETS + 100) * RESERVATION_TIME_BUCKET_WIDTHS_MS[3];
+        let long_end = (MAX_RESERVATION_TIME_BUCKETS + 100) * RESERVATION_TIME_BUCKET_WIDTHS_MS[3];
         let long = request(
             "long-global",
             "robot-long",
