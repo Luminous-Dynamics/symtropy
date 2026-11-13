@@ -51,7 +51,18 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
-      - name: Upload exact inputs, manifests, oracle and receipt
+      - name: Evaluate sparse-sensor control contract at exact checked-out revision
+        id: control_evaluate
+        env:
+          WATER_CONTROL_ROBUSTNESS_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-control-robustness -- \
+            research/water-service-engineering/pump-control-robustness/scenarios-v0.1.json \
+            research/water-service-engineering/pump-control-robustness/scenarios-v0.1.schema.json \
+            research/water-service-engineering/pump-control-robustness/disposition-oracle-v0.1.json \
+            artifacts/water-control-robustness/receipt.json
+      - name: Upload exact inputs, manifests, oracles and receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -62,9 +73,16 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/pump-control-robustness/scenarios-v0.1.json
+            research/water-service-engineering/pump-control-robustness/scenarios-v0.1.schema.json
+            research/water-service-engineering/pump-control-robustness/disposition-oracle-v0.1.json
+            artifacts/water-control-robustness/receipt.json
           if-no-files-found: warn
-      - name: Require an exact successful evaluator receipt
+      - name: Require both exact-head evaluator receipts
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          CONTROL_EVALUATE_OUTCOME: ${{ steps.control_evaluate.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$CONTROL_EVALUATE_OUTCOME" = "success"
