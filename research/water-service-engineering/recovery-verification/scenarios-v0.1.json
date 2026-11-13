@@ -102,7 +102,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -181,7 +182,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -260,7 +262,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -272,7 +275,7 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.9066666666666666,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -362,7 +365,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -441,7 +445,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "breached_floor"
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -520,7 +525,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -532,7 +538,7 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.8266666666666667,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -594,7 +600,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "candidate_restored"
+          "expected_area_disposition": "candidate_restored",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -673,7 +680,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -752,7 +760,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -764,7 +773,7 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.91,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -854,7 +863,8 @@
             }
           ],
           "stable_dwell_seconds": 900,
-          "expected_area_disposition": "candidate_restored"
+          "expected_area_disposition": "candidate_restored",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -933,7 +943,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -1012,7 +1023,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -1024,7 +1036,7 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.91,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -1114,7 +1126,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 1000
         },
         {
           "area_id": "DMA-B",
@@ -1193,7 +1206,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 1000
         },
         {
           "area_id": "DMA-C",
@@ -1272,7 +1286,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "breached_floor"
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 2
         }
       ],
       "repair_ticket": {
@@ -1284,12 +1299,12 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9769,
+        "value": 0.9842357642357643,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
       "expected_overall_disposition": "not_restored",
-      "note": "A high weighted mean cannot compensate for DMA-C's known service-floor breach."
+      "note": "A high weighted mean (about 98.92%) cannot compensate for DMA-C's known service-floor breach at 22%."
     },
     {
       "scenario_id": "WRV-006",
@@ -1374,7 +1389,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -1453,7 +1469,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "indeterminate"
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -1532,7 +1549,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -1634,7 +1652,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -1713,7 +1732,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "indeterminate"
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -1792,7 +1812,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -1894,7 +1915,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -1973,7 +1995,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "indeterminate"
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -2052,7 +2075,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -2064,8 +2088,8 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": null,
-        "method": "not_computable",
+        "value": 0.8366666666666667,
+        "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
       "expected_overall_disposition": "indeterminate",
@@ -2154,7 +2178,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "candidate_restored"
+          "expected_area_disposition": "candidate_restored",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -2233,7 +2258,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -2312,7 +2338,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -2324,7 +2351,7 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.92,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -2414,7 +2441,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -2493,7 +2521,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "indeterminate"
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -2572,7 +2601,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -2674,7 +2704,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -2753,7 +2784,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "breached_floor"
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -2832,7 +2864,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "indeterminate"
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -2934,7 +2967,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -3013,7 +3047,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -3092,7 +3127,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -3104,7 +3140,7 @@
       "unresolved_conflicting_evidence": false,
       "prior_restoration_claim": null,
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.9066666666666666,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
@@ -3194,7 +3230,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-B",
@@ -3273,7 +3310,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "breached_floor"
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 100
         },
         {
           "area_id": "DMA-C",
@@ -3352,7 +3390,8 @@
             }
           ],
           "stable_dwell_seconds": 7200,
-          "expected_area_disposition": "meets_floor"
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
         }
       ],
       "repair_ticket": {
@@ -3367,7 +3406,7 @@
         "claimed_at": "2026-11-13T10:00:00Z"
       },
       "aggregate_diagnostic": {
-        "value": 0.9067,
+        "value": 0.8,
         "method": "weighted_average_by_synthetic_connection_count",
         "authoritative": false
       },
