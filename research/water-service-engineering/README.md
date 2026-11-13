@@ -118,3 +118,8 @@ The first records are: 34-month Bristol POU UF telemetry under OGL v3; a separat
 ### RO transport M0
 
 The first executable membrane increment is [membrane-ro-m0-manifest-v0.1.json](./membrane-ro-m0-manifest-v0.1.json), with five synthetic [inputs](./membrane-ro-m0-cases-v0.1.json), a separate [oracle](./membrane-ro-m0-oracle-v0.1.json), and a [Draft 2020-12 schema](./membrane-ro-m0.schema.json). The Rust evaluator and `membrane-ro-m0` CLI live in `tools/water-service-t0`. They test net driving pressure, concentration polarization, reference permeance and the error from pressure-only/no-CP simplifications. This is formula arithmetic, not an empirical fouling or membrane-performance claim.
+
+
+## Counterfactual membrane-cleaning qualification
+
+The separate [MEMBRANE-CIP-COUNTERFACTUAL-001 #5012](https://github.com/Luminous-Dynamics/symtropy/issues/5012) workstream now has a target-trial protocol and machine-readable manifest. It evaluates whether a cleaning policy improves profile-conforming permeate, membrane integrity and lifecycle cost under causal-identification and safety constraints. It is not a cleaning recipe or actuation authority.
