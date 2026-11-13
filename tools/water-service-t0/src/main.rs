@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
@@ -13,8 +13,7 @@ fn sha256(bytes: &[u8]) -> String {
 }
 
 fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
-    let bytes = fs::read(path)
-        .map_err(|error| format!("read {}: {error}", path.display()))?;
+    let bytes = fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?;
     let value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("parse {}: {error}", path.display()))?;
     Ok((bytes, value))
@@ -36,16 +35,30 @@ fn run() -> Result<i32, String> {
         );
     }
 
-    let input_path = PathBuf::from(args.first().map(String::as_str)
-        .unwrap_or("research/water-service-engineering/t0-known-answer-vectors-v0.1.json"));
-    let manifest_path = PathBuf::from(args.get(1).map(String::as_str)
-        .unwrap_or("research/water-service-engineering/benchmark-manifest-v0.1.json"));
-    let network_manifest_path = PathBuf::from(args.get(2).map(String::as_str)
-        .unwrap_or("research/water-service-engineering/network-diagnostics-manifest-v0.1.json"));
-    let oracle_path = PathBuf::from(args.get(3).map(String::as_str)
-        .unwrap_or("research/water-service-engineering/t0-known-answer-oracle-v0.1.json"));
-    let receipt_path = PathBuf::from(args.get(4).map(String::as_str)
-        .unwrap_or("artifacts/water-service-t0/receipt.json"));
+    let input_path = PathBuf::from(
+        args.first()
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/t0-known-answer-vectors-v0.1.json"),
+    );
+    let manifest_path = PathBuf::from(
+        args.get(1)
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/benchmark-manifest-v0.1.json"),
+    );
+    let network_manifest_path =
+        PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
+            "research/water-service-engineering/network-diagnostics-manifest-v0.1.json",
+        ));
+    let oracle_path = PathBuf::from(
+        args.get(3)
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/t0-known-answer-oracle-v0.1.json"),
+    );
+    let receipt_path = PathBuf::from(
+        args.get(4)
+            .map(String::as_str)
+            .unwrap_or("artifacts/water-service-t0/receipt.json"),
+    );
 
     let (input_bytes, inputs) = read_json(&input_path)?;
     let (manifest_bytes, manifest) = read_json(&manifest_path)?;
@@ -65,8 +78,8 @@ fn run() -> Result<i32, String> {
         .ok();
     let revision = raw_revision.filter(|value| valid_revision(value));
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
 
     let receipt = json!({
         "schema_version": "water-service-t0-run-v0.1",
