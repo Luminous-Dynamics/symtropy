@@ -2,8 +2,8 @@
   "schema": "luminous.symtropy.kerr_bilocal_geodesic_operator_benchmark.v1",
   "programme": "BH-KERR-RAY-BUNDLE-001",
   "title": "Kerr bilocal geodesic operator cross-formulation qualification",
-  "status": "BGO-0 transfer algebra source authored; exact-head Rust validation pending",
-  "execution_status": "BGO-0 source implemented with authored tests; no runner receipt yet; curvature-driven BGO not implemented",
+  "status": "BGO-0 Rust 1.96 audit passed 150/150; BGO-1 and BGO-2 remain open",
+  "execution_status": "BGO-0 source implemented and exact-head Rust checks passed; curvature-driven BGO and physical Kerr qualification not implemented",
   "repository": "Luminous-Dynamics/symtropy",
   "owner": "symtropy-relativity",
   "depends_on": {
@@ -70,7 +70,7 @@
     {
       "id": "BGO-0",
       "name": "Minkowski analytic transfer",
-      "status": "source_authored_runner_pending",
+      "status": "passed_rust_1_96",
       "acceptance": [
         "W_XX=I4, W_XK=delta_lambda*I4, W_KX=0, W_KK=I4",
         "transfer composition equals affine-interval addition",
@@ -210,7 +210,8 @@
     "accepted_and_rejected_steps",
     "runtime",
     "peak_memory",
-    "qualification_status"
+    "qualification_status",
+    "bgo0_validation_receipt"
   ],
   "execution_gates": [
     "Do not implement caustic classification before BGO-0 through BGO-4 pass.",
@@ -231,6 +232,26 @@
       "inverse_rejects_singular_matrix_and_invalid_tolerance"
     ],
     "workflow": ".github/workflows/kerr-bgo-minkowski.yml",
-    "claim_ceiling": "Flat-spacetime BGO transfer algebra only. No curvature-driven transport, Kerr BGO, endpoint conversion, caustic classification or physical observable is qualified."
+    "claim_ceiling": "Flat-spacetime BGO transfer algebra only. No curvature-driven transport, Kerr BGO, endpoint conversion, caustic classification or physical observable is qualified.",
+    "status": "rust_1_96_passed",
+    "validation_receipt": {
+      "source_head": "b1218ea4caccf21c55965128b89f3acf4bb6cbbd",
+      "workflow_run_id": 43378351602,
+      "workflow_name": "Kerr BGO Minkowski kernel audit",
+      "toolchain": "Rust 1.96.0",
+      "formatting": "passed",
+      "clippy": "passed",
+      "crate_test_result": "150 passed; 0 failed",
+      "tests_authored_and_executed": [
+        "minkowski_transfer_has_exact_four_block_known_answer",
+        "minkowski_transfers_compose_by_affine_interval_addition",
+        "minkowski_transfer_inverse_is_backward_propagation",
+        "minkowski_transfer_preserves_wronskian_symplectic_form",
+        "identity_and_zero_length_transfer_are_identical",
+        "constructors_reject_nonfinite_values_without_repair",
+        "inverse_rejects_singular_matrix_and_invalid_tolerance"
+      ],
+      "claim_ceiling": "Flat-spacetime BGO transfer algebra only."
+    }
   }
 }
