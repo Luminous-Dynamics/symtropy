@@ -763,7 +763,8 @@ pub fn evaluate_dark_fiber_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
         let coupling = boolean(input, &["physical_coupling_qualified"])?;
         let physical = geometry == "WITHIN_GEOMETRIC_SCREEN"
             && coupling
-            && health == "healthy";
+            && health == "healthy"
+            && attribution == "unique";
 
         let acquisition = input
             .get("valid_measurement_acquisition")
@@ -771,6 +772,10 @@ pub fn evaluate_dark_fiber_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
             .unwrap_or(false);
         let route_status = if !mapping_valid {
             "UNOBSERVED_ROUTE_MAPPING_MISSING"
+        } else if geometry == "OUTSIDE_GEOMETRIC_SCREEN" {
+            "OUTSIDE_GEOMETRIC_SCREEN"
+        } else if geometry == "INDETERMINATE_GEOMETRY" {
+            "INDETERMINATE_GEOMETRY"
         } else if health == "offline" {
             "UNOBSERVED_FIBRE_OFFLINE"
         } else if health == "degraded_signal_quality" {
@@ -929,6 +934,33 @@ mod tests {
             .unwrap();
         assert_eq!(row["computed"]["route_status"], "UNOBSERVED_FIBRE_OFFLINE");
         assert!(!row["computed"]["leak_absence_claim_allowed"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn dark_fiber_outside_screen_is_not_labelled_as_a_coupling_failure() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-002-outside-geometric-screen")
+            .unwrap();
+        assert_eq!(row["computed"]["route_status"], "OUTSIDE_GEOMETRIC_SCREEN");
+    }
+
+    #[test]
+    fn shared_corridor_does_not_qualify_pipe_specific_sensing() {
+        let result = evaluate_dark_fiber_f0(&load("dark_inputs"), &load("dark_oracle"))
+            .expect("F0 route screening must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DF0-006-shared-corridor-asset-ambiguity")
+            .unwrap();
+        assert_eq!(row["computed"]["route_status"], "ASSET_ATTRIBUTION_AMBIGUOUS");
+        assert!(!row["computed"]["physical_sensing_qualified"].as_bool().unwrap());
     }
 
     #[test]
