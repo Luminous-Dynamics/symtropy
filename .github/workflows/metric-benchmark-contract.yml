@@ -72,8 +72,16 @@ jobs:
           assert not list(result_validator.iter_errors(not_run))
           assert len(results) == 4, f"expected 4 matched kernel results, got {len(results)}"
           backends = {"symtropy_reference_cholesky", "symtropy_reference_lu"}
-          observed = {(item["implementation"]["backend_id"], item["case_binding"]["case_id"]) for item in results}
+          observed = {
+              (
+                  item["implementation"]["backend_id"],
+                  item["case_binding"]["case_id"],
+                  item["case_binding"]["coordinate_family"]["family"],
+              )
+              for item in results
+          }
           assert len(observed) == 4
+          assert {family for _, _, family in observed} == {0, 2}
           for item in results:
               errors = list(result_validator.iter_errors(item))
               assert not errors, errors
@@ -98,7 +106,10 @@ jobs:
           assert list(result_validator.iter_errors(forged)), "stale case commit was accepted"
           forged = copy.deepcopy(case)
           forged["coordinate_families"][0]["family"] = 1
-          assert list(case_validator.iter_errors(forged)), "unfrozen coordinate family was accepted"
+          assert list(case_validator.iter_errors(forged)), "unfrozen case coordinate family was accepted"
+          forged_result = copy.deepcopy(not_run)
+          forged_result["case_binding"]["coordinate_family"]["family"] = 1
+          assert list(result_validator.iter_errors(forged_result)), "unfrozen result coordinate family was accepted"
           PY
       - name: Upload exact matched kernel result records
         uses: actions/upload-artifact@v4
