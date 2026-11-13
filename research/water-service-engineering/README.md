@@ -131,3 +131,9 @@ See the [scenario pack](./recovery-verification/scenarios-v0.1.json), [schema](.
  
 The recovery-verification T0 evaluator is implemented in `tools/water-service-t0/src/water_recovery_verification.rs` with CLI `water-recovery-verification`. It recomputes per-area floor states, independent evidence-path pairs across five failure domains, freshness, coverage, area binding, stable dwell and overall restoration status. It emits a digest-bound receipt with `qualification_status=NotRun`; native execution remains unverified until exact-head CI evidence is available.
 
+
+## Matched baseline experiments
+
+The new cross-benchmark protocol [#5075](https://github.com/Luminous-Dynamics/symtropy/issues/5075) prevents benchmark comparisons from receiving different deployment sensors, demand/fault traces, topology, time grids, service floors, actuator envelopes or scoring horizons. It records training/compute/engineering budgets separately rather than silently forcing or hiding equality.
+
+See [protocol](./matched-experiments/MATCHED_EXPERIMENT_PROTOCOL_V0_1.md), [10-pair fixture](./matched-experiments/pairs-v0.1.json), [schema](./matched-experiments/pairs-v0.1.schema.json) and [admission oracle](./matched-experiments/admission-oracle-v0.1.json). This is a synthetic pair-admission contract, not a performance ranking.
