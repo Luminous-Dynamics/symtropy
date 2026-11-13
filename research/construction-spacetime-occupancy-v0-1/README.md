@@ -18,6 +18,8 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 - Half-open time windows and clock uncertainty taken from the existing #3644 `ReservationRequest`.
 - Closed spatial-boundary policy: touching after expansion is a potential conflict.
 - Idempotent repeated occupancy IDs; conflicting reuse is rejected.
+- A non-mutating `conflicts_for` query returns the complete conservative conflict set for a candidate, so planners can compare multiple blockers before choosing a schedule repair.
+- `insert` remains fail-closed and rejects admission if any conflict exists.
 - A combined admission helper evaluates the #3644 resource reservation and spatial occupancy against cloned in-memory owners, committing both only when both accept.
 - If spatial occupancy rejects, the tentative reservation is not committed; if the resource calendar rejects, the tentative occupancy is not committed.
 - Typed stale-context, malformed-geometry, overflow, clock and task-binding failures.
@@ -29,7 +31,10 @@ It asks whether two work envelopes, access regions, staging footprints or transi
 cargo fmt --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml -- --check
 cargo test --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked
 cargo clippy --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+cargo bench --manifest-path research/construction-spacetime-occupancy-v0-1/Cargo.toml --locked --bench scale
 ```
+
+The scale harness reports insertion and full-conflict-query timings for 10, 100, 1,000 and 10,000 synthetic sparse occupancy records. These are measurements of this implementation and runner only; they are not deployment latency thresholds or field performance claims.
 
 ## Required caller contract
 
