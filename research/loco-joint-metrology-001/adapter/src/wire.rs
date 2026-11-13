@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 pub const RECEIPT_SCHEMA_ID: &str =
     "urn:luminous-dynamics:loco-joint-metrology-normalized-receipt:0.1.0";
 pub const RECEIPT_SCHEMA_VERSION: &str = "0.1.0";
-pub const RECEIPT_CANONICALIZATION: &str = "rfc8785";
+pub const RECEIPT_CANONICALIZATION: &str = "ld-json-integer-canonical-v1";
 
 /// Errors in receipt construction, parsing, hashing or identity binding.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -500,9 +500,10 @@ fn validate_trace_report_binding(
 
 /// Build a versioned normalized receipt from the exact input trace and its report.
 ///
-/// The receipt digest is SHA-256 over the canonical payload bytes. JSON object
-/// keys are sorted by serde_json's default map representation; this payload
-/// uses only integer numbers and string/bool/array/object values, matching JCS.
+/// The receipt digest is SHA-256 over the versioned Luminous integer-canonical
+/// payload bytes: serde_json 1.0.150 Value maps sort keys lexicographically;
+/// the payload uses only exact integers, strings, booleans, arrays and objects.
+
 pub fn build_normalized_receipt(
     trace: &JointTrace,
     report: &AdapterReport,
