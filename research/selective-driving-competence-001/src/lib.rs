@@ -1096,7 +1096,14 @@ mod tests {
     fn rejects_missing_decision_from_expected_denominator() {
         let mut value = input(vec![record("a", "urban", 0.1, false, 0.0)]);
         value.expected_decision_ids.push("missing".to_string());
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("missing")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("missing"))
+        );
     }
 
     #[test]
@@ -1114,7 +1121,14 @@ mod tests {
     fn rejects_missing_or_censored_outcome_instead_of_zero_imputation() {
         let mut value = input(vec![record("a", "urban", 0.1, false, 0.0)]);
         value.decisions[0].outcome_status = OutcomeStatus::Missing;
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("missing/censored")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("missing/censored"))
+        );
         value.decisions[0].outcome_status = OutcomeStatus::Censored;
         assert!(value.validate().is_err());
     }
@@ -1123,7 +1137,14 @@ mod tests {
     fn rejects_future_policy_input_and_evaluator_only_fields() {
         let mut value = input(vec![record("a", "urban", 0.1, false, 0.0)]);
         value.decisions[0].policy_input_fields[0].available_timestamp_us = 1_001;
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("future policy input")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("future policy input"))
+        );
         value.decisions[0].policy_input_fields[0].available_timestamp_us = 900;
         value.decisions[0].policy_input_fields[0].source_role = SourceRole::EvaluatorOnly;
         assert!(value.validate().is_err());
@@ -1133,7 +1154,14 @@ mod tests {
     fn rejects_non_monotonic_prediction_outcome_timestamps() {
         let mut value = input(vec![record("a", "urban", 0.1, false, 0.0)]);
         value.decisions[0].outcome_timestamp_us = 999;
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("outcome timestamp")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("outcome timestamp"))
+        );
     }
 
     #[test]
@@ -1141,7 +1169,9 @@ mod tests {
         let result = input(vec![
             record("a", "urban", 0.1, false, 0.0),
             record("b", "urban", 0.9, true, 1.0),
-        ]).evaluate().unwrap();
+        ])
+        .evaluate()
+        .unwrap();
         assert!((result.calibration.brier_score - 0.01).abs() < 1e-12);
     }
 
@@ -1149,7 +1179,14 @@ mod tests {
     fn rejects_abstention_without_explicit_fallback_evidence() {
         let mut value = input(vec![record("a", "urban", 0.4, false, 0.0)]);
         value.decisions[0].abstained = true;
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("lacks timestamp")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("lacks timestamp"))
+        );
     }
 
     #[test]
@@ -1160,11 +1197,25 @@ mod tests {
         value.decisions[0].decision_deadline_us = Some(1_200);
         value.decisions[0].fallback_succeeded = Some(true);
         value.decisions[0].fallback_duration_ms = Some(100.0);
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("abstention timestamp before prediction")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("abstention timestamp before prediction"))
+        );
 
         value.decisions[0].abstention_timestamp_us = Some(1_100);
         value.decisions[0].decision_deadline_us = Some(999);
-        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("decision deadline before prediction")));
+        assert!(
+            value
+                .validate()
+                .unwrap_err()
+                .findings
+                .iter()
+                .any(|item| item.contains("decision deadline before prediction"))
+        );
     }
 
     #[test]
@@ -1215,7 +1266,9 @@ mod tests {
             record("a", "daylight", 0.1, false, 0.0),
             record("b", "daylight", 0.1, false, 0.0),
             record("c", "night-rain", 0.1, true, 1.0),
-        ]).evaluate().unwrap();
+        ])
+        .evaluate()
+        .unwrap();
         assert_eq!(result.families.len(), 2);
         assert_eq!(result.families[1].scenario_family, "night-rain");
         assert_eq!(result.families[1].accepted_failure_rate, Some(1.0));
@@ -1232,7 +1285,9 @@ mod tests {
 
     #[test]
     fn no_abstention_has_no_fallback_rate() {
-        let result = input(vec![record("a", "urban", 0.1, false, 0.0)]).evaluate().unwrap();
+        let result = input(vec![record("a", "urban", 0.1, false, 0.0)])
+            .evaluate()
+            .unwrap();
         assert_eq!(result.fallback.fallback_success_rate, None);
         assert_eq!(result.fallback.abstained_decisions, 0);
     }
@@ -1241,7 +1296,9 @@ mod tests {
     fn deterministic_report_is_independent_of_input_order() {
         let first = record("a", "urban", 0.1, false, 0.0);
         let second = record("b", "urban", 0.8, true, 1.0);
-        let left = input(vec![first.clone(), second.clone()]).evaluate().unwrap();
+        let left = input(vec![first.clone(), second.clone()])
+            .evaluate()
+            .unwrap();
         let right = input(vec![second, first]).evaluate().unwrap();
         assert_eq!(
             serde_json::to_string(&left).unwrap(),
@@ -1261,8 +1318,18 @@ mod tests {
         let second = value.evaluate().unwrap().bootstrap;
         assert_eq!(first.episode_cluster_count, 4);
         assert_eq!(first.replicates, 200);
-        assert_eq!(first.risk_coverage_area_failure_rate.as_ref().unwrap().lower_95_percent,
-                   second.risk_coverage_area_failure_rate.as_ref().unwrap().lower_95_percent);
+        assert_eq!(
+            first
+                .risk_coverage_area_failure_rate
+                .as_ref()
+                .unwrap()
+                .lower_95_percent,
+            second
+                .risk_coverage_area_failure_rate
+                .as_ref()
+                .unwrap()
+                .lower_95_percent
+        );
         let coverage = first.actual_autonomy_coverage.unwrap();
         assert!(coverage.lower_95_percent <= coverage.upper_95_percent);
         assert!((0.0..=1.0).contains(&coverage.lower_95_percent));
@@ -1307,7 +1374,9 @@ mod tests {
 
     #[test]
     fn single_episode_bootstrap_is_reported_unavailable_not_as_false_precision() {
-        let report = input(vec![record("a", "urban", 0.1, false, 0.0)]).evaluate().unwrap();
+        let report = input(vec![record("a", "urban", 0.1, false, 0.0)])
+            .evaluate()
+            .unwrap();
         assert_eq!(report.bootstrap.episode_cluster_count, 1);
         assert_eq!(report.bootstrap.actual_autonomy_coverage, None);
         assert_eq!(report.bootstrap.risk_coverage_area_failure_rate, None);
@@ -1331,10 +1400,14 @@ mod tests {
     fn protocol_documents_are_parseable_and_mark_targets_not_measured() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../manifest-v0_1.json")).unwrap();
-        let schema: serde_json::Value =
-            serde_json::from_str(include_str!("../selective-driving-evaluation-v0_1.schema.json"))
-                .unwrap();
-        assert_eq!(manifest["status"], "reference_evaluator_and_protocol_in_progress");
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../selective-driving-evaluation-v0_1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            manifest["status"],
+            "reference_evaluator_and_protocol_in_progress"
+        );
         assert_eq!(manifest["prospective_targets"]["status"], "not_measured");
         assert_eq!(
             schema["$schema"],
@@ -1344,7 +1417,8 @@ mod tests {
 
     #[test]
     fn strict_json_rejects_unknown_fields() {
-        let mut raw = serde_json::to_value(input(vec![record("a", "urban", 0.1, false, 0.0)])).unwrap();
+        let mut raw =
+            serde_json::to_value(input(vec![record("a", "urban", 0.1, false, 0.0)])).unwrap();
         raw["untrusted_shortcut"] = serde_json::json!(true);
         assert!(EvaluationInput::from_json(&raw.to_string()).is_err());
     }
