@@ -714,8 +714,10 @@ mod tests {
         assert_eq!(receipt.stream_receipts.len(), 3);
         assert_eq!(receipt.stream_receipts[0].stream_id, "OPCUA-01");
         assert_eq!(receipt.stream_receipts[0].included_sample_count, 5);
-        assert_eq!(receipt.stream_receipts[1].included_sample_count, 13);
-        assert_eq!(receipt.stream_receipts[2].included_sample_count, 1_000);
+        assert_eq!(receipt.stream_receipts[1].stream_id, "PROCESS-01");
+        assert_eq!(receipt.stream_receipts[1].included_sample_count, 4_980);
+        assert_eq!(receipt.stream_receipts[2].stream_id, "ROBOT-01");
+        assert_eq!(receipt.stream_receipts[2].included_sample_count, 63);
     }
 
     #[test]
