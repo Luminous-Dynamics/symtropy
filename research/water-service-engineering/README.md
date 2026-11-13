@@ -98,3 +98,12 @@ The comparison set includes the 2026 47k+ synthetic EPANET/WNTR Net3 benchmark, 
 ## Physical test-cell concept
 
 The staged, non-construction design basis is in [T1_WATER_TEST_CELL_DESIGN_BASIS_V0_1.md](./T1_WATER_TEST_CELL_DESIGN_BASIS_V0_1.md). It defines isolated PUMP-T1, FILTER-T1 and LEAK-T1 configurations, reuses Mycelix H1 instrumentation concepts without misrepresenting H1 as an industrial acceptance rig, and requires competent pressure/electrical/mechanical safety review before build or energization.
+
+
+## Specialized membrane-fouling benchmark
+
+A dedicated child workstream now benchmarks mechanism-aware membrane fouling estimation, prediction and safe intervention: [Symtropy #4977](https://github.com/Luminous-Dynamics/symtropy/issues/4977). A 2026 comparative review of 78 studies across MF/UF/NF/RO identifies a gap between prediction and deployable supervisory / actuator-linked control. We will evaluate cleaning decisions, membrane integrity, actual post-cleaning recovery and water-quality preservation—not just TMP prediction. Source: https://doi.org/10.3389/frwa.2026.1863523.
+
+## Executable T0 evaluator
+
+The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
