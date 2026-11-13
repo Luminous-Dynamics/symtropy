@@ -1,0 +1,33 @@
+{
+  "schema": "symtropy.semantic_mapping_receipt/0.1",
+  "scenario": {
+    "id": "rotating-rod-thin-wall-001",
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "left_backend": {
+    "engine_id": "symtropy",
+    "version": "0.2.x",
+    "adapter_commit": "0123456789abcdef0123456789abcdef01234567",
+    "profile_id": "symtropy-world-ccd",
+    "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "right_backend": {
+    "engine_id": "reference-engine",
+    "version": "1.0.0",
+    "adapter_commit": "abcdef0123456789abcdef0123456789abcdef01",
+    "profile_id": "reference-ccd-unassessed",
+    "profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "dimensions": [
+    { "dimension": "identity_geometry", "status": "strictly_equivalent", "rationale": "Same rod and wall geometry.", "evidence_refs": ["fixture:geometry-001"] },
+    { "dimension": "mass_properties", "status": "strictly_equivalent", "rationale": "Same rod mass and inertia tensor.", "evidence_refs": ["fixture:mass-001"] },
+    { "dimension": "constraints", "status": "strictly_equivalent", "rationale": "Same hinge constraint.", "evidence_refs": ["fixture:hinge-001"] },
+    { "dimension": "contacts", "status": "strictly_equivalent", "rationale": "Same declared discrete contact law.", "evidence_refs": ["profile:contact-001"] },
+    { "dimension": "integration", "status": "strictly_equivalent", "rationale": "Same step profile.", "evidence_refs": ["profile:integrator-001"] },
+    { "dimension": "ccd", "status": "unknown_unassessed", "rationale": "The right backend's rotational sweep coverage has not been inspected or tested.", "evidence_refs": [] },
+    { "dimension": "actuation", "status": "strictly_equivalent", "rationale": "Passive hinge.", "evidence_refs": ["scenario:rod-001"] },
+    { "dimension": "observations", "status": "strictly_equivalent", "rationale": "Same pose and contact event conventions.", "evidence_refs": ["profile:observations-001"] },
+    { "dimension": "numerical_profile", "status": "strictly_equivalent", "rationale": "Numerical profiles are frozen.", "evidence_refs": ["profile:solver-001"] }
+  ],
+  "review": { "author_id": "researcher-A", "reviewer_id": "reviewer-B" }
+}

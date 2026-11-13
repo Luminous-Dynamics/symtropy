@@ -1,0 +1,33 @@
+{
+  "schema": "symtropy.semantic_mapping_receipt/0.1",
+  "scenario": {
+    "id": "free-fall-si-001",
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "left_backend": {
+    "engine_id": "symtropy",
+    "version": "0.2.x",
+    "adapter_commit": "0123456789abcdef0123456789abcdef01234567",
+    "profile_id": "symtropy-physics-default",
+    "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "right_backend": {
+    "engine_id": "rapier",
+    "version": "0.18.0",
+    "adapter_commit": "0123456789abcdef0123456789abcdef01234567",
+    "profile_id": "rapier-0.18-default",
+    "profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "dimensions": [
+    { "dimension": "identity_geometry", "status": "strictly_equivalent", "rationale": "Same sphere geometry, SI units and world frame.", "evidence_refs": ["analytic:free-fall-001"] },
+    { "dimension": "mass_properties", "status": "strictly_equivalent", "rationale": "Same mass and isotropic sphere inertia.", "evidence_refs": ["analytic:free-fall-001"] },
+    { "dimension": "constraints", "status": "not_applicable", "rationale": "No constraints in this scenario.", "evidence_refs": ["scenario:free-fall-001"] },
+    { "dimension": "contacts", "status": "not_applicable", "rationale": "No contact occurs in this scenario.", "evidence_refs": ["scenario:free-fall-001"] },
+    { "dimension": "integration", "status": "strictly_equivalent", "rationale": "Both lanes use the frozen declared step map for this case.", "evidence_refs": ["analytic:free-fall-001"] },
+    { "dimension": "ccd", "status": "not_applicable", "rationale": "CCD is not exercised by this scenario.", "evidence_refs": ["scenario:free-fall-001"] },
+    { "dimension": "actuation", "status": "not_applicable", "rationale": "No actuator is present.", "evidence_refs": ["scenario:free-fall-001"] },
+    { "dimension": "observations", "status": "strictly_equivalent", "rationale": "Position and velocity are normalized to SI world coordinates.", "evidence_refs": ["analytic:free-fall-001"] },
+    { "dimension": "numerical_profile", "status": "strictly_equivalent", "rationale": "Frozen single-threaded f64 profiles for this analytical case.", "evidence_refs": ["scenario:free-fall-001"] }
+  ],
+  "review": { "author_id": "researcher-A", "reviewer_id": "reviewer-B" }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "symtropy.semantic_mapping_receipt/0.1",
+  "scenario": {
+    "id": "frame-normalization-001",
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "left_backend": {
+    "engine_id": "symtropy",
+    "version": "0.2.x",
+    "adapter_commit": "0123456789abcdef0123456789abcdef01234567",
+    "profile_id": "symtropy-frame-a",
+    "profile_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "right_backend": {
+    "engine_id": "reference-engine",
+    "version": "1.0.0",
+    "adapter_commit": "abcdef0123456789abcdef0123456789abcdef01",
+    "profile_id": "reference-frame-b",
+    "profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "dimensions": [
+    { "dimension": "identity_geometry", "status": "mapped_equivalent_with_bound", "rationale": "The same geometry is expressed in a different world frame.", "transformation": "Apply the declared rigid transform and verify round-trip frame conversion.", "error_bounds": [{ "metric": "position_conversion_error", "maximum_absolute_error": 1e-9, "unit": "m", "source": "independent transform oracle v1" }], "evidence_refs": ["metamorphic:frame-roundtrip-001"] },
+    { "dimension": "mass_properties", "status": "strictly_equivalent", "rationale": "Mass and inertia are identical in the declared body frame.", "evidence_refs": ["fixture:mass-properties-001"] },
+    { "dimension": "constraints", "status": "not_applicable", "rationale": "No constraints are present.", "evidence_refs": ["scenario:frame-normalization-001"] },
+    { "dimension": "contacts", "status": "not_applicable", "rationale": "No contact is present.", "evidence_refs": ["scenario:frame-normalization-001"] },
+    { "dimension": "integration", "status": "strictly_equivalent", "rationale": "Identical integration profile.", "evidence_refs": ["profile:integrator-001"] },
+    { "dimension": "ccd", "status": "not_applicable", "rationale": "CCD is not exercised.", "evidence_refs": ["scenario:frame-normalization-001"] },
+    { "dimension": "actuation", "status": "not_applicable", "rationale": "No actuator is present.", "evidence_refs": ["scenario:frame-normalization-001"] },
+    { "dimension": "observations", "status": "mapped_equivalent_with_bound", "rationale": "Quaternion representation differs but denotes the same rotation.", "transformation": "Normalize source quaternion order into [w, x, y, z] and compare the represented rotation.", "error_bounds": [{ "metric": "rotation_conversion_error", "maximum_absolute_error": 1e-12, "unit": "rad", "source": "quaternion metamorphic oracle v1" }], "evidence_refs": ["metamorphic:quaternion-order-001"] },
+    { "dimension": "numerical_profile", "status": "strictly_equivalent", "rationale": "Same precision, tolerances and solver configuration.", "evidence_refs": ["profile:solver-001"] }
+  ],
+  "review": { "author_id": "researcher-A", "reviewer_id": "reviewer-B" }
+}
