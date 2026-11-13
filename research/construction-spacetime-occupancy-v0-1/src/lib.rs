@@ -700,6 +700,84 @@ mod tests {
     }
 
     #[test]
+    fn spatial_grid_preserves_closed_boundary_overlap_across_negative_and_zero_cells() {
+        let mut book = book();
+        let first = occupancy(
+            "negative-side",
+            "task-negative",
+            OccupancyKind::Workface,
+            bounds([-10_000, 0, 0], [0, 1_000, 1_000]),
+            0,
+            100,
+        );
+        let touching = occupancy(
+            "zero-side",
+            "task-zero",
+            OccupancyKind::InspectionAccess,
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+        );
+        book.insert(first).expect("negative-side occupancy");
+
+        assert_eq!(book.candidate_count_for(&touching), Ok(1));
+        assert_eq!(book.conflicts_for(&touching).expect("conflict query").len(), 1);
+    }
+
+    #[test]
+    fn oversized_envelope_uses_global_fallback_without_false_negatives() {
+        let mut book = book();
+        let oversized = occupancy(
+            "large-platform-envelope",
+            "task-platform",
+            OccupancyKind::CraneOrPlantSweptOuterBound,
+            bounds([0, 0, 0], [1_000_000, 1_000_000, 1_000_000]),
+            0,
+            100,
+        );
+        let small = occupancy(
+            "robot-cell",
+            "task-robot",
+            OccupancyKind::RobotOperatingEnvelope,
+            bounds([500_000, 500_000, 500_000], [501_000, 501_000, 501_000]),
+            10,
+            90,
+        );
+        book.insert(oversized).expect("global fallback occupancy");
+
+        assert_eq!(book.candidate_count_for(&small), Ok(1));
+        assert_eq!(book.conflicts_for(&small).expect("global fallback query").len(), 1);
+    }
+
+    #[test]
+    fn sparse_grid_filters_unrelated_candidate_pairs() {
+        let mut book = book();
+        for index in 0..128_i64 {
+            let x = index * 20_000;
+            let item = occupancy(
+                &format!("sparse-{index}"),
+                &format!("task-{index}"),
+                OccupancyKind::Workface,
+                bounds([x, 0, 0], [x + 1_000, 1_000, 1_000]),
+                0,
+                100,
+            );
+            book.insert(item).expect("spatially separated insertion");
+        }
+
+        let candidate = occupancy(
+            "empty-gap",
+            "task-gap",
+            OccupancyKind::MaterialStaging,
+            bounds([10_000, 0, 0], [11_000, 1_000, 1_000]),
+            0,
+            100,
+        );
+        assert_eq!(book.candidate_count_for(&candidate), Ok(0));
+        assert!(book.conflicts_for(&candidate).expect("empty-gap query").is_empty());
+    }
+
+    #[test]
     fn same_volume_and_overlapping_time_are_a_potential_conflict() {
         let mut book = book();
         let first = occupancy(
