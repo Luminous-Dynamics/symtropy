@@ -312,3 +312,24 @@ Declared common dependencies and measurement principles are surfaced for indepen
 The evidence-admission receipt now audits a report's declared isolability state without recomputing physical separability. A pair declared isolable is labelled ELIGIBLE_FOR_INDEPENDENT_REVIEW_ONLY only when its referenced inputs are all eligible measured channels, share exactly one qualified timebase, use at least two declared measurement principles, and contain no shared dependency group among the referenced channels.
 
 If these conditions fail, the receipt labels the declared isolability as unsupported by the referenced measured evidence. Non-isolable and not-evaluated pair states do not create an isolability claim. Every pair audit and the top-level receipt explicitly record physical_pair_separability_recomputed=false. This prevents an evidence-admission pass from being mistaken for a fault-separation proof.
+
+
+## Passive expected value of sample information (EVSI) — P0
+
+The observability programme now includes a read-only evaluator for ranking already-available observations. It asks whether an independent existing record would reduce expected diagnostic decision loss after accounting for observation/retrieval burden. It does not initiate a new measurement, controller excitation, engine-load change, actuation, maintenance action or operating-mode transition.
+
+For hypotheses H, prior probabilities p(h), diagnostic dispositions d and declared loss L(d,h), the current Bayes risk is:
+
+`R(p) = min_d Σ_h p(h)L(d,h)`
+
+For candidate observation Y with a qualified likelihood model:
+
+`EVSI(Y) = R(p) - Σ_y P(y) R(p(h|y))`
+
+`NetEVSI(Y) = EVSI(Y) - retrieval_or_review_burden(Y)`
+
+A candidate is scored only if it is an already-available, read-only measured record or calibration record; its quality, calibration and timebase are qualified; its likelihood model is qualified; and its declared dependency groups do not overlap the current evidence. Derived, simulated, stale, missing, uncalibrated, unmapped-timebase or shared-dependency candidates are NOT_EVALUATED, not assigned zero value. Active excitation or new measurement initiation is an invalid contract.
+
+The frozen synthetic fixture contains three diagnostic hypotheses, three diagnostic dispositions and four candidates. It tests a positive-net-value needle-lift trace, a non-positive-net-value exhaust-temperature record, a derived load estimate and a stale thermocouple record. The first-ranked candidate is the needle-lift record. This is an EVSI calculation fixture, not an actual maintenance, inspection or engine-control recommendation.
+
+This composes with sensor-layout and passive active-diagnosis work in [#4006](https://github.com/Luminous-Dynamics/symtropy/issues/4006). Real use requires independently calibrated likelihood models, defensible prior/loss elicitation, an authoritative dependency map and human review of every information request.
