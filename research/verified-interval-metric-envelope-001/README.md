@@ -19,6 +19,7 @@ An interval Cholesky encloses the exact factor `L`. Interval triangular solves e
 ## Fail-closed behavior
 
 - Reject non-finite or non-symmetric exact input matrices.
+- A dense determinant-one rebasing fixture independently checks the bound in both coordinate descriptions.
 - Return `INCONCLUSIVE_SPD` if any interval Cholesky pivot cannot be proved strictly positive.
 - Return `OUTSIDE_PERTURBATION_ENVELOPE` when `rho_upper >= 1` or exceeds the profile.
 - Return no finite bound if division, overflow, or interval arithmetic becomes non-finite.
