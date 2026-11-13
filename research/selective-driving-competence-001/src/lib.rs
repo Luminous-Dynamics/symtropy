@@ -266,7 +266,8 @@ impl EvaluationInput {
         if self
             .expected_decision_ids
             .iter()
-            .any(|id| id.trim().is_empty()) {
+            .any(|id| id.trim().is_empty())
+        {
             findings.push("expected_decision_ids contains an empty identity".to_string());
         }
 
