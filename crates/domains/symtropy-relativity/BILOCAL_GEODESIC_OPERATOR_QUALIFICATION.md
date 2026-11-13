@@ -22,10 +22,10 @@ Use the declared curvature convention consistently throughout the implementation
 
 \[
 [\nabla_\alpha,\nabla_\beta]v^\mu
-= -R^\mu{}_{\nu\alpha\beta}v^\nu .
+= +R^\mu{}_{\nu\alpha\beta}v^\nu .
 \]
 
-For a fiducial affinely parameterized null geodesic with tangent \(k^\mu\), define the connecting vector \(\xi^\mu\) and covariant tangent deviation \(\ell^\mu=D\xi^\mu/d\lambda\). This is the convention implemented by `RiemannTensor4::from_metric_derivatives` in Symtropy. With this commutator convention, the full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
+For a fiducial affinely parameterized null geodesic with tangent \\(k^\\mu\\), define the connecting vector \\(\\xi^\\mu\\) and covariant tangent deviation \\(\\ell^\\mu=D\\xi^\\mu/d\\lambda\\). This positive commutator convention matches `RiemannTensor4::from_metric_derivatives` in Symtropy. The resulting full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
 
 \[
 \mathcal T^\mu{}_\nu
