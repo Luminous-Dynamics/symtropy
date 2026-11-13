@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/decision-critical-voi-request-v1.schema.json",
+  "title": "Decision-critical value-of-information request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "context",
+    "preference",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "context": {
+      "$ref": "#/$defs/context"
+    },
+    "preference": {
+      "enum": [
+        "pareto_only",
+        "highest_decision_value",
+        "lowest_latency",
+        "lowest_energy",
+        "fewest_simulator_transitions",
+        "least_human_time"
+      ]
+    },
+    "candidates": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    }
+  },
+  "$defs": {
+    "action_estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "expected_loss_units"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expected_loss_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "model_revision",
+        "decision_timestamp_us",
+        "actuation_deadline_timestamp_us",
+        "actuation_reserve_us",
+        "input_integrity",
+        "current_action_id",
+        "current_action_estimates",
+        "outcome_loss_consistency_tolerance_units",
+        "resource_budget"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "decision_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actuation_deadline_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actuation_reserve_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_integrity": {
+          "enum": [
+            "valid_fresh",
+            "degraded",
+            "rejected"
+          ]
+        },
+        "current_action_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "current_action_estimates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/action_estimate"
+          }
+        },
+        "outcome_loss_consistency_tolerance_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resource_budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_query_latency_us",
+            "maximum_energy_uj",
+            "maximum_simulator_transitions",
+            "maximum_human_intervention_ms",
+            "maximum_model_compute_units"
+          ],
+          "properties": {
+            "maximum_query_latency_us": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maximum_energy_uj": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maximum_simulator_transitions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maximum_human_intervention_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maximum_model_compute_units": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query_id",
+        "kind",
+        "latency_bound_us",
+        "energy_uj",
+        "simulator_transitions",
+        "human_intervention_ms",
+        "model_compute_units",
+        "information_privilege",
+        "outcome_provenance",
+        "fault_schedule_visible",
+        "outcomes"
+      ],
+      "properties": {
+        "query_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "sensor_reacquisition",
+            "additional_viewpoint",
+            "counterfactual_simulation",
+            "human_correction",
+            "high_fidelity_world_model"
+          ]
+        },
+        "latency_bound_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_uj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_intervention_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_compute_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "information_privilege": {
+          "enum": [
+            "policy_visible",
+            "evaluator_only"
+          ]
+        },
+        "outcome_provenance": {
+          "enum": [
+            "predicted_before_decision",
+            "realized_after_decision"
+          ]
+        },
+        "fault_schedule_visible": {
+          "type": "boolean"
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "probability_ppm",
+              "action_estimates"
+            ],
+            "properties": {
+              "probability_ppm": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "action_estimates": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 256,
+                "items": {
+                  "$ref": "#/$defs/action_estimate"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Current action estimates form the prior decision-loss vector; current_action_id must be its deterministic argmin.",
+    "For each candidate and each action, the probability-weighted post-query loss must reconstruct that action's prior expected loss within outcome_loss_consistency_tolerance_units. This prevents fabricated optimistic VOI.",
+    "Candidate outcome probabilities sum exactly to 1,000,000 ppm.",
+    "Every outcome evaluates the same action set as the current decision.",
+    "Expected query completion must be at or before actuation_deadline_timestamp_us minus actuation_reserve_us.",
+    "Rejected input permits sensor_reacquisition only; invalid evidence is never passed to slow reasoning.",
+    "Only policy-visible predicted-before-decision outcomes without fault-schedule leakage can be eligible.",
+    "Latency, energy, simulator transitions, human time and model compute remain separate Pareto dimensions."
+  ]
+}
