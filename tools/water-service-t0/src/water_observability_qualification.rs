@@ -40,6 +40,7 @@ struct Sensor {
 struct Estimator {
     status: String,
     qualification_claimed: bool,
+    covered_state_ids: Vec<String>,
     estimator_ref: Option<String>,
     model_scope_ref: Option<String>,
     calibration_ref: Option<String>,
@@ -246,6 +247,18 @@ fn parse_estimator(value: &Value, context: &str, errors: &mut Vec<String>) -> Op
         errors.push(format!("{context}: synthetic estimator cannot claim physical qualification"));
     }
 
+    let covered_state_ids = string_array(value, "covered_state_ids", context, errors);
+    let covered_set: BTreeSet<String> = covered_state_ids.iter().cloned().collect();
+    if covered_set.len() != covered_state_ids.len() {
+        errors.push(format!("{context}: covered_state_ids contains duplicates"));
+    }
+    if status == "not_used" && !covered_state_ids.is_empty() {
+        errors.push(format!("{context}: not_used estimator must have an empty covered_state_ids set"));
+    }
+    if status == "synthetic_qualified_contract" && covered_state_ids.is_empty() {
+        errors.push(format!("{context}: synthetic qualified estimator must name covered_state_ids"));
+    }
+
     let estimator_ref = optional_ref(value, "estimator_ref", context, errors);
     let model_scope_ref = optional_ref(value, "model_scope_ref", context, errors);
     let calibration_ref = optional_ref(value, "calibration_ref", context, errors);
@@ -280,6 +293,7 @@ fn parse_estimator(value: &Value, context: &str, errors: &mut Vec<String>) -> Op
     Some(Estimator {
         status,
         qualification_claimed,
+        covered_state_ids,
         estimator_ref,
         model_scope_ref,
         calibration_ref,
@@ -293,9 +307,15 @@ fn parse_estimator(value: &Value, context: &str, errors: &mut Vec<String>) -> Op
     })
 }
 
-fn estimator_qualified(estimator: &Estimator, profile: &Value, context: &str, errors: &mut Vec<String>) -> bool {
+fn estimator_qualified_scope(
+    estimator: &Estimator,
+    profile: &Value,
+    required_states: &BTreeSet<String>,
+    context: &str,
+    errors: &mut Vec<String>,
+) -> BTreeSet<String> {
     if estimator.status != "synthetic_qualified_contract" {
-        return false;
+        return BTreeSet::new();
     }
 
     let required_refs = [
@@ -313,6 +333,13 @@ fn estimator_qualified(estimator: &Estimator, profile: &Value, context: &str, er
     }
     if estimator.qualification_claimed {
         errors.push(format!("{context}: estimator qualification claim must remain false"));
+    }
+
+    let covered: BTreeSet<String> = estimator.covered_state_ids.iter().cloned().collect();
+    if covered.is_empty() || covered.iter().any(|state| !required_states.contains(state)) {
+        errors.push(format!(
+            "{context}: estimator covered_state_ids must be a non-empty subset of required states"
+        ));
     }
 
     let minimum_coverage = finite(profile, "minimum_estimator_coverage").unwrap_or(f64::NAN);
@@ -337,7 +364,12 @@ fn estimator_qualified(estimator: &Estimator, profile: &Value, context: &str, er
             "{context}: synthetic_qualified_contract does not meet coverage/sample/width/conditioning gates"
         ));
     }
-    valid && !estimator.qualification_claimed && required_refs.iter().all(|(_, reference)| reference.is_some())
+    let references_present = required_refs.iter().all(|(_, reference)| reference.is_some());
+    if valid && references_present && !estimator.qualification_claimed {
+        covered
+    } else {
+        BTreeSet::new()
+    }
 }
 
 fn topology_is_valid(topology: &Value, errors: &mut Vec<String>, context: &str) -> bool {
@@ -407,7 +439,7 @@ fn state_disposition(
     failed_domains: &BTreeSet<(String, String)>,
     topology_valid: bool,
     structural_status: &str,
-    estimator_is_qualified: bool,
+    estimator_qualified_states: &BTreeSet<String>,
 ) -> (String, Vec<String>, Vec<String>, usize) {
     let state_sensors: Vec<&Sensor> = sensors.iter().filter(|sensor| sensor.state_id == state_id).collect();
 
@@ -469,7 +501,7 @@ fn state_disposition(
     }
 
     if structural_status == "full" {
-        let disposition = if estimator_is_qualified {
+        let disposition = if estimator_qualified_states.contains(state_id) {
             "estimator_qualified_for_declared_scope"
         } else {
             "structurally_observable_only"
@@ -653,9 +685,18 @@ pub fn evaluate(
             &context,
             &mut errors,
         );
-        let estimator_is_qualified = estimator.as_ref().is_some_and(|estimator| {
-            estimator_qualified(estimator, profile, &context, &mut errors)
-        });
+        let estimator_qualified_states = estimator.as_ref().map_or_else(
+            BTreeSet::new,
+            |estimator| {
+                estimator_qualified_scope(
+                    estimator,
+                    profile,
+                    &required_set,
+                    &context,
+                    &mut errors,
+                )
+            },
+        );
 
         let failed_rows = case.get("failed_domains").and_then(Value::as_array);
         let mut failed_domains = BTreeSet::new();
@@ -702,7 +743,7 @@ pub fn evaluate(
                     &failed_domains,
                     topology_valid,
                     &structural_status,
-                    estimator_is_qualified,
+                    &estimator_qualified_states,
                 );
             state_dispositions.push(disposition.clone());
             state_results.push(json!({
@@ -1022,4 +1063,28 @@ mod tests {
             .expect_err("active power failure must change the direct state result");
         assert!(errors.iter().any(|error| error.contains("state disposition differs from separate oracle")));
     }
+    #[test]
+    fn estimator_can_only_qualify_explicitly_covered_states() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][10]["numerical_estimator"]["covered_state_ids"] =
+            json!(["junction_pressure_1"]);
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("estimator cannot qualify a state outside its declared scope");
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("state disposition differs from separate oracle")));
+    }
+
+    #[test]
+    fn not_used_estimator_cannot_claim_any_state_scope() {
+        let (mut scenarios, schema, oracle) = fixtures();
+        scenarios["scenarios"][0]["numerical_estimator"]["covered_state_ids"] =
+            json!(["tank_level_1"]);
+        let errors = evaluate(&scenarios, &schema, &oracle)
+            .expect_err("not_used estimator cannot cover states");
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("not_used estimator must have an empty covered_state_ids set")));
+    }
+
 }
