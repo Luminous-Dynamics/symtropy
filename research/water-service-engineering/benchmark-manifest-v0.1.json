@@ -223,5 +223,27 @@
       ],
       "qualification_status": "NotRun"
     }
+  },
+  "recovery_verification": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5069",
+    "protocol": "research/water-service-engineering/recovery-verification/RECOVERY_VERIFICATION_V0_1.md",
+    "scenarios": "research/water-service-engineering/recovery-verification/scenarios-v0.1.json",
+    "schema": "research/water-service-engineering/recovery-verification/scenarios-v0.1.schema.json",
+    "oracle": "research/water-service-engineering/recovery-verification/disposition-oracle-v0.1.json",
+    "scenario_count": 13,
+    "required_area_count": 3,
+    "minimum_independent_paths": 2,
+    "maximum_observation_age_seconds": 600,
+    "minimum_stable_dwell_seconds": 3600,
+    "dispositions": [
+      "verified_restored",
+      "candidate_restored",
+      "not_restored",
+      "breached_with_indeterminate",
+      "indeterminate",
+      "invalid"
+    ],
+    "quality_assessment": "not_in_scope_quality_must_be_qualified_separately",
+    "status": "synthetic_restoration_semantics_only_no_physical_or_potable_quality_qualification"
   }
 }
