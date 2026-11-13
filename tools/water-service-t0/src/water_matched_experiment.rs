@@ -52,18 +52,79 @@ fn schema_check(schema: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_deployment(v:&Value, c:&str)->Vec<String>{
-    let mut e=Vec::new();
-    for k in DEPLOYMENT_FIELDS { if v.as_object().is_none_or(|o|!o.contains_key(k)){e.push(format!("{c}: missing deployment field {k}"));}}
-    if strv(v,"unit_system")!=Some("SI") {e.push(format!("{c}: unit system must be SI"));}
-    if v.get("future_covariates_available").and_then(Value::as_bool)!=Some(false){e.push(format!("{c}: future covariates must be unavailable"));}
-    for (k,desc) in [("sensor_set","sensor set"),("required_service_area_ids","required areas")] {
-        match v.get(k).and_then(Value::as_array){
-            Some(items)=>{
-                let ids:Vec<&str>=items.iter().filter_map(Value::as_str).collect();
-                if ids.len()!=items.len()||ids.is_empty()||ids.iter().copied().collect::<BTreeSet<_>>().len()!=ids.len(){e.push(format!("{c}: {desc} must be non-empty, string-valued and unique"));}
+fn validate_deployment(v: &Value, c: &str) -> Vec<String> {
+    let mut e = Vec::new();
+    let Some(object) = v.as_object() else {
+        return vec![format!("{c}: deployment_inputs must be an object")];
+    };
+    let mut allowed: BTreeSet<&str> = DEPLOYMENT_FIELDS.iter().copied().collect();
+    allowed.insert("future_covariates_available");
+    if object.len() != allowed.len() || object.keys().any(|key| !allowed.contains(key.as_str())) {
+        e.push(format!("{c}: deployment object must contain exactly the frozen parity fields"));
+    }
+    for key in DEPLOYMENT_FIELDS {
+        if !object.contains_key(key) {
+            e.push(format!("{c}: missing deployment field {key}"));
+        }
+    }
+    for key in [
+        "scenario_ref",
+        "network_id",
+        "topology_revision",
+        "topology_digest",
+        "geometry_revision",
+        "geometry_digest",
+        "demand_trace_digest",
+        "disturbance_trace_digest",
+        "missingness_profile_ref",
+        "time_grid_ref",
+        "service_floor_profile_digest",
+        "actuator_envelope_digest",
+        "local_protection_contract_digest",
+    ] {
+        if !object
+            .get(key)
+            .and_then(Value::as_str)
+            .is_some_and(|value| !value.trim().is_empty())
+        {
+            e.push(format!("{c}: {key} must be a non-empty string"));
+        }
+    }
+    if object.get("random_seed").and_then(Value::as_u64).is_none() {
+        e.push(format!("{c}: random_seed must be a non-negative integer"));
+    }
+    for key in [
+        "sampling_period_seconds",
+        "scoring_horizon_seconds",
+        "decision_deadline_ms",
+    ] {
+        if !object.get(key).and_then(Value::as_u64).is_some_and(|value| value > 0) {
+            e.push(format!("{c}: {key} must be a positive integer"));
+        }
+    }
+    if strv(v, "unit_system") != Some("SI") {
+        e.push(format!("{c}: unit system must be SI"));
+    }
+    if v.get("future_covariates_available").and_then(Value::as_bool) != Some(false) {
+        e.push(format!("{c}: future covariates must be unavailable"));
+    }
+    for (key, description) in [
+        ("sensor_set", "sensor set"),
+        ("required_service_area_ids", "required areas"),
+    ] {
+        match v.get(key).and_then(Value::as_array) {
+            Some(items) => {
+                let ids: Vec<&str> = items.iter().filter_map(Value::as_str).collect();
+                if ids.len() != items.len()
+                    || ids.is_empty()
+                    || ids.iter().copied().collect::<BTreeSet<_>>().len() != ids.len()
+                {
+                    e.push(format!(
+                        "{c}: {description} must be non-empty, string-valued and unique"
+                    ));
+                }
             }
-            None=>e.push(format!("{c}: {desc} must be an array"))
+            None => e.push(format!("{c}: {description} must be an array")),
         }
     }
     e
@@ -219,4 +280,30 @@ mod tests {
  #[test] fn scoring_must_report_coverage_and_abstention(){let(mut c,s,o)=fixtures();c["pairs"][0]["scoring_profile"]["abstention_reported"]=json!(false);let e=evaluate(&c,&s,&o).unwrap_err();assert!(e.iter().any(|x|x.contains("abstention")));}
  #[test] fn modified_oracle_is_rejected(){let(c,s,mut o)=fixtures();o["results"][0]["expected_pair_disposition"]=json!("reject");let e=evaluate(&c,&s,&o).unwrap_err();assert!(e.iter().any(|x|x.contains("differs from separate oracle")));}
  #[test] fn trained_baseline_requires_population_reference(){let(mut c,s,o)=fixtures();c["pairs"][0]["baseline_runs"][1]["resource_budget"]["training_source_population_ref"]=json!("NOT_APPLICABLE");let e=evaluate(&c,&s,&o).unwrap_err();assert!(e.iter().any(|x|x.contains("trained baseline requires source population")));}
+    #[test]
+    fn shared_deployment_inputs_reject_unregistered_extra_fields() {
+        let (mut corpus, schema, oracle) = fixtures();
+        corpus["pairs"][0]["shared_deployment_inputs"]["future_demand_forecast"] = json!(0.5);
+        corpus["pairs"][0]["baseline_runs"][0]["deployment_inputs"]["future_demand_forecast"] = json!(0.5);
+        corpus["pairs"][0]["baseline_runs"][1]["deployment_inputs"]["future_demand_forecast"] = json!(0.5);
+        let errors = evaluate(&corpus, &schema, &oracle)
+            .expect_err("unregistered future field must be rejected even when shared");
+        assert!(errors.iter().any(|error| error.contains("exactly the frozen parity fields")));
+    }
+
+    #[test]
+    fn invalid_seed_and_zero_sampling_period_are_rejected() {
+        let (mut corpus, schema, oracle) = fixtures();
+        corpus["pairs"][0]["shared_deployment_inputs"]["random_seed"] = json!(-1);
+        corpus["pairs"][0]["shared_deployment_inputs"]["sampling_period_seconds"] = json!(0);
+        for run in corpus["pairs"][0]["baseline_runs"].as_array_mut().unwrap() {
+            run["deployment_inputs"]["random_seed"] = json!(-1);
+            run["deployment_inputs"]["sampling_period_seconds"] = json!(0);
+        }
+        let errors = evaluate(&corpus, &schema, &oracle)
+            .expect_err("invalid common timing/seed fields must be rejected");
+        assert!(errors.iter().any(|error| error.contains("random_seed")));
+        assert!(errors.iter().any(|error| error.contains("sampling_period_seconds")));
+    }
+
 }
