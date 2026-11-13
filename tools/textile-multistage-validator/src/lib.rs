@@ -30,6 +30,9 @@ pub struct SetupRule {
     pub from_family: String,
     pub to_family: String,
     pub duration_ticks: u64,
+    /// Required operator capability for nonzero setup work.
+    pub required_operator_skill: Option<String>,
+    pub required_operator_certification: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -80,6 +83,18 @@ pub struct Assignment {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SetupReservation {
+    pub machine_id: String,
+    pub from_family: String,
+    pub to_family: String,
+    pub predecessor_operation_id: Option<String>,
+    pub next_operation_id: String,
+    pub operator_id: String,
+    pub start_tick: u64,
+    pub finish_tick: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Problem {
     pub name: String,
     pub machines: Vec<Machine>,
@@ -91,6 +106,7 @@ pub struct Problem {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Schedule {
     pub assignments: Vec<Assignment>,
+    pub setup_reservations: Vec<SetupReservation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -491,6 +507,8 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
         }
     }
 
+    let mut used_setup_reservations = BTreeSet::<usize>::new();
+
     for (machine_id, reservations) in &mut by_machine {
         let Some(machine) = machines.get(machine_id.as_str()) else {
             continue;
@@ -498,6 +516,7 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
         reservations.sort_by_key(|(a, _)| (a.start_tick, a.finish_tick, a.operation_id.as_str()));
         let mut previous_finish = 0_u64;
         let mut previous_family = machine.initial_family.as_str();
+        let mut previous_operation_id: Option<&str> = None;
 
         for (assignment, operation) in reservations.iter() {
             let matching: Vec<&SetupRule> = machine
@@ -519,8 +538,27 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                         operation.product_family
                     ),
                 ),
-                [rule] => match previous_finish.checked_add(rule.duration_ticks) {
-                    Some(ready) if ready <= assignment.start_tick => {
+                [rule] => {
+                    if rule.duration_ticks > 0 {
+                        match previous_finish.checked_add(rule.duration_ticks) {
+                            Some(ready) if ready <= assignment.start_tick => {}
+                            Some(ready) => finding(
+                                &mut findings,
+                                "SETUP_TIME_VIOLATION",
+                                &assignment.operation_id,
+                                format!(
+                                    "machine {machine_id} is ready at {ready}, after operation start {}",
+                                    assignment.start_tick
+                                ),
+                            ),
+                            None => finding(
+                                &mut findings,
+                                "TIME_OVERFLOW",
+                                &assignment.operation_id,
+                                "previous finish plus setup duration overflows u64",
+                            ),
+                        }
+
                         if !setup_available(
                             &machine.availability,
                             previous_finish,
@@ -537,22 +575,128 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                             );
                         }
                     }
-                    Some(ready) => finding(
-                        &mut findings,
-                        "SETUP_TIME_VIOLATION",
-                        &assignment.operation_id,
-                        format!(
-                            "machine {machine_id} is ready at {ready}, after operation start {}",
-                            assignment.start_tick
-                        ),
-                    ),
-                    None => finding(
-                        &mut findings,
-                        "TIME_OVERFLOW",
-                        &assignment.operation_id,
-                        "previous finish plus setup duration overflows u64",
-                    ),
-                },
+
+                    let candidates: Vec<(usize, &SetupReservation)> = schedule
+                        .setup_reservations
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, reservation)| {
+                            reservation.machine_id == machine_id.as_str()
+                                && reservation.predecessor_operation_id.as_deref()
+                                    == previous_operation_id
+                                && reservation.next_operation_id == assignment.operation_id
+                        })
+                        .collect();
+
+                    if rule.duration_ticks == 0 {
+                        for (index, _) in &candidates {
+                            used_setup_reservations.insert(*index);
+                        }
+                        if !candidates.is_empty() {
+                            finding(
+                                &mut findings,
+                                "UNEXPECTED_SETUP_RESERVATION",
+                                &assignment.operation_id,
+                                "zero-duration setup must not reserve setup labor or machine time",
+                            );
+                        }
+                    } else {
+                        if candidates.is_empty() {
+                            finding(
+                                &mut findings,
+                                "SETUP_RESERVATION_MISSING",
+                                &assignment.operation_id,
+                                "nonzero setup requires one explicit machine and operator reservation",
+                            );
+                        }
+                        if candidates.len() > 1 {
+                            finding(
+                                &mut findings,
+                                "DUPLICATE_SETUP_RESERVATION",
+                                &assignment.operation_id,
+                                "exactly one setup reservation is allowed for this machine transition",
+                            );
+                        }
+
+                        if let Some((index, reservation)) = candidates.first() {
+                            used_setup_reservations.insert(*index);
+                            if reservation.from_family != rule.from_family
+                                || reservation.to_family != rule.to_family
+                            {
+                                finding(
+                                    &mut findings,
+                                    "SETUP_RESERVATION_TRANSITION_MISMATCH",
+                                    &assignment.operation_id,
+                                    "setup reservation family transition does not match the machine setup rule",
+                                );
+                            }
+                            if reservation.start_tick >= reservation.finish_tick
+                                || reservation.finish_tick - reservation.start_tick
+                                    != rule.duration_ticks
+                            {
+                                finding(
+                                    &mut findings,
+                                    "SETUP_RESERVATION_DURATION_MISMATCH",
+                                    &assignment.operation_id,
+                                    "setup reservation must have the exact declared positive duration",
+                                );
+                            }
+                            if reservation.start_tick < previous_finish
+                                || reservation.finish_tick > assignment.start_tick
+                            {
+                                finding(
+                                    &mut findings,
+                                    "SETUP_RESERVATION_OUTSIDE_TRANSITION_GAP",
+                                    &assignment.operation_id,
+                                    "setup reservation must fit between predecessor finish and next operation start",
+                                );
+                            }
+                            if let Some(skill) = rule
+                                .required_operator_skill
+                                .as_deref()
+                                .filter(|value| !value.trim().is_empty())
+                            {
+                                if let Some(operator) =
+                                    operators.get(reservation.operator_id.as_str())
+                                {
+                                    if !operator.skills.contains(skill) {
+                                        finding(
+                                            &mut findings,
+                                            "SETUP_OPERATOR_SKILL_MISMATCH",
+                                            &assignment.operation_id,
+                                            format!(
+                                                "setup operator {} lacks required skill {skill}",
+                                                operator.id
+                                            ),
+                                        );
+                                    }
+                                    if let Some(certification) =
+                                        rule.required_operator_certification.as_deref()
+                                    {
+                                        if !operator.certifications.contains(certification) {
+                                            finding(
+                                                &mut findings,
+                                                "SETUP_OPERATOR_CERTIFICATION_MISMATCH",
+                                                &assignment.operation_id,
+                                                format!(
+                                                    "setup operator {} lacks required certification {certification}",
+                                                    operator.id
+                                                ),
+                                            );
+                                        }
+                                    }
+                                }
+                            } else {
+                                finding(
+                                    &mut findings,
+                                    "SETUP_OPERATOR_SKILL_UNDECLARED",
+                                    &assignment.operation_id,
+                                    "a positive-duration setup rule must declare the required operator skill",
+                                );
+                            }
+                        }
+                    }
+                }
                 _ => finding(
                     &mut findings,
                     "SETUP_RULE_AMBIGUOUS",
@@ -565,6 +709,128 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
             }
             previous_finish = assignment.finish_tick;
             previous_family = operation.product_family.as_str();
+            previous_operation_id = Some(assignment.operation_id.as_str());
+        }
+    }
+
+    for (index, reservation) in schedule.setup_reservations.iter().enumerate() {
+        if !used_setup_reservations.contains(&index) {
+            finding(
+                &mut findings,
+                "ORPHAN_SETUP_RESERVATION",
+                &reservation.next_operation_id,
+                "setup reservation does not correspond to a declared nonzero setup transition",
+            );
+        }
+        if reservation.start_tick >= reservation.finish_tick {
+            finding(
+                &mut findings,
+                "INVALID_SETUP_RESERVATION_INTERVAL",
+                &reservation.next_operation_id,
+                "setup reservation finish must be greater than start",
+            );
+        }
+        if let Some(machine) = machines.get(reservation.machine_id.as_str()) {
+            if reservation.start_tick < reservation.finish_tick
+                && !available(
+                    &machine.availability,
+                    reservation.start_tick,
+                    reservation.finish_tick,
+                )
+            {
+                finding(
+                    &mut findings,
+                    "SETUP_MACHINE_UNAVAILABLE",
+                    &reservation.next_operation_id,
+                    format!(
+                        "machine {} is unavailable for the full setup interval",
+                        machine.id
+                    ),
+                );
+            }
+        } else {
+            finding(
+                &mut findings,
+                "UNKNOWN_SETUP_MACHINE",
+                &reservation.next_operation_id,
+                format!("setup reservation references unknown machine {}", reservation.machine_id),
+            );
+        }
+
+        if let Some(operator) = operators.get(reservation.operator_id.as_str()) {
+            if reservation.start_tick < reservation.finish_tick
+                && !available(
+                    &operator.availability,
+                    reservation.start_tick,
+                    reservation.finish_tick,
+                )
+            {
+                finding(
+                    &mut findings,
+                    "SETUP_OPERATOR_UNAVAILABLE",
+                    &reservation.next_operation_id,
+                    format!(
+                        "setup operator {} is unavailable for the full setup interval",
+                        operator.id
+                    ),
+                );
+            }
+            if by_operator
+                .get(operator.id.as_str())
+                .is_some_and(|assignments| {
+                    assignments.iter().any(|(assignment, _)| {
+                        reservation.start_tick < assignment.finish_tick
+                            && assignment.start_tick < reservation.finish_tick
+                    })
+                })
+            {
+                finding(
+                    &mut findings,
+                    "SETUP_OPERATOR_OPERATION_OVERLAP",
+                    &reservation.next_operation_id,
+                    format!(
+                        "setup operator {} is already assigned to an operation during setup",
+                        operator.id
+                    ),
+                );
+            }
+        } else {
+            finding(
+                &mut findings,
+                "UNKNOWN_SETUP_OPERATOR",
+                &reservation.next_operation_id,
+                format!("setup reservation references unknown operator {}", reservation.operator_id),
+            );
+        }
+
+        for (other_index, other) in schedule.setup_reservations.iter().enumerate() {
+            if other_index <= index {
+                continue;
+            }
+            let overlap = reservation.start_tick < other.finish_tick
+                && other.start_tick < reservation.finish_tick;
+            if overlap && reservation.operator_id == other.operator_id {
+                finding(
+                    &mut findings,
+                    "SETUP_OPERATOR_OVERLAP",
+                    &reservation.next_operation_id,
+                    format!(
+                        "setup operator {} has overlapping setup reservations",
+                        reservation.operator_id
+                    ),
+                );
+            }
+            if overlap && reservation.machine_id == other.machine_id {
+                finding(
+                    &mut findings,
+                    "SETUP_MACHINE_OVERLAP",
+                    &reservation.next_operation_id,
+                    format!(
+                        "machine {} has overlapping setup reservations",
+                        reservation.machine_id
+                    ),
+                );
+            }
         }
     }
 
