@@ -1,0 +1,38 @@
+name: WPT Robust Observability
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/wpt-robust-observability-v0/**"
+      - "tools/wpt-robust-observability/**"
+      - ".github/workflows/wpt-robust-observability.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/wpt-robust-observability-v0/**"
+      - "tools/wpt-robust-observability/**"
+      - ".github/workflows/wpt-robust-observability.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test robust observability oracle
+        run: cargo test --locked --manifest-path tools/wpt-robust-observability/Cargo.toml
+      - name: Evaluate nominal known-truth case
+        run: cargo run --locked --manifest-path tools/wpt-robust-observability/Cargo.toml -- research/wpt-robust-observability-v0/nominal-unique.tsv
+      - name: Evaluate model-drift ambiguity case
+        run: cargo run --locked --manifest-path tools/wpt-robust-observability/Cargo.toml -- research/wpt-robust-observability-v0/model-drift-ambiguous.tsv
+      - name: Evaluate sensor-dropout ambiguity case
+        run: cargo run --locked --manifest-path tools/wpt-robust-observability/Cargo.toml -- research/wpt-robust-observability-v0/sensor-dropout-ambiguous.tsv
