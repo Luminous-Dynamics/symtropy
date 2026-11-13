@@ -246,7 +246,7 @@ fn div_ceil_u128(numerator: u128, denominator: u128) -> Result<u128, AbstainReas
         return Err(AbstainReason::InvalidClockTransform);
     }
     let quotient = numerator / denominator;
-    if numerator % denominator == 0 {
+    if numerator.is_multiple_of(denominator) {
         Ok(quotient)
     } else {
         quotient.checked_add(1).ok_or(AbstainReason::ArithmeticOverflow)
@@ -389,9 +389,6 @@ pub fn align_stream(
     let mut last_included_sequence = None;
     let mut included_times = Vec::new();
     let mut max_uncertainty = 0u64;
-    let mut maximum_gap = 0u64;
-    let mut duplicate_sequence_count = 0usize;
-    let mut out_of_order_sequence_count = 0usize;
     let mut missing_timestamp_count = 0usize;
     let mut clipped_sample_count = 0usize;
     let mut dropped_sample_count = 0usize;
@@ -402,11 +399,9 @@ pub fn align_stream(
 
     for sample in &stream.samples {
         if last_sequence.is_some_and(|last| sample.sequence == last) {
-            duplicate_sequence_count += 1;
             return Err(AbstainReason::DuplicateSequence);
         }
         if last_sequence.is_some_and(|last| sample.sequence < last) {
-            out_of_order_sequence_count += 1;
             return Err(AbstainReason::OutOfOrderSequence);
         }
         last_sequence = Some(sample.sequence);
@@ -525,7 +520,7 @@ pub fn align_stream(
     if leading_gap < 0 || trailing_gap < 0 {
         return Err(AbstainReason::BoundaryAmbiguity);
     }
-    maximum_gap = u64::try_from(leading_gap.max(trailing_gap))
+    let mut maximum_gap = u64::try_from(leading_gap.max(trailing_gap))
         .map_err(|_| AbstainReason::ArithmeticOverflow)?;
     for pair in included_times.windows(2) {
         let gap = (pair[1] as i128)
@@ -556,8 +551,10 @@ pub fn align_stream(
         coverage_permille,
         maximum_gap_ns: maximum_gap,
         maximum_mapping_uncertainty_ns: max_uncertainty,
-        duplicate_sequence_count,
-        out_of_order_sequence_count,
+        // Duplicate/out-of-order samples are rejected above, so a successful
+        // receipt necessarily reports zero for both conditions.
+        duplicate_sequence_count: 0,
+        out_of_order_sequence_count: 0,
         missing_timestamp_count,
         clipped_sample_count,
         dropped_sample_count,
