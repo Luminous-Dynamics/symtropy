@@ -1,0 +1,378 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "ORBITAL-TRUSS-ACCEPTANCE-001",
+  "fixture_id": "orbital-truss-acceptance-synthetic-registry-v0-1",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "suite_status": "CASE_REGISTRY_NOT_EXECUTABLE",
+  "unit_system": "SI",
+  "reference_context": {
+    "reference_id": "ASTRA-NOM4D-2026-11-05",
+    "source_urls": [
+      "https://www.darpa.mil/news/2026/nom4d-program-demonstrates-automated-in-space-assembly",
+      "https://www.caltech.edu/about/news/caltech-robotic-space-demo-successfully-builds-in-space"
+    ],
+    "use_limit": "Bounded orbital assembly demonstration only; unavailable structural acceptance telemetry is not imputed."
+  },
+  "starter_analytic_case": {
+    "case_id": "OTA-001",
+    "model_envelope": "2D, linear-elastic, small-displacement, pin-jointed axial truss only",
+    "geometry": {
+      "nodes": [
+        {
+          "id": "L",
+          "x_m": -0.3,
+          "y_m": 0
+        },
+        {
+          "id": "R",
+          "x_m": 0.3,
+          "y_m": 0
+        },
+        {
+          "id": "A",
+          "x_m": 0,
+          "y_m": 0.4
+        }
+      ],
+      "members": [
+        {
+          "id": "ML",
+          "node_a": "L",
+          "node_b": "A",
+          "area_m2": 0.0001,
+          "youngs_modulus_pa": 70000000000
+        },
+        {
+          "id": "MR",
+          "node_a": "R",
+          "node_b": "A",
+          "area_m2": 0.0001,
+          "youngs_modulus_pa": 70000000000
+        }
+      ],
+      "supports": [
+        {
+          "node_id": "L",
+          "restrained_x": true,
+          "restrained_y": true
+        },
+        {
+          "node_id": "R",
+          "restrained_x": true,
+          "restrained_y": true
+        }
+      ],
+      "loads": [
+        {
+          "node_id": "A",
+          "fx_n": 0,
+          "fy_n": -100
+        }
+      ]
+    },
+    "independent_analytic_oracle": {
+      "member_axial_force_n": -62.5,
+      "member_stress_pa": -625000,
+      "apex_displacement_x_m": 0,
+      "left_support_reaction_fx_n": 37.5,
+      "left_support_reaction_fy_n": 50,
+      "right_support_reaction_fx_n": -37.5,
+      "right_support_reaction_fy_n": 50,
+      "equilibrium_residual_n": 0,
+      "assumption": "Small-displacement linear axial truss; equal bars; pinned member ends; exact symmetric geometry.",
+      "apex_displacement_y_m": -0.000005580357142857143
+    },
+    "important_limit": "This analytic fixture validates only narrow truss arithmetic. It does not represent a composite orbital joint, beam bending, dynamics, buckling, fatigue, thermal/vacuum effects or a flight article."
+  },
+  "case_registry": [
+    {
+      "case_id": "OTA-001",
+      "family": "nominal",
+      "case_class": "NOMINAL",
+      "expected_disposition": "ACCEPT",
+      "truth_rationale": "Correctly identified complete reference assembly; all synthetic checks within declared limits.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-002",
+      "family": "tolerance-stack",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Cumulative member and joint-position errors sit at the declared tolerance boundary; uncertainty overlaps the limit.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-003",
+      "family": "wrong-member",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Incorrect member length or section is visually connected but fails identity/geometry reconciliation.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-004",
+      "family": "partial-engagement",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Joint engagement indicator reports partial latch; connection cannot be accepted.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-005",
+      "family": "missing-fastener",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Required critical fastener evidence is absent.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-006",
+      "family": "out-of-envelope-joint",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Joint stiffness lies outside the declared model and inspection envelope.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-007",
+      "family": "mechanism",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Global stiffness is singular because the structure contains a mechanism.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-008",
+      "family": "support-frame",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Support directions are expressed in a mismatched coordinate frame.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-009",
+      "family": "load-convention",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Load sign or unit conversion is inconsistent with the request manifest.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-010",
+      "family": "common-mode-registration",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Two survey channels share a biased registration datum and cannot independently clear the geometry.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-011",
+      "family": "occluded-joint",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Critical joint surfaces remain occluded and inspection coverage is incomplete.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-012",
+      "family": "sensor-stuck",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "A response channel is stuck while an independent reference indicates a changed response.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-013",
+      "family": "correlated-inspection",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Two correlated modalities are incorrectly treated as independent evidence.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-014",
+      "family": "geometry-response-conflict",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Geometry passes but independent load/deflection response exceeds its declared limit.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-015",
+      "family": "calibration-leakage",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Calibration fit does not transfer to a sealed validation configuration.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-016",
+      "family": "solver-nonconvergence",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "External FEM solver did not satisfy the declared convergence contract.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-017",
+      "family": "parser-corruption",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "The result parser drops or mutates a required response field or digest.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-018",
+      "family": "thermal-state",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Thermal state changes the interpretation of dimensional/joint observations beyond the admitted profile.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-019",
+      "family": "damage-sensor-confound",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Structural damage and sensor degradation are not identifiable from available observations.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-020",
+      "family": "cosmetic-repair",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REPAIR_REQUALIFY",
+      "truth_rationale": "Visual geometry is restored but stiffness/load-path evidence remains outside acceptance.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-021",
+      "family": "inspection-blind-spot",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "The inspection plan leaves a critical joint unobservable.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-022",
+      "family": "comms-interruption",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "A stale completion event arrives after communication loss and does not bind to current work-package state.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-023",
+      "family": "stale-design",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "The observed article is reconciled against an obsolete design revision.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-024",
+      "family": "out-of-domain",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "INDETERMINATE_HUMAN_REVIEW",
+      "truth_rationale": "Material or joint type is unsupported by the declared model/inspection domain.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-025",
+      "family": "compensating-score",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "A candidate trades a hard structural requirement for lower mass or assembly time.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-026",
+      "family": "rigid-rotation",
+      "case_class": "METAMORPHIC",
+      "expected_disposition": "ACCEPT",
+      "truth_rationale": "Rigid rotation preserves invariant scalar response metrics and transforms vectors consistently.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-027",
+      "family": "rigid-translation",
+      "case_class": "METAMORPHIC",
+      "expected_disposition": "ACCEPT",
+      "truth_rationale": "Rigid translation preserves relative geometry and response metrics.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-028",
+      "family": "load-scaling",
+      "case_class": "METAMORPHIC",
+      "expected_disposition": "ACCEPT",
+      "truth_rationale": "Within the admitted linear-elastic regime, scaling load scales displacement/member force consistently.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-029",
+      "family": "ordering",
+      "case_class": "METAMORPHIC",
+      "expected_disposition": "ACCEPT",
+      "truth_rationale": "Member and observation input permutation leaves the canonical result unchanged.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    },
+    {
+      "case_id": "OTA-030",
+      "family": "replay-tamper",
+      "case_class": "NEGATIVE_CONTROL",
+      "expected_disposition": "REJECT",
+      "truth_rationale": "Duplicated, stale or tampered inputs/outputs fail digest and replay checks.",
+      "evidence_class": "SYNTHETIC_ONLY"
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "dimensional_deviation",
+      "unit": "m",
+      "aggregation": "per feature and max absolute deviation"
+    },
+    {
+      "metric_id": "critical_inspection_coverage",
+      "unit": "fraction",
+      "aggregation": "critical joint / load-path features inspected"
+    },
+    {
+      "metric_id": "false_accept_rate",
+      "unit": "fraction",
+      "aggregation": "report per negative-control family"
+    },
+    {
+      "metric_id": "indeterminate_rate",
+      "unit": "fraction",
+      "aggregation": "report per case family"
+    },
+    {
+      "metric_id": "load_deflection_error",
+      "unit": "relative error",
+      "aggregation": "per load case and response channel"
+    },
+    {
+      "metric_id": "equilibrium_residual",
+      "unit": "N",
+      "aggregation": "force and reaction residuals separately"
+    },
+    {
+      "metric_id": "inspection_effort",
+      "unit": "operator-hour",
+      "aggregation": "inspection and rework separately"
+    },
+    {
+      "metric_id": "added_inspection_mass",
+      "unit": "kg",
+      "aggregation": "sensors, fixtures and required tooling"
+    }
+  ],
+  "non_claims": [
+    "No solver implementation is included.",
+    "No physical measurements are included.",
+    "No external FEM case is reproduced.",
+    "No ASTRA structural acceptance data are available in this fixture.",
+    "No aerospace structural certification or flight qualification is implied."
+  ]
+}
