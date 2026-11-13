@@ -198,6 +198,20 @@
       "not_eligible": [
         "claiming_exact_reproduction_from_abstract"
       ]
+    },
+    {
+      "id": "PAMPLONA_DAS_2026",
+      "track": "P2",
+      "evidence": "controlled_field_DAS_events_on_single_urban_route_raw_data_on_request",
+      "eligible": [
+        "DAS_detection_and_localization_after_raw_data_and_rights_admission",
+        "comparison_with_point_acoustic_baseline_if_same_records_available"
+      ],
+      "not_eligible": [
+        "natural_leak_generalization",
+        "broad_utility_availability",
+        "raw_data_redistribution_without_permission"
+      ]
     }
   ],
   "review_task_coverage": {
@@ -220,5 +234,21 @@
     "synthetic_lab_hil_utility_field_evidence_classes_kept_separate",
     "target_population_transfer_performance_reported_separately",
     "abstention_missingness_and_unobserved_network_exposure"
-  ]
+  ],
+  "distributed_fibre_sensing": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4991",
+    "dataset_id": "PAMPLONA_DAS_2026",
+    "evidence": "controlled_field_leaks_with_drainage_valve_not_natural_failure",
+    "route_length_km": 17,
+    "effective_gauge_length_m": 2.6,
+    "data_availability": "reasonable_request_from_corresponding_author",
+    "raw_data_acquired": false,
+    "intake_status": "catalogued_metadata_only",
+    "source_doi": "10.3390/s26072152",
+    "nonclaims": [
+      "paper_open_access_does_not_establish_raw_dataset_redistribution_rights",
+      "gauge_length_is_not_P95_localization_error",
+      "no_natural_failure_population_is_established"
+    ]
+  }
 }
