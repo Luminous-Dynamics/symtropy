@@ -47,8 +47,16 @@ where
 }
 
 fn sparse_run(size: u64) {
-    let mut insert_samples = Vec::new();
-    for _ in 0..7 {
+    let mut insert_samples = Vec::with_capacity(25);
+    let mut indexed_query_samples = Vec::with_capacity(625);
+    let mut full_scan_query_samples = Vec::with_capacity(625);
+    let mut indexed_local_candidates = 0_usize;
+    let mut reference_local_overlaps = 0_usize;
+    let mut indexed_gap_candidates = 0_usize;
+    let mut reference_gap_overlaps = 0_usize;
+    let mut active = 0_usize;
+
+    for _ in 0..25 {
         let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0)
             .expect("valid reservation book");
         book.register_resource("shared-hoist", u32::MAX)
@@ -78,17 +86,29 @@ fn sparse_run(size: u64) {
         let middle = size / 2;
         let local_start = middle * 120_000 + 10_000;
         let gap_start = middle * 120_000 + 70_000;
-        let active = book
+        active = book
             .active_reservation_count_for_resource("shared-hoist")
             .expect("active resource count");
+        indexed_local_candidates = book
+            .candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
+            .expect("indexed local candidates");
+        reference_local_overlaps = book
+            .reference_candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
+            .expect("reference local overlaps");
+        indexed_gap_candidates = book
+            .candidate_count_for_interval("shared-hoist", gap_start, gap_start + 1_000)
+            .expect("indexed gap candidates");
+        reference_gap_overlaps = book
+            .reference_candidate_count_for_interval("shared-hoist", gap_start, gap_start + 1_000)
+            .expect("reference gap overlaps");
 
-        let indexed_local = measure_query(|| {
+        indexed_query_samples.extend(measure_query(|| {
             black_box(
                 book.candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
                     .expect("indexed local query"),
             );
-        });
-        let reference_local = measure_query(|| {
+        }));
+        full_scan_query_samples.extend(measure_query(|| {
             black_box(
                 book.reference_candidate_count_for_interval(
                     "shared-hoist",
@@ -97,36 +117,22 @@ fn sparse_run(size: u64) {
                 )
                 .expect("full-scan local query"),
             );
-        });
-        let indexed_gap = book
-            .candidate_count_for_interval("shared-hoist", gap_start, gap_start + 1_000)
-            .expect("indexed gap query");
-        let reference_gap = book
-            .reference_candidate_count_for_interval("shared-hoist", gap_start, gap_start + 1_000)
-            .expect("full-scan gap query");
-
-        println!(
-            "distribution=sparse reservations={size} repetitions=7 active={active} insert_p50_ms={:.3} insert_p95_ms={:.3} insert_p99_ms={:.3} indexed_local_candidates={} indexed_local_p50_us={:.3} indexed_local_p95_us={:.3} indexed_local_p99_us={:.3} reference_local_overlaps={} full_scan_local_p50_us={:.3} full_scan_local_p95_us={:.3} full_scan_local_p99_us={:.3} indexed_gap_candidates={indexed_gap} reference_gap_overlaps={reference_gap}",
-            percentile(&insert_samples, 50).as_secs_f64() * 1_000.0,
-            percentile(&insert_samples, 95).as_secs_f64() * 1_000.0,
-            percentile(&insert_samples, 99).as_secs_f64() * 1_000.0,
-            book.candidate_count_for_interval("shared-hoist", local_start, local_start + 1_000)
-                .unwrap(),
-            percentile(&indexed_local, 50).as_secs_f64() * 1_000_000.0,
-            percentile(&indexed_local, 95).as_secs_f64() * 1_000_000.0,
-            percentile(&indexed_local, 99).as_secs_f64() * 1_000_000.0,
-            book.reference_candidate_count_for_interval(
-                "shared-hoist",
-                local_start,
-                local_start + 1_000
-            )
-            .unwrap(),
-            percentile(&reference_local, 50).as_secs_f64() * 1_000_000.0,
-            percentile(&reference_local, 95).as_secs_f64() * 1_000_000.0,
-            percentile(&reference_local, 99).as_secs_f64() * 1_000_000.0,
-        );
+        }));
         black_box(book);
     }
+
+    println!(
+        "distribution=sparse reservations={size} repetitions=25 query_samples=625 active={active} insert_p50_ms={:.3} insert_p95_ms={:.3} insert_p99_ms={:.3} indexed_local_candidates={indexed_local_candidates} indexed_query_p50_us={:.3} indexed_query_p95_us={:.3} indexed_query_p99_us={:.3} reference_local_overlaps={reference_local_overlaps} full_scan_p50_us={:.3} full_scan_p95_us={:.3} full_scan_p99_us={:.3} indexed_gap_candidates={indexed_gap_candidates} reference_gap_overlaps={reference_gap_overlaps}",
+        percentile(&insert_samples, 50).as_secs_f64() * 1_000.0,
+        percentile(&insert_samples, 95).as_secs_f64() * 1_000.0,
+        percentile(&insert_samples, 99).as_secs_f64() * 1_000.0,
+        percentile(&indexed_query_samples, 50).as_secs_f64() * 1_000_000.0,
+        percentile(&indexed_query_samples, 95).as_secs_f64() * 1_000_000.0,
+        percentile(&indexed_query_samples, 99).as_secs_f64() * 1_000_000.0,
+        percentile(&full_scan_query_samples, 50).as_secs_f64() * 1_000_000.0,
+        percentile(&full_scan_query_samples, 95).as_secs_f64() * 1_000_000.0,
+        percentile(&full_scan_query_samples, 99).as_secs_f64() * 1_000_000.0,
+    );
 }
 
 fn multi_resource_run(per_resource: u64) {
