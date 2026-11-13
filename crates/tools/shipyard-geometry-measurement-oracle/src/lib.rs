@@ -93,6 +93,7 @@ pub enum AbstainReason {
     NonMonotonicStations,
     StationGridMismatch,
     MissingPointUncertainty,
+    UncertaintyWithoutMeasurement,
     PointUncertaintyTooLarge,
     UnsupportedGapTooLarge,
     CoverageBelowMinimum,
@@ -330,28 +331,33 @@ fn validate_metadata(request: &ComparisonRequest) -> Result<(), AbstainReason> {
     Ok(())
 }
 
+fn validate_point_measurement(
+    point: &ProfilePoint,
+    maximum_uncertainty_um: u64,
+) -> Result<bool, AbstainReason> {
+    match (point.z_um, point.uncertainty_um) {
+        (Some(_), Some(uncertainty)) if uncertainty > 0 => {
+            if uncertainty > maximum_uncertainty_um {
+                return Err(AbstainReason::PointUncertaintyTooLarge);
+            }
+            Ok(true)
+        }
+        (Some(_), _) => Err(AbstainReason::MissingPointUncertainty),
+        (None, None) => Ok(false),
+        (None, Some(_)) => Err(AbstainReason::UncertaintyWithoutMeasurement),
+    }
+}
+
 fn station_is_measured(
     reference: &ProfilePoint,
     observed: &ProfilePoint,
     maximum_uncertainty_um: u64,
 ) -> Result<bool, AbstainReason> {
-    if reference.z_um.is_none() || observed.z_um.is_none() {
-        return Ok(false);
-    }
-    let (Some(reference_uncertainty), Some(observed_uncertainty)) =
-        (reference.uncertainty_um, observed.uncertainty_um)
-    else {
-        return Err(AbstainReason::MissingPointUncertainty);
-    };
-    if reference_uncertainty == 0 || observed_uncertainty == 0 {
-        return Err(AbstainReason::MissingPointUncertainty);
-    }
-    if reference_uncertainty > maximum_uncertainty_um
-        || observed_uncertainty > maximum_uncertainty_um
-    {
-        return Err(AbstainReason::PointUncertaintyTooLarge);
-    }
-    Ok(true)
+    let reference_measured =
+        validate_point_measurement(reference, maximum_uncertainty_um)?;
+    let observed_measured =
+        validate_point_measurement(observed, maximum_uncertainty_um)?;
+    Ok(reference_measured && observed_measured)
 }
 
 fn width_between(left_um: i64, right_um: i64) -> Result<u64, AbstainReason> {
@@ -702,6 +708,22 @@ mod tests {
         let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         request.observed.points[1].uncertainty_um = None;
         abstains(&request, AbstainReason::MissingPointUncertainty);
+    }
+
+    #[test]
+    fn present_observation_without_uncertainty_is_rejected_when_reference_is_missing() {
+        let mut request =
+            base_request(&[Some(0), None, Some(0)], &[Some(0), Some(0), Some(0)]);
+        request.observed.points[1].uncertainty_um = None;
+        abstains(&request, AbstainReason::MissingPointUncertainty);
+    }
+
+    #[test]
+    fn missing_measurement_cannot_carry_an_uncertainty_value() {
+        let mut request =
+            base_request(&[Some(0), None, Some(0)], &[Some(0), None, Some(0)]);
+        request.reference.points[1].uncertainty_um = Some(1);
+        abstains(&request, AbstainReason::UncertaintyWithoutMeasurement);
     }
 
     #[test]
