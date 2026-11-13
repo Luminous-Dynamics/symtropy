@@ -1,0 +1,107 @@
+{
+  "schema": "bh-spectral-robustness-reference-v1",
+  "status": "analytic_reference_fixtures_not_execution_results",
+  "time_convention": "exp(-i omega t)",
+  "matrix_norm": "induced_euclidean_2_norm",
+  "dimensionless_time_unit": "M",
+  "fixtures": [
+    {
+      "id": "normal_diagonal_2x2",
+      "kind": "finite_dimensional_operator",
+      "matrix_real": [[-1.0, 0.0], [0.0, -2.0]],
+      "matrix_imag": [[0.0, 0.0], [0.0, 0.0]],
+      "eigenvalues": [[-1.0, 0.0], [-2.0, 0.0]],
+      "normal": true,
+      "sigma_min": "min(abs(z + 1), abs(z + 2))",
+      "epsilon_pseudospectrum": "union of closed 2-norm epsilon disks centered at -1 and -2",
+      "semigroup_norm": "exp(-t), t >= 0",
+      "numerical_abscissa": -1.0,
+      "purpose": "negative control: normal-operator pseudospectrum equals epsilon-neighborhood of spectrum"
+    },
+    {
+      "id": "stable_jordan_2x2_k4",
+      "kind": "finite_dimensional_operator",
+      "matrix_real": [[-1.0, 4.0], [0.0, -1.0]],
+      "matrix_imag": [[0.0, 0.0], [0.0, 0.0]],
+      "eigenvalues": [[-1.0, 0.0], [-1.0, 0.0]],
+      "normal": false,
+      "q_definition": "q = abs(z + 1)^2",
+      "sigma_min": "sqrt((16 + 2*q - sqrt(256 + 64*q))/2)",
+      "epsilon_pseudospectrum": "set of z with sigma_min(z) <= epsilon",
+      "semigroup_norm": "exp(-t) * (sqrt(4 + 16*t^2) + 4*t)/2, t >= 0",
+      "numerical_abscissa": 1.0,
+      "maximum_semigroup_gain": 1.569775307914901,
+      "maximum_gain_time": 0.8660254037844386,
+      "sampled_semigroup_norms": [
+        {"t": 0.0, "value": 1.0},
+        {"t": 0.5, "value": 1.46429454467334},
+        {"t": 0.8660254037844386, "value": 1.569775307914901},
+        {"t": 1.0, "value": 1.5583623203268646},
+        {"t": 2.0, "value": 1.0993428006038883}
+      ],
+      "purpose": "positive control: stable eigenvalues do not preclude transient semigroup gain in a non-normal generator"
+    },
+    {
+      "id": "poschl_teller_barrier_v0_2_b_1",
+      "kind": "analytic_black_hole_perturbation_proxy",
+      "potential": "V(x) = V0 * sech(x/b)^2",
+      "master_equation": "d2X/dx2 + (omega^2 - V(x))*X = 0",
+      "V0_dimensionless": 2.0,
+      "b_dimensionless": 1.0,
+      "boundary_conditions": {
+        "left": "ingoing exp(-i*omega*x) as x -> -infinity",
+        "right": "outgoing exp(+i*omega*x) as x -> +infinity"
+      },
+      "qnm_frequency_formula": "omega_n = +/-sqrt(V0 - 1/(4*b^2)) - i*(n + 1/2)/b",
+      "positive_real_branch_modes": [
+        {"n": 0, "omega_real": 1.3228756555322954, "omega_imag": -0.5},
+        {"n": 1, "omega_real": 1.3228756555322954, "omega_imag": -1.5},
+        {"n": 2, "omega_real": 1.3228756555322954, "omega_imag": -2.5}
+      ],
+      "negative_real_branch": "symmetric under omega_real -> -omega_real",
+      "residues": "not supplied; independently calculate from declared Wronskian normalization",
+      "purpose": "analytic pole-location fixture before source excitation, residues and full response"
+    }
+  ],
+  "literature_baselines": [
+    {
+      "id": "schwarzschild_matrix_pseudospectrum_2026",
+      "status": "published",
+      "reference": "Pradhan, Ghaderi & Zeyauddin, Eur. Phys. J. C 86, 853 (2026-07-22)",
+      "doi": "10.1140/epjc/s10052-026-16135-8",
+      "url": "https://doi.org/10.1140/epjc/s10052-026-16135-8",
+      "scope": "finite-difference first-order generators; Schwarzschild scalar l=1 and Regge-Wheeler axial gravitational l=2; explicitly norm/discretization/state-scaling bounded"
+    },
+    {
+      "id": "structured_schwarzschild_pseudospectrum_2026",
+      "status": "arxiv_preprint",
+      "reference": "Wu et al., The structured pseudospectrum of Schwarzschild black hole (2026-10-31)",
+      "arxiv": "2611.00853",
+      "url": "https://arxiv.org/abs/2611.00853",
+      "scope": "EFT- and Rezzolla-Zhidenko-motivated perturbation spaces; structured norms; anisotropic near-mode contours"
+    },
+    {
+      "id": "uv_spectral_instability_2026",
+      "status": "published",
+      "reference": "Daghigh et al., Phys. Rev. D 114, 084005 (2026-10-01)",
+      "doi": "10.1103/lq4q-89t2",
+      "url": "https://doi.org/10.1103/lq4q-89t2",
+      "scope": "localized ultraviolet and jump-discontinuity perturbations of Regge-Wheeler effective potentials"
+    },
+    {
+      "id": "schwarzschild_green_function_decomposition_2026",
+      "status": "published",
+      "reference": "Su et al., Phys. Rev. D 113, 104013 (2026-05-08)",
+      "doi": "10.1103/3n8r-8kbb",
+      "url": "https://doi.org/10.1103/3n8r-8kbb",
+      "scope": "branch-cut direct response, QNM poles and late-time tails; time-domain Regge-Wheeler validation"
+    }
+  ],
+  "non_claims": [
+    "No black-hole continuum pseudospectrum is computed by these finite-matrix fixtures.",
+    "No physical perturbation budget is inferred from an unstructured matrix epsilon.",
+    "No transient detector waveform amplification is inferred from a matrix semigroup norm alone.",
+    "No excitation factor is inferred from a QNM frequency.",
+    "No Rust or numerical-relativity validation result is claimed by this manifest."
+  ]
+}
