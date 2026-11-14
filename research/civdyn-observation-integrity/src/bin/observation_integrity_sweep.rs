@@ -5,8 +5,8 @@
 //! This is a contract exerciser, not a physical sensor qualification.
 
 use civdyn_observation_integrity::{
-    AdmissionPolicy, CandidateDisposition, EvidenceClass, EvidenceKind, EvidenceRecord,
-    EvidenceResult, IntegrityAuditError, triage_observation_integrity,
+    AdmissionPolicy, CandidateDisposition, DependencyProfile, EvidenceClass, EvidenceKind,
+    EvidenceRecord, EvidenceResult, IntegrityAuditError, triage_observation_integrity,
 };
 
 fn policy() -> AdmissionPolicy {
@@ -18,6 +18,16 @@ fn policy() -> AdmissionPolicy {
         expected_configuration_revision: "cfg-3".to_owned(),
         maximum_age_ticks: 2,
         numeric_tolerance: 2,
+    }
+}
+
+fn dependency_profile(id: &str, source: &str) -> DependencyProfile {
+    DependencyProfile {
+        observation_root_id: Some(format!("observation-{id}")),
+        upstream_dataset_id: Some(format!("dataset-{id}")),
+        processing_lineage_id: Some(format!("processing-{id}")),
+        operator_domain_id: Some(format!("operator-{source}")),
+        instrument_lineage_id: Some(format!("instrument-{source}")),
     }
 }
 
@@ -40,6 +50,7 @@ fn measured(
         source_id: source.to_owned(),
         gateway_id: gateway.to_owned(),
         trust_root_id: trust_root.to_owned(),
+        dependencies: dependency_profile(id, source),
         calibration_revision: "cal-7".to_owned(),
         configuration_revision: "cfg-3".to_owned(),
         authenticated: true,
@@ -218,6 +229,69 @@ fn run_sweep() -> usize {
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
+    let mut broker_copy = measured(
+        "broker-copy",
+        EvidenceKind::IndependentPhysicalMeasurement,
+        50,
+        "broker-b",
+        "gateway-b",
+        "trust-root-b",
+    );
+    broker_copy.dependencies.observation_root_id =
+        primary().dependencies.observation_root_id;
+    disposition_case!(
+        "different-brokers-same-observation-is-correlated",
+        vec![primary(), broker_copy],
+        CandidateDisposition::AbstainObservationalEquivalence
+    );
+
+    let mut mirror_copy = measured(
+        "mirror-copy",
+        EvidenceKind::IndependentPhysicalMeasurement,
+        50,
+        "national-mirror",
+        "gateway-mirror",
+        "trust-root-mirror",
+    );
+    mirror_copy.dependencies.upstream_dataset_id =
+        primary().dependencies.upstream_dataset_id;
+    disposition_case!(
+        "different-gateways-same-upstream-dataset-is-correlated",
+        vec![primary(), mirror_copy],
+        CandidateDisposition::AbstainObservationalEquivalence
+    );
+
+    let mut same_pipeline = measured(
+        "same-pipeline",
+        EvidenceKind::IndependentPhysicalMeasurement,
+        50,
+        "sensor-c",
+        "gateway-c",
+        "trust-root-c",
+    );
+    same_pipeline.dependencies.processing_lineage_id =
+        primary().dependencies.processing_lineage_id;
+    disposition_case!(
+        "same-processing-lineage-is-correlated",
+        vec![primary(), same_pipeline],
+        CandidateDisposition::AbstainObservationalEquivalence
+    );
+
+    let mut unknown_lineage = measured(
+        "unknown-lineage",
+        EvidenceKind::IndependentPhysicalMeasurement,
+        50,
+        "sensor-d",
+        "gateway-d",
+        "trust-root-d",
+    );
+    unknown_lineage.dependencies.upstream_dataset_id = None;
+    disposition_case!(
+        "unknown-dependency-does-not-upgrade-to-independent",
+        vec![primary(), unknown_lineage],
+        CandidateDisposition::AbstainObservationalEquivalence
+    );
+
     let mut stale_primary = primary();
     stale_primary.event_tick = 1;
     disposition_case!(
@@ -257,6 +331,7 @@ fn run_sweep() -> usize {
                 source_id: "model".to_owned(),
                 gateway_id: "gateway-model".to_owned(),
                 trust_root_id: "trust-root-model".to_owned(),
+                dependencies: dependency_profile("reconstruction", "model"),
                 calibration_revision: "cal-7".to_owned(),
                 configuration_revision: "cfg-3".to_owned(),
                 authenticated: true,
@@ -280,6 +355,7 @@ fn run_sweep() -> usize {
                 source_id: "self-test-system".to_owned(),
                 gateway_id: "gateway-test".to_owned(),
                 trust_root_id: "trust-root-test".to_owned(),
+                dependencies: dependency_profile("self-test", "self-test-system"),
                 calibration_revision: "cal-7".to_owned(),
                 configuration_revision: "cfg-3".to_owned(),
                 authenticated: true,
@@ -303,6 +379,7 @@ fn run_sweep() -> usize {
                 source_id: "forensic-reviewer".to_owned(),
                 gateway_id: "gateway-forensic".to_owned(),
                 trust_root_id: "trust-root-forensic".to_owned(),
+                dependencies: dependency_profile("forensic", "forensic-reviewer"),
                 calibration_revision: "cal-7".to_owned(),
                 configuration_revision: "cfg-3".to_owned(),
                 authenticated: true,
