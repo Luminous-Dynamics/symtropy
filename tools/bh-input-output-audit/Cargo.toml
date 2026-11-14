@@ -1,0 +1,13 @@
+[package]
+name = "bh-input-output-audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Exact finite-dimensional source-to-observer transfer controls for black-hole response research"
+
+[dependencies]
+nalgebra = "0.34"
+num-complex = "0.4"
+
+[workspace]
