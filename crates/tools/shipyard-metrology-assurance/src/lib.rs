@@ -232,6 +232,7 @@ fn validate_measurement(
         measurement.workpiece_id.as_str(),
         measurement.joint_revision.as_str(),
         measurement.coordinate_frame.as_str(),
+        measurement.unit.as_str(),
         measurement.scan_id.as_str(),
         measurement.budget.unit.as_str(),
     ];
