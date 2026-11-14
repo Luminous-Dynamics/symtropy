@@ -81,7 +81,9 @@ pub struct AdmissionPolicy {
     pub expected_unit: String,
     pub expected_calibration_revision: String,
     pub expected_configuration_revision: String,
-    pub maximum_age_ticks: u64,
+    pub decision_cutoff_tick: u64,
+    pub maximum_observation_age_ticks: u64,
+    pub maximum_transport_lag_ticks: u64,
     pub numeric_tolerance: u64,
 }
 
@@ -193,8 +195,31 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
     Ok(())
 }
 
-fn fresh(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
-    record.ingestion_tick.saturating_sub(record.event_tick) <= policy.maximum_age_ticks
+fn freshness_failure(
+    record: &EvidenceRecord,
+    policy: &AdmissionPolicy,
+) -> Option<&'static str> {
+    if record.event_tick > policy.decision_cutoff_tick {
+        return Some("event_after_decision_cutoff");
+    }
+    if record.ingestion_tick > policy.decision_cutoff_tick {
+        return Some("arrived_after_decision_cutoff");
+    }
+    if policy
+        .decision_cutoff_tick
+        .saturating_sub(record.event_tick)
+        > policy.maximum_observation_age_ticks
+    {
+        return Some("observation_stale_at_decision_cutoff");
+    }
+    if record
+        .ingestion_tick
+        .saturating_sub(record.event_tick)
+        > policy.maximum_transport_lag_ticks
+    {
+        return Some("event_to_ingestion_lag_exceeded");
+    }
+    None
 }
 
 fn contract_matches(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
@@ -312,8 +337,8 @@ pub fn triage_observation_integrity(
     if primary.class != EvidenceClass::Measured {
         return Ok(reject_primary("primary_not_direct_measurement"));
     }
-    if !fresh(primary, policy) {
-        return Ok(reject_primary("primary_stale"));
+    if let Some(reason) = freshness_failure(primary, policy) {
+        return Ok(reject_primary(reason));
     }
     if !contract_matches(primary, policy) {
         return Ok(reject_primary(
@@ -341,9 +366,9 @@ pub fn triage_observation_integrity(
             reasons.push(format!("{}:not_authenticated", side.evidence_id));
             continue;
         }
-        if !fresh(side, policy) {
+        if let Some(reason) = freshness_failure(side, policy) {
             rejected.push(side.evidence_id.clone());
-            reasons.push(format!("{}:stale", side.evidence_id));
+            reasons.push(format!("{}:{reason}", side.evidence_id));
             continue;
         }
         match side.kind {
@@ -423,11 +448,20 @@ pub fn triage_observation_integrity(
         }
     }
 
-    if physical
+    let primary_conflict = physical
         .iter()
-        .any(|(_, value)| value.abs_diff(primary_value) > policy.numeric_tolerance)
-    {
+        .any(|(_, value)| value.abs_diff(primary_value) > policy.numeric_tolerance);
+    let cross_measurement_conflict = physical.iter().enumerate().any(|(index, (_, value))| {
+        physical
+            .iter()
+            .skip(index + 1)
+            .any(|(_, other)| value.abs_diff(*other) > policy.numeric_tolerance)
+    });
+    if primary_conflict || cross_measurement_conflict {
         reasons.push("independent_physical_measurement_conflict".to_owned());
+        if cross_measurement_conflict {
+            reasons.push("independent_physical_measurements_disagree_pairwise".to_owned());
+        }
         return Ok(finish(CandidateDecision {
             scenario_id: policy.scenario_id.clone(),
             disposition: CandidateDisposition::EvidenceConflict,
@@ -439,13 +473,15 @@ pub fn triage_observation_integrity(
             reason_codes: reasons,
         }));
     }
-    if let Some((_, value)) = physical.first() {
+    if !physical.is_empty() {
         reasons.push("independent_physical_cross_check_agrees".to_owned());
         return Ok(finish(CandidateDecision {
             scenario_id: policy.scenario_id.clone(),
             disposition: CandidateDisposition::UseCorroboratedMeasurement,
             primary_evidence_id: primary.evidence_id.clone(),
-            primary_value: Some(*value),
+            // Keep the primary measurement as the reported value; a supporting
+            // record must not win merely because it appeared first in the slice.
+            primary_value: Some(primary_value),
             admitted_evidence_ids: admitted,
             rejected_evidence_ids: rejected,
             unresolved_hypotheses: vec![
@@ -505,7 +541,9 @@ mod tests {
             expected_unit: "service_index".to_owned(),
             expected_calibration_revision: "cal-7".to_owned(),
             expected_configuration_revision: "cfg-3".to_owned(),
-            maximum_age_ticks: 2,
+            decision_cutoff_tick: 20,
+            maximum_observation_age_ticks: 10,
+            maximum_transport_lag_ticks: 2,
             numeric_tolerance: 2,
         }
     }
@@ -796,6 +834,78 @@ mod tests {
             CandidateDisposition::RequestIndependentPhysicalMeasurement
         );
         assert_eq!(d.unresolved_hypotheses.len(), 3);
+    }
+
+    #[test]
+    fn multiple_cross_checks_are_pairwise_consistent_not_first_record_wins() {
+        let primary = primary();
+        let side_a = record(
+            "side-a",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(48),
+            "sensor-b",
+            "gateway-b",
+            "root-b",
+        );
+        let side_b = record(
+            "side-b",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(52),
+            "sensor-c",
+            "gateway-c",
+            "root-c",
+        );
+        let forward = vec![primary.clone(), side_a.clone(), side_b.clone()];
+        let reverse = vec![primary, side_b, side_a];
+
+        let forward_decision = triage_observation_integrity(&policy(), &forward).unwrap();
+        let reverse_decision = triage_observation_integrity(&policy(), &reverse).unwrap();
+        assert_eq!(
+            forward_decision.disposition,
+            CandidateDisposition::EvidenceConflict
+        );
+        assert_eq!(
+            forward_decision.reason_codes,
+            reverse_decision.reason_codes
+        );
+        assert_eq!(
+            forward_decision.admitted_evidence_ids,
+            reverse_decision.admitted_evidence_ids
+        );
+        assert_eq!(forward_decision, reverse_decision);
+        assert!(forward_decision
+            .reason_codes
+            .contains(&"independent_physical_measurements_disagree_pairwise".to_owned()));
+    }
+
+    #[test]
+    fn decision_cutoff_freshness_separates_age_lag_and_late_arrival() {
+        let mut stale_at_cutoff = primary();
+        stale_at_cutoff.event_tick = 1;
+        stale_at_cutoff.ingestion_tick = 10;
+        let stale = triage_observation_integrity(&policy(), &[stale_at_cutoff]).unwrap();
+        assert_eq!(stale.disposition, CandidateDisposition::RejectEvidence);
+        assert!(stale
+            .reason_codes
+            .contains(&"observation_stale_at_decision_cutoff".to_owned()));
+
+        let mut high_transport_lag = primary();
+        high_transport_lag.ingestion_tick = 13;
+        let delayed = triage_observation_integrity(&policy(), &[high_transport_lag]).unwrap();
+        assert_eq!(delayed.disposition, CandidateDisposition::RejectEvidence);
+        assert!(delayed
+            .reason_codes
+            .contains(&"event_to_ingestion_lag_exceeded".to_owned()));
+
+        let mut late_arrival = primary();
+        late_arrival.ingestion_tick = 21;
+        let late = triage_observation_integrity(&policy(), &[late_arrival]).unwrap();
+        assert_eq!(late.disposition, CandidateDisposition::RejectEvidence);
+        assert!(late
+            .reason_codes
+            .contains(&"arrived_after_decision_cutoff".to_owned()));
     }
 
     #[test]
