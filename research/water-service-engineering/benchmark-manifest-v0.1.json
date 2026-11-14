@@ -160,5 +160,16 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "filter_barrier_assurance": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5104",
+    "protocol": "research/water-service-engineering/FILTER_BARRIER_ASSURANCE_PROTOCOL_V0_1.md",
+    "manifest": "research/water-service-engineering/filter-barrier-assurance-manifest-v0.1.json",
+    "inputs": "research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json",
+    "oracle": "research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/filter-barrier-assurance.schema.json",
+    "cli": "tools/water-service-t0/src/bin/filter-barrier-assurance.rs",
+    "status": "synthetic_claim_scoped_barrier_state_contract_only",
+    "evidence_ceiling": "no_filter_product_or_water_safety_claim"
   }
 }
