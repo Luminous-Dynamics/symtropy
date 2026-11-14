@@ -1,0 +1,82 @@
+name: Mine Adaptive Causal Replay Benchmark
+
+on:
+  push:
+    branches: ["feat/mine-adaptive-causality-bench-v0-1"]
+    paths:
+      - "docs/tech/MINE_ADAPTIVE_CAUSALITY_BENCHMARK_V0_1.md"
+      - "docs/tech/mine-adaptive-causality-corpus-v0.1.json"
+      - "tools/mine-adaptive-causality-bench/**"
+      - ".github/workflows/mine-adaptive-causality-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/MINE_ADAPTIVE_CAUSALITY_BENCHMARK_V0_1.md"
+      - "docs/tech/mine-adaptive-causality-corpus-v0.1.json"
+      - "tools/mine-adaptive-causality-bench/**"
+      - ".github/workflows/mine-adaptive-causality-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-adaptive-causality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mine-adaptive-causality-bench/Cargo.toml -- --check
+      - name: Run trace and adversarial tests
+        run: cargo test --manifest-path tools/mine-adaptive-causality-bench/Cargo.toml
+      - name: Validate causal receipt at exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-adaptive-causality-bench/Cargo.toml -- \
+            docs/tech/mine-adaptive-causality-corpus-v0.1.json \
+            --source-commit "$source_commit" > mine-adaptive-causality-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-ADAPTIVE-CAUSALITY-001"
+            and .scenario_count == 11
+            and .expected_controls_matched == 11
+            and .causal_violation_count == 5
+            and .counterfactual_group_count == 2
+            and .counterfactual_groups_rejected == 1
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and ([.scenarios[].scenario_id] == [
+              "QUALIFIED_RESULT_DELIVERED_BEFORE_DECISION",
+              "FUTURE_RESULT_LEAK",
+              "COLLECTION_TIME_IS_NOT_DELIVERY_TIME",
+              "QC_FAILURE_BLOCKS_DECISION",
+              "MISSING_SOURCE_RECORD_BLOCKS_DECISION",
+              "NO_ADMISSIBLE_RESULT_MEANS_HOLD",
+              "EVALUATOR_ONLY_TRUTH_CANNOT_ENTER_POLICY",
+              "COUNTERFACTUAL_HIGH_OUTCOME",
+              "COUNTERFACTUAL_LOW_OUTCOME",
+              "COUNTERFACTUAL_EARLY_CHANGE_A",
+              "COUNTERFACTUAL_EARLY_CHANGE_B"
+            ])
+            and ([.scenarios[].expected_control_matched] | all)
+            and ([.scenarios[].actual_disposition] == [
+              "pass", "reject", "reject", "reject", "reject",
+              "pass", "reject", "pass", "pass", "reject", "reject"
+            ])
+          ' mine-adaptive-causality-receipt.json
