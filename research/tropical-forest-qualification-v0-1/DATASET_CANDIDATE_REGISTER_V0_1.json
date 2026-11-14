@@ -1,0 +1,249 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "status": "METADATA_ONLY_NO_EXTERNAL_MICRODATA_INGESTED",
+  "claim_ceiling": "This manifest records candidate source metadata and admission conditions only. It is not a licence decision beyond the source records described, a dataset download, a calibration sample, or evidence that any field data have been ingested.",
+  "sources": [
+    {
+      "source_id": "AMAZON-RAINFOR-EIDC-2017-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Tree diameter census data in intact forest permanent plots across the Amazon Basin, 2017-2019",
+      "doi": "10.5285/63d4b774-4e03-4db2-95ad-dcca18f0d681",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/63d4b774-4e03-4db2-95ad-dcca18f0d681",
+      "region": {
+        "country": "Brazil",
+        "regions": [
+          "Acre",
+          "Pará",
+          "Mato Grosso"
+        ],
+        "biome": "Brazilian Amazon",
+        "coverage_note": "29 terra-firme non-flooded lowland forest plots; not full Amazon Basin"
+      },
+      "temporal": {
+        "start": "2017-01-01",
+        "end": "2019-12-31",
+        "resolution": "campaign/census interval varies by plot",
+        "longitudinal_panel": "NOT_ESTABLISHED_FROM_THIS_RECORD"
+      },
+      "sample": {
+        "tree_count": 8729,
+        "plot_count": 29,
+        "measures": [
+          "DBH",
+          "alive/dead state",
+          "new recruits DBH >= 10 cm"
+        ],
+        "protocol": "RAINFOR; verify supporting per-plot census metadata"
+      },
+      "spatial": {
+        "support": "plot/stem; catalogue spatial resolution listed as 1000m",
+        "crs": "WGS84 / Pseudo-Mercator"
+      },
+      "rights": {
+        "source_record_license": "Open Government Licence",
+        "attribution_required": true,
+        "additional_terms": "Cite the full dataset record; use official EIDC source as authority, not mirrors with missing licence metadata"
+      },
+      "intended_use": "Initial Amazon structural / stand-state and size-distribution reference; mortality/recruitment status only as the dataset defines it",
+      "disallowed_inference": "Do not infer plot-specific growth or mortality rates without a matched earlier census of the same plot and compatible stem identities/protocol.",
+      "admission_status": "RIGHTS_CLEARED_CANDIDATE_METADATA_REVIEW_PENDING",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Inspect downloadable CSV and supporting docs, identify plot/year support, stem inclusion rules, field-level quality and exact repeated-census lineage before creating train/holdout manifests."
+    },
+    {
+      "source_id": "AMAZON-ORNLDAAC-SUSTAINABLE-LANDSCAPES-BRAZIL-2009-2018",
+      "provider": "Oak Ridge National Laboratory Distributed Active Archive Center (ORNL DAAC)",
+      "dataset_title": "Forest Inventory and Biophysical Measurements, Brazilian Amazon, 2009-2018",
+      "doi": "10.3334/ORNLDAAC/2007",
+      "record_url": "https://data.nasa.gov/dataset/forest-inventory-and-biophysical-measurements-brazilian-amazon-2009-2018-00f3c",
+      "region": {
+        "country": "Brazil",
+        "coverage_note": "Selected Amazon forest research sites within the catalogue bounds; not wall-to-wall Brazil or full Amazon coverage"
+      },
+      "temporal": {
+        "start": "2009-01-01",
+        "end": "2018-12-31",
+        "resolution": "varies by site; some sampled once and some resampled"
+      },
+      "sample": {
+        "measures": [
+          "DBH",
+          "commercial tree height",
+          "total tree height",
+          "taxa",
+          "coordinates",
+          "canopy position",
+          "crown radius",
+          "dead-tree decomposition status",
+          "aboveground biomass at selected sites"
+        ],
+        "formats": [
+          "CSV",
+          "Shapefile"
+        ],
+        "supporting_methods": "per-site / per-year guide files"
+      },
+      "spatial": {
+        "support": "point/stem and selected site",
+        "bbox": {
+          "west": -67.9824,
+          "east": -46.8288,
+          "south": -13.0928,
+          "north": -1.5
+        }
+      },
+      "rights": {
+        "catalogue_access_level": "public",
+        "catalogue_license": "USA government works link; confirm conditions at the source asset and ORNL DAAC record before redistribution"
+      },
+      "intended_use": "Complementary structural allometry, crown/canopy profile and dead-tree condition comparison",
+      "disallowed_inference": "Do not treat 2009-2018 as an annual balanced panel; only verified resampled site/year records may support temporal modelling.",
+      "admission_status": "PUBLIC_CANDIDATE_METADATA_REVIEW_PENDING",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Inspect per-site/year guides and assets; reconcile overlap with RAINFOR, plot identifiers, DBH thresholds, census years, and source lineage."
+    },
+    {
+      "source_id": "DRC-NFI-2017-2021-FAO-FAM",
+      "provider": "DIAF / Ministry of Environment and Sustainable Development, DRC; FAO FAM metadata",
+      "reference_id": "COD_2017-2021_NFI_v01_M_v01_A_ESS",
+      "record_url": "https://microdata.fao.org/index.php/catalog/2732",
+      "region": {
+        "country": "Democratic Republic of the Congo",
+        "coverage_note": "DRC national sample design excluding former Bandundu; not the full Congo Basin"
+      },
+      "temporal": {
+        "start": "2017-09",
+        "end": "2021-03",
+        "resolution": "national inventory campaign"
+      },
+      "sample": {
+        "planned_sampling_units": 321,
+        "surveyed_sampling_units": 300,
+        "unsurveyed_sampling_units": 21,
+        "response_rate": 0.93,
+        "plots_planned": 1284,
+        "plots_per_unit": 4,
+        "sampling_unit": "400m x 400m square",
+        "plot": "75m x 75m square",
+        "nested_measurements": [
+          "12.5m x 12.5m small subplots: DBH >=5cm",
+          "25m x 25m medium plots: DBH >=10cm",
+          "remaining large plot: DBH >=20cm"
+        ],
+        "additional": [
+          "soil/litter samples",
+          "deadwood transects",
+          "land-use sections"
+        ]
+      },
+      "missingness": {
+        "known_reasons": [
+          "inaccessibility",
+          "conflict-affected conditions"
+        ],
+        "expected_disposition": "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED",
+        "note": "21 planned sampling units were not surveyed; do not mark forest absence."
+      },
+      "data_access": {
+        "database_owner": "DIAF",
+        "microdata_access": "authorization request and approval from Secretary General for Environment and Sustainable Development required",
+        "exception": "Content already published on the National Forest Monitoring System portal does not require specific authorization"
+      },
+      "intended_use": "DRC-specific national strata, forest structure, inventory sampling and missingness validation using publicly released aggregates or authorized microdata",
+      "disallowed_inference": "Do not generalize to the whole Congo Basin or treat a single inventory as a repeated demographic panel.",
+      "admission_status": "METADATA_ONLY_MICRODATA_AUTHORIZATION_REQUIRED",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Use public SNSF outputs only within their stated terms; request DIAF/MEDD approval before microdata; validate nonresponse and survey weights with the custodians."
+    },
+    {
+      "source_id": "PNG-MULTIPURPOSE-NFI-2016-2019-FAO-FAM",
+      "provider": "Papua New Guinea Forest Authority; FAO FAM metadata",
+      "reference_id": "PNG_2019_MNFI_v01_M_v01_A_ESS",
+      "record_url": "https://microdata.fao.org/index.php/catalog/2943",
+      "region": {
+        "country": "Papua New Guinea",
+        "coverage_note": "PNG jurisdiction only; not the whole island of New Guinea"
+      },
+      "temporal": {
+        "start": "2016",
+        "fieldwork_note": "field data collection began 2017; catalogue study period 2016-2019",
+        "cycle_note": "FAM describes 5-10 year completion cycle; no compatible repeat census is admitted by this record"
+      },
+      "sample": {
+        "sampling_frame": "4km x 4km grid, 2km grid in three smaller provinces",
+        "selected_sampling_points": 1000,
+        "cluster": "four circular plots per cluster",
+        "plot_spacing_m": 300,
+        "dbh_strata": [
+          ">=40cm radius 25m",
+          " >=20cm radius 15m",
+          ">=10cm radius 10m",
+          ">=1cm radius 1m"
+        ],
+        "additional": [
+          "stump and fallen deadwood",
+          "regeneration quadrats",
+          "bamboo",
+          "understory/litter/coarse woody debris"
+        ]
+      },
+      "missingness": {
+        "known_reasons": [
+          "security risks",
+          "logistical challenges"
+        ],
+        "precision_note": "FAM says limited information is available for precision and bias estimation",
+        "expected_disposition": "UNOBSERVED_SECURITY_OR_LOGISTICS"
+      },
+      "data_access": {
+        "owner": "PNG Forest Authority / country-owned external repository",
+        "microdata_access": "confidentiality and repository-specific conditions apply"
+      },
+      "intended_use": "PNG-specific strata, forest structure and regeneration sampling-frame context using approved data/aggregates",
+      "disallowed_inference": "Do not infer unsurveyed clusters as forest/absence; do not generalize to Papua New Guinea's neighbours or all of New Guinea; do not claim repeated demography without follow-up census.",
+      "admission_status": "METADATA_ONLY_COUNTRY_CONTROLLED_MICRODATA",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Confirm exact external repository, access conditions, actual surveyed sample count, row-level support, design weights and disclosure controls with PNGFA."
+    },
+    {
+      "source_id": "BRAZIL-NFI-2013-FAO-FAM",
+      "provider": "Brazilian Forest Service; FAO FAM metadata",
+      "reference_id": "BRA_2013_NFI_v01_EN_M_v01_A_OCS",
+      "record_url": "https://microdata.fao.org/",
+      "region": {
+        "country": "Brazil",
+        "coverage_note": "National inventory; Amazon-specific subsample / sampling design requires exact release documents"
+      },
+      "temporal": {
+        "start": "2013",
+        "cycle_note": "design describes a five-year repeat interval; actual matched repeat waves not established here"
+      },
+      "sample": {
+        "national_grid": "20km grid, densified in selected domains",
+        "amazon_design": "four 10m x 10m subplots in a Maltese-cross layout; 2,000m2 total plot support"
+      },
+      "data_access": {
+        "microdata_access": "confidentiality declaration and SNIF / Forest Service conditions apply"
+      },
+      "intended_use": "Potential national / Amazon stratified inventory comparison after data-file and sampling-design review",
+      "disallowed_inference": "A planned five-year resampling interval is not proof of available longitudinal panel data.",
+      "admission_status": "METADATA_ONLY_ACCESS_TERMS_AND_WAVES_TO_VERIFY",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Find exact public catalogue landing page and file versions; verify repeat waves and harmonized variable definitions before admission."
+    }
+  ],
+  "cross_source_admission_gates": [
+    "Do not merge datasets merely because they use DBH or biomass labels; compare measurement protocols, taxonomies and thresholds.",
+    "Distinguish sample frame, selected point, plot/cluster, nested subplot and individual stem identity.",
+    "Use plot / site / cluster block splits; never split nested plot components as independent tests.",
+    "Preserve nonresponse reasons, accessibility constraints, conflict-related missingness and privacy-sensitive locations.",
+    "Do not claim demographic forecasting from cross-sectional stocks.",
+    "Do not ingest restricted national microdata until the named authority and derivative permissions are satisfied."
+  ]
+}
