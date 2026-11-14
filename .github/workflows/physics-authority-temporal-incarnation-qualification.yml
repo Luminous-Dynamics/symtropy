@@ -1,0 +1,313 @@
+name: PHYS-OBS-04A Temporal Incarnation Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-authority-temporal-incarnation-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-authority-temporal-incarnation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 36593ce7668b9977a9c6c0b6bea399d72fd9cab2
+  PRODUCT_PARENT: 1339402338492c2151897f73ad76052acad85237
+  SUPERSEDED_PRODUCT_HEAD: 925b0edda3a5cb7f01c27f798d90e5759bf190fb
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-04A r2 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact corrected product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "5"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_TEMPORAL_INCARNATION_V01.md"
+            "crates/core/symtropy-physics/src/authority_incarnation.rs"
+            "crates/core/symtropy-physics/src/identity_authority.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/authority_incarnation.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/identity_mutation.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_TEMPORAL_INCARNATION_V01.md \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_MUTATION_COMMIT_BOUNDARY_V01.md \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_TEMPORAL_SEQUENCE_V01.md \
+            > "${RUNNER_TEMP}/phys-obs04a-r2-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        id: check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run incarnation allocator unit corpus
+        id: incarnation_private
+        run: cargo test -p symtropy-physics --locked --lib authority_incarnation
+
+      - name: Run temporal-state unit corpus
+        id: temporal_private
+        run: cargo test -p symtropy-physics --locked --lib authority_time
+
+      - name: Run typed-mutation unit corpus
+        id: mutation_private
+        run: cargo test -p symtropy-physics --locked --lib identity_mutation
+
+      - name: Run authority private corpus
+        id: authority_private
+        run: cargo test -p symtropy-physics --locked --lib identity_authority
+
+      - name: Run temporal-sequence and incarnation theorem
+        id: temporal
+        run: cargo test -p symtropy-physics --locked --test authority_temporal_sequence_v01
+
+      - name: Run endpoint mutation-boundary regression
+        id: endpoint_mutation
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_mutation_boundary_v01
+
+      - name: Run endpoint-box regression
+        id: endpoint
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_box_v01
+
+      - name: Run pair-observation regression
+        id: pair
+        run: cargo test -p symtropy-physics --locked --test authority_pair_observation_v01
+
+      - name: Run selected-subject observation regression
+        id: selected
+        run: cargo test -p symtropy-physics --locked --test authority_observation_v01
+
+      - name: Run authority identity regression
+        id: identity
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run runtime replay regression
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Run full physics test regression
+        id: full_tests
+        run: cargo test -p symtropy-physics --locked
+
+      - name: Run strict physics Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit incarnation claim boundary
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          incarnation=crates/core/symtropy-physics/src/authority_incarnation.rs
+          authority=crates/core/symtropy-physics/src/identity_authority.rs
+          world=crates/core/symtropy-physics/src/world.rs
+          tests=crates/core/symtropy-physics/tests/authority_temporal_sequence_v01.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_TEMPORAL_INCARNATION_V01.md
+
+          grep -Fq 'static NEXT_TEMPORAL_INCARNATION: Mutex<u64> = Mutex::new(1);' "${incarnation}"
+          grep -Fq '.checked_add(1)' "${incarnation}"
+          grep -Fq 'AllocatorPoisoned' "${incarnation}"
+          grep -Fq 'Exhausted' "${incarnation}"
+          grep -Fq 'concurrent_minting_is_unique_within_one_allocator' "${incarnation}"
+          grep -Fq 'allocator_never_wraps_at_exhaustion' "${incarnation}"
+
+          grep -Fq 'temporal_incarnation_id: TemporalIncarnationId' "${authority}"
+          grep -Fq 'pub fn try_new(' "${authority}"
+          grep -Fq 'mint_temporal_incarnation()?' "${authority}"
+          grep -Fq 'pub fn same_temporal_lineage' "${authority}"
+          grep -Fq 'independently_constructed_wrappers_cannot_alias_full_stamps' "${tests}"
+          grep -Fq 'rewrapping_same_raw_world_mints_fresh_temporal_incarnation' "${tests}"
+
+          # Freeze all known boundaries rather than silently upgrading them.
+          grep -Fq 'self.next_handle += 1;' "${world}"
+          grep -Fq '#1060' "${contract}"
+          grep -Fq '#1019' "${contract}"
+          grep -Fq 'one live allocator instance' "${contract}"
+          grep -Fq 'independently loaded' "${contract}"
+          grep -Fq 'cross-runtime' "${contract}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          inc = Path('crates/core/symtropy-physics/src/authority_incarnation.rs').read_text()
+          auth = Path('crates/core/symtropy-physics/src/identity_authority.rs').read_text()
+
+          inc_pos = inc.index('pub struct TemporalIncarnationId')
+          inc_end = inc.index('\n}\n', inc_pos) + 2
+          inc_block = inc[inc_pos:inc_end]
+          assert 'pub ' not in inc_block.split('{', 1)[1]
+          inc_impl = inc[inc.index('impl TemporalIncarnationId'):inc.index('\n}\n', inc.index('impl TemporalIncarnationId')) + 2]
+          assert 'pub fn new' not in inc_impl
+          assert 'pub const fn new' not in inc_impl
+          inc_derive = inc[max(0, inc_pos - 160):inc_pos]
+          assert 'Serialize' not in inc_derive
+          assert 'Deserialize' not in inc_derive
+          assert 'PartialOrd' not in inc_derive
+          assert 'Ord' not in inc_derive
+
+          stamp_pos = auth.index('pub struct AuthorityStepStamp')
+          stamp_end = auth.index('\n}\n', stamp_pos) + 2
+          stamp_block = auth[stamp_pos:stamp_end]
+          for field in ('physical_authority_id', 'world_generation_id', 'temporal_incarnation_id', 'mutation_epoch', 'step_index'):
+              assert f'pub {field}' not in stamp_block
+          stamp_derive = auth[max(0, stamp_pos - 240):stamp_pos]
+          assert 'Serialize' not in stamp_derive
+          assert 'Deserialize' not in stamp_derive
+          assert 'PartialOrd' not in stamp_derive
+          assert 'Ord' not in stamp_derive
+
+          new_block = auth[auth.index('pub fn new('):auth.index('pub const fn physical_authority_id')]
+          assert 'temporal_incarnation_id:' not in new_block.split('pub fn try_new(', 1)[0]
+          assert 'mint_temporal_incarnation()?' in new_block
+
+          stamp_fn = auth[auth.index('fn current_step_stamp'):auth.index('fn preflight_nonstep_mutation_epoch')]
+          assert 'temporal_incarnation_id: self.temporal_incarnation_id' in stamp_fn
+          PY
+
+      - name: Assert unchanged corrected product subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          INCARNATION_PRIVATE: ${{ steps.incarnation_private.outcome }}
+          TEMPORAL_PRIVATE: ${{ steps.temporal_private.outcome }}
+          MUTATION_PRIVATE: ${{ steps.mutation_private.outcome }}
+          AUTHORITY_PRIVATE: ${{ steps.authority_private.outcome }}
+          TEMPORAL: ${{ steps.temporal.outcome }}
+          ENDPOINT_MUTATION: ${{ steps.endpoint_mutation.outcome }}
+          ENDPOINT: ${{ steps.endpoint.outcome }}
+          PAIR: ${{ steps.pair.outcome }}
+          SELECTED: ${{ steps.selected.outcome }}
+          IDENTITY: ${{ steps.identity.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          FULL_TESTS: ${{ steps.full_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-obs04a-temporal-incarnation-v01-r2.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = [
+              'SUBJECT', 'SOURCE', 'FMT', 'CHECK', 'INCARNATION_PRIVATE',
+              'TEMPORAL_PRIVATE', 'MUTATION_PRIVATE', 'AUTHORITY_PRIVATE', 'TEMPORAL',
+              'ENDPOINT_MUTATION', 'ENDPOINT', 'PAIR', 'SELECTED', 'IDENTITY',
+              'REPLAY', 'FULL_TESTS', 'CLIPPY', 'AUDIT', 'POSTFLIGHT',
+          ]
+          outcomes = {k.lower(): os.environ.get(k, 'unknown') for k in keys}
+          receipt = {
+              'receipt_version': 2,
+              'qualification': 'PHYS-OBS-04A-temporal-incarnation-v0.1-r2',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'superseded_product_head': os.environ['SUPERSEDED_PRODUCT_HEAD'],
+              'helper_head': os.environ['HELPER_HEAD'],
+              'workflow_run_id': int(os.environ['RUN_ID']),
+              'workflow_run_attempt': int(os.environ['RUN_ATTEMPT']),
+              'step_outcomes': outcomes,
+              'overall': 'pass' if all(v == 'success' for v in outcomes.values()) else 'fail',
+              'claim_boundary': 'collision-free live-wrapper temporal incarnation identity within one qualified loaded allocator instance',
+              'allocator_instance_local_reconstruction_safe_stamp_identity': True,
+              'generic_cross_lineage_ordering': False,
+              'cross_allocator_incarnation_uniqueness': False,
+              'cross_process_incarnation_uniqueness': False,
+              'cross_restart_incarnation_uniqueness': False,
+              'checked_raw_world_adoption': False,
+              'deterministic_insertion_structurally_atomic': False,
+              'complete_world_structural_integrity': False,
+              'parent_theorem': 'PHYS-OBS-04B/#1068',
+              'parent_qualification_required': True,
+              'requires_structural_insertion_successor': 'PHYS-ID-01E/#1060',
+              'requires_checked_adoption': 'PHYS-ID-01D/#1019',
+              'requires_cross_runtime_domain_for_persistence': 'PHYS-EVID-02/#1064 + PHYS-EVID-03/#1065',
+              'nonclaims': [
+                  'global numeric incarnation uniqueness',
+                  'persistent or cryptographic incarnation identity',
+                  'trusted timestamp',
+                  'elapsed simulation duration',
+                  'continuous occupancy',
+                  'dwell',
+                  'arrival',
+                  'custody',
+                  'delivery',
+                  'settlement eligibility',
+              ],
+          }
+          with open(os.environ['RECEIPT_PATH'], 'w', encoding='utf-8') as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write('\n')
+          PY
+          cp "${RUNNER_TEMP}/phys-obs04a-r2-source-sha256.txt" "${RUNNER_TEMP}/phys-obs04a-r2-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-obs04a-temporal-incarnation-v01-r2-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-obs04a-temporal-incarnation-v01-r2.json
+            ${{ runner.temp }}/phys-obs04a-temporal-incarnation-v01-r2.json.sha256
+            ${{ runner.temp }}/phys-obs04a-r2-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
