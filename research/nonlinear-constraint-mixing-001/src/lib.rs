@@ -217,6 +217,23 @@ pub fn transform_jacobian_coordinates(
     mat_mul_2x3_3(jacobian_q, q_from_y)
 }
 
+pub fn pullback_constraint_jet_coordinates(
+    jet_q: ConstraintJetV1,
+    q_from_y: Matrix3,
+) -> Result<ConstraintJetV1, MixingErrorV1> {
+    let jacobian_y = transform_jacobian_coordinates(jet_q.jacobian, q_from_y)?;
+    let transpose = transpose3(q_from_y);
+    let hessian_y = [
+        mat_mul3(&mat_mul3(&transpose, &jet_q.hessians[0])?, &q_from_y)?,
+        mat_mul3(&mat_mul3(&transpose, &jet_q.hessians[1])?, &q_from_y)?,
+    ];
+    Ok(ConstraintJetV1 {
+        residual: jet_q.residual,
+        jacobian: jacobian_y,
+        hessians: hessian_y,
+    })
+}
+
 pub fn pullback_mass_metric(
     mass_q: Matrix3,
     q_from_y: Matrix3,
@@ -578,11 +595,9 @@ mod tests {
         let mass_y = pullback_mass_metric(mass_q(), s).unwrap();
 
         let jet_q = reparameterized_constraint_jet(q_value, mapping).unwrap();
-        let jet_y = reparameterized_constraint_jet(
-            dense_coordinate_map(s, y).unwrap(),
-            mapping,
-        )
-        .unwrap();
+        let q_from_y = dense_coordinate_map(s, y).unwrap();
+        let jet_y_at_same_q = reparameterized_constraint_jet(q_from_y, mapping).unwrap();
+        let jet_y = pullback_constraint_jet_coordinates(jet_y_at_same_q, s).unwrap();
         let expected_j_y = transform_jacobian_coordinates(jet_q.jacobian, s).unwrap();
         for row in 0..2 {
             for column in 0..3 {
