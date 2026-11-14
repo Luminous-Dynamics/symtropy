@@ -1,0 +1,572 @@
+{
+  "corpus_version": "0.1",
+  "corpus_kind": "synthetic_reference_only",
+  "field_evidence": false,
+  "quantities_are_policy_thresholds": false,
+  "claim_ceiling": "Semantics and failure-handling tests only; no causal or deployment claim.",
+  "scenarios": [
+    {
+      "id": "pirb-r2-minimum-service-floor-01",
+      "track": "PIRB-2",
+      "domain": "shared_water_allocation",
+      "units": "fictional service units per period",
+      "minimum_service_floor": {
+        "community_a": 10,
+        "community_b": 10
+      },
+      "candidates": [
+        {
+          "id": "balanced-10-10",
+          "allocation": {
+            "community_a": 10,
+            "community_b": 10
+          },
+          "total": 20
+        },
+        {
+          "id": "throughput-15-5",
+          "allocation": {
+            "community_a": 15,
+            "community_b": 5
+          },
+          "total": 20
+        }
+      ],
+      "expected": {
+        "eligible_candidates": [
+          "balanced-10-10"
+        ],
+        "rejected_candidates": [
+          "throughput-15-5"
+        ],
+        "invariant": "A candidate that violates any mandatory minimum-service floor is never eligible, even when its total output is equal or greater."
+      }
+    },
+    {
+      "id": "pirb-r1-required-acceptance-01",
+      "track": "PIRB-1",
+      "domain": "shared_resource_agreement",
+      "required_parties": [
+        "community-a",
+        "community-b",
+        "watershed-council"
+      ],
+      "accepted_by": [
+        "community-a",
+        "community-b"
+      ],
+      "effective_time_reached": true,
+      "expected": {
+        "state": "pending_not_active",
+        "invariant": "Every required party and authority check must pass before the agreement can become active."
+      }
+    },
+    {
+      "id": "pirb-r0-stale-capacity-01",
+      "track": "PIRB-0",
+      "domain": "clinic-power-resilience",
+      "required_evidence": {
+        "datum": "backup_capacity_kw",
+        "freshness_status": "stale",
+        "unit": "kW"
+      },
+      "proposed_action": "allocate_backup_power",
+      "expected": {
+        "decision": "blocked_or_unknown",
+        "invariant": "Stale mandatory capacity evidence cannot be silently treated as current or sufficient."
+      }
+    },
+    {
+      "id": "pirb-r0-conflicting-reports-01",
+      "track": "PIRB-0",
+      "domain": "water-service-status",
+      "reports": [
+        {
+          "source": "fictional-inspector-a",
+          "claim": "service_available",
+          "corroborated": false
+        },
+        {
+          "source": "fictional-inspector-b",
+          "claim": "service_unavailable",
+          "corroborated": false
+        }
+      ],
+      "expected": {
+        "evidence_state": "contested_unknown",
+        "invariant": "Conflicting uncorroborated reports must not be silently collapsed into a single asserted fact."
+      }
+    },
+    {
+      "id": "pirb-r4-personal-data-boundary-01",
+      "track": "PIRB-4",
+      "domain": "shared-evidence-record",
+      "input_fields": [
+        "aggregate_service_gap",
+        "person_name",
+        "political_affiliation",
+        "precise_household_location"
+      ],
+      "prohibited_shared_fields": [
+        "person_name",
+        "political_affiliation",
+        "precise_household_location"
+      ],
+      "expected": {
+        "shared_record_decision": "reject_or_redact_under_explicit_policy",
+        "invariant": "Direct identity, political affiliation, and precise vulnerable-household location do not enter the shared benchmark evidence plane."
+      },
+      "proposed_shared_record_fields": [
+        "aggregate_service_gap"
+      ]
+    },
+    {
+      "id": "pirb-r3-no-lookahead-01",
+      "track": "PIRB-3",
+      "domain": "adaptive_service_recovery",
+      "stages": [
+        {
+          "stage": "initial_decision",
+          "observable_inputs": [
+            "known_damage",
+            "current_budget"
+          ],
+          "future_observation_available": false
+        },
+        {
+          "stage": "post-inspection",
+          "observable_inputs": [
+            "known_damage",
+            "current_budget",
+            "inspection_result"
+          ],
+          "future_observation_available": true
+        }
+      ],
+      "expected": {
+        "invariant": "The initial action cannot depend on inspection_result; adaptation using that result is legal only after the declared inspection event."
+      }
+    },
+    {
+      "id": "pirb-r1-refused-participation-01",
+      "track": "PIRB-1",
+      "domain": "community-consent",
+      "required_parties": [
+        "community-a",
+        "community-b"
+      ],
+      "accepted_by": [
+        "community-a"
+      ],
+      "explicit_refusal_by": [
+        "community-b"
+      ],
+      "expected": {
+        "state": "not_active",
+        "invariant": "Refusal or non-participation is not consent and cannot be rewritten as assent by an optimizer or simulation."
+      }
+    },
+    {
+      "id": "pirb-r3-worst-case-frontier-01",
+      "track": "PIRB-3",
+      "domain": "fictional_essential_service_recovery",
+      "scenario_ids": [
+        "baseline",
+        "drought",
+        "supplier_disruption"
+      ],
+      "scenario_probabilities_assigned": false,
+      "options": [
+        {
+          "id": "repair_only",
+          "cost_ticks": 10,
+          "hard_gates": {
+            "civilian_safety": "pass",
+            "evidence_qualification": "pass"
+          },
+          "service_gap_by_scenario": {
+            "baseline": 2,
+            "drought": 8,
+            "supplier_disruption": 9
+          }
+        },
+        {
+          "id": "repair_plus_backup",
+          "cost_ticks": 18,
+          "hard_gates": {
+            "civilian_safety": "pass",
+            "evidence_qualification": "pass"
+          },
+          "service_gap_by_scenario": {
+            "baseline": 3,
+            "drought": 4,
+            "supplier_disruption": 5
+          }
+        },
+        {
+          "id": "unverified_shortcut",
+          "cost_ticks": 5,
+          "hard_gates": {
+            "civilian_safety": "unknown",
+            "evidence_qualification": "pass"
+          },
+          "service_gap_by_scenario": {
+            "baseline": 1,
+            "drought": 2,
+            "supplier_disruption": 2
+          }
+        }
+      ],
+      "expected": {
+        "feasible_options": [
+          "repair_only",
+          "repair_plus_backup"
+        ],
+        "excluded_by_hard_gate": [
+          "unverified_shortcut"
+        ],
+        "worst_case_service_gap": {
+          "repair_only": 9,
+          "repair_plus_backup": 5,
+          "unverified_shortcut": 2
+        },
+        "pareto_frontier": [
+          "repair_only",
+          "repair_plus_backup"
+        ],
+        "scenario_probabilities_assigned": false
+      }
+    },
+    {
+      "id": "pirb-r5-displacement-not-net-impact-01",
+      "track": "PIRB-5",
+      "domain": "fictional_essential_service_recovery",
+      "design_type": "before_after_only",
+      "causal_claim_requested": true,
+      "concurrent_factors": [
+        "region_wide_funding_change"
+      ],
+      "outcomes": [
+        {
+          "group": "target_area",
+          "service_gap_before": 10,
+          "service_gap_after": 3
+        },
+        {
+          "group": "neighbor_area",
+          "service_gap_before": 5,
+          "service_gap_after": 12
+        }
+      ],
+      "expected": {
+        "aggregate_gap_before": 15,
+        "aggregate_gap_after": 15,
+        "displacement_detected": true,
+        "improved_groups": [
+          "target_area"
+        ],
+        "worsened_groups": [
+          "neighbor_area"
+        ],
+        "claim_status": "descriptive_only",
+        "improvement_claim": "not_supported"
+      }
+    },
+    {
+      "id": "pirb-r5-warning-response-chain-01",
+      "track": "PIRB-5",
+      "domain": "fictional essential-service interruption warning",
+      "claim_ceiling": "Response-chain conformance only; no forecast accuracy or causal prevention claim.",
+      "required_safety_buffer_minutes": 15,
+      "alerts": [
+        {
+          "alert_id": "actionable-verified",
+          "remaining_lead_minutes": 120,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "verified",
+          "response_outcome_independently_verified": true,
+          "response_events": [
+            {
+              "event_id": "synthetic-event-001",
+              "event_type": "alert_issued",
+              "minute_offset": 0,
+              "evidence_ref": "synthetic:alert-log:001",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-002",
+              "event_type": "acknowledged",
+              "minute_offset": 5,
+              "evidence_ref": "synthetic:ack-log:002",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-003",
+              "event_type": "dispatched",
+              "minute_offset": 20,
+              "evidence_ref": "synthetic:dispatch-log:003",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-004",
+              "event_type": "arrived",
+              "minute_offset": 45,
+              "evidence_ref": "synthetic:arrival-log:004",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-005",
+              "event_type": "action_completed",
+              "minute_offset": 60,
+              "evidence_ref": "synthetic:completion-log:005",
+              "independent_attestation": false
+            },
+            {
+              "event_id": "synthetic-event-006",
+              "event_type": "outcome_verified",
+              "minute_offset": 70,
+              "evidence_ref": "synthetic:independent-check:006",
+              "independent_attestation": true
+            }
+          ]
+        },
+        {
+          "alert_id": "no-owner",
+          "remaining_lead_minutes": 120,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": false,
+          "response_resource_available": true,
+          "response_state": "unassigned",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "late-signal",
+          "remaining_lead_minutes": 20,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "dispatched",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "no-resource",
+          "remaining_lead_minutes": 120,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": false,
+          "response_state": "unassigned",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "no-reserve-at-boundary",
+          "remaining_lead_minutes": 60,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "ready",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "ready-not-executed",
+          "remaining_lead_minutes": 120,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "ready",
+          "response_outcome_independently_verified": false
+        },
+        {
+          "alert_id": "dispatched-not-verified",
+          "remaining_lead_minutes": 120,
+          "response_latency_bound_minutes": 45,
+          "accountable_owner_authorized": true,
+          "response_resource_available": true,
+          "response_state": "dispatched",
+          "response_outcome_independently_verified": false
+        }
+      ],
+      "expected": {
+        "actionable_alert_ids": [
+          "actionable-verified",
+          "ready-not-executed",
+          "dispatched-not-verified"
+        ],
+        "non_actionable_alert_ids": [
+          "no-owner",
+          "late-signal",
+          "no-resource",
+          "no-reserve-at-boundary"
+        ],
+        "verified_response_ids": [
+          "actionable-verified"
+        ],
+        "unverified_response_ids": [
+          "no-owner",
+          "late-signal",
+          "no-resource",
+          "no-reserve-at-boundary",
+          "ready-not-executed",
+          "dispatched-not-verified"
+        ],
+        "prevention_claim": "not_established_without_impact_design"
+      }
+    },
+    {
+      "id": "pirb-r5-network-spillover-01",
+      "track": "PIRB-5",
+      "domain": "fictional multi-community essential-service allocation",
+      "design_type": "before_after_only",
+      "causal_claim_requested": true,
+      "concurrent_factors": [
+        "region_wide_funding_change",
+        "seasonal_supply_shift"
+      ],
+      "network_scope": "hub plus three connected neighboring communities",
+      "outcomes": [
+        {
+          "group": "hub",
+          "service_gap_before": 12,
+          "service_gap_after": 4
+        },
+        {
+          "group": "near-community-a",
+          "service_gap_before": 8,
+          "service_gap_after": 6
+        },
+        {
+          "group": "near-community-b",
+          "service_gap_before": 6,
+          "service_gap_after": 13
+        },
+        {
+          "group": "outer-community-c",
+          "service_gap_before": 10,
+          "service_gap_after": 11
+        }
+      ],
+      "expected": {
+        "aggregate_gap_before": 36,
+        "aggregate_gap_after": 34,
+        "displacement_detected": true,
+        "improved_groups": [
+          "hub",
+          "near-community-a"
+        ],
+        "worsened_groups": [
+          "near-community-b",
+          "outer-community-c"
+        ],
+        "claim_status": "descriptive_only",
+        "improvement_claim": "qualified_with_displacement"
+      }
+    },
+    {
+      "id": "pirb-r5-adaptive-stop-rule-01",
+      "track": "PIRB-5",
+      "domain": "fictional locally governed essential-service intervention",
+      "claim_ceiling": "Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator.",
+      "stop_rule_cases": [
+        {
+          "case_id": "mandatory-floor-breach",
+          "current_state": "ACTIVE",
+          "trigger": "mandatory_floor_breached",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "stale-critical-evidence",
+          "current_state": "ACTIVE",
+          "trigger": "mandatory_evidence_stale",
+          "evidence_status": "stale",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "contradictory-critical-evidence",
+          "current_state": "ACTIVE",
+          "trigger": "mandatory_evidence_conflict",
+          "evidence_status": "conflicting",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "unassessed-network-spillover",
+          "current_state": "ACTIVE",
+          "trigger": "material_spillover_unassessed",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": false,
+          "expected_transition": "REVIEW_REQUIRED"
+        },
+        {
+          "case_id": "post-hoc-metric-change",
+          "current_state": "ACTIVE",
+          "trigger": "metric_definition_changed_after_outcomes",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "REVIEW_REQUIRED"
+        },
+        {
+          "case_id": "appeal-suppressed",
+          "current_state": "ACTIVE",
+          "trigger": "appeal_suppressed",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "REVIEW_REQUIRED"
+        },
+        {
+          "case_id": "no-stop-condition",
+          "current_state": "ACTIVE",
+          "trigger": "none",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "CONTINUE"
+        },
+        {
+          "case_id": "missing-authority",
+          "current_state": "ACTIVE",
+          "trigger": "none",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": false,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "unknown-critical-evidence",
+          "current_state": "ACTIVE",
+          "trigger": "none",
+          "evidence_status": "unknown",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        },
+        {
+          "case_id": "prohibited-sensitive-field",
+          "current_state": "ACTIVE",
+          "trigger": "prohibited_sensitive_field",
+          "evidence_status": "verified",
+          "accountable_owner_authorized": true,
+          "affected_scope_assessed": true,
+          "expected_transition": "BLOCKED"
+        }
+      ],
+      "expected": {
+        "case_count": 10,
+        "fail_closed_on_unknown": true,
+        "block_mandatory_safety_failures": true,
+        "review_material_scope_or_measurement_changes": true,
+        "continue_only_when_no_stop_condition_and_authority_evidence_is_valid": true,
+        "claim_ceiling": "Synthetic state-transition conformance only; no real intervention is authorized or controlled by this evaluator."
+      }
+    }
+  ]
+}
