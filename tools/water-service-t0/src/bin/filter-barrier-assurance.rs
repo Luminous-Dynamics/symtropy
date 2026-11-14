@@ -67,7 +67,7 @@ fn run() -> Result<i32, String> {
     let (manifest_bytes, manifest) = read_json(&manifest_path)?;
 
     if manifest["benchmark_id"] != "FILTER-BARRIER-ASSURANCE-M0-001"
-        || manifest["case_count"] != 8
+        || manifest["case_count"] != 9
         || manifest["evidence_ceiling"] != "no_filter_or_water_safety_claim"
         || schema["$schema"] != "https://json-schema.org/draft/2020-12/schema"
     {
@@ -91,7 +91,7 @@ fn run() -> Result<i32, String> {
                     .unwrap_or(true)
             })
         });
-    let success = total == 8 && matched == 8 && no_mismatches && all_non_authorizing;
+    let success = total == 9 && matched == 9 && no_mismatches && all_non_authorizing;
 
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
     let lock_bytes =
