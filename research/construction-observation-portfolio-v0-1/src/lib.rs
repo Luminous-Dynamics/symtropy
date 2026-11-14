@@ -1148,6 +1148,76 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_work_unit_identity_is_rejected() {
+        let actions = vec![action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100)];
+        let needs = vec![need("unit-a", "a"), need("unit-a", "a")];
+        let (occupancy, reservations) = books(&actions, 1);
+
+        assert_eq!(
+            plan_observation_campaign(
+                &actions,
+                &needs,
+                &occupancy,
+                &reservations,
+                0,
+                100
+            ),
+            Err(PortfolioError::DuplicateWorkUnitId(
+                "unit-a".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn non_iso_currency_shape_is_rejected() {
+        let mut actions = vec![action(
+            "scan-a",
+            &["a"],
+            0,
+            "r-a",
+            (0, 60_000),
+            5,
+            100,
+        )];
+        actions[0].cost_currency_code = "US".to_owned();
+        let (occupancy, reservations) = books(&actions, 1);
+
+        assert_eq!(
+            plan_observation_campaign(
+                &actions,
+                &[need("unit-a", "a")],
+                &occupancy,
+                &reservations,
+                0,
+                100
+            ),
+            Err(PortfolioError::InvalidCurrencyCode("US".to_owned()))
+        );
+    }
+
+    #[test]
+    fn aggregate_cost_overflow_is_a_typed_error() {
+        let actions = vec![
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, u64::MAX),
+            action("scan-b", &["b"], 2_000, "r-b", (0, 60_000), 5, 1),
+        ];
+        let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
+        let (occupancy, reservations) = books(&actions, 1);
+
+        assert_eq!(
+            plan_observation_campaign(
+                &actions,
+                &needs,
+                &occupancy,
+                &reservations,
+                0,
+                100
+            ),
+            Err(PortfolioError::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
     fn empty_action_catalogue_proves_infeasibility_for_nonempty_needs() {
         let (occupancy, reservations) = books(&[], 1);
         let result = plan_observation_campaign(
