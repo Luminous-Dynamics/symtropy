@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-observational-target-trial-oracle-v0.1.json",
+  "title": "Separate synthetic potential-outcome oracle for target-trial simulations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "oracle_dataset_sha256",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-observational-target-trial-oracle-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oracle_dataset_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "potential_outcome_repair",
+          "potential_outcome_comparator",
+          "oracle_record_sha256"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "potential_outcome_repair": {
+            "type": "number"
+          },
+          "potential_outcome_comparator": {
+            "type": "number"
+          },
+          "oracle_record_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
