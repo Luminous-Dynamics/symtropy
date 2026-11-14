@@ -3,7 +3,8 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
-use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
+use symtropy_math::{Capsule, ConvexHull, HalfSpace, HyperBox, Point, Sphere};
+use symtropy_physics::body::{BodyHandle, RigidBody};
 use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
@@ -219,6 +220,65 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
+fn contact_plane_world(body_count: usize, stacked: bool) -> PhysicsWorld<3> {
+    let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
+    world.solver_iterations = 8;
+    let plane = RigidBody::<3>::static_body(
+        BodyHandle(0),
+        Point::origin(),
+        Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+    );
+    world.add_body(plane);
+
+    for index in 0..body_count {
+        let position = if stacked {
+            Point::new([0.0, 0.9 + index as f64 * 0.9, 0.0])
+        } else {
+            let x = (index % 50) as f64 * 1.1;
+            let z = (index / 50) as f64 * 1.1;
+            Point::new([x, 0.49, z])
+        };
+        let handle = world.add_sphere(position, 0.5, 1.0);
+        let body = world.body_mut(handle).expect("new body handle is valid");
+        body.linear_velocity = SVector::new(0.0, -0.5, 0.0);
+        body.friction = 0.5;
+        body.restitution = 0.0;
+    }
+    world
+}
+
+fn bench_contact_plane_1000_independent(c: &mut Criterion) {
+    c.bench_function("contact_plane_1000_independent_3d", |bench| {
+        bench.iter_batched(
+            || contact_plane_world(1000, false),
+            |mut world| {
+                world.try_step(1.0 / 120.0).expect("valid contact-plane step");
+                assert!(world.contacts.len() >= 1000, "expected plane contacts for the full scene");
+                let snapshot = world.invariant_snapshot();
+                assert_eq!(snapshot.non_finite_body_count, 0);
+                black_box((world.contacts.len(), snapshot.max_penetration_depth, snapshot.mechanical_energy));
+            },
+            criterion::BatchSize::LargeInput,
+        );
+    });
+}
+
+fn bench_contact_stack_100_single_island(c: &mut Criterion) {
+    c.bench_function("contact_stack_100_single_island_3d", |bench| {
+        bench.iter_batched(
+            || contact_plane_world(100, true),
+            |mut world| {
+                world.try_step(1.0 / 120.0).expect("valid contact-stack step");
+                assert!(world.contacts.len() >= 100, "expected a connected stack contact graph");
+                let snapshot = world.invariant_snapshot();
+                assert_eq!(snapshot.non_finite_body_count, 0);
+                black_box((world.contacts.len(), snapshot.max_penetration_depth, snapshot.mechanical_energy));
+            },
+            criterion::BatchSize::LargeInput,
+        );
+    });
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -237,5 +297,8 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    // Contact-rich throughput and single-island coupling.
+    bench_contact_plane_1000_independent,
+    bench_contact_stack_100_single_island,
 );
 criterion_main!(benches);
