@@ -1,0 +1,270 @@
+name: QUAL-001B Authoritative Verifier v1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qual-001b-authoritative-verifier-v1.yml'
+      - 'tools/qualification/authoritative_verifier_v1.py'
+      - 'tools/qualification/qualification_contract_v1.py'
+      - 'tools/qualification/rust_workspace_package_profile_v1.py'
+      - 'tools/qualification/verifier_release_v1.py'
+      - 'tools/qualification/tests/test_authoritative_verifier_v1.py'
+      - 'tools/qualification/tests/test_verifier_release_v1.py'
+      - 'tools/qualification/tests/test_authoritative_workflow_v1.py'
+      - 'tools/qualification/authority_dispatch_v1.py'
+      - 'tools/qualification/tests/test_authority_dispatch_v1.py'
+  repository_dispatch:
+    types: [qual-001b-authority-v1]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.client_payload.contract_sha256 || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  control-plane-preflight:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout verifier candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Install pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+          check-latest: false
+      - name: Compile verifier-owned sources
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            tools/qualification/qualification_contract_v1.py \
+            tools/qualification/rust_workspace_package_profile_v1.py \
+            tools/qualification/authoritative_verifier_v1.py \
+            tools/qualification/verifier_release_v1.py \
+            tools/qualification/tests/test_authoritative_verifier_v1.py \
+            tools/qualification/tests/test_verifier_release_v1.py \
+            tools/qualification/tests/test_authoritative_workflow_v1.py \
+            tools.qualification.tests.test_authority_dispatch_v1
+      - name: Execute verifier hostile corpus
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          python -B -m unittest \
+            tools.qualification.tests.test_authoritative_verifier_v1 \
+            tools.qualification.tests.test_verifier_release_v1 \
+            tools.qualification.tests.test_authoritative_workflow_v1 \
+            tools.qualification.tests.test_authority_dispatch_v1 -v \
+            2>&1 | tee /tmp/qual-001b-tests.log
+          grep -Fx 'OK' /tmp/qual-001b-tests.log
+      - name: Candidate postflight
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git ls-files --others --exclude-standard)"
+
+  execute-frozen-contract:
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'qual-001b-authority-v1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      AUTHORITY_DIR: ${{ github.workspace }}/authority
+      VERIFIER_DIR: ${{ github.workspace }}/verifier
+      CONTRACT_DIR: ${{ github.workspace }}/contract
+      SUBJECT_DIR: ${{ github.workspace }}/subject
+      EVIDENCE_DIR: /tmp/qual-001b-evidence
+      CARGO_TARGET_DIR: /tmp/qual-001b-cargo-target
+      RELEASE_RECORD_PATH: tools/qualification/verifier-release-v1.json
+      CONTRACT_COMMIT_SHA: ${{ github.event.client_payload.contract_commit_sha }}
+      CONTRACT_PATH: ${{ github.event.client_payload.contract_path }}
+      CONTRACT_SHA256: ${{ github.event.client_payload.contract_sha256 }}
+    steps:
+      - name: Checkout authoritative default-branch control plane
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          path: authority
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install pinned Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+          check-latest: false
+      - name: Validate approved verifier release record
+        id: release
+        run: |
+          set -euo pipefail
+          python "$AUTHORITY_DIR/tools/qualification/verifier_release_v1.py" \
+            --record "$AUTHORITY_DIR/$RELEASE_RECORD_PATH" \
+            | tee /tmp/qual-001b-release.txt
+          release_commit="$(sed -n 's/^verifier_commit_sha=//p' /tmp/qual-001b-release.txt)"
+          release_tree="$(sed -n 's/^verifier_tree_sha=//p' /tmp/qual-001b-release.txt)"
+          release_digest="$(sed -n 's/^release_sha256=//p' /tmp/qual-001b-release.txt)"
+          test "${#release_commit}" -eq 40
+          test "${#release_tree}" -eq 40
+          test "${#release_digest}" -eq 64
+          echo "verifier_commit_sha=$release_commit" >> "$GITHUB_OUTPUT"
+          echo "verifier_tree_sha=$release_tree" >> "$GITHUB_OUTPUT"
+          echo "release_sha256=$release_digest" >> "$GITHUB_OUTPUT"
+      - name: Checkout exact approved verifier commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.release.outputs.verifier_commit_sha }}
+          path: verifier
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Recompute approved verifier identity
+        env:
+          EXPECTED_COMMIT: ${{ steps.release.outputs.verifier_commit_sha }}
+          EXPECTED_TREE: ${{ steps.release.outputs.verifier_tree_sha }}
+        run: |
+          set -euo pipefail
+          actual_commit="$(git -C "$VERIFIER_DIR" rev-parse HEAD)"
+          actual_tree="$(git -C "$VERIFIER_DIR" rev-parse HEAD^{tree})"
+          test "$actual_commit" = "$EXPECTED_COMMIT"
+          test "$actual_tree" = "$EXPECTED_TREE"
+      - name: Validate authority dispatch payload
+        id: dispatch
+        env:
+          CONTRACT_COMMIT_SHA: ${{ github.event.client_payload.contract_commit_sha }}
+          CONTRACT_PATH: ${{ github.event.client_payload.contract_path }}
+          CONTRACT_SHA256: ${{ github.event.client_payload.contract_sha256 }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          payload = {
+              "schema_id": "luminous.authority-dispatch.v1",
+              "schema_version": 1,
+              "contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"],
+              "contract_path": os.environ["CONTRACT_PATH"],
+              "contract_sha256": os.environ["CONTRACT_SHA256"],
+          }
+          Path("/tmp/qual-001b-dispatch.json").write_bytes(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+          )
+          PY
+          python "$AUTHORITY_DIR/tools/qualification/authority_dispatch_v1.py" \
+            --payload /tmp/qual-001b-dispatch.json \
+            | tee /tmp/qual-001b-dispatch.txt
+          dispatch_digest="$(sed -n 's/^dispatch_sha256=//p' /tmp/qual-001b-dispatch.txt)"
+          test "${#dispatch_digest}" -eq 64
+          echo "dispatch_sha256=$dispatch_digest" >> "$GITHUB_OUTPUT"
+      - name: Checkout exact contract commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.CONTRACT_COMMIT_SHA }}
+          path: contract
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Validate contract and expose exact subject identity
+        id: contract
+        run: |
+          set -euo pipefail
+          python "$VERIFIER_DIR/tools/qualification/qualification_contract_v1.py" \
+            --contract-root "$CONTRACT_DIR" \
+            --contract-path "$CONTRACT_PATH" \
+            --expected-sha256 "$CONTRACT_SHA256" \
+            | tee /tmp/qual-001b-contract.txt
+          subject_sha="$(sed -n 's/^subject_head_sha=//p' /tmp/qual-001b-contract.txt)"
+          test "${#subject_sha}" -eq 40
+          echo "subject_head_sha=$subject_sha" >> "$GITHUB_OUTPUT"
+      - name: Checkout exact subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ steps.contract.outputs.subject_head_sha }}
+          path: subject
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install pinned Rust 1.96.0
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Execute verifier-owned theorem suite
+        env:
+          CONTRACT_PATH: ${{ env.CONTRACT_PATH }}
+          CONTRACT_SHA256: ${{ env.CONTRACT_SHA256 }}
+          CONTRACT_COMMIT: ${{ env.CONTRACT_COMMIT_SHA }}
+          VERIFIER_COMMIT: ${{ steps.release.outputs.verifier_commit_sha }}
+        run: |
+          set -euo pipefail
+          rm -rf "$EVIDENCE_DIR" "$CARGO_TARGET_DIR"
+          mkdir -p "$EVIDENCE_DIR" "$CARGO_TARGET_DIR"
+          python "$VERIFIER_DIR/tools/qualification/authoritative_verifier_v1.py" \
+            --verifier-root "$VERIFIER_DIR" \
+            --contract-root "$CONTRACT_DIR" \
+            --subject-root "$SUBJECT_DIR" \
+            --contract-path "$CONTRACT_PATH" \
+            --expected-verifier-commit-sha "$VERIFIER_COMMIT" \
+            --expected-contract-commit-sha "$CONTRACT_COMMIT" \
+            --expected-contract-sha256 "$CONTRACT_SHA256" \
+            --evidence-dir "$EVIDENCE_DIR"
+      - name: Retain exact validated dispatch payload
+        if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE_DIR"
+          test -s /tmp/qual-001b-dispatch.json
+          cp --preserve=mode,timestamps /tmp/qual-001b-dispatch.json \
+            "$EVIDENCE_DIR/authority-dispatch-payload.json"
+          cmp --silent /tmp/qual-001b-dispatch.json \
+            "$EVIDENCE_DIR/authority-dispatch-payload.json"
+
+      - name: Record dispatch identity
+        if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -s "$EVIDENCE_DIR/authority-dispatch-payload.json"
+          mkdir -p "$EVIDENCE_DIR"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          record = {
+              "schema_id": "luminous.authority-dispatch-evidence.v1",
+              "schema_version": 1,
+              "dispatch_schema_id": "luminous.authority-dispatch.v1",
+              "dispatch_sha256": os.environ["DISPATCH_SHA256"],
+              "release_sha256": os.environ["RELEASE_SHA256"],
+              "contract_commit_sha": os.environ["CONTRACT_COMMIT_SHA"],
+              "contract_path": os.environ["CONTRACT_PATH"],
+              "contract_sha256": os.environ["CONTRACT_SHA256"],
+          }
+          Path(os.environ["EVIDENCE_DIR"], "authority-dispatch-evidence.json").write_text(
+              json.dumps(record, sort_keys=True, separators=(",", ":")) + "\\n", encoding="utf-8"
+          )
+          PY
+        env:
+          DISPATCH_SHA256: ${{ steps.dispatch.outputs.dispatch_sha256 }}
+          RELEASE_SHA256: ${{ steps.release.outputs.release_sha256 }}
+          CONTRACT_COMMIT_SHA: ${{ env.CONTRACT_COMMIT_SHA }}
+          CONTRACT_PATH: ${{ env.CONTRACT_PATH }}
+          CONTRACT_SHA256: ${{ env.CONTRACT_SHA256 }}
+
+      - name: Independently verify retained dispatch evidence
+        if: steps.dispatch.outcome == 'success' && steps.release.outcome == 'success'
+        run: |
+          set -euo pipefail
+          python "$AUTHORITY_DIR/tools/qualification/authority_dispatch_evidence_verify_v1.py" \
+            --payload "$EVIDENCE_DIR/authority-dispatch-payload.json" \
+            --evidence "$EVIDENCE_DIR/authority-dispatch-evidence.json"
+
+      - name: Upload execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qual-001b-execution-${{ env.CONTRACT_SHA256 }}
+          path: /tmp/qual-001b-evidence/*
+          if-no-files-found: error
+          retention-days: 30
