@@ -31,6 +31,7 @@ pub struct DriftPolicy {
     pub maximum_absolute_error_um: u64,
     pub ewma_lambda_ppm: u32,
     pub initial_ewma_residual_um: i64,
+    pub initial_ewma_uncertainty_um: u64,
     pub ewma_limit_um: u64,
     pub minimum_observations: usize,
     pub maximum_gap_ms: u64,
@@ -46,6 +47,7 @@ pub struct CalibrationCertificate {
     pub instrument_id: String,
     pub calibration_revision: String,
     pub verified: bool,
+    pub expanded_uncertainty_um: u64,
     pub valid_from_ms: u64,
     pub valid_until_ms: u64,
 }
@@ -218,6 +220,8 @@ fn validate_static(input: &DriftSequenceInput) -> Result<(), HoldReason> {
     }
     if policy.maximum_absolute_error_um == 0
         || policy.ewma_limit_um == 0
+        || policy.initial_ewma_uncertainty_um == 0
+        || certificate.expanded_uncertainty_um == 0
         || !(1..=1_000_000).contains(&policy.ewma_lambda_ppm)
         || policy.minimum_observations < 2
         || policy.maximum_gap_ms == 0
@@ -266,6 +270,9 @@ pub fn evaluate_drift_sequence(
     let mut previous_ewma_scaled = i128::from(policy.initial_ewma_residual_um)
         .checked_mul(EWMA_SCALE)
         .ok_or(HoldReason::NumericOverflow)?;
+    let mut previous_ewma_uncertainty_scaled = i128::from(policy.initial_ewma_uncertainty_um)
+        .checked_mul(EWMA_SCALE)
+        .ok_or(HoldReason::NumericOverflow)?;
     let mut maximum_pointwise_guard = 0_u64;
     let mut maximum_ewma_guard = 0_u64;
     let mut observation_digests = Vec::with_capacity(input.observations.len());
@@ -308,9 +315,12 @@ pub fn evaluate_drift_sequence(
             .measured_value_um
             .checked_sub(policy.certified_value_um)
             .ok_or(HoldReason::NumericOverflow)?;
+        let residual_uncertainty = uncertainty
+            .checked_add(certificate.expanded_uncertainty_um)
+            .ok_or(HoldReason::NumericOverflow)?;
         let pointwise_guard = residual
             .unsigned_abs()
-            .checked_add(uncertainty)
+            .checked_add(residual_uncertainty)
             .ok_or(HoldReason::NumericOverflow)?;
         maximum_pointwise_guard = maximum_pointwise_guard.max(pointwise_guard);
         observation_digests.push(observation.sha256.clone());
@@ -349,11 +359,31 @@ pub fn evaluate_drift_sequence(
         let ewma_scaled = round_div_nearest_away(weighted_sum, EWMA_SCALE)?;
         previous_ewma_scaled = ewma_scaled;
 
+        let weighted_current_uncertainty = lambda
+            .checked_mul(i128::from(residual_uncertainty))
+            .and_then(|value| value.checked_mul(EWMA_SCALE))
+            .ok_or(HoldReason::NumericOverflow)?;
+        let weighted_prior_uncertainty = complement
+            .checked_mul(previous_ewma_uncertainty_scaled)
+            .ok_or(HoldReason::NumericOverflow)?;
+        let weighted_uncertainty_sum = weighted_current_uncertainty
+            .checked_add(weighted_prior_uncertainty)
+            .ok_or(HoldReason::NumericOverflow)?;
+        previous_ewma_uncertainty_scaled =
+            round_div_nearest_away(weighted_uncertainty_sum, EWMA_SCALE)?;
+
         let ewma_magnitude = checked_abs_i128(ewma_scaled)?;
         let ewma_um = ceil_div_nonnegative(ewma_magnitude, EWMA_SCALE as u128)?;
+        let ewma_uncertainty_um = ceil_div_nonnegative(
+            checked_abs_i128(previous_ewma_uncertainty_scaled)?,
+            EWMA_SCALE as u128,
+        )?;
         let ewma_guard = u64::try_from(ewma_um)
             .map_err(|_| HoldReason::NumericOverflow)?
-            .checked_add(uncertainty)
+            .checked_add(
+                u64::try_from(ewma_uncertainty_um)
+                    .map_err(|_| HoldReason::NumericOverflow)?,
+            )
             .ok_or(HoldReason::NumericOverflow)?;
         maximum_ewma_guard = maximum_ewma_guard.max(ewma_guard);
 
@@ -441,6 +471,7 @@ mod tests {
                 maximum_absolute_error_um: 100,
                 ewma_lambda_ppm: 500_000,
                 initial_ewma_residual_um: 0,
+                initial_ewma_uncertainty_um: 1,
                 ewma_limit_um: 45,
                 minimum_observations: 3,
                 maximum_gap_ms: 2_000,
@@ -454,6 +485,7 @@ mod tests {
                 instrument_id: "SCANNER-SYNTH-01".to_owned(),
                 calibration_revision: "CAL-R1".to_owned(),
                 verified: true,
+                expanded_uncertainty_um: 1,
                 valid_from_ms: 0,
                 valid_until_ms: 10_000,
             },
@@ -467,7 +499,7 @@ mod tests {
         let input = base_input(&[2, -1, 3, 0]);
         let report = evaluate_drift_sequence(&input).expect("stable sequence should evaluate");
         assert_eq!(report.decision, Decision::ContinueWithinDeclaredCheckLimits);
-        assert_eq!(report.maximum_pointwise_guard_um, 13);
+        assert_eq!(report.maximum_pointwise_guard_um, 14);
         assert!(!report.baseline_mutated);
         assert!(!report.automatic_recalibration_authorized);
     }
@@ -503,6 +535,41 @@ mod tests {
         input.observations[0].expanded_uncertainty_um = Some(25);
         let report = evaluate_drift_sequence(&input).expect("sequence should evaluate");
         assert_eq!(report.hold_reason, Some(HoldReason::PointwiseGuardExceeded));
+    }
+
+    #[test]
+    fn certificate_uncertainty_is_included_in_pointwise_guard() {
+        let mut input = base_input(&[90, 90, 90]);
+        input.policy.ewma_limit_um = 200;
+        input.certificate.expanded_uncertainty_um = 6;
+        for observation in &mut input.observations {
+            observation.expanded_uncertainty_um = Some(5);
+        }
+        let report = evaluate_drift_sequence(&input).expect("sequence should evaluate");
+        assert_eq!(report.hold_reason, Some(HoldReason::PointwiseGuardExceeded));
+        assert_eq!(report.maximum_pointwise_guard_um, 101);
+    }
+
+    #[test]
+    fn ewma_propagates_prior_observation_uncertainty() {
+        let mut input = base_input(&[0, 40, 40, 40]);
+        input.policy.maximum_absolute_error_um = 100;
+        input.policy.ewma_limit_um = 39;
+        input.observations[0].expanded_uncertainty_um = Some(50);
+        for observation in input.observations.iter_mut().skip(1) {
+            observation.expanded_uncertainty_um = Some(1);
+        }
+        let report = evaluate_drift_sequence(&input).expect("sequence should evaluate");
+        assert_eq!(report.hold_reason, Some(HoldReason::EwmaGuardExceeded));
+        assert!(report.maximum_pointwise_guard_um <= 100);
+        assert!(report.maximum_ewma_guard_um > 39);
+    }
+
+    #[test]
+    fn zero_certificate_uncertainty_is_rejected() {
+        let mut input = base_input(&[0, 0, 0]);
+        input.certificate.expanded_uncertainty_um = 0;
+        assert_eq!(evaluate_drift_sequence(&input), Err(HoldReason::InvalidPolicy));
     }
 
     #[test]
