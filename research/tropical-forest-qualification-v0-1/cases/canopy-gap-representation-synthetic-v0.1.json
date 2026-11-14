@@ -604,7 +604,6 @@
     "external_data_used": false,
     "field_calibration": "NOT_RUN",
     "empirical_validation": "NOT_RUN",
-    "published_lpJ_guess_sec_reproduction": "NOT_RUN",
     "published_lpj_guess_sec_reproduction": "NOT_RUN",
     "challenge_case_count": 10
   },
