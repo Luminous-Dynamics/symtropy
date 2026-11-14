@@ -184,7 +184,17 @@ The companion JSON file defines nine synthetic expected-disposition cases for:
 
 These nine synthetic descriptors are now evaluated by the standalone Rust rule engine. Its PASS_SYNTHETIC_RULES receipt means the declared missingness/support/semantics inputs produced the expected dispositions. It does not mean production observation adapters are implemented, nor that real GEDI, TMF, MapBiomas, plot or NFI observations have been processed. Production adapter execution, external data ingestion and rights adjudication remain NOT_IMPLEMENTED / NOT_RUN.
 
-## 8. Ownership
+## 8. Record-level admission envelope
+
+The operator requirements above are now paired with a machine-readable record admission contract:
+[OBSERVATION_ADMISSION_CONTRACT_V0_1.md](OBSERVATION_ADMISSION_CONTRACT_V0_1.md) and
+`cases/forest-observation-admission-contract-synthetic-v0.1.json`.
+
+The standalone Rust verifier evaluates eleven synthetic records. It checks the presence and consistency of source/product version, a SHA-256-shaped asset digest, spatial/temporal support, variable/unit, operator identity/version, declared rights purpose, independent split grouping, and claim type. It refuses cloud-as-zero, uncleared rights, unqualified absence, incomplete provenance, cross-partition leakage, unsupported longitudinal inference, unqualified domain transfer, and source/target variable mismatch. No-acquisition remains `PRESERVE_UNOBSERVED`.
+
+This is record-descriptor validation only. A 64-character digest string is not proof that a source registry is trusted or that a real asset was retrieved correctly. A `cleared_for_declared_use` value is a declared upstream rights state, not a decision made by this validator. Geospatial intersection, real data adapters, source-specific detection calibration and Mycelix rights adjudication remain NOT_IMPLEMENTED / NOT_RUN.
+
+## 9. Ownership
 
 - Sol-Atlas owns canonical source asset identity, geospatial geometry, CRS/time, EO product semantics, source rights references and observation evidence.
 - Symtropy owns latent ecological process state and the model-to-observation operator adapters for its own prediction outputs.
