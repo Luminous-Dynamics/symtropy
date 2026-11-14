@@ -584,6 +584,30 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn changed_mapping_profile_changes_profile_and_build_lock_digests() {
+        let document = doc(RelationshipDirection::Directed);
+        let original_profile = profile();
+        let mut changed_profile = profile();
+        changed_profile.domain_evidence_map.insert(
+            ClaimDomain::Declared,
+            GraphEvidenceState::FieldObserved,
+        );
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &original_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &changed_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert_ne!(original.receipt().mapping_profile_digest(), changed.receipt().mapping_profile_digest());
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
     #[test]
     fn changed_dependency_lock_digest_changes_build_lock_digest() {
         let document = doc(RelationshipDirection::Directed);
