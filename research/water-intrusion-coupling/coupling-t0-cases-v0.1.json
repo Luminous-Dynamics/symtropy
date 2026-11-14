@@ -107,7 +107,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -119,7 +119,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -132,7 +132,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -239,7 +239,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -252,7 +252,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -347,7 +347,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -359,7 +359,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -372,7 +372,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -467,7 +467,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -479,7 +479,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -492,7 +492,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -587,7 +587,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -599,7 +599,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -612,7 +612,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -692,7 +692,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -704,7 +704,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -717,7 +717,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -812,7 +812,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -824,7 +824,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -837,7 +837,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
@@ -932,7 +932,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -943,7 +943,7 @@
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           },
           {
@@ -956,7 +956,7 @@
             "method_state": "valid",
             "sample_time_s": 45,
             "sample_result": "detected",
-            "observation_origin": "measured",
+            "observation_origin": "measurement_channel",
             "digest_origin": "synthetic_fixture_marker"
           }
         ]
