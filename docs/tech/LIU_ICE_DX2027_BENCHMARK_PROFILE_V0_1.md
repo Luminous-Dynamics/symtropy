@@ -55,6 +55,10 @@ The 2027 dataset expansion is not simply "more rows." It creates an edition-to-e
 - **Protocol generalization:** preserve WLTP training restrictions and use held-out cycles as actual OOD/operating-regime tests, not random row splits.
 - **Identifiability:** keep the admissible hypothesis set when model parameters are not uniquely identifiable. A low residual or optimizer-selected parameter vector is not proof of a unique physical cause.
 
+### Metric nomenclature in the 2026 paper
+
+The 2026 paper's abstract refers to its isolation component as TIR, while Table 7 and the official DX2026 score definition label the component FIA (fault-isolation accuracy). The benchmark profile uses FIA for the official score calculation and preserves the TIR wording as a paper-level nomenclature difference. Do not substitute historical 2024 TIR values for the 2026 FIA component.
+
 The 2026 published grey-box solution is a comparator, not a measured Symtropy baseline. Keep its two reported evaluation levels separate:
 
 - Its shared-dataset validation table reports 92.29% global score over 41 files (FAR 0.68%, TDR 78.75%, FIA 98.97%).
