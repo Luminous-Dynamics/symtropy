@@ -43,7 +43,7 @@ fn matrix(value: &Value, key: &str, n: usize) -> Result<Matrix, String> {
 fn add_matrix(left: &Matrix, right: &Matrix) -> Matrix {
     left.iter().zip(right).map(|(a,b)| a.iter().zip(b).map(|(x,y)| x+y).collect()).collect()
 }
-fn symmetric_eigenvalues(mut a: Matrix) -> Result<Vec<f64>, String> {
+#[allow(clippy::needless_range_loop)]\nfn symmetric_eigenvalues(mut a: Matrix) -> Result<Vec<f64>, String> {
     let n=a.len();
     if n==0 || a.iter().any(|r|r.len()!=n) { return Err("eigenvalue matrix must be square".into()); }
     let scale=a.iter().flatten().map(|x|x.abs()).fold(0.0_f64,f64::max).max(1.0e-300);
@@ -75,7 +75,7 @@ fn symmetric_eigenvalues(mut a: Matrix) -> Result<Vec<f64>, String> {
     values.sort_by(|x,y|y.total_cmp(x));
     Ok(values)
 }
-fn cholesky(a:&Matrix)->Result<Matrix,String>{
+#[allow(clippy::needless_range_loop)]\nfn cholesky(a:&Matrix)->Result<Matrix,String>{
     let n=a.len();
     if n==0||a.iter().any(|r|r.len()!=n){return Err("nuisance information must be square".into());}
     let scale=a.iter().enumerate().map(|(i,r)|r[i].abs()).fold(0.0_f64,f64::max);
@@ -91,7 +91,7 @@ fn cholesky(a:&Matrix)->Result<Matrix,String>{
     }}
     Ok(l)
 }
-fn solve_spd(l:&Matrix,b:&[f64])->Result<Vec<f64>,String>{
+#[allow(clippy::needless_range_loop)]\nfn solve_spd(l:&Matrix,b:&[f64])->Result<Vec<f64>,String>{
     let n=l.len();if b.len()!=n{return Err("solve dimension mismatch".into());}
     let mut y=vec![0.0;n];
     for i in 0..n {let mut v=b[i];for j in 0..i{v-=l[i][j]*y[j];}y[i]=v/l[i][i];}
@@ -100,10 +100,10 @@ fn solve_spd(l:&Matrix,b:&[f64])->Result<Vec<f64>,String>{
     if x.iter().any(|v|!v.is_finite()){return Err("non-finite solve result".into());}
     Ok(x)
 }
-fn submatrix(a:&Matrix,rs:usize,re:usize,cs:usize,ce:usize)->Matrix{
+#[allow(clippy::needless_range_loop)]\nfn submatrix(a:&Matrix,rs:usize,re:usize,cs:usize,ce:usize)->Matrix{
     (rs..re).map(|i|(cs..ce).map(|j|a[i][j]).collect()).collect()
 }
-fn adjusted_target_information(f:&Matrix,target:usize)->Result<Option<Matrix>,String>{
+#[allow(clippy::needless_range_loop)]\nfn adjusted_target_information(f:&Matrix,target:usize)->Result<Option<Matrix>,String>{
     let p=f.len();if target==0||target>=p{return Err("target_parameter_count must be in 1..parameter_count".into());}
     let ftt=submatrix(f,0,target,0,target);
     let ftn=submatrix(f,0,target,target,p);
@@ -149,6 +149,18 @@ fn hex_digest(value:&str)->bool{
 struct Block{
     id:String, information:Matrix, separation:BTreeMap<String,f64>,
     cost:f64,duration:f64,calibration:f64,sensors:BTreeSet<String>,
+}
+#[derive(Clone, Copy)]
+struct SearchConfig {
+    parameter_count:usize,
+    target_parameter_count:usize,
+    rank_tolerance:f64,
+    cost_budget:f64,
+    sensor_budget:usize,
+    duration_budget:f64,
+    calibration_budget:f64,
+    maximum_condition:f64,
+    minimum_separation:f64,
 }
 fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,String>{
     if text(input,"schema_version")? != "mixing-design-search-t0-input-v0.1"{return Err("unexpected input schema".into());}
@@ -214,9 +226,9 @@ fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,Strin
     if seen!=oracle_ids||seen!=manifest_ids{return Err("input/oracle/manifest block identity mismatch".into());}
     Ok(out)
 }
-fn compute_subset(blocks:&[Block],indices:&[usize],p:usize,target:usize,tolerance:f64,
-    budget:f64,sensor_budget:usize,duration_budget:f64,calibration_budget:f64,
-    max_condition:f64,min_separation:f64)->Result<Value,String>{
+fn compute_subset(blocks:&[Block],indices:&[usize],config:&SearchConfig)->Result<Value,String>{
+    let p=config.parameter_count;
+    let target=config.target_parameter_count;
     let mut f=vec![vec![0.0;p];p];
     let mut cost=0.0;let mut duration=0.0;let mut calibration=0.0;
     let mut sensors=BTreeSet::new();let mut ids=Vec::new();
@@ -232,14 +244,14 @@ fn compute_subset(blocks:&[Block],indices:&[usize],p:usize,target:usize,toleranc
     let nuisance_adjusted=adjusted_target_information(&f,target)?;
     let nuisance_ok=nuisance_adjusted.is_some();
     let info=nuisance_adjusted.unwrap_or_else(||vec![vec![0.0;target];target]);
-    let metric=metrics(&info,tolerance)?;
+    let metric=metrics(&info,config.rank_tolerance)?;
     let pair_separation=separations.iter().map(|(pair,sq)|(pair.clone(),sq.max(0.0).sqrt())).collect::<BTreeMap<_,_>>();
     let min_pair=pair_separation.values().copied().fold(f64::INFINITY,f64::min);
-    let within=cost<=budget&&sensors.len()<=sensor_budget&&duration<=duration_budget&&calibration<=calibration_budget;
+    let within=cost<=config.cost_budget&&sensors.len()<=config.sensor_budget&&duration<=config.duration_budget&&calibration<=config.calibration_budget;
     let state=if !within{"OVER_BUDGET"}else if !nuisance_ok{"NUISANCE_UNRESOLVED"}
         else if metric.rank<target{"UNIDENTIFIABLE"}
-        else if metric.condition.is_none_or(|x|x>max_condition){"ILL_CONDITIONED"}
-        else if min_pair<min_separation{"MODEL_DISCRIMINATION_INSUFFICIENT"}
+        else if metric.condition.is_none_or(|x|x>config.maximum_condition){"ILL_CONDITIONED"}
+        else if min_pair<config.minimum_separation{"MODEL_DISCRIMINATION_INSUFFICIENT"}
         else{"ELIGIBLE_DESIGN"};
     Ok(json!({
         "selected_block_ids":ids,"cost_units":cost,"unique_sensor_count":sensors.len(),"sensor_ids":sensors,
@@ -273,14 +285,13 @@ fn dominates(a:&Value,b:&Value)->bool{
         &&a_duration<=b_duration&&a_cal<=b_cal
         &&(a_log>b_log||a_min>b_min||a_sep>b_sep||a_cost<b_cost||a_sensors<b_sensors||a_duration<b_duration||a_cal<b_cal)
 }
-fn exact_search(blocks:&[Block],p:usize,target:usize,tol:f64,budget:f64,sensor_budget:usize,
-    duration_budget:f64,cal_budget:f64,max_condition:f64,min_sep:f64)->Result<Vec<Value>,String>{
+fn exact_search(blocks:&[Block],config:&SearchConfig)->Result<Vec<Value>,String>{
     if blocks.len()>MAX_EXACT_BLOCKS{return Err("exact subset limit exceeded".into());}
     let total=1usize<<blocks.len();
     let mut results=Vec::with_capacity(total-1);
     for mask in 1..total{
         let ids=(0..blocks.len()).filter(|i|(mask&(1usize<<i))!=0).collect::<Vec<_>>();
-        results.push(compute_subset(blocks,&ids,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep)?);
+        results.push(compute_subset(blocks,&ids,config)?);
     }
     Ok(results)
 }
@@ -289,7 +300,8 @@ fn score_joint(blocks:&[Block],indices:&[usize],p:usize)->Result<f64,String>{
     for &i in indices{f=add_matrix(&f,&blocks[i].information);}
     regularized_joint_logdet(&f)
 }
-fn greedy_d_opt(blocks:&[Block],p:usize,budget:f64,sensor_budget:usize,duration_budget:f64,cal_budget:f64)->Result<Vec<usize>,String>{
+fn greedy_d_opt(blocks:&[Block],config:&SearchConfig)->Result<Vec<usize>,String>{
+    let p=config.parameter_count;
     let mut selected=Vec::new();let mut remaining=(0..blocks.len()).collect::<BTreeSet<_>>();
     loop{
         let current=score_joint(blocks,&selected,p)?;
@@ -300,7 +312,7 @@ fn greedy_d_opt(blocks:&[Block],p:usize,budget:f64,sensor_budget:usize,duration_
             let duration:f64=trial.iter().map(|j|blocks[*j].duration).sum();
             let calibration:f64=trial.iter().map(|j|blocks[*j].calibration).sum();
             let mut sensors=BTreeSet::new();for &j in &trial{sensors.extend(blocks[j].sensors.iter().cloned());}
-            if cost>budget||duration>duration_budget||calibration>cal_budget||sensors.len()>sensor_budget{continue;}
+            if cost>config.cost_budget||duration>config.duration_budget||calibration>config.calibration_budget||sensors.len()>config.sensor_budget{continue;}
             let gain=score_joint(blocks,&trial,p)?-current;
             let efficiency=gain/blocks[i].cost.max(1.0e-12);
             if best.is_none_or(|(best_i,best_score)|efficiency>best_score+1.0e-12
@@ -316,8 +328,7 @@ fn greedy_d_opt(blocks:&[Block],p:usize,budget:f64,sensor_budget:usize,duration_
 fn next_random(state:&mut u64)->u64{
     let mut x=*state;x^=x<<13;x^=x>>7;x^=x<<17;*state=x;x
 }
-fn random_search(blocks:&[Block],p:usize,target:usize,tol:f64,budget:f64,sensor_budget:usize,
-    duration_budget:f64,cal_budget:f64,max_condition:f64,min_sep:f64,seed:u64,trials:usize)->Result<Option<Value>,String>{
+fn random_search(blocks:&[Block],config:&SearchConfig,seed:u64,trials:usize)->Result<Option<Value>,String>{
     let mut state=seed.max(1);let mut best:Option<Value>=None;
     for _ in 0..trials{
         let mut order=(0..blocks.len()).collect::<Vec<_>>();
@@ -329,10 +340,10 @@ fn random_search(blocks:&[Block],p:usize,target:usize,tol:f64,budget:f64,sensor_
             let duration:f64=trial.iter().map(|j|blocks[*j].duration).sum();
             let calibration:f64=trial.iter().map(|j|blocks[*j].calibration).sum();
             let mut sensors=BTreeSet::new();for &j in &trial{sensors.extend(blocks[j].sensors.iter().cloned());}
-            if cost<=budget&&duration<=duration_budget&&calibration<=cal_budget&&sensors.len()<=sensor_budget{chosen.push(i);}
+            if cost<=config.cost_budget&&duration<=config.duration_budget&&calibration<=config.calibration_budget&&sensors.len()<=config.sensor_budget{chosen.push(i);}
         }
         if chosen.is_empty(){continue;}
-        let result=compute_subset(blocks,&chosen,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep)?;
+        let result=compute_subset(blocks,&chosen,config)?;
         if result["subset_state"]=="ELIGIBLE_DESIGN"{
             let replace=best.as_ref().is_none_or(|old|{
                 let score=|v:&Value|v["target_log_determinant"].as_f64().unwrap_or(f64::NEG_INFINITY);
@@ -353,20 +364,26 @@ fn expected_matches(actual:&Value,expected:&Value)->bool{
 }
 pub fn evaluate(input:&Value,oracle:&Value,manifest:&Value)->Result<Value,String>{
     let blocks=validate(input,oracle,manifest)?;
-    let p=usize_value(input,"parameter_count")?;let target=usize_value(input,"target_parameter_count")?;
-    let tol=number(input,"rank_relative_tolerance")?;
-    let budget=number(input,"cost_budget")?;
-    let sensor_budget=usize_value(input,"sensor_budget")?;
-    let duration_budget=number(input,"duration_budget_minutes")?;
-    let cal_budget=number(input,"calibration_budget")?;
-    let max_condition=number(input,"maximum_condition_number")?;
-    let min_sep=number(input,"minimum_model_separation")?;
+    let config=SearchConfig{
+        parameter_count:usize_value(input,"parameter_count")?,
+        target_parameter_count:usize_value(input,"target_parameter_count")?,
+        rank_tolerance:number(input,"rank_relative_tolerance")?,
+        cost_budget:number(input,"cost_budget")?,
+        sensor_budget:usize_value(input,"sensor_budget")?,
+        duration_budget:number(input,"duration_budget_minutes")?,
+        calibration_budget:number(input,"calibration_budget")?,
+        maximum_condition:number(input,"maximum_condition_number")?,
+        minimum_separation:number(input,"minimum_model_separation")?,
+    };
     let trials=usize_value(input,"random_trials")?;
     let seed=field(input,"random_seed")?.as_u64().ok_or_else(||"random_seed must be u64".to_owned())?;
-    if tol<=0.0||tol>=0.1||budget<0.0||duration_budget<0.0||cal_budget<0.0||max_condition<=1.0||min_sep<0.0||trials==0{
+    if !(0.0..0.1).contains(&config.rank_tolerance)||config.cost_budget<0.0
+        ||config.duration_budget<0.0||config.calibration_budget<0.0
+        ||config.maximum_condition<=1.0||config.minimum_separation<0.0||trials==0
+        ||config.target_parameter_count==0||config.target_parameter_count>=config.parameter_count{
         return Err("invalid threshold or budget".into());
     }
-    let mut subsets=exact_search(&blocks,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep)?;
+    let mut subsets=exact_search(&blocks,&config)?;
     subsets.sort_by(|a,b|{
         let ai=a["selected_block_ids"].as_array().unwrap();let bi=b["selected_block_ids"].as_array().unwrap();
         ai.len().cmp(&bi.len()).then_with(||ai.cmp(bi))
@@ -379,9 +396,9 @@ pub fn evaluate(input:&Value,oracle:&Value,manifest:&Value)->Result<Value,String
             .total_cmp(&b["target_log_determinant"].as_f64().unwrap_or(f64::NEG_INFINITY))
             .then_with(||b["cost_units"].as_f64().unwrap_or(f64::INFINITY).total_cmp(&a["cost_units"].as_f64().unwrap_or(f64::INFINITY)))
     }).cloned();
-    let greedy_indices=greedy_d_opt(&blocks,p,budget,sensor_budget,duration_budget,cal_budget)?;
-    let greedy=if greedy_indices.is_empty(){None}else{Some(compute_subset(&blocks,&greedy_indices,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep)?)};
-    let random=random_search(&blocks,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep,seed,trials)?;
+    let greedy_indices=greedy_d_opt(&blocks,&config)?;
+    let greedy=if greedy_indices.is_empty(){None}else{Some(compute_subset(&blocks,&greedy_indices,&config)?)};
+    let random=random_search(&blocks,&config,seed,trials)?;
     let expected=field(oracle,"expected")?;
     let exact_best_ids=field(expected,"exact_best_block_ids")?;
     let exact_matches=exact_best.as_ref().is_some_and(|x|expected_matches(&x["selected_block_ids"],exact_best_ids));
@@ -484,9 +501,13 @@ mod tests{
         assert!((exact["minimum_target_singular_value"].as_f64().unwrap()-0.5_f64.sqrt()).abs()<1.0e-9);
     }
     #[test]fn individually_singular_nuisance_blocks_combine_into_estimable_nuisance_information(){
-        let blocks=validate(&load("input"),&load("oracle"),&load("manifest")).unwrap();
+        let input=load("input");
+        let blocks=validate(&input,&load("oracle"),&load("manifest")).unwrap();
+        let config=SearchConfig{parameter_count:4,target_parameter_count:2,rank_tolerance:1.0e-8,
+            cost_budget:4.0,sensor_budget:4,duration_budget:40.0,calibration_budget:4.0,
+            maximum_condition:100.0,minimum_separation:0.35};
         let indices=vec![0,1,2,3];
-        let combo=compute_subset(&blocks,&indices,4,2,1.0e-8,4.0,4,40.0,4.0,100.0,0.35).unwrap();
+        let combo=compute_subset(&blocks,&indices,&config).unwrap();
         assert_eq!(combo["nuisance_adjustment_state"],"APPLIED_AFTER_AGGREGATION");
         assert_eq!(combo["subset_state"],"ELIGIBLE_DESIGN");
     }
