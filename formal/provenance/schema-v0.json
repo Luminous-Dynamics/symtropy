@@ -1,0 +1,35 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://symtropy.org/schemas/formal-provenance-v0.json",
+  "title":"Symtropy Formal Provenance Graph v0",
+  "type":"object","additionalProperties":false,
+  "required":["schema_version","nodes","edges"],
+  "properties":{
+    "schema_version":{"const":"luminous.formal-provenance.v0"},
+    "nodes":{"type":"array","items":{"$ref":"#/$defs/node"}},
+    "edges":{"type":"array","items":{"$ref":"#/$defs/edge"}}
+  },
+  "$defs":{
+    "sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "repository":{"type":"string","minLength":1,"pattern":"^[^\\s]+$"},
+    "repo_path":{"type":"string","minLength":1,"pattern":"^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)[^\\x00]+$"},
+    "provenance":{"type":"object","additionalProperties":false,"required":["repository","commit_sha","tree_sha"],
+      "properties":{"repository":{"$ref":"#/$defs/repository"},"commit_sha":{"$ref":"#/$defs/sha256"},"tree_sha":{"$ref":"#/$defs/sha256"},
+      "path":{"$ref":"#/$defs/repo_path"},"content_digest":{"$ref":"#/$defs/sha256"}}},
+    "node":{"type":"object","additionalProperties":false,"required":["schema_version","kind","id","label"],
+      "properties":{
+        "schema_version":{"const":"luminous.formal-provenance.v0"},
+        "kind":{"enum":["Invariant","Definition","Theorem","Lemma","ProofArtifact","ProofChecker","ProofExecution","Counterexample","SourceCommit","SourceTree","QualificationContract","QualificationEvidence","VerifierRelease"]},
+        "id":{"type":"string","minLength":1},"label":{"type":"string","minLength":1},
+        "content_digest":{"$ref":"#/$defs/sha256"},"semantic_digest":{"$ref":"#/$defs/sha256"},
+        "provenance":{"$ref":"#/$defs/provenance"},"metadata":{"type":"object"}
+      }},
+    "edge":{"type":"object","additionalProperties":false,"required":["schema_version","id","source","target","relation"],
+      "properties":{
+        "schema_version":{"const":"luminous.formal-provenance.v0"},"id":{"type":"string","minLength":1},
+        "source":{"type":"string","minLength":1},"target":{"type":"string","minLength":1},
+        "relation":{"enum":["defines","refines","depends_on","proves","checked_by","derived_from","falsified_by","revalidated_by","qualifies","supersedes","invalidated_by"]},
+        "evidence":{"type":"array","items":{"type":"string","minLength":1}},"provenance":{"$ref":"#/$defs/provenance"}
+      }}
+  }
+}
