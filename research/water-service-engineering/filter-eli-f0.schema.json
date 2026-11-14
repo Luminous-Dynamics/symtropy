@@ -87,7 +87,7 @@
         "properties": {
           "case_id": {
             "type": "string",
-            "pattern": "^FILTER-F0-[0-9]{3}-[a-z0-9-]+$"
+            "pattern": "^FILTER-F0-[0-9]{3}-[A-Za-z0-9-]+$"
           },
           "inputs": {
             "type": "object",
