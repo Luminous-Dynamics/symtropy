@@ -83,7 +83,8 @@
     "The optional performance harness uses a fixed seed and draw budget across declared unit sizes and reports observed throughput without enforcing or inventing a machine-independent speed threshold.",
     "Every generated assignment is independently recounted against all frozen per-stratum treatment/control counts before statistic evaluation and digesting.",
     "Any detected block-allocation violation fails closed; a successful result can report only zero verified violations.",
-    "A zero-exceedance draw set reports the plus-one minimum p-value 1/(B+1), never p = 0."
+    "A zero-exceedance draw set reports the plus-one minimum p-value 1/(B+1), never p = 0.",
+    "The v0.1 benchmark harness reports elapsed time and draw throughput with runner/CPU metadata; it does not claim peak-memory measurements."
   ],
   "comparators": [
     {
@@ -190,10 +191,12 @@
     "uniform_subset_frequency_deviation",
     "work_budget_rejection_accuracy",
     "draws_per_second",
-    "peak_memory_bytes",
     "monte_carlo_interval_width",
     "independent_block_constraint_rejection_rate",
-    "zero_exceedance_minimum_p_value_integrity"
+    "zero_exceedance_minimum_p_value_integrity",
+    "benchmark_elapsed_microseconds",
+    "benchmark_draws_per_second",
+    "benchmark_unit_draws_per_second"
   ],
   "aspirations_not_achieved": [
     "100% byte-identical replay for identical version, seed and trial inputs.",
@@ -204,5 +207,5 @@
     "Row reordering has zero effect on canonical replay digests.",
     "No data-dependent stopping or undisclosed PRNG changes."
   ],
-  "claim_ceiling": "A pass establishes only reproducible fixed-budget Monte Carlo approximation of the declared blocked randomization distribution for the exact PRNG, seed, draw count and trial frame. It does not prove trial assignment authenticity, seed unbiasedness, causal assumptions, real-engine repair efficacy or permission to operate."
+  "claim_ceiling": "A pass establishes only reproducible fixed-budget Monte Carlo approximation of the declared blocked randomization distribution for the exact PRNG, seed, draw count and trial frame. It does not prove trial assignment authenticity, seed unbiasedness, causal assumptions, real-engine repair efficacy or permission to operate. The hosted throughput profile is hardware- and runner-specific and is not a cross-machine SOTA ranking. Peak memory is not measured by this v0.1 harness."
 }
