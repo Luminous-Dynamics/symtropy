@@ -5,6 +5,8 @@
 //! navigability, lock-eligibility, hydrodynamic, port-call, or participant
 //! authority validation.
 
+pub mod chamber_packing;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use maritime_service_chain_contract::{
