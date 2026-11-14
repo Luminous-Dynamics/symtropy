@@ -569,7 +569,7 @@ mod tests {
         let report = evaluate_drift_sequence(&input).expect("sequence should evaluate");
         assert_eq!(report.hold_reason, Some(HoldReason::EwmaGuardExceeded));
         assert!(report.maximum_pointwise_guard_um <= 100);
-        assert!(report.maximum_ewma_guard_um > 39);
+        assert_eq!(report.maximum_ewma_guard_um, 41);
     }
 
     #[test]
