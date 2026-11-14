@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub mod fixtures;
 pub mod oracle;
+pub mod pareto;
 pub mod route_gate;
 pub mod resilience;
 pub mod utilities;
