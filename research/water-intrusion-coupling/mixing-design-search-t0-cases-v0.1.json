@@ -54,7 +54,7 @@
         "sensor-common"
       ],
       "cross_block_noise_contract": "independent",
-      "information_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "information_receipt_sha256": "2cba508377867ba64be46d670830a2e0f904441da8a011b22e78e7e9162502d1"
     },
     {
       "block_id": "B-inlet-two",
@@ -94,7 +94,7 @@
         "sensor-common"
       ],
       "cross_block_noise_contract": "independent",
-      "information_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "information_receipt_sha256": "dfd7e9f6f8de84ca990a9dbaa9457c4ec129255fac52cf15ef1534ff316ee09e"
     },
     {
       "block_id": "C-nuisance-one-calibration",
@@ -134,7 +134,7 @@
         "sensor-cal-1"
       ],
       "cross_block_noise_contract": "independent",
-      "information_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      "information_receipt_sha256": "7ddd7385131e92db236968ad5fa1a1b97fd8391b5f3cfb79fd57233e296a1e13"
     },
     {
       "block_id": "D-nuisance-two-calibration",
@@ -174,7 +174,7 @@
         "sensor-cal-2"
       ],
       "cross_block_noise_contract": "independent",
-      "information_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "information_receipt_sha256": "9b031db4a52a7b43a3d55ab12d2d21aac3b65412f5b73e0050e0c8dce040727a"
     },
     {
       "block_id": "E-high-information-low-discrimination",
@@ -217,7 +217,7 @@
         "sensor-e4"
       ],
       "cross_block_noise_contract": "independent",
-      "information_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      "information_receipt_sha256": "a3aafcb76edc8100c44f9181fc01da936ec8ba4f559312615456203413db3eb8"
     }
   ]
 }
