@@ -1,0 +1,390 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "AI-STATEFUL-RESOURCE-TRAJECTORY-2026-11-04",
+  "status": "synthetic_stateful_resource_oracles",
+  "intended_use": "Hostile and valid fixtures for the independent one-zone RC plus storage/UPS-reserve state trajectory verifier.",
+  "reference_register": [
+    {
+      "reference_id": "LIQUID-COOLING-DR-2026-06",
+      "title": "Exploring the Demand Response Potential of Liquid-Cooled Data Centers",
+      "doi": "10.1016/j.apenergy.2026.127679",
+      "publication_period": "2026-06-01",
+      "evidence_class": "peer_reviewed_modelled_case_study",
+      "scope_note": "Published electro-thermal coupled liquid-cooled data-centre demand-response model; this fixture pack does not reproduce its calibrated model."
+    }
+  ],
+  "fixtures": [
+    {
+      "fixture_id": "RESOURCE-TRAJECTORY-PASS-001",
+      "expected_result": "pass",
+      "resource_contract": {
+        "scenario_id": "scenario-1",
+        "site_id": "site-1",
+        "boundary_id": "facility-pcc",
+        "configuration_digest": "config-digest-1",
+        "storage": {
+          "capacity_kwh": 100,
+          "initial_energy_kwh": 90,
+          "minimum_operating_energy_kwh": 20,
+          "maximum_charge_power_kw": 50,
+          "maximum_discharge_power_kw": 50,
+          "charge_efficiency": 0.95,
+          "discharge_efficiency": 0.95,
+          "critical_load_power_kw": 10,
+          "ride_through_seconds": 3600,
+          "reserve_margin_fraction": 0.2
+        },
+        "thermal_zone": {
+          "zone_id": "rack-loop-a",
+          "initial_temperature_c": 25,
+          "maximum_temperature_c": 32,
+          "thermal_capacitance_kwh_per_c": 10,
+          "ambient_conductance_kw_per_c": 1,
+          "maximum_cooling_heat_removal_kw": 80,
+          "maximum_cooling_electric_power_kw": 30,
+          "minimum_cop": 2,
+          "maximum_cop": 8
+        },
+        "maximum_facility_input_power_kw": 200,
+        "maximum_grid_import_power_kw": 150
+      },
+      "slots": [
+        {
+          "sample_id": "s1",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10000,
+          "end_unix_seconds": 10900,
+          "base_facility_power_kw": 10,
+          "it_power_kw": 20,
+          "cooling_electric_power_kw": 5,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 5,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 5,
+          "it_heat_injection_kw": 20,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 25,
+          "power_evidence_id": "power-s1",
+          "storage_evidence_id": "storage-s1",
+          "thermal_evidence_id": "thermal-s1"
+        },
+        {
+          "sample_id": "s2",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10900,
+          "end_unix_seconds": 11800,
+          "base_facility_power_kw": 10,
+          "it_power_kw": 20,
+          "cooling_electric_power_kw": 5,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 5,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 5,
+          "it_heat_injection_kw": 20,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 25,
+          "power_evidence_id": "power-s2",
+          "storage_evidence_id": "storage-s2",
+          "thermal_evidence_id": "thermal-s2"
+        }
+      ],
+      "expected_oracle": {
+        "protected_reserve_floor_kwh": 20,
+        "minimum_storage_energy_kwh": 87.36842105263158,
+        "minimum_reserve_margin_kwh": 67.36842105263158,
+        "maximum_zone_temperature_c": 25,
+        "total_facility_energy_kwh": 18.5,
+        "total_grid_import_energy_kwh": 13.5,
+        "peak_facility_input_power_kw": 37,
+        "peak_grid_import_power_kw": 27,
+        "failed_gates": []
+      },
+      "interpretation": "Two 15-minute intervals independently reconstruct facility and grid energy while preserving storage reserve and staying within the one-zone RC temperature limit.",
+      "claim_ceiling": "Synthetic arithmetic control only; no physical storage, UPS or thermal qualification."
+    },
+    {
+      "fixture_id": "RESOURCE-RESERVE-BREACH-001",
+      "expected_result": "reject",
+      "resource_contract": {
+        "scenario_id": "scenario-1",
+        "site_id": "site-1",
+        "boundary_id": "facility-pcc",
+        "configuration_digest": "config-digest-1",
+        "storage": {
+          "capacity_kwh": 100,
+          "initial_energy_kwh": 30,
+          "minimum_operating_energy_kwh": 20,
+          "maximum_charge_power_kw": 50,
+          "maximum_discharge_power_kw": 50,
+          "charge_efficiency": 0.95,
+          "discharge_efficiency": 0.95,
+          "critical_load_power_kw": 10,
+          "ride_through_seconds": 3600,
+          "reserve_margin_fraction": 0.2
+        },
+        "thermal_zone": {
+          "zone_id": "rack-loop-a",
+          "initial_temperature_c": 25,
+          "maximum_temperature_c": 32,
+          "thermal_capacitance_kwh_per_c": 10,
+          "ambient_conductance_kw_per_c": 1,
+          "maximum_cooling_heat_removal_kw": 80,
+          "maximum_cooling_electric_power_kw": 30,
+          "minimum_cop": 2,
+          "maximum_cop": 8
+        },
+        "maximum_facility_input_power_kw": 200,
+        "maximum_grid_import_power_kw": 150
+      },
+      "slots": [
+        {
+          "sample_id": "s1",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10000,
+          "end_unix_seconds": 10900,
+          "base_facility_power_kw": 10,
+          "it_power_kw": 20,
+          "cooling_electric_power_kw": 5,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 0,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 20,
+          "it_heat_injection_kw": 20,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 25,
+          "power_evidence_id": "power-s1",
+          "storage_evidence_id": "storage-s1",
+          "thermal_evidence_id": "thermal-s1"
+        },
+        {
+          "sample_id": "s2",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10900,
+          "end_unix_seconds": 11800,
+          "base_facility_power_kw": 10,
+          "it_power_kw": 20,
+          "cooling_electric_power_kw": 5,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 0,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 20,
+          "it_heat_injection_kw": 20,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 25,
+          "power_evidence_id": "power-s2",
+          "storage_evidence_id": "storage-s2",
+          "thermal_evidence_id": "thermal-s2"
+        }
+      ],
+      "expected_oracle": {
+        "protected_reserve_floor_kwh": 20,
+        "minimum_storage_energy_kwh": 19.473684210526315,
+        "minimum_reserve_margin_kwh": -0.526315789473685,
+        "failed_gates": [
+          "reserve_passed"
+        ]
+      },
+      "interpretation": "The first interval is feasible, but the second interval takes stored energy below the protected 20 kWh critical-load reserve.",
+      "claim_ceiling": "Synthetic reserve depletion control."
+    },
+    {
+      "fixture_id": "RESOURCE-THERMAL-OVERRUN-001",
+      "expected_result": "reject",
+      "resource_contract": {
+        "scenario_id": "scenario-1",
+        "site_id": "site-1",
+        "boundary_id": "facility-pcc",
+        "configuration_digest": "config-digest-1",
+        "storage": {
+          "capacity_kwh": 100,
+          "initial_energy_kwh": 90,
+          "minimum_operating_energy_kwh": 20,
+          "maximum_charge_power_kw": 50,
+          "maximum_discharge_power_kw": 50,
+          "charge_efficiency": 0.95,
+          "discharge_efficiency": 0.95,
+          "critical_load_power_kw": 10,
+          "ride_through_seconds": 3600,
+          "reserve_margin_fraction": 0.2
+        },
+        "thermal_zone": {
+          "zone_id": "rack-loop-a",
+          "initial_temperature_c": 30,
+          "maximum_temperature_c": 32,
+          "thermal_capacitance_kwh_per_c": 10,
+          "ambient_conductance_kw_per_c": 0.1,
+          "maximum_cooling_heat_removal_kw": 80,
+          "maximum_cooling_electric_power_kw": 30,
+          "minimum_cop": 2,
+          "maximum_cop": 8
+        },
+        "maximum_facility_input_power_kw": 200,
+        "maximum_grid_import_power_kw": 150
+      },
+      "slots": [
+        {
+          "sample_id": "long-heat",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10000,
+          "end_unix_seconds": 17200,
+          "base_facility_power_kw": 10,
+          "it_power_kw": 50,
+          "cooling_electric_power_kw": 0,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 0,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 0,
+          "it_heat_injection_kw": 50,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 0,
+          "power_evidence_id": "power-long-heat",
+          "storage_evidence_id": "storage-long-heat",
+          "thermal_evidence_id": "thermal-long-heat"
+        }
+      ],
+      "expected_oracle": {
+        "maximum_zone_temperature_c": 39.80165671315615,
+        "failed_gates": [
+          "thermal_limit_passed"
+        ]
+      },
+      "interpretation": "A long high-heat interval exceeds the 32°C limit despite nominal site power feasibility.",
+      "claim_ceiling": "Synthetic first-order RC thermal control; no CFD or multi-zone calibration."
+    },
+    {
+      "fixture_id": "RESOURCE-FREE-COOLING-REJECT-001",
+      "expected_result": "reject",
+      "resource_contract": {
+        "scenario_id": "scenario-1",
+        "site_id": "site-1",
+        "boundary_id": "facility-pcc",
+        "configuration_digest": "config-digest-1",
+        "storage": {
+          "capacity_kwh": 100,
+          "initial_energy_kwh": 90,
+          "minimum_operating_energy_kwh": 20,
+          "maximum_charge_power_kw": 50,
+          "maximum_discharge_power_kw": 50,
+          "charge_efficiency": 0.95,
+          "discharge_efficiency": 0.95,
+          "critical_load_power_kw": 10,
+          "ride_through_seconds": 3600,
+          "reserve_margin_fraction": 0.2
+        },
+        "thermal_zone": {
+          "zone_id": "rack-loop-a",
+          "initial_temperature_c": 25,
+          "maximum_temperature_c": 32,
+          "thermal_capacitance_kwh_per_c": 10,
+          "ambient_conductance_kw_per_c": 1,
+          "maximum_cooling_heat_removal_kw": 80,
+          "maximum_cooling_electric_power_kw": 30,
+          "minimum_cop": 2,
+          "maximum_cop": 8
+        },
+        "maximum_facility_input_power_kw": 200,
+        "maximum_grid_import_power_kw": 150
+      },
+      "slots": [
+        {
+          "sample_id": "free-cooling",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10000,
+          "end_unix_seconds": 10900,
+          "base_facility_power_kw": 10,
+          "it_power_kw": 20,
+          "cooling_electric_power_kw": 0,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 0,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 0,
+          "it_heat_injection_kw": 20,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 25,
+          "power_evidence_id": "power-free-cooling",
+          "storage_evidence_id": "storage-free-cooling",
+          "thermal_evidence_id": "thermal-free-cooling"
+        }
+      ],
+      "expected_oracle": {
+        "failed_gates": [
+          "cooling_cop_passed"
+        ]
+      },
+      "interpretation": "The model is not allowed to remove 25 kW of heat without nonzero cooling electrical input consistent with the declared COP envelope.",
+      "claim_ceiling": "Synthetic accounting negative control."
+    },
+    {
+      "fixture_id": "RESOURCE-GRID-CAP-REJECT-001",
+      "expected_result": "reject",
+      "resource_contract": {
+        "scenario_id": "scenario-1",
+        "site_id": "site-1",
+        "boundary_id": "facility-pcc",
+        "configuration_digest": "config-digest-1",
+        "storage": {
+          "capacity_kwh": 100,
+          "initial_energy_kwh": 90,
+          "minimum_operating_energy_kwh": 20,
+          "maximum_charge_power_kw": 50,
+          "maximum_discharge_power_kw": 50,
+          "charge_efficiency": 0.95,
+          "discharge_efficiency": 0.95,
+          "critical_load_power_kw": 10,
+          "ride_through_seconds": 3600,
+          "reserve_margin_fraction": 0.2
+        },
+        "thermal_zone": {
+          "zone_id": "rack-loop-a",
+          "initial_temperature_c": 25,
+          "maximum_temperature_c": 32,
+          "thermal_capacitance_kwh_per_c": 10,
+          "ambient_conductance_kw_per_c": 1,
+          "maximum_cooling_heat_removal_kw": 80,
+          "maximum_cooling_electric_power_kw": 30,
+          "minimum_cop": 2,
+          "maximum_cop": 8
+        },
+        "maximum_facility_input_power_kw": 200,
+        "maximum_grid_import_power_kw": 10
+      },
+      "slots": [
+        {
+          "sample_id": "grid-cap",
+          "site_id": "site-1",
+          "boundary_id": "facility-pcc",
+          "start_unix_seconds": 10000,
+          "end_unix_seconds": 10900,
+          "base_facility_power_kw": 40,
+          "it_power_kw": 30,
+          "cooling_electric_power_kw": 5,
+          "other_facility_power_kw": 2,
+          "onsite_non_storage_supply_kw": 0,
+          "storage_charge_power_kw": 0,
+          "storage_discharge_power_kw": 0,
+          "it_heat_injection_kw": 30,
+          "ambient_temperature_c": 25,
+          "cooling_heat_removal_kw": 25,
+          "power_evidence_id": "power-grid-cap",
+          "storage_evidence_id": "storage-grid-cap",
+          "thermal_evidence_id": "thermal-grid-cap"
+        }
+      ],
+      "expected_oracle": {
+        "peak_grid_import_power_kw": 77,
+        "failed_gates": [
+          "grid_limit_passed"
+        ]
+      },
+      "interpretation": "The grid-import limit fails even though storage reserve and thermal limits are preserved.",
+      "claim_ceiling": "Synthetic independent-grid-gate control."
+    }
+  ],
+  "claim_ceiling": "All fixtures are synthetic. A PASS means arithmetic feasibility under the declared one-zone RC and storage contracts only; it does not establish meter authenticity, physical UPS runtime, CFD accuracy, battery degradation, HIL or field performance."
+}

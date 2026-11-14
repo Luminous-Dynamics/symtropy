@@ -1,0 +1,548 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.ai-flexibility-event-oracles.2026-11-03",
+  "status": "synthetic_flexibility_event_oracles",
+  "accessed_at": "2026-11-03",
+  "intended_use": "Synthetic oracle scenarios for validating grid-import response, total facility energy per completed work, workload service, rebound, latency/deadline and thermal gates.",
+  "boundary_policy": {
+    "grid_response_boundary": "Facility PCC active-power import; this is the grid-facing metric.",
+    "efficiency_boundary": "Total facility electrical input at one frozen, non-overlapping service boundary. Must include all supply sources delivered to the facility boundary (grid, onsite generation, storage discharge) without summing nested meters.",
+    "work_boundary": "Same application-specific completed-work unit and frozen SLA/service contract across baseline and response.",
+    "limitation": "Facility electrical input per work is not primary-energy or lifecycle energy; upstream generation/storage pathways require Well-to-Service accounting."
+  },
+  "fixtures": [
+    {
+      "fixture_id": "FLEX-PASS-25PCT-3H",
+      "expected_pass": true,
+      "contract": {
+        "identity": {
+          "event_id": "FLEX-PASS-25PCT-3H-EVENT",
+          "service_contract_id": "FLEX-PASS-25PCT-3H-SLA",
+          "work_unit_id": "training-steps-v1",
+          "measurement_boundary_id": "facility-service-input-001",
+          "baseline_configuration_digest": "sha256:baseline",
+          "response_configuration_digest": "sha256:response"
+        },
+        "event_start_ns": 0,
+        "event_end_ns": 10800000000000,
+        "rebound_end_ns": 14400000000000,
+        "sample_interval_ns": 3600000000000,
+        "minimum_grid_import_reduction_fraction": 0.25,
+        "maximum_work_loss_fraction": 0.01,
+        "maximum_facility_energy_per_work_ratio": 1,
+        "maximum_rebound_grid_import_peak_ratio": 1.05,
+        "maximum_response_p99_latency_ms": 100,
+        "maximum_deadline_misses": 0,
+        "maximum_response_temperature_c": 80
+      },
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-25PCT-3H-SAMPLE-0"
+        },
+        {
+          "elapsed_ns": 3600000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-25PCT-3H-SAMPLE-1"
+        },
+        {
+          "elapsed_ns": 7200000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-25PCT-3H-SAMPLE-2"
+        },
+        {
+          "elapsed_ns": 10800000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 1000,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-25PCT-3H-SAMPLE-3"
+        }
+      ],
+      "oracle": {
+        "pass": true,
+        "grid_import_reduction_fraction": 0.25,
+        "baseline_event_grid_import_energy_kwh": 3000,
+        "response_event_grid_import_energy_kwh": 2250,
+        "baseline_total_facility_energy_kwh": 4000,
+        "response_total_facility_energy_kwh": 3250,
+        "facility_energy_per_work_ratio": 0.8125,
+        "work_loss_fraction": 0,
+        "rebound_grid_import_peak_ratio": 1,
+        "latency_pass": true,
+        "deadline_pass": true,
+        "thermal_pass": true,
+        "interpretation": "A 25% PCC import reduction is achieved for three hours, all useful work is completed, total facility electrical input and energy per completed work improve, and rebound/latency/thermal constraints remain satisfied."
+      }
+    },
+    {
+      "fixture_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING",
+      "expected_pass": true,
+      "contract": {
+        "identity": {
+          "event_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING-EVENT",
+          "service_contract_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING-SLA",
+          "work_unit_id": "training-steps-v1",
+          "measurement_boundary_id": "facility-service-input-001",
+          "baseline_configuration_digest": "sha256:baseline",
+          "response_configuration_digest": "sha256:response"
+        },
+        "event_start_ns": 0,
+        "event_end_ns": 10800000000000,
+        "rebound_end_ns": 14400000000000,
+        "sample_interval_ns": 3600000000000,
+        "minimum_grid_import_reduction_fraction": 0.25,
+        "maximum_work_loss_fraction": 0.01,
+        "maximum_facility_energy_per_work_ratio": 1,
+        "maximum_rebound_grid_import_peak_ratio": 1.05,
+        "maximum_response_p99_latency_ms": 100,
+        "maximum_deadline_misses": 0,
+        "maximum_response_temperature_c": 80
+      },
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING-SAMPLE-0"
+        },
+        {
+          "elapsed_ns": 3600000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING-SAMPLE-1"
+        },
+        {
+          "elapsed_ns": 7200000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING-SAMPLE-2"
+        },
+        {
+          "elapsed_ns": 10800000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 1000,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-PASS-BATTERY-SHIFT-NO-SITE-SAVING-SAMPLE-3"
+        }
+      ],
+      "oracle": {
+        "pass": true,
+        "grid_import_reduction_fraction": 0.25,
+        "baseline_event_grid_import_energy_kwh": 3000,
+        "response_event_grid_import_energy_kwh": 2250,
+        "baseline_total_facility_energy_kwh": 4000,
+        "response_total_facility_energy_kwh": 4000,
+        "facility_energy_per_work_ratio": 1,
+        "work_loss_fraction": 0,
+        "rebound_grid_import_peak_ratio": 1,
+        "latency_pass": true,
+        "deadline_pass": true,
+        "thermal_pass": true,
+        "interpretation": "Battery discharge reduces grid import by 25%, but total facility electrical input is unchanged. It is a grid-support result, not an energy-efficiency improvement; the evaluator reports a facility energy/work ratio of exactly 1.0."
+      }
+    },
+    {
+      "fixture_id": "FLEX-REJECT-LESS-WORK",
+      "expected_pass": false,
+      "contract": {
+        "identity": {
+          "event_id": "FLEX-REJECT-LESS-WORK-EVENT",
+          "service_contract_id": "FLEX-REJECT-LESS-WORK-SLA",
+          "work_unit_id": "training-steps-v1",
+          "measurement_boundary_id": "facility-service-input-001",
+          "baseline_configuration_digest": "sha256:baseline",
+          "response_configuration_digest": "sha256:response"
+        },
+        "event_start_ns": 0,
+        "event_end_ns": 10800000000000,
+        "rebound_end_ns": 14400000000000,
+        "sample_interval_ns": 3600000000000,
+        "minimum_grid_import_reduction_fraction": 0.25,
+        "maximum_work_loss_fraction": 0.01,
+        "maximum_facility_energy_per_work_ratio": 1,
+        "maximum_rebound_grid_import_peak_ratio": 1.05,
+        "maximum_response_p99_latency_ms": 100,
+        "maximum_deadline_misses": 0,
+        "maximum_response_temperature_c": 80
+      },
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 50,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-LESS-WORK-SAMPLE-0"
+        },
+        {
+          "elapsed_ns": 3600000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 50,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-LESS-WORK-SAMPLE-1"
+        },
+        {
+          "elapsed_ns": 7200000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 50,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-LESS-WORK-SAMPLE-2"
+        },
+        {
+          "elapsed_ns": 10800000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 1000,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 50,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-LESS-WORK-SAMPLE-3"
+        }
+      ],
+      "oracle": {
+        "pass": false,
+        "grid_import_reduction_fraction": 0.25,
+        "work_loss_fraction": 0.5,
+        "work_completion_pass": false,
+        "interpretation": "A 25% PCC reduction fails because the response completes only half the baseline work."
+      }
+    },
+    {
+      "fixture_id": "FLEX-REJECT-REBOUND",
+      "expected_pass": false,
+      "contract": {
+        "identity": {
+          "event_id": "FLEX-REJECT-REBOUND-EVENT",
+          "service_contract_id": "FLEX-REJECT-REBOUND-SLA",
+          "work_unit_id": "training-steps-v1",
+          "measurement_boundary_id": "facility-service-input-001",
+          "baseline_configuration_digest": "sha256:baseline",
+          "response_configuration_digest": "sha256:response"
+        },
+        "event_start_ns": 0,
+        "event_end_ns": 10800000000000,
+        "rebound_end_ns": 14400000000000,
+        "sample_interval_ns": 3600000000000,
+        "minimum_grid_import_reduction_fraction": 0.25,
+        "maximum_work_loss_fraction": 0.01,
+        "maximum_facility_energy_per_work_ratio": 1,
+        "maximum_rebound_grid_import_peak_ratio": 1.05,
+        "maximum_response_p99_latency_ms": 100,
+        "maximum_deadline_misses": 0,
+        "maximum_response_temperature_c": 80
+      },
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-REBOUND-SAMPLE-0"
+        },
+        {
+          "elapsed_ns": 3600000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-REBOUND-SAMPLE-1"
+        },
+        {
+          "elapsed_ns": 7200000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-REBOUND-SAMPLE-2"
+        },
+        {
+          "elapsed_ns": 10800000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 1300,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1300,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-REBOUND-SAMPLE-3"
+        }
+      ],
+      "oracle": {
+        "pass": false,
+        "grid_import_reduction_fraction": 0.25,
+        "rebound_grid_import_peak_ratio": 1.3,
+        "rebound_pass": false,
+        "interpretation": "The event meets the 25% reduction target but creates a post-event grid-import peak 30% above baseline."
+      }
+    },
+    {
+      "fixture_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION",
+      "expected_pass": false,
+      "contract": {
+        "identity": {
+          "event_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION-EVENT",
+          "service_contract_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION-SLA",
+          "work_unit_id": "training-steps-v1",
+          "measurement_boundary_id": "facility-service-input-001",
+          "baseline_configuration_digest": "sha256:baseline",
+          "response_configuration_digest": "sha256:response"
+        },
+        "event_start_ns": 0,
+        "event_end_ns": 10800000000000,
+        "rebound_end_ns": 14400000000000,
+        "sample_interval_ns": 3600000000000,
+        "minimum_grid_import_reduction_fraction": 0.25,
+        "maximum_work_loss_fraction": 0.01,
+        "maximum_facility_energy_per_work_ratio": 1,
+        "maximum_rebound_grid_import_peak_ratio": 1.05,
+        "maximum_response_p99_latency_ms": 100,
+        "maximum_deadline_misses": 0,
+        "maximum_response_temperature_c": 80
+      },
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1100,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION-SAMPLE-0"
+        },
+        {
+          "elapsed_ns": 3600000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1100,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION-SAMPLE-1"
+        },
+        {
+          "elapsed_ns": 7200000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1100,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION-SAMPLE-2"
+        },
+        {
+          "elapsed_ns": 10800000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 1000,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1100,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-FACILITY-ENERGY-REGRESSION-SAMPLE-3"
+        }
+      ],
+      "oracle": {
+        "pass": false,
+        "grid_import_reduction_fraction": 0.25,
+        "facility_energy_per_work_ratio": 1.1,
+        "energy_per_work_pass": false,
+        "interpretation": "The grid import reduction is achieved, but total facility electrical input per completed work increases by 10%; this is not an energy efficiency win."
+      }
+    },
+    {
+      "fixture_id": "FLEX-REJECT-SLA-THERMAL",
+      "expected_pass": false,
+      "contract": {
+        "identity": {
+          "event_id": "FLEX-REJECT-SLA-THERMAL-EVENT",
+          "service_contract_id": "FLEX-REJECT-SLA-THERMAL-SLA",
+          "work_unit_id": "training-steps-v1",
+          "measurement_boundary_id": "facility-service-input-001",
+          "baseline_configuration_digest": "sha256:baseline",
+          "response_configuration_digest": "sha256:response"
+        },
+        "event_start_ns": 0,
+        "event_end_ns": 10800000000000,
+        "rebound_end_ns": 14400000000000,
+        "sample_interval_ns": 3600000000000,
+        "minimum_grid_import_reduction_fraction": 0.25,
+        "maximum_work_loss_fraction": 0.01,
+        "maximum_facility_energy_per_work_ratio": 1,
+        "maximum_rebound_grid_import_peak_ratio": 1.05,
+        "maximum_response_p99_latency_ms": 100,
+        "maximum_deadline_misses": 0,
+        "maximum_response_temperature_c": 80
+      },
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 150,
+          "response_deadline_misses": 1,
+          "response_peak_temperature_c": 85,
+          "evidence_id": "FLEX-REJECT-SLA-THERMAL-SAMPLE-0"
+        },
+        {
+          "elapsed_ns": 3600000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-SLA-THERMAL-SAMPLE-1"
+        },
+        {
+          "elapsed_ns": 7200000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 750,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 750,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-SLA-THERMAL-SAMPLE-2"
+        },
+        {
+          "elapsed_ns": 10800000000000,
+          "baseline_pcc_import_kw": 1000,
+          "response_pcc_import_kw": 1000,
+          "baseline_total_facility_input_kw": 1000,
+          "response_total_facility_input_kw": 1000,
+          "baseline_completed_work_units": 100,
+          "response_completed_work_units": 100,
+          "response_p99_latency_ms": 50,
+          "response_deadline_misses": 0,
+          "response_peak_temperature_c": 70,
+          "evidence_id": "FLEX-REJECT-SLA-THERMAL-SAMPLE-3"
+        }
+      ],
+      "oracle": {
+        "pass": false,
+        "latency_pass": false,
+        "deadline_pass": false,
+        "thermal_pass": false,
+        "interpretation": "The event fails the frozen SLA and temperature constraints even though the grid import target is met."
+      }
+    }
+  ],
+  "claim_ceiling": "Synthetic accounting/evaluator fixtures only. They are not field performance results and do not model battery SOC evolution or lifecycle energy. Battery-shift case demonstrates that lower PCC import alone does not prove lower facility energy per work."
+}

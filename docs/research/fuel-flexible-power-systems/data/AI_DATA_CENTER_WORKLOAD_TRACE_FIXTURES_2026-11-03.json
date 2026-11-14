@@ -1,0 +1,568 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.ai-data-center-workload-trace-fixtures.2026-11-03",
+  "status": "synthetic_workload_trace_contract_fixtures",
+  "intended_use": "Synthetic contract fixtures for timestamp alignment, measurement hierarchy, workload/electrical trace linkage and non-double-counted aggregation. No sample is a physical measurement.",
+  "fixtures": [
+    {
+      "fixture_id": "AI-TRACE-PASS-001",
+      "expected_result": "pass",
+      "timebase": {
+        "timestamp_unit": "elapsed_nanoseconds",
+        "clock_type": "ptp_synchronised",
+        "clock_id": "PTP-FLEET-SYNTHETIC-01",
+        "nominal_sample_interval_ns": 20000000,
+        "clock_alignment_error_ns": 1000000,
+        "sampling_jitter_p99_ns": 100000,
+        "notes": "Synthetic 50 Hz sample sequence on a common PTP clock; alignment error is 1 ms."
+      },
+      "sites": [
+        {
+          "site_id": "SITE-A",
+          "geography": "synthetic-region-A",
+          "grid_region": "synthetic-grid-1",
+          "facility_id": "FACILITY-A",
+          "utility_or_operator": "synthetic"
+        },
+        {
+          "site_id": "SITE-B",
+          "geography": "synthetic-region-B",
+          "grid_region": "synthetic-grid-1",
+          "facility_id": "FACILITY-B",
+          "utility_or_operator": "synthetic"
+        }
+      ],
+      "measurement_points": [
+        {
+          "measurement_point_id": "A-PCC",
+          "site_id": "SITE-A",
+          "parent_measurement_point_id": null,
+          "boundary_type": "facility_pcc",
+          "measurement_role": "aggregate_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-A-PCC",
+          "calibration_id": "CAL-A-PCC-01",
+          "evidence_id": "SYNTH-METER-A",
+          "nominal_accuracy_fraction": 0.005,
+          "notes": "Facility aggregate at the grid point of connection."
+        },
+        {
+          "measurement_point_id": "A-NODE-01",
+          "site_id": "SITE-A",
+          "parent_measurement_point_id": "A-PCC",
+          "boundary_type": "node_input",
+          "measurement_role": "component_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-A-NODE-01",
+          "calibration_id": "CAL-A-NODE-01",
+          "evidence_id": "SYNTH-METER-A",
+          "nominal_accuracy_fraction": 0.01,
+          "notes": "One accelerator node; diagnostic submeter, nested under the facility POC."
+        },
+        {
+          "measurement_point_id": "B-PCC",
+          "site_id": "SITE-B",
+          "parent_measurement_point_id": null,
+          "boundary_type": "facility_pcc",
+          "measurement_role": "aggregate_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-B-PCC",
+          "calibration_id": "CAL-B-PCC-01",
+          "evidence_id": "SYNTH-METER-B",
+          "nominal_accuracy_fraction": 0.005,
+          "notes": "Facility aggregate at the grid point of connection."
+        },
+        {
+          "measurement_point_id": "B-NODE-01",
+          "site_id": "SITE-B",
+          "parent_measurement_point_id": "B-PCC",
+          "boundary_type": "node_input",
+          "measurement_role": "component_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-B-NODE-01",
+          "calibration_id": "CAL-B-NODE-01",
+          "evidence_id": "SYNTH-METER-B",
+          "nominal_accuracy_fraction": 0.01,
+          "notes": "One accelerator node; diagnostic submeter, nested under the facility POC."
+        }
+      ],
+      "workload_sessions": [
+        {
+          "workload_id": "JOB-A-TRAIN-01",
+          "site_id": "SITE-A",
+          "workload_family": "distributed_model_training",
+          "hardware_profile_id": "H100-8GPU-SYNTH",
+          "accelerator_count": 8,
+          "model_or_application": "synthetic transformer training",
+          "batch_size": 1024,
+          "sequence_length": 4096,
+          "sla_contract_id": "SLA-A-TRAIN-01",
+          "preemptibility": "checkpointable",
+          "deadline_elapsed_ns": 3600000000000,
+          "evidence_id": "SYNTH-WORKLOAD-A"
+        },
+        {
+          "workload_id": "JOB-B-INFER-01",
+          "site_id": "SITE-B",
+          "workload_family": "online_inference",
+          "hardware_profile_id": "B200-8GPU-SYNTH",
+          "accelerator_count": 8,
+          "model_or_application": "synthetic inference service",
+          "batch_size": 256,
+          "sequence_length": 8192,
+          "sla_contract_id": "SLA-B-INFER-01",
+          "preemptibility": "non_preemptible",
+          "deadline_elapsed_ns": null,
+          "evidence_id": "SYNTH-WORKLOAD-B"
+        }
+      ],
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-A",
+          "measurement_point_id": "A-PCC",
+          "power_w": 1500000,
+          "power_uncertainty_w": 7500,
+          "evidence_id": "SYNTH-METER-A"
+        },
+        {
+          "elapsed_ns": 20000000,
+          "site_id": "SITE-A",
+          "measurement_point_id": "A-PCC",
+          "power_w": 1510000,
+          "power_uncertainty_w": 7550,
+          "evidence_id": "SYNTH-METER-A"
+        },
+        {
+          "elapsed_ns": 40000000,
+          "site_id": "SITE-A",
+          "measurement_point_id": "A-PCC",
+          "power_w": 1495000,
+          "power_uncertainty_w": 7475,
+          "evidence_id": "SYNTH-METER-A"
+        },
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-A",
+          "measurement_point_id": "A-NODE-01",
+          "node_id": "NODE-A-01",
+          "workload_id": "JOB-A-TRAIN-01",
+          "power_w": 8200,
+          "power_uncertainty_w": 82,
+          "gpu_utilization_fraction": 0.93,
+          "cpu_utilization_fraction": 0.61,
+          "gpu_temperature_c": 72,
+          "memory_utilization_fraction": 0.88,
+          "queue_depth": 4,
+          "completed_work_delta": 128,
+          "evidence_id": "SYNTH-METER-A"
+        },
+        {
+          "elapsed_ns": 20000000,
+          "site_id": "SITE-A",
+          "measurement_point_id": "A-NODE-01",
+          "node_id": "NODE-A-01",
+          "workload_id": "JOB-A-TRAIN-01",
+          "power_w": 8450,
+          "power_uncertainty_w": 84.5,
+          "gpu_utilization_fraction": 0.97,
+          "cpu_utilization_fraction": 0.64,
+          "gpu_temperature_c": 74,
+          "memory_utilization_fraction": 0.89,
+          "queue_depth": 4,
+          "completed_work_delta": 128,
+          "evidence_id": "SYNTH-METER-A"
+        },
+        {
+          "elapsed_ns": 40000000,
+          "site_id": "SITE-A",
+          "measurement_point_id": "A-NODE-01",
+          "node_id": "NODE-A-01",
+          "workload_id": "JOB-A-TRAIN-01",
+          "power_w": 8100,
+          "power_uncertainty_w": 81,
+          "gpu_utilization_fraction": 0.91,
+          "cpu_utilization_fraction": 0.6,
+          "gpu_temperature_c": 73,
+          "memory_utilization_fraction": 0.87,
+          "queue_depth": 3,
+          "completed_work_delta": 128,
+          "evidence_id": "SYNTH-METER-A"
+        },
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-B",
+          "measurement_point_id": "B-PCC",
+          "power_w": 2200000,
+          "power_uncertainty_w": 11000,
+          "evidence_id": "SYNTH-METER-B"
+        },
+        {
+          "elapsed_ns": 20000000,
+          "site_id": "SITE-B",
+          "measurement_point_id": "B-PCC",
+          "power_w": 2190000,
+          "power_uncertainty_w": 10950,
+          "evidence_id": "SYNTH-METER-B"
+        },
+        {
+          "elapsed_ns": 40000000,
+          "site_id": "SITE-B",
+          "measurement_point_id": "B-PCC",
+          "power_w": 2210000,
+          "power_uncertainty_w": 11050,
+          "evidence_id": "SYNTH-METER-B"
+        },
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-B",
+          "measurement_point_id": "B-NODE-01",
+          "node_id": "NODE-B-01",
+          "workload_id": "JOB-B-INFER-01",
+          "power_w": 7600,
+          "power_uncertainty_w": 76,
+          "gpu_utilization_fraction": 0.81,
+          "cpu_utilization_fraction": 0.43,
+          "gpu_temperature_c": 69,
+          "memory_utilization_fraction": 0.76,
+          "queue_depth": 0,
+          "completed_work_delta": 512,
+          "evidence_id": "SYNTH-METER-B"
+        },
+        {
+          "elapsed_ns": 20000000,
+          "site_id": "SITE-B",
+          "measurement_point_id": "B-NODE-01",
+          "node_id": "NODE-B-01",
+          "workload_id": "JOB-B-INFER-01",
+          "power_w": 7900,
+          "power_uncertainty_w": 79,
+          "gpu_utilization_fraction": 0.86,
+          "cpu_utilization_fraction": 0.45,
+          "gpu_temperature_c": 70,
+          "memory_utilization_fraction": 0.78,
+          "queue_depth": 0,
+          "completed_work_delta": 512,
+          "evidence_id": "SYNTH-METER-B"
+        },
+        {
+          "elapsed_ns": 40000000,
+          "site_id": "SITE-B",
+          "measurement_point_id": "B-NODE-01",
+          "node_id": "NODE-B-01",
+          "workload_id": "JOB-B-INFER-01",
+          "power_w": 7700,
+          "power_uncertainty_w": 77,
+          "gpu_utilization_fraction": 0.83,
+          "cpu_utilization_fraction": 0.44,
+          "gpu_temperature_c": 70,
+          "memory_utilization_fraction": 0.77,
+          "queue_depth": 0,
+          "completed_work_delta": 512,
+          "evidence_id": "SYNTH-METER-B"
+        }
+      ],
+      "control_events": [
+        {
+          "event_id": "GRID-SIGNAL-001",
+          "elapsed_ns": 20000000,
+          "site_id": "SITE-A",
+          "event_type": "grid_dispatch_signal",
+          "commanded_value": "reduce_import_100kW",
+          "unit": "operator_signal",
+          "workload_id": null,
+          "expiry_elapsed_ns": 20000000000,
+          "evidence_id": "SYNTH-GRID-SIGNAL"
+        }
+      ],
+      "aggregation_policy": {
+        "selected_service_boundary": "facility_pcc",
+        "aggregation_input_point_ids": [
+          "A-PCC",
+          "B-PCC"
+        ],
+        "prohibit_nested_meter_addition": true,
+        "cross_site_correlation_requires_clock_alignment": true,
+        "maximum_clock_alignment_error_ns": 5000000,
+        "notes": [
+          "Only POC aggregate meters are used for fleet import.",
+          "Node meters remain diagnostic features and must not be added to POC totals.",
+          "Clock alignment is within the declared 5 ms policy."
+        ]
+      },
+      "evidence_register": [
+        {
+          "evidence_id": "SYNTH-METER-A",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/synthetic-meter-a",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic facility A and node meter identities/calibration labels."
+        },
+        {
+          "evidence_id": "SYNTH-METER-B",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/synthetic-meter-b",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic facility B and node meter identities/calibration labels."
+        },
+        {
+          "evidence_id": "SYNTH-WORKLOAD-A",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/workload-a",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic checkpointable training workload and SLA contract."
+        },
+        {
+          "evidence_id": "SYNTH-WORKLOAD-B",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/workload-b",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic non-preemptible inference workload and SLA contract."
+        },
+        {
+          "evidence_id": "SYNTH-GRID-SIGNAL",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/grid-signal",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic grid-dispatch event."
+        }
+      ],
+      "claim_ceiling": "Pass confirms only the synthetic trace contract, timestamps, meter hierarchy and sample/evidence links. It says nothing about real multi-site load correlation, grid response, SLA performance or measured hardware power."
+    },
+    {
+      "fixture_id": "AI-TRACE-REJECT-NESTED-METERS-001",
+      "expected_result": "reject",
+      "expected_error": "NestedAggregateMeterDoubleCount",
+      "timebase": {
+        "timestamp_unit": "elapsed_nanoseconds",
+        "clock_type": "ptp_synchronised",
+        "clock_id": "PTP-SYNTHETIC-NESTED",
+        "nominal_sample_interval_ns": 20000000,
+        "clock_alignment_error_ns": 500000,
+        "sampling_jitter_p99_ns": 100000,
+        "notes": "Synthetic aligned single-site meter trace."
+      },
+      "sites": [
+        {
+          "site_id": "SITE-C",
+          "geography": "synthetic-region-C",
+          "grid_region": "synthetic-grid-1",
+          "facility_id": "FACILITY-C",
+          "utility_or_operator": "synthetic"
+        }
+      ],
+      "measurement_points": [
+        {
+          "measurement_point_id": "C-PCC",
+          "site_id": "SITE-C",
+          "parent_measurement_point_id": null,
+          "boundary_type": "facility_pcc",
+          "measurement_role": "aggregate_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-C-PCC",
+          "calibration_id": "CAL-C-PCC",
+          "evidence_id": "SYNTH-METER-C",
+          "nominal_accuracy_fraction": 0.005,
+          "notes": "Aggregate facility point of connection."
+        },
+        {
+          "measurement_point_id": "C-UPS",
+          "site_id": "SITE-C",
+          "parent_measurement_point_id": "C-PCC",
+          "boundary_type": "ups_output",
+          "measurement_role": "subsystem_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-C-UPS",
+          "calibration_id": "CAL-C-UPS",
+          "evidence_id": "SYNTH-METER-C",
+          "nominal_accuracy_fraction": 0.01,
+          "notes": "Nested UPS output included within the facility POC reading."
+        }
+      ],
+      "workload_sessions": [],
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-C",
+          "measurement_point_id": "C-PCC",
+          "power_w": 1000000,
+          "power_uncertainty_w": 5000,
+          "evidence_id": "SYNTH-METER-C"
+        },
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-C",
+          "measurement_point_id": "C-UPS",
+          "power_w": 800000,
+          "power_uncertainty_w": 8000,
+          "evidence_id": "SYNTH-METER-C"
+        }
+      ],
+      "control_events": [],
+      "aggregation_policy": {
+        "selected_service_boundary": "facility_pcc",
+        "aggregation_input_point_ids": [
+          "C-PCC",
+          "C-UPS"
+        ],
+        "prohibit_nested_meter_addition": true,
+        "cross_site_correlation_requires_clock_alignment": true,
+        "maximum_clock_alignment_error_ns": 5000000,
+        "notes": [
+          "Deliberately invalid: aggregate POC and its nested UPS output are both selected for addition. UPS output is already included in POC power."
+        ]
+      },
+      "evidence_register": [
+        {
+          "evidence_id": "SYNTH-METER-C",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/synthetic-meter-c",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic nested POC and UPS meter hierarchy."
+        }
+      ],
+      "claim_ceiling": "Negative control for nested meter double-counting."
+    },
+    {
+      "fixture_id": "AI-TRACE-REJECT-CLOCK-ALIGNMENT-001",
+      "expected_result": "reject",
+      "expected_error": "CrossSiteCorrelationClockAlignmentExceeded",
+      "timebase": {
+        "timestamp_unit": "elapsed_nanoseconds",
+        "clock_type": "ntp_synchronised",
+        "clock_id": "MIXED-NTP-CLOCKS-SYNTHETIC",
+        "nominal_sample_interval_ns": 20000000,
+        "clock_alignment_error_ns": 25000000,
+        "sampling_jitter_p99_ns": 8000000,
+        "notes": "Deliberately exceeds the maximum 5 ms correlation-alignment tolerance."
+      },
+      "sites": [
+        {
+          "site_id": "SITE-D",
+          "geography": "synthetic-region-D",
+          "grid_region": "synthetic-grid-2",
+          "facility_id": "FACILITY-D",
+          "utility_or_operator": "synthetic"
+        },
+        {
+          "site_id": "SITE-E",
+          "geography": "synthetic-region-E",
+          "grid_region": "synthetic-grid-2",
+          "facility_id": "FACILITY-E",
+          "utility_or_operator": "synthetic"
+        }
+      ],
+      "measurement_points": [
+        {
+          "measurement_point_id": "D-PCC",
+          "site_id": "SITE-D",
+          "parent_measurement_point_id": null,
+          "boundary_type": "facility_pcc",
+          "measurement_role": "aggregate_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-D-PCC",
+          "calibration_id": "CAL-D-PCC",
+          "evidence_id": "SYNTH-METER-D",
+          "nominal_accuracy_fraction": 0.005,
+          "notes": "Site D aggregate POC."
+        },
+        {
+          "measurement_point_id": "E-PCC",
+          "site_id": "SITE-E",
+          "parent_measurement_point_id": null,
+          "boundary_type": "facility_pcc",
+          "measurement_role": "aggregate_meter",
+          "unit": "W",
+          "sign_convention": "positive_import",
+          "hardware_or_meter_id": "SYNTH-E-PCC",
+          "calibration_id": "CAL-E-PCC",
+          "evidence_id": "SYNTH-METER-E",
+          "nominal_accuracy_fraction": 0.005,
+          "notes": "Site E aggregate POC."
+        }
+      ],
+      "workload_sessions": [],
+      "samples": [
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-D",
+          "measurement_point_id": "D-PCC",
+          "power_w": 900000,
+          "power_uncertainty_w": 4500,
+          "evidence_id": "SYNTH-METER-D"
+        },
+        {
+          "elapsed_ns": 0,
+          "site_id": "SITE-E",
+          "measurement_point_id": "E-PCC",
+          "power_w": 1100000,
+          "power_uncertainty_w": 5500,
+          "evidence_id": "SYNTH-METER-E"
+        }
+      ],
+      "control_events": [],
+      "aggregation_policy": {
+        "selected_service_boundary": "facility_pcc",
+        "aggregation_input_point_ids": [
+          "D-PCC",
+          "E-PCC"
+        ],
+        "prohibit_nested_meter_addition": true,
+        "cross_site_correlation_requires_clock_alignment": true,
+        "maximum_clock_alignment_error_ns": 5000000,
+        "notes": [
+          "Deliberately invalid for correlation analysis: 25 ms alignment error exceeds 5 ms policy. Individual site energy totals may still be valid."
+        ]
+      },
+      "evidence_register": [
+        {
+          "evidence_id": "SYNTH-METER-D",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/synthetic-meter-d",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic site D POC meter."
+        },
+        {
+          "evidence_id": "SYNTH-METER-E",
+          "evidence_class": "synthetic_fixture",
+          "source_uri": "https://example.invalid/synthetic-meter-e",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "document_digest": null,
+          "claim_scope": "Synthetic site E POC meter."
+        }
+      ],
+      "claim_ceiling": "Negative control for cross-site correlation computed from misaligned clocks. Per-site totals remain separately usable."
+    }
+  ],
+  "claim_ceiling": "These synthetic traces validate schema, meter hierarchy, clock alignment, workload metadata and evidence links only. They do not claim any real power profile, correlation, demand response, grid stability or hardware performance."
+}

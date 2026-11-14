@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/competitor-benchmarks-0.1.0.json",
+  "title": "Luminous Power Conversion Competitor Benchmark Dataset",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "comparison_policy",
+    "entities",
+    "cross_topology_rules",
+    "data_gaps_to_close"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison_policy": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/entity"
+      }
+    },
+    "cross_topology_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "data_gaps_to_close": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "required": [
+        "entity_id",
+        "name",
+        "conversion_topology",
+        "application",
+        "evidence_records"
+      ],
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversion_topology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "application": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closest_comparator_for": {
+          "type": "string"
+        },
+        "evidence_records": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidence_record"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence_record": {
+      "type": "object",
+      "required": [
+        "record_id",
+        "evidence_class",
+        "accessed_at",
+        "source",
+        "claims",
+        "comparison_limitations"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "manufacturer_product_specification",
+            "manufacturer_authored_report_under_government_sponsored_project",
+            "government_prototype_pilot_announcement",
+            "commercial_agreement_press_release",
+            "manufacturer_regulatory_filing_and_product_literature",
+            "manufacturer_product_information",
+            "government_programme_summary",
+            "manufacturer_announced_type_approval_and_factory_acceptance",
+            "peer_reviewed_lifecycle_study"
+          ]
+        },
+        "published_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "accessed_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "source": {
+          "type": "object",
+          "required": [
+            "id",
+            "title",
+            "uri",
+            "publisher"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uri": {
+              "type": "string",
+              "format": "uri"
+            },
+            "landing_page": {
+              "type": "string",
+              "format": "uri"
+            },
+            "publisher": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "metric",
+              "status"
+            ],
+            "properties": {
+              "metric": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "string",
+                  "array",
+                  "null"
+                ]
+              },
+              "minimum": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "maximum": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "relation": {
+                "type": "string"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "basis": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "boundary": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uncertainty": {
+                "type": [
+                  "number",
+                  "object",
+                  "null"
+                ]
+              },
+              "comparison_limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "comparison_limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

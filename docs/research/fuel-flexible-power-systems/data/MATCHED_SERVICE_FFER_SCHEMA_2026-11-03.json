@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/matched-service-ffer-fixtures-0.1.0.json",
+  "title": "Matched-Service FFER Oracle Fixtures",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "conventions",
+    "scenarios",
+    "reproducibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_arithmetic_oracle_fixtures"
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conventions": {
+      "type": "object",
+      "required": [
+        "energy_unit",
+        "power_unit",
+        "time_window_semantics",
+        "service_boundary",
+        "common_service_rule",
+        "surplus_rule",
+        "ffer_rule",
+        "tolerance_rule"
+      ],
+      "additionalProperties": true
+    },
+    "common_configuration": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "required": [
+        "recompute_chemical_input_energy",
+        "recompute_net_ac_energy",
+        "recompute_common_service",
+        "recompute_surplus",
+        "recompute_ffer"
+      ],
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "segment": {
+      "type": "object",
+      "required": [
+        "start_unix_seconds",
+        "end_unix_seconds",
+        "required_net_ac_energy_j"
+      ],
+      "properties": {
+        "start_unix_seconds": {
+          "type": "integer"
+        },
+        "end_unix_seconds": {
+          "type": "integer"
+        },
+        "required_net_ac_energy_j": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "version",
+        "segments"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/segment"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "system": {
+      "type": "object",
+      "required": [
+        "name",
+        "engine_efficiency",
+        "fuel_mass_flow_kg_per_s",
+        "segment_generated_net_ac_energy_j",
+        "chemical_input_energy_j"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "fuel_mass_flow_kg_per_s": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "segment_generated_net_ac_energy_j": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "chemical_input_energy_j": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenario": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "title",
+        "expected_result",
+        "profile",
+        "systems",
+        "tolerance",
+        "oracle"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_result": {
+          "enum": [
+            "comparison_pass",
+            "reject_service_deficit",
+            "reject_tolerance_exceeds_demand"
+          ]
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
+        },
+        "systems": {
+          "type": "object",
+          "required": [
+            "reference",
+            "candidate"
+          ],
+          "properties": {
+            "reference": {
+              "$ref": "#/$defs/system"
+            },
+            "candidate": {
+              "$ref": "#/$defs/system"
+            }
+          },
+          "additionalProperties": false
+        },
+        "tolerance": {
+          "type": "object",
+          "required": [
+            "absolute_energy_j",
+            "relative_fraction"
+          ],
+          "properties": {
+            "absolute_energy_j": {
+              "type": "number",
+              "minimum": 0
+            },
+            "relative_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "oracle": {
+          "type": "object",
+          "required": [
+            "interpretation"
+          ],
+          "properties": {
+            "interpretation": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

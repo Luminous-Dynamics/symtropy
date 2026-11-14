@@ -1,0 +1,161 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.south-africa.grid-emission-factors.2024",
+  "status": "official_location_based_grid_emission_factors",
+  "accessed_at": "2026-11-03",
+  "jurisdiction": "South Africa",
+  "reporting_year": 2024,
+  "publication_date": "2026-09-11",
+  "publication_reference": "Government Notice 7891, Government Gazette 55353",
+  "source": {
+    "source_id": "DFFE-SA-2024-GEF-GN7891",
+    "title": "South Africa's 2024 Grid Emission Factors Report",
+    "publisher": "Department of Forestry, Fisheries and the Environment, Republic of South Africa",
+    "uri": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+    "landing_page": "https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-report-south-africa%E2%80%99s-2024-grid",
+    "evidence_class": "official_government_notice_and_report",
+    "published_at": "2026-09-11",
+    "retrieved_at": "2026-11-03",
+    "source_notes": "The report uses 2024 calendar-year electricity and emissions data. It states there is an approximately two-year data availability lag. The 2024 factors were published as Government Notice 7891."
+  },
+  "unit_conventions": {
+    "source_unit": "tCO2e_per_MWh",
+    "normalized_unit": "kgCO2e_per_kWh",
+    "conversion": "Numerically identical because 1 t/MWh = 1 kg/kWh.",
+    "gwp_basis": "IPCC Second Assessment Report GWPs were applied in calculation of the reported factors.",
+    "location_based": true
+  },
+  "factors": [
+    {
+      "factor_id": "DGGEF-2024",
+      "name": "Domestic Generation Grid Emission Factor",
+      "value_tco2e_per_mwh": 0.994,
+      "value_kgco2e_per_kwh": 0.994,
+      "measurement_boundary": "GHG emissions per unit of electricity produced within South Africa; domestic generation regardless of whether exported or consumed domestically.",
+      "intended_use": [
+        "policy development",
+        "international reporting",
+        "domestic generation context"
+      ],
+      "excluded_or_caveats": [
+        "Not the national end-user electricity consumption factor.",
+        "Not a fuel-specific emission factor for a standalone generator.",
+        "The methodology excludes domestic generation auxiliary consumption and electricity generated for on-site use from the reported domestic generation denominator.",
+        "Do not apply this factor to onsite self-generation as though it were a measured generator-specific lifecycle factor."
+      ],
+      "source_location": "Government Notice 7891, p. 0; report pp. 3, 8–9",
+      "evidence_class": "official_reported_factor"
+    },
+    {
+      "factor_id": "NGGEF-2024",
+      "name": "National Generation Grid Emission Factor",
+      "value_tco2e_per_mwh": 0.96,
+      "value_kgco2e_per_kwh": 0.96,
+      "measurement_boundary": "GHG emissions associated with end-user electricity consumption; incorporates imported electricity and associated emissions and the treatment of exports, but excludes transmission and distribution losses.",
+      "intended_use": [
+        "location-based Scope 2 electricity consumption reporting",
+        "national electricity consumption carbon-accounting baseline"
+      ],
+      "excluded_or_caveats": [
+        "Use this factor for the declared national consumption boundary, not DGGEF.",
+        "Transmission and distribution losses are not included in NGGEF; applicable loss factors may be relevant to Scope 3 reporting.",
+        "This is a 2024 calendar-year factor published in 2026, not a real-time 2026 marginal grid factor."
+      ],
+      "source_location": "Government Notice 7891, p. 0; report pp. 9–10, 13–14",
+      "evidence_class": "official_reported_factor"
+    },
+    {
+      "factor_id": "TLGEF-2024",
+      "name": "Transmission Loss Grid Emission Factor",
+      "value_tco2e_per_mwh": 0.021,
+      "value_kgco2e_per_kwh": 0.021,
+      "measurement_boundary": "Transmission-loss emissions relative to end-user electricity consumption; includes transmission network energy losses and associated transformer losses.",
+      "intended_use": [
+        "Scope 3 transmission loss reporting",
+        "facilities connected directly to transmission network"
+      ],
+      "excluded_or_caveats": [
+        "Not an alternative to NGGEF for Scope 2.",
+        "The report says it is not suitable for onsite self-generation cases where transmission losses are negligible.",
+        "Apply only where the reporting boundary requires transmission-loss Scope 3 emissions."
+      ],
+      "source_location": "Government Notice 7891, p. 0; report pp. 10–11",
+      "evidence_class": "official_reported_factor"
+    },
+    {
+      "factor_id": "DLGEF-2024",
+      "name": "Distribution Loss Grid Emission Factor",
+      "value_tco2e_per_mwh": 0.071,
+      "value_kgco2e_per_kwh": 0.071,
+      "measurement_boundary": "Distribution-loss emissions relative to end-user electricity consumption; includes technical distribution losses and excludes non-technical losses.",
+      "intended_use": [
+        "Scope 3 distribution loss reporting",
+        "consumers supplied through distribution network"
+      ],
+      "excluded_or_caveats": [
+        "Not an alternative to NGGEF for Scope 2.",
+        "The report says it is not suitable for onsite self-generation cases where distribution losses are negligible.",
+        "For facilities not fed directly from transmission, the report says both TLGEF and DLGEF should be used for Scope 3 transmission/distribution loss reporting."
+      ],
+      "source_location": "Government Notice 7891, p. 0; report pp. 11–12",
+      "evidence_class": "official_reported_factor"
+    }
+  ],
+  "supporting_factors": [
+    {
+      "factor_id": "IEEF-SAPP-2024",
+      "name": "Imported Electricity Emission Factor for non-HCB/non-LEC imports",
+      "value_tco2e_per_mwh": 0.244,
+      "value_kgco2e_per_kwh": 0.244,
+      "boundary": "SAPP import factor after excluding South Africa, Hidroelectrica de Cahora Bassa (HCB) and Lesotho Electricity Company (LEC) hydropower data.",
+      "use": "Supporting calculation for the residual imported electricity source mix; not a national customer factor and not to be substituted for NGGEF.",
+      "source_location": "Report pp. 7–8, 14",
+      "evidence_class": "official_methodology_input"
+    }
+  ],
+  "historical_comparison": {
+    "values_tco2e_per_mwh": {
+      "DGGEF": {
+        "2021": 1.013,
+        "2022": 0.96,
+        "2023": 0.942,
+        "2024": 0.994
+      },
+      "NGGEF": {
+        "2021": 0.985,
+        "2022": 0.931,
+        "2023": 0.906,
+        "2024": 0.96
+      },
+      "TLGEF": {
+        "2021": 0.023,
+        "2022": 0.022,
+        "2023": 0.02,
+        "2024": 0.021
+      },
+      "DLGEF": {
+        "2021": 0.066,
+        "2022": 0.063,
+        "2023": 0.062,
+        "2024": 0.071
+      }
+    },
+    "interpretation": "The DFFE report states all four 2024 factors increased relative to 2023. The NGGEF increased from 0.906 to 0.960 tCO2e/MWh, and DGGEF from 0.942 to 0.994.",
+    "source_location": "Report pp. 13–15"
+  },
+  "modelling_rules": [
+    "For grid-charged batteries, report location-based electricity consumption emissions using the matched grid consumption boundary and charging losses.",
+    "For a site supplied through the distribution network, Scope 2 NGGEF and Scope 3 transmission/distribution loss factors are distinct reporting layers; do not add them unless the selected accounting standard and boundary call for it.",
+    "For a site connected directly to transmission, evaluate whether TLGEF applies; DFFE says both TLGEF and DLGEF apply for typical distribution-fed facilities in Scope 3.",
+    "For onsite generation, use measured fuel properties, fuel consumption and fuel-specific combustion/upstream factors. Do not use the DGGEF as the onsite engine's emission factor.",
+    "Do not compare operational fossil-free status with lifecycle GHG without accounting for charging electricity source, upstream fuel production and equipment lifecycle.",
+    "The factor is annual-average location-based accounting data; it is not a marginal dispatch factor, hourly signal, project-specific PPA factor or forward forecast.",
+    "Keep the publication year, data year, geographic scope, GWP basis and reporting scope attached to each result."
+  ],
+  "limitations": [
+    "The dataset records official published factors; it does not reproduce the complete DFFE methodology or national GHG inventory.",
+    "The 2024 factor is the newest official annual factor found for this research snapshot, but the annual publication process may produce later vintages.",
+    "Do not use the factors as legal advice or without the applicable reporting standard's rules.",
+    "No municipal or subnational grid factors are represented here."
+  ]
+}
