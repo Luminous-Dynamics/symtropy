@@ -1037,7 +1037,7 @@ mod tests {
             protocol["validity_conditions"]["block_independence"]
                 .as_str()
                 .unwrap()
-                .contains("not inferred from non-overlap alone")
+                .contains("Non-overlap alone is not proof of independence")
         );
         assert!(
             protocol["validity_conditions"]["optional_stopping"]
