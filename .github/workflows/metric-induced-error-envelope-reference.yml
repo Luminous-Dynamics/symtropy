@@ -53,6 +53,8 @@ jobs:
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constrained_kkt_residual_ladder
       - name: Run Newton-Kantorovich boundary ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example newton_kantorovich_ladder
+      - name: Run scalar Krawczyk quadratic verifier
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example scalar_krawczyk_quadratic
       - name: Run deterministic metric-layer microbenchmark
         run: |
           set -euo pipefail
