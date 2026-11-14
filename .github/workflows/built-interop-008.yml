@@ -1,0 +1,41 @@
+name: BUILT-INTEROP-008 IFC Semantic Diff
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-008/**"
+      - ".github/workflows/built-interop-008.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-008/**"
+      - ".github/workflows/built-interop-008.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-008-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semantic-diff:
+    name: Build and mutation-test IFC semantic diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Verify committed dependency lock
+        run: echo "d2328bd0758d92ad0517f97729d4412955333c85cbe611aeec3496a7dd30e940  tools/built-interop-008/Cargo.lock" | sha256sum -c -
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/built-interop-008/Cargo.toml -- --check
+      - name: Run semantic mutation tests
+        run: cargo test --locked --manifest-path tools/built-interop-008/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-008/Cargo.toml --all-targets -- -D warnings
