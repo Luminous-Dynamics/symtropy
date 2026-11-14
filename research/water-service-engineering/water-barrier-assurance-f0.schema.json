@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water barrier assurance F0 corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "water-barrier-assurance-f0-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_claim_compatibility_contract"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_source_profile_age_s",
+        "max_lab_sample_age_s",
+        "default_microbial_requirement",
+        "allow_release_authorization"
+      ],
+      "properties": {
+        "max_source_profile_age_s": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_lab_sample_age_s": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "default_microbial_requirement": {
+          "enum": [
+            "COMPREHENSIVE_2_STAR",
+            "COMPREHENSIVE_3_STAR"
+          ]
+        },
+        "allow_release_authorization": {
+          "const": false
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 18,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "input"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^WBA-F0-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "input": {
+            "type": "object",
+            "required": [
+              "now_unix",
+              "source_profile",
+              "service_conditions",
+              "modules",
+              "post_treatment_verification"
+            ],
+            "properties": {
+              "now_unix": {
+                "type": "integer"
+              },
+              "source_profile": {
+                "type": "object"
+              },
+              "service_conditions": {
+                "type": "object"
+              },
+              "modules": {
+                "type": "array",
+                "minItems": 1
+              },
+              "post_treatment_verification": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
