@@ -277,11 +277,11 @@ fn is_positive_semidefinite(matrix: &Matrix2, minimum_pivot: f64) -> bool {
     if [a, b, c, d].iter().any(|value| !value.is_finite()) {
         return false;
     }
-    if a < -minimum_pivot || d < -minimum_pivot {
+    if a < 0.0 || d < 0.0 {
         return false;
     }
     let determinant = a * d - b * c;
-    determinant.is_finite() && determinant >= -minimum_pivot
+    determinant.is_finite() && determinant >= 0.0
 }
 
 fn transpose(matrix: Matrix2) -> Matrix2 {
@@ -651,6 +651,16 @@ mod tests {
             [correct[0][0] - wrong[0][0], correct[0][1] - wrong[0][1]],
             [correct[1][0] - wrong[1][0], correct[1][1] - wrong[1][1]]
         ]) > 0.1);
+    }
+
+    #[test]
+    fn slightly_negative_damping_diagonal_is_not_accepted_as_psd() {
+        let mut problem = fixture(0.1);
+        problem.damping[0][0] = -1.0e-14;
+        assert_eq!(
+            problem.validate(EffectiveMetricProfileV1::default()),
+            Err(EffectiveMetricErrorV1::DampingNotPositiveSemidefinite)
+        );
     }
 
     #[test]
