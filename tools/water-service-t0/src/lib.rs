@@ -665,6 +665,370 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 18;
+    const INPUT_CEILING: &str =
+        "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim";
+
+    if string(inputs, &["schema_version"])?
+        != "water-barrier-assurance-f0-cases-v0.1"
+        || string(inputs, &["evidence_class"])?
+            != "synthetic_claim_compatibility_contract"
+        || string(inputs, &["evidence_ceiling"])? != INPUT_CEILING
+        || boolean(inputs, &["policy", "allow_release_authorization"])?
+        || string(oracle, &["schema_version"])?
+            != "water-barrier-assurance-f0-oracle-v0.1"
+        || string(oracle, &["evidence_class"])?
+            != "synthetic_claim_compatibility_contract"
+        || string(oracle, &["evidence_ceiling"])? != INPUT_CEILING
+    {
+        return Err("water barrier F0 identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let input_cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "water barrier F0 cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "water barrier F0 oracle cases must be an array".to_owned())?;
+    if input_cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "water barrier F0 expected {EXPECTED_CASES} input and oracle cases; got {} and {}",
+            input_cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let max_source_age = number(inputs, &["policy", "max_source_profile_age_s"])?;
+    let max_lab_age = number(inputs, &["policy", "max_lab_sample_age_s"])?;
+    let default_requirement = string(inputs, &["policy", "default_microbial_requirement"])?;
+    let default_thresholds = microbial_thresholds(&default_requirement)?;
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = case_id(row)?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("water barrier F0 duplicate oracle case ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in input_cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("water barrier F0 duplicate input case ID: {id}"));
+        }
+        let input = at(case, &["input"])?;
+        let now = number(input, &["now_unix"])?;
+        let source = at(input, &["source_profile"])?;
+        let source_sample_time = number(source, &["sampled_at_unix"])?;
+        let source_changed = boolean(source, &["source_changed_since_sample"])?;
+        let service = at(input, &["service_conditions"])?;
+
+        let mut reasons = Vec::new();
+        let mut indeterminate = false;
+        let mut out_of_envelope = false;
+        let mut gap = false;
+        let mut verification_required = false;
+
+        let source_age = now - source_sample_time;
+        if source_age < 0.0 || source_age > max_source_age || source_changed {
+            indeterminate = true;
+            reasons.push("SOURCE_PROFILE_STALE_OR_CHANGED".to_owned());
+        }
+
+        if string(service, &["critical_measurements_state"])? != "VALID" {
+            indeterminate = true;
+            reasons.push("CRITICAL_MEASUREMENTS_NOT_VALID".to_owned());
+        }
+
+        match string(service, &["storage_integrity"])?.as_str() {
+            "UNKNOWN" => {
+                indeterminate = true;
+                reasons.push("STORAGE_INTEGRITY_UNKNOWN".to_owned());
+            }
+            "COMPROMISED" => {
+                gap = true;
+                reasons.push("POST_TREATMENT_STORAGE_COMPROMISED".to_owned());
+            }
+            "INTACT" => {}
+            _ => return Err(format!("{id}: invalid storage integrity state")),
+        }
+
+        if boolean(service, &["bypass_open"])? {
+            gap = true;
+            reasons.push("TREATMENT_BYPASS_OPEN".to_owned());
+        }
+
+        let hazards = at(source, &["hazards"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: source hazards must be an array"))?;
+        let mut required = BTreeMap::<String, (f64, String)>::new();
+        for hazard in hazards {
+            let hazard_id = string(hazard, &["hazard_id"])?;
+            match string(hazard, &["status"])?.as_str() {
+                "UNKNOWN" => {
+                    indeterminate = true;
+                    reasons.push("SOURCE_HAZARD_UNKNOWN".to_owned());
+                }
+                "NOT_DETECTED" => {}
+                "DETECTED" => {
+                    let minimum = if ["bacteria", "viruses", "protozoa"].contains(&hazard_id.as_str())
+                    {
+                        default_thresholds
+                            .get(&hazard_id)
+                            .copied()
+                            .ok_or_else(|| format!("{id}: missing microbial threshold"))?
+                    } else if let Some(value) = hazard
+                        .get("minimum_required_reduction_percent")
+                        .and_then(Value::as_f64)
+                    {
+                        value
+                    } else {
+                        return Err(format!(
+                            "{id}: detected chemical hazard {hazard_id} lacks a declared reduction target"
+                        ));
+                    };
+                    let unit = if ["bacteria", "viruses", "protozoa"].contains(&hazard_id.as_str()) {
+                        "log10".to_owned()
+                    } else {
+                        "percent_reduction".to_owned()
+                    };
+                    required.insert(hazard_id, (minimum, unit));
+                }
+                _ => return Err(format!("{id}: invalid source hazard status")),
+            }
+        }
+
+        let requirement = input
+            .get("policy_microbial_requirement")
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .unwrap_or_else(|| default_requirement.clone());
+        let thresholds = microbial_thresholds(&requirement)?;
+        for (hazard_id, minimum) in &thresholds {
+            required.insert(hazard_id.clone(), (*minimum, "log10".to_owned()));
+        }
+
+        let modules = at(input, &["modules"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: modules must be an array"))?;
+        if modules.is_empty() {
+            return Err(format!("{id}: at least one module is required"));
+        }
+
+        let flow = number(service, &["flow_l_min"])?;
+        let pressure = number(service, &["pressure_bar"])?;
+        let temperature = number(service, &["temperature_c"])?;
+        let turbidity = number(service, &["influent_turbidity_ntu"])?;
+        let power_available = boolean(service, &["power_available"])?;
+        let mut usable_modules = Vec::new();
+
+        for module in modules {
+            let module_id = string(module, &["module_id"])?;
+            let module_status = string(module, &["module_status"])?;
+            let certificate_valid = boolean(module, &["certificate_valid"])?;
+            let exact_configuration = boolean(module, &["exact_configuration_match"])?;
+            if module_status != "IN_SERVICE" || !certificate_valid || !exact_configuration {
+                gap = true;
+                reasons.push(format!(
+                    "MODULE_CERTIFICATE_OR_SERVICE_STATE_INVALID:{module_id}"
+                ));
+                continue;
+            }
+
+            let remaining_capacity = number(module, &["remaining_capacity_l"])?;
+            let envelope = at(module, &["operating_envelope"])?;
+            let outside = remaining_capacity <= 0.0
+                || flow < number(envelope, &["min_flow_l_min"])?
+                || flow > number(envelope, &["max_flow_l_min"])?
+                || pressure < number(envelope, &["min_pressure_bar"])?
+                || pressure > number(envelope, &["max_pressure_bar"])?
+                || temperature < number(envelope, &["min_temperature_c"])?
+                || temperature > number(envelope, &["max_temperature_c"])?
+                || turbidity > number(envelope, &["max_influent_turbidity_ntu"])?
+                || (boolean(module, &["power_required"])? && !power_available);
+            if outside {
+                out_of_envelope = true;
+                reasons.push(format!(
+                    "MODULE_OUTSIDE_CERTIFIED_OPERATING_ENVELOPE:{module_id}"
+                ));
+                continue;
+            }
+            usable_modules.push(module);
+        }
+
+        let mut coverage = Vec::with_capacity(required.len());
+        for (hazard_id, (minimum, unit)) in &required {
+            let mut evidence = Vec::new();
+            for module in &usable_modules {
+                let module_id = string(module, &["module_id"])?;
+                let claims = at(module, &["claims"])?
+                    .as_array()
+                    .ok_or_else(|| format!("{id}/{module_id}: claims must be an array"))?;
+                for claim in claims {
+                    if string(claim, &["hazard_id"])? != *hazard_id
+                        || string(claim, &["claim_unit"])? != *unit
+                        || !boolean(claim, &["independently_verified"])?
+                        || string(claim, &["evidence_id"])?.is_empty()
+                        || number(claim, &["claim_value"])? < *minimum
+                    {
+                        continue;
+                    }
+                    evidence.push(json!({
+                        "module_id": module_id,
+                        "evidence_id": string(claim, &["evidence_id"])?,
+                        "claim_value": number(claim, &["claim_value"])?,
+                        "claim_unit": unit
+                    }));
+                }
+            }
+
+            let covered = !evidence.is_empty();
+            coverage.push(json!({
+                "hazard_id": hazard_id,
+                "minimum_required": minimum,
+                "claim_unit": unit,
+                "covered": covered,
+                "evidence": evidence
+            }));
+            if !covered {
+                gap = true;
+                reasons.push(format!("NO_VERIFIED_IN_ENVELOPE_CLAIM:{hazard_id}"));
+            }
+        }
+
+        let verification = at(input, &["post_treatment_verification"])?;
+        let verification_status = string(verification, &["status"])?;
+        let lab_time = verification
+            .get("sampled_at_unix")
+            .and_then(Value::as_f64);
+        let lab_age = lab_time.map(|sample_time| now - sample_time);
+        let sample_id = verification
+            .get("sample_id")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let sample_location = verification
+            .get("sample_location_id")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let tested = verification
+            .get("tested_hazard_ids")
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{id}: tested_hazard_ids must be an array"))?;
+        let tested_ids: BTreeSet<String> = tested
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect();
+        let missing_sample_hazards: Vec<String> = required
+            .keys()
+            .filter(|hazard_id| !tested_ids.contains(*hazard_id))
+            .cloned()
+            .collect();
+        let sample_invalid = verification_status != "PASS"
+            || !boolean(verification, &["laboratory_method_accredited"])?
+            || sample_id.is_empty()
+            || sample_location.is_empty()
+            || lab_age.is_none_or(|age| age < 0.0 || age > max_lab_age)
+            || !missing_sample_hazards.is_empty();
+        if sample_invalid {
+            verification_required = true;
+            reasons.push(
+                "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_STALE_OR_INCOMPLETE".to_owned(),
+            );
+        }
+
+        let status = if indeterminate {
+            "INDETERMINATE"
+        } else if out_of_envelope {
+            "OUT_OF_ENVELOPE"
+        } else if gap {
+            "GAP"
+        } else if verification_required {
+            "VERIFICATION_REQUIRED"
+        } else {
+            "COVERED_WITHIN_DECLARED_CLAIMS_REQUIRES_AUTHORITY_REVIEW"
+        };
+        let actual = json!({
+            "status": status,
+            "reasons": reasons,
+            "coverage": coverage,
+            "release_authorized": false,
+            "potability_claim_permitted": false
+        });
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("water barrier F0 oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "water barrier F0 input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|left, right| {
+        left.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&right.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+
+    Ok(json!({
+        "schema_version": "water-barrier-assurance-f0-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_claim_compatibility_contract",
+        "evidence_ceiling": INPUT_CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "Synthetic contract evaluation does not demonstrate contaminant removal.",
+            "The evaluator never declares water potable or authorizes release.",
+            "WHO/NSF references are comparison criteria, not certification of a module.",
+            "No sensor proxy is accepted as an independent pathogen or chemical laboratory result."
+        ]
+    }))
+}
+
+fn microbial_thresholds(requirement: &str) -> Result<BTreeMap<String, f64>, String> {
+    let thresholds = match requirement {
+        "COMPREHENSIVE_2_STAR" => [("bacteria", 2.0), ("viruses", 3.0), ("protozoa", 2.0)],
+        "COMPREHENSIVE_3_STAR" => [("bacteria", 4.0), ("viruses", 5.0), ("protozoa", 4.0)],
+        _ => return Err(format!("unsupported microbial requirement: {requirement}")),
+    };
+    Ok(thresholds
+        .into_iter()
+        .map(|(hazard, minimum)| (hazard.to_owned(), minimum))
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -683,9 +1047,176 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "barrier_inputs" => include_str!(
+                "../../../research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json"
+            ),
+            "barrier_oracle" => include_str!(
+                "../../../research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_18_water_barrier_f0_cases_match_separate_oracle() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        assert_eq!(result["result_count"], 18);
+        assert_eq!(result["matched_case_count"], 18);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn water_barrier_f0_never_authorizes_release_or_potability() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        for row in result["results"].as_array().unwrap() {
+            assert!(!row["computed"]["release_authorized"].as_bool().unwrap());
+            assert!(
+                !row["computed"]["potability_claim_permitted"]
+                    .as_bool()
+                    .unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn water_barrier_f0_requires_each_microbe_class_separately() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WBA-F0-002-virus-claim-missing")
+            .unwrap();
+        assert_eq!(row["computed"]["status"], "GAP");
+        assert!(
+            row["computed"]["reasons"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| reason == "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses")
+        );
+    }
+
+    #[test]
+    fn water_barrier_f0_requires_lab_location_and_tested_hazard_scope() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WBA-F0-011-lab-verification-missing")
+            .unwrap();
+        assert_eq!(row["computed"]["status"], "VERIFICATION_REQUIRED");
+    }
+
+    #[test]
+    fn water_barrier_f0_stale_source_and_unknown_hazard_abstain() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        for case_id in [
+            "WBA-F0-005-stale-source-profile",
+            "WBA-F0-006-unknown-contaminant-hazard",
+            "WBA-F0-018-critical-measurement-unknown",
+        ] {
+            let row = result["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|row| row["case_id"] == case_id)
+                .unwrap();
+            assert_eq!(row["computed"]["status"], "INDETERMINATE");
+        }
+    }
+
+    #[test]
+    fn water_barrier_f0_three_star_thresholds_are_stricter() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        let two_star = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WBA-F0-001-complete-2star-claims")
+            .unwrap();
+        let three_star_gap = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WBA-F0-016-three-star-required-only-two-star-claims")
+            .unwrap();
+        let three_star_pass = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WBA-F0-017-three-star-claims-all-groups")
+            .unwrap();
+        assert_eq!(
+            two_star["computed"]["status"],
+            "COVERED_WITHIN_DECLARED_CLAIMS_REQUIRES_AUTHORITY_REVIEW"
+        );
+        assert_eq!(three_star_gap["computed"]["status"], "GAP");
+        assert_eq!(
+            three_star_pass["computed"]["status"],
+            "COVERED_WITHIN_DECLARED_CLAIMS_REQUIRES_AUTHORITY_REVIEW"
+        );
+    }
+
+    #[test]
+    fn water_barrier_f0_out_of_envelope_claims_do_not_count() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WBA-F0-007-flow-outside-envelope")
+            .unwrap();
+        assert_eq!(row["computed"]["status"], "OUT_OF_ENVELOPE");
+        assert!(
+            row["computed"]["coverage"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|coverage| coverage["covered"] == false)
+        );
+    }
+
+    #[test]
+    fn water_barrier_f0_oracle_mismatch_is_visible() {
+        let mut oracle = load("barrier_oracle");
+        oracle["cases"][0]["expected"]["status"] = json!("GAP");
+        let result = evaluate_water_barrier_f0(&load("barrier_inputs"), &oracle)
+            .expect("oracle mismatch must be represented");
+        assert_eq!(result["verification_state"], "OracleMismatch");
+        assert_eq!(result["matched_case_count"], 17);
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
     }
 
     #[test]
