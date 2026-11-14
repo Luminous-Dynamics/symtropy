@@ -144,6 +144,17 @@ A deterministic boundary ladder is available at:
 
 The word *conditional* is essential. The calculator checks the scalar theorem once eta and gamma are supplied; it does not authenticate either receipt or prove those bounds. In particular, a sampled maximum of Jacobian variation is not a valid gamma bound over the complete ball. A physical local-root claim requires a separate independent verifier to establish the preconditioned Newton correction, Jacobian nonsingularity, uniform Jacobian-Lipschitz bound, norm identity, problem identity and full-ball domain. This v0.1 calculator therefore does not yet certify the dumbbell midpoint integrator or its time-discretization error.
 
+
+## Outward-rounded interval arithmetic v0.1
+
+The first executable slice of [PHYS-INTERVAL-BOUND-PROVENANCE-001 #5203](https://github.com/Luminous-Dynamics/symtropy/issues/5203) is available as the `outward_interval` module.
+
+It implements finite closed intervals with outward-rounded add, subtract, multiply, reciprocal/divide, square, hull, intersection, width and absolute-value upper-bound operations. Lower endpoints are widened with `f64::next_down`; upper endpoints use `f64::next_up`. Those adjacent-float methods are stable in Rust 1.86 and later, so they are available under the pinned Rust 1.96 toolchain.
+
+Zero-containing divisors, reversed/non-finite endpoints, and non-finite arithmetic intermediates are rejected. The unit tests cover sign-changing products, zero-crossing squares, negative and positive division, subnormal endpoints, signed zero and overflow.
+
+This primitive is **not yet a complete interval-analysis engine**. It does not enclose matrix inverses, singular values, automatic derivatives, Hessians, Krawczyk operators or Taylor models. It does not establish the eta or gamma source bounds consumed by the scalar Newton-Kantorovich calculator. Those require a separate verified implementation and independent tests.
+
 ## Reproducible microbenchmark v0.1
 
 The `metric-induced-microbenchmark` binary uses one frozen 6-DOF diagonal-mass / dense unit-triangular rebasing fixture. It reports per-operation median, p95 and p99 nanoseconds plus a numerical checksum for:
