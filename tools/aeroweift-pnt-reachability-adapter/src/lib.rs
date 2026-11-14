@@ -166,8 +166,10 @@ pub struct AdapterInput {
 /// Exact reason that a claim cannot enter the deterministic occupancy path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotAssessableReason {
-    /// No source claim was supplied for the state-allowed role.
+    /// No primary source claim was supplied for a NORMAL state.
     MissingClaim,
+    /// A degraded/unavailable/uncertain primary has no separately qualified fallback.
+    NoQualifiedIndependentFallback,
     /// A statistical prediction was supplied instead of a deterministic hard bound.
     StatisticalEnvelopeNotHardBound,
     /// The source claim or upstream state receipt has invalid digest syntax.
@@ -267,7 +269,7 @@ pub fn evaluate(input: &AdapterInput) -> AdapterOutcome {
         | PntServiceState::IntegrityUncertain
         | PntServiceState::Unavailable => {
             let Some(claim) = input.fallback.as_ref() else {
-                return reject(NotAssessableReason::MissingClaim);
+                return reject(NotAssessableReason::NoQualifiedIndependentFallback);
             };
             (claim, true)
         }
