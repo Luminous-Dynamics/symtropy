@@ -1,0 +1,83 @@
+{
+  "schema_version": "luminous.symmetry_physical_handoff.v0.1",
+  "fixture_mode": "synthetic_example",
+  "handoff_id": "synthetic-dense-coordinate-handoff-v0.1",
+  "source_math_receipt": {
+    "repository": "Luminous-Dynamics/symthaea",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "receipt_id": "synthetic-numeric-lie-receipt",
+    "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "checker_id": "symthaea-linear-lie-algebra",
+    "checker_version": "synthetic-fixture",
+    "profile_id": "synthetic-rank-closure-jacobi-profile",
+    "action_id": "synthetic-so3-action",
+    "coordinate_basis_id": "synthetic-generalized-basis-q",
+    "metric_id": "synthetic-metric-q",
+    "generator_set_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "evidence_class": "numeric_lie_basis",
+    "qualification_status": "PASS"
+  },
+  "physical_problem": {
+    "case_id": "synthetic-dense-coordinate-dumbbell",
+    "fixture_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "coordinate_change": {
+      "kind": "generalized_coordinate_rebasing",
+      "from_basis_id": "synthetic-cartesian-q",
+      "to_basis_id": "synthetic-dense-y",
+      "transform_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "transformed_mass_metric_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    "mass_metric_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "force_covectors_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "constraint_map_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "initial_state_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "solver_profile_id": "synthetic-midpoint-constrained-step-profile",
+    "integration_method": "midpoint-constrained",
+    "time_step_seconds": 0.02,
+    "units_profile_id": "SI-v1"
+  },
+  "full_task_semantics": {
+    "task_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "candidate_domain_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "objective_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "feasibility_constraints_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "initial_and_boundary_conditions_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "observable_mapping_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "answer_interpretation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "receiver_verification": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "checker_id": "symtropy-independent-handoff-verifier",
+    "checker_version": "synthetic-fixture",
+    "profile_id": "synthetic-dense-coordinate-receiver-profile",
+    "status": "INCONCLUSIVE",
+    "receiver_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "obligations": {
+      "mass_metric_congruence": "INCONCLUSIVE",
+      "force_covector_duality": "INCONCLUSIVE",
+      "momentum_one_form": "INCONCLUSIVE",
+      "constraint_jacobian": "INCONCLUSIVE",
+      "generator_metric_isometry": "INCONCLUSIVE",
+      "discrete_step_equivariance": "INCONCLUSIVE",
+      "physical_observables": "INCONCLUSIVE",
+      "numerical_error_envelope": "INCONCLUSIVE",
+      "full_task_semantics": "INCONCLUSIVE"
+    }
+  },
+  "claims": {
+    "physical_step_equivariance_status": "INCONCLUSIVE",
+    "physical_equivalence_authority": "NONE",
+    "scientific_search_pruning_authorized": false
+  },
+  "claim_boundary": {
+    "scope": "Schema-shape demonstration only; not an admissible research receipt.",
+    "limitations": [
+      "All identifiers and digests are synthetic placeholders.",
+      "A source-side mathematical PASS does not establish physical step-map equivariance.",
+      "The receiver must independently recompute every physical obligation.",
+      "This v0.1 schema does not itself recompute SHA-256 digests.",
+      "Scientific-search hard pruning remains outside this handoff contract."
+    ]
+  }
+}
