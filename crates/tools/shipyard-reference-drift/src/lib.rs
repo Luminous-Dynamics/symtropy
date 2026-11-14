@@ -369,8 +369,15 @@ pub fn evaluate_drift_sequence(
         let weighted_uncertainty_sum = weighted_current_uncertainty
             .checked_add(weighted_prior_uncertainty)
             .ok_or(HoldReason::NumericOverflow)?;
-        previous_ewma_uncertainty_scaled =
-            round_div_nearest_away(weighted_uncertainty_sum, EWMA_SCALE)?;
+        let uncertainty_scaled = ceil_div_nonnegative(
+            u128::try_from(weighted_uncertainty_sum)
+                .map_err(|_| HoldReason::NumericOverflow)?,
+            EWMA_SCALE as u128,
+        )?;
+        previous_ewma_uncertainty_scaled = i128::try_from(uncertainty_scaled)
+            .map_err(|_| HoldReason::NumericOverflow)?
+            .checked_add(1)
+            .ok_or(HoldReason::NumericOverflow)?;
 
         let ewma_magnitude = checked_abs_i128(ewma_scaled)?;
         let ewma_um = ceil_div_nonnegative(ewma_magnitude, EWMA_SCALE as u128)?;
