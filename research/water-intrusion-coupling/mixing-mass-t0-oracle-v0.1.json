@@ -1,0 +1,369 @@
+{
+  "schema_version": "mixing-mass-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-MASS-ACCOUNTING-QUAL-001",
+  "physical_mixing_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "MMA-T0-001-full-boundary-exact-closure",
+      "expected": {
+        "mass_accounting_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "observed_outlet_mass": 100,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 0.34641016151377546,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 1,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -1.0392304845413265,
+        "residual_interval_upper": 1.0392304845413265,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-002-truncated-window-forty-percent-unresolved",
+      "expected": {
+        "mass_accounting_disposition": "PARTIAL_BOUNDARY",
+        "reason": "PHYSICAL_OR_TEMPORAL_OBSERVATION_BOUNDARY_INCOMPLETE",
+        "observed_outlet_mass": 60,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 40,
+        "residual_standard_uncertainty": 1.7320508075688772,
+        "standardized_abs_residual": 23.094010767585033,
+        "measured_recovery_fraction": 0.6,
+        "accounted_mass_fraction": 0.6,
+        "residual_interval_lower": 34.80384757729337,
+        "residual_interval_upper": 45.19615242270663,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-003-measured-physical-inventory-closes",
+      "expected": {
+        "mass_accounting_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "observed_outlet_mass": 60,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 40,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 0.8660254037844386,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 0.6,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -2.598076211353316,
+        "residual_interval_upper": 2.598076211353316,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-004-delayed-tail-recovery",
+      "expected": {
+        "mass_accounting_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "observed_outlet_mass": 70,
+        "delayed_recovery_mass": 30,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 0.8660254037844386,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 1,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -2.598076211353316,
+        "residual_interval_upper": 2.598076211353316,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-005-missing-outlet",
+      "expected": {
+        "mass_accounting_disposition": "PARTIAL_BOUNDARY",
+        "reason": "PHYSICAL_OR_TEMPORAL_OBSERVATION_BOUNDARY_INCOMPLETE",
+        "observed_outlet_mass": 60,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 40,
+        "residual_standard_uncertainty": 1.4142135623730951,
+        "standardized_abs_residual": 28.2842712474619,
+        "measured_recovery_fraction": 0.6,
+        "accounted_mass_fraction": 0.6,
+        "residual_interval_lower": 35.757359312880716,
+        "residual_interval_upper": 44.242640687119284,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-006-sample-line-loss-is-not-inventory",
+      "expected": {
+        "mass_accounting_disposition": "INDETERMINATE",
+        "reason": "MEASUREMENT_SYSTEM_LOSS_IS_NOT_PHYSICAL_INVENTORY",
+        "observed_outlet_mass": 60,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 40,
+        "residual_standard_uncertainty": 1.4142135623730951,
+        "standardized_abs_residual": 28.2842712474619,
+        "measured_recovery_fraction": 0.6,
+        "accounted_mass_fraction": 0.6,
+        "residual_interval_lower": 35.757359312880716,
+        "residual_interval_upper": 44.242640687119284,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-007-correlated-measurement-covariance",
+      "expected": {
+        "mass_accounting_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "observed_outlet_mass": 100,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 1.4142135623730951,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 1,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -4.242640687119286,
+        "residual_interval_upper": 4.242640687119286,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-008-open-positive-residual",
+      "expected": {
+        "mass_accounting_disposition": "OPEN_RESIDUAL",
+        "reason": "SIGNED_RESIDUAL_EXCEEDS_DECLARED_UNCERTAINTY",
+        "observed_outlet_mass": 90,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 10,
+        "residual_standard_uncertainty": 0.1414213562373095,
+        "standardized_abs_residual": 70.71067811865476,
+        "measured_recovery_fraction": 0.9,
+        "accounted_mass_fraction": 0.9,
+        "residual_interval_lower": 9.575735931288072,
+        "residual_interval_upper": 10.424264068711928,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-009-residual-within-uncertainty",
+      "expected": {
+        "mass_accounting_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "observed_outlet_mass": 99.5,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0.5,
+        "residual_standard_uncertainty": 0.7071067811865476,
+        "standardized_abs_residual": 0.7071067811865475,
+        "measured_recovery_fraction": 0.995,
+        "accounted_mass_fraction": 0.995,
+        "residual_interval_lower": -1.6213203435596428,
+        "residual_interval_upper": 2.621320343559643,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-010-unit-mismatch",
+      "expected": {
+        "mass_accounting_disposition": "INDETERMINATE",
+        "reason": "MASS_UNIT_MISMATCH",
+        "observed_outlet_mass": null,
+        "delayed_recovery_mass": null,
+        "known_inventory_mass": null,
+        "unexplained_mass_residual": null,
+        "residual_standard_uncertainty": null,
+        "standardized_abs_residual": null,
+        "measured_recovery_fraction": null,
+        "accounted_mass_fraction": null,
+        "residual_interval_lower": null,
+        "residual_interval_upper": null,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-011-uncalibrated-measurement",
+      "expected": {
+        "mass_accounting_disposition": "INDETERMINATE",
+        "reason": "MEASUREMENT_CALIBRATION_NOT_QUALIFIED",
+        "observed_outlet_mass": 100,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 1.4142135623730951,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 1,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -4.242640687119286,
+        "residual_interval_upper": 4.242640687119286,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-012-unbound-provenance",
+      "expected": {
+        "mass_accounting_disposition": "INDETERMINATE",
+        "reason": "MASS_STREAM_PROVENANCE_NOT_BOUND",
+        "observed_outlet_mass": 100,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 1.4142135623730951,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 1,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -4.242640687119286,
+        "residual_interval_upper": 4.242640687119286,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-013-positive-scale-metamorphic-control",
+      "expected": {
+        "mass_accounting_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "observed_outlet_mass": 1000,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": 0,
+        "residual_standard_uncertainty": 3.4641016151377544,
+        "standardized_abs_residual": 0,
+        "measured_recovery_fraction": 1,
+        "accounted_mass_fraction": 1,
+        "residual_interval_lower": -10.392304845413264,
+        "residual_interval_upper": 10.392304845413264,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-014-negative-recovery-mass",
+      "expected": {
+        "mass_accounting_disposition": "INVALID_INPUT",
+        "reason": "NEGATIVE_RECOVERY_MASS",
+        "observed_outlet_mass": null,
+        "delayed_recovery_mass": null,
+        "known_inventory_mass": null,
+        "unexplained_mass_residual": null,
+        "residual_standard_uncertainty": null,
+        "standardized_abs_residual": null,
+        "measured_recovery_fraction": null,
+        "accounted_mass_fraction": null,
+        "residual_interval_lower": null,
+        "residual_interval_upper": null,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-015-duplicate-stream-identity",
+      "expected": {
+        "mass_accounting_disposition": "REJECTED_CONTRACT",
+        "reason": "DUPLICATE_RECOVERY_STREAM_ID",
+        "observed_outlet_mass": null,
+        "delayed_recovery_mass": null,
+        "known_inventory_mass": null,
+        "unexplained_mass_residual": null,
+        "residual_standard_uncertainty": null,
+        "standardized_abs_residual": null,
+        "measured_recovery_fraction": null,
+        "accounted_mass_fraction": null,
+        "residual_interval_lower": null,
+        "residual_interval_upper": null,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-016-non_positive_definite_covariance",
+      "expected": {
+        "mass_accounting_disposition": "INVALID_INPUT",
+        "reason": "MASS_COVARIANCE_NOT_POSITIVE_DEFINITE",
+        "observed_outlet_mass": null,
+        "delayed_recovery_mass": null,
+        "known_inventory_mass": null,
+        "unexplained_mass_residual": null,
+        "residual_standard_uncertainty": null,
+        "standardized_abs_residual": null,
+        "measured_recovery_fraction": null,
+        "accounted_mass_fraction": null,
+        "residual_interval_lower": null,
+        "residual_interval_upper": null,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-017-declared-outlet-set-contradiction",
+      "expected": {
+        "mass_accounting_disposition": "REJECTED_CONTRACT",
+        "reason": "DECLARED_COMPLETE_OUTLET_SET_MISMATCH",
+        "observed_outlet_mass": null,
+        "delayed_recovery_mass": null,
+        "known_inventory_mass": null,
+        "unexplained_mass_residual": null,
+        "residual_standard_uncertainty": null,
+        "standardized_abs_residual": null,
+        "measured_recovery_fraction": null,
+        "accounted_mass_fraction": null,
+        "residual_interval_lower": null,
+        "residual_interval_upper": null,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "MMA-T0-018-over_recovery-negative-residual",
+      "expected": {
+        "mass_accounting_disposition": "OPEN_RESIDUAL",
+        "reason": "SIGNED_RESIDUAL_EXCEEDS_DECLARED_UNCERTAINTY",
+        "observed_outlet_mass": 105,
+        "delayed_recovery_mass": 0,
+        "known_inventory_mass": 0,
+        "unexplained_mass_residual": -5,
+        "residual_standard_uncertainty": 0.1414213562373095,
+        "standardized_abs_residual": 35.35533905932738,
+        "measured_recovery_fraction": 1.05,
+        "accounted_mass_fraction": 1.05,
+        "residual_interval_lower": -5.424264068711929,
+        "residual_interval_upper": -4.575735931288071,
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}
