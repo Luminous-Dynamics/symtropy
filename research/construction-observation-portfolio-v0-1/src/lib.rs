@@ -221,17 +221,17 @@ fn build_campaign(
     let mut earliest_start: Option<u64> = None;
     let mut latest_end: Option<u64> = None;
 
-    for need_index in 0..work_needs.len() {
+    for (need_index, need) in work_needs.iter().enumerate() {
         if covered[need_index] {
-            covered_work_unit_ids.push(work_needs[need_index].work_unit_id.clone());
+            covered_work_unit_ids.push(need.work_unit_id.clone());
         } else {
-            uncovered_work_unit_ids.push(work_needs[need_index].work_unit_id.clone());
+            uncovered_work_unit_ids.push(need.work_unit_id.clone());
         }
     }
     covered_work_unit_ids.sort();
     uncovered_work_unit_ids.sort();
 
-    let mut attributed_work_units = BTreeSet::new();
+    let mut attributed_work_units: BTreeSet<String> = BTreeSet::new();
     for action_index in selected_indices {
         let action = actions[*action_index];
         let covered_ids: Vec<String> = work_needs
@@ -247,7 +247,7 @@ fn build_campaign(
             })
             .map(|(_, need)| need.work_unit_id.clone())
             .collect();
-        attributed_work_units.extend(covered_ids.iter().map(String::as_str));
+        attributed_work_units.extend(covered_ids.iter().cloned());
 
         total_observation_duration_minutes = total_observation_duration_minutes
             .checked_add(action.duration_minutes)
@@ -283,11 +283,12 @@ fn build_campaign(
         _ => 0,
     };
 
+    let complete = uncovered_work_unit_ids.is_empty();
     Ok(ObservationCampaign {
         selected_actions,
         covered_work_unit_ids,
         uncovered_work_unit_ids,
-        complete: uncovered_work_unit_ids.is_empty(),
+        complete,
         total_observation_duration_minutes,
         total_crew_minutes,
         total_cost_minor_units,
@@ -868,7 +869,7 @@ mod tests {
                 .rejected_actions
                 .iter()
                 .any(|rejected| matches!(
-                    rejected.blocker,
+                    &rejected.blocker,
                     SpatialError::PotentialConflict(_)
                 ))
         );
@@ -893,7 +894,7 @@ mod tests {
                 .rejected_actions
                 .iter()
                 .any(|rejected| matches!(
-                    rejected.blocker,
+                    &rejected.blocker,
                     SpatialError::Reservation(_)
                 ))
         );
