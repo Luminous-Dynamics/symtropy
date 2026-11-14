@@ -121,10 +121,19 @@ The standards alignment is conceptual, not a conformance claim. ISO 13379-1:2025
 
 This work does not try to outperform an anomaly classifier on its own metric. It establishes a second evaluation stage after diagnosis.
 
-Industrial offerings such as ABB Ability Digital Powertrain and Digital Powertrain Insights publicly describe monitoring of drives/motors/driven equipment, anomaly detection, condition/trend analysis and prioritized maintenance intelligence. ABB describes a deployed monitor/analyze/optimize workflow with anomaly detection, condition/trend analysis, fleet visibility and prioritized predictive-maintenance guidance. This is a meaningful industrial comparator, not a straw man. Public product material does not publish a matched marine-engine repair-restoration benchmark with independent pre/post reference instruments, acceptance-envelope binding, sensor-only negative controls and recurrence follow-up. See:
-- https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain
-- https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain-insights
-- https://powertrain.abb.com/powertrainonlinehelp/en
+Industrial offerings such as ABB Ability Digital Powertrain and Digital Powertrain Insights publicly describe monitoring of drives/motors/driven equipment, anomaly detection, condition/trend analysis and prioritized maintenance intelligence. ABB positions expert-led predictive intelligence and a self-service asset-monitoring platform as distinct service models. This is a meaningful industrial comparator, not a straw man. Public product material does not publish a matched marine-engine repair-restoration benchmark with independent pre/post reference instruments, acceptance-envelope binding, sensor-only negative controls and recurrence follow-up.
+
+Wärtsilä Expert Insight is a particularly relevant marine comparator: it combines vessel data, AI/rule-based diagnostics and expert review, then gives recommendations for crew action. Its public case narrative describes abnormal turbocharger-inlet lube-oil pressure, remote troubleshooting, crew bearing replacement and the engine continuing to operate. That demonstrates a deployed detect → expert troubleshoot → crew intervention loop. The case does not publish a predeclared acceptance envelope, matched pre/post duty, independent reference measurement path, calibration uncertainty, recurrence denominator or a matched repair-restoration score. The benchmark should measure that explicit post-intervention evidence gap without claiming the provider does not perform additional internal checks.
+
+Research also points beyond binary "repair worked / did not work": a 2026 imperfect-maintenance study learns stochastic repair effects from pre/post records and jointly optimizes inspection timing, repair level and regime-dependent feasibility using a semi-Markov decision process. This is a future composition with #4545, not something this P0 evaluator implements. An early-available 2026 hydraulic-test-rig study uses a physics-grounded causal graph and bootstrap uncertainty to estimate the effect of virtual pump repair on efficiency; its benchmark rig and assumptions make it a reproduction lead, not marine-engine evidence.
+
+Sources:
+- ABB asset-health and monitoring: https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring
+- Wärtsilä Expert Insight service and case narrative: https://www.wartsila.com/marine/services/lifecycle-agreements/expert-insight-service
+- Najafi & Taghipour (2026), imperfect maintenance with stochastic repair effects and regime-dependent feasibility: https://doi.org/10.1016/j.cie.2026.112109
+- Nieminen (2026), intervention-aware repair-impact estimation from hydraulic sensor logs: https://doi.org/10.1016/j.eswa.2026.133024
+- 2025 systematic review of industrial condition-monitoring evaluation: https://doi.org/10.1016/j.jmsy.2025.06.015
+- 2025 intervention-aware maintenance risk curves: https://doi.org/10.3390/app152010998
 
 The differentiator to test is whether a system can tie the exact diagnosis revision and typed intervention to matched-duty, per-capability restoration evidence with a stable reference measurement path, explicit evidence/calibration digests, sensor-only negative controls and follow-up recurrence—without confusing a sensor fix, alarm reset or low-load trial with recovered physical service.
 
