@@ -9,6 +9,7 @@
     "assessment_id",
     "evidence_class",
     "hypotheses",
+    "prior_ambiguity_scenarios",
     "decisions",
     "existing_evidence_dependency_groups",
     "candidates",
@@ -343,6 +344,46 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 80
+    },
+    "prior_ambiguity_scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "prior_model_sha256",
+          "qualification_state",
+          "prior_probabilities"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prior_model_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "qualification_state": {
+            "const": "QUALIFIED"
+          },
+          "prior_probabilities": {
+            "type": "object",
+            "minProperties": 2,
+            "additionalProperties": false,
+            "patternProperties": {
+              "^[A-Z0-9_-]+$": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

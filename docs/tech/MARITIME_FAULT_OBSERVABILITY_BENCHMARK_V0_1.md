@@ -414,3 +414,18 @@ Research target: zero false-separation claims on the frozen known-truth falsific
 The current maritime adapter uses #4005's interval-signature kernel for transparent P0 pairwise classification. The behavioural-set engine should be a separate, more expressive evaluator and should reuse its asset identity, provenance, dependency, configuration and claim-ceiling contracts. It must not silently replace the simpler baseline. Compare both on the same synthetic cases, then on calibrated model trajectories, and only later on physical runs.
 
 Active diagnosis methods discussed in the control literature motivate asking which *already approved or historically recorded* operating trajectory would best distinguish hypotheses. The maritime programme remains read-only: this work does not design or issue control commands, change engine load, or authorize physical tests.
+
+
+### P0.2 — robust passive observation value under prior ambiguity
+
+The passive EVSI evaluator now scores the full Cartesian product of the nominal fault prior plus a finite, separately qualified prior-ambiguity set, crossed with the nominal likelihood model plus all qualified alternative likelihood models. A candidate is labelled ROBUST_POSITIVE_NET_VALUE only when its net EVSI remains positive in every preregistered prior × likelihood combination. The report preserves nominal EVSI separately from the robust minimum/maximum and identifies the worst-case joint scenario.
+
+This prevents a measurement from being ranked as valuable solely because a convenient point prior was selected. It is a finite-set maximin analysis, not a claim that the ambiguity set covers every possible prior. Prior scenarios must have unique model digests, exactly the same hypothesis set, finite probabilities summing to one, and an explicit qualification state. Expanding or narrowing the ambiguity set requires a reviewable, source-bound change; it must not be tuned after observing the desired candidate ranking.
+
+The fixture includes two qualified alternative priors (in addition to the nominal prior) crossed with three likelihood models, producing nine joint scenarios. A mutation test moves one alternative prior toward a restriction/injector ambiguity: nominal net EVSI remains positive, but at least one joint scenario becomes non-positive and the candidate must lose its robust-positive status. The existing passive boundary remains unchanged: only already-available read-only evidence may be ranked; no measurement, controller excitation, maintenance or mode action is initiated.
+
+Research references:
+- Abdulsamad et al., “Maximin Robust Bayesian Experimental Design,” arXiv, 14 March 2026, proposes maximin information design under prior/model uncertainty: https://arxiv.org/abs/2603.12894.
+- Go & Isaac, “Robust expected information gain for optimal Bayesian experimental design using ambiguity sets,” PMLR 180 (2022), formulates robust design over a KL-divergence prior ambiguity set: https://proceedings.mlr.press/v180/go22a.html.
+
+Our current implementation uses a preregistered finite prior set rather than an unrestricted continuous ambiguity set. Future work should compare finite sets against KL/Wasserstein ambiguity regions, with the radius and calibration procedure fixed before confirmatory evaluation.

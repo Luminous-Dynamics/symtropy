@@ -497,5 +497,27 @@
     "mode_transition": false,
     "restriction_clearance": false
   },
-  "claim_ceiling": "Synthetic passive value-of-information demonstration only. It does not validate real observation likelihoods, physical diagnosability, sensor independence, maintenance decisions, vessel safety, or authorization to initiate tests or change equipment."
+  "claim_ceiling": "Synthetic passive value-of-information demonstration only. It does not validate real observation likelihoods, physical diagnosability, sensor independence, maintenance decisions, vessel safety, or authorization to initiate tests or change equipment.",
+  "prior_ambiguity_scenarios": [
+    {
+      "scenario_id": "fuel-dominant-prior-v1",
+      "prior_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "qualification_state": "QUALIFIED",
+      "prior_probabilities": {
+        "FUEL_RESTRICTION": 0.5,
+        "INJECTOR_DEGRADATION": 0.4,
+        "SENSOR_BIAS": 0.1
+      }
+    },
+    {
+      "scenario_id": "fuel-dominant-prior-v2",
+      "prior_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "qualification_state": "QUALIFIED",
+      "prior_probabilities": {
+        "FUEL_RESTRICTION": 0.52,
+        "INJECTOR_DEGRADATION": 0.38,
+        "SENSOR_BIAS": 0.1
+      }
+    }
+  ]
 }
