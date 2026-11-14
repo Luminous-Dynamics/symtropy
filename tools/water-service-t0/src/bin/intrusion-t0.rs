@@ -177,7 +177,10 @@ fn compute(case: &Value) -> Result<Value, String> {
                 text(inputs, "pathway_state")? == "confirmed_connected_defect",
                 "case requires a known defect",
             )?;
-            require(bool_field(inputs, "external_tracer_present")?, "case requires external tracer")?;
+            require(
+                bool_field(inputs, "external_tracer_present")?,
+                "case requires external tracer",
+            )?;
             require(
                 bool_field(inputs, "sample_coverage_complete")?,
                 "case requires complete sample coverage",
@@ -298,7 +301,9 @@ fn compute(case: &Value) -> Result<Value, String> {
                 text(inputs, "tracer_source_attribution")? == "unique",
                 "tracer must have unique source attribution",
             )?;
-            require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "sample evidence must be valid")?;
+            let sample_evidence_valid = bool_field(inputs, "instrument_calibration_current")?
+                && bool_field(inputs, "method_valid_for_tracer")?;
+            require(sample_evidence_valid, "sample evidence must be valid")?;
             Ok(json!({
                 "transport_disposition": "DOWNSTREAM_TRACER_DETECTED",
                 "potability_claim_permitted": false,
@@ -333,15 +338,29 @@ fn compute(case: &Value) -> Result<Value, String> {
             }))
         }
         "DI-T0-012-similar-pressure-event-no-ingress-pathway" => {
-            require(!bool_field(inputs, "external_tracer_present")?, "negative control must have no external tracer")?;
+            require(
+                !bool_field(inputs, "external_tracer_present")?,
+                "negative control must have no external tracer",
+            )?;
             require(
                 text(inputs, "pathway_state")? == "no_defect_confirmed",
                 "negative control requires confirmed absence of a defect",
             )?;
-            require(bool_field(inputs, "sample_coverage_complete")?, "negative control requires complete sample coverage")?;
-            require(text(inputs, "sample_result")? == "not_detected", "negative control requires a valid non-detect")?;
-            require(number(inputs, "detection_limit_mg_l")? > 0.0, "detection limit must be positive")?;
-            require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "sample evidence must be valid")?;
+            require(
+                bool_field(inputs, "sample_coverage_complete")?,
+                "negative control requires complete sample coverage",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "not_detected",
+                "negative control requires a valid non-detect",
+            )?;
+            require(
+                number(inputs, "detection_limit_mg_l")? > 0.0,
+                "detection limit must be positive",
+            )?;
+            let sample_evidence_valid = bool_field(inputs, "instrument_calibration_current")?
+                && bool_field(inputs, "method_valid_for_tracer")?;
+            require(sample_evidence_valid, "sample evidence must be valid")?;
             Ok(negative_result())
         }
         _ => Err(format!("unrecognized intrusion case: {id}")),
@@ -583,12 +602,16 @@ fn run() -> Result<i32, String> {
     let input_path = PathBuf::from(
         args.first()
             .map(String::as_str)
-            .unwrap_or("research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json"),
+            .unwrap_or(
+                "research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json",
+            ),
     );
     let oracle_path = PathBuf::from(
         args.get(1)
             .map(String::as_str)
-            .unwrap_or("research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json"),
+            .unwrap_or(
+                "research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json",
+            ),
     );
     let manifest_path = PathBuf::from(
         args.get(2)
@@ -674,9 +697,15 @@ mod tests {
 
     fn load(name: &str) -> Value {
         let fixture = match name {
-            "inputs" => include_str!("../../../../research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json"),
-            "oracle" => include_str!("../../../../research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json"),
-            "manifest" => include_str!("../../../../research/distribution-intrusion-transient/manifest-v0.1.json"),
+            "inputs" => include_str!(
+                "../../../../research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json"
+            ),
+            "oracle" => include_str!(
+                "../../../../research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json"
+            ),
+            "manifest" => include_str!(
+                "../../../../research/distribution-intrusion-transient/manifest-v0.1.json"
+            ),
             _ => panic!("unknown fixture"),
         };
         serde_json::from_str(fixture).expect("fixture must be valid JSON")
@@ -714,7 +743,10 @@ mod tests {
         let result = evaluated();
         let cases = result["results"].as_array().unwrap();
         for (id, reason) in [
-            ("DI-T0-004-pressure-deficit-with-unknown-pathway", "PATHWAY_OBSERVABILITY_INSUFFICIENT"),
+            (
+                "DI-T0-004-pressure-deficit-with-unknown-pathway",
+                "PATHWAY_OBSERVABILITY_INSUFFICIENT",
+            ),
             ("DI-T0-005-missing-downstream-sample", "DOWNSTREAM_SAMPLE_COVERAGE_INCOMPLETE"),
         ] {
             let row = cases.iter().find(|row| row["case_id"] == id).unwrap();
@@ -742,8 +774,12 @@ mod tests {
     #[test]
     fn confirmed_ingress_can_coexist_with_unresolved_mass_balance() {
         let result = evaluated();
-        let row = result["results"].as_array().unwrap()
-            .iter().find(|row| row["case_id"] == "DI-T0-009-ingress-known-but-mass-balance-incomplete").unwrap();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DI-T0-009-ingress-known-but-mass-balance-incomplete")
+            .unwrap();
         assert_eq!(row["computed"]["ingress_disposition"], "INGRESS_CONFIRMED_IN_TEST");
         assert_eq!(row["computed"]["mass_balance_disposition"], "MASS_BALANCE_UNRESOLVED");
     }
@@ -751,8 +787,12 @@ mod tests {
     #[test]
     fn pressure_recovery_and_ticket_closure_do_not_verify_recommissioning() {
         let result = evaluated();
-        let row = result["results"].as_array().unwrap()
-            .iter().find(|row| row["case_id"] == "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence").unwrap();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence")
+            .unwrap();
         assert_eq!(row["computed"]["recommissioning_disposition"], "RECOMMISSIONING_NOT_VERIFIED");
         assert!(!row["computed"]["release_authorized"].as_bool().unwrap());
     }
