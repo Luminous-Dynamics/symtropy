@@ -1522,6 +1522,33 @@ mod tests {
     }
 
     #[test]
+    fn inconsistent_active_epoch_index_rejects_before_any_mutation() {
+        let mut book = book(2);
+        book.reserve(
+            request("valid-active", "robot-a", 100, 200, 300, 1),
+            0,
+        )
+        .expect("active reservation");
+        let before_buckets = book.time_buckets.clone();
+        let before_expiry = book.expiry_index.clone();
+        book.active_by_resource
+            .get_mut("work-zone-A")
+            .expect("active resource index")
+            .insert("missing-reservation-id".to_owned());
+
+        assert_eq!(
+            book.advance_site_epoch("site-epoch-2"),
+            Err(ReservationError::IndexInconsistent(
+                "missing-reservation-id".to_owned()
+            ))
+        );
+        assert_eq!(book.current_site_epoch(), "site-epoch-1");
+        assert_eq!(book.state("valid-active"), Some(ReservationState::Active));
+        assert_eq!(book.time_buckets, before_buckets);
+        assert_eq!(book.expiry_index, before_expiry);
+    }
+
+    #[test]
     fn site_epoch_change_invalidates_every_active_reservation() {
         let mut book = book(2);
         book.reserve(request("r1", "robot-1", 100, 200, 250, 1), 50)
