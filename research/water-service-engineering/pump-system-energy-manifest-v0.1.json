@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "PUMP-SYSTEM-ENERGY-SERVICE-M0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5103",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4994",
+  "status": "synthetic_equal_service_head_loss_comparison_only",
+  "comparator_standard": "ISO/ASME 14414:2019 pump system energy assessment",
+  "input_corpus": "research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/pump-system-energy-matched-duty.schema.json",
+  "case_count": 5,
+  "comparison": "fixed_speed_throttling_vs_variable_speed_at_identical_flow_and_system_required_head",
+  "nonclaims": [
+    "constant_efficiency_is_an_isolation_assumption_not_a_real_motor_pump_VFD_map",
+    "no_vendor_curve_or_installed_system_data",
+    "affinity_laws_without_system_curve_are_not_used_as_savings_estimator",
+    "no_energy_savings_or_safe_operation_qualification"
+  ]
+}
