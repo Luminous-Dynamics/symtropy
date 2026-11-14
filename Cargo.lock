@@ -9002,6 +9002,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-construction"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "symtropy-fabrication",
+ "symtropy-game-state",
+]
+
+[[package]]
 name = "symtropy-core"
 version = "0.1.1"
 dependencies = [
@@ -9049,12 +9059,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-fabrication"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "symtropy-game-state",
+]
+
+[[package]]
 name = "symtropy-firstlight"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "symtropy-construction",
  "symtropy-crawler-core",
+ "symtropy-fabrication",
  "symtropy-firstlight-bent-feeder",
  "symtropy-firstlight-catastrophe",
  "symtropy-game-state",

@@ -1,0 +1,111 @@
+name: Patch Conduit Executable Digest Probe
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: patch-conduit-digest-probe-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Compute real Patch Conduit digest candidates without promotion
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_TARGET_DIR: /tmp/symtropy-patch-conduit-digest-probe-target
+    steps:
+      - name: Check out exact qualified #605 product parent
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fabrication/executable-plan-content-identity
+          path: product
+          fetch-depth: 0
+
+      - name: Check out exact probe tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: runner-tools
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bind exact diagnostic subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C product rev-parse HEAD)" = "a3a2bc5e07c69996ee9542048d41c4c84bdb25ef"
+          test "$(git -C product rev-parse HEAD^{tree})" = "e8e198ce04c4b4ad790e05ee3a01b0d59139461f"
+          test "$(git -C runner-tools hash-object .github/repair/executable_plan_content_identity.py)" = "309a09d307e79d2daa1904827607352615087b1a"
+          test "$(git -C runner-tools hash-object .github/repair/patch_conduit_digest_probe.py)" = "b6b250ede17394f53b3b8fe1d04d7ae0fea6ec50"
+          test -z "$(git -C product status --porcelain=v1 --untracked-files=all)"
+          echo "PROBE_PARENT_HEAD=$(git -C product rev-parse HEAD)"
+          echo "PROBE_TOOL_HEAD=$(git -C runner-tools rev-parse HEAD)"
+          echo "PROBE_IDENTITY_TRANSFORM_BLOB=309a09d307e79d2daa1904827607352615087b1a"
+          echo "PROBE_PATCH_CONDUIT_TRANSFORM_BLOB=b6b250ede17394f53b3b8fe1d04d7ae0fea6ec50"
+
+      - name: Set up pinned Rust 1.96
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Re-prove parent is buildable
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check --locked -p symtropy-fabrication --lib
+          cargo check --locked -p symtropy-firstlight
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Apply exact #611 candidate and probe transforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          python3 ../runner-tools/.github/repair/executable_plan_content_identity.py
+          python3 ../runner-tools/.github/repair/patch_conduit_digest_probe.py
+          cargo fmt -p symtropy-fabrication -p symtropy-firstlight
+
+      - name: Resolve bounded direct sha2 lock edge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          cargo check -p symtropy-fabrication --lib
+
+      - name: Run synthetic protocol golden before real probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          output="$(cargo test --locked -p symtropy-fabrication golden_v1_digest_freezes_cross_layer_preimage 2>&1)"
+          printf '%s\n' "$output"
+          printf '%s\n' "$output" | grep -Eq 'test .*golden_v1_digest_freezes_cross_layer_preimage .* ok'
+          printf '%s\n' "$output" | grep -Eq 'test result: ok\. 1 passed; 0 failed;'
+
+      - name: Emit real canonical Patch Conduit digest candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          output="$(cargo test --locked -p symtropy-firstlight patch_conduit_digest_probe -- --nocapture 2>&1)"
+          printf '%s\n' "$output"
+          printf '%s\n' "$output" | grep -Eq 'test .*patch_conduit_digest_probe .* ok'
+          count="$(printf '%s\n' "$output" | grep -c '^PATCH_CONDUIT_DIGEST ')"
+          test "$count" -gt 0
+          echo "PATCH_CONDUIT_DIGEST_COUNT=$count"
+          printf '%s\n' "$output" | grep '^PATCH_CONDUIT_DIGEST '
+
+      - name: Prove diagnostic made no repository commit or push
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd product
+          test "$(git rev-parse HEAD)" = "a3a2bc5e07c69996ee9542048d41c4c84bdb25ef"
+          echo 'DIAGNOSTIC_ONLY=true'
+          echo 'No product authority is claimed by this probe.'
