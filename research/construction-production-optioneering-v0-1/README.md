@@ -20,6 +20,8 @@ Compare different ways of delivering the same declared functional outcome before
 - Robust objectives are per-metric worst-case across the full scenario set; no scenario probabilities are accepted or invented. This is a conservative objective vector, not a joint single-scenario prediction.
 - Whole-life cost is direct + shared + maintenance + repair + end-of-life cost within the same declared assessment horizon.
 - Pareto dominance considers whole-life cost, elapsed time, workflow crew time, energy, carbon, material mass and rework separately.
+- Explicit matched pairs can identify a baseline option and report which dimensions changed: design, method, scheduler or fleet. A single-factor controlled contrast changes exactly one dimension; multi-axis contrasts are labelled combined and are not presented as isolated robot or method effects.
+- Matched-pair deltas are computed only when both options are robust-feasible under the same functional-unit contract and frozen scenario set. The benchmark reports candidate-minus-reference deltas, so negative cost/time/crew/energy/carbon values represent reductions.
 - No weighted scalar trades safety/quality hard gates against cost, speed or carbon.
 
 ## Local commands
@@ -33,7 +35,7 @@ cargo bench --manifest-path research/construction-production-optioneering-v0-1/C
 
 ## Synthetic benchmark harness
 
-The dependency-free frontier benchmark evaluates 10, 100, 500, 1,000 and 2,000 alternatives across two frozen scenarios, with 11 repeated runs and p50/p95/p99 evaluation latency. The Linux CI job runs this harness after metadata/lockfile, format, tests and strict Clippy. These are local evaluator timings only; they do not represent construction-hours, schedule quality or field productivity.
+The dependency-free frontier benchmark evaluates 10, 100, 500, 1,000 and 2,000 alternatives across two frozen scenarios, with 11 repeated runs and p50/p95/p99 evaluation latency. The Linux CI job runs this harness after metadata/lockfile, format, tests and strict Clippy. These are local evaluator timings only; they do not represent construction-hours, schedule quality or field productivity. The scaling workload deliberately has no matched pairs so its result isolates feasibility/Pareto evaluation overhead from optional attribution work.
 
 ## Claim ceiling
 
