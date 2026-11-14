@@ -367,6 +367,9 @@ pub fn evaluate(input: &AdapterInput) -> AdapterOutcome {
                 return reject(NotAssessableReason::AssessmentClockUnqualified);
             };
 
+            let Some(independent_family_count) = claim.independent_family_count else {
+                return reject(NotAssessableReason::InsufficientIndependentFamilies);
+            };
             let lineage = AcceptedClaimLineage {
                 source_id: claim.source_id.clone(),
                 source_claim_sha256: claim.source_claim_sha256.clone(),
@@ -388,7 +391,7 @@ pub fn evaluate(input: &AdapterInput) -> AdapterOutcome {
                 ],
                 dependency_snapshot_id,
                 independence_assessment: claim.independence,
-                independent_family_count: claim.independent_family_count.unwrap_or(0),
+                independent_family_count,
                 minimum_independent_families: input.policy.minimum_independent_families,
                 source_position_bounds: claim.position,
                 velocity_bounds: claim.velocity,
