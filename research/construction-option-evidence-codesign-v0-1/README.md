@@ -22,6 +22,8 @@ Each robust-feasible option requires one option-specific campaign package, bound
 
 The evaluator calls the existing exact bounded campaign solver for each option. It does not duplicate set-cover, spatial conflict or capacity semantics.
 
+A valid Avoid alternative can have zero work needs and zero observation actions. The campaign solver must prove this empty campaign complete, with zero observation burden; it must not invent a scan merely because a campaign input exists.
+
 ## Cost boundary
 
 - `AdditionalToOptionLifecycleCost`: add campaign cost once to construction lifecycle cost.
@@ -43,6 +45,8 @@ cargo test --manifest-path research/construction-option-evidence-codesign-v0-1/C
 cargo clippy --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked --all-targets -- -D warnings
 cargo bench --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked --bench joint_scale
 ```
+
+The current synthetic Rust corpus includes twelve tests, including construction-only dominated option reversal after campaign burden, explicit included/additional cost treatment, robust-infeasible short-circuit, node-budget exhaustion, exact small Pareto oracle, mismatched base and action design bindings, missing campaign input, zero-work Avoid campaign, proven campaign infeasibility and empty open-stage frontier.
 
 The hosted benchmark measures composition p50/p95/p99 across 2/4/8/16 alternatives with 25 repetitions each. It reports campaign search nodes and joint frontier size separately. These are runner-specific measurements, not a construction productivity claim or field SLO.
 
