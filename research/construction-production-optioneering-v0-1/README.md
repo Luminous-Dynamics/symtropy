@@ -13,6 +13,7 @@ Compare different ways of delivering the same declared functional outcome before
 - Homogeneous functional-unit contract with required units, acceptance-contract digest, declared currency, carbon assessment-boundary reference, assessment horizon, hard-gate IDs and fixed-point performance requirements with explicit integer scales.
 - Stage decisions bound to accountable owner, project context, evidence references and rationale.
 - `Unknown` stops the hierarchy; it never means “no avoidance option exists”.
+- Closed/not-applicable stages cannot still contain candidates in that tier; later-stage decisions cannot be predeclared after a tier is open or unknown.
 - Closed/no-applicable stages require evidence before moving to the next tier.
 - Every candidate binds the same functional contract ID and digest while carrying its own design revision digest. Each scenario's independent acceptance evidence binds both the exact functional-contract digest and exact option design digest.
 - Each candidate must provide one result for every frozen scenario; missing/extra scenario results are typed errors.
