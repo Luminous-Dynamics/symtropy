@@ -1,0 +1,156 @@
+name: PCB Route Benchmark Evaluator
+
+on:
+  pull_request:
+    paths:
+      - "tools/pcb-route-benchmark/**"
+      - "docs/research/PCB_ROUTE_BENCHMARK_PROTOCOL_V0_1.md"
+      - ".github/workflows/pcb-route-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-contract:
+    name: Rust evaluator, fail-closed controls and paired synthetic comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Verify exact event head
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          test "$actual_head" = "$EXPECTED_HEAD"
+          echo "Exact checked-out head: $actual_head"
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+
+      # Temporary exact-toolchain formatting materialization. The generated
+      # files are uploaded so their canonical bytes can be committed on the PR
+      # branch; the next revision removes this mutating step and checks HEAD only.
+      - name: Materialize canonical Rust formatting
+        run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pcb-route-benchmark-formatted-source
+          path: |
+            tools/pcb-route-benchmark/src/
+          if-no-files-found: error
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/pcb-route-benchmark/Cargo.toml --all -- --check
+
+      - name: Unit tests
+        run: cargo test --manifest-path tools/pcb-route-benchmark/Cargo.toml
+
+      - name: Prepare exact-manifest-bound synthetic reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="tools/pcb-route-benchmark/fixtures/synthetic-dataset-manifest-v0_1.json"
+          FIXTURES="tools/pcb-route-benchmark/fixtures"
+          TMP="$RUNNER_TEMP/pcb-route-benchmark"
+          OUT="$GITHUB_WORKSPACE/pcb-route-benchmark-out"
+          mkdir -p "$TMP" "$OUT" "$TMP/series-baseline" "$TMP/series-treatment"
+          MANIFEST_SHA=$(sha256sum "$MANIFEST" | cut -d ' ' -f 1)
+
+          jq --arg sha "$MANIFEST_SHA" '.dataset_manifest_sha256 = $sha' \
+            "$FIXTURES/synthetic-baseline-run-v0_1.json" > "$TMP/baseline.json"
+          jq --arg sha "$MANIFEST_SHA" '.dataset_manifest_sha256 = $sha' \
+            "$FIXTURES/synthetic-treatment-run-v0_1.json" > "$TMP/treatment.json"
+
+          export PCB_ROUTE_BENCHMARK_GIT_HEAD="$(git rev-parse HEAD)"
+          cargo run --quiet --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+            validate "$TMP/baseline.json" "$MANIFEST" > "$OUT/baseline-receipt.json"
+          cargo run --quiet --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+            validate "$TMP/treatment.json" "$MANIFEST" > "$OUT/treatment-receipt.json"
+          cargo run --quiet --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+            compare "$TMP/baseline.json" "$TMP/treatment.json" "$MANIFEST" > "$OUT/paired-comparison.json"
+
+          for seed in 17 23 31; do
+            jq --arg sha "$MANIFEST_SHA" --argjson seed "$seed" \
+              '.dataset_manifest_sha256 = $sha | .seed = $seed | .run_id = (.run_id + "-seed-" + ($seed | tostring))' \
+              "$FIXTURES/synthetic-baseline-run-v0_1.json" > "$TMP/series-baseline/run-$seed.json"
+            jq --arg sha "$MANIFEST_SHA" --argjson seed "$seed" \
+              '.dataset_manifest_sha256 = $sha | .seed = $seed | .run_id = (.run_id + "-seed-" + ($seed | tostring))' \
+              "$FIXTURES/synthetic-treatment-run-v0_1.json" > "$TMP/series-treatment/run-$seed.json"
+          done
+          cargo run --quiet --manifest-path tools/pcb-route-benchmark/Cargo.toml -- \
+            compare-series "$TMP/series-baseline" "$TMP/series-treatment" "$MANIFEST" > "$OUT/replicated-comparison.json"
+
+          jq -e --arg head "$(git rev-parse HEAD)" '
+            .schema == "pcb-route-validation-receipt-v0.1"
+            and .evaluator_git_head == $head
+            and .summary.evidence_class == "synthetic"
+            and .summary.cases_attempted == 6
+            and .summary.valid_completions == 2
+            and .summary.timeout_cases == 1
+            and .summary.tool_error_cases == 1
+          ' "$OUT/baseline-receipt.json" > /dev/null
+
+          jq -e '
+            .schema == "pcb-route-validation-receipt-v0.1"
+            and .summary.evidence_class == "synthetic"
+            and .summary.cases_attempted == 6
+            and .summary.valid_completions == 4
+            and .summary.invalid_route_cases == 1
+            and .summary.incomplete_net_cases == 1
+          ' "$OUT/treatment-receipt.json" > /dev/null
+
+          jq -e --arg head "$(git rev-parse HEAD)" '
+            .schema == "pcb-route-paired-comparison-v0.1"
+            and .evaluator_git_head == $head
+            and .summary.paired_board_count == 6
+            and .summary.baseline_valid_completions == 2
+            and .summary.treatment_valid_completions == 4
+            and (.summary.completion_delta_percentage_points - 33.333333333333336 | fabs) < 0.000001
+            and .summary.completion_delta_95_ci_percentage_points.resamples == 10000
+            and (.board_pairs | length) == 6
+          ' "$OUT/paired-comparison.json" > /dev/null
+
+          jq -e --arg head "$(git rev-parse HEAD)" '
+            .schema == "pcb-route-replicated-comparison-v0.1"
+            and .evaluator_git_head == $head
+            and .summary.board_count == 6
+            and .summary.seed_count == 3
+            and .summary.paired_attempt_count == 18
+            and .summary.baseline_valid_attempts == 6
+            and .summary.treatment_valid_attempts == 12
+            and (.summary.completion_delta_percentage_points - 33.333333333333336 | fabs) < 0.000001
+            and .summary.completion_delta_95_ci_board_clustered.resamples == 10000
+            and (.seed_pairs | length) == 3
+            and (.boards | length) == 6
+          ' "$OUT/replicated-comparison.json" > /dev/null
+
+          cp "$MANIFEST" "$OUT/synthetic-dataset-manifest.json"
+          cp "$TMP/baseline.json" "$OUT/synthetic-baseline-run.json"
+          cp "$TMP/treatment.json" "$OUT/synthetic-treatment-run.json"
+          mkdir -p "$OUT/replicates"
+          cp "$TMP"/series-baseline/*.json "$OUT/replicates/"
+          cp "$TMP"/series-treatment/*.json "$OUT/replicates/"
+          (
+            cd "$OUT"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-pcb-route-benchmark-contract
+          path: pcb-route-benchmark-out/
+          if-no-files-found: warn
