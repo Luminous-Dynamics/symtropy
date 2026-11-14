@@ -155,6 +155,7 @@ pub struct CachedImpulse<const D: usize> {
 ///
 /// Uses `BTreeMap` for deterministic iteration order (critical for replay).
 /// Maps `(body_a, body_b)` → cached impulse data.
+#[derive(Clone)]
 pub struct ContactCache<const D: usize> {
     entries: std::collections::BTreeMap<(BodyHandle, BodyHandle), Vec<CachedImpulse<D>>>,
     /// Proximity threshold for matching contacts across frames.
