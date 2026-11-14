@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
-use crate::temporal::{BoundedEventTimeInterval, TemporalIntervalError};
+use crate::temporal::BoundedEventTimeInterval;
 
 pub const STREAMING_ISOLATION_SLOTS: usize = 5;
 pub const STREAMING_RECEIPT_SCHEMA: &str = "liu-ice-streaming-diagnosis-receipt-v1";
