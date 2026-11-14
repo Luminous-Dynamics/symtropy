@@ -58,7 +58,7 @@ jobs:
           assert len(protocol["hard_gates"]) >= 30
           assert protocol["estimator"]["exact_test_limit_units"] == 16
           assert len(corpus["cases"]) == 15
-          assert len({case["case_id"] for case in corpus["cases"]}) == 14
+          assert len({case["case_id"] for case in corpus["cases"]}) == 15
           assert trial_schema["additionalProperties"] is False
           assert oracle_schema["additionalProperties"] is False
           required_measurements = trial_schema["properties"]["observations"]["items"]["required"]
