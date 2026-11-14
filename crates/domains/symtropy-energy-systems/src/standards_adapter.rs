@@ -302,6 +302,8 @@ pub struct AdapterRun {
     source_input_digest: String,
     target_output_digest: String,
     source_inventory_complete: bool,
+    source_semantic_item_count: usize,
+    source_extension_count: usize,
     status: AdapterRunStatus,
     #[serde(serialize_with = "serialize_map_values")]
     records: BTreeMap<SourceSemanticRef, MappingRecord>,
@@ -315,6 +317,8 @@ impl AdapterRun {
         source_input_digest: impl Into<String>,
         target_output_digest: impl Into<String>,
         source_inventory_complete: bool,
+        source_semantic_item_count: usize,
+        source_extension_count: usize,
         records: Vec<MappingRecord>,
         extensions: Vec<ExtensionMapping>,
     ) -> Result<Self, AdapterError> {
@@ -322,6 +326,16 @@ impl AdapterRun {
         let target_output_digest = target_output_digest.into();
         require_non_empty("source_input_digest", &source_input_digest)?;
         require_non_empty("target_output_digest", &target_output_digest)?;
+        if source_inventory_complete
+            && (records.len() != source_semantic_item_count || extensions.len() != source_extension_count)
+        {
+            return Err(AdapterError::SourceInventoryCountMismatch {
+                expected_semantic_items: source_semantic_item_count,
+                actual_semantic_items: records.len(),
+                expected_extensions: source_extension_count,
+                actual_extensions: extensions.len(),
+            });
+        }
         let mut record_map = BTreeMap::new();
         for record in records {
             let source = record.source.clone();
@@ -337,12 +351,14 @@ impl AdapterRun {
             }
         }
         let status = derive_status(source_inventory_complete, record_map.values(), extension_map.values());
-        Ok(Self { profile, source_input_digest, target_output_digest, source_inventory_complete, status, records: record_map, extensions: extension_map })
+        Ok(Self { profile, source_input_digest, target_output_digest, source_inventory_complete, source_semantic_item_count, source_extension_count, status, records: record_map, extensions: extension_map })
     }
     pub fn profile(&self) -> &MappingProfile { &self.profile }
     pub fn source_input_digest(&self) -> &str { &self.source_input_digest }
     pub fn target_output_digest(&self) -> &str { &self.target_output_digest }
     pub const fn source_inventory_complete(&self) -> bool { self.source_inventory_complete }
+    pub const fn source_semantic_item_count(&self) -> usize { self.source_semantic_item_count }
+    pub const fn source_extension_count(&self) -> usize { self.source_extension_count }
     pub const fn status(&self) -> AdapterRunStatus { self.status }
     pub fn records(&self) -> &BTreeMap<SourceSemanticRef, MappingRecord> { &self.records }
     pub fn extensions(&self) -> &BTreeMap<(String, String), ExtensionMapping> { &self.extensions }
@@ -475,6 +491,7 @@ pub enum AdapterError {
     DuplicateSourceSemanticReference { source: SourceSemanticRef },
     DuplicateSourceExtension { namespace: String, extension_id: String },
     DuplicateSemanticAtom { atom: SemanticAtom },
+    SourceInventoryCountMismatch { expected_semantic_items: usize, actual_semantic_items: usize, expected_extensions: usize, actual_extensions: usize },
 }
 impl core::fmt::Display for AdapterError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { write!(f, "{self:?}") }
@@ -554,7 +571,7 @@ mod tests {
     #[test]
     fn run_derives_lossless_status_only_when_every_record_is_mapped() {
         let run = AdapterRun::new(profile(StandardPublicationStatus::Published), "sha256:source",
-            "sha256:target", true, vec![exact("voltage")], vec![opaque_extension()]).unwrap();
+            "sha256:target", true, 1, 1, vec![exact("voltage")], vec![opaque_extension()]).unwrap();
         assert_eq!(run.status(), AdapterRunStatus::CompleteSemanticallyEquivalent);
     }
     #[test]
@@ -563,7 +580,7 @@ mod tests {
         let record = MappingRecord::new(source("phase"), Some(target("phase")), MappingOutcome::LossExplicit,
             "declared phase loss", vec![loss]).unwrap();
         let run = AdapterRun::new(profile(StandardPublicationStatus::Published), "source", "target",
-            true, vec![record], Vec::new()).unwrap();
+            true, 1, 0, vec![record], Vec::new()).unwrap();
         assert_eq!(run.status(), AdapterRunStatus::CompleteWithDeclaredLoss);
     }
     #[test]
@@ -577,7 +594,7 @@ mod tests {
     #[test]
     fn incomplete_source_inventory_takes_precedence() {
         let run = AdapterRun::new(profile(StandardPublicationStatus::Published), "source", "target",
-            false, vec![exact("voltage")], Vec::new()).unwrap();
+            false, 1, 0, vec![exact("voltage")], Vec::new()).unwrap();
         assert_eq!(run.status(), AdapterRunStatus::IncompleteSourceInventory);
     }
     #[test]
@@ -593,7 +610,7 @@ mod tests {
             ExtensionDisposition::UnsupportedExplicit, None, "sha256:a", None,
             "unsupported by this target profile").unwrap();
         let run = AdapterRun::new(profile(StandardPublicationStatus::Published), "source", "target",
-            true, Vec::new(), vec![extension]).unwrap();
+            true, 0, 1, Vec::new(), vec![extension]).unwrap();
         assert_eq!(run.status(), AdapterRunStatus::IncompleteUnsupportedOrAmbiguous);
     }
     #[test]
@@ -615,10 +632,23 @@ mod tests {
         let result = compare_semantic_round_trip(&p, vec![a.clone(), b.clone()], vec![b, a]).unwrap();
         assert!(result.semantically_equivalent());
     }
+
+    #[test]
+    fn complete_inventory_count_must_match_mapping_and_extension_records() {
+        assert!(matches!(
+            AdapterRun::new(
+                profile(StandardPublicationStatus::Published),
+                "source", "target", true, 2, 1,
+                vec![exact("voltage")], vec![opaque_extension()]
+            ),
+            Err(AdapterError::SourceInventoryCountMismatch { .. })
+        ));
+    }
+
     #[test]
     fn duplicate_source_references_are_rejected() {
         assert!(matches!(AdapterRun::new(profile(StandardPublicationStatus::Published), "source", "target",
-            true, vec![exact("voltage"), exact("voltage")], Vec::new()),
+            true, 2, 0, vec![exact("voltage"), exact("voltage")], Vec::new()),
             Err(AdapterError::DuplicateSourceSemanticReference { .. })));
     }
     #[test]
@@ -631,7 +661,7 @@ mod tests {
     #[test]
     fn duplicate_extension_source_identity_is_rejected() {
         assert!(matches!(AdapterRun::new(profile(StandardPublicationStatus::Published), "source", "target",
-            true, Vec::new(), vec![opaque_extension(), opaque_extension()]),
+            true, 0, 2, Vec::new(), vec![opaque_extension(), opaque_extension()]),
             Err(AdapterError::DuplicateSourceExtension { .. })));
     }
     #[test]

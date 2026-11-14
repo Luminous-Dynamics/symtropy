@@ -35,9 +35,9 @@ A standards lifecycle change does not mutate a historical profile. A new edition
 | Unsupported | No target and explanation | No mapping is provided |
 | Ambiguous | No target and explanation | More than one plausible semantic mapping exists |
 
-Unsupported and ambiguous records make the run incomplete. Explicit losses make it CompleteWithDeclaredLoss, not lossless success. An incomplete source inventory takes precedence over every other status.
+Unsupported and ambiguous records make the run incomplete. Explicit losses make it CompleteWithDeclaredLoss, not lossless success. An incomplete source inventory takes precedence over every other status. A complete inventory whose declared counts do not match its mapping or extension records is rejected.
 
-The kernel requires one record per source semantic reference. If one source item expands into several target items, a future profile version must introduce a grouping record rather than hiding multiplicity in a string.
+The kernel requires one record per source semantic reference and checks caller-supplied source semantic-item and extension counts against the record counts when the inventory is declared complete. If one source item expands into several target items, a future profile version must introduce a grouping record rather than hiding multiplicity in a string.
 
 ## 4. Extension handling
 
@@ -46,7 +46,7 @@ Every source extension must be recorded as:
 - Mapped: explicit target extension ID and target digest;
 - UnsupportedExplicit: no target and an explanation.
 
-No missing record is equivalent to preservation. Concrete adapters must enumerate their source extension inventory and bind the source input digest. Opaque extension payloads remain uninterpreted by this conformance kernel.
+No missing record is equivalent to preservation. The run includes expected source semantic-item and extension counts; they are compared with the recorded ledgers when the inventory is declared complete. Concrete adapters must enumerate their source extension inventory and bind the source input digest. Opaque extension payloads remain uninterpreted by this conformance kernel.
 
 Equality of caller-supplied payload digests is a contract check only. A concrete adapter or independent verifier must calculate and verify those digests over the appropriate source bytes.
 
