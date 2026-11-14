@@ -96,6 +96,30 @@ A single optimal design at one nominal flow split is not enough for physical use
 
 Publish per-stratum results and worst-case aggregation. Do not average away one failed geometry family. A future extension may report both worst-case and explicitly weighted expected performance, but the weights must be sourced and justified rather than chosen to make a candidate win.
 
+### Dimensionless transfer envelope
+
+The model's validity domain should be expressed in physical and dimensionless coordinates, not only raw geometry labels. Candidate descriptors to investigate include:
+
+- junction: inlet/outlet Reynolds numbers, Péclet number for the conservative tracer, inlet momentum-flux ratios, flow split, diameter/area ratios, branch angle, relative connection spacing and orientation;
+- tank: Reynolds and Péclet numbers, Froude number where free-surface dynamics matter, tank aspect ratio, normalized inlet/outlet elevation and separation, normalized residence time, fill/withdrawal ratio and operating level;
+- transient measurements: Strouhal-like event/time-scale ratios where the forcing frequency and advective time are both meaningful.
+
+These are candidate similarity descriptors, not universal sufficient statistics. Their relevance must be tested against physical measurements and the specific geometry family. A nominally similar Reynolds number does not guarantee similar scalar mixing if tracer diffusivity, inlet profiles, turbulence state, wall effects or boundary conditions differ.
+
+A fitted local operator should carry a supported envelope over those descriptors, its geometry family, and its measurement/calibration conditions. Report distance to the validated domain and abstain outside it; do not extrapolate merely because a dimensionless coordinate looks close.
+
+Generalization tests should include leave-one-junction-family-out, leave-one-operating-regime-out and leave-one-scale/facility-out splits. Random row-level splits within a single geometry or physical run are not accepted as transfer evidence. A future benchmark should test whether dimensionless descriptors reduce calibration burden across scale without increasing blind prediction error or false-safe decisions.
+
+### Uncertainty decomposition
+
+Keep three terms distinct:
+
+1. measurement/observation uncertainty (including sensor calibration, response, clock and flow uncertainty);
+2. parameter uncertainty conditional on the selected model;
+3. structural/model-discrepancy uncertainty when competing physical models disagree or the selected model is misspecified.
+
+A narrow parameter confidence interval does not imply a narrow predictive interval when model discrepancy is material. Publish these contributions and the resulting predictive interval separately. Disagreement between EPANET, reduced-order models and CFD is evidence to investigate, not something to average away without an explicit model-combination rationale.
+
 ## 6. Cost-aware selection without a magic score
 
 Track at least:
