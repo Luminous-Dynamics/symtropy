@@ -30,12 +30,19 @@ const WILSON_95_Z: f64 = 1.959_963_984_540_054;
 pub struct MonteCarloRandomizationConfig {
     pub seed_u64: u64,
     pub draw_count: usize,
+    pub analysis_plan_sha256: String,
+    pub preregistration_record_ref: String,
+    pub seed_commitment_sha256: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct MonteCarloRandomizationResult {
     pub schema_version: String,
     pub trial_id: String,
+    pub analysis_plan_sha256: String,
+    pub preregistration_record_ref: String,
+    pub seed_commitment_sha256: String,
+    pub configuration_sha256: String,
     pub assignment_plan_sha256: String,
     pub randomization_frame_sha256: String,
     pub algorithm: String,
@@ -61,6 +68,9 @@ pub struct MonteCarloRandomizationResult {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MonteCarloRandomizationError {
     InvalidDrawCount(usize),
+    InvalidAnalysisPlan,
+    MissingPreregistrationRecord,
+    InvalidSeedCommitment,
     TooManyUnits(usize),
     WorkBudgetExceeded {
         draw_count: usize,
@@ -80,6 +90,15 @@ impl fmt::Display for MonteCarloRandomizationError {
                 formatter,
                 "Monte Carlo draw count must be between {MIN_MONTE_CARLO_DRAWS} and {MAX_MONTE_CARLO_DRAWS}; got {count}"
             ),
+            Self::InvalidAnalysisPlan => {
+                write!(formatter, "analysis plan must bind a lowercase SHA-256 digest")
+            }
+            Self::MissingPreregistrationRecord => {
+                write!(formatter, "a preregistration record reference is required")
+            }
+            Self::InvalidSeedCommitment => {
+                write!(formatter, "seed commitment does not match the frozen analysis configuration")
+            }
             Self::TooManyUnits(count) => write!(
                 formatter,
                 "Monte Carlo blocked sampler is bounded to {MAX_MONTE_CARLO_UNITS} units; got {count}"
@@ -111,6 +130,69 @@ impl From<MaintenanceEffectError> for MonteCarloRandomizationError {
     fn from(error: MaintenanceEffectError) -> Self {
         Self::InvalidTrial(error)
     }
+}
+
+/// Build a run configuration whose seed commitment is bound to the analysis plan
+/// and fixed draw budget. The referenced preregistration receipt is an upstream
+/// evidence pointer; this module does not authenticate its issuer or timestamp.
+impl MonteCarloRandomizationConfig {
+    pub fn new(
+        seed_u64: u64,
+        draw_count: usize,
+        analysis_plan_sha256: String,
+        preregistration_record_ref: String,
+    ) -> Self {
+        let seed_commitment_sha256 = seed_commitment_sha256(
+            &analysis_plan_sha256,
+            seed_u64,
+            draw_count,
+        );
+        Self {
+            seed_u64,
+            draw_count,
+            analysis_plan_sha256,
+            preregistration_record_ref,
+            seed_commitment_sha256,
+        }
+    }
+
+    fn validate(&self) -> Result<(), MonteCarloRandomizationError> {
+        if !is_sha256_hex(&self.analysis_plan_sha256) {
+            return Err(MonteCarloRandomizationError::InvalidAnalysisPlan);
+        }
+        if self.preregistration_record_ref.trim().is_empty() {
+            return Err(MonteCarloRandomizationError::MissingPreregistrationRecord);
+        }
+        let expected = seed_commitment_sha256(
+            &self.analysis_plan_sha256,
+            self.seed_u64,
+            self.draw_count,
+        );
+        if !is_sha256_hex(&self.seed_commitment_sha256)
+            || self.seed_commitment_sha256 != expected
+        {
+            return Err(MonteCarloRandomizationError::InvalidSeedCommitment);
+        }
+        Ok(())
+    }
+
+    fn digest(&self) -> Result<String, MonteCarloRandomizationError> {
+        let bytes =
+            serde_json::to_vec(self).map_err(|_| MonteCarloRandomizationError::Serialization)?;
+        let mut hasher = Sha256::new();
+        hasher.update(b"symtropy-marine-monte-carlo-config-v1\\0");
+        hasher.update(bytes);
+        Ok(format!("{:x}", hasher.finalize()))
+    }
+}
+
+fn seed_commitment_sha256(analysis_plan_sha256: &str, seed_u64: u64, draw_count: usize) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"symtropy-marine-monte-carlo-seed-commit-v1\\0");
+    hasher.update(analysis_plan_sha256.as_bytes());
+    hasher.update(seed_u64.to_le_bytes());
+    hasher.update((draw_count as u64).to_le_bytes());
+    format!("{:x}", hasher.finalize())
 }
 
 /// SplitMix64, with its constants and wrapping semantics frozen for replay.
@@ -389,6 +471,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
     config: MonteCarloRandomizationConfig,
 ) -> Result<MonteCarloRandomizationResult, MonteCarloRandomizationError> {
     trial.validate()?;
+    config.validate()?;
     if !(MIN_MONTE_CARLO_DRAWS..=MAX_MONTE_CARLO_DRAWS).contains(&config.draw_count) {
         return Err(MonteCarloRandomizationError::InvalidDrawCount(
             config.draw_count,
@@ -406,6 +489,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let maximum_stratum_size = groups.values().map(Vec::len).max().unwrap_or(0);
     let mut workspace = SamplingWorkspace::new(trial.observations.len(), maximum_stratum_size);
     let frame_sha256 = randomization_frame_sha256(trial)?;
+    let configuration_sha256 = config.digest()?;
     let observed_mask = trial
         .observations
         .iter()
@@ -417,6 +501,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-monte-carlo-assignment-stream-v1\0");
     hasher.update(frame_sha256.as_bytes());
+    hasher.update(configuration_sha256.as_bytes());
     hasher.update(trial.assignment_plan_sha256.as_bytes());
     hasher.update(MONTE_CARLO_RANDOMIZATION_ALGORITHM.as_bytes());
     hasher.update(config.seed_u64.to_le_bytes());
@@ -453,6 +538,10 @@ pub fn estimate_monte_carlo_randomization_p_value(
     Ok(MonteCarloRandomizationResult {
         schema_version: MONTE_CARLO_RANDOMIZATION_SCHEMA.to_owned(),
         trial_id: trial.trial_id.clone(),
+        analysis_plan_sha256: config.analysis_plan_sha256.clone(),
+        preregistration_record_ref: config.preregistration_record_ref.clone(),
+        seed_commitment_sha256: config.seed_commitment_sha256.clone(),
+        configuration_sha256,
         assignment_plan_sha256: trial.assignment_plan_sha256.clone(),
         randomization_frame_sha256: frame_sha256,
         algorithm: MONTE_CARLO_RANDOMIZATION_ALGORITHM.to_owned(),
@@ -480,6 +569,15 @@ mod tests {
         AssignmentMethod, OutcomeDirection, RandomizedUnitObservation, StratumAllocation,
         estimate_blocked_randomized_maintenance_effect,
     };
+
+    fn test_config(seed_u64: u64, draw_count: usize) -> MonteCarloRandomizationConfig {
+        MonteCarloRandomizationConfig::new(
+            seed_u64,
+            draw_count,
+            "d".repeat(64),
+            "test-preregistration://maintenance-effect-v0-1".into(),
+        )
+    }
 
     fn trial() -> BlockedRandomizedMaintenanceTrial {
         let mut observations = Vec::new();
@@ -610,10 +708,7 @@ mod tests {
         let mut reordered = original.clone();
         reordered.observations.reverse();
         reordered.stratum_allocations.reverse();
-        let config = MonteCarloRandomizationConfig {
-            seed_u64: 0x1234_5678,
-            draw_count: 2_000,
-        };
+        let config = test_config(0x1234_5678, 2_000);
         let first = estimate_monte_carlo_randomization_p_value(&original, config).unwrap();
         let second = estimate_monte_carlo_randomization_p_value(&reordered, config).unwrap();
         assert_eq!(
@@ -676,10 +771,7 @@ mod tests {
     #[test]
     fn same_seed_and_inputs_reproduce_identical_assignment_digest_and_p_value() {
         let trial = trial();
-        let config = MonteCarloRandomizationConfig {
-            seed_u64: 0xCAFE_BABE,
-            draw_count: 2_000,
-        };
+        let config = test_config(0xCAFE_BABE, 2_000);
         let first = estimate_monte_carlo_randomization_p_value(&trial, config).unwrap();
         let second = estimate_monte_carlo_randomization_p_value(&trial, config).unwrap();
         assert_eq!(first, second);
@@ -693,18 +785,12 @@ mod tests {
         let trial = trial();
         let first = estimate_monte_carlo_randomization_p_value(
             &trial,
-            MonteCarloRandomizationConfig {
-                seed_u64: 1,
-                draw_count: 2_000,
-            },
+            test_config(1, 2_000),
         )
         .unwrap();
         let second = estimate_monte_carlo_randomization_p_value(
             &trial,
-            MonteCarloRandomizationConfig {
-                seed_u64: 2,
-                draw_count: 2_000,
-            },
+            test_config(2, 2_000),
         )
         .unwrap();
         assert_ne!(
@@ -748,10 +834,7 @@ mod tests {
         }
         let result = estimate_monte_carlo_randomization_p_value(
             &no_effect,
-            MonteCarloRandomizationConfig {
-                seed_u64: 5,
-                draw_count: 1_000,
-            },
+            test_config(5, 1_000),
         )
         .unwrap();
         assert!(result.p_value_plus_one > 0.0);
@@ -766,10 +849,7 @@ mod tests {
             .exact_randomization_p_value;
         let mc = estimate_monte_carlo_randomization_p_value(
             &trial,
-            MonteCarloRandomizationConfig {
-                seed_u64: 42,
-                draw_count: 30_000,
-            },
+            test_config(42, 30_000),
         )
         .unwrap();
         assert!(
@@ -788,10 +868,7 @@ mod tests {
         for seed in 0..200u64 {
             let result = estimate_monte_carlo_randomization_p_value(
                 &trial,
-                MonteCarloRandomizationConfig {
-                    seed_u64: seed,
-                    draw_count: 1_000,
-                },
+                test_config(seed, 1_000),
             )
             .unwrap();
             if result.tail_probability_wilson_95[0] <= exact
@@ -812,10 +889,7 @@ mod tests {
         assert_eq!(trial.observations.len(), 17);
         let result = estimate_monte_carlo_randomization_p_value(
             &trial,
-            MonteCarloRandomizationConfig {
-                seed_u64: 99,
-                draw_count: 1_000,
-            },
+            test_config(99, 1_000),
         )
         .unwrap();
         assert_eq!(result.draw_count, 1_000);
@@ -828,10 +902,7 @@ mod tests {
         let original = trial();
         let mut changed = original.clone();
         changed.observations[0].observed_outcome_value += 0.5;
-        let config = MonteCarloRandomizationConfig {
-            seed_u64: 77,
-            draw_count: 2_000,
-        };
+        let config = test_config(77, 2_000);
         let first = estimate_monte_carlo_randomization_p_value(&original, config).unwrap();
         let second = estimate_monte_carlo_randomization_p_value(&changed, config).unwrap();
         assert_ne!(
@@ -848,10 +919,7 @@ mod tests {
     fn monte_carlo_report_never_grants_maintenance_or_operating_authority() {
         let result = estimate_monte_carlo_randomization_p_value(
             &trial(),
-            MonteCarloRandomizationConfig {
-                seed_u64: 88,
-                draw_count: 100,
-            },
+            test_config(88, 100),
         )
         .unwrap();
         assert!(!result.maintenance_authorized);
@@ -892,10 +960,7 @@ mod tests {
         assert_eq!(
             estimate_monte_carlo_randomization_p_value(
                 &oversized,
-                MonteCarloRandomizationConfig {
-                    seed_u64: 123,
-                    draw_count: 100,
-                }
+                test_config(123, 100)
             ),
             Err(MonteCarloRandomizationError::TooManyUnits(10_001))
         );
@@ -920,12 +985,31 @@ mod tests {
 
     #[test]
     fn full_unsigned_seed_range_survives_json_round_trip() {
-        let encoded = r#"{"seed_u64":18446744073709551615,"draw_count":100}"#;
-        let config: MonteCarloRandomizationConfig = serde_json::from_str(encoded).unwrap();
-        assert_eq!(config.seed_u64, u64::MAX);
+        let config = test_config(u64::MAX, 100);
+        let encoded = serde_json::to_string(&config).unwrap();
+        let decoded: MonteCarloRandomizationConfig = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded, config);
+        assert_eq!(decoded.seed_u64, u64::MAX);
+        assert!(decoded.validate().is_ok());
+    }
+
+    #[test]
+    fn tampered_seed_commitment_is_rejected_before_sampling() {
+        let mut config = test_config(42, 1_000);
+        config.seed_commitment_sha256 = "0".repeat(64);
         assert_eq!(
-            serde_json::to_string(&config).unwrap(),
-            encoded
+            estimate_monte_carlo_randomization_p_value(&trial(), config),
+            Err(MonteCarloRandomizationError::InvalidSeedCommitment)
+        );
+    }
+
+    #[test]
+    fn missing_preregistration_reference_is_rejected_before_sampling() {
+        let mut config = test_config(42, 1_000);
+        config.preregistration_record_ref.clear();
+        assert_eq!(
+            estimate_monte_carlo_randomization_p_value(&trial(), config),
+            Err(MonteCarloRandomizationError::MissingPreregistrationRecord)
         );
     }
 
@@ -942,8 +1026,8 @@ mod tests {
             MONTE_CARLO_RANDOMIZATION_ALGORITHM
         );
         assert_eq!(protocol["algorithm"]["max_units"], MAX_MONTE_CARLO_UNITS);
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 36);
-        assert_eq!(protocol["cases"].as_array().unwrap().len(), 17);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 17);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 39);
+        assert_eq!(protocol["cases"].as_array().unwrap().len(), 20);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 20);
     }
 }
