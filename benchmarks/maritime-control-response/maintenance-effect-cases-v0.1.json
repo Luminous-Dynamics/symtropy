@@ -71,6 +71,11 @@
       "case_id": "ME14",
       "scenario": "All observations carry deterministic absolute-error bounds; report sampling interval and separately expanded measurement-robust interval.",
       "expected": "accepted_with_measurement_error_bound"
+    },
+    {
+      "case_id": "ME15",
+      "scenario": "Calibration record becomes effective after the baseline or outcome was observed.",
+      "expected": "rejected_calibration_not_yet_effective"
     }
   ]
 }
