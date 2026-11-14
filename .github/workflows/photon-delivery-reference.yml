@@ -1,0 +1,54 @@
+name: photon-delivery-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/photon-delivery-reference.yml"
+      - "tools/photon-delivery-reference/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/photon-delivery-reference.yml"
+      - "tools/photon-delivery-reference/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: source-to-canopy photon budget reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/photon-delivery-reference/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/photon-delivery-reference/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/photon-delivery-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen reference case
+        run: |
+          cargo run --manifest-path tools/photon-delivery-reference/Cargo.toml --release -- \
+            --input tools/photon-delivery-reference/fixtures/synthetic-lunar-cavern-hybrid-v0-1.input \
+            | tee photon-delivery-reference.json
+          grep -q '"evidence_class": "synthetic"' photon-delivery-reference.json
+          grep -q '"resource_constrained_solar_dli_mol_m2_day": 12.441600' photon-delivery-reference.json
+          grep -q '"optical_service_fraction": 1.000000' photon-delivery-reference.json
+          grep -q '"resource_constrained_optical_auxiliary_electricity_kwh_day": 20.000000' photon-delivery-reference.json
+          grep -q '"resource_constrained_dli_mol_m2_day": 18.086400' photon-delivery-reference.json
+          grep -q '"resource_constrained_dli_shortfall_mol_m2_day": 1.913600' photon-delivery-reference.json
+          grep -q '"dli_met": false' photon-delivery-reference.json
+          grep -q '"peak_power_feasible": false' photon-delivery-reference.json
+          grep -q '"daily_energy_feasible": true' photon-delivery-reference.json

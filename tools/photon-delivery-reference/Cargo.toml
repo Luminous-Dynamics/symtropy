@@ -1,0 +1,9 @@
+[package]
+name = "photon-delivery-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Source-to-canopy solar photon and supplemental LED energy reference calculator"
+
+[workspace]
+members = []
