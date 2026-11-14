@@ -754,10 +754,10 @@ fn dominates(
 ) -> bool {
     let mut strictly_better = false;
     for metric in metrics {
-        let Some(left_value) = left.get(&metric) else {
+        let Some(left_value) = left.get(metric) else {
             return false;
         };
-        let Some(right_value) = right.get(&metric) else {
+        let Some(right_value) = right.get(metric) else {
             return false;
         };
         match metric.direction() {
@@ -960,7 +960,6 @@ mod tests {
     use super::*;
     use crate::resilience::{PlanChurn, ResilienceReport};
     use crate::utilities::{UtilityFinding, UtilityReport};
-    use crate::Finding;
 
     fn evidence(
         id: &str,
