@@ -30,7 +30,13 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// The method is symplectic for the separable Hamiltonian systems represented
+/// by this linear update, which often gives bounded long-time energy error
+/// when the timestep is inside the problem's stability region. Symplectic does
+/// not mean unconditionally stable: for a harmonic oscillator with angular
+/// frequency omega, the linear stability condition is 0 < omega * dt < 2.
+/// Large timesteps can still diverge or produce unacceptable phase error.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -195,6 +201,72 @@ mod tests {
         let y = body.transform.translation.coord(1);
         assert!(y < -3.0, "y = {y}, expected < -3.0");
         assert!(y > -6.0, "y = {y}, expected > -6.0 (damping bounds)");
+    }
+
+    #[test]
+    fn constant_gravity_free_fall_matches_first_order_error_law() {
+        fn simulate(dt: f64) -> (f64, f64) {
+            let duration = 1.0;
+            let steps = (duration / dt).round() as usize;
+            let gravity = SVector::from([0.0, -9.81, 0.0]);
+            let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.1, 1.0);
+            body.linear_damping = 0.0;
+
+            for _ in 0..steps {
+                integrate(&mut body, &gravity, dt);
+            }
+
+            let exact_position = 0.5 * gravity[1] * duration * duration;
+            let position_error = (body.transform.translation.coord(1) - exact_position).abs();
+            (
+                position_error,
+                (body.linear_velocity[1] - gravity[1] * duration).abs(),
+            )
+        }
+
+        let (error_20_ms, velocity_error_20_ms) = simulate(0.02);
+        let (error_10_ms, velocity_error_10_ms) = simulate(0.01);
+        let (error_5_ms, velocity_error_5_ms) = simulate(0.005);
+
+        assert!((error_20_ms / error_10_ms - 2.0).abs() < 1e-10);
+        assert!((error_10_ms / error_5_ms - 2.0).abs() < 1e-10);
+        assert!(velocity_error_20_ms < 1e-10);
+        assert!(velocity_error_10_ms < 1e-10);
+        assert!(velocity_error_5_ms < 1e-10);
+    }
+
+    #[test]
+    fn harmonic_oscillator_energy_is_bounded_inside_linear_stability_region() {
+        let mass = 1.0;
+        let angular_frequency = 10.0;
+        let stiffness = mass * angular_frequency * angular_frequency;
+        let dt = 0.01;
+        assert!(angular_frequency * dt < 2.0);
+
+        let mut body = RigidBody::<1>::dynamic_sphere(BodyHandle(0), Point::new([1.0]), 0.1, mass);
+        body.linear_damping = 0.0;
+        let gravity = SVector::zeros();
+        let mut min_energy = f64::INFINITY;
+        let mut max_energy = 0.0_f64;
+
+        for _ in 0..10_000 {
+            let position = body.transform.translation.0[0];
+            body.apply_force(SVector::from([-stiffness * position]));
+            integrate(&mut body, &gravity, dt);
+
+            let position = body.transform.translation.0[0];
+            let velocity = body.linear_velocity[0];
+            let energy = 0.5 * mass * velocity * velocity + 0.5 * stiffness * position * position;
+            min_energy = min_energy.min(energy);
+            max_energy = max_energy.max(energy);
+        }
+
+        assert!(min_energy > 0.0);
+        assert!(
+            max_energy / min_energy < 1.12,
+            "harmonic energy range ratio {} exceeds the 12% bound",
+            max_energy / min_energy
+        );
     }
 
     #[test]
