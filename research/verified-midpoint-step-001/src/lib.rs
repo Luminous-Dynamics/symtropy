@@ -661,7 +661,7 @@ fn evaluate_reduced_equation(
 }
 
 fn is_exactly_symmetric<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
-    (0..N).all(|row| (0..N).all(|column| matrix[row][column].to_bits() == matrix[column][row].to_bits()))
+    (0..N).all(|row| (0..N).all(|column| matrix[row][column] == matrix[column][row]))
 }
 
 fn cholesky_check<const N: usize>(matrix: &[[f64; N]; N], symmetry_tolerance: f64) -> bool {
