@@ -16,6 +16,7 @@ use serde::Serialize;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
+mod infrastructure_ir;
 mod module_contract;
 mod service_graph;
 
@@ -23,6 +24,11 @@ pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
+};
+pub use infrastructure_ir::{
+    ClaimDomain, ClaimProvenance, ClaimState, ExtensionOwner, IrError, IrObject,
+    IrRelationship, IrSchemaVersion, NamespacedType, ObjectIdentity, OpaqueExtension,
+    PowerFabricDocument, PropertyClaim, PropertyValue, RelationshipDirection, WireDocument,
 };
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
