@@ -1,0 +1,71 @@
+{
+  "schema_version": "water-filter-lifecycle-f1-oracle-v0.1",
+  "evidence_class": "synthetic_protocol_schedule_contract",
+  "evidence_ceiling": "protocol_schedule_and_record_integrity_only_no_filter_performance_or_WHO_certification_claim",
+  "cases": [
+    {
+      "case_id": "WFL-F1-001-complete-who-v4-schedule",
+      "expected_status": "PASS_PROTOCOL_SCHEDULE"
+    },
+    {
+      "case_id": "WFL-F1-002-only-two-production-units",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-003-ctw-water-omitted",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-004-day-four-sample-missing",
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-005-seeding-volume-too-low",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-006-effluent-sample-under-three-litres",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-007-cleaning-during-sample",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-008-primary-treatment-component-replaced",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-009-unrecoverable-clogging-over-75-percent",
+      "expected_status": "PASS_EARLY_CLOGGING_STOP"
+    },
+    {
+      "case_id": "WFL-F1-010-clogging-restored-by-permitted-cleaning",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-011-flow-decline-only-60-percent",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-012-duplicate-effluent-sample-id",
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-013-daily-test-water-ph-missing",
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-014-chain-of-custody-missing",
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-015-manufacturer-end-of-life-instruction-missing",
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-016-permitted-nonprimary-prefilter-replacement-recorded",
+      "expected_status": "PASS_PROTOCOL_SCHEDULE"
+    }
+  ]
+}
