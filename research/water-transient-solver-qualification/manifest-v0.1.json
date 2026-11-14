@@ -6,7 +6,7 @@
   "evidence_ceiling": "analytical_arithmetic_only_no_transient_solver_physical_surge_or_intrusion_qualification",
   "input_file": "water-transient-t0-cases-v0.1.json",
   "oracle_file": "water-transient-t0-oracle-v0.1.json",
-  "scenario_count": 8,
+  "scenario_count": 10,
   "scenario_ids": [
     "WT-T0-001-rapid-closure-joukowsky-known-answer",
     "WT-T0-002-one-way-and-round-trip-wave-time",
@@ -15,7 +15,9 @@
     "WT-T0-005-wave-speed-missing",
     "WT-T0-006-single-phase-formula-crosses-vapour-pressure",
     "WT-T0-007-closure-time-at-round-trip-boundary",
-    "WT-T0-008-invalid-negative-pipe-length"
+    "WT-T0-008-invalid-negative-pipe-length",
+    "WT-T0-009-wave-speed-uncertainty-envelope",
+    "WT-T0-010-reversed-wave-speed-interval"
   ],
   "non_compensable_invariants": [
     "steady_state_EPANET_is_not_transient_qualification",
@@ -35,7 +37,10 @@
     "reference_case_git_blob_identity_is_not_downloaded_file_SHA256",
     "published_pressure_intrusion_reference_raw_data_is_not_claimed_acquired",
     "packaged_PTSNET_TNET3_input_bytes_must_be_pinned_before_reproduction",
-    "different_Nault_scenario_topologies_must_not_be_pooled_as_identical_networks"
+    "different_Nault_scenario_topologies_must_not_be_pooled_as_identical_networks",
+    "wave_speed_interval_must_propagate_into_pressure_and_wave_time_bounds",
+    "wave_speed_lower_bound_greater_than_upper_bound_is_invalid",
+    "single_nominal_celerity_never_replaces_missing_material_wall_and_restraint_uncertainty"
   ],
   "comparators": {
     "published_open_source_candidate": "EPANET-AWH DOI 10.1016/j.jwpe.2026.110770",
