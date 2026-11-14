@@ -550,7 +550,10 @@ mod tests{
     }
     #[test]
     fn expired_calibration_cannot_contribute(){
-        let mut v=fixture();
+        // Calibration is meaningful for measured evidence. Use a measured
+        // case so an expired certificate makes one independent principle
+        // inadmissible; synthetic fixtures correctly use not_applicable.
+        let mut v=measured_case();
         v["pairs"][0]["minimum_independent_principles"]=json!(3);
         v["channels"][2]["calibration_state"]=json!("expired");
         let r=run(&v);
