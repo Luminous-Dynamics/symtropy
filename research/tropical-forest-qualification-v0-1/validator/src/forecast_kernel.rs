@@ -460,31 +460,30 @@ pub fn summarize_binary_event_forecasts(
     let forecast_coverage_fraction =
         count_as_f64(forecast_case_count)? / count_as_f64(eligible_case_count)?;
     let mean_baseline_brier_all = all_baseline_total / count_as_f64(eligible_case_count)?;
-    let reliability_bins = (0..5)
-        .map(|index| {
-            let case_count = bin_counts[index];
-            let lower_bound = f64::from(u32::try_from(index).unwrap_or_default()) * 0.2;
-            let upper_bound = if index == 4 { 1.0 } else { lower_bound + 0.2 };
-            ReliabilityBin {
-                lower_bound,
-                upper_bound,
-                case_count,
-                mean_forecast_probability: if case_count == 0 {
-                    None
-                } else {
-                    Some(bin_probability_totals[index] / count_as_f64(case_count).unwrap_or(1.0))
-                },
-                observed_event_frequency: if case_count == 0 {
-                    None
-                } else {
-                    Some(
-                        f64::from(u32::try_from(bin_event_counts[index]).unwrap_or_default())
-                            / count_as_f64(case_count).unwrap_or(1.0),
-                    )
-                },
-            }
-        })
-        .collect();
+    let mut reliability_bins = Vec::with_capacity(5);
+    for (index, case_count) in bin_counts.iter().copied().enumerate() {
+        let index_count = u32::try_from(index).map_err(|_| ForecastError::InvalidEnsembleSize)?;
+        let lower_bound = f64::from(index_count) * 0.2;
+        let upper_bound = if index == 4 { 1.0 } else { lower_bound + 0.2 };
+        let count = count_as_f64(case_count)?;
+        let mean_forecast_probability = if case_count == 0 {
+            None
+        } else {
+            Some(bin_probability_totals[index] / count)
+        };
+        let observed_event_frequency = if case_count == 0 {
+            None
+        } else {
+            Some(count_as_f64(bin_event_counts[index])? / count)
+        };
+        reliability_bins.push(ReliabilityBin {
+            lower_bound,
+            upper_bound,
+            case_count,
+            mean_forecast_probability,
+            observed_event_frequency,
+        });
+    }
 
     if forecast_case_count == 0 {
         return Ok(BrierSummary {
