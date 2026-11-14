@@ -780,6 +780,34 @@ mod tests {
     }
 
     #[test]
+    fn wilson_interval_coverage_is_checked_across_a_frozen_two_hundred_seed_panel() {
+        let trial = trial();
+        let exact = estimate_blocked_randomized_maintenance_effect(&trial)
+            .unwrap()
+            .exact_randomization_p_value;
+        let mut covered = 0usize;
+        for seed in 0..200u64 {
+            let result = estimate_monte_carlo_randomization_p_value(
+                &trial,
+                MonteCarloRandomizationConfig {
+                    seed_u64: seed,
+                    draw_count: 1_000,
+                },
+            )
+            .unwrap();
+            if result.tail_probability_wilson_95[0] <= exact
+                && exact <= result.tail_probability_wilson_95[1]
+            {
+                covered += 1;
+            }
+        }
+        assert!(
+            covered >= 180,
+            "Wilson intervals covered the exact tail in {covered}/200 fixed seed streams"
+        );
+    }
+
+    #[test]
     fn monte_carlo_sampler_supports_trials_above_the_exact_sixteen_unit_bound() {
         let trial = larger_trial();
         assert_eq!(trial.observations.len(), 17);
