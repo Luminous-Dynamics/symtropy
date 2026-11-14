@@ -40,16 +40,43 @@ pub struct InvariantSnapshot<const D: usize> {
     pub max_rotation_determinant_error: f64,
     /// Deepest contact reported for the current step.
     pub max_penetration_depth: f64,
-    /// Number of bodies whose state contains a NaN or infinity.
+    /// Number of bodies with non-finite state or physical parameters.
     pub non_finite_body_count: usize,
+    /// Number of bodies with finite but invalid physical parameters.
+    pub invalid_physical_parameter_count: usize,
+    /// Number of contact manifolds/events with non-finite measured data.
+    pub non_finite_contact_count: usize,
 }
 
 impl<const D: usize> InvariantSnapshot<D> {
-    /// True when all body state was finite and every orientation satisfied the
-    /// supplied proper-rotation tolerance.
+    /// True only when all reported physical observables and body/contact
+    /// diagnostics are finite, physical parameters are admissible, and every
+    /// orientation satisfies the supplied proper-rotation tolerance.
+    ///
+    /// A finite position/velocity alone is insufficient: NaN mass, inertia,
+    /// contact depth, or aggregate energy must fail closed as well.
     pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
-        self.non_finite_body_count == 0
+        rotation_tolerance.is_finite()
+            && rotation_tolerance >= 0.0
+            && self.non_finite_body_count == 0
+            && self.invalid_physical_parameter_count == 0
+            && self.non_finite_contact_count == 0
+            && self.dynamic_mass.is_finite()
+            && self.dynamic_mass >= 0.0
+            && self.center_of_mass.iter().all(|value| value.is_finite())
+            && self.linear_momentum.iter().all(|value| value.is_finite())
+            && self.kinetic_energy.is_finite()
+            && self.gravitational_potential_energy.is_finite()
+            && self.mechanical_energy.is_finite()
+            && self.max_linear_speed.is_finite()
+            && self.max_linear_speed >= 0.0
+            && self.max_angular_speed.is_finite()
+            && self.max_angular_speed >= 0.0
+            && self.max_penetration_depth.is_finite()
+            && self.max_penetration_depth >= 0.0
+            && self.max_rotation_orthogonality_error.is_finite()
             && self.max_rotation_orthogonality_error <= rotation_tolerance
+            && self.max_rotation_determinant_error.is_finite()
             && self.max_rotation_determinant_error <= rotation_tolerance
     }
 
@@ -107,6 +134,8 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut max_rotation_orthogonality_error = 0.0_f64;
         let mut max_rotation_determinant_error = 0.0_f64;
         let mut non_finite_body_count = 0;
+        let mut invalid_physical_parameter_count = 0;
+        let mut non_finite_contact_count = 0;
 
         for body in &self.bodies {
             let position = body.transform.translation.0;
@@ -120,10 +149,32 @@ impl<const D: usize> PhysicsWorld<D> {
             let finite = position.iter().all(|value| value.is_finite())
                 && body.linear_velocity.iter().all(|value| value.is_finite())
                 && body.angular_velocity.is_finite()
+                && body.force_accumulator.iter().all(|value| value.is_finite())
+                && body.torque_accumulator.is_finite()
+                && body.mass.is_finite()
+                && body.inv_mass.is_finite()
+                && body.inertia.iter().all(|value| value.is_finite())
+                && body.inv_inertia.iter().all(|value| value.is_finite())
+                && body.friction.is_finite()
+                && body.restitution.is_finite()
+                && body.linear_damping.is_finite()
+                && body.angular_damping.is_finite()
                 && rotation_orthogonality_error.is_finite()
                 && rotation_determinant_error.is_finite();
             if !finite {
                 non_finite_body_count += 1;
+            }
+
+            let parameters_valid = body.mass >= 0.0
+                && body.inv_mass >= 0.0
+                && body.inertia.iter().all(|value| *value >= 0.0)
+                && body.inv_inertia.iter().all(|value| *value >= 0.0)
+                && body.friction >= 0.0
+                && body.linear_damping >= 0.0
+                && body.angular_damping >= 0.0
+                && (body.body_type != BodyType::Dynamic || body.mass > 0.0);
+            if finite && !parameters_valid {
+                invalid_physical_parameter_count += 1;
             }
 
             if body.body_type != BodyType::Dynamic {
@@ -144,12 +195,35 @@ impl<const D: usize> PhysicsWorld<D> {
         } else {
             SVector::zeros()
         };
+        if !self.gravity.iter().all(|value| value.is_finite()) {
+            gravitational_potential_energy = f64::NAN;
+        }
         let mechanical_energy = kinetic_energy + gravitational_potential_energy;
-        let max_penetration_depth = self
-            .contacts
-            .iter()
-            .map(|contact| contact.depth())
-            .fold(0.0_f64, f64::max);
+        let mut max_penetration_depth = 0.0_f64;
+        for contact in &self.contacts {
+            let finite = contact.normal.iter().all(|value| value.is_finite())
+                && contact.points.iter().all(|point| {
+                    point.position.iter().all(|value| value.is_finite())
+                        && point.depth.is_finite()
+                        && point.lambda.is_finite()
+                        && point.restitution_bias.is_finite()
+                })
+                && contact.elasticity.is_none_or(f64::is_finite);
+            if !finite {
+                non_finite_contact_count += 1;
+                max_penetration_depth = f64::NAN;
+            } else if max_penetration_depth.is_finite() {
+                max_penetration_depth = max_penetration_depth.max(contact.depth());
+            }
+        }
+        for event in &self.collision_events {
+            if !event.impulse.is_finite()
+                || !event.depth.is_finite()
+                || !event.normal.iter().all(|value| value.is_finite())
+            {
+                non_finite_contact_count += 1;
+            }
+        }
 
         InvariantSnapshot {
             dynamic_mass,
@@ -164,6 +238,8 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error,
             max_penetration_depth,
             non_finite_body_count,
+            invalid_physical_parameter_count,
+            non_finite_contact_count,
         }
     }
 }
@@ -208,6 +284,76 @@ mod tests {
         let drift = before.drift_to(&after);
         assert!((drift.linear_momentum_error_norm() - 5.0).abs() < 1e-12);
         assert!((drift.absolute_energy_drift - 12.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn health_gate_rejects_non_finite_mass_and_inertia() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let mut body = RigidBody::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        body.mass = f64::INFINITY;
+        body.inertia[0] = f64::NAN;
+        world.add_body(body);
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.non_finite_body_count, 1);
+        assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn health_gate_rejects_finite_but_invalid_physical_parameters() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let mut body = RigidBody::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        body.mass = -1.0;
+        body.linear_damping = -0.1;
+        world.add_body(body);
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.invalid_physical_parameter_count, 1);
+        assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn health_gate_rejects_non_finite_contact_measurements() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let body_a = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body_b = world.add_sphere(Point::new([0.9, 0.0, 0.0]), 0.5, 1.0);
+        let mut contact = crate::contact::ContactManifold::single(
+            body_a,
+            body_b,
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.45, 0.0, 0.0]),
+            0.1,
+        );
+        contact.points[0].depth = f64::NAN;
+        world.contacts.push(contact);
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.non_finite_contact_count, 1);
+        assert!(!snapshot.max_penetration_depth.is_finite());
+        assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn health_gate_rejects_non_finite_environment_gravity_even_for_empty_world() {
+        let world = PhysicsWorld::<3>::new(SVector::from([0.0, f64::NAN, 0.0]));
+        let snapshot = world.invariant_snapshot();
+
+        assert!(!snapshot.gravitational_potential_energy.is_finite());
+        assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn health_gate_rejects_non_finite_tolerance_and_aggregate_energy() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        let snapshot = world.invariant_snapshot();
+
+        assert!(!snapshot.is_numerically_healthy(f64::NAN));
+        assert!(!snapshot.is_numerically_healthy(-1.0));
+
+        let mut corrupted = snapshot.clone();
+        corrupted.mechanical_energy = f64::INFINITY;
+        assert!(!corrupted.is_numerically_healthy(1e-9));
     }
 
     #[test]
