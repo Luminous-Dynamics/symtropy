@@ -142,6 +142,22 @@ pub fn radial_gravity_profile(
 
 pub type Vec3 = [f64; 3];
 
+/// Apparent acceleration in a uniformly translating, accelerating frame.
+///
+/// The local pseudo-acceleration is the negative of the frame acceleration.
+/// This is the kinematic equivalence-principle baseline; it does not model
+/// propulsion, propellant, trajectory, tidal curvature, or a global field.
+pub fn translating_frame_apparent_acceleration(
+    frame_acceleration_m_s2: Vec3,
+) -> Result<Vec3, ModelError> {
+    require_finite_vec3(frame_acceleration_m_s2, "frame_acceleration_m_s2")?;
+    Ok([
+        -frame_acceleration_m_s2[0],
+        -frame_acceleration_m_s2[1],
+        -frame_acceleration_m_s2[2],
+    ])
+}
+
 fn require_finite_vec3(value: Vec3, name: &'static str) -> Result<(), ModelError> {
     for component in value {
         require_finite(component, name)?;
@@ -261,6 +277,19 @@ mod tests {
         close(result[0], 0.0, 1e-12);
         close(result[1], -4.0, 1e-12);
         close(result[2], 0.0, 1e-12);
+    }
+
+    #[test]
+    fn translating_frame_apparent_acceleration_opposes_frame_acceleration() {
+        let result = translating_frame_apparent_acceleration([
+            0.0,
+            0.0,
+            STANDARD_GRAVITY_M_S2,
+        ])
+        .unwrap();
+        close(result[0], 0.0, 1e-12);
+        close(result[1], 0.0, 1e-12);
+        close(result[2], -STANDARD_GRAVITY_M_S2, 1e-12);
     }
 
     #[test]
