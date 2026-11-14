@@ -7,10 +7,7 @@ use metric_induced_error_envelope_reference::{
 
 fn fixture<const N: usize>(
     profile: MetricProfileV1,
-) -> (
-    Metric<CartesianQ, N>,
-    Rebasis<CartesianQ, DenseY, N>,
-) {
+) -> (Metric<CartesianQ, N>, Rebasis<CartesianQ, DenseY, N>) {
     let mass: Matrix<N> = std::array::from_fn(|row| {
         std::array::from_fn(|column| {
             if row == column {
@@ -92,9 +89,7 @@ fn run<const N: usize>(iterations: usize) {
     let (metric, rebasis) = fixture::<N>(profile);
     let samples = 9;
     let optimized = median_ns(samples, iterations, || {
-        let result = rebasis
-            .metric_to_to(black_box(&metric), profile)
-            .unwrap();
+        let result = rebasis.metric_to_to(black_box(&metric), profile).unwrap();
         result.matrix()[0][0] + result.matrix()[N - 1][N - 1]
     });
     let reference = median_ns(samples, iterations, || {
@@ -108,7 +103,9 @@ fn run<const N: usize>(iterations: usize) {
 }
 
 fn main() {
-    println!("dimension,iterations_per_sample,optimized_o_n3_median_ns,reference_o_n4_median_ns,reference_over_optimized");
+    println!(
+        "dimension,iterations_per_sample,optimized_o_n3_median_ns,reference_o_n4_median_ns,reference_over_optimized"
+    );
     run::<6>(500);
     run::<12>(100);
     run::<24>(10);
