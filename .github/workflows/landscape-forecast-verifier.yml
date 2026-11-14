@@ -1,0 +1,88 @@
+name: Landscape Forecast Verifier
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/landscape-forecast-verifier/**"
+      - "docs/research/LANDSCAPE_FORECAST_VERIFICATION_V0_1.md"
+      - "docs/research/fixtures/LANDSCAPE_FORECAST_VERIFICATION_V0_1.json"
+      - "schemas/landscape-forecast-verification-fixture-v0.1.schema.json"
+      - ".github/workflows/landscape-forecast-verifier.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/landscape-forecast-verifier/**"
+      - "docs/research/LANDSCAPE_FORECAST_VERIFICATION_V0_1.md"
+      - "docs/research/fixtures/LANDSCAPE_FORECAST_VERIFICATION_V0_1.json"
+      - "schemas/landscape-forecast-verification-fixture-v0.1.schema.json"
+      - ".github/workflows/landscape-forecast-verifier.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: Synthetic forecast known-answer and negative-control suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/landscape-forecast-verifier/Cargo.toml -- --check
+
+      - name: Run tests
+        run: cargo test --locked --manifest-path tools/landscape-forecast-verifier/Cargo.toml
+
+
+      - name: Emit and check the frozen synthetic report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/LANDSCAPE_FORECAST_VERIFICATION_V0_1.json"
+          report="$RUNNER_TEMP/landscape-forecast-verification.json"
+          expected_sha256="$(sha256sum "$fixture" | cut -d ' ' -f 1)"
+          cargo run --locked --manifest-path tools/landscape-forecast-verifier/Cargo.toml -- "$fixture" > "$report"
+          jq -e --arg digest "$expected_sha256" '
+            .schema_version == "luminous.landscape_forecast_verification_report.v0.1" and
+            .suite_id == "LANDSCAPE-FORECAST-VERIFICATION-V0.1" and
+            .input_sha256 == $digest and
+            .data_origin == "synthetic_fixture" and
+            .claim_ceiling == "SYNTHETIC_CONTRACT_TEST_ONLY" and
+            .case_count == 14 and
+            .scored_case_count == 9 and
+            .excluded_case_count == 5 and
+            (.metric_summaries | length) == 3 and
+            ([.metric_summaries[] | select(.independent_unit_count == 3)] | length) == 3 and
+            ([.excluded_cases[].reason] | sort) == ["contradictory_reference", "missing_reference", "not_held_out", "scope_mismatch", "stale_reference"] and
+            ([.metric_summaries[] | select(.metric_id == "surface_temperature_delta" and (.mae - 0.7 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "runoff_volume_delta" and (.mae_skill_score | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.mae_skill_score - 0.461538462 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "surface_temperature_delta" and (.mean_interval_score - 3.366666667 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "runoff_volume_delta" and (.mean_interval_score - 0.766666667 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.mean_interval_score - 22.666666667 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "surface_temperature_delta" and (.unit_macro_mae - 0.7 | abs) < 0.000001 and (.unit_macro_mae_skill_score - 0.5 | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "runoff_volume_delta" and (.unit_macro_mae - 0.166666667 | abs) < 0.000001 and (.unit_macro_mae_skill_score | abs) < 0.000001)] | length) == 1 and
+            ([.metric_summaries[] | select(.metric_id == "native_plant_survival_delta" and (.unit_macro_mae - 4.666666667 | abs) < 0.000001 and (.unit_macro_mae_skill_score - 0.461538462 | abs) < 0.000001)] | length) == 1
+          ' "$report"
+          cat "$report" > "$RUNNER_TEMP/report-check.txt"
+
+      - name: Upload report for this exact revision
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: landscape-forecast-verification
+          path: ${{ runner.temp }}/landscape-forecast-verification.json
+          if-no-files-found: error
+          retention-days: 30

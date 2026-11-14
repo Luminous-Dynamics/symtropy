@@ -1,0 +1,414 @@
+{
+  "schema_version": "luminous.landscape_forecast_verification_fixture.v0.1",
+  "suite_id": "LANDSCAPE-FORECAST-VERIFICATION-V0.1",
+  "data_origin": "synthetic_fixture",
+  "claim_ceiling": "SYNTHETIC_CONTRACT_TEST_ONLY",
+  "cases": [
+    {
+      "case_id": "heat-001",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -1.8,
+        "interval_level": 0.8,
+        "lower": -2.5,
+        "upper": -1,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -2,
+        "uncertainty_abs": 0.1,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "neighborhood|wet-season-2026",
+        "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-a"
+    },
+    {
+      "case_id": "calibration-001",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -1.8,
+        "interval_level": 0.8,
+        "lower": -2.5,
+        "upper": -1,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -2,
+        "uncertainty_abs": 0.1,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "neighborhood|wet-season-2026",
+        "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
+      },
+      "evaluation_split": "calibration",
+      "independent_unit_id": "synthetic-site-calibration"
+    },
+    {
+      "case_id": "heat-002",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -1.2,
+        "interval_level": 0.8,
+        "lower": -2,
+        "upper": -0.4,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -0.8,
+        "uncertainty_abs": 0.1,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "neighborhood|wet-season-2026",
+        "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-b"
+    },
+    {
+      "case_id": "heat-003",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -2.5,
+        "interval_level": 0.8,
+        "lower": -3.5,
+        "upper": -1.5,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -4,
+        "uncertainty_abs": 0.2,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "neighborhood|wet-season-2026",
+        "source_digest": "9b7f42434c8cbb92bae1ab728ee8051a5fce6334b4b076e3fb5b885fe2d8dc05"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-c"
+    },
+    {
+      "case_id": "water-001",
+      "metric_id": "runoff_volume_delta",
+      "unit": "m3_per_event",
+      "spatial_scope": "site",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -0.45,
+        "interval_level": 0.8,
+        "lower": -0.6,
+        "upper": -0.3,
+        "scope_key": "site|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -0.2
+      },
+      "reference": {
+        "status": "valid",
+        "value": -0.4,
+        "uncertainty_abs": 0.03,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "site|wet-season-2026",
+        "source_digest": "61d1d7058b986d13cab94a5eeb7b26898c90fe5aeff3a4576ee921e66af0d25a"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-a"
+    },
+    {
+      "case_id": "water-002",
+      "metric_id": "runoff_volume_delta",
+      "unit": "m3_per_event",
+      "spatial_scope": "site",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -0.2,
+        "interval_level": 0.8,
+        "lower": -0.5,
+        "upper": 0.1,
+        "scope_key": "site|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -0.1
+      },
+      "reference": {
+        "status": "valid",
+        "value": 0,
+        "uncertainty_abs": 0.05,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "site|wet-season-2026",
+        "source_digest": "61d1d7058b986d13cab94a5eeb7b26898c90fe5aeff3a4576ee921e66af0d25a"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-b"
+    },
+    {
+      "case_id": "water-003",
+      "metric_id": "runoff_volume_delta",
+      "unit": "m3_per_event",
+      "spatial_scope": "site",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -0.55,
+        "interval_level": 0.8,
+        "lower": -0.8,
+        "upper": -0.4,
+        "scope_key": "site|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -0.1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -0.3,
+        "uncertainty_abs": 0.04,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "site|wet-season-2026",
+        "source_digest": "61d1d7058b986d13cab94a5eeb7b26898c90fe5aeff3a4576ee921e66af0d25a"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-c"
+    },
+    {
+      "case_id": "ecology-001",
+      "metric_id": "native_plant_survival_delta",
+      "unit": "percentage_points",
+      "spatial_scope": "site",
+      "temporal_stratum": "12-month-follow-up",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": 12,
+        "interval_level": 0.8,
+        "lower": 8,
+        "upper": 16,
+        "scope_key": "site|12-month-follow-up"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": 5
+      },
+      "reference": {
+        "status": "valid",
+        "value": 10,
+        "uncertainty_abs": 2,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "site|12-month-follow-up",
+        "source_digest": "ead01b629a866bd9413f727192774363a76f19ea0a724426130828e8425dd74b"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-a"
+    },
+    {
+      "case_id": "ecology-002",
+      "metric_id": "native_plant_survival_delta",
+      "unit": "percentage_points",
+      "spatial_scope": "site",
+      "temporal_stratum": "12-month-follow-up",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": 8,
+        "interval_level": 0.8,
+        "lower": 2,
+        "upper": 14,
+        "scope_key": "site|12-month-follow-up"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": 5
+      },
+      "reference": {
+        "status": "valid",
+        "value": 18,
+        "uncertainty_abs": 3,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "site|12-month-follow-up",
+        "source_digest": "ead01b629a866bd9413f727192774363a76f19ea0a724426130828e8425dd74b"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-b"
+    },
+    {
+      "case_id": "ecology-003",
+      "metric_id": "native_plant_survival_delta",
+      "unit": "percentage_points",
+      "spatial_scope": "site",
+      "temporal_stratum": "12-month-follow-up",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": 14,
+        "interval_level": 0.8,
+        "lower": 10,
+        "upper": 18,
+        "scope_key": "site|12-month-follow-up"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": 4
+      },
+      "reference": {
+        "status": "valid",
+        "value": 12,
+        "uncertainty_abs": 2,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "site|12-month-follow-up",
+        "source_digest": "ead01b629a866bd9413f727192774363a76f19ea0a724426130828e8425dd74b"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-c"
+    },
+    {
+      "case_id": "missing-001",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -1.1,
+        "interval_level": 0.8,
+        "lower": -2,
+        "upper": -0.2,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "missing",
+        "value": null,
+        "uncertainty_abs": null,
+        "method_id": "not-collected",
+        "scope_key": "neighborhood|wet-season-2026",
+        "source_digest": null
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-missing"
+    },
+    {
+      "case_id": "stale-001",
+      "metric_id": "runoff_volume_delta",
+      "unit": "m3_per_event",
+      "spatial_scope": "site",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -0.3,
+        "interval_level": 0.8,
+        "lower": -0.6,
+        "upper": 0,
+        "scope_key": "site|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -0.1
+      },
+      "reference": {
+        "status": "stale",
+        "value": null,
+        "uncertainty_abs": null,
+        "method_id": "expired-calibration-v0",
+        "scope_key": "site|wet-season-2026",
+        "source_digest": "13412e95971d81d83a19523356f1c1024ec5494c63acffb3bdeddbccb26e0c3c"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-stale"
+    },
+    {
+      "case_id": "contradictory-001",
+      "metric_id": "native_plant_survival_delta",
+      "unit": "percentage_points",
+      "spatial_scope": "site",
+      "temporal_stratum": "12-month-follow-up",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": 10,
+        "interval_level": 0.8,
+        "lower": 4,
+        "upper": 16,
+        "scope_key": "site|12-month-follow-up"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": 5
+      },
+      "reference": {
+        "status": "contradictory",
+        "value": null,
+        "uncertainty_abs": null,
+        "method_id": "conflicting-report-v0",
+        "scope_key": "site|12-month-follow-up",
+        "source_digest": null
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-contradictory"
+    },
+    {
+      "case_id": "scope-mismatch-001",
+      "metric_id": "surface_temperature_delta",
+      "unit": "degC",
+      "spatial_scope": "neighborhood",
+      "temporal_stratum": "wet-season-2026",
+      "prediction": {
+        "model_id": "candidate-v0",
+        "mean": -1.5,
+        "interval_level": 0.8,
+        "lower": -2.5,
+        "upper": -0.5,
+        "scope_key": "neighborhood|wet-season-2026"
+      },
+      "baseline": {
+        "model_id": "seasonal-naive-v0",
+        "mean": -1
+      },
+      "reference": {
+        "status": "valid",
+        "value": -0.5,
+        "uncertainty_abs": 0.1,
+        "method_id": "synthetic-reference-v0",
+        "scope_key": "parcel|wet-season-2026",
+        "source_digest": "a93fc5be7d6809a8a5188b12da8d81fce85d0481ccedca905d55732473e3a6b5"
+      },
+      "evaluation_split": "held_out",
+      "independent_unit_id": "synthetic-site-scope"
+    }
+  ]
+}
