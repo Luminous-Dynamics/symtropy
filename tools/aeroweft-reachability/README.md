@@ -5,7 +5,7 @@ This isolated, dependency-free Rust crate propagates a position interval through
 ## What is implemented
 
 - Finite closed intervals with outward one-representable-step expansion after binary64 addition and multiplication.
-- Separate additive velocity contributions for nominal, state, model, control and environmental terms.
+- Separate additive nominal-velocity, velocity-estimation, model-parameter, control and environmental-disturbance contributions.
 - Contiguous UTC Unix-millisecond slices with an exact-integer time-domain guard.
 - Conservative occupancy over the full time slice, not just at the endpoint.
 - A separately propagated endpoint enclosure for composition with the next time slice.
