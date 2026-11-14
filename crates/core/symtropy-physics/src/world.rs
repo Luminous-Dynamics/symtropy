@@ -2561,3 +2561,63 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+mod ccd_world_integration_tests {
+    use super::*;
+
+    /// Exercises the complete integration -> CCD -> broadphase -> narrowphase
+    /// -> contact-solver path for a sphere that would cross the ground in one
+    /// discrete step. The query-level analytic tests do not cover this path.
+    #[test]
+    fn fast_sphere_crossing_ground_is_clamped_and_contact_response_applied() {
+        let radius = 0.1;
+        let start_y = 1.0;
+        let speed = 1_000.0;
+
+        for hz in [30.0, 60.0, 120.0, 240.0] {
+            let dt = 1.0 / hz;
+            let discrete_end_y = start_y - speed * dt;
+            assert!(
+                discrete_end_y < -radius,
+                "fixture must tunnel without CCD: hz={hz}, discrete_end_y={discrete_end_y}"
+            );
+
+            let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+            world.solver_iterations = 16;
+
+            let ground = RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(HalfSpace::<3>::new(SVector::from([0.0, 1.0, 0.0]), 0.0)),
+            );
+            world.add_body(ground);
+
+            let handle = world.add_sphere(Point::new([0.0, start_y, 0.0]), radius, 1.0);
+            world.body_mut(handle).unwrap().linear_velocity = SVector::from([0.0, -speed, 0.0]);
+
+            world.step(dt);
+
+            let body = world.body(handle).unwrap();
+            let y = body.position()[1];
+            assert!(
+                y >= radius - 1e-3,
+                "sphere tunneled through ground at {hz} Hz: y={y}, radius={radius}"
+            );
+            assert!(
+                (y - radius).abs() < 0.03,
+                "sphere should remain near the first-contact surface at {hz} Hz: y={y}"
+            );
+            assert!(
+                body.linear_velocity[1] >= -5.0,
+                "contact solver did not arrest the downward motion at {hz} Hz: vy={}",
+                body.linear_velocity[1]
+            );
+            assert!(
+                body.position().iter().all(|value| value.is_finite())
+                    && body.linear_velocity.iter().all(|value| value.is_finite()),
+                "CCD world integration emitted non-finite state at {hz} Hz"
+            );
+        }
+    }
+}
