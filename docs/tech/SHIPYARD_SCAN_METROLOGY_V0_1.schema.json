@@ -139,7 +139,9 @@
         "independent_check_point_error_um",
         "maximum_check_point_error_um",
         "scale_deviation_ppm",
-        "maximum_scale_deviation_ppm"
+        "maximum_scale_deviation_ppm",
+        "source_frame",
+        "target_frame"
       ],
       "properties": {
         "sha256": {
@@ -188,6 +190,14 @@
         "maximum_scale_deviation_ppm": {
           "type": "integer",
           "minimum": 0
+        },
+        "source_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -295,7 +305,8 @@
         "minimum_coverage_permille",
         "maximum_missing_run_samples",
         "profile_samples",
-        "claim_ceiling"
+        "claim_ceiling",
+        "comparison_frame"
       ],
       "properties": {
         "schema_version": {
@@ -350,6 +361,10 @@
         },
         "claim_ceiling": {
           "const": "SURFACE_ENVELOPE_CHANGE_ONLY"
+        },
+        "comparison_frame": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
