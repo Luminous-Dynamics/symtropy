@@ -1,0 +1,26 @@
+name: SO(4) production inertia adapter
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/so4_inertia_adapter.rs"
+      - "docs/research/SO4_PRODUCTION_INERTIA_ADAPTER_2026-10-31.md"
+      - ".github/workflows/so4-inertia-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Test production SO(4) inertia adapter
+        run: cargo test -p symtropy-physics --test so4_inertia_adapter --locked
