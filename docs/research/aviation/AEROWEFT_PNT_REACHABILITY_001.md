@@ -24,7 +24,7 @@ The adapter owns only the aviation-specific gate and transformation from an alre
 A position is admissible to the hard-bound reachability layer only when:
 - its position claim is a deterministic hard enclosure, not a statistical prediction;
 - the horizontal frame and vertical datum match the active reachability profile;
-- its sample time is an interval normalized by the qualified clock-correlation owner;
+- both its sample time and evaluation epoch are intervals normalized by the qualified clock-correlation owner;
 - the full age interval is non-negative and within the operation-profile maximum;
 - clock-correlation lineage is current and qualified;
 - the source/dependency snapshot is complete and meets the profile's independent-evidence requirements;
@@ -35,17 +35,17 @@ This adapter does not verify the truth of the claim, digest-to-source associatio
 
 ## 3. Time uncertainty propagation
 
-The adapter receives a sample UTC interval [t_min, t_max], already normalized to the comparison time scale by Mycelix #435, and an assessment time t_now in the same scale.
+The adapter receives a sample-time interval [s_min, s_max] and an evaluation-time interval [a_min, a_max], both already normalized into the same comparison time scale by Mycelix #435.
 
 The admissible elapsed interval is:
 
-T = [t_now - t_max, t_now - t_min]
+T = [a_min - s_max, a_max - s_min]
 
-If T is non-negative and within the profile-specific freshness limit, the position at the assessment epoch is enclosed by:
+The oldest possible observation age is a_max - s_min. Admission requires s_max <= a_min and the oldest possible age to remain within the profile limit. The position at the evaluation epoch is enclosed by:
 
 P_now = P_sample + V × T
 
-All operations use the existing reachability Interval type and outward-rounded arithmetic. The millisecond-to-second conversion must itself be expanded outward before multiplying by a velocity interval.
+Both clock-correlation intervals must be qualified, current and tied to explicit scale/correlation identities. All operations use the existing reachability Interval type and outward-rounded arithmetic. The millisecond-to-second conversion must itself be expanded outward before multiplying by a velocity interval.
 
 A missing or incompatible clock correlation, future/overlapping sample-time interval, excessive age, invalid time-scale mapping, or overflow produces a typed NOT_ASSESSABLE result. Do not clamp a negative elapsed interval to zero or substitute receipt time for observation time.
 
