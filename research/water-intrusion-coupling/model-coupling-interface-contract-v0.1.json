@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-INTRUSION-COUPLING-QUAL-001",
+  "interface_contract_id": "LUMINOUS-WATER-INTRUSION-CHAIN-0.1",
+  "evidence_class": "synthetic_contract_only",
+  "evidence_ceiling": "not_solver_qualification_not_physical_intrusion_or_water_quality_evidence",
+  "required_stage_order": [
+    "initial_state",
+    "transient_pressure",
+    "defect_ingress",
+    "network_transport",
+    "chemical_fate"
+  ],
+  "required_dependencies": {
+    "initial_state": [],
+    "transient_pressure": [
+      "initial_state"
+    ],
+    "defect_ingress": [
+      "transient_pressure"
+    ],
+    "network_transport": [
+      "transient_pressure",
+      "defect_ingress"
+    ],
+    "chemical_fate": [
+      "network_transport"
+    ]
+  },
+  "required_observation_kinds": [
+    "pressure_trace",
+    "signed_defect_flow",
+    "tracer_sample"
+  ],
+  "stage_contract_fields": [
+    "stage_id",
+    "model_id",
+    "model_revision",
+    "consumed_upstream_outputs",
+    "output_digest",
+    "timebase_id",
+    "clock_uncertainty_ms",
+    "validity_state",
+    "uncertainty_state",
+    "uncertainty_coverage_percent"
+  ],
+  "observation_contract_fields": [
+    "observation_id",
+    "kind",
+    "raw_data_digest",
+    "timebase_id",
+    "evidence_class",
+    "calibration_state",
+    "method_state"
+  ],
+  "digest_contract": "lowercase hexadecimal SHA-256 content digest, 64 characters",
+  "timebase_contract": "all time-dependent stages and measured observations share one declared timebase_id; clock_uncertainty_ms must be explicit",
+  "evidence_contract": "modelled outputs never substitute for measured pressure, signed defect-flow or laboratory tracer observations",
+  "uncertainty_contract": "each stage declares bounded or unbounded uncertainty; unbounded upstream uncertainty prevents a bounded chain acceptance",
+  "noncompensable_invariants": [
+    "missing_chemical_fate_model_is_not_assumed_inert",
+    "out_of_domain_upstream_stage_blocks_downstream_chain_acceptance",
+    "upstream_output_digest_must_match_exact_consumed_input_digest",
+    "timebase_mismatch_never_silently_aligns_observations",
+    "measured_observation_requires_raw_digest_calibration_and_valid_method",
+    "a_model_output_is_never_relabelled_as_a_sensor_or_lab_observation",
+    "a_valid_chain_contract_is_not_a_qualified_physical_model",
+    "no_chain_result_authorizes_potability_or_release"
+  ]
+}
