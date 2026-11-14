@@ -327,3 +327,10 @@ The inverse-model comparator must report the cardinality of the admissible solut
 For an inverse/digital-twin comparator, use a dimensionless, uncertainty-whitened sensitivity Jacobian over the declared configuration and operating regime. Report its singular spectrum, numerical rank, rank tolerance, condition number, null-space dimension, and the size/components of the admissible hypothesis set. Explore declared parameter bounds with multi-start, profile or interval methods; calibrate the residual acceptance region independently and freeze it before confirmatory testing.
 
 A unique diagnosis is eligible only when one admissible component remains and the local sensitivity matrix is full-rank and sufficiently conditioned under the preregistered rule. Multiple admissible components or deficient/ill-conditioned sensitivity means an explicit ambiguity class. Missing model calibration, parameter map, uncertainty region or supported regime means NOT_EVALUATED. Full local rank is not proof of global uniqueness.
+
+
+### Bounded-time streaming evidence
+
+The append-only stream now treats each sample timestamp as an interval, not a point. A sample binds a nonnegative uncertainty half-width, a timebase ID, a qualification flag and the timebase qualification SHA-256. A subsequent sample is accepted only if its earliest possible event time is strictly later than the previous sample's latest possible event time. Overlapping or touching intervals return TemporalOrderUnproven before the model is invoked; definite reversal remains NonMonotonicSample. A timebase/qualification change requires a new session. Receipt hashes bind the timing and clock evidence.
+
+This is a contract over upstream clock qualification evidence. It does not implement PTP, authenticate the qualification issuer, measure clock drift or prove a vessel's wiring/acquisition topology. The event-level scorer still needs equivalent onset/offset annotation uncertainty before its latency values can be interpreted as physically precise.
