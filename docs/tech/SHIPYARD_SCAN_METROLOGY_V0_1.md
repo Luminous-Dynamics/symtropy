@@ -27,7 +27,7 @@ This is aligned with the scope of ISO 10360-13:2021 for optical 3D coordinate me
 
 ### Stable-datum registration
 
-The registration receipt must bind the exact before/after scan digests. It must identify a rigid 2D transform, the stable datum or a reference artifact used for fit, transform handedness, scale deviation, independent check-point count and error. Fitting the transform to the changing weld bead itself is rejected: that can align away the change the system is supposed to measure.
+The registration receipt must bind the exact before/after scan digests and explicitly declare the after-scan native source frame and comparison target frame. The comparison target is the before-scan reference frame; the paired profile samples are already expressed in that target frame. Different native frame labels are allowed only when this exact transform mapping is present and its receipt is bound. The receipt must identify a rigid 2D transform, the stable datum or a reference artifact used for fit, transform handedness, scale deviation, independent check-point count and error. Fitting the transform to the changing weld bead itself is rejected: that can align away the change the system is supposed to measure.
 
 A small fit residual is not a measurement uncertainty. Independent check-point error and registration uncertainty are separate quantities.
 
@@ -43,7 +43,7 @@ No root-sum-square independence assumption is made. Missing terms or overflow re
 
 Each profile sample carries explicit before/after height values. If either side is missing, that pair is unobserved; it is never filled with zero. Area integration uses only adjacent, contiguous valid samples. It does not bridge gaps or extrapolate scan edges. Coverage and longest missing run are checked before any report is returned.
 
-The known-answer synthetic fixture uses four samples at 0, 1000, 2000 and 3000 µm, with a 100 µm uniform surface offset. It yields a signed surface-envelope area change of 300,000 µm², a mean/RMSE displacement of 100 µm, and an uncertainty sum of 30 µm. The mean interval is [70, 130] µm; the signed-area interval is [210,000, 390,000] µm².
+The known-answer synthetic fixture uses four samples at 0, 1000, 2000 and 3000 µm, with a 100 µm uniform surface offset. It deliberately gives the after-scan a different native frame from the before-scan, then binds the explicit after-native-to-before-reference rigid transform in the receipt. It yields a signed surface-envelope area change of 300,000 µm², a mean/RMSE displacement of 100 µm, and an uncertainty sum of 30 µm. The mean interval is [70, 130] µm; the signed-area interval is [210,000, 390,000] µm².
 
 These are synthetic arithmetic checks, not scanner specifications, physical thresholds or BAM measurements.
 
