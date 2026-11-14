@@ -345,6 +345,26 @@ impl ReservationBook {
             .map_or(0, BTreeSet::len))
     }
 
+    /// Independent full-history active count for one resource. This deliberately
+    /// scans historical records and is exposed for differential tests/benchmarks only.
+    pub fn reference_active_reservation_count_for_resource(
+        &self,
+        resource_id: &str,
+    ) -> Result<usize, ReservationError> {
+        require_non_empty("resource_id", resource_id)?;
+        if !self.resources.contains_key(resource_id) {
+            return Err(ReservationError::UnknownResource);
+        }
+        Ok(self
+            .reservations
+            .values()
+            .filter(|record| {
+                record.state == ReservationState::Active
+                    && record.request.resource_id == resource_id
+            })
+            .count())
+    }
+
     /// Independent full-history expiry count for differential tests and benchmarks.
     /// The production `expire` path uses the ordered expiry index instead.
     pub fn reference_due_count_at(&self, now_ms: u64) -> usize {
