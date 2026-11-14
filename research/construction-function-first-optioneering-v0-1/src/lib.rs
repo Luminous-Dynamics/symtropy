@@ -163,6 +163,7 @@ pub struct OptionAssessment {
     pub option_id: String,
     pub tier: OptionTier,
     pub disposition: OptionDisposition,
+    pub gate_results: BTreeMap<String, GateResult>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -176,6 +177,8 @@ pub struct ParetoRelationship {
 pub struct OptioningReport {
     pub brief_id: String,
     pub revision_digest: String,
+    pub analysis_horizon_months: u32,
+    pub discount_rate_basis_points: u32,
     pub benchmark_profile_id: String,
     pub benchmark_profile_digest: String,
     pub fixture_id: String,
@@ -370,6 +373,7 @@ fn validate_option(
         option_id: option.option_id.clone(),
         tier: option.tier,
         disposition,
+        gate_results: option.gate_results.clone(),
     })
 }
 
@@ -519,6 +523,8 @@ pub fn evaluate_options(
     Ok(OptioningReport {
         brief_id: brief.brief_id.clone(),
         revision_digest: brief.revision_digest.clone(),
+        analysis_horizon_months: brief.analysis_horizon_months,
+        discount_rate_basis_points: brief.discount_rate_basis_points,
         benchmark_profile_id: brief.benchmark_profile_id.clone(),
         benchmark_profile_digest: brief.benchmark_profile_digest.clone(),
         fixture_id: brief.fixture_id.clone(),
@@ -580,12 +586,6 @@ mod tests {
                 },
             ),
         ])
-    }
-
-    fn metrics(
-        values: [(MetricKey, u64); 6],
-    ) -> BTreeMap<MetricKey, u64> {
-        values.into_iter().collect()
     }
 
     fn option(
@@ -658,7 +658,7 @@ mod tests {
             [
                 [1_200, 5_000, 2_500, 1_300, 300, 9_000],
                 [1_500, 6_000, 2_800, 1_500, 400, 9_000],
-                [1_700, 6_500, 3_000, 1_600, 450, 9_000],
+                [1_700, 6_500, 3_000, 1_600, 450, 7_000],
             ],
         );
         let improve = option(
@@ -970,6 +970,14 @@ mod tests {
         let report = evaluate_options(&brief(), &[one]).expect("provenance report");
         assert_eq!(report.brief_id, "housing-service-level-01");
         assert_eq!(report.revision_digest, "brief-revision-01");
+        assert_eq!(report.analysis_horizon_months, 600);
+        assert_eq!(report.discount_rate_basis_points, 350);
+        assert_eq!(
+            assess(&report, "avoid").gate_results["structural-adequacy"],
+            GateResult::QualifiedPass {
+                evidence_ref: "evidence:structural-review-01".to_owned()
+            }
+        );
         assert_eq!(report.benchmark_profile_id, "FUNCTION-FIRST-OPTIONEERING-001");
         assert_eq!(report.fixture_id, "housing-adaptation-options-01");
         assert_eq!(report.claim_ceiling, "synthetic_robust_pareto_optioning_only");
