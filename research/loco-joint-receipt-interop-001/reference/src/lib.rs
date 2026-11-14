@@ -1049,6 +1049,10 @@ pub fn validate_uq_sidecar(
         }
     }
 
+    let mut evidence_disposition = UqEvidenceDisposition::Qualified;
+    let mut shared_sources: BTreeMap<String, Vec<(String, String, String, Option<String>)>> =
+        BTreeMap::new();
+
     for (measurement_id, measurement) in &measurements_by_id {
         let receipt_id = require_string(measurement, "uncertainty_receipt_id")?;
         let receipt = receipts_by_id
@@ -1120,12 +1124,80 @@ pub fn validate_uq_sidecar(
                 ));
             }
         }
+
+        downgrade_uq_disposition(
+            &mut evidence_disposition,
+            parse_uq_disposition(require_string(measurement, "disposition")?)?,
+        );
+        downgrade_uq_disposition(
+            &mut evidence_disposition,
+            parse_uq_disposition(require_string(receipt, "disposition")?)?,
+        );
+
+        let (source_links, decisions_by_group) =
+            uncertainty_source_dependencies(receipt, measurement_id, &mut evidence_disposition)?;
+        for (source_digest, group_id) in source_links {
+            let (decision_kind, decision_receipt) = decisions_by_group
+                .get(&group_id)
+                .ok_or(WireError::UqSidecarLineageMismatch(
+                    "component dependence declaration missing",
+                ))?;
+            shared_sources.entry(source_digest).or_default().push((
+                measurement_id.clone(),
+                group_id,
+                decision_kind.clone(),
+                decision_receipt.clone(),
+            ));
+        }
+        validate_uncertainty_coverage(receipt, &mut evidence_disposition)?;
+    }
+
+    for members in shared_sources.values() {
+        let measurement_ids = members
+            .iter()
+            .map(|(measurement_id, _, _, _)| measurement_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if measurement_ids.len() < 2 {
+            continue;
+        }
+        let group_ids = members
+            .iter()
+            .map(|(_, group_id, _, _)| group_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if group_ids.len() != 1 {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "shared source dependence group differs across measurements",
+            ));
+        }
+        let decisions = members
+            .iter()
+            .map(|(_, _, kind, digest)| (kind.as_str(), digest.as_deref()))
+            .collect::<BTreeSet<_>>();
+        if decisions.len() != 1 {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "shared source dependence decision differs across measurements",
+            ));
+        }
+        if decisions
+            .iter()
+            .next()
+            .is_some_and(|(kind, _)| *kind == "unknown")
+        {
+            downgrade_uq_disposition(
+                &mut evidence_disposition,
+                UqEvidenceDisposition::Unknown,
+            );
+        }
     }
 
     for derived_value in derived_results {
         let JsonValue::Object(derived) = derived_value else {
             return Err(WireError::InvalidField("derived_results"));
         };
+        downgrade_uq_disposition(
+            &mut evidence_disposition,
+            parse_uq_disposition(require_string(derived, "upstream_disposition")?)?,
+        );
         let result_id = require_string(derived, "result_id")?;
         let output_id = require_string(derived, "output_measurement_id")?;
         if result_id != output_id {
@@ -1200,6 +1272,7 @@ pub fn validate_uq_sidecar(
         measurement_count: measurements.len(),
         uncertainty_receipt_count: receipts.len(),
         derived_result_count: derived_results.len(),
+        evidence_disposition,
         actuation_authorized: false,
         conformity_certified: false,
     })
@@ -1238,6 +1311,10 @@ mod tests {
         assert_eq!(report.measurement_count, 5);
         assert_eq!(report.uncertainty_receipt_count, 5);
         assert_eq!(report.derived_result_count, 1);
+        assert_eq!(
+            report.evidence_disposition,
+            UqEvidenceDisposition::Qualified
+        );
         assert!(!report.actuation_authorized);
         assert!(!report.conformity_certified);
     }
