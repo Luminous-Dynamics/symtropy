@@ -10,6 +10,7 @@
  //! This is a planning result, not a permit, an observation receipt, a coverage proof or
  //! independent acceptance of construction output.
 
+use std::cmp::Reverse;
 use std::collections::BTreeSet;
 
 use construction_observation_planning_core::{ObservationAction, WorkNeed};
@@ -322,6 +323,21 @@ fn campaign_is_better(candidate: &ObservationCampaign, current: &ObservationCamp
         .is_lt()
 }
 
+pub struct GreedyCampaignResult {
+    pub campaign: ObservationCampaign,
+    /// Greedy is a heuristic. This is always false; use the exact bounded solver
+    /// when an optimality or infeasibility proof is required.
+    pub optimality_proven: bool,
+    pub rejected_actions: Vec<RejectedPortfolioAction>,
+}
+
+struct GreedyCandidate {
+    action_index: usize,
+    newly_covered: Vec<usize>,
+    occupancy_book: SpatialOccupancyBook,
+    reservation_book: ReservationBook,
+}
+
 struct Search<'a> {
     actions: Vec<&'a ObservationAction>,
     coverage: Vec<Vec<usize>>,
@@ -523,6 +539,130 @@ pub fn plan_observation_campaign(
     })
 }
 
+/// Deterministic multi-action greedy baseline for matched evaluation against the
+/// bounded exact solver. At each step it chooses the feasible action covering the most
+/// currently uncovered work units, then minimizes crew, cost, energy, duration and ID.
+/// It never claims optimality and never mutates the caller's live planning books.
+pub fn plan_greedy_observation_campaign(
+    actions: &[ObservationAction],
+    work_needs: &[WorkNeed],
+    occupancy_book: &SpatialOccupancyBook,
+    reservation_book: &ReservationBook,
+    now_ms: u64,
+) -> Result<GreedyCampaignResult, PortfolioError> {
+    let currency = validate_inputs(actions, work_needs, 1)?;
+    let mut ordered_actions: Vec<&ObservationAction> = actions.iter().collect();
+    ordered_actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+
+    let mut covered = vec![false; work_needs.len()];
+    let mut selected = Vec::new();
+    let mut scratch_occupancy = occupancy_book.clone();
+    let mut scratch_reservations = reservation_book.clone();
+    let mut rejected_actions = Vec::new();
+
+    loop {
+        if covered.iter().all(|value| *value) {
+            break;
+        }
+
+        let mut best: Option<GreedyCandidate> = None;
+        for (action_index, action) in ordered_actions.iter().enumerate() {
+            let newly_covered: Vec<usize> = work_needs
+                .iter()
+                .enumerate()
+                .filter(|(need_index, need)| {
+                    !covered[*need_index]
+                        && action
+                            .covered_region_ids
+                            .iter()
+                            .any(|region| region == &need.region_id)
+                })
+                .map(|(need_index, _)| need_index)
+                .collect();
+            if newly_covered.is_empty() {
+                continue;
+            }
+
+            let mut candidate_occupancy = scratch_occupancy.clone();
+            let mut candidate_reservations = scratch_reservations.clone();
+            match candidate_occupancy.reserve_and_insert(
+                &mut candidate_reservations,
+                action.occupancy.clone(),
+                now_ms,
+            ) {
+                Ok(_) => {
+                    let replace = best.as_ref().is_none_or(|current| {
+                        let current_action = ordered_actions[current.action_index];
+                        (
+                            Reverse(newly_covered.len()),
+                            action.crew_minutes,
+                            action.cost_minor_units,
+                            action.energy_wh,
+                            action.duration_minutes,
+                            action.action_id.as_str(),
+                        ) < (
+                            Reverse(current.newly_covered.len()),
+                            current_action.crew_minutes,
+                            current_action.cost_minor_units,
+                            current_action.energy_wh,
+                            current_action.duration_minutes,
+                            current_action.action_id.as_str(),
+                        )
+                    });
+
+                    if replace {
+                        best = Some(GreedyCandidate {
+                            action_index,
+                            newly_covered,
+                            occupancy_book: candidate_occupancy,
+                            reservation_book: candidate_reservations,
+                        });
+                    }
+                }
+                Err(blocker) => rejected_actions.push(RejectedPortfolioAction {
+                    action_id: action.action_id.clone(),
+                    selected_prefix_action_ids: selected
+                        .iter()
+                        .map(|selected_index| {
+                            ordered_actions[*selected_index].action_id.clone()
+                        })
+                        .collect(),
+                    blocker,
+                }),
+            }
+        }
+
+        let Some(candidate) = best else {
+            break;
+        };
+        for need_index in candidate.newly_covered {
+            covered[need_index] = true;
+        }
+        selected.push(candidate.action_index);
+        scratch_occupancy = candidate.occupancy_book;
+        scratch_reservations = candidate.reservation_book;
+    }
+
+    let campaign = build_campaign(
+        &ordered_actions,
+        &selected,
+        &covered,
+        work_needs,
+        currency.as_deref(),
+    )?;
+    rejected_actions.sort_by(|left, right| {
+        left.action_id
+            .cmp(&right.action_id)
+            .then_with(|| left.selected_prefix_action_ids.cmp(&right.selected_prefix_action_ids))
+    });
+
+    Ok(GreedyCampaignResult {
+        campaign,
+        optimality_proven: false,
+        rejected_actions,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -661,14 +801,15 @@ mod tests {
     #[test]
     fn exact_search_beats_largest_coverage_greedy_counterexample() {
         let actions = vec![
-            action("large-expensive", &["a", "b"], 0, "r-large", (0, 60_000), 10, 900),
-            action("cheap-a", &["a"], 2_000, "r-a", (0, 60_000), 2, 100),
-            action("cheap-bc", &["b", "c"], 4_000, "r-bc", (0, 60_000), 4, 100),
+            action("large-expensive", &["a", "b", "c"], 0, "r-large", (0, 60_000), 10, 900),
+            action("cheap-ab", &["a", "b"], 2_000, "r-ab", (0, 60_000), 4, 100),
+            action("cheap-cd", &["c", "d"], 4_000, "r-cd", (0, 60_000), 4, 100),
         ];
         let needs = vec![
             need("unit-a", "a"),
             need("unit-b", "b"),
             need("unit-c", "c"),
+            need("unit-d", "d"),
         ];
         let (occupancy, reservations) = books(&actions, 1);
         let result =
@@ -687,6 +828,23 @@ mod tests {
         );
         assert_eq!(result.best_campaign.total_crew_minutes, 6);
         assert_eq!(result.best_campaign.total_cost_minor_units, 200);
+
+        let greedy =
+            plan_greedy_observation_campaign(&actions, &needs, &occupancy, &reservations, 0)
+                .expect("greedy campaign");
+        assert!(!greedy.optimality_proven);
+        assert!(greedy.campaign.complete);
+        assert_eq!(
+            greedy
+                .campaign
+                .selected_actions
+                .iter()
+                .map(|action| action.action_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["large-expensive", "cheap-cd"]
+        );
+        assert_eq!(greedy.campaign.total_crew_minutes, 14);
+        assert_eq!(greedy.campaign.total_cost_minor_units, 1_000);
     }
 
     #[test]
