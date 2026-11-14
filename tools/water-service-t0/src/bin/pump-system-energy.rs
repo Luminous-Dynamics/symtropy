@@ -34,21 +34,15 @@ fn run() -> Result<i32, String> {
             "usage: pump-system-energy [INPUTS] [ORACLE] [SCHEMA] [MANIFEST] [RECEIPT]".to_owned(),
         );
     }
-    let input_path = PathBuf::from(
-        args.first().map(String::as_str).unwrap_or(
-            "research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json",
-        ),
-    );
-    let oracle_path = PathBuf::from(
-        args.get(1).map(String::as_str).unwrap_or(
-            "research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json",
-        ),
-    );
-    let schema_path = PathBuf::from(
-        args.get(2)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/pump-system-energy-matched-duty.schema.json"),
-    );
+    let input_path = PathBuf::from(args.first().map(String::as_str).unwrap_or(
+        "research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json",
+    ));
+    let oracle_path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
+        "research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json",
+    ));
+    let schema_path = PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
+        "research/water-service-engineering/pump-system-energy-matched-duty.schema.json",
+    ));
     let manifest_path = PathBuf::from(
         args.get(3)
             .map(String::as_str)
