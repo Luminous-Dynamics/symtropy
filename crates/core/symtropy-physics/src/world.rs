@@ -45,8 +45,10 @@ const MAX_BIAS_VELOCITY: f64 = 10.0;
 
 /// Quantize a float to Q16.16 fixed-point (range ±32768, resolution 1/65536).
 ///
-/// Used by the `deterministic-net` feature to guarantee bit-identical simulation
-/// across heterogeneous hardware for P2P multiplayer and replay files.
+/// Used by the `deterministic-net` feature to quantize selected state at step
+/// boundaries. This can reduce replay drift, but does not by itself guarantee
+/// bit-identical results across heterogeneous hardware; that remains an
+/// explicit, separately validated property.
 #[cfg(feature = "deterministic-net")]
 #[inline]
 fn quantize_q16_16(v: f64) -> f64 {
@@ -76,8 +78,8 @@ pub trait PhysicsCallback<const D: usize> {
     /// physical impacts (e.g., calculating trauma, adjusting internal state).
     fn on_collision(&mut self, event: &CollisionEvent<D>);
 
-    /// Called after each physics step to record energy dissipated.
-    fn record_dissipation(&mut self, energy: f64);
+    /// Record frictional kinetic energy dissipated, in joules, by the resolved contacts.
+    fn record_dissipation(&mut self, energy_joules: f64);
 
     /// Record mechanical work performed (or energy recovered) by an actuator.
     /// Positive work = energy consumed (motor driving motion).
@@ -125,11 +127,127 @@ type MeshContactFn<const D: usize> = Arc<
         + Sync,
 >;
 
+/// Phase in which a fallible physics-world step was rejected.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhysicsStepPhase {
+    WorldConfiguration,
+    BodyIntegration,
+    ContactWarmStart,
+    ContactSolve,
+}
+
+/// Root cause category for a rejected physics-world step.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhysicsStepCause {
+    Integration(integrator::IntegrationError),
+    RotationalInertia(crate::inertia::RotationalInertiaError),
+}
+
+impl From<crate::inertia::RotationalInertiaError> for PhysicsStepCause {
+    fn from(error: crate::inertia::RotationalInertiaError) -> Self {
+        Self::RotationalInertia(error)
+    }
+}
+
+/// Structured failure receipt from a rejected physics-world step.
+///
+/// The monotonic `step_id` correlates accepted/rejected attempts with an
+/// external input log. Body handles identify affected objects and the phase
+/// distinguishes configuration, integration, warm-start and contact failures.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PhysicsStepError {
+    pub phase: PhysicsStepPhase,
+    pub body_a: Option<BodyHandle>,
+    pub body_b: Option<BodyHandle>,
+    pub cause: PhysicsStepCause,
+    /// Monotonic world-local identifier for this attempted step.
+    pub step_id: u64,
+}
+
+#[derive(Clone)]
+struct BodyStepSnapshot<const D: usize> {
+    transform: Transform<D>,
+    linear_velocity: SVector<f64, D>,
+    angular_velocity: Bivector<D>,
+    force_accumulator: SVector<f64, D>,
+    torque_accumulator: Bivector<D>,
+    sleeping: bool,
+    sleep_timer: f32,
+    sleep_counter: u32,
+}
+
+impl<const D: usize> BodyStepSnapshot<D> {
+    fn capture(body: &RigidBody<D>) -> Self {
+        Self {
+            transform: body.transform.clone(),
+            linear_velocity: body.linear_velocity.clone(),
+            angular_velocity: body.angular_velocity.clone(),
+            force_accumulator: body.force_accumulator.clone(),
+            torque_accumulator: body.torque_accumulator.clone(),
+            sleeping: body.sleeping,
+            sleep_timer: body.sleep_timer,
+            sleep_counter: body.sleep_counter,
+        }
+    }
+
+    fn restore(self, body: &mut RigidBody<D>) {
+        body.transform = self.transform;
+        body.linear_velocity = self.linear_velocity;
+        body.angular_velocity = self.angular_velocity;
+        body.force_accumulator = self.force_accumulator;
+        body.torque_accumulator = self.torque_accumulator;
+        body.sleeping = self.sleeping;
+        body.sleep_timer = self.sleep_timer;
+        body.sleep_counter = self.sleep_counter;
+    }
+}
+
+struct WorldStepSnapshot<const D: usize> {
+    bodies: Vec<BodyStepSnapshot<D>>,
+    contacts: Vec<ContactManifold<D>>,
+    collision_events: Vec<CollisionEvent<D>>,
+    sensor_events: Vec<crate::contact::SensorEvent>,
+    contact_cache: ContactCache<D>,
+    prev_cache: ContactCache<D>,
+    static_tree_dirty: bool,
+}
+
+impl<const D: usize> WorldStepSnapshot<D> {
+    fn capture(world: &PhysicsWorld<D>) -> Self {
+        Self {
+            bodies: world.bodies.iter().map(BodyStepSnapshot::capture).collect(),
+            contacts: world.contacts.clone(),
+            collision_events: world.collision_events.clone(),
+            sensor_events: world.sensor_events.clone(),
+            contact_cache: world.contact_cache.clone(),
+            prev_cache: world.prev_cache.clone(),
+            static_tree_dirty: world.static_tree_dirty,
+        }
+    }
+
+    fn restore(self, world: &mut PhysicsWorld<D>) {
+        for (body, state) in world.bodies.iter_mut().zip(self.bodies) {
+            state.restore(body);
+        }
+        world.contacts = self.contacts;
+        world.collision_events = self.collision_events;
+        world.sensor_events = self.sensor_events;
+        world.contact_cache = self.contact_cache;
+        world.prev_cache = self.prev_cache;
+        // A broadphase rebuild during the rejected step may leave a valid
+        // cache, but restoring the dirty flag forces a rebuild if pre-step
+        // state required one.
+        world.static_tree_dirty = self.static_tree_dirty;
+    }
+}
+
 /// The physics world manages all rigid bodies and steps the simulation.
 pub struct PhysicsWorld<const D: usize> {
     pub bodies: Vec<RigidBody<D>>,
     pub constraints: Vec<Box<dyn Constraint<D>>>,
     pub gravity: SVector<f64, D>,
+    /// Explicit integration speed limits; unbounded by default.
+    integration_limits: integrator::IntegrationLimits,
     /// Contacts from the last step.
     pub contacts: Vec<ContactManifold<D>>,
     /// Collision events from the last step (for game logic callbacks).
@@ -161,6 +279,8 @@ pub struct PhysicsWorld<const D: usize> {
     /// BodyHandle → Vec index for O(1) body lookup.
     handle_to_index: HashMap<BodyHandle, usize>,
     next_handle: usize,
+    /// Monotonic identifier for accepted and rejected world-step attempts.
+    next_step_id: u64,
     /// Cached broadphase data for Static/Kinematic bodies (rebuilt only on add/remove).
     static_broadphase: broadphase::StaticBroadphase<D>,
     /// Set to true when a static or kinematic body is added or removed.
@@ -206,6 +326,7 @@ impl<const D: usize> PhysicsWorld<D> {
             bodies: Vec::new(),
             constraints: Vec::new(),
             gravity,
+            integration_limits: integrator::IntegrationLimits::unbounded(),
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
@@ -220,6 +341,7 @@ impl<const D: usize> PhysicsWorld<D> {
             net_id_map: BTreeMap::new(),
             handle_to_index: HashMap::new(),
             next_handle: 0,
+            next_step_id: 0,
             static_broadphase: broadphase::StaticBroadphase::new(),
             static_tree_dirty: false,
             mesh_contact_fn: None,
@@ -402,21 +524,110 @@ impl<const D: usize> PhysicsWorld<D> {
         self.bodies.get_mut(idx)
     }
 
+    /// Set explicit real-time integration speed limits for all dynamic bodies.
+    ///
+    /// The default is unbounded. These application-defined caps use the
+    /// world's configured length/time units and are applied to every body
+    /// integration in subsequent steps.
+    pub fn set_integration_limits(&mut self, limits: integrator::IntegrationLimits) {
+        self.integration_limits = limits;
+    }
+
+    /// Read the current world integration limits.
+    pub fn integration_limits(&self) -> &integrator::IntegrationLimits {
+        &self.integration_limits
+    }
+
     /// Step with consciousness-physics callback.
     ///
     /// The callback modulates forces, impulses, and friction based on
-    /// consciousness state, closing the consciousness-physics loop.
+    /// consciousness state. This compatibility API rejects a failed physics
+    /// step and clears accumulated forces/torques. Use
+    /// `try_step_with_callback` to receive the typed error.
+    ///
+    /// Callback-owned side effects are not generally rollbackable if a later
+    /// physics operation fails; use a transactional callback implementation
+    /// when that distinction matters.
     pub fn step_with_callback(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
-        self.step_internal(dt, callback);
+        if self.try_step_with_callback(dt, callback).is_err() {
+            for body in &mut self.bodies {
+                body.clear_accumulators();
+            }
+        }
     }
 
     /// Step without consciousness coupling (pure physics).
+    ///
+    /// This compatibility API rejects a failed step and clears accumulators.
+    /// Use `try_step` to receive a typed failure.
     pub fn step(&mut self, dt: f64) {
-        let mut noop = NoOpCallback;
-        self.step_internal(dt, &mut noop);
+        if self.try_step(dt).is_err() {
+            for body in &mut self.bodies {
+                body.clear_accumulators();
+            }
+        }
     }
 
-    fn step_internal(&mut self, dt: f64, callback: &mut dyn PhysicsCallback<D>) {
+    /// Fallible, rollback-capable world step using the no-op callback.
+    ///
+    /// On a rotational-inertia failure, body state, contact manifolds, events,
+    /// and warm-start caches are restored to their pre-step values. Force and
+    /// torque accumulators are preserved so the caller can inspect or retry
+    /// after applying an explicit recovery policy.
+    pub fn try_step(&mut self, dt: f64) -> Result<(), PhysicsStepError> {
+        let mut noop = NoOpCallback;
+        self.try_step_with_callback(dt, &mut noop)
+    }
+
+    /// Fallible world step with callback coupling.
+    ///
+    /// The physics-owned state is rolled back on failure. Arbitrary side
+    /// effects performed inside user callback methods cannot be rolled back
+    /// generically and must be handled by the callback owner.
+    pub fn try_step_with_callback(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<(), PhysicsStepError> {
+        // Step IDs advance even for rejected attempts and are deliberately not
+        // part of WorldStepSnapshot, so rollback never reuses a failure ID.
+        let step_id = self.next_step_id;
+        self.next_step_id = self.next_step_id.saturating_add(1);
+        let snapshot = WorldStepSnapshot::capture(self);
+        match self.step_internal(dt, callback) {
+            Ok(()) => Ok(()),
+            Err(mut error) => {
+                error.step_id = step_id;
+                snapshot.restore(self);
+                Err(error)
+            }
+        }
+    }
+
+    fn step_internal(
+        &mut self,
+        dt: f64,
+        callback: &mut dyn PhysicsCallback<D>,
+    ) -> Result<(), PhysicsStepError> {
+        if !dt.is_finite() || dt <= 0.0 {
+            return Err(PhysicsStepError {
+                phase: PhysicsStepPhase::WorldConfiguration,
+                body_a: None,
+                body_b: None,
+                cause: PhysicsStepCause::Integration(integrator::IntegrationError::InvalidTimeStep),
+                step_id: 0,
+            });
+        }
+        if !self.gravity.iter().all(|value| value.is_finite()) {
+            return Err(PhysicsStepError {
+                phase: PhysicsStepPhase::WorldConfiguration,
+                body_a: None,
+                body_b: None,
+                cause: PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteInput),
+                step_id: 0,
+            });
+        }
+
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
@@ -429,6 +640,9 @@ impl<const D: usize> PhysicsWorld<D> {
             self.static_broadphase.rebuild(&self.bodies);
             self.static_tree_dirty = false;
         }
+
+        // Copy the unit-aware policy before mutably iterating bodies.
+        let integration_limits = self.integration_limits;
 
         // 1. Integrate all bodies (skip sleeping)
         // Capture pre-integration positions for the CCD sweep (step 1b): CCD
@@ -452,7 +666,14 @@ impl<const D: usize> PhysicsWorld<D> {
             if !body.sleeping {
                 body.force_accumulator =
                     callback.modulate_force(body.handle, &body.force_accumulator);
-                integrator::integrate(body, &self.gravity, dt);
+                integrator::try_integrate_with_limits(body, &self.gravity, dt, &integration_limits)
+                    .map_err(|cause| PhysicsStepError {
+                        phase: PhysicsStepPhase::BodyIntegration,
+                        body_a: Some(body.handle),
+                        body_b: None,
+                        cause: PhysicsStepCause::Integration(cause),
+                        step_id: 0,
+                    })?;
             }
         }
         #[cfg(feature = "deterministic-net")]
@@ -641,7 +862,16 @@ impl<const D: usize> PhysicsWorld<D> {
         //     (The old code accidentally applied warm-starting N times per frame.)
         for &ci in &active_contact_indices {
             if ci < self.contacts.len() {
-                self.warm_start_contact(ci);
+                let body_a = self.contacts[ci].body_a;
+                let body_b = self.contacts[ci].body_b;
+                self.try_warm_start_contact(ci)
+                    .map_err(|cause| PhysicsStepError {
+                        phase: PhysicsStepPhase::ContactWarmStart,
+                        body_a: Some(body_a),
+                        body_b: Some(body_b),
+                        cause: cause.into(),
+                        step_id: 0,
+                    })?;
             }
         }
 
@@ -651,7 +881,17 @@ impl<const D: usize> PhysicsWorld<D> {
             for &ci in &active_contact_indices {
                 if ci < self.contacts.len() {
                     let contact = self.contacts[ci].clone();
-                    let updated = self.resolve_contact(contact, dt, callback);
+                    let body_a = contact.body_a;
+                    let body_b = contact.body_b;
+                    let updated =
+                        self.try_resolve_contact(contact, dt, callback)
+                            .map_err(|cause| PhysicsStepError {
+                                phase: PhysicsStepPhase::ContactSolve,
+                                body_a: Some(body_a),
+                                body_b: Some(body_b),
+                                cause: cause.into(),
+                                step_id: 0,
+                            })?;
                     self.contacts[ci] = updated;
                 }
             }
@@ -732,6 +972,7 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // 8. State Decay: Apply natural recovery/decay to all conscious entities.
         self.decay_state(callback, dt);
+        Ok(())
     }
 
     /// Decay the consciousness state over time.
@@ -889,8 +1130,8 @@ impl<const D: usize> PhysicsWorld<D> {
         for pt in &mut self.contacts[ci].points {
             let r_a = pt.position - com_a;
             let r_b = pt.position - com_b;
-            let v_point_a = va + wa.apply_to_vector(&r_a);
-            let v_point_b = vb + wb.apply_to_vector(&r_b);
+            let v_point_a = va + integrator::angular_point_velocity(&wa, &r_a);
+            let v_point_b = vb + integrator::angular_point_velocity(&wb, &r_b);
             let v_rel_n = (v_point_b - v_point_a).dot(&normal);
 
             pt.restitution_bias = if restitution > 1e-9 && v_rel_n < -RESTITUTION_VELOCITY_THRESHOLD
@@ -906,11 +1147,14 @@ impl<const D: usize> PhysicsWorld<D> {
     ///
     /// Called ONCE per contact before the solver loop. Distributes the cached
     /// total impulse evenly across all contact points and initialises `lambda`.
-    fn warm_start_contact(&mut self, ci: usize) {
+    fn try_warm_start_contact(
+        &mut self,
+        ci: usize,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
         let contact = self.contacts[ci].clone();
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
-            return;
+            return Ok(());
         };
 
         let primary_pt = contact.primary_point().position;
@@ -944,8 +1188,8 @@ impl<const D: usize> PhysicsWorld<D> {
                 let r_b = pt.position - com_b;
                 let torque_a = Bivector::from_wedge(&(-per_pt_impulse), &r_a);
                 let torque_b = Bivector::from_wedge(&per_pt_impulse, &r_b);
-                integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
-                integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+                integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
+                integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
             }
 
             // Seed lambda so TGS Soft starts from warm-start value
@@ -953,6 +1197,7 @@ impl<const D: usize> PhysicsWorld<D> {
                 pt.lambda = per_pt;
             }
         }
+        Ok(())
     }
 
     /// Resolve a single contact using TGS Soft (Temporal Gauss-Seidel with compliance).
@@ -976,29 +1221,24 @@ impl<const D: usize> PhysicsWorld<D> {
     /// `ContactManifold::impulse_magnitude`).
     ///
     /// Returns the updated manifold so accumulated lambdas persist across iterations.
-    fn resolve_contact(
+    fn try_resolve_contact(
         &mut self,
         mut contact: ContactManifold<D>,
         dt: f64,
         callback: &mut dyn PhysicsCallback<D>,
-    ) -> ContactManifold<D> {
+    ) -> Result<ContactManifold<D>, crate::inertia::RotationalInertiaError> {
         let (idx_a, idx_b) = self.find_body_indices(contact.body_a, contact.body_b);
         let (Some(a), Some(b)) = (idx_a, idx_b) else {
-            return contact;
+            return Ok(contact);
         };
 
         let inv_mass_a = self.bodies[a].inv_mass;
         let inv_mass_b = self.bodies[b].inv_mass;
         let total_inv_mass = inv_mass_a + inv_mass_b;
         if total_inv_mass < 1e-15 {
-            return contact;
+            return Ok(contact);
         }
 
-        // Isotropic (mean-of-axes) inverse inertia — see the TODO in
-        // `integrator.rs` (`integrate` / `apply_angular_impulse`) for why
-        // this is only exact for spheres.
-        let inv_i_avg_a = self.bodies[a].inv_inertia.sum() / D as f64;
-        let inv_i_avg_b = self.bodies[b].inv_inertia.sum() / D as f64;
         let com_a = self.bodies[a].position();
         let com_b = self.bodies[b].position();
 
@@ -1058,9 +1298,9 @@ impl<const D: usize> PhysicsWorld<D> {
 
             let v_rel_n = {
                 let va = self.bodies[a].linear_velocity
-                    + self.bodies[a].angular_velocity.apply_to_vector(&r_a);
+                    + integrator::angular_point_velocity(&self.bodies[a].angular_velocity, &r_a);
                 let vb = self.bodies[b].linear_velocity
-                    + self.bodies[b].angular_velocity.apply_to_vector(&r_b);
+                    + integrator::angular_point_velocity(&self.bodies[b].angular_velocity, &r_b);
                 (vb - va).dot(&contact.normal)
             };
 
@@ -1073,16 +1313,19 @@ impl<const D: usize> PhysicsWorld<D> {
                 ((bias_depth - slop).max(0.0) * baumgarte / safe_dt).min(MAX_BIAS_VELOCITY);
             let bias = position_bias.max(pt.restitution_bias);
 
-            // Lever-arm effective-mass term: inv_I * |r_perp|^2, where r_perp
-            // is the component of r orthogonal to the contact normal. This is
-            // the dimension-agnostic generalisation of the classic 3D
-            // "(r × n)² / I" rotational contact term (derivable directly from
-            // `Bivector::from_wedge` + `apply_to_vector`; see
-            // `wedge_matches_3d_lever_arm_identity` in symtropy-math).
-            let n_dot_ra = r_a.dot(&contact.normal);
-            let n_dot_rb = r_b.dot(&contact.normal);
-            let ang_term_a = inv_i_avg_a * (r_a.norm_squared() - n_dot_ra * n_dot_ra);
-            let ang_term_b = inv_i_avg_b * (r_b.norm_squared() - n_dot_rb * n_dot_rb);
+            // Rotational inverse effective mass uses the same body/world
+            // inertia operator as angular impulse application. Bodies without
+            // authoritative mass properties retain the legacy isotropic term.
+            let ang_term_a = integrator::try_rotational_inverse_effective_mass(
+                &self.bodies[a],
+                &r_a,
+                &contact.normal,
+            )?;
+            let ang_term_b = integrator::try_rotational_inverse_effective_mass(
+                &self.bodies[b],
+                &r_b,
+                &contact.normal,
+            )?;
 
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
             let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
@@ -1105,8 +1348,8 @@ impl<const D: usize> PhysicsWorld<D> {
                 // matters — see `Bivector::from_wedge` doc comment).
                 let torque_a = Bivector::from_wedge(&(-impulse), &r_a);
                 let torque_b = Bivector::from_wedge(&impulse, &r_b);
-                integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
-                integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+                integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
+                integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
                 total_normal_impulse += modulated_delta.abs();
             }
@@ -1162,9 +1405,15 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let v_rel = {
                     let va = self.bodies[a].linear_velocity
-                        + self.bodies[a].angular_velocity.apply_to_vector(&r_a);
+                        + integrator::angular_point_velocity(
+                            &self.bodies[a].angular_velocity,
+                            &r_a,
+                        );
                     let vb = self.bodies[b].linear_velocity
-                        + self.bodies[b].angular_velocity.apply_to_vector(&r_b);
+                        + integrator::angular_point_velocity(
+                            &self.bodies[b].angular_velocity,
+                            &r_b,
+                        );
                     vb - va
                 };
                 let v_n = contact.normal * v_rel.dot(&contact.normal);
@@ -1178,13 +1427,18 @@ impl<const D: usize> PhysicsWorld<D> {
                     // ═══ HARMONY FIELD FRICTION MODULATION ═══
                     mu *= callback.friction_multiplier(&pt.position, contact.body_a);
 
-                    // Lever-arm effective mass for the tangential direction,
-                    // so friction at an offset from the COM can induce spin
-                    // instead of only ever damping linear velocity.
-                    let t_dot_ra = r_a.dot(&tangent);
-                    let t_dot_rb = r_b.dot(&tangent);
-                    let ang_term_a_t = inv_i_avg_a * (r_a.norm_squared() - t_dot_ra * t_dot_ra);
-                    let ang_term_b_t = inv_i_avg_b * (r_b.norm_squared() - t_dot_rb * t_dot_rb);
+                    // Use the same full rotational effective-mass operator
+                    // for tangential friction as for the normal impulse.
+                    let ang_term_a_t = integrator::try_rotational_inverse_effective_mass(
+                        &self.bodies[a],
+                        &r_a,
+                        &tangent,
+                    )?;
+                    let ang_term_b_t = integrator::try_rotational_inverse_effective_mass(
+                        &self.bodies[b],
+                        &r_b,
+                        &tangent,
+                    )?;
                     let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
 
                     let j_t_desired = -v_t_mag / denom_t;
@@ -1195,10 +1449,16 @@ impl<const D: usize> PhysicsWorld<D> {
 
                     let torque_a = Bivector::from_wedge(&(-friction_impulse), &r_a);
                     let torque_b = Bivector::from_wedge(&friction_impulse, &r_b);
-                    integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
-                    integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
+                    integrator::try_apply_angular_impulse(&mut self.bodies[a], &torque_a)?;
+                    integrator::try_apply_angular_impulse(&mut self.bodies[b], &torque_b)?;
 
-                    total_friction_dissipation += j_t.abs() * 0.1;
+                    // Exact kinetic-energy change for this impulse in the
+                    // current rigid-body effective-mass model:
+                    // ΔK = j_t * (v_t + 0.5 * W_t * j_t).
+                    // A correctly clamped Coulomb impulse is opposite slip and
+                    // cannot increase kinetic energy through this contact row.
+                    let friction_work = j_t * (v_t_mag + 0.5 * denom_t * j_t);
+                    total_friction_dissipation += (-friction_work).max(0.0);
                 }
             }
         }
@@ -1226,7 +1486,7 @@ impl<const D: usize> PhysicsWorld<D> {
             callback.apply_trauma(&event);
         }
 
-        contact
+        Ok(contact)
     }
 
     #[inline]
@@ -2559,5 +2819,409 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+
+    #[test]
+    fn try_step_rolls_back_when_contact_resolution_hits_singular_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let floor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+        );
+        let floor_handle = world.add_body(floor);
+
+        let mut block = RigidBody::<3>::new(
+            BodyHandle(1),
+            crate::body::BodyType::Dynamic,
+            Transform::from_translation(Point::new([0.0, 0.495, 0.0])),
+            Box::new(HyperBox::<3>::cube(0.5)),
+            1.0,
+            SVector::from_element(1.0),
+        );
+        block.set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
+            .unwrap(),
+        );
+        block.linear_velocity = SVector::new(0.25, 0.0, 0.0);
+        block.apply_force(SVector::new(1.0, 0.0, 0.0));
+        let block_handle = world.add_body(block);
+
+        let block_position = world.bodies[1].transform.translation.0.clone();
+        let block_velocity = world.bodies[1].linear_velocity.clone();
+        let block_force = world.bodies[1].force_accumulator.clone();
+        let previous_contacts = world.contacts.clone();
+        let previous_events = world.collision_events.clone();
+
+        let error = world.try_step(0.001).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::ContactSolve);
+        assert_eq!(error.body_a, Some(floor_handle));
+        assert_eq!(error.body_b, Some(block_handle));
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::RotationalInertia(RotationalInertiaError::SingularInertia)
+        );
+        assert_eq!(world.bodies[1].transform.translation.0, block_position);
+        assert_eq!(world.bodies[1].linear_velocity, block_velocity);
+        assert_eq!(world.bodies[1].force_accumulator, block_force);
+        assert_eq!(world.contacts.len(), previous_contacts.len());
+        assert_eq!(world.collision_events.len(), previous_events.len());
+    }
+
+    #[test]
+    fn empty_world_rejects_non_finite_gravity_as_world_configuration_error() {
+        let mut world = PhysicsWorld::<3>::new(SVector::new(0.0, f64::NAN, 0.0));
+        let error = world.try_step(0.01).unwrap_err();
+        assert_eq!(error.step_id, 0);
+        assert_eq!(error.phase, PhysicsStepPhase::WorldConfiguration);
+        assert_eq!(error.body_a, None);
+        assert_eq!(error.body_b, None);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteInput)
+        );
+    }
+
+    #[test]
+    fn world_rejects_non_finite_force_and_preserves_invalid_input_for_recovery() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::new(0.25, -0.5, 0.75);
+        body.force_accumulator = SVector::new(f64::NAN, 1.0, 0.0);
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+
+        let error = world.try_step_with_receipt(0.01).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
+        assert_eq!(error.body_a, Some(handle));
+        assert_eq!(error.body_b, None);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteInput)
+        );
+
+        let body = world.body(handle).unwrap();
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert!(body.force_accumulator[0].is_nan());
+        assert_eq!(body.force_accumulator[1], 1.0);
+    }
+
+    #[test]
+    fn rejected_and_accepted_steps_use_unique_monotonic_ids() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let error = world.try_step(0.0).unwrap_err();
+        assert_eq!(error.step_id, 0);
+
+        let accepted = world.try_step_with_receipt(0.01).unwrap();
+        assert_eq!(accepted.step_id, 1);
+
+        let next_error = world.try_step(f64::NAN).unwrap_err();
+        assert_eq!(next_error.step_id, 2);
+        let body = world.body(handle).unwrap();
+        assert!(body.transform.translation.0.iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn world_rejects_invalid_dt_with_typed_failure_and_rolls_back() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_velocity = SVector::new(1.0, 2.0, 3.0);
+        body.apply_force(SVector::new(2.0, 0.0, 0.0));
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        let error = world.try_step(0.0).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::WorldConfiguration);
+        assert_eq!(error.step_id, 0);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::InvalidTimeStep)
+        );
+        let body = world.body(handle).unwrap();
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
+    fn world_rejects_overflowed_candidate_without_committing_partial_state() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(f64::MAX / 2.0, 0.0, 0.0);
+        body.apply_force(SVector::new(1.0, 0.0, 0.0));
+        let position_before = body.transform.translation.0;
+        let velocity_before = body.linear_velocity;
+        let force_before = body.force_accumulator;
+
+        let error = world.try_step(4.0).unwrap_err();
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::NonFiniteState)
+        );
+        let body = world.body(handle).unwrap();
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.linear_velocity, velocity_before);
+        assert_eq!(body.force_accumulator, force_before);
+    }
+
+    #[test]
+    fn world_default_integration_policy_does_not_apply_hidden_speed_caps() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(1500.0, 0.0, 0.0);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(120.0);
+
+        world.try_step(1e-4).unwrap();
+
+        let body = world.body(handle).unwrap();
+        assert!((body.linear_velocity.norm() - 1500.0).abs() < 1e-10);
+        assert!((body.angular_velocity.norm() - 120.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn world_can_opt_into_explicit_unitful_speed_limits() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.set_integration_limits(
+            integrator::IntegrationLimits::with_speed_caps(Some(25.0), Some(8.0)).unwrap(),
+        );
+        let handle = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body = world.body_mut(handle).unwrap();
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = SVector::new(30.0, 0.0, 0.0);
+        body.angular_velocity = Bivector::<3>::unit_plane(0, 1).scale(12.0);
+
+        world.try_step(1e-4).unwrap();
+
+        let body = world.body(handle).unwrap();
+        assert!((body.linear_velocity.norm() - 25.0).abs() < 1e-12);
+        assert!((body.angular_velocity.norm() - 8.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn try_step_rolls_back_all_bodies_when_later_body_has_singular_inertia() {
+        use crate::inertia::{BivectorInertia, RotationalInertiaError};
+        use nalgebra::SMatrix;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
+
+        world.bodies[0].linear_velocity = SVector::new(0.25, -0.5, 0.75);
+        world.bodies[0].apply_force(SVector::new(3.0, 0.0, 0.0));
+        world.bodies[1].set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
+            .unwrap(),
+        );
+        world.bodies[1].apply_torque(Bivector::unit_plane(1, 2));
+
+        let first_position = world.bodies[0].transform.translation.0.clone();
+        let first_velocity = world.bodies[0].linear_velocity.clone();
+        let first_force = world.bodies[0].force_accumulator.clone();
+        let second_position = world.bodies[1].transform.translation.0.clone();
+        let second_torque = world.bodies[1].torque_accumulator.clone();
+        let first_handle = world.bodies[0].handle;
+        let second_handle = world.bodies[1].handle;
+        let cache_point = SVector::new(0.0, 0.0, 0.0);
+
+        world.contacts.push(ContactManifold::single(
+            first_handle,
+            second_handle,
+            SVector::new(1.0, 0.0, 0.0),
+            cache_point,
+            0.1,
+        ));
+        world.collision_events.push(CollisionEvent {
+            body_a: first_handle,
+            body_b: second_handle,
+            impulse: 0.25,
+            normal: SVector::new(1.0, 0.0, 0.0),
+            depth: 0.1,
+        });
+        world.sensor_events.push(crate::contact::SensorEvent {
+            sensor: first_handle,
+            other: second_handle,
+        });
+        world
+            .contact_cache
+            .store(first_handle, second_handle, cache_point, 0.25, 0.0);
+        world
+            .prev_cache
+            .store(first_handle, second_handle, cache_point, 0.5, 0.0);
+
+        let error = world.try_step(0.01).unwrap_err();
+        assert_eq!(error.phase, PhysicsStepPhase::BodyIntegration);
+        assert_eq!(error.body_a, Some(second_handle));
+        assert_eq!(error.body_b, None);
+        assert_eq!(
+            error.cause,
+            PhysicsStepCause::Integration(integrator::IntegrationError::RotationalInertia(
+                RotationalInertiaError::SingularInertia
+            ))
+        );
+        assert_eq!(world.bodies[0].transform.translation.0, first_position);
+        assert_eq!(world.bodies[0].linear_velocity, first_velocity);
+        assert_eq!(world.bodies[0].force_accumulator, first_force);
+        assert_eq!(world.bodies[1].transform.translation.0, second_position);
+        assert_eq!(world.bodies[1].torque_accumulator, second_torque);
+        assert_eq!(world.contacts.len(), 1);
+        assert_eq!(world.collision_events.len(), 1);
+        assert_eq!(world.sensor_events.len(), 1);
+        assert_eq!(
+            world
+                .contact_cache
+                .lookup(first_handle, second_handle, &cache_point)
+                .unwrap()
+                .normal_impulse,
+            0.25
+        );
+        assert_eq!(
+            world
+                .prev_cache
+                .lookup(first_handle, second_handle, &cache_point)
+                .unwrap()
+                .normal_impulse,
+            0.5
+        );
+    }
+
+    #[test]
+    fn try_resolve_contact_reports_singular_rotational_effective_mass() {
+        use crate::inertia::BivectorInertia;
+        use nalgebra::SMatrix;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let body_a = world.add_sphere(Point::origin(), 0.5, 1.0);
+        let body_b = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
+        world.bodies[0].set_rotational_inertia_operator(
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(1.0, 0.0, 0.0),
+            ))
+            .unwrap(),
+        );
+
+        let contact = ContactManifold::single(
+            body_a,
+            body_b,
+            SVector::new(0.0, 0.0, 1.0),
+            SVector::new(0.0, 1.0, 0.0),
+            0.2,
+        );
+        let before_a = world.bodies[0].linear_velocity.clone();
+        let before_b = world.bodies[1].linear_velocity.clone();
+        let mut callback = NoOpCallback;
+
+        let error = world
+            .try_resolve_contact(contact, 0.01, &mut callback)
+            .unwrap_err();
+        assert_eq!(
+            error,
+            crate::inertia::RotationalInertiaError::SingularInertia
+        );
+        assert_eq!(world.bodies[0].linear_velocity, before_a);
+        assert_eq!(world.bodies[1].linear_velocity, before_b);
+    }
+
+    struct DissipationRecorder {
+        energy_joules: f64,
+    }
+
+    impl PhysicsCallback<3> for DissipationRecorder {
+        fn modulate_force(&self, _: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _: &SVector<f64, 3>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _: &SVector<f64, 3>, _: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _: &CollisionEvent<3>) {}
+
+        fn record_dissipation(&mut self, energy_joules: f64) {
+            self.energy_joules += energy_joules;
+        }
+
+        fn record_work(&mut self, _: BodyHandle, _: f64) {}
+
+        fn apply_trauma(&mut self, _: &CollisionEvent<3>) {}
+    }
+
+    #[test]
+    fn friction_dissipation_callback_receives_kinetic_energy_in_joules() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 1;
+        world.baumgarte = 0.0;
+        world.compliance = 0.0;
+
+        let floor = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::new(1.0, 0.0, 0.0), 0.0)),
+        );
+        let floor_handle = world.add_body(floor);
+
+        let mut sphere =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([0.49, 0.0, 0.0]), 0.5, 1.0);
+        sphere.linear_velocity = SVector::new(-0.1, 1.0, 0.0);
+        sphere.friction = 0.5;
+        sphere.restitution = 0.0;
+        let sphere_handle = world.add_body(sphere);
+        world.bodies[0].friction = 0.5;
+        world.bodies[0].restitution = 0.0;
+
+        let mut callback = DissipationRecorder { energy_joules: 0.0 };
+        world
+            .try_step_with_callback(0.001, &mut callback)
+            .expect("valid sphere/plane friction step");
+
+        let contact = world
+            .contacts
+            .iter()
+            .find(|contact| contact.body_a == floor_handle && contact.body_b == sphere_handle)
+            .expect("sphere should contact the half-space");
+        let point = contact.primary_point();
+        let body = &world.bodies[1];
+        let offset = point.position - body.position();
+        let tangent = SVector::new(0.0, 1.0, 0.0);
+        let tangential_speed_after = (body.linear_velocity
+            + integrator::angular_point_velocity(&body.angular_velocity, &offset))
+        .dot(&tangent);
+        let inverse_effective_mass = body.inv_mass
+            + integrator::try_rotational_inverse_effective_mass(body, &offset, &tangent)
+                .expect("valid rotational effective mass");
+        let friction_impulse = (tangential_speed_after - 1.0) / inverse_effective_mass;
+        let expected_dissipation =
+            -(friction_impulse * (1.0 + 0.5 * inverse_effective_mass * friction_impulse));
+
+        assert!(friction_impulse < 0.0);
+        assert!(callback.energy_joules > 0.0);
+        assert!(
+            (callback.energy_joules - expected_dissipation).abs() < 1e-9,
+            "recorded={} J, work-derived={} J",
+            callback.energy_joules,
+            expected_dissipation
+        );
     }
 }
