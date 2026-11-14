@@ -123,6 +123,27 @@ The reference now covers frame-typed dense metrics, full-row-rank linear Delassu
 
 The next step is to connect the fixed-linear certificate to a frozen physical one-step dumbbell fixture in Symtropy #4730. That requires a separate qualification of the nonlinear residual Jacobian / local inverse bound and a clear separation of solver error, constraint linearization error, and time-discretization error.
 
+
+## Conditional nonlinear local-root envelope (scalar reference)
+
+The next layer is a Newton-Kantorovich calculator for a nonlinear residual F(z)=0 at z0 with nonsingular A=F'(z0). It accepts two independently supplied upper-bound records:
+
+- eta >= ||A^-1 F(z0)|| in a declared physical norm;
+- gamma >= Lip(A^-1 F') on the entire candidate ball, in the same norm and for the same problem and linearization.
+
+The calculator rejects mismatched problem, linearization or norm identities. For h=gamma*eta < 1/2 it computes
+
+    r = 2 eta / (1 + sqrt(1 - 2 h))
+    q = gamma r
+
+using the cancellation-resistant radius form. It issues a **conditional** local-root receipt only when q is strictly below one and also within the configured contraction profile (default 0.95). The boundary h=1/2, missing/mismatched evidence identity, negative/non-finite bound and overflow are fail-closed or INCONCLUSIVE.
+
+A deterministic boundary ladder is available at:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example newton_kantorovich_ladder
+
+The word *conditional* is essential. The calculator checks the scalar theorem once eta and gamma are supplied; it does not authenticate either receipt or prove those bounds. In particular, a sampled maximum of Jacobian variation is not a valid gamma bound over the complete ball. A physical local-root claim requires a separate independent verifier to establish the preconditioned Newton correction, Jacobian nonsingularity, uniform Jacobian-Lipschitz bound, norm identity, problem identity and full-ball domain. This v0.1 calculator therefore does not yet certify the dumbbell midpoint integrator or its time-discretization error.
+
 ## Reproducible microbenchmark v0.1
 
 The `metric-induced-microbenchmark` binary uses one frozen 6-DOF diagonal-mass / dense unit-triangular rebasing fixture. It reports per-operation median, p95 and p99 nanoseconds plus a numerical checksum for:
