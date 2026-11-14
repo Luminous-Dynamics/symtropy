@@ -15,6 +15,7 @@ This qualifies the declared bounded constant-velocity slice arithmetic only. It 
 - Track J: endogenous demand, queueing and service-quality feedback (#5248).
 - Track K: finite-buffer airside blocking and queue spillback (#5261).
 - Track L: PNT/clock evidence to hard aircraft occupancy bounds (#5270).
+- Track M: cooperative/non-cooperative surveillance observability (#5275).
 
 ## 2026 research references now in the benchmark suite
 
@@ -26,6 +27,8 @@ This qualifies the declared bounded constant-velocity slice arithmetic only. It 
 - EUROCONTROL GUID-203 (5 November 2026), GNSS degradation preparedness/detection/coordination/response/recovery.
 - Albaidhani (24 October 2026), measurement-limited civil-aviation GNSS spoofing benchmark, DOI 10.1016/j.nexres.2026.102604.
 - 2025 ADS-B spoofing TDoA multilateration with receiver-network redundancy, DOI 10.1016/j.trpro.2025.10.010.
+- ASTM F3442-25 and FAA cooperative/non-cooperative DAA evaluation principles.
+- EUROCAE ED-267 OSED for very-low-level DAA and NASA EO/IR surveillance range research.
 
 These are established baselines. AeroWeft must distinguish literature-level feature comparison, a transparent local implementation of a model class, and a faithful reproduction with exact source/data/parameters/solver pinned.
 
