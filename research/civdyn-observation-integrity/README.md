@@ -15,13 +15,13 @@ The sweep emits tab-separated case results and a summary. A non-zero exit status
 
 ## Frozen cases
 
-The 20-case sweep covers:
+The 23-case sweep covers:
 - telemetry-only observational equivalence and correct abstention;
-- independent physical agreement and disagreement when the declared dependency profile is complete and distinct;
+- independent physical agreement/disagreement and pairwise conflict between multiple cross-checks;
 - shared source, gateway and trust-root common causes;
 - broker/registry mirrors that repeat one observation or upstream dataset under different source and gateway identifiers;
 - shared processing/model lineage and unknown dependency dimensions; unknown is never treated as independent;
-- excessive event-to-ingestion lag, calibration mismatch and unauthenticated primary telemetry;
+- stale observations at decision cutoff, excessive event-to-ingestion lag, late arrivals, calibration mismatch and unauthenticated primary telemetry;
 - derived reconstruction, instrument self-test and forensic-integrity evidence;
 - duplicate IDs, missing primary telemetry and inverted event/ingestion time;
 - evidence-order invariance.
@@ -34,8 +34,9 @@ This package consumes already-constructed `EvidenceRecord` and `AdmissionPolicy`
 
 - `authenticated` is an upstream boolean assertion; this crate does not verify signatures or source keys.
 - `source_digest` is required to be non-empty; this crate does not fetch bytes or verify a content digest.
-- The current `fresh` predicate compares `ingestion_tick - event_tick` with `maximum_age_ticks`. It bounds event-to-ingestion lag; it does **not** calculate observation age at a later decision cutoff. The CLI names this quantity accordingly.
+- Freshness is split into three predicates: observation age at the frozen decision cutoff, event-to-ingestion transport lag, and whether receipt occurred by the decision cutoff. Each has a distinct reason code; a late arrival cannot leak into an earlier as-known-at decision.
 - Independence is screened using source, gateway and trust-root identifiers plus five explicit lineage dimensions: underlying observation root, upstream dataset, processing lineage, operator domain and instrument lineage. A known shared dependency is correlated; any missing lineage dimension is unknown and cannot corroborate. Only a complete, pairwise-distinct profile receives the bounded `IndependentForThisProfile` classification.
+- Multiple independent physical cross-checks must be pairwise consistent as well as consistent with the primary measurement. The reported value remains the primary measurement; a supporting reading never wins merely by appearing first.
 - These dependency identifiers are themselves input assertions. The harness does not authenticate the dependency graph, prove statistical independence, prove physical sensor separation, or exclude unmodeled common causes. The result is a conservative profile-specific dependency classification, not a claim of universal independence.
 - Ticks, the integer `service_index`, tolerance and synthetic identity strings are fixture units, not calibrated physical quantities.
 - A disposition is a software triage result, not physical truth, cyber attribution, instrument qualification, safety authority or permission to act.
