@@ -1,0 +1,621 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-OBSERVATION-ADMISSION-CONTRACT-001",
+  "status": "PUBLIC_SYNTHETIC_ADMISSION_CONTRACT_NOT_PRODUCTION",
+  "claim_ceiling": "Only record-level admission rules over synthetic examples are evaluated. This does not implement production source adapters, authorize use of real data, or validate ecological measurements. No real source data ingested.",
+  "cases": [
+    {
+      "case_id": "FOREST-OBS-ADMIT-VALID-001",
+      "expected_disposition": "ADMIT_SYNTHETIC_ONLY",
+      "observation": {
+        "observation_id": "obs-valid-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 42,
+          "unit": "Mg/ha",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-CLOUD-AS-ZERO-001",
+      "expected_disposition": "REJECT_MISSINGNESS_PROMOTED_TO_ZERO",
+      "observation": {
+        "observation_id": "obs-cloud-zero-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 0,
+          "unit": "Mg/ha",
+          "validity_state": "cloud_masked",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-RIGHTS-UNCLEARED-001",
+      "expected_disposition": "BLOCK_RIGHTS_NOT_CLEARED",
+      "observation": {
+        "observation_id": "obs-rights-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 42,
+          "unit": "Mg/ha",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "unknown",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-ABSENCE-UNQUALIFIED-001",
+      "expected_disposition": "REJECT_UNQUALIFIED_ABSENCE",
+      "observation": {
+        "observation_id": "obs-absence-unqualified-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": null,
+          "unit": "Mg/ha",
+          "validity_state": "observed_absence",
+          "detection_qualified": false,
+          "coverage_qualified": true
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-ABSENCE-QUALIFIED-001",
+      "expected_disposition": "ADMIT_NEGATIVE_WITHIN_QUALIFIED_ENVELOPE",
+      "observation": {
+        "observation_id": "obs-absence-qualified-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": null,
+          "unit": "Mg/ha",
+          "validity_state": "observed_absence",
+          "detection_qualified": true,
+          "coverage_qualified": true
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-PROVENANCE-INCOMPLETE-001",
+      "expected_disposition": "REJECT_INCOMPLETE_PROVENANCE",
+      "observation": {
+        "observation_id": "obs-provenance-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "not-a-digest"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 42,
+          "unit": "Mg/ha",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": ""
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-SPLIT-LEAKAGE-001",
+      "expected_disposition": "REJECT_SPLIT_LEAKAGE",
+      "observation": {
+        "observation_id": "obs-split-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 42,
+          "unit": "Mg/ha",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "same-plot-campaign-01",
+          "partition": "train",
+          "related_partition": "test"
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-LONGITUDINAL-OVERCLAIM-001",
+      "expected_disposition": "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE",
+      "observation": {
+        "observation_id": "obs-longitudinal-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 42,
+          "unit": "Mg/ha",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": true
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-OUT-OF-DOMAIN-001",
+      "expected_disposition": "OUT_OF_DOMAIN",
+      "observation": {
+        "observation_id": "obs-domain-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": 42,
+          "unit": "Mg/ha",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Brazil",
+          "target_domain": "Democratic Republic of the Congo",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-NO-ACQUISITION-001",
+      "expected_disposition": "PRESERVE_UNOBSERVED",
+      "observation": {
+        "observation_id": "obs-no-acquisition-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "aboveground_biomass_density",
+          "value": null,
+          "unit": "Mg/ha",
+          "validity_state": "no_acquisition",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "aboveground_biomass_density",
+          "longitudinal_rate": false
+        }
+      }
+    },
+    {
+      "case_id": "FOREST-OBS-TARGET-SEMANTIC-MISMATCH-001",
+      "expected_disposition": "REJECT_TARGET_VARIABLE_SEMANTIC_MISMATCH",
+      "observation": {
+        "observation_id": "obs-semantic-001",
+        "subject_id": "synthetic-site-plot-01",
+        "source": {
+          "provider": "synthetic-provider",
+          "product_id": "synthetic-forest-observation",
+          "product_version": "1.0.0",
+          "asset_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "measurement": {
+          "variable": "forest_degradation_class",
+          "value": 2,
+          "unit": "class",
+          "validity_state": "observed_valid",
+          "detection_qualified": false,
+          "coverage_qualified": false
+        },
+        "support": {
+          "kind": "plot",
+          "geometry_id": "synthetic-plot-01",
+          "crs": "EPSG:4326",
+          "area_m2": 1000,
+          "valid_from": "2020-01-01",
+          "valid_to": "2020-01-01",
+          "repeat_measurement_count": 1,
+          "matched_repeat_measurements": false,
+          "source_domain": "Amazon",
+          "target_domain": "Amazon",
+          "domain_transfer_qualified": false
+        },
+        "operator": {
+          "operator_id": "plot-census-observation-v1",
+          "operator_version": "1.0.0"
+        },
+        "rights": {
+          "status": "cleared_for_declared_use",
+          "intended_purpose": "research",
+          "allowed_purposes": [
+            "research"
+          ]
+        },
+        "split": {
+          "group_key": "synthetic-site-plot-01",
+          "partition": "train",
+          "related_partition": null
+        },
+        "claim": {
+          "target_variable": "tree_mortality",
+          "longitudinal_rate": false
+        }
+      }
+    }
+  ],
+  "execution": {
+    "runner": "SYNTHETIC_OBSERVATION_ADMISSION_RULES",
+    "production_adapter": "NOT_IMPLEMENTED",
+    "external_data_ingested": false,
+    "rights_authority_execution": "NOT_RUN",
+    "blind_cases_created": false
+  }
+}
