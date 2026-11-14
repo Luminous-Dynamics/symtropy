@@ -89,6 +89,8 @@ pub enum AuditError {
     ReservationEventMismatch,
     /// A blocking event does not identify its blocker.
     MissingBlockingWitness,
+    /// The same aircraft/resource occupancy interval is declared more than once.
+    DuplicateReservation,
 }
 
 /// Peak simultaneous occupancy for one declared resource.
@@ -178,6 +180,19 @@ pub fn audit_reservation_events(
     reservations: &[Reservation],
     events: &[Event],
 ) -> Result<(), AuditError> {
+    let mut reservation_ids = BTreeSet::new();
+    for reservation in reservations {
+        let key = (
+            reservation.aircraft_id,
+            reservation.resource_id,
+            reservation.start_tick,
+            reservation.end_tick,
+        );
+        if !reservation_ids.insert(key) {
+            return Err(AuditError::DuplicateReservation);
+        }
+    }
+
     let mut event_ids = BTreeSet::new();
     for event in events {
         if !event_ids.insert(event.event_id) {
@@ -254,6 +269,29 @@ pub fn audit_causality(events: &[Event]) -> Result<(), AuditError> {
                 return Err(AuditError::CausalityViolation);
             }
         }
+    }
+
+    // A predecessor chain is single-parent, so an iterative walk detects
+    // same-tick cycles without depending on input ordering.
+    let mut fully_checked = BTreeSet::new();
+    for event in events {
+        let mut path = BTreeSet::new();
+        let mut cursor: Option<&Event> = Some(event);
+
+        while let Some(current) = cursor {
+            if fully_checked.contains(current.event_id) {
+                break;
+            }
+            if !path.insert(current.event_id) {
+                return Err(AuditError::CausalityViolation);
+            }
+            cursor = match current.predecessor {
+                Some(predecessor_id) => by_id.get(predecessor_id).copied(),
+                None => None,
+            };
+        }
+
+        fully_checked.extend(path);
     }
 
     Ok(())
