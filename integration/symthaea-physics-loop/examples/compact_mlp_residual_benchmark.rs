@@ -265,11 +265,15 @@ fn evaluate_episode(
 fn main() {
     let input_path = std::env::var("STFR_DATASET_INPUT_PATH")
         .expect("STFR_DATASET_INPUT_PATH must point to the training-split dataset");
+    let dataset_parse_started = Instant::now();
     let train_samples = training_samples(&input_path);
-    let training_started = Instant::now();
+    let dataset_parse_seconds = dataset_parse_started.elapsed().as_secs_f64();
+    let model_fit_started = Instant::now();
     let model = CompactMlpResidual::fit(&train_samples)
         .expect("compact nonlinear residual model fit must succeed");
-    let training_seconds = training_started.elapsed().as_secs_f64();
+    let model_fit_seconds = model_fit_started.elapsed().as_secs_f64();
+    let training_seconds = model_fit_seconds;
+    let training_pipeline_seconds = dataset_parse_seconds + model_fit_seconds;
 
     let episodes = env_usize("STFR_MLP_EVAL_EPISODES", 18);
     let steps_per_episode = env_usize("STFR_MLP_EVAL_STEPS", 64);
@@ -350,7 +354,10 @@ fn main() {
         "training": {
             "split": "train",
             "sample_count": model.training_sample_count(),
+            "dataset_parse_seconds": dataset_parse_seconds,
+            "model_fit_seconds": model_fit_seconds,
             "training_seconds": training_seconds,
+            "training_pipeline_seconds": training_pipeline_seconds,
             "final_training_rmse_m_s2": model.final_training_rmse_m_s2(),
             "hidden_force_labels_used_as_features": false
         },

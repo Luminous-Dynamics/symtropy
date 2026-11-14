@@ -1,0 +1,91 @@
+# Symtropy × Symthaea — Nano-Quadrotor system-identification adapter v0.1
+
+**Status:** research protocol and adapter contract only. No external dataset has been imported into CI; no benchmark score, leaderboard result, or physical-flight claim is made by this document.
+
+## Why this benchmark
+
+The internal Symtropy loop is useful for causal feature, schema, and integration tests, but its spherical-body simulator receives aggregate thrust and body moments. The IDSIA [Nano-Quadrotor System Identification Benchmark](https://github.com/idsia-robotics/nanodrone-sysid-benchmark) uses real Crazyflie 2.1 Brushless flight data with four motor angular velocities as inputs. Those are different control interfaces and different dynamics; internal RMSE must not be compared numerically with the public benchmark.
+
+The public benchmark README describes roughly 75,000 synchronized real-flight samples and physics, neural, hybrid physics-plus-residual, and LSTM reference models. Its documented protocol trains on Square, Random, and Chirp trajectories and reserves Melon for trajectory-level testing. The reference LSTM test script uses a 50-step horizon at 100 Hz (0.5 seconds) and test runs 1–3 of Melon. The repository's metric utilities report position, velocity, angular-rate, and rotation errors at each horizon and a sum-over-horizons summary.
+
+## Exact data contract
+
+### Inputs and outputs
+
+Read the released trajectory files and preserve their timestamps and split identities. The reference dataset loader selects the four motor-speed columns:
+
+- \`m1_rads\`, \`m2_rads\`, \`m3_rads\`, \`m4_rads\`
+
+It forms the measured state from world-frame position, world-frame velocity, orientation, and body-frame angular velocity. The raw measurements include quaternion orientation (13 state channels); the reference loader defaults to a 12-dimensional model state by mapping quaternion orientation to an SO(3) log/rotation vector. The Rust adapter must pin one explicit convention and document every conversion; it may not mix a four-component quaternion with three-component rotation-vector labels.
+
+Before training, validate monotonic timestamps, missing/duplicate rows, finite values, quaternion normalization/sign handling, motor-speed units, and sample intervals. Keep a manifest with dataset archive hash, file hashes, trajectory/run IDs, row counts, data schema version, source revision, and split membership.
+
+### Split and normalization
+
+- Training trajectories: Square, Random, Chirp.
+- External held-out test trajectory: Melon; do not use it for feature selection, scaling, early stopping, ridge selection, calibration, or model architecture decisions.
+- Any tuning and uncertainty-calibration split must be carved from training trajectories by contiguous run/trajectory blocks. Do not randomly split overlapping sequence windows.
+- Fit every normalizer on training data only; reuse the exact fitted transform for validation/test. Persist the fit source IDs and scaler digest.
+- Reproduce the official sequence alignment: start state \(x_t\), motor inputs \(u_{t:t+H-1}\), and ground-truth future states \(x_{t+1:t+H}\). Never let an overlapping window cross a trajectory/run boundary.
+
+The upstream reference test script contains interactive model selection. A reproducible Symtropy comparison must replace that interaction with pinned model/config IDs and emit a machine-readable receipt; do not copy an interactive run as if it were a reproducible evaluation.
+
+## Model arms
+
+Compare on identical rows, scalers, motor input sequences, horizons, and hardware budgets:
+
+1. Released physics-based reference model.
+2. Released neural model.
+3. Released physics-plus-residual model.
+4. Released LSTM model.
+5. Symthaea instantaneous HDC encoder + trained readout.
+6. Symthaea HDC/LTC reservoir + trained readout.
+7. Symthaea HDC/LTC with end-to-end-trained residual dynamics.
+8. Explicit finite-history model with matched state/action history length.
+9. Compact current-state and history MLPs.
+10. Negative controls: shuffled training targets and time-shifted/misaligned histories.
+
+All learned arms must train only on training trajectories. Use a fixed, declared tuning budget and publish parameter count, trainable parameter count, training wall time, peak memory, model size, CPU/accelerator, p50/p95/p99 and worst-observed inference latency, and energy/power where measurable. A model that wins only with a much larger training or inference budget must be presented as a budget trade-off, not an unqualified architecture win.
+
+## Metrics and reporting
+
+Reproduce the upstream per-horizon errors and extend the receipt with paired uncertainty:
+
+- Position error: Euclidean norm in metres.
+- Velocity error: Euclidean norm in metres/second.
+- Body angular-rate error: Euclidean norm in radians/second.
+- Orientation error: rotation-geodesic angle using a clearly pinned quaternion convention, reported in radians/degrees.
+- Per-horizon errors at 1, 5, 10, 20, and 50 steps; publish the full 1–50 horizon curves as well.
+- The upstream sum-over-horizons summary may be shown, but never use it as the only metric: it can hide instability at long horizons.
+- Per-trajectory/run metrics, mean, median, p95, worst run, and empirical CVaR90 across independent runs.
+- Paired model deltas with confidence intervals bootstrapped by trajectory/run, not overlapping windows.
+- Invalid predictions, quaternion normalization failures, divergence, and horizon-specific catastrophic errors must remain in the denominator/receipt; never silently drop them.
+
+For uncertainty-aware variants, report interval coverage and width by trajectory/run, but Melon is deliberately a trajectory shift from training. Empirical coverage on Melon is a shift diagnostic, not a distribution-free guarantee. Do not convert prediction intervals into a safety claim.
+
+## Physical-interface compatibility gate
+
+Before comparing with the official leaderboard, the Symtropy model must accept the released four motor-speed inputs and use the official state/time conventions. If control outputs are needed, add and validate an actuator model (motor lag, command-to-speed dynamics, saturation, and a pinned motor mixer/inertia convention) before mapping motor speeds into thrust/body moments. Do not synthesize missing motor signals from aggregate commands and call that a matched evaluation.
+
+The first adapter milestone is **open-loop system identification only**: read the official train/test data, reproduce a reference model metric on the held-out trajectory, and prove the receipt records the expected trajectory/run IDs, row counts, normalizer digest, and exact horizon alignment. Next add the explicit-history and HDC/LTC arms. Only after this pass should any model feed MPC or be assessed in SITL/HITL.
+
+## Proposed go/no-go targets (not achieved results)
+
+These are engineering hypotheses to preregister, not published standards:
+
+- Data parity: reproduce the released reference evaluation and trajectory-level Melon split before reporting a Symthaea score.
+- Generalization: for an HDC/LTC temporal-representation claim, require at least 10% lower paired multi-step error than both the released LSTM/physics-plus-residual references and the explicit-history MLP on predeclared horizons, with powered run-level confidence intervals. Report every horizon, even if some regress.
+- Long-horizon behavior: no material degradation at horizons 20 and 50; specify thresholds before viewing test results.
+- Compute: meet a target-hardware control deadline at p99 with zero invalid predictions and zero unreported deadline misses. Publish the exact hardware and profiling method.
+- Robustness: add separately versioned tests for actuator lag, sensor bias/dropouts, timestamp jitter and altered payload only after exact public-data parity; do not contaminate the official held-out score with these internal stress tests.
+- Integrity: source/data/scaler/config/model digests, trajectory/run IDs, seed sequence, code revision, units and state-convention version must be emitted in the result receipt.
+
+## Industry/control path after system identification
+
+The next stage is a controller benchmark, not another predictor-only leaderboard. Compare tuned PID/INDI/LQR where assumptions apply, nominal MPC/tube-MPC, residual mean compensation, and uncertainty-aware constraint tightening under the same model, actuator and disturbance. Report trajectory tracking error, safety-boundary violations, recovery time, empirical CVaR90/worst run and real-time deadline misses. Only then move through higher-fidelity simulation and PX4 Software-in-the-Loop; Hardware-in-the-Loop should run actual flight-controller firmware against simulated vehicle physics before any controlled physical flight.
+
+Relevant references:
+
+- IDSIA public dataset and model/evaluation scripts: https://github.com/idsia-robotics/nanodrone-sysid-benchmark
+- Published benchmark: https://doi.org/10.1016/j.conengprac.2026.106871
+- Official PX4 HITL/SITL distinction: https://docs.px4.io/main/en/simulation/hitl.html
