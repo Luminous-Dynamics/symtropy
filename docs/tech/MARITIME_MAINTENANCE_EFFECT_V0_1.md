@@ -118,6 +118,25 @@ This is not a universal causal inference engine. The first P0 does not handle:
 
 Those are explicit future tracks, not silently assumed capabilities.
 
+## Standards, research and industrial comparators
+
+This benchmark is conceptually aligned with, but has not been assessed for conformity to:
+- **ISO 13379-1:2025**, condition-monitoring data interpretation and diagnostic techniques. It provides general concepts and guidance for choosing diagnostic approaches.
+- **ISO 13381-1:2025**, machinery prognostics guidelines and requirements. It is relevant to the future durability/RUL handoff, not a causal identification standard.
+
+Industrial comparator capabilities are real and broader than a point diagnosis:
+- **Wärtsilä Expert Insight** combines vessel data, AI/rule-based diagnostics and expert investigation, then supports crew action. Its public case describes an abnormal turbocharger-inlet lube-oil pressure, remote troubleshooting, bearing replacement by crew and the engine continuing to operate. This is a deployed detect → expert investigate → crew intervene loop. The public case does not expose the matched-duty randomized or causal-effect dataset needed to compare ATE accuracy.
+- **ABB Ability Digital Powertrain / Digital Powertrain Insights** offers continuous asset monitoring, analytics-powered anomaly alerts, condition/trend analysis, fleet visibility and prioritized maintenance guidance, with expert-led and self-service service models. The public product pages do not provide a matched maritime repair-effect benchmark using known counterfactual outcomes, calibrated measurement bounds and intervention assignment.
+
+These vendors are not being described as lacking internal maintenance verification or causal analysis; the comparison is limited to publicly documented capabilities and metrics. This P0 differentiator is narrower: a reproducible causal estimand and known-truth scoring contract, with explicit measurement-calibration bounds and a strict separation between estimator inputs and the hidden potential-outcome oracle.
+
+Research comparators:
+- **Najafi & Taghipour (2026)** model stochastic imperfect-repair effects and regime/action-dependent feasibility while jointly optimizing inspection and repair in a semi-Markov decision process. Their industrial example is a belt-conveyor head pulley. This informs a later decision-policy layer; it does not supply a directly comparable marine-engine effect score.
+- **Nieminen (2026)** presents a physics-grounded front-door workflow for estimating virtual pump-repair effects from hydraulic sensor logs, with mediator-overlap checks and cycle-level bootstrap uncertainty. The accessible article is assigned to the 1 December 2026 issue of *Expert Systems with Applications*; as of this benchmark's 14 November 2026 snapshot, treat it as an early-available research comparator, not a published marine validation. Its reported 5–7 percentage-point efficiency improvement is specific to the hydraulic test rig and its assumed DAG.
+- **Dadfarnia, Sharp & Herrmann (2025)** review industrial condition-monitoring evaluations and note heterogeneity in performance and economic measures, supporting transparent sensitivity and uncertainty reporting.
+
+The comparison strategy is: reproduce each external method on its own data/protocol; then compare methods on common controlled trial tapes with identical intervention versions, outcome definitions, measurement systems, follow-up and cost assumptions. Do not rank an ABB anomaly alert, a Wärtsilä expert-supported repair narrative, a hydraulic front-door estimate and a randomized finite-population ATE as if they were the same metric.
+
 ## Next identification ladder
 
 1. **Controlled known-truth randomization:** reproduce P0 and expand synthetic fault, repair-level, sensor-only and no-op negative controls.
