@@ -41,6 +41,26 @@
       "case_id": "RR08",
       "scenario": "Measurement uncertainty overlaps an acceptance boundary.",
       "expected_disposition": "not_evaluable"
+    },
+    {
+      "case_id": "RR09",
+      "scenario": "Intervention is a sensor replacement/calibration rather than a physical component repair; do not report plant restoration.",
+      "expected_disposition": "not_evaluable"
+    },
+    {
+      "case_id": "RR10",
+      "scenario": "Calibration validity expires before the measurement is available to the evaluator.",
+      "expected_disposition": "invalid_measurement_provenance"
+    },
+    {
+      "case_id": "RR11",
+      "scenario": "Acceptance-envelope digest does not match the capability envelope content supplied for the case.",
+      "expected_disposition": "invalid_binding"
+    },
+    {
+      "case_id": "RR12",
+      "scenario": "Evidence source/method changes between the pre- and post-repair episodes despite matching operating conditions.",
+      "expected_disposition": "not_evaluable"
     }
   ]
 }
