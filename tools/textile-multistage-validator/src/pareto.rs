@@ -1442,6 +1442,36 @@ mod tests {
     }
 
     #[test]
+    fn conditional_route_receipt_is_insufficient_not_eligible() {
+        let mut item = candidate("route-conditional", 9_000_000, 80, 10);
+        item.route_receipts[0].status = RouteReceiptStatus::Conditional;
+        let report = evaluate_tournament(&[item]);
+        assert!(report.pareto_fronts.is_empty());
+        assert_eq!(
+            report.assessments[0].eligibility,
+            CandidateEligibility::InsufficientEvidence
+        );
+    }
+
+    #[test]
+    fn route_receipt_for_another_lot_mass_or_specification_is_rejected() {
+        let mut wrong_lot = candidate("route-lot-mismatch", 9_000_000, 80, 10);
+        wrong_lot.route_receipts[0].lot_id = "other-lot".to_owned();
+        let report = evaluate_tournament(&[wrong_lot]);
+        assert_eq!(report.assessments[0].eligibility, CandidateEligibility::Ineligible);
+
+        let mut wrong_mass = candidate("route-mass-mismatch", 9_000_000, 80, 10);
+        wrong_mass.route_receipts[0].input_mass_mg -= 1;
+        let report = evaluate_tournament(&[wrong_mass]);
+        assert_eq!(report.assessments[0].eligibility, CandidateEligibility::Ineligible);
+
+        let mut wrong_spec = candidate("route-spec-mismatch", 9_000_000, 80, 10);
+        wrong_spec.route_receipts[0].receiving_specification_id = "other-spec".to_owned();
+        let report = evaluate_tournament(&[wrong_spec]);
+        assert_eq!(report.assessments[0].eligibility, CandidateEligibility::Ineligible);
+    }
+
+    #[test]
     fn receiver_acceptance_cannot_be_borrowed_from_another_output_lot() {
         let mut borrowed = candidate("borrowed", 9_000_000, 80, 10);
         borrowed.receiver_acceptance.output_lot_id = "other-lot".to_owned();
