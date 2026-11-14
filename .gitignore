@@ -20,6 +20,8 @@ result
 .direnv/
 
 # Generated / vendored / archival — not useful checked into git
+# Rust workspace build artifacts
+/target/
 chronicle/
 archive/
 _archive-*/
