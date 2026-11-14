@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-change-impact-v0.1.schema.json",
+  "title": "Construction Change Impact Graph and Event V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "graph",
+    "event"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "graph": {
+      "$ref": "#/$defs/graph"
+    },
+    "event": {
+      "$ref": "#/$defs/change_event"
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "global",
+            "exact"
+          ]
+        },
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_package_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "odd_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "exact"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "project_id"
+            ]
+          }
+        }
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "revision_id",
+        "content_digest"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "impact_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "change_kind",
+        "action",
+        "propagate"
+      ],
+      "properties": {
+        "change_kind": {
+          "enum": [
+            "design_geometry_changed",
+            "design_semantics_or_material_changed",
+            "method_or_sequence_changed",
+            "transformation_rule_changed",
+            "model_schema_or_mapping_changed",
+            "coordinate_frame_or_control_network_changed",
+            "site_epoch_or_environment_changed",
+            "robot_serial_or_hardware_changed",
+            "sensor_or_tool_changed",
+            "firmware_or_software_or_model_changed",
+            "capability_evidence_expired_or_revised",
+            "calibration_or_measurement_chain_changed",
+            "acceptance_predicate_or_inspection_method_changed",
+            "safety_or_permission_authority_changed",
+            "cost_basis_or_rate_changed",
+            "source_evidence_revoked_or_corrected",
+            "administrative_metadata_only",
+            "unknown"
+          ]
+        },
+        "action": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "rebuild",
+            "remeasure",
+            "revalidate",
+            "requalify",
+            "review_required",
+            null
+          ]
+        },
+        "propagate": {
+          "type": "boolean"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "from_node_id",
+        "to_node_id",
+        "dependency_kind",
+        "scope",
+        "covered_change_kinds",
+        "rules"
+      ],
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "covered_change_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "design_geometry_changed",
+              "design_semantics_or_material_changed",
+              "method_or_sequence_changed",
+              "transformation_rule_changed",
+              "model_schema_or_mapping_changed",
+              "coordinate_frame_or_control_network_changed",
+              "site_epoch_or_environment_changed",
+              "robot_serial_or_hardware_changed",
+              "sensor_or_tool_changed",
+              "firmware_or_software_or_model_changed",
+              "capability_evidence_expired_or_revised",
+              "calibration_or_measurement_chain_changed",
+              "acceptance_predicate_or_inspection_method_changed",
+              "safety_or_permission_authority_changed",
+              "cost_basis_or_rate_changed",
+              "source_evidence_revoked_or_corrected",
+              "administrative_metadata_only",
+              "unknown"
+            ]
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/impact_rule"
+          }
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_id",
+        "graph_revision",
+        "rule_set_digest",
+        "closure_complete",
+        "closure_manifest_ref",
+        "closure_authority_ref",
+        "nodes",
+        "edges",
+        "closure_graph_revision",
+        "closure_valid_until_unix"
+      ],
+      "properties": {
+        "graph_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_complete": {
+          "type": "boolean"
+        },
+        "closure_manifest_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closure_authority_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "closure_graph_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_valid_until_unix": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "change_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "subject_node_id",
+        "prior_revision_id",
+        "new_revision_id",
+        "prior_digest",
+        "new_digest",
+        "change_kind",
+        "scope",
+        "effective_at",
+        "authority_ref",
+        "source_evidence_ref",
+        "graph_revision",
+        "rule_set_digest",
+        "semantic_equivalence_ref",
+        "semantic_delta_known"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "new_revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "new_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_kind": {
+          "enum": [
+            "design_geometry_changed",
+            "design_semantics_or_material_changed",
+            "method_or_sequence_changed",
+            "transformation_rule_changed",
+            "model_schema_or_mapping_changed",
+            "coordinate_frame_or_control_network_changed",
+            "site_epoch_or_environment_changed",
+            "robot_serial_or_hardware_changed",
+            "sensor_or_tool_changed",
+            "firmware_or_software_or_model_changed",
+            "capability_evidence_expired_or_revised",
+            "calibration_or_measurement_chain_changed",
+            "acceptance_predicate_or_inspection_method_changed",
+            "safety_or_permission_authority_changed",
+            "cost_basis_or_rate_changed",
+            "source_evidence_revoked_or_corrected",
+            "administrative_metadata_only",
+            "unknown"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "authority_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule_set_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_equivalence_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "semantic_delta_known": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
