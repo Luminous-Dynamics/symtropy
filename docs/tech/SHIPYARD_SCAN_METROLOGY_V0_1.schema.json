@@ -1,0 +1,589 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard scan-pair metrology synthetic contract corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "profile_pair",
+    "expected_report",
+    "negative_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-SCAN-METROLOGY-001"
+    },
+    "profile_pair": {
+      "$ref": "#/$defs/profile_pair"
+    },
+    "expected_report": {
+      "$ref": "#/$defs/report"
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 32,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/control"
+      }
+    }
+  },
+  "$defs": {
+    "scan_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "profile_station_id",
+        "coordinate_frame",
+        "instrument_id",
+        "calibration_revision",
+        "captured_at_ms"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "workpiece_id": {
+          "type": "string"
+        },
+        "joint_revision": {
+          "type": "string"
+        },
+        "layer_id": {
+          "type": "string"
+        },
+        "profile_station_id": {
+          "type": "string"
+        },
+        "coordinate_frame": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "calibration_revision": {
+          "type": "string"
+        },
+        "captured_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "calibration_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "instrument_id",
+        "calibration_revision",
+        "verified",
+        "valid_from_ms",
+        "valid_until_ms",
+        "reference_artifact_error_um",
+        "maximum_reference_artifact_error_um"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "calibration_revision": {
+          "type": "string"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "valid_from_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reference_artifact_error_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_reference_artifact_error_um": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "registration_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "before_scan_sha256",
+        "after_scan_sha256",
+        "transform_type",
+        "fit_region",
+        "stable_datum_verified",
+        "handedness",
+        "check_point_count",
+        "independent_check_point_error_um",
+        "maximum_check_point_error_um",
+        "scale_deviation_ppm",
+        "maximum_scale_deviation_ppm",
+        "source_frame",
+        "target_frame"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "before_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "after_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "transform_type": {
+          "const": "rigid_2d"
+        },
+        "fit_region": {
+          "enum": [
+            "stable_datum",
+            "reference_artifact"
+          ]
+        },
+        "stable_datum_verified": {
+          "const": true
+        },
+        "handedness": {
+          "const": "proper"
+        },
+        "check_point_count": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "independent_check_point_error_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_check_point_error_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scale_deviation_ppm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_scale_deviation_ppm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "surface_compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "within_qualified_surface_range",
+        "surface_condition"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "within_qualified_surface_range": {
+          "const": true
+        },
+        "surface_condition": {
+          "type": "string"
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_um",
+        "calibration_um",
+        "registration_um",
+        "repeatability_um",
+        "datum_um",
+        "interpolation_um"
+      ],
+      "properties": {
+        "instrument_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "calibration_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "registration_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repeatability_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "datum_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interpolation_um": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_um",
+        "before_z_um",
+        "after_z_um"
+      ],
+      "properties": {
+        "x_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "before_z_um": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "after_z_um": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "profile_pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "benchmark_id",
+        "evidence_class",
+        "pair_id",
+        "before_scan",
+        "after_scan",
+        "calibration_receipt",
+        "registration_receipt",
+        "surface_compatibility",
+        "uncertainty",
+        "maximum_accepted_uncertainty_um",
+        "minimum_coverage_permille",
+        "maximum_missing_run_samples",
+        "profile_samples",
+        "claim_ceiling",
+        "comparison_frame",
+        "reference_health_receipt"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0"
+        },
+        "benchmark_id": {
+          "const": "SHIPYARD-SCAN-METROLOGY-001"
+        },
+        "evidence_class": {
+          "const": "synthetic_contract_only"
+        },
+        "pair_id": {
+          "type": "string"
+        },
+        "before_scan": {
+          "$ref": "#/$defs/scan_identity"
+        },
+        "after_scan": {
+          "$ref": "#/$defs/scan_identity"
+        },
+        "calibration_receipt": {
+          "$ref": "#/$defs/calibration_receipt"
+        },
+        "registration_receipt": {
+          "$ref": "#/$defs/registration_receipt"
+        },
+        "surface_compatibility": {
+          "$ref": "#/$defs/surface_compatibility"
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/uncertainty"
+        },
+        "maximum_accepted_uncertainty_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "maximum_missing_run_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "profile_samples": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        },
+        "claim_ceiling": {
+          "const": "SURFACE_ENVELOPE_CHANGE_ONLY"
+        },
+        "comparison_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_health_receipt": {
+          "$ref": "#/$defs/reference_health_receipt"
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pair_id",
+        "claim_ceiling",
+        "paired_sample_count",
+        "expected_sample_count",
+        "coverage_permille",
+        "missing_sample_count",
+        "maximum_missing_run_samples",
+        "valid_span_count",
+        "valid_span_length_um",
+        "signed_area_change_um2",
+        "absolute_area_change_um2",
+        "mean_signed_displacement_um",
+        "rmse_displacement_um",
+        "maximum_absolute_displacement_um",
+        "percentile_95_absolute_displacement_um",
+        "combined_uncertainty_um",
+        "mean_displacement_interval_um",
+        "signed_area_interval_um2",
+        "reference_health_receipt_sha256"
+      ],
+      "properties": {
+        "pair_id": {
+          "type": "string"
+        },
+        "claim_ceiling": {
+          "const": "SURFACE_ENVELOPE_CHANGE_ONLY"
+        },
+        "paired_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "missing_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_missing_run_samples": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_span_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_span_length_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signed_area_change_um2": {
+          "type": "integer"
+        },
+        "absolute_area_change_um2": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mean_signed_displacement_um": {
+          "type": "integer"
+        },
+        "rmse_displacement_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_absolute_displacement_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "percentile_95_absolute_displacement_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "combined_uncertainty_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mean_displacement_interval_um": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "signed_area_interval_um2": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "reference_health_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "expected_disposition",
+        "mutation"
+      ],
+      "properties": {
+        "control_id": {
+          "type": "string",
+          "pattern": "^SMET-[0-9]{3}$"
+        },
+        "expected_disposition": {
+          "type": "string"
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "reference_health_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "producer",
+        "sequence_id",
+        "decision",
+        "instrument_id",
+        "calibration_revision",
+        "reference_artifact_id",
+        "characteristic_id",
+        "policy_sha256",
+        "certificate_sha256",
+        "first_observation_at_ms",
+        "last_observation_at_ms",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "producer": {
+          "const": "SHIPYARD-REFERENCE-DRIFT-001"
+        },
+        "sequence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "continue_within_declared_check_limits",
+            "hold_for_metrology_review"
+          ]
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "characteristic_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "certificate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "first_observation_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_observation_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claim_ceiling": {
+          "const": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
+        }
+      }
+    }
+  }
+}
