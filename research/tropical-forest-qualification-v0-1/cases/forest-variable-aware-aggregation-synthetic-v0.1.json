@@ -53,7 +53,8 @@
           "value": 20,
           "unit": "Mg/ha"
         }
-      ]
+      ],
+      "target_unit": "Mg/ha"
     },
     {
       "case_id": "AGG-INTENSIVE-PARTIAL-NO-EXTRAPOLATION-001",
@@ -88,7 +89,8 @@
           "value": 18,
           "unit": "Mg/ha"
         }
-      ]
+      ],
+      "target_unit": "Mg/ha"
     },
     {
       "case_id": "AGG-INTENSIVE-ALL-MASKED-001",
@@ -123,7 +125,8 @@
           "value": 0,
           "unit": "Mg/ha"
         }
-      ]
+      ],
+      "target_unit": "Mg/ha"
     },
     {
       "case_id": "AGG-INTENSIVE-UNIT-MISMATCH-001",
@@ -152,7 +155,8 @@
           "value": 4,
           "unit": "kg"
         }
-      ]
+      ],
+      "target_unit": "Mg/ha"
     },
     {
       "case_id": "AGG-STOCK-DENSITY-INTEGRAL-001",
