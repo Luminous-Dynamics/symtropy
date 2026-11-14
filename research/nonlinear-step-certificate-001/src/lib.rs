@@ -947,7 +947,7 @@ pub fn certify_unique_root(
                 frame_id_tag,
                 binding: CertificateBindingV1 {
                     system,
-                    frame: frame.clone(),
+                    frame: (*frame).clone(),
                     center_in_frame,
                     metric_box_radius,
                     profile,
