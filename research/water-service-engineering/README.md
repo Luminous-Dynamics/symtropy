@@ -137,3 +137,12 @@ The recovery-verification T0 evaluator is implemented in `tools/water-service-t0
 The new cross-benchmark protocol [#5075](https://github.com/Luminous-Dynamics/symtropy/issues/5075) prevents benchmark comparisons from receiving different deployment sensors, demand/fault traces, topology, time grids, service floors, actuator envelopes or scoring horizons. It records training/compute/engineering budgets separately rather than silently forcing or hiding equality.
 
 See [protocol](./matched-experiments/MATCHED_EXPERIMENT_PROTOCOL_V0_1.md), [10-pair fixture](./matched-experiments/pairs-v0.1.json), [schema](./matched-experiments/pairs-v0.1.schema.json) and [admission oracle](./matched-experiments/admission-oracle-v0.1.json). This is a synthetic pair-admission contract, not a performance ranking.
+
+
+## Cyber-physical integrity-to-service qualification
+
+Issue [#5095](https://github.com/Luminous-Dynamics/symtropy/issues/5095) adds a four-arm matched research contract for nominal versus integrity-disturbed observations under baseline versus evidence-gated protection. It composes the existing event evaluator, observation-integrity triage, sparse-sensor control, service-floor and restoration owners; it adds no second detector, hydraulic solver or authority system.
+
+See the [protocol](./cyber-physical-qualification/WATER_CYBER_PHYSICAL_CAUSAL_PROTOCOL_V0_1.md), [12-case synthetic matched-pair fixture](./cyber-physical-qualification/pairs-v0.1.json), [closed Draft 2020-12 schema](./cyber-physical-qualification/pairs-v0.1.schema.json) and [T0 structural replay report](./cyber-physical-qualification/T0_STRUCTURAL_REPLAY_REPORT_V0_1.md).
+
+The AquaSense-ICS lane is explicitly limited to data-level/temporal-leakage research: its recorded sensor node and simulated hydraulic network are independent, and the released water-quality labels are not laboratory-validated. Net1/Net3 is synthetic; BATADAL/C-Town is historical simulated SCADA; WDSEventDB/ACG is a controlled testbed lane; Babela is a weak-label retrospective utility lane. These populations are not pooled. The T0 result is structural only, not a detector, control, hydraulic, HIL, field or potability qualification.
