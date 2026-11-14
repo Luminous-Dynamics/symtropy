@@ -49,6 +49,8 @@ jobs:
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example congruence_scaling_ladder
       - name: Run Delassus constraint-space coordinate ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
+      - name: Run redundant-constraint quotient fixture
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example redundant_constraint_quotient
       - name: Run deterministic metric-layer microbenchmark
         run: |
           set -euo pipefail
