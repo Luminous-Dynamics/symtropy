@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 //! Offline semantic verifier for the synthetic tropical-forest qualification fixture.
 //!
 //! This validates arithmetic and causal-isolation properties of a declared synthetic
