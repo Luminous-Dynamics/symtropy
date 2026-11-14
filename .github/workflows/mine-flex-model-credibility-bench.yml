@@ -1,0 +1,120 @@
+name: Mine Model Credibility Benchmark
+
+on:
+  push:
+    branches: ["feat/mine-model-credibility-v0-1"]
+    paths:
+      - "tools/mine-flex-model-credibility-bench/**"
+      - "docs/tech/MINE_FLEX_MODEL_CREDIBILITY_BENCHMARK_V0_1.md"
+      - ".github/workflows/mine-flex-model-credibility-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/mine-flex-model-credibility-bench/**"
+      - "docs/tech/MINE_FLEX_MODEL_CREDIBILITY_BENCHMARK_V0_1.md"
+      - ".github/workflows/mine-flex-model-credibility-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mine-model-credibility-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/mine-flex-model-credibility-bench/Cargo.toml -- --check
+
+      - name: Run model credibility contract tests
+        run: cargo test --manifest-path tools/mine-flex-model-credibility-bench/Cargo.toml
+
+      - name: Validate exact-head credibility receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/mine-flex-model-credibility-bench/Cargo.toml -- \
+            --source-commit "$source_commit" > mine-flex-model-credibility-receipt.json
+          jq -e '
+            .result == "validated"
+            and .suite_id == "MINE-MCRED-001"
+            and .suite_version == "0.1.0"
+            and .validation_seed_count == 32
+            and .held_out_seed_count == 32
+            and .scenarios_per_seed == 6
+            and .steps_per_scenario == 8
+            and .scenario_count == 384
+            and .step_count == 3072
+            and .mis_coverage_alpha_percent == 5
+            and .calibrated_absolute_error_limit_liters == 2
+            and .max_measurement_age_periods == 1
+            and .healthy_steps_required_for_reentry == 3
+            and .known_answer_mismatches == 0
+            and .independent_audit_mismatches == 0
+            and .model_acceptances_during_shift == 0
+            and .missing_or_stale_acceptances == 0
+            and .unsafe_interval_acceptances == 0
+            and .hard_violations_among_model_acceptances == 0
+            and .shift_onsets == 128
+            and .same_tick_shift_detections == 128
+            and .unguarded_baseline_acceptances_during_shift == 448
+            and .unguarded_baseline_missing_or_stale_acceptances == 128
+            and .freshness_only_acceptances_during_shift == 448
+            and .freshness_only_acceptances_missing_or_stale == 0
+            and .residual_only_acceptances_during_shift == 0
+            and .residual_only_acceptances_missing_or_stale == 64
+            and .residual_only_acceptances_during_recovery_holdoff == 192
+            and .observed_count == 3008
+            and .covered_observations <= .observed_count
+            and (.calibration_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.generated_case_set_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.summaries | length == 12)
+            and ([.summaries[] | select(.scenario_count != 32 or .step_count != 256 or .known_answer_mismatches != 0 or .independent_audit_mismatches != 0)] | length == 0)
+          ' mine-flex-model-credibility-receipt.json
+
+      - name: Emit split and scenario-class metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq '{
+            suite_id, suite_version, source_commit,
+            calibration_set_sha256, generated_case_set_sha256,
+            scenario_count, step_count, calibrated_absolute_error_limit_liters,
+            model_acceptances_during_shift, missing_or_stale_acceptances,
+            unsafe_interval_acceptances, hard_violations_among_model_acceptances,
+            shift_onsets, same_tick_shift_detections,
+            unguarded_baseline_acceptances_during_shift,
+            unguarded_baseline_missing_or_stale_acceptances,
+            freshness_only_acceptances_during_shift,
+            freshness_only_acceptances_missing_or_stale,
+            residual_only_acceptances_during_shift,
+            residual_only_acceptances_missing_or_stale,
+            residual_only_acceptances_during_recovery_holdoff,
+            covered_observations, observed_count, summaries
+          }' mine-flex-model-credibility-receipt.json
+      - name: Retain exact-head receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: mine-flex-model-credibility-${{ github.event.pull_request.head.sha || github.sha }}
+          path: mine-flex-model-credibility-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
