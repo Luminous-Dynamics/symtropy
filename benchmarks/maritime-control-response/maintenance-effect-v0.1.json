@@ -98,7 +98,8 @@
     "The estimator reports the Neyman sampling standard error separately from the measurement-error bound.",
     "The effect uncertainty report includes a robust interval formed by expanding the sampling interval by the deterministic weighted measurement-error bound.",
     "The synthetic oracle consistency check also binds the measurement-error bound and robust interval.",
-    "Calibration validity must start no later than measurement observation and end no earlier than measurement evidence availability."
+    "Calibration validity must start no later than measurement observation and end no earlier than measurement evidence availability.",
+    "Calibration valid-from and valid-until timestamps must both be finite and non-negative in the Rust validator, not only in the JSON Schema."
   ],
   "nonclaims": [
     "Randomization metadata and hashes do not authenticate the allocation issuer.",
