@@ -96,6 +96,8 @@ pub struct FunctionalBrief {
     pub scenario_ids: Vec<String>,
     pub analysis_horizon_months: u32,
     pub discount_rate_basis_points: u32,
+    /// ISO 4217 alphabetic currency code for cost metrics (for example ZAR or USD).
+    pub currency_code: String,
     pub benchmark_profile_id: String,
     pub benchmark_profile_digest: String,
     pub fixture_id: String,
@@ -107,6 +109,11 @@ impl FunctionalBrief {
     fn validate(&self) -> Result<(), OptioningError> {
         require_non_empty("brief_id", &self.brief_id)?;
         require_non_empty("revision_digest", &self.revision_digest)?;
+        if self.currency_code.len() != 3
+            || !self.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+        {
+            return Err(OptioningError::InvalidCurrencyCode);
+        }
         require_non_empty("benchmark_profile_id", &self.benchmark_profile_id)?;
         require_non_empty("benchmark_profile_digest", &self.benchmark_profile_digest)?;
         require_non_empty("fixture_id", &self.fixture_id)?;
@@ -138,8 +145,11 @@ pub struct ScenarioMetrics {
 pub struct DeliveryOption {
     pub option_id: String,
     pub functional_brief_id: String,
+    /// Exact functional-brief revision this alternative was evaluated against.
+    pub brief_revision_digest: String,
     pub tier: OptionTier,
     pub delivery_method: String,
+    /// Exact design/model revision unique to this alternative.
     pub design_revision_digest: String,
     /// Every required gate must be present. Additional gates are rejected rather
     /// than silently treated as irrelevant or passed.
@@ -179,6 +189,7 @@ pub struct OptioningReport {
     pub revision_digest: String,
     pub analysis_horizon_months: u32,
     pub discount_rate_basis_points: u32,
+    pub currency_code: String,
     pub benchmark_profile_id: String,
     pub benchmark_profile_digest: String,
     pub fixture_id: String,
@@ -187,6 +198,9 @@ pub struct OptioningReport {
     pub assessments: Vec<OptionAssessment>,
     pub pareto_option_ids: Vec<String>,
     pub dominated_options: Vec<ParetoRelationship>,
+    /// Original per-scenario metric vectors, retained so reviewers can inspect
+    /// scenario variation rather than seeing only a worst-case projection.
+    pub scenario_metrics_by_option: BTreeMap<String, BTreeMap<String, BTreeMap<MetricKey, u64>>>,
     /// Per-option, per-metric worst case over all declared scenarios.
     /// For lower-is-better metrics this is the maximum; for higher-is-better
     /// metrics this is the minimum. No scenario probability is implied.
@@ -201,7 +215,8 @@ pub enum OptioningError {
     NoScenarios,
     DuplicateIdentifier { field: &'static str, value: String },
     WrongFunctionalBrief { option_id: String },
-    WrongDesignRevision { option_id: String },
+    WrongBriefRevision { option_id: String },
+    InvalidCurrencyCode,
     MissingRequiredGate { option_id: String, gate_id: String },
     UnexpectedGate { option_id: String, gate_id: String },
     MissingScenarioMetrics { option_id: String, scenario_id: String },
@@ -259,13 +274,14 @@ fn validate_option(
     require_non_empty("option_design_revision_digest", &option.design_revision_digest)?;
     require_non_empty("assumptions_ref", &option.assumptions_ref)?;
 
+    require_non_empty("option_brief_revision_digest", &option.brief_revision_digest)?;
     if option.functional_brief_id != brief.brief_id {
         return Err(OptioningError::WrongFunctionalBrief {
             option_id: option.option_id.clone(),
         });
     }
-    if option.design_revision_digest != brief.revision_digest {
-        return Err(OptioningError::WrongDesignRevision {
+    if option.brief_revision_digest != brief.revision_digest {
+        return Err(OptioningError::WrongBriefRevision {
             option_id: option.option_id.clone(),
         });
     }
@@ -469,12 +485,23 @@ pub fn evaluate_options(
         .collect();
 
     let mut worst_case_metrics = BTreeMap::new();
+    let mut scenario_metrics_by_option = BTreeMap::new();
     for assessment in &assessments {
         if assessment.disposition == OptionDisposition::QualifiedFeasible {
             let option = option_by_id[assessment.option_id.as_str()];
             worst_case_metrics.insert(
                 assessment.option_id.clone(),
                 build_worst_case_profile(brief, option),
+            );
+            scenario_metrics_by_option.insert(
+                assessment.option_id.clone(),
+                option
+                    .scenario_metrics
+                    .iter()
+                    .map(|(scenario_id, metrics)| {
+                        (scenario_id.clone(), metrics.values.clone())
+                    })
+                    .collect(),
             );
         }
     }
@@ -525,6 +552,7 @@ pub fn evaluate_options(
         revision_digest: brief.revision_digest.clone(),
         analysis_horizon_months: brief.analysis_horizon_months,
         discount_rate_basis_points: brief.discount_rate_basis_points,
+        currency_code: brief.currency_code.clone(),
         benchmark_profile_id: brief.benchmark_profile_id.clone(),
         benchmark_profile_digest: brief.benchmark_profile_digest.clone(),
         fixture_id: brief.fixture_id.clone(),
@@ -533,6 +561,7 @@ pub fn evaluate_options(
         assessments,
         pareto_option_ids,
         dominated_options,
+        scenario_metrics_by_option,
         worst_case_metrics,
     })
 }
@@ -557,6 +586,7 @@ mod tests {
             ],
             analysis_horizon_months: 600,
             discount_rate_basis_points: 350,
+            currency_code: "ZAR".to_owned(),
             benchmark_profile_id: "FUNCTION-FIRST-OPTIONEERING-001".to_owned(),
             benchmark_profile_digest: "git-blob-sha1:profile-fixture-01".to_owned(),
             fixture_id: "housing-adaptation-options-01".to_owned(),
@@ -624,9 +654,10 @@ mod tests {
         DeliveryOption {
             option_id: id.to_owned(),
             functional_brief_id: "housing-service-level-01".to_owned(),
+            brief_revision_digest: "brief-revision-01".to_owned(),
             tier,
             delivery_method: format!("method:{id}"),
-            design_revision_digest: "brief-revision-01".to_owned(),
+            design_revision_digest: format!("design-revision:{id}"),
             gate_results: passing_gates(),
             scenario_metrics,
             assumptions_ref: format!("assumptions:{id}"),
@@ -893,10 +924,10 @@ mod tests {
             OptionTier::Switch,
             [[1, 2, 3, 4, 5, 6]; 3],
         );
-        wrong_revision.design_revision_digest = "old-revision".to_owned();
+        wrong_revision.brief_revision_digest = "old-revision".to_owned();
         assert_eq!(
             evaluate_options(&brief(), &[wrong_revision]),
-            Err(OptioningError::WrongDesignRevision {
+            Err(OptioningError::WrongBriefRevision {
                 option_id: "wrong-revision".to_owned()
             })
         );
@@ -972,6 +1003,12 @@ mod tests {
         assert_eq!(report.revision_digest, "brief-revision-01");
         assert_eq!(report.analysis_horizon_months, 600);
         assert_eq!(report.discount_rate_basis_points, 350);
+        assert_eq!(report.currency_code, "ZAR");
+        assert_eq!(
+            report.scenario_metrics_by_option["avoid"]["normal"]
+                [&MetricKey::WholeLifeCostMinorUnits],
+            900
+        );
         assert_eq!(
             assess(&report, "avoid").gate_results["structural-adequacy"],
             GateResult::QualifiedPass {
