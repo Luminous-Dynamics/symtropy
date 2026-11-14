@@ -150,6 +150,12 @@ Mechanical pressure containment, relief paths, restraints, trapped-pressure rele
 
 ## 7. Models to compare
 
+The dated vendor-scope register is [reference-feature-matrix-v0.1.json](reference-feature-matrix-v0.1.json). It records the documented/paper-reported model families for EPANET-AWH, Bentley HAMMER, Deltares WANDA 4 and AFT Impulse, alongside the physical-reference class. Vendor statements remain `vendor_stated` evidence until independently verified on a pinned product build and enabled configuration.
+
+Every paired solver trial must carry a **feature activation record**: scenario-required physical phenomena; exact solver/build/source revision; modules and numerical options enabled; support state (supported / not supported / unknown); activation state; parameter and boundary assumptions; discretization/time-step; simplifications; and raw output digest. Unknown is not supported. Feature count and runtime cannot compensate for missing or disabled physics.
+
+
+
 - closed-form analytical cases;
 - EPANET-AWH after exact source/revision/licence and feature verification;
 - Bentley HAMMER MOC with exact release/settings;
