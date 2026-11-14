@@ -661,6 +661,6 @@
     "external_data_ingested": false,
     "crs_transform": "NOT_IMPLEMENTED",
     "arbitrary_polygon_support": "NOT_IMPLEMENTED",
-    "positional_uncertainty": "NOT_IMPLEMENTED"
+    "positional_uncertainty": "PROBABILISTIC_REGISTRATION_MODEL_NOT_IMPLEMENTED"
   }
 }
