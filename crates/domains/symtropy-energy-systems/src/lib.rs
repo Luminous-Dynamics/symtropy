@@ -15,12 +15,17 @@ use serde::Serialize;
 
 mod batch_evaluation;
 mod duty_cycle;
+mod diagnostics;
 mod fuel;
 mod infrastructure_ir;
 mod module_contract;
 mod service_graph;
 
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
+pub use diagnostics::{
+    CompilationEffect, CompilationStatus, Diagnostic, DiagnosticCode, DiagnosticError,
+    DiagnosticReport, DiagnosticSeverity, DiagnosticTarget,
+};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,

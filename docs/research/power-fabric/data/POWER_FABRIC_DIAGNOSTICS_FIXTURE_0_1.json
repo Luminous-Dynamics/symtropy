@@ -1,0 +1,35 @@
+{
+  "report_id": "report:synthetic-residential:001",
+  "document_id": "pf:fixture:residential-hybrid:001",
+  "revision_id": "rev:2026-11-14:001",
+  "input_digest": "sha256:synthetic-fixture-only",
+  "compiler_version": "power-fabric-compiler:0.2.0",
+  "profile_version": "residential-backup-qualification:0.1",
+  "status": "blocked",
+  "diagnostics": [
+    {
+      "diagnostic_id": "diag:backup-runtime-unknown",
+      "code": "PF-DIAG-0001",
+      "severity": "warning",
+      "effect": "warn",
+      "target": { "scope": "object", "object_id": "asset:utility-incomer" },
+      "source_pass": "claim_qualification",
+      "summary": "Backup runtime is unknown; no runtime duration can be qualified from this IR revision.",
+      "remediation": "Provide a claim tied to the exact storage configuration, load profile, operating assumptions, and admissible evidence.",
+      "related_object_ids": ["asset:hybrid-inverter", "service:lighting"],
+      "evidence_refs": []
+    },
+    {
+      "diagnostic_id": "diag:grid-forming-unknown",
+      "code": "PF-DIAG-0001",
+      "severity": "critical",
+      "effect": "block_compilation",
+      "target": { "scope": "object", "object_id": "asset:hybrid-inverter" },
+      "source_pass": "backup_service_qualification",
+      "summary": "Grid-forming capability is unknown for this declared backup-service qualification profile.",
+      "remediation": "Resolve the exact inverter model, hardware and firmware revision, operating mode, and supporting test evidence before making a backup-service claim.",
+      "related_object_ids": ["asset:utility-incomer", "service:lighting"],
+      "evidence_refs": []
+    }
+  ]
+}

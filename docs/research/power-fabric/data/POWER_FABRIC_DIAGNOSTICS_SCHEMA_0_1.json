@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-diagnostics-0.1.schema.json",
+  "title": "Power Fabric Diagnostic Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_id", "document_id", "revision_id", "input_digest", "compiler_version", "profile_version", "status", "diagnostics"],
+  "properties": {
+    "report_id": { "type": "string", "minLength": 1 },
+    "document_id": { "type": "string", "minLength": 1 },
+    "revision_id": { "type": "string", "minLength": 1 },
+    "input_digest": { "type": "string", "minLength": 1 },
+    "compiler_version": { "type": "string", "minLength": 1 },
+    "profile_version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["completed_without_findings", "completed_with_information", "completed_with_warnings", "blocked"] },
+    "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+  },
+  "$defs": {
+    "target": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["scope"], "properties": { "scope": { "const": "document" } } },
+        { "type": "object", "additionalProperties": false, "required": ["scope", "object_id"], "properties": { "scope": { "const": "object" }, "object_id": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["scope", "relationship_id"], "properties": { "scope": { "const": "relationship" }, "relationship_id": { "type": "string", "minLength": 1 } } }
+      ]
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["diagnostic_id", "code", "severity", "effect", "target", "source_pass", "summary", "remediation", "related_object_ids", "evidence_refs"],
+      "properties": {
+        "diagnostic_id": { "type": "string", "minLength": 1 },
+        "code": { "enum": ["PF-DIAG-0001", "PF-DIAG-0002", "PF-DIAG-0003", "PF-DIAG-0004", "PF-DIAG-0005", "PF-DIAG-0006", "PF-DIAG-0007", "PF-DIAG-0008"] },
+        "severity": { "enum": ["critical", "error", "warning", "info"] },
+        "effect": { "enum": ["block_compilation", "warn", "inform"] },
+        "target": { "$ref": "#/$defs/target" },
+        "source_pass": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "remediation": { "type": "string", "minLength": 1 },
+        "related_object_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "evidence_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}
