@@ -3178,10 +3178,16 @@
           },
           "run_status": {
             "const": "qualified"
+          },
+          "evidence_level": {
+            "not": {
+              "const": "P0_synthetic_contract"
+            }
           }
         },
         "required": [
           "run_status",
+          "evidence_level",
           "claims"
         ]
       },
