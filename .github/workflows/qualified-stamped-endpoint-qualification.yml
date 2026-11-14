@@ -1,0 +1,257 @@
+name: PHYS-OBS-05 Qualified Stamped Endpoint Qualification
+
+on:
+  push:
+    branches:
+      - "ci/qualified-stamped-endpoint-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualified-stamped-endpoint-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 28383cfa1e8d3464f0b59b54bc0f0202413bf24e
+  PRODUCT_PARENT: 453a8f37805924f69e4272f708685cb7fcc05d5a
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-05 stamped endpoint / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/src/qualified_endpoint.rs"
+            "crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+          git diff --quiet "${PRODUCT_PARENT}..${PRODUCT_HEAD}" -- \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/world.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/authority_endpoint_box_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs \
+            > "${RUNNER_TEMP}/qualified-stamped-endpoint-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run qualified stamped endpoint theorem
+        run: cargo test -p symtropy-physics --locked --test qualified_stamped_endpoint_v01
+
+      - name: Run PHYS-OBS-03 endpoint regression
+        run: cargo test -p symtropy-physics --locked --test authority_endpoint_box_v01
+
+      - name: Run sealed evidence authority regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run qualified live subject regression
+        run: cargo test -p symtropy-physics --locked --test qualified_live_subject_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit stamped endpoint claim boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          module=crates/core/symtropy-physics/src/qualified_endpoint.rs
+          contract=crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md
+          tests=crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs
+
+          grep -Fq 'pub struct LocalQualifiedStampedEndpointBoxObservation' "${module}"
+          grep -Fq 'pub fn capture(' "${module}"
+          grep -Fq '.last_qualified_step_stamp()' "${module}"
+          grep -Fq 'authority.validate_subject(subject)' "${module}"
+          grep -Fq 'authority.validate_subject(region.anchor())' "${module}"
+          grep -Fq 'AuthorityEndpointBoxObservation::capture(' "${module}"
+          grep -Fq 'pub const fn stamp(&self)' "${module}"
+          grep -Fq 'pub fn observation(&self)' "${module}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('crates/core/symtropy-physics/src/qualified_endpoint.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md').read_text()
+          tests = Path('crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs').read_text()
+
+          name = 'LocalQualifiedStampedEndpointBoxObservation'
+          derive = re.search(
+              rf'#\[derive\(([^)]*)\)\]\s*pub struct {name}',
+              text,
+              re.MULTILINE,
+          )
+          assert derive is not None
+          traits = {part.strip() for part in derive.group(1).split(',')}
+          assert 'Debug' in traits
+          assert 'PartialEq' in traits
+          assert 'Eq' in traits
+          assert 'Clone' not in traits
+          assert 'Copy' not in traits
+          assert 'Serialize' not in traits
+          assert 'Deserialize' not in traits
+
+          struct_start = text.index(f'pub struct {name}')
+          struct_end = text.index('\n}\n', struct_start) + 2
+          struct_block = text[struct_start:struct_end]
+          for line in struct_block.splitlines()[1:]:
+              stripped = line.lstrip()
+              assert not stripped.startswith('pub '), stripped
+
+          assert 'pub fn new' not in text
+          assert 'pub const fn new' not in text
+          assert 'impl From<' not in text
+          assert 'impl TryFrom<' not in text
+          assert re.search(r'\bClone\s+for\s+' + name, text) is None
+          assert re.search(r'\bCopy\s+for\s+' + name, text) is None
+          assert 'Serialize' not in text
+          assert 'Deserialize' not in text
+          assert 'unsafe ' not in text
+
+          capture_start = text.index('pub fn capture(')
+          capture_body_start = text.index('{', capture_start)
+          capture_header = text[capture_start:capture_body_start]
+          assert 'LocalQualifiedAuthorityStepStamp' not in capture_header
+          assert 'AuthorityEndpointBoxObservation' not in capture_header
+
+          capture_end = text.index('\n    pub const fn stamp', capture_body_start)
+          capture = text[capture_body_start:capture_end]
+          stamp_pos = capture.index('.last_qualified_step_stamp()')
+          subject_pos = capture.index('authority.validate_subject(subject)')
+          anchor_pos = capture.index('authority.validate_subject(region.anchor())')
+          endpoint_pos = capture.index('AuthorityEndpointBoxObservation::capture(')
+          assert stamp_pos < subject_pos < anchor_pos < endpoint_pos
+          assert capture.count('AuthorityEndpointBoxObservation::capture(') == 1
+
+          # Geometry belongs exclusively to PHYS-OBS-03.
+          for forbidden in ('use symtropy_math', 'HyperBox', '.contains_local(', 'Point::new('):
+              assert forbidden not in text
+
+          assert 'repeated_capture_at_one_step_is_duplicate_evidence_not_temporal_progression' in tests
+          assert 'same_step_different_region_is_a_different_proposition' in tests
+          assert 'reseal_breaks_stamped_endpoint_temporal_lineage' in tests
+
+          assert 'caller never supplies the temporal stamp' in contract
+          assert 'duplicate same-step evidence' in contract
+          assert 'No cross-process identity' in contract
+          assert 'continuous trajectory' in contract
+          assert 'settlement authority' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/QUALIFIED_STAMPED_ENDPOINT_OBSERVATION_V01.md \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/authority_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/authority_endpoint_box_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_live_subject_v01.rs \
+            > "${RUNNER_TEMP}/qualified-stamped-endpoint-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/qualified-stamped-endpoint-source-sha256.txt" \
+            "${RUNNER_TEMP}/qualified-stamped-endpoint-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-OBS-05 qualified stamped endpoint observation v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'opaque_authority_issued_token': True,
+              'caller_supplied_stamp': False,
+              'qualified_target_preflight': True,
+              'qualified_anchor_preflight': True,
+              'endpoint_geometry_reused_from_phys_obs_03': True,
+              'same_step_repeated_capture_is_progress': False,
+              'region_identity_part_of_proposition': True,
+              'cross_process_identity': False,
+              'persistent_authenticity': False,
+              'elapsed_time_authority': False,
+              'continuous_occupancy_authority': False,
+              'dwell_or_arrival_authority': False,
+              'custody_delivery_settlement_authority': False,
+          }
+          Path('qualified-stamped-endpoint-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualified-stamped-endpoint-${{ env.PRODUCT_HEAD }}
+          path: |
+            qualified-stamped-endpoint-qualification-receipt.json
+            ${{ runner.temp }}/qualified-stamped-endpoint-source-sha256.txt
+            ${{ runner.temp }}/qualified-stamped-endpoint-source-sha256-post.txt
+          if-no-files-found: error
