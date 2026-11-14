@@ -244,3 +244,9 @@ Use a **synthetic regional medical-logistics network**:
 
 The first question is whether a model-qualified, uncertainty-aware network can deliver more reliable essential-service logistics than FIFO/static-corridor and ground-only baselines under identical constraints. This begins in offline simulation; it does not authorize or recommend live aircraft operations.
 \n\n## 8. Medical air-ground benchmark composition\n\nThe first application-specific scenario is tracked in [AEROWEFT-MEDCHAIN-001 #5181](https://github.com/Luminous-Dynamics/symtropy/issues/5181). It composes aviation-specific resource/occupancy constraints with existing multimodal optimization (#1601), mission-chain and handoff continuity (#1887), physical cargo qualification (#1636), and source-admitted transport data (#1667). It explicitly does not create another graph optimizer or mission-chain schema. The initial corpus is synthetic regional medical cargo only, not patient carriage or clinical decision support.\n
+
+The initial fictional regional medical-cargo scenario is specified in
+[AEROWEFT_MEDCHAIN_001.md](AEROWEFT_MEDCHAIN_001.md) and tracked by
+[AEROWEFT-MEDCHAIN-001 #5181](https://github.com/Luminous-Dynamics/symtropy/issues/5181).
+It composes the existing multimodal optimizer and mission-chain/cargo contracts
+rather than introducing a parallel graph or mission engine.
