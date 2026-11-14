@@ -255,7 +255,7 @@ fn validate_protocol(protocol: &TargetTrialProtocol) -> Vec<String> {
             blockers.push(format!("{name} digest is invalid"));
         }
     }
-    if protocol.cluster_group_key.trim().is_empty()
+    if protocol.cluster_group_key != "asset_id"
         || !is_sha256_hex(&protocol.cluster_grouping_rule_sha256)
         || !protocol.cluster_robust_inference_declared
     {
@@ -942,6 +942,15 @@ mod tests {
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
         assert!(report.blockers.iter().any(|item| item.contains("premature administrative")));
+    }
+
+    #[test]
+    fn cluster_group_key_must_match_the_asset_identity_in_the_timeline() {
+        let mut spec = protocol();
+        spec.cluster_group_key = "telemetry_row_id".into();
+        let report = evaluate_observational_target_trial(&spec, &diagnostics());
+        assert_eq!(report.disposition, TargetTrialDisposition::ProtocolIncomplete);
+        assert!(report.blockers.iter().any(|item| item.contains("cluster unit")));
     }
 
     #[test]
