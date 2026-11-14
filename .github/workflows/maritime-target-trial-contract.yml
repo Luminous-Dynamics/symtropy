@@ -56,11 +56,13 @@ jobs:
               Draft202012Validator.check_schema(schema)
               assert schema["additionalProperties"] is False
           assert protocol["schema_version"] == "symtropy-marine-observational-target-trial-v0.1"
-          assert len(protocol["hard_gates"]) >= 30
-          assert len(corpus["cases"]) == 16
-          assert len({case["case_id"] for case in corpus["cases"]}) == 16
+          assert len(protocol["hard_gates"]) >= 33
+          assert len(corpus["cases"]) == 18
+          assert len({case["case_id"] for case in corpus["cases"]}) == 18
           assert protocol_schema["properties"]["align_eligibility_assignment_followup_at_time_zero"]["const"] is True
           assert report_schema["properties"]["causal_effect_estimated"]["const"] is False
+          diagnostic_required = diagnostics_schema["required"]
+          assert "sensitivity_analysis_status" in diagnostic_required
           print("Observational target-trial protocol/schema/case checks: PASS")
           PY
 
