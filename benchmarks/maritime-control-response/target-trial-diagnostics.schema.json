@@ -14,7 +14,8 @@
     "followup_completeness_fraction",
     "assumption_assessments",
     "negative_control_status",
-    "unit_timelines"
+    "unit_timelines",
+    "sensitivity_analysis_status"
   ],
   "properties": {
     "trial_id": {
@@ -232,6 +233,13 @@
           }
         }
       }
+    },
+    "sensitivity_analysis_status": {
+      "enum": [
+        "supported",
+        "violated",
+        "unknown"
+      ]
     }
   }
 }
