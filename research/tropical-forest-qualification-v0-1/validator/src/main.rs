@@ -42,7 +42,7 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt");
 
     let successful_result = matches!(
         receipt["result"].as_str(),
-        Some("PASS") | Some("PASS_SYNTHETIC_RULES") | Some("MANIFEST_VALID") | Some("PASS_SYNTHETIC_GEOMETRY") | Some("PASS_SYNTHETIC_SUPPORT")
+        Some("PASS") | Some("PASS_SYNTHETIC_RULES") | Some("MANIFEST_VALID") | Some("PASS_SYNTHETIC_GEOMETRY") | Some("PASS_SYNTHETIC_SUPPORT") | Some("PASS_SYNTHETIC_AGGREGATION")
     );
     if !successful_result {
         process::exit(1);
