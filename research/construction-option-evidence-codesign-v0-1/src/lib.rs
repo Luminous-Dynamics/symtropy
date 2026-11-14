@@ -15,7 +15,7 @@ use construction_observation_portfolio_core::{
     CampaignSearchResult, PortfolioError, plan_observation_campaign,
 };
 use construction_production_optioneering_core::{
-    FunctionalOutcomeContract, OptionCandidate, OptionEvaluation, OptionStatus, OptioneeringError,
+    FunctionalOutcomeContract, OptionCandidate, OptionEvaluation, OptioneeringError,
     OptioneeringReport, ReportDisposition, RobustObjectives, ScenarioCase, StageGateDecision,
     evaluate_option_set,
 };
@@ -570,12 +570,12 @@ mod tests {
     use super::*;
     use std::collections::BTreeMap;
 
-    use construction_observation_planning_core::{ObservationAction, WorkNeed};
     use construction_production_optioneering_core::{
         EvidenceDisposition, FunctionalOutcomeContract, MeasurementBasis, OptionCandidate,
-        OptionTier, PerformanceRequirement, ScenarioResult, StageDisposition, StageGateDecision,
+        OptionStatus, OptionTier, PerformanceRequirement, ScenarioResult, StageDisposition,
+        StageGateDecision,
     };
-    use construction_robot_interop_core::resources::{ReservationBook, ReservationRequest};
+    use construction_robot_interop_core::resources::ReservationRequest;
     use construction_spacetime_occupancy_core::{
         Bounds3Mm, OccupancyKind, SiteBinding, SpatialOccupancy,
     };
