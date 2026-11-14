@@ -1,0 +1,211 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-DECISION-VALUE-001",
+  "status": "PUBLIC_SYNTHETIC_DEVELOPMENT_CASES_NOT_BLIND",
+  "claim_ceiling": "Twenty public case-family descriptors and two worked synthetic examples only. No real site, survey, conservation decision or field impact has been evaluated.",
+  "hidden_outcomes_published": false,
+  "independent_blind_corpus": "NOT_CREATED_REQUIRES_INDEPENDENT_CUSTODY",
+  "worked_examples": {
+    "high_information_zero_decision_value": {
+      "prior_probability_high_turnover": 0.5,
+      "actions": [
+        "protect",
+        "do_not_protect"
+      ],
+      "loss_matrix": {
+        "protect": {
+          "high_turnover": 20,
+          "low_turnover": 20
+        },
+        "do_not_protect": {
+          "high_turnover": 0,
+          "low_turnover": 0
+        }
+      },
+      "ideal_measurement_information_gain": "positive",
+      "expected_gross_evsi": 0,
+      "expected_disposition": "HIGH_INFORMATION_ZERO_DECISION_VALUE"
+    },
+    "moderate_uncertainty_positive_decision_value": {
+      "prior_probability_degraded": 0.4,
+      "actions": [
+        "protect",
+        "do_not_protect"
+      ],
+      "loss_matrix": {
+        "protect": {
+          "stable": 30,
+          "degraded": 30
+        },
+        "do_not_protect": {
+          "stable": 0,
+          "degraded": 100
+        }
+      },
+      "measurement": {
+        "sensitivity": 0.8,
+        "specificity": 0.8,
+        "cost": 3
+      },
+      "expected_loss_without_observation": 30,
+      "probability_positive": 0.44,
+      "posterior_degraded_given_positive": 0.7272727272727273,
+      "probability_negative": 0.56,
+      "posterior_degraded_given_negative": 0.14285714285714285,
+      "expected_loss_after_observation": 21.2,
+      "gross_evsi": 8.8,
+      "net_expected_value_after_cost": 5.8,
+      "expected_disposition": "POSITIVE_NET_DECISION_VALUE"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "FOREST-DECISION-VALUE-001",
+      "family": "protection_boundary",
+      "scenario_id": "PROTECT-HIGH-UNCERTAINTY-ZERO-DECISION-VALUE",
+      "condition": "High entropy about a species-turnover state whose loss is identical under all actions.",
+      "expected_disposition": "HIGH_INFORMATION_ZERO_DECISION_VALUE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-002",
+      "family": "protection_boundary",
+      "scenario_id": "PROTECT-MODERATE-UNCERTAINTY-ACTION-REVERSAL",
+      "condition": "Synthetic binary degradation prior 0.4; protect cost 30, no-protect degradation loss 100; observation sensitivity/specificity 0.8; measurement cost 3.",
+      "expected_disposition": "POSITIVE_NET_DECISION_VALUE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-003",
+      "family": "protection_boundary",
+      "scenario_id": "PROTECT-COST-THRESHOLD-SHIFT",
+      "condition": "Measurement may switch action only when the posterior crosses a predeclared protection threshold.",
+      "expected_disposition": "RANK_BY_EXPECTED_REGRET_REDUCTION"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-004",
+      "family": "restoration_targeting",
+      "scenario_id": "RESTORE-PROPAGULE-VERSUS-LIGHT",
+      "condition": "A canopy-light observation is informative but propagule supply determines whether assisted regeneration beats natural regeneration.",
+      "expected_disposition": "SAMPLE_PROPAGULE_LIMITATION_IF_DECISION_RELEVANT"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-005",
+      "family": "restoration_targeting",
+      "scenario_id": "RESTORE-GAP-UNCERTAINTY-NO-ACTION-CHANGE",
+      "condition": "Large uncertainty in gap size cannot change restoration action under the frozen loss matrix.",
+      "expected_disposition": "ZERO_DECISION_VALUE_DESPITE_VARIANCE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-006",
+      "family": "restoration_targeting",
+      "scenario_id": "RESTORE-SITE-COST-DISTURBANCE-TRADEOFF",
+      "condition": "Two observations have equal expected decision benefit but different access, crew-hour and ecological-disturbance cost.",
+      "expected_disposition": "SELECT_FEASIBLE_LOWER_TOTAL_COST"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-007",
+      "family": "disturbance_response",
+      "scenario_id": "DISTURBANCE-ALERT-VERIFY-OR-NOT",
+      "condition": "A SAR alert has moderate probability of selective degradation; ground verification may cross an escalation threshold.",
+      "expected_disposition": "DECISION_FOCUSED_VERIFICATION"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-008",
+      "family": "disturbance_response",
+      "scenario_id": "DISTURBANCE-HIGH-ENTROPY-LOW-CONSEQUENCE",
+      "condition": "An alert category is uncertain but all plausible classes trigger the same monitoring action.",
+      "expected_disposition": "NO_EXTRA_SURVEY_FOR_ZERO_ACTION_VALUE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-009",
+      "family": "disturbance_response",
+      "scenario_id": "DISTURBANCE-CLOUD-MISSINGNESS",
+      "condition": "Cloud/no-data uncertainty cannot be treated as stable forest; a field/lidar observation may resolve whether action is required.",
+      "expected_disposition": "MISSINGNESS_IS_NOT_NEGATIVE_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-010",
+      "family": "monitoring_allocation",
+      "scenario_id": "MONITOR-REMEASURE-LOW-VARIANCE-HIGH-IMPACT",
+      "condition": "A low-variance plot has a high chance of crossing a mortality/recovery decision threshold.",
+      "expected_disposition": "PRIORITIZE_DECISION_IMPACT_NOT_VARIANCE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-011",
+      "family": "monitoring_allocation",
+      "scenario_id": "MONITOR-HIGH-VARIANCE-REDUNDANT-PLOT",
+      "condition": "A high-variance plot is redundant with existing evidence and cannot change the decision.",
+      "expected_disposition": "ZERO_MARGINAL_DECISION_VALUE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-012",
+      "family": "monitoring_allocation",
+      "scenario_id": "MONITOR-SEASONAL-FEASIBILITY",
+      "condition": "A theoretically valuable survey is unavailable in the current season and must be deferred or replaced.",
+      "expected_disposition": "FEASIBILITY_GATE_BEFORE_RANKING"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-013",
+      "family": "regional_transfer",
+      "scenario_id": "TRANSFER-RECALIBRATE-OR-ABSTAIN",
+      "condition": "An observation may distinguish in-domain transfer from local recalibration need.",
+      "expected_disposition": "SELECT_IF_EXPECTED_DECISION_REGRET_FALLS"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-014",
+      "family": "regional_transfer",
+      "scenario_id": "TRANSFER-OOD-NO-LEGAL-ACCESS",
+      "condition": "Target region is out of domain and field access is not authorized.",
+      "expected_disposition": "DO_NOT_RANK_UNAUTHORIZED_OBSERVATION"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-015",
+      "family": "regional_transfer",
+      "scenario_id": "TRANSFER-STRUCTURE-VERSUS-PARAMETER",
+      "condition": "A candidate measurement distinguishes structural shift from parameter shift.",
+      "expected_disposition": "PRESERVE_MODEL_IDENTITY_AND_DISCRIMINATION_VALUE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-016",
+      "family": "model_set_adequacy",
+      "scenario_id": "ADEQUACY-BLIND-CHALLENGER-DISCRIMINATION",
+      "condition": "A feasible measurement distinguishes the registered model set from an omitted-mechanism challenge family.",
+      "expected_disposition": "DECISION_VALUE_WITH_MODEL_SET_ADEQUACY"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-017",
+      "family": "model_set_adequacy",
+      "scenario_id": "ADEQUACY-ALL-MODELS-AGREE-LOW-IMPACT",
+      "condition": "Models agree but the unresolved mechanism cannot change the current action under the declared horizon.",
+      "expected_disposition": "DO_NOT_OVER-SAMPLE_LOW_DECISION_VALUE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-018",
+      "family": "observation_process_uncertainty",
+      "scenario_id": "OBSERVATION-SENSOR-SHIFT-VERSUS-ECOLOGY",
+      "condition": "A paired field/EO measurement distinguishes true ecological change from a sensor or processing shift.",
+      "expected_disposition": "SAMPLE_TO_RESOLVE_OBSERVATION_PROCESS"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-019",
+      "family": "observation_process_uncertainty",
+      "scenario_id": "OBSERVATION-ACCESS-AND-CONSENT",
+      "condition": "A measurement has positive nominal EVSI but consent/rights are not granted.",
+      "expected_disposition": "EXCLUDE_UNAUTHORIZED_CANDIDATE"
+    },
+    {
+      "case_id": "FOREST-DECISION-VALUE-020",
+      "family": "observation_process_uncertainty",
+      "scenario_id": "OBSERVATION-REDUNDANT-SOURCES",
+      "condition": "Two correlated sources repeat the same observation process and add little independent decision information.",
+      "expected_disposition": "ACCOUNT_FOR_DEPENDENT_OBSERVATIONS"
+    }
+  ],
+  "execution": {
+    "evaluator": "NOT_IMPLEMENTED",
+    "uses_existing_evsi_kernel": true,
+    "duplicate_evsi_kernel_created": false,
+    "real_field_data_ingested": false,
+    "real_management_action_authorized": false
+  }
+}
