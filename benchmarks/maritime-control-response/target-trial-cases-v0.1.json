@@ -91,6 +91,11 @@
       "case_id": "TT18",
       "scenario": "No reviewed sensitivity analysis is attached to the emulation diagnostic snapshot.",
       "expected": "not_identified_sensitivity"
+    },
+    {
+      "case_id": "TT19",
+      "scenario": "Negative-control and sensitivity statuses are marked supported but their evidence digests/reviewer receipts are absent or invalid.",
+      "expected": "not_identified_missing_review_receipts"
     }
   ]
 }
