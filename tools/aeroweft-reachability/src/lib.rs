@@ -199,7 +199,7 @@ pub struct ReachabilityRequest {
     pub steps: Vec<VelocityStep>,
 }
 
-/// Conservative occupancy box for one half-open time interval.
+/// Conservative occupancy box for one half-open time interval.\n///\n/// The spatial enclosure includes the interval's endpoint limit at `end_utc_ms`;\n/// this closed outer approximation avoids losing a boundary state and may add\n/// a harmless boundary-only false positive.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TubeSlice {
     /// Inclusive start, UTC Unix milliseconds.
