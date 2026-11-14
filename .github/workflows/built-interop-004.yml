@@ -1,0 +1,30 @@
+name: BUILT-INTEROP-004 Validation Ladder Contract
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-004/**"
+      - ".github/workflows/built-interop-004.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-004/**"
+      - ".github/workflows/built-interop-004.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report-contract:
+    name: Check validation-ladder report contract and mutation controls
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell syntax
+        run: |
+          bash -n tools/built-interop-004/validate-report.sh
+          bash -n tools/built-interop-004/test-contract.sh
+      - name: Run contract tests and adversarial negative controls
+        run: bash tools/built-interop-004/test-contract.sh
