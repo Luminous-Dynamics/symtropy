@@ -1,0 +1,99 @@
+name: Metric-induced error envelope reference
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "research/metric-induced-error-envelope-001/**"
+      - ".github/workflows/metric-induced-error-envelope-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/metric-induced-error-envelope-001/**"
+      - ".github/workflows/metric-induced-error-envelope-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metric-induced-error-envelope-reference-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualification:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Record exact checked-out commit for benchmark receipts
+        run: echo "METRIC_BENCHMARK_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all -- --check
+      - name: Test
+        run: cargo test --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all-targets -- -D warnings
+      - name: Run deterministic coordinate ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example coordinate_ladder
+      - name: Run cubic-versus-quartic metric congruence scaling ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example congruence_scaling_ladder
+      - name: Run Delassus constraint-space coordinate ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
+      - name: Run deterministic metric-layer microbenchmark
+        run: |
+          set -euo pipefail
+          cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --bin metric-induced-microbenchmark -- "$RUNNER_TEMP/metric-induced-microbenchmark.json"
+          test -s "$RUNNER_TEMP/metric-induced-microbenchmark.json"
+      - name: Validate machine-readable microbenchmark receipt
+        run: |
+          python3 - "$RUNNER_TEMP/metric-induced-microbenchmark.json" <<'PY'
+          import json
+          import math
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              report = json.load(stream)
+          assert report["schema_version"] == "luminous.metric_induced_microbenchmark.v0.1"
+          assert report["source_commit"] and report["source_commit"] != "local"
+          rows = report["measurements"]
+          assert len(rows) == 15, f"expected 15 measurements, got {len(rows)}"
+          names = {row["name"] for row in rows}
+          required = {
+              "raw_euclidean_tangent_q",
+              "raw_infinity_tangent_q",
+              "metric_tangent_norm_q",
+              "dual_metric_cotangent_norm_q",
+              "metric_tangent_norm_y",
+              "dual_metric_cotangent_norm_y",
+              "tangent_pushforward_q_to_y",
+              "cotangent_pullback_q_to_y",
+              "metric_rebasis_q_to_y",
+              "metric_admission_cholesky_q",
+              "metric_and_dual_norms_y_pair",
+              "delassus_whitened_gram_construct",
+              "delassus_direct_mass_solve_construct",
+              "delassus_multiplier_metric_norm",
+              "delassus_residual_dual_norm",
+          }
+          assert names == required, f"measurement set mismatch: {names ^ required}"
+          for row in rows:
+              values = [row["median_ns_per_op"], row["p95_ns_per_op"], row["p99_ns_per_op"], row["checksum"]]
+              assert all(math.isfinite(value) for value in values), row["name"]
+              assert row["median_ns_per_op"] <= row["p95_ns_per_op"] <= row["p99_ns_per_op"], row["name"]
+          PY
+      - name: Upload reference-layer microbenchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: metric-induced-reference-microbenchmark-${{ github.sha }}
+          path: ${{ runner.temp }}/metric-induced-microbenchmark.json
+          if-no-files-found: error
