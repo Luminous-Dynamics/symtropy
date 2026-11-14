@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
+use crate::inertia::BivectorInertia;
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 use symtropy_math::{Bivector, Point, Shape, Transform};
@@ -33,7 +34,11 @@ pub struct RigidBody<const D: usize> {
     pub mass: f64,
     pub inv_mass: f64,
     pub inertia: SVector<f64, D>,
+    /// Legacy per-axis inertia approximation retained for API compatibility.
+    /// When `rotational_inertia` is Some, the bivector operator is authoritative.
     pub inv_inertia: SVector<f64, D>,
+    /// Optional body-space inertia operator on the full bivector rotation space.
+    pub rotational_inertia: Option<BivectorInertia<D>>,
     pub collider: Box<dyn Shape<D>>,
     pub friction: f64,
     pub restitution: f64,
@@ -72,6 +77,7 @@ impl<const D: usize> RigidBody<D> {
             inv_mass,
             inertia,
             inv_inertia,
+            rotational_inertia: None,
             collider,
             friction: 0.5,
             restitution: 0.2,
@@ -103,17 +109,51 @@ impl<const D: usize> RigidBody<D> {
         )
     }
 
+    /// Construct a dynamic body with a uniformly-filled D-dimensional ball collider.
+    ///
+    /// For a uniform solid D-ball, the moment of inertia in each independent
+    /// rotation plane is 2*m*r^2/(D+2). This reduces to the familiar 2D disk,
+    /// 3D sphere, and 4D hypersphere coefficients without applying the 3D
+    /// coefficient to every dimension.
     pub fn dynamic_sphere(handle: BodyHandle, position: Point<D>, radius: f64, mass: f64) -> Self {
         use symtropy_math::Sphere;
-        let inertia = 0.4 * mass * radius * radius;
-        Self::new(
+        let inertia = (2.0 / (D as f64 + 2.0)) * mass * radius * radius;
+        let mut body = Self::new(
             handle,
             BodyType::Dynamic,
             Transform::from_translation(position),
             Box::new(Sphere::new(Point::origin(), radius)),
             mass,
             SVector::from_element(inertia),
-        )
+        );
+        if mass.is_finite() && mass > 0.0 && radius.is_finite() && radius > 0.0 {
+            body.rotational_inertia = BivectorInertia::uniform_solid_ball(mass, radius).ok();
+        }
+        body
+    }
+
+    /// Set the authoritative body-space rotational inertia operator.
+    ///
+    /// The supplied mass properties must be centered at this body's center of
+    /// mass and expressed in its local body frame. Simulation and contact paths
+    /// rotate the operator into world coordinates as required.
+    pub fn set_rotational_inertia_operator(&mut self, inertia: BivectorInertia<D>) {
+        self.rotational_inertia = Some(inertia);
+        self.wake();
+    }
+
+    /// Validate the mass metadata and attach an authoritative inertia operator.
+    ///
+    /// Prefer this API for mass-aware operators. The infallible compatibility
+    /// setter remains available for raw second-moment matrices whose total mass
+    /// is unknown; simulation entry points still validate known mass metadata.
+    pub fn try_set_rotational_inertia_operator(
+        &mut self,
+        inertia: BivectorInertia<D>,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
+        inertia.validate_body_mass(self.mass, 1e-10)?;
+        self.set_rotational_inertia_operator(inertia);
+        Ok(())
     }
 
     pub fn is_dynamic(&self) -> bool {
@@ -131,6 +171,10 @@ impl<const D: usize> RigidBody<D> {
         }
     }
 
+    /// Accumulate a physical torque in the impulse-first bivector convention.
+    ///
+    /// The rigid-body integrator converts this to the stored angular-state sign
+    /// required by Rotor::from_bivector's exp(-B) update.
     pub fn apply_torque(&mut self, torque: Bivector<D>) {
         if self.is_dynamic() {
             // Need to implement AddAssign for Bivector or do manually
@@ -185,57 +229,351 @@ impl<const D: usize> RigidBody<D> {
             return 0.0;
         }
         let linear = 0.5 * self.mass * self.linear_velocity.norm_squared();
-        let i_avg = self.inertia.sum() / D as f64;
-        let angular = 0.5 * i_avg * self.angular_velocity.norm_squared();
+        let angular = if let Some(inertia) = &self.rotational_inertia {
+            inertia
+                .rotated_by(&self.transform.rotation)
+                .kinetic_energy(&self.angular_velocity)
+        } else {
+            let i_avg = self.inertia.sum() / D as f64;
+            0.5 * i_avg * self.angular_velocity.norm_squared()
+        };
         linear + angular
     }
 
+    /// Compatibility wrapper for toolhead merging.
+    ///
+    /// Invalid mass properties reject the merge without modifying the body.
+    /// New callers that need to observe the failure should use
+    /// `try_merge_toolhead`.
     pub fn merge_toolhead(
         &mut self,
         local_transform: Transform<D>,
         tool_collider: Box<dyn Shape<D>>,
         tool_mass: f64,
     ) {
+        let _ = self.try_merge_toolhead(local_transform, tool_collider, tool_mass);
+    }
+
+    /// Merge a toolhead while preserving collider geometry and authoritative
+    /// mass properties. A known component/body mass mismatch rejects the
+    /// operation before any body or collider state is changed.
+    /// Merge a toolhead using an explicit uniform-ball approximation of radius 0.1.
+    ///
+    /// This compatibility convenience is only a mass-property approximation.
+    /// For arbitrary tool colliders, use try_merge_toolhead_with_inertia and
+    /// supply the tool's actual centered second-moment operator and mass.
+    pub fn try_merge_toolhead(
+        &mut self,
+        local_transform: Transform<D>,
+        tool_collider: Box<dyn Shape<D>>,
+        tool_mass: f64,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
+        let tool_inertia = BivectorInertia::<D>::uniform_solid_ball(tool_mass, 0.1)?;
+        self.try_merge_toolhead_with_inertia(local_transform, tool_collider, tool_inertia)
+    }
+
+    /// Merge a toolhead from its own mass-aware centered rotational inertia.
+    ///
+    /// The tool total mass is taken from the inertia metadata; raw second
+    /// moments without known total mass are rejected. The operator must be
+    /// centered at the tool's own center of mass and expressed in the tool's
+    /// local frame. Geometry, COM, mass and inertia are changed only after all
+    /// mass-property validations and the parallel-axis combination succeed.
+    pub fn try_merge_toolhead_with_inertia(
+        &mut self,
+        local_transform: Transform<D>,
+        tool_collider: Box<dyn Shape<D>>,
+        tool_inertia: BivectorInertia<D>,
+    ) -> Result<(), crate::inertia::RotationalInertiaError> {
         use symtropy_math::CompoundShape;
 
+        let tool_mass = tool_inertia
+            .total_mass()
+            .ok_or(crate::inertia::RotationalInertiaError::UnknownTotalMass)?;
+        tool_inertia.validate_body_mass(tool_mass, 1e-10)?;
+
+        let total_mass = self.mass + tool_mass;
+        if !self.mass.is_finite()
+            || !tool_mass.is_finite()
+            || !total_mass.is_finite()
+            || !local_transform
+                .translation
+                .0
+                .iter()
+                .all(|value| value.is_finite())
+        {
+            return Err(crate::inertia::RotationalInertiaError::NonFinite);
+        }
+        if self.mass < 0.0 || tool_mass < 0.0 || total_mass <= 0.0 {
+            return Err(crate::inertia::RotationalInertiaError::InvalidMassProperties);
+        }
+
+        let tool_local_translation = local_transform.translation.0;
+        let com_offset = (tool_local_translation * tool_mass) / total_mass;
+        let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
+
+        // Combine authoritative mass properties around the new center of mass.
+        // Do not silently discard a failed operator: that would preserve the
+        // collider geometry while changing the physics model underneath it.
+        let combined_rotational_inertia = if let Some(body_inertia) = &self.rotational_inertia {
+            body_inertia.validate_body_mass(self.mass, 1e-10)?;
+            let body_offset = -com_offset;
+            let tool_offset = tool_local_translation - com_offset;
+            Some(BivectorInertia::combine_at_common_center(
+                self.mass,
+                body_inertia,
+                &body_offset,
+                tool_mass,
+                &tool_inertia,
+                &tool_offset,
+            )?)
+        } else {
+            None
+        };
+
+        // Rebase every collider child to the new local COM. The parent origin
+        // will move by R*com_offset in world coordinates, so subtracting the
+        // same local offset from each child leaves all world-space geometry
+        // exactly where it was before the mass-property merge.
         let mut compound =
             if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
                 let mut new_c = CompoundShape::<D>::new();
-                for (tf, s) in existing.children() {
-                    new_c.add_child(tf.clone(), s.clone_box());
+                for (transform, shape) in existing.children() {
+                    let mut shifted = transform.clone();
+                    shifted.translation.0 -= com_offset;
+                    new_c.add_child(shifted, shape.clone_box());
                 }
                 new_c
             } else {
                 let mut new_c = CompoundShape::<D>::new();
-                new_c.add_child(Transform::identity(), self.collider.as_ref().clone_box());
+                let mut existing_transform = Transform::identity();
+                existing_transform.translation.0 = -com_offset;
+                new_c.add_child(existing_transform, self.collider.as_ref().clone_box());
                 new_c
             };
 
-        compound.add_child(local_transform.clone(), tool_collider);
+        let mut shifted_tool_transform = local_transform;
+        shifted_tool_transform.translation.0 -= com_offset;
+        compound.add_child(shifted_tool_transform, tool_collider);
+
+        // The legacy D-vector stores only an isotropic compatibility value.
+        // Its mean-plane parallel-axis increment is 2*m*|d|^2/D, not m*|d|^2
+        // (the latter is only correct in D=2). When the exact combined operator
+        // exists, derive this compatibility value directly from its trace.
+        let i_total = if let Some(inertia) = &combined_rotational_inertia {
+            inertia.mean_plane_inertia()
+        } else {
+            let i_original = self.inertia.sum() / D as f64;
+            let i_tool = tool_inertia.mean_plane_inertia();
+            i_original
+                + i_tool
+                + (2.0 / D as f64)
+                    * (self.mass * com_offset.norm_squared()
+                        + tool_mass * (tool_local_translation - com_offset).norm_squared())
+        };
+
+        if !i_total.is_finite() || i_total <= 0.0 {
+            return Err(crate::inertia::RotationalInertiaError::InvalidMassProperties);
+        }
+
         self.collider = Box::new(compound);
-
-        let total_mass = self.mass + tool_mass;
-        let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
-
-        let i_original = self.inertia.sum() / D as f64;
-        let i_tool = 0.4 * tool_mass * 0.1 * 0.1;
-
-        let d_original = com_offset.norm();
-        let d_tool = (local_transform.translation.0 - com_offset).norm();
-        let i_total = (i_original + self.mass * d_original * d_original)
-            + (i_tool + tool_mass * d_tool * d_tool);
-
         self.mass = total_mass;
         self.inv_mass = 1.0 / total_mass;
         self.inertia = SVector::from_element(i_total);
         self.inv_inertia = SVector::from_element(1.0 / i_total);
-
-        self.transform.translation.0 += com_offset;
+        self.rotational_inertia = combined_rotational_inertia;
+        self.transform.translation.0 += world_com_offset;
+        Ok(())
     }
 
     pub fn world_support(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
         let local_dir = self.transform.rotation.reverse().rotate_vector(direction);
         let local_support = self.collider.support(&local_dir);
         self.transform.transform_point(&Point(local_support)).0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use symtropy_math::Rotor;
+
+    fn assert_uniform_ball_inertia<const D: usize>(expected: f64) {
+        let body = RigidBody::<D>::dynamic_sphere(BodyHandle(0), Point::origin(), 2.0, 3.0);
+        for (axis, value) in body.inertia.iter().enumerate() {
+            assert!(
+                (*value - expected).abs() < 1e-12,
+                "D={D} axis={axis}: inertia={value}, expected={expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_world_geometry_under_parent_rotation() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 2.0);
+        body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.73);
+
+        let local_negative_x = SVector::new(-1.0, 0.0, 0.0);
+        let world_direction = body.transform.rotation.rotate_vector(&local_negative_x);
+        let before = body.world_support(&world_direction);
+
+        let tool_collider = Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1));
+        let tool_transform = Transform::from_translation(Point::new([2.0, 0.0, 0.0]));
+        body.merge_toolhead(tool_transform, tool_collider, 1.0);
+
+        // The new body origin is the combined COM. The original sphere child
+        // is translated by -2/3 along its local x axis in the compound.
+        let original_child_point = Point::new([-1.0 - 2.0 / 3.0, 0.0, 0.0]);
+        let after = body.transform.transform_point(&original_child_point).0;
+        assert!(
+            (after - before).norm() < 1e-12,
+            "merge moved the original collider surface in world space: before={before:?}, after={after:?}"
+        );
+    }
+
+    #[test]
+    fn try_merge_toolhead_rejects_mass_mismatch_without_mutating_body() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 1.0);
+        body.set_rotational_inertia_operator(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+                .unwrap(),
+        );
+        let direction = SVector::new(1.0, 0.0, 0.0);
+        let support_before = body.world_support(&direction);
+        let position_before = body.transform.translation.0.clone();
+        let mass_before = body.mass;
+        let inertia_before = body
+            .rotational_inertia
+            .as_ref()
+            .unwrap()
+            .second_moment()
+            .clone();
+
+        let error = body
+            .try_merge_toolhead(
+                Transform::from_translation(Point::new([2.0, 0.0, 0.0])),
+                Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+                1.0,
+            )
+            .unwrap_err();
+        assert_eq!(error, crate::inertia::RotationalInertiaError::MassMismatch);
+        assert_eq!(body.mass, mass_before);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(
+            body.rotational_inertia.as_ref().unwrap().second_moment(),
+            &inertia_before
+        );
+        assert_eq!(body.world_support(&direction), support_before);
+    }
+
+    #[test]
+    fn merge_toolhead_uses_second_moment_parallel_axis_rule() {
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 2.0);
+        let tool_collider = Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1));
+        let tool_transform = Transform::from_translation(Point::new([2.0, 0.0, 0.0]));
+        body.merge_toolhead(tool_transform, tool_collider, 1.0);
+
+        let inertia = body.rotational_inertia.as_ref().unwrap();
+        assert_eq!(inertia.total_mass(), Some(3.0));
+        let expected_xx = 0.4 + 2.0 * (4.0 / 9.0) + 0.002 + 16.0 / 9.0;
+        let expected_yy = 0.4 + 0.002;
+        assert!((inertia.second_moment()[(0, 0)] - expected_xx).abs() < 1e-12);
+        assert!((inertia.second_moment()[(1, 1)] - expected_yy).abs() < 1e-12);
+        assert!((inertia.second_moment()[(2, 2)] - expected_yy).abs() < 1e-12);
+        assert!((body.mass - 3.0).abs() < 1e-12);
+        assert!((body.position()[0] - 2.0 / 3.0).abs() < 1e-12);
+        assert!(
+            (body.inertia.sum() / 3.0 - inertia.mean_plane_inertia()).abs() < 1e-12,
+            "legacy mean plane inertia must agree with the authoritative combined operator"
+        );
+    }
+
+    #[test]
+    fn explicit_toolhead_mass_properties_are_used_in_parallel_axis_merge() {
+        use nalgebra::SMatrix;
+
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 2.0);
+        body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.41);
+        let tool_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            1.5,
+            SVector::new(0.7, 0.4, 0.2),
+        )
+        .unwrap();
+        let tool_translation = SVector::new(2.0, 0.5, -0.25);
+        let total_mass = body.mass + 1.5;
+        let com_offset = tool_translation * (1.5 / total_mass);
+        let expected = BivectorInertia::combine_at_common_center(
+            body.mass,
+            body.rotational_inertia.as_ref().unwrap(),
+            &(-com_offset),
+            1.5,
+            &tool_inertia,
+            &(tool_translation - com_offset),
+        )
+        .unwrap();
+        let direction = body.transform.rotation.rotate_vector(&SVector::new(-1.0, 0.0, 0.0));
+        let support_before = body.world_support(&direction);
+
+        body.try_merge_toolhead_with_inertia(
+            Transform::from_translation(Point(tool_translation)),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+            tool_inertia.clone(),
+        )
+        .unwrap();
+
+        let actual = body.rotational_inertia.as_ref().unwrap();
+        assert_eq!(actual.total_mass(), Some(total_mass));
+        assert!(
+            (actual.second_moment() - expected.second_moment()).norm() < 1e-12,
+            "explicit tool mass properties were not preserved by the merge"
+        );
+        assert!((body.mass - total_mass).abs() < 1e-12);
+        assert!((body.position() - Point::new([3.0, -2.0, 1.0]).0
+            - body.transform.rotation.rotate_vector(&com_offset)).norm() < 1e-12);
+        assert!(
+            (body.inertia.sum() / 3.0 - actual.mean_plane_inertia()).abs() < 1e-12
+        );
+
+        let original_child_point = Point::new([-1.0 - com_offset[0], -com_offset[1], -com_offset[2]]);
+        let support_after = body.transform.transform_point(&original_child_point).0;
+        assert!((support_after - support_before).norm() < 1e-10);
+    }
+
+    #[test]
+    fn toolhead_merge_rejects_unknown_mass_without_mutating_body() {
+        use nalgebra::SMatrix;
+
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let support_before = body.world_support(&SVector::new(1.0, 0.0, 0.0));
+        let mass_before = body.mass;
+        let position_before = body.transform.translation.0.clone();
+        let tool_inertia =
+            BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::identity()).unwrap();
+
+        let error = body
+            .try_merge_toolhead_with_inertia(
+                Transform::from_translation(Point::new([1.0, 0.0, 0.0])),
+                Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+                tool_inertia,
+            )
+            .unwrap_err();
+        assert_eq!(
+            error,
+            crate::inertia::RotationalInertiaError::UnknownTotalMass
+        );
+        assert_eq!(body.mass, mass_before);
+        assert_eq!(body.transform.translation.0, position_before);
+        assert_eq!(body.world_support(&SVector::new(1.0, 0.0, 0.0)), support_before);
+    }
+
+    #[test]
+    fn uniform_ball_inertia_uses_the_spatial_dimension() {
+        // I_plane = 2*m*r^2/(D+2), with m=3 and r=2.
+        assert_uniform_ball_inertia::<2>(6.0);
+        assert_uniform_ball_inertia::<3>(4.8);
+        assert_uniform_ball_inertia::<4>(4.0);
     }
 }
