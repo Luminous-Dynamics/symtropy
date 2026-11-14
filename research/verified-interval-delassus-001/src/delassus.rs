@@ -37,9 +37,18 @@ pub enum VerifiedDelassusErrorV1 {
     ZeroDimension,
     ConstraintRowsExceedDimension,
     NonSymmetricMassIntervals,
-    InconclusiveMassSpd { pivot: usize, diagonal_lower: f64 },
-    InconclusiveDelassusSpd { pivot: usize, diagonal_lower: f64 },
-    IndependentDerivationsDisjoint { row: usize, column: usize },
+    InconclusiveMassSpd {
+        pivot: usize,
+        diagonal_lower: f64,
+    },
+    InconclusiveDelassusSpd {
+        pivot: usize,
+        diagonal_lower: f64,
+    },
+    IndependentDerivationsDisjoint {
+        row: usize,
+        column: usize,
+    },
     CoefficientResidualNotEnclosed {
         row: usize,
         column: usize,
@@ -85,29 +94,49 @@ pub struct DerivedConstraintCoefficientsV1<const N: usize, const K: usize> {
 }
 
 impl<const N: usize, const K: usize> DerivedConstraintCoefficientsV1<N, K> {
-    pub fn mass_intervals(&self) -> &IntervalMatrix<N, N> { &self.mass_intervals }
-    pub fn jacobian_intervals(&self) -> &IntervalMatrix<K, N> { &self.jacobian_intervals }
-    pub fn profile(&self) -> VerifiedDelassusProfileV1 { self.profile }
-    pub fn mass_cholesky_intervals(&self) -> &IntervalMatrix<N, N> { &self.mass_cholesky }
+    pub fn mass_intervals(&self) -> &IntervalMatrix<N, N> {
+        &self.mass_intervals
+    }
+    pub fn jacobian_intervals(&self) -> &IntervalMatrix<K, N> {
+        &self.jacobian_intervals
+    }
+    pub fn profile(&self) -> VerifiedDelassusProfileV1 {
+        self.profile
+    }
+    pub fn mass_cholesky_intervals(&self) -> &IntervalMatrix<N, N> {
+        &self.mass_cholesky
+    }
 
     /// Outward enclosure of B = M^-1 J^T.
     pub fn inverse_mass_jacobian_transpose(&self) -> &IntervalMatrix<N, K> {
         &self.inverse_mass_jacobian_transpose
     }
     /// Outward enclosure of Y = J L^-T, where M = L L^T.
-    pub fn whitened_jacobian(&self) -> &IntervalMatrix<K, N> { &self.whitened_jacobian }
+    pub fn whitened_jacobian(&self) -> &IntervalMatrix<K, N> {
+        &self.whitened_jacobian
+    }
     /// Outward enclosure of W = J M^-1 J^T.
-    pub fn delassus_intervals(&self) -> &IntervalMatrix<K, K> { &self.delassus }
-    pub fn mass_factor_diagonal_lower(&self) -> f64 { self.mass_factor_diagonal_lower }
-    pub fn delassus_factor_diagonal_lower(&self) -> f64 { self.delassus_factor_diagonal_lower }
+    pub fn delassus_intervals(&self) -> &IntervalMatrix<K, K> {
+        &self.delassus
+    }
+    pub fn mass_factor_diagonal_lower(&self) -> f64 {
+        self.mass_factor_diagonal_lower
+    }
+    pub fn delassus_factor_diagonal_lower(&self) -> f64 {
+        self.delassus_factor_diagonal_lower
+    }
     pub fn delassus_minimum_eigenvalue_lower(&self) -> f64 {
         self.delassus_minimum_eigenvalue_lower
     }
-    pub fn delassus_operator_norm_upper(&self) -> f64 { self.delassus_operator_norm_upper }
+    pub fn delassus_operator_norm_upper(&self) -> f64 {
+        self.delassus_operator_norm_upper
+    }
     pub fn delassus_inverse_operator_norm_upper(&self) -> f64 {
         self.delassus_inverse_operator_norm_upper
     }
-    pub fn status(&self) -> VerifiedDelassusStatusV1 { self.status }
+    pub fn status(&self) -> VerifiedDelassusStatusV1 {
+        self.status
+    }
 
     /// Bound sqrt(r^T W^-1 r), the minimum kinetic norm required for J delta_v = r.
     pub fn residual_dual_norm_upper(
@@ -116,12 +145,14 @@ impl<const N: usize, const K: usize> DerivedConstraintCoefficientsV1<N, K> {
     ) -> Result<f64, VerifiedDelassusErrorV1> {
         let residual_norm = upper_l2_norm(residual)?;
         let denominator_lower = Interval::point(self.delassus_minimum_eigenvalue_lower)?
-            .sqrt()?.lower();
+            .sqrt()?
+            .lower();
         if denominator_lower <= 0.0 {
             return Err(VerifiedDelassusErrorV1::NonFiniteBound);
         }
         let bound = Interval::point(residual_norm)?
-            .div(Interval::point(denominator_lower)?)?.upper();
+            .div(Interval::point(denominator_lower)?)?
+            .upper();
         finite_bound(bound)
     }
 
@@ -132,9 +163,11 @@ impl<const N: usize, const K: usize> DerivedConstraintCoefficientsV1<N, K> {
     ) -> Result<f64, VerifiedDelassusErrorV1> {
         let multiplier_norm = upper_l2_norm(multiplier)?;
         let operator_scale = Interval::point(self.delassus_operator_norm_upper)?
-            .sqrt()?.upper();
+            .sqrt()?
+            .upper();
         let bound = Interval::point(multiplier_norm)?
-            .mul(Interval::point(operator_scale)?)?.upper();
+            .mul(Interval::point(operator_scale)?)?
+            .upper();
         finite_bound(bound)
     }
 }
@@ -198,11 +231,7 @@ fn validate_mass<const N: usize>(
     Ok(())
 }
 
-fn spd_failure(
-    mass_factor: bool,
-    pivot: usize,
-    lower: f64,
-) -> VerifiedDelassusErrorV1 {
+fn spd_failure(mass_factor: bool, pivot: usize, lower: f64) -> VerifiedDelassusErrorV1 {
     if mass_factor {
         VerifiedDelassusErrorV1::InconclusiveMassSpd {
             pivot,
@@ -297,8 +326,7 @@ fn derive_b<const N: usize, const K: usize>(
 ) -> Result<IntervalMatrix<N, K>, VerifiedDelassusErrorV1> {
     let mut b = [[Interval::zero(); K]; N];
     for constraint in 0..K {
-        let rhs: [Interval; N] =
-            std::array::from_fn(|coordinate| jacobian[constraint][coordinate]);
+        let rhs: [Interval; N] = std::array::from_fn(|coordinate| jacobian[constraint][coordinate]);
         let solution = interval_mass_solve(lower, &rhs)?;
         for coordinate in 0..N {
             b[coordinate][constraint] = solution[coordinate];
@@ -373,10 +401,7 @@ fn intersect_w<const K: usize>(
             let common = intersect(direct[row][column], gram[row][column])
                 .and_then(|value| intersect(value, direct[column][row]))
                 .and_then(|value| intersect(value, gram[column][row]))
-                .ok_or(VerifiedDelassusErrorV1::IndependentDerivationsDisjoint {
-                    row,
-                    column,
-                })?;
+                .ok_or(VerifiedDelassusErrorV1::IndependentDerivationsDisjoint { row, column })?;
             w[row][column] = common;
             w[column][row] = common;
         }
@@ -384,9 +409,7 @@ fn intersect_w<const K: usize>(
     Ok(w)
 }
 
-fn upper_l2<const N: usize>(
-    values: &[Interval; N],
-) -> Result<f64, VerifiedDelassusErrorV1> {
+fn upper_l2<const N: usize>(values: &[Interval; N]) -> Result<f64, VerifiedDelassusErrorV1> {
     let mut sum = Interval::zero();
     for value in values {
         let magnitude = Interval::point(value.max_abs())?;
@@ -425,11 +448,8 @@ fn certify_w<const K: usize>(
     w: &IntervalMatrix<K, K>,
     profile: VerifiedDelassusProfileV1,
 ) -> Result<(f64, f64, f64, f64), VerifiedDelassusErrorV1> {
-    let (lower, factor_diagonal_lower) = cholesky_interval(
-        w,
-        profile.minimum_delassus_factor_diagonal_lower,
-        false,
-    )?;
+    let (lower, factor_diagonal_lower) =
+        cholesky_interval(w, profile.minimum_delassus_factor_diagonal_lower, false)?;
     let inverse_factor_norm_upper = inverse_factor_frobenius_upper(&lower)?;
     let inverse_operator_norm_upper = Interval::point(inverse_factor_norm_upper)?
         .mul(Interval::point(inverse_factor_norm_upper)?)?
@@ -496,11 +516,8 @@ pub fn certify_delassus_coefficients<const N: usize, const K: usize>(
     }
     validate_mass(mass)?;
 
-    let (mass_cholesky, mass_factor_diagonal_lower) = cholesky_interval(
-        mass,
-        profile.minimum_mass_factor_diagonal_lower,
-        true,
-    )?;
+    let (mass_cholesky, mass_factor_diagonal_lower) =
+        cholesky_interval(mass, profile.minimum_mass_factor_diagonal_lower, true)?;
     let b = derive_b(&mass_cholesky, jacobian)?;
     let y = derive_y(&mass_cholesky, jacobian)?;
     verify_mass_residual(mass, jacobian, &b)?;
@@ -554,14 +571,14 @@ mod tests {
     ) -> [[f64; C]; R] {
         std::array::from_fn(|row| {
             std::array::from_fn(|column| {
-                (0..K).map(|inner| left[row][inner] * right[inner][column]).sum()
+                (0..K)
+                    .map(|inner| left[row][inner] * right[inner][column])
+                    .sum()
             })
         })
     }
 
-    fn point_transpose<const R: usize, const C: usize>(
-        matrix: &[[f64; C]; R],
-    ) -> [[f64; R]; C] {
+    fn point_transpose<const R: usize, const C: usize>(matrix: &[[f64; C]; R]) -> [[f64; R]; C] {
         std::array::from_fn(|row| std::array::from_fn(|column| matrix[column][row]))
     }
 
@@ -576,15 +593,18 @@ mod tests {
         let expected_b = [[0.5, 0.0], [0.0, 2.0 / 3.0], [0.2, -0.2]];
         for row in 0..3 {
             for column in 0..2 {
-                assert!(certificate.inverse_mass_jacobian_transpose()[row][column]
-                    .contains(expected_b[row][column]));
+                assert!(
+                    certificate.inverse_mass_jacobian_transpose()[row][column]
+                        .contains(expected_b[row][column])
+                );
             }
         }
         let expected_w = [[0.7, -0.2], [-0.2, 23.0 / 15.0]];
         for row in 0..2 {
             for column in 0..2 {
-                assert!(certificate.delassus_intervals()[row][column]
-                    .contains(expected_w[row][column]));
+                assert!(
+                    certificate.delassus_intervals()[row][column].contains(expected_w[row][column])
+                );
             }
         }
         assert!(certificate.delassus_minimum_eigenvalue_lower() > 0.0);
@@ -595,13 +615,33 @@ mod tests {
     #[test]
     fn uncertain_mass_and_jacobian_enclosures_cover_corner_samples() {
         let mass = [
-            [Interval::new(1.999, 2.001).unwrap(), Interval::zero(), Interval::zero()],
-            [Interval::zero(), Interval::new(2.999, 3.001).unwrap(), Interval::zero()],
-            [Interval::zero(), Interval::zero(), Interval::new(4.999, 5.001).unwrap()],
+            [
+                Interval::new(1.999, 2.001).unwrap(),
+                Interval::zero(),
+                Interval::zero(),
+            ],
+            [
+                Interval::zero(),
+                Interval::new(2.999, 3.001).unwrap(),
+                Interval::zero(),
+            ],
+            [
+                Interval::zero(),
+                Interval::zero(),
+                Interval::new(4.999, 5.001).unwrap(),
+            ],
         ];
         let jacobian = [
-            [Interval::new(0.999, 1.001).unwrap(), Interval::zero(), Interval::new(0.999, 1.001).unwrap()],
-            [Interval::zero(), Interval::new(1.999, 2.001).unwrap(), Interval::new(-1.001, -0.999).unwrap()],
+            [
+                Interval::new(0.999, 1.001).unwrap(),
+                Interval::zero(),
+                Interval::new(0.999, 1.001).unwrap(),
+            ],
+            [
+                Interval::zero(),
+                Interval::new(1.999, 2.001).unwrap(),
+                Interval::new(-1.001, -0.999).unwrap(),
+            ],
         ];
         let c = certify_delassus_coefficients(&mass, &jacobian, profile()).unwrap();
         for (m0, m1, m2, j00, j02, j11, j12) in [
@@ -635,22 +675,21 @@ mod tests {
         .unwrap();
         for row in 0..2 {
             for column in 0..2 {
-                assert!(intersect(
-                    q.delassus_intervals()[row][column],
-                    y.delassus_intervals()[row][column]
-                ).is_some());
+                assert!(
+                    intersect(
+                        q.delassus_intervals()[row][column],
+                        y.delassus_intervals()[row][column]
+                    )
+                    .is_some()
+                );
             }
         }
     }
 
     #[test]
     fn dependent_constraint_rows_are_inconclusive_not_regularized() {
-        let mass = point_interval_matrix(&[
-            [2.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-            [0.0, 0.0, 5.0],
-        ])
-        .unwrap();
+        let mass =
+            point_interval_matrix(&[[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]]).unwrap();
         let j = point_interval_jacobian(&[[1.0, 0.0, 1.0], [2.0, 0.0, 2.0]]).unwrap();
         assert!(matches!(
             certify_delassus_coefficients(&mass, &j, profile()),
@@ -661,8 +700,14 @@ mod tests {
     #[test]
     fn non_symmetric_mass_intervals_are_rejected() {
         let mass = [
-            [Interval::point(2.0).unwrap(), Interval::new(0.1, 0.2).unwrap()],
-            [Interval::new(0.15, 0.25).unwrap(), Interval::point(3.0).unwrap()],
+            [
+                Interval::point(2.0).unwrap(),
+                Interval::new(0.1, 0.2).unwrap(),
+            ],
+            [
+                Interval::new(0.15, 0.25).unwrap(),
+                Interval::point(3.0).unwrap(),
+            ],
         ];
         let jacobian = point_interval_jacobian(&[[1.0, 0.0]]).unwrap();
         assert!(matches!(
@@ -738,11 +783,10 @@ mod tests {
         let w11 = 23.0_f64 / 15.0;
         let determinant = w00 * w11 - w01 * w01;
         let residual_point = [0.25_f64, -0.4_f64];
-        let residual_squared =
-            (w11 * residual_point[0] * residual_point[0]
-                - 2.0 * w01 * residual_point[0] * residual_point[1]
-                + w00 * residual_point[1] * residual_point[1])
-                / determinant;
+        let residual_squared = (w11 * residual_point[0] * residual_point[0]
+            - 2.0 * w01 * residual_point[0] * residual_point[1]
+            + w00 * residual_point[1] * residual_point[1])
+            / determinant;
         let multiplier_point = [0.75_f64, -1.25_f64];
         let multiplier_squared = w00 * multiplier_point[0] * multiplier_point[0]
             + 2.0 * w01 * multiplier_point[0] * multiplier_point[1]
