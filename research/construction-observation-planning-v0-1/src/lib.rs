@@ -265,8 +265,8 @@ pub fn choose_targeted_observation_with_resources(
     )
 }
 
-fn choose_targeted_observation_inner<'a>(
-    actions: &'a [ObservationAction],
+fn choose_targeted_observation_inner(
+    actions: &[ObservationAction],
     work_needs: &[WorkNeed],
     occupancy_book: &SpatialOccupancyBook,
     reservation_book: Option<&ReservationBook>,
@@ -1304,7 +1304,11 @@ mod tests {
         };
 
         assert_eq!(
-            choose_targeted_observation(&[first.clone(), second], &[need.clone()], &book()),
+            choose_targeted_observation(
+                &[first.clone(), second],
+                std::slice::from_ref(&need),
+                &book()
+            ),
             Err(ObservationPlanError::DuplicateAction(
                 "same-action".to_owned()
             ))
