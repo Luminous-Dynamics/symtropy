@@ -589,7 +589,13 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
                     || !report.baseline_feasible
                     || !report.replan_feasible
                     || !report.schedule_validation.valid
-                    || report.utility_validation.as_ref().is_none_or(|utility| !utility.valid)
+                    || report.schedule_validation.problem_name != candidate.problem_name
+                    || report.schedule_validation.makespan_ticks != report.replan_makespan_ticks
+                    || report.utility_validation.as_ref().is_none_or(|utility| {
+                        !utility.valid
+                            || utility.problem_name != candidate.problem_name
+                            || utility.tick_unit != candidate.utility_tick_unit
+                    })
                 {
                     add(
                         &mut findings,
@@ -943,7 +949,11 @@ mod tests {
         scenario_id: &str,
     ) -> ObjectiveObservation {
         let basis = metric.required_basis()[0];
-        let lot_id = format!("output-{candidate_id}");
+        let lot_id = if metric == ObjectiveMetric::DamageAreaMm2 {
+            "incoming-lot-01".to_owned()
+        } else {
+            format!("output-{candidate_id}")
+        };
         let trial_id = format!("trial-{candidate_id}");
         let evidence_id = if metric == ObjectiveMetric::AcceptedOutputMassMg {
             format!("receiver-{candidate_id}")
@@ -1251,8 +1261,9 @@ mod tests {
         let mut candidate = candidate("replay", 8_000_000, 100, 12);
         candidate.requires_disruption_replay = true;
         candidate.scenario_id = "machine-outage-01".to_owned();
+        let scenario_id = candidate.scenario_id.clone();
         for observation in &mut candidate.objectives {
-            observation.evidence.scenario_id = candidate.scenario_id.clone();
+            observation.evidence.scenario_id = scenario_id.clone();
         }
         candidate.resilience_validation = Some(ResilienceReport {
             scenario_id: candidate.scenario_id.clone(),
