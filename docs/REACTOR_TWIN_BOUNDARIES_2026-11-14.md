@@ -120,3 +120,61 @@ Numerical tolerances must be set per physical problem and reference dataset, not
 This work does not provide reactor operating procedures, neutron-source construction instructions, radiation-shielding designs, high-voltage/laser/power-supply operating settings, or hardware control authority. Physical reactor work requires qualified specialists, licensed facilities, independent safety review and applicable authorization.
 
 **Claim boundary:** A deterministic replay or complete receipt proves only that the recorded scenario and artifacts are internally consistent. It does not prove physical correctness, net energy, safety, manufacturability, or operational readiness.
+
+
+## New public benchmark adapter: Fusion Equilibrium Challenge (14 Nov 2026)
+
+The NeurIPS 2026 Fusion Equilibrium Challenge has published final results and provides a useful offline inference/replay case for Symthaea + Symtropy:
+- 7,041 DIII-D training shots;
+- 874 DIII-D public-test shots;
+- 1,206 MAST zero-shot shots;
+- 65×65 EFIT poloidal-flux targets, plus q95 and betaN;
+- dataset release under CC BY 4.0.
+
+Official final results:
+- DIII-D leading composite S = 0.997330 and flux-map R²ψ = 0.999949.
+- The leading cross-machine transfer result reports MAST S = 0.876103 and DIII-D S = 0.922797.
+- The organizers warn that their MAST/DIII-D ratio score can reward a lower DIII-D score; always preserve absolute scores for each machine.
+
+Primary references:
+- [Data, errata, splits and license](https://fusion-equilibrium-challenge.sophelio.io/data/)
+- [Final results, 14 Nov 2026](https://fusion-equilibrium-challenge.sophelio.io/results/)
+- [Starter kit, baseline and scorer](https://github.com/Sophelio/fusion-equilibrium-challenge-starter)
+
+### Critical input integrity
+
+The starter kit documents:
+- DIII-D plasma-current timestamp misalignment on about 69% of shots. Values are correct; a per-shot axis correction is needed. Do not blanket-shift the entire dataset.
+- MAST Thomson core radii have 130 entries while Te/ne have 131; channel zero is uncalibrated/NaN and must be handled by the documented alignment fix.
+- EFIT time samples are non-contiguous after filtering; do not assume fixed dt.
+- Split by whole shot, never timestep. Inputs can be resampled to EFIT times; targets cannot be interpolated.
+- DIII-D and MAST dsep values do not share semantics. Do not treat them as a cross-machine common input.
+
+### Symtropy's narrow role
+
+Symtropy should record an immutable **inference run receipt**, not reproduce the scorer or own a plasma-equilibrium solver. Bind:
+- machine and shot identity, official split, dataset and rights version;
+- exact data-fix, starter-kit, preprocessing and scorer revisions;
+- original EFIT timestamps and input manifest;
+- model/config/source hashes and runtime environment;
+- 65×65 flux predictions, q95/betaN outputs and output digest;
+- incomplete/non-finite frames and explicit failure disposition;
+- optional official scorer output with each metric stored separately.
+
+The result type must remain **InferredModelOutput**, distinct from measured telemetry, EFIT reference targets or qualified equilibrium fields. MAST remains a zero-shot transfer set. No hidden-label tuning or target leakage is admissible.
+
+Symthaea owns representation/model/uncertainty research under [FUSION-EQUILIBRIUM-TRANSFER-001 #12055](https://github.com/Luminous-Dynamics/symthaea/issues/12055). Symtropy owns receipt identity, deterministic replay and projection boundaries under [FUSION-EQUILIBRIUM-RECEIPT-001 #5138](https://github.com/Luminous-Dynamics/symtropy/issues/5138). Neither system gains live-machine control authority from a benchmark result.
+
+### Refusal fixtures
+
+At minimum, reject:
+1. timestep-level train/test leakage;
+2. missing or blanket-only DIII-D current-axis correction;
+3. uncorrected MAST Thomson channel alignment;
+4. target columns present in the declared input manifest;
+5. stale data/model/scorer hashes;
+6. dropped, reordered, duplicate or non-finite prediction frames;
+7. MAST output with target-informed training lineage;
+8. model output retyped as an observation or measured equilibrium.
+
+An integrity PASS only proves the frozen artifact/run contract. It does not validate the inferred field, authorize control, or qualify a physical tokamak.
