@@ -35,7 +35,7 @@ A standards lifecycle change does not mutate a historical profile. A new edition
 | Unsupported | No target and explanation | No mapping is provided |
 | Ambiguous | No target and explanation | More than one plausible semantic mapping exists |
 
-Unsupported and ambiguous records make the run incomplete. Explicit losses make it CompleteWithDeclaredLoss, not lossless success. An incomplete source inventory takes precedence over every other status. A complete inventory whose declared counts do not match its mapping or extension records is rejected.
+Unsupported and ambiguous records make the run incomplete. Explicit losses make it CompleteWithDeclaredLoss, not lossless success. An incomplete source inventory takes precedence over mapping outcomes. An unknown standard publication status is recorded but makes the run incomplete. A complete inventory whose declared counts do not match its mapping or extension records is rejected.
 
 The kernel requires one record per source semantic reference and checks caller-supplied source semantic-item and extension counts against the record counts when the inventory is declared complete. If one source item expands into several target items, a future profile version must introduce a grouping record rather than hiding multiplicity in a string.
 

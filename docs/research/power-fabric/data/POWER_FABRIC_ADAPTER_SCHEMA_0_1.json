@@ -99,7 +99,8 @@
         "complete_semantically_equivalent",
         "complete_with_declared_loss",
         "incomplete_unsupported_or_ambiguous",
-        "incomplete_source_inventory"
+        "incomplete_source_inventory",
+        "incomplete_unknown_standard_status"
       ]
     },
     "round_trip": {

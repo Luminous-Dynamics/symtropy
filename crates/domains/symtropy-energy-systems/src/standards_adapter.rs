@@ -49,9 +49,6 @@ impl StandardReference {
         if amendments.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(AdapterError::DuplicateStandardAmendment);
         }
-        if publication_status == StandardPublicationStatus::Unknown {
-            return Err(AdapterError::UnknownPublicationStatus);
-        }
         Ok(Self { standard_id, part, edition, amendments, publication_status, jurisdiction })
     }
 
@@ -294,6 +291,7 @@ pub enum AdapterRunStatus {
     CompleteWithDeclaredLoss,
     IncompleteUnsupportedOrAmbiguous,
     IncompleteSourceInventory,
+    IncompleteUnknownStandardStatus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -350,7 +348,11 @@ impl AdapterRun {
                 return Err(AdapterError::DuplicateSourceExtension { namespace: key.0, extension_id: key.1 });
             }
         }
-        let status = derive_status(source_inventory_complete, record_map.values(), extension_map.values());
+        let status = if profile.standard.publication_status == StandardPublicationStatus::Unknown {
+            AdapterRunStatus::IncompleteUnknownStandardStatus
+        } else {
+            derive_status(source_inventory_complete, record_map.values(), extension_map.values())
+        };
         Ok(Self { profile, source_input_digest, target_output_digest, source_inventory_complete, source_semantic_item_count, source_extension_count, status, records: record_map, extensions: extension_map })
     }
     pub fn profile(&self) -> &MappingProfile { &self.profile }
@@ -484,7 +486,6 @@ fn require_non_empty(field: &'static str, value: &str) -> Result<(), AdapterErro
 pub enum AdapterError {
     EmptyField { field: &'static str },
     DuplicateStandardAmendment,
-    UnknownPublicationStatus,
     MappingOutcomeShapeMismatch { outcome: MappingOutcome },
     DuplicateLossPath,
     ExtensionDispositionShapeMismatch { disposition: ExtensionDisposition },
@@ -543,6 +544,12 @@ mod tests {
             profile(StandardPublicationStatus::WorkingDraft).standard().publication_status());
     }
     #[test]
+    fn unknown_standard_publication_status_is_recorded_but_run_is_incomplete() {
+        let profile = profile(StandardPublicationStatus::Unknown);
+        let run = AdapterRun::new(profile, "source", "target", true, 0, 0, Vec::new(), Vec::new()).unwrap();
+        assert_eq!(run.status(), AdapterRunStatus::IncompleteUnknownStandardStatus);
+    }
+    #[test]
     fn exact_mapping_requires_target_and_no_loss() {
         assert!(matches!(MappingRecord::new(source("voltage"), None, MappingOutcome::ExactPreservation,
             "no target", Vec::new()), Err(AdapterError::MappingOutcomeShapeMismatch { .. })));
@@ -588,7 +595,7 @@ mod tests {
         let record = MappingRecord::new(source("vendor-protection"), None, MappingOutcome::Unsupported,
             "target profile has no reviewed equivalent", Vec::new()).unwrap();
         let run = AdapterRun::new(profile(StandardPublicationStatus::Published), "source", "target",
-            true, vec![record], Vec::new()).unwrap();
+            true, 1, 0, vec![record], Vec::new()).unwrap();
         assert_eq!(run.status(), AdapterRunStatus::IncompleteUnsupportedOrAmbiguous);
     }
     #[test]
