@@ -105,6 +105,33 @@
         "pipe_length_m": -10,
         "wave_speed_m_s": 1000
       }
+    },
+    {
+      "case_id": "WT-T0-009-wave-speed-uncertainty-envelope",
+      "description": "Propagate a bounded wave-speed interval into Joukowsky pressure amplitude and wave travel-time intervals; do not collapse the interval to a single nominal celerity.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_min_m_s": 900,
+        "wave_speed_max_m_s": 1100,
+        "density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": 0.5,
+        "closure_duration_s": 0.01,
+        "initial_absolute_pressure_pa": 300000
+      }
+    },
+    {
+      "case_id": "WT-T0-010-reversed-wave-speed-interval",
+      "description": "A wave-speed interval with lower bound greater than upper bound is invalid and cannot be silently sorted or replaced by a nominal speed.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_min_m_s": 1100,
+        "wave_speed_max_m_s": 900,
+        "density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": 0.5,
+        "closure_duration_s": 0.01
+      }
     }
   ]
 }
