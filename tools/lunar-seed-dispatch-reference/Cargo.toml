@@ -1,0 +1,9 @@
+[package]
+name = "lunar-seed-dispatch-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Forecast-reserve lunar seed-base power dispatch reference"
+
+[workspace]
+members = []
