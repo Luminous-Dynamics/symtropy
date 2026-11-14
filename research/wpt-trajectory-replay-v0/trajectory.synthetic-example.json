@@ -1,0 +1,144 @@
+{
+  "schema_version": "wpt-trajectory-replay-v0",
+  "trajectory_id": "synthetic-wander-001",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "coordinate_frame_id": "synthetic-road-frame",
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ],
+  "trajectory_samples": [
+    {
+      "sample_id": "pose-000",
+      "x_mm": 0,
+      "y_mm": -120,
+      "z_mm": 180,
+      "yaw_deg": 0,
+      "pitch_deg": 0,
+      "roll_deg": 0,
+      "speed_mps": 2,
+      "axle_load_n": 45000,
+      "left_wheel_y_mm": -850,
+      "right_wheel_y_mm": 650,
+      "timestamp_ns": 0
+    },
+    {
+      "sample_id": "pose-001",
+      "x_mm": 200,
+      "y_mm": -40,
+      "z_mm": 181,
+      "yaw_deg": 0.2,
+      "pitch_deg": 0,
+      "roll_deg": 0.1,
+      "speed_mps": 2.1,
+      "axle_load_n": 45000,
+      "left_wheel_y_mm": -770,
+      "right_wheel_y_mm": 730,
+      "timestamp_ns": 100000000
+    },
+    {
+      "sample_id": "pose-002",
+      "x_mm": 410,
+      "y_mm": 20,
+      "z_mm": 182,
+      "yaw_deg": 0.4,
+      "pitch_deg": 0.1,
+      "roll_deg": 0.2,
+      "speed_mps": 2.1,
+      "axle_load_n": 45000,
+      "left_wheel_y_mm": -710,
+      "right_wheel_y_mm": 790,
+      "timestamp_ns": 200000000
+    }
+  ],
+  "electromagnetic_projections": [
+    {
+      "projection_id": "em-000",
+      "trajectory_id": "synthetic-wander-001",
+      "sample_id": "pose-000",
+      "coordinate_frame_id": "synthetic-road-frame",
+      "transform_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "gap_mm": 180,
+      "lateral_offset_mm": -120,
+      "coupling_ppm": 720000,
+      "useful_power_w": 65000,
+      "vehicle_dc_power_w": 71000,
+      "measurement_timestamp_ns": 0,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
+    },
+    {
+      "projection_id": "em-001",
+      "trajectory_id": "synthetic-wander-001",
+      "sample_id": "pose-001",
+      "coordinate_frame_id": "synthetic-road-frame",
+      "transform_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "gap_mm": 181,
+      "lateral_offset_mm": -40,
+      "coupling_ppm": 760000,
+      "useful_power_w": 69000,
+      "vehicle_dc_power_w": 75000,
+      "measurement_timestamp_ns": 100000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
+    },
+    {
+      "projection_id": "em-002",
+      "trajectory_id": "synthetic-wander-001",
+      "sample_id": "pose-002",
+      "coordinate_frame_id": "synthetic-road-frame",
+      "transform_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "gap_mm": 182,
+      "lateral_offset_mm": 20,
+      "coupling_ppm": 790000,
+      "useful_power_w": 72000,
+      "vehicle_dc_power_w": 78000,
+      "measurement_timestamp_ns": 200000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
+    }
+  ],
+  "pavement_projections": [
+    {
+      "projection_id": "road-000",
+      "trajectory_id": "synthetic-wander-001",
+      "sample_id": "pose-000",
+      "coordinate_frame_id": "synthetic-road-frame",
+      "transform_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "temperature_c": 32,
+      "tensile_strain_microstrain": 185,
+      "heat_flux_w_m2": 110,
+      "interface_condition": "INTACT",
+      "measurement_timestamp_ns": 0,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
+    },
+    {
+      "projection_id": "road-001",
+      "trajectory_id": "synthetic-wander-001",
+      "sample_id": "pose-001",
+      "coordinate_frame_id": "synthetic-road-frame",
+      "transform_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "temperature_c": 33,
+      "tensile_strain_microstrain": 192,
+      "heat_flux_w_m2": 118,
+      "interface_condition": "INTACT",
+      "measurement_timestamp_ns": 100000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
+    },
+    {
+      "projection_id": "road-002",
+      "trajectory_id": "synthetic-wander-001",
+      "sample_id": "pose-002",
+      "coordinate_frame_id": "synthetic-road-frame",
+      "transform_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "temperature_c": 34,
+      "tensile_strain_microstrain": 205,
+      "heat_flux_w_m2": 126,
+      "interface_condition": "INTACT",
+      "measurement_timestamp_ns": 200000000,
+      "clock_offset_ns": 0,
+      "clock_uncertainty_ns": 1000000
+    }
+  ]
+}

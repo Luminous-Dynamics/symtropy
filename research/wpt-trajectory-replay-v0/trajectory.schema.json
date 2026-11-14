@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wpt-trajectory-replay-v0.schema.json",
+  "title": "WPT synchronized trajectory replay episode",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trajectory_id",
+    "evidence_kind",
+    "coordinate_frame_id",
+    "quality_flags",
+    "trajectory_samples",
+    "electromagnetic_projections",
+    "pavement_projections"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-trajectory-replay-v0"
+    },
+    "trajectory_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "coordinate_frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quality_flags": {
+      "const": [
+        "SYNTHETIC_ONLY"
+      ]
+    },
+    "trajectory_samples": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "timestamp_ns",
+          "x_mm",
+          "y_mm",
+          "z_mm",
+          "yaw_deg",
+          "pitch_deg",
+          "roll_deg",
+          "speed_mps",
+          "axle_load_n",
+          "left_wheel_y_mm",
+          "right_wheel_y_mm"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "x_mm": {
+            "type": "number"
+          },
+          "y_mm": {
+            "type": "number"
+          },
+          "z_mm": {
+            "type": "number"
+          },
+          "yaw_deg": {
+            "type": "number"
+          },
+          "pitch_deg": {
+            "type": "number"
+          },
+          "roll_deg": {
+            "type": "number"
+          },
+          "speed_mps": {
+            "type": "number",
+            "minimum": 0
+          },
+          "axle_load_n": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "left_wheel_y_mm": {
+            "type": "number"
+          },
+          "right_wheel_y_mm": {
+            "type": "number"
+          },
+          "timestamp_ns": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "electromagnetic_projections": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projection_id",
+          "trajectory_id",
+          "sample_id",
+          "coordinate_frame_id",
+          "transform_sha256",
+          "gap_mm",
+          "lateral_offset_mm",
+          "coupling_ppm",
+          "useful_power_w",
+          "vehicle_dc_power_w",
+          "measurement_timestamp_ns",
+          "clock_offset_ns",
+          "clock_uncertainty_ns"
+        ],
+        "properties": {
+          "projection_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trajectory_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "coordinate_frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transform_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "gap_mm": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lateral_offset_mm": {
+            "type": "number"
+          },
+          "coupling_ppm": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "useful_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "vehicle_dc_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "measurement_timestamp_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "clock_offset_ns": {
+            "type": "integer"
+          },
+          "clock_uncertainty_ns": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "pavement_projections": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projection_id",
+          "trajectory_id",
+          "sample_id",
+          "coordinate_frame_id",
+          "transform_sha256",
+          "temperature_c",
+          "tensile_strain_microstrain",
+          "heat_flux_w_m2",
+          "interface_condition",
+          "measurement_timestamp_ns",
+          "clock_offset_ns",
+          "clock_uncertainty_ns"
+        ],
+        "properties": {
+          "projection_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trajectory_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "coordinate_frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transform_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "temperature_c": {
+            "type": "number"
+          },
+          "tensile_strain_microstrain": {
+            "type": "number"
+          },
+          "heat_flux_w_m2": {
+            "type": "number"
+          },
+          "interface_condition": {
+            "enum": [
+              "INTACT",
+              "DEBONDED",
+              "CRACKED",
+              "UNKNOWN"
+            ]
+          },
+          "measurement_timestamp_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "clock_offset_ns": {
+            "type": "integer"
+          },
+          "clock_uncertainty_ns": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
