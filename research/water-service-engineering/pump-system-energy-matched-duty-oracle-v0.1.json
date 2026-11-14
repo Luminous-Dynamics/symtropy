@@ -1,0 +1,88 @@
+{
+  "schema_version": "pump-system-energy-matched-duty-oracle-v0.1",
+  "evidence_class": "synthetic_matched_hydraulic_service_arithmetic",
+  "evidence_ceiling": "synthetic_pump_system_equation_checks_only_no_energy_saving_or_installed_performance_claim",
+  "independently_recomputed": true,
+  "cases": [
+    {
+      "case_id": "PSE-001-friction-dominated-low-static-head",
+      "expected": {
+        "fixed_speed_pump_head_m": 30,
+        "system_required_head_m": 10,
+        "fixed_speed_throttle_head_m": 20,
+        "vfd_speed_ratio": 0.7071067811865476,
+        "vfd_pump_head_m": 10.000000000000004,
+        "fixed_speed_hydraulic_power_w": 294.3,
+        "vfd_hydraulic_power_w": 98.10000000000004,
+        "fixed_speed_electrical_power_w": 452.7692307692308,
+        "vfd_electrical_power_w": 150.92307692307696,
+        "equal_service_energy_saving_fraction": 0.6666666666666665,
+        "system_head_fraction_of_fixed_speed_head": 0.3333333333333333
+      }
+    },
+    {
+      "case_id": "PSE-002-high-static-head",
+      "expected": {
+        "fixed_speed_pump_head_m": 42,
+        "system_required_head_m": 38,
+        "fixed_speed_throttle_head_m": 4,
+        "vfd_speed_ratio": 0.9591663046625439,
+        "vfd_pump_head_m": 38,
+        "fixed_speed_hydraulic_power_w": 412.02000000000004,
+        "vfd_hydraulic_power_w": 372.78000000000003,
+        "fixed_speed_electrical_power_w": 633.8769230769232,
+        "vfd_electrical_power_w": 573.5076923076923,
+        "equal_service_energy_saving_fraction": 0.09523809523809534,
+        "system_head_fraction_of_fixed_speed_head": 0.9047619047619048
+      }
+    },
+    {
+      "case_id": "PSE-003-mixed-static-and-friction",
+      "expected": {
+        "fixed_speed_pump_head_m": 39.24,
+        "system_required_head_m": 14.4,
+        "fixed_speed_throttle_head_m": 24.840000000000003,
+        "vfd_speed_ratio": 0.6693280212272604,
+        "vfd_pump_head_m": 14.399999999999999,
+        "fixed_speed_hydraulic_power_w": 307.95552000000004,
+        "vfd_hydraulic_power_w": 113.0112,
+        "fixed_speed_electrical_power_w": 473.7777230769231,
+        "vfd_electrical_power_w": 173.8633846153846,
+        "equal_service_energy_saving_fraction": 0.6330275229357798,
+        "system_head_fraction_of_fixed_speed_head": 0.36697247706422015
+      }
+    },
+    {
+      "case_id": "PSE-004-near-full-speed-duty",
+      "expected": {
+        "fixed_speed_pump_head_m": 12.5,
+        "system_required_head_m": 12,
+        "fixed_speed_throttle_head_m": 0.5,
+        "vfd_speed_ratio": 0.992831448793946,
+        "vfd_pump_head_m": 12.000000000000007,
+        "fixed_speed_hydraulic_power_w": 183.9375,
+        "vfd_hydraulic_power_w": 176.5800000000001,
+        "fixed_speed_electrical_power_w": 282.9807692307692,
+        "vfd_electrical_power_w": 271.6615384615386,
+        "equal_service_energy_saving_fraction": 0.03999999999999948,
+        "system_head_fraction_of_fixed_speed_head": 0.96
+      }
+    },
+    {
+      "case_id": "PSE-005-small-surplus-head",
+      "expected": {
+        "fixed_speed_pump_head_m": 20,
+        "system_required_head_m": 19,
+        "fixed_speed_throttle_head_m": 1,
+        "vfd_speed_ratio": 0.9842509842514764,
+        "vfd_pump_head_m": 19,
+        "fixed_speed_hydraulic_power_w": 196.20000000000002,
+        "vfd_hydraulic_power_w": 186.39000000000001,
+        "fixed_speed_electrical_power_w": 301.84615384615387,
+        "vfd_electrical_power_w": 286.75384615384615,
+        "equal_service_energy_saving_fraction": 0.050000000000000044,
+        "system_head_fraction_of_fixed_speed_head": 0.95
+      }
+    }
+  ]
+}
