@@ -110,3 +110,8 @@ This is **not yet an aircraft model**: it does not derive the velocity bounds
 from a coordinated-turn or aerodynamic model. That remains the next physical
 qualification obligation. No Rust execution pass is claimed here.
 \n\nThe cross-stack benchmark design is now consolidated in [AeroWeft Benchmark Suite V1](AEROWEFT_BENCHMARK_SUITE_V1.md), covering model soundness, probabilistic calibration, 4D conflict screening, network planning, resilience, community value, data rights and confirmatory evaluation.\n
+
+AeroWeft's cross-project semantic boundary is documented in
+[AEROWEFT_MODEL_BOUNDARY_V1.md](AEROWEFT_MODEL_BOUNDARY_V1.md): mission intent,
+model profile, prediction, reachable enclosure, resource reservation and
+authority decision remain distinct objects.
