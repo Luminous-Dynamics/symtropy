@@ -206,6 +206,8 @@ pub struct ScenarioResult {
     pub option_design_digest: String,
     pub assessment_horizon_months: u64,
     /// Independent acceptance/inspection receipt; executor completion is not sufficient.
+    pub acceptance_contract_digest: String,
+    pub accepted_option_design_digest: String,
     pub acceptance: EvidenceDisposition,
     /// Required hard gates such as design disposition or authority sign-off.
     pub hard_gate_results: BTreeMap<String, EvidenceDisposition>,
@@ -231,6 +233,7 @@ pub struct OptionCandidate {
     pub option_id: String,
     pub tier: OptionTier,
     pub functional_contract_id: String,
+    pub functional_contract_digest: String,
     /// Each alternative may have a different design/method revision.
     pub option_design_digest: String,
     pub scenario_results: BTreeMap<String, ScenarioResult>,
@@ -244,7 +247,9 @@ impl OptionCandidate {
     ) -> Result<(), OptioneeringError> {
         require_non_empty("option_id", &self.option_id)?;
         require_non_empty("option_design_digest", &self.option_design_digest)?;
-        if self.functional_contract_id != contract.contract_id {
+        if self.functional_contract_id != contract.contract_id
+            || self.functional_contract_digest != contract.contract_digest
+        {
             return Err(OptioneeringError::FunctionalContractMismatch(
                 self.option_id.clone(),
             ));
@@ -263,8 +268,16 @@ impl OptionCandidate {
                     scenario_id.clone(),
                 ));
             }
-            if result.option_design_digest != self.option_design_digest {
+            if result.option_design_digest != self.option_design_digest
+                || result.accepted_option_design_digest != self.option_design_digest
+            {
                 return Err(OptioneeringError::OptionDesignMismatch(
+                    self.option_id.clone(),
+                    scenario_id.clone(),
+                ));
+            }
+            if result.acceptance_contract_digest != contract.contract_digest {
+                return Err(OptioneeringError::AcceptanceContractMismatch(
                     self.option_id.clone(),
                     scenario_id.clone(),
                 ));
@@ -459,14 +472,13 @@ pub enum OptioneeringError {
     ScenarioSetMismatch(String),
     ScenarioIdentityMismatch(String, String),
     OptionDesignMismatch(String, String),
+    AcceptanceContractMismatch(String, String),
     AssessmentHorizonMismatch(String, String),
     ArithmeticOverflow(String),
 }
 
 impl OptioneeringError {
     fn scenario_failures(
-        option: &OptionCandidate,
-        scenario: &ScenarioCase,
         contract: &FunctionalOutcomeContract,
         result: &ScenarioResult,
     ) -> Vec<ScenarioFailure> {
@@ -519,8 +531,6 @@ impl OptioneeringError {
             }
         }
 
-        let _ = option;
-        let _ = scenario;
         failures
     }
 }
@@ -652,8 +662,7 @@ pub fn evaluate_option_set(
                 .scenario_results
                 .get(&scenario.scenario_id)
                 .expect("scenario-set identity was validated");
-            let failures =
-                OptioneeringError::scenario_failures(option, scenario, contract, result);
+            let failures = OptioneeringError::scenario_failures(contract, result);
             if !failures.is_empty() {
                 scenario_failures.push(ScenarioFailureRecord {
                     scenario_id: scenario.scenario_id.clone(),
@@ -814,6 +823,8 @@ mod tests {
             scenario_id: scenario_id.to_owned(),
             option_design_digest: design.to_owned(),
             assessment_horizon_months: 240,
+            acceptance_contract_digest: contract().contract_digest,
+            accepted_option_design_digest: design.to_owned(),
             acceptance: qualified(&format!("acceptance-{scenario_id}")),
             hard_gate_results: BTreeMap::from([
                 ("design-authority".to_owned(), qualified("design")),
@@ -848,6 +859,7 @@ mod tests {
             option_id: id.to_owned(),
             tier,
             functional_contract_id: contract().contract_id,
+            functional_contract_digest: contract().contract_digest,
             option_design_digest: design.to_owned(),
             scenario_results: scenarios
                 .into_iter()
@@ -1508,6 +1520,53 @@ mod tests {
                 &[candidate]
             ),
             Err(OptioneeringError::OptionDesignMismatch(
+                "prefabricated".to_owned(),
+                "outage-rework".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn acceptance_receipt_must_bind_exact_option_design_and_functional_contract() {
+        let mut candidate = option(
+            "prefabricated",
+            OptionTier::Switch,
+            "design-prefab-v2",
+            vec![
+                result("nominal", "design-prefab-v2", 9_000, 300, 50, 350, 260, 900, 500, 0),
+                result(
+                    "outage-rework",
+                    "design-prefab-v2",
+                    10_000,
+                    300,
+                    50,
+                    420,
+                    280,
+                    950,
+                    520,
+                    1,
+                ),
+            ],
+        );
+        candidate
+            .scenario_results
+            .get_mut("outage-rework")
+            .expect("scenario exists")
+            .acceptance_contract_digest = "fixture:stale-contract".to_owned();
+        assert_eq!(
+            evaluate_option_set(
+                &contract(),
+                &[
+                    stage(
+                        OptionTier::Avoid,
+                        StageDisposition::ClosedNoViableAlternative,
+                    ),
+                    stage(OptionTier::Switch, StageDisposition::OpenForEvaluation),
+                ],
+                &scenarios(),
+                &[candidate]
+            ),
+            Err(OptioneeringError::AcceptanceContractMismatch(
                 "prefabricated".to_owned(),
                 "outage-rework".to_owned()
             ))
