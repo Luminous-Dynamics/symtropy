@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::{env, fs, process::ExitCode};
+use std::{env, fs, path::Path, process::ExitCode};
 
 use physical_solver_contract::symmetry_handoff::verify_symmetry_handoff_artifact_bundle;
 
@@ -71,7 +71,7 @@ fn run() -> Result<(), String> {
     let report = verify_symmetry_handoff_artifact_bundle(
         &handoff_bytes,
         &manifest_bytes,
-        artifact_root.as_ref(),
+        Path::new(&artifact_root),
     )?;
     let rendered = serde_json::to_string_pretty(&report)
         .map_err(|error| format!("cannot serialize verification report: {error}"))?;
