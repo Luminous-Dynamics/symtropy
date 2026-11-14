@@ -106,7 +106,7 @@ jobs:
               raise SystemExit("FILTRATION_COMPARATOR_P549_SCOPE_GUARD_FAIL")
           if "SANS 241" not in register["south_africa"]["applicable_standard"]:
               raise SystemExit("FILTRATION_COMPARATOR_SANS241_REFERENCE_MISSING")
-          if "not endorsement" not in " ".join(register["who_hwt"]["caveats"]):
+          if "not approval or endorsement" not in " ".join(register["who_hwt"]["caveats"]):
               raise SystemExit("FILTRATION_COMPARATOR_WHO_NONENDORSEMENT_MISSING")
           if "not to use it for commercial or promotional purposes" not in " ".join(register["who_hwt"]["caveats"]):
               raise SystemExit("FILTRATION_COMPARATOR_WHO_PROMOTION_RESTRICTION_MISSING")
