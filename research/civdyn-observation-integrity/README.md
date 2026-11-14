@@ -15,10 +15,12 @@ The sweep emits tab-separated case results and a summary. A non-zero exit status
 
 ## Frozen cases
 
-The sweep covers:
+The 20-case sweep covers:
 - telemetry-only observational equivalence and correct abstention;
-- independent physical agreement and disagreement;
+- independent physical agreement and disagreement when the declared dependency profile is complete and distinct;
 - shared source, gateway and trust-root common causes;
+- broker/registry mirrors that repeat one observation or upstream dataset under different source and gateway identifiers;
+- shared processing/model lineage and unknown dependency dimensions; unknown is never treated as independent;
 - excessive event-to-ingestion lag, calibration mismatch and unauthenticated primary telemetry;
 - derived reconstruction, instrument self-test and forensic-integrity evidence;
 - duplicate IDs, missing primary telemetry and inverted event/ingestion time;
@@ -33,11 +35,12 @@ This package consumes already-constructed `EvidenceRecord` and `AdmissionPolicy`
 - `authenticated` is an upstream boolean assertion; this crate does not verify signatures or source keys.
 - `source_digest` is required to be non-empty; this crate does not fetch bytes or verify a content digest.
 - The current `fresh` predicate compares `ingestion_tick - event_tick` with `maximum_age_ticks`. It bounds event-to-ingestion lag; it does **not** calculate observation age at a later decision cutoff. The CLI names this quantity accordingly.
-- Independence is conservatively screened using source, gateway and trust-root identifiers only. It does not prove organizational, software, calibration, operator, upstream-data or physical-measurement independence.
+- Independence is screened using source, gateway and trust-root identifiers plus five explicit lineage dimensions: underlying observation root, upstream dataset, processing lineage, operator domain and instrument lineage. A known shared dependency is correlated; any missing lineage dimension is unknown and cannot corroborate. Only a complete, pairwise-distinct profile receives the bounded `IndependentForThisProfile` classification.
+- These dependency identifiers are themselves input assertions. The harness does not authenticate the dependency graph, prove statistical independence, prove physical sensor separation, or exclude unmodeled common causes. The result is a conservative profile-specific dependency classification, not a claim of universal independence.
 - Ticks, the integer `service_index`, tolerance and synthetic identity strings are fixture units, not calibrated physical quantities.
 - A disposition is a software triage result, not physical truth, cyber attribution, instrument qualification, safety authority or permission to act.
 
-Those limitations are intentional. The next integration work should bind this contract to owner-qualified manifests, richer dependency closure, domain-specific time/space/calibration profiles and an independent oracle without creating a second evidence or authority system.
+Those limitations are intentional. The next integration work should bind this contract to owner-qualified dependency manifests, decision-cutoff freshness, artifact-digest verification, domain-specific time/space/calibration profiles and an independent oracle without creating a second evidence or authority system.
 
 ## Composition
 
