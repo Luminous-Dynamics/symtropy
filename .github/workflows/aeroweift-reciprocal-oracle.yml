@@ -1,0 +1,40 @@
+name: AeroWeft Reciprocal Option Oracle
+
+on:
+  pull_request:
+    paths:
+      - "tools/aeroweift-reciprocal-oracle/**"
+      - "fixtures/aeroweift-reciprocal-options/**"
+      - ".github/workflows/aeroweift-reciprocal-oracle.yml"
+  push:
+    branches:
+      - "research/aeroweFt-reciprocal-oracle-001"
+    paths:
+      - "tools/aeroweift-reciprocal-oracle/**"
+      - "fixtures/aeroweift-reciprocal-options/**"
+      - ".github/workflows/aeroweift-reciprocal-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aeroweift-reciprocal-oracle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/aeroweift-reciprocal-oracle/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/aeroweift-reciprocal-oracle/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked --manifest-path tools/aeroweift-reciprocal-oracle/Cargo.toml
