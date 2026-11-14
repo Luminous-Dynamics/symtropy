@@ -1,0 +1,55 @@
+name: Physical Transformation Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/physical-transformation-bench/**"
+      - ".github/workflows/physical-transformation-bench.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/physical-transformation-bench/**"
+      - ".github/workflows/physical-transformation-bench.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-transformation-bench-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-kernel:
+    name: Rust contract, tests, and receipt
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install stable Rust with validation components
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+          rustup default stable
+
+      - name: Format
+        run: cargo fmt --manifest-path tools/physical-transformation-bench/Cargo.toml -- --check
+
+      - name: Unit and known-answer tests
+        run: cargo test --locked --manifest-path tools/physical-transformation-bench/Cargo.toml
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/physical-transformation-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify frozen receipt
+        run: |
+          cargo run --locked --manifest-path tools/physical-transformation-bench/Cargo.toml -- tools/physical-transformation-bench/fixtures/physical_transformation_v0_1.json > physical-transformation-receipt.json
+          python3 -c 'import json; r=json.load(open("physical-transformation-receipt.json")); assert r["passed"] and r["case_count"] == 4 and r["passed_cases"] == 4 and r["failed_cases"] == 0, r'
+
+      - name: Upload qualification receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: physical-transformation-qualification
+          path: physical-transformation-receipt.json
+          if-no-files-found: error
+          retention-days: 14
