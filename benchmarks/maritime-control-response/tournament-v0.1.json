@@ -748,7 +748,12 @@
     ],
     "rust_core_direct_submission_compatible": false,
     "adapter_status": "not_implemented",
-    "claim_ceiling": "append-only Rust source contract and synthetic tests only"
+    "claim_ceiling": "append-only Rust source contract and synthetic tests only",
+    "bounded_time_intervals": true,
+    "timebase_identity_bound": true,
+    "overlap_rejected_before_model": true,
+    "timebase_qualification_sha256_bound": true,
+    "timestamp_uncertainty_is_not_clock_sync": true
   },
   "literature_comparators": {
     "same_benchmark": "Jung et al., A fault diagnosis benchmark of technical systems with incomplete data — six solutions, Control Engineering Practice 164 (2025), 106427. https://doi.org/10.1016/j.conengprac.2025.106427",
