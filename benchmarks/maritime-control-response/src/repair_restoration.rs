@@ -960,17 +960,30 @@ mod tests {
         }
     }
 
-    fn episode(
-        id: &str,
+    struct EpisodeFixture<'a> {
+        id: &'a str,
         configuration: String,
         start: f64,
         end: f64,
         load: f64,
         torque: f64,
         cooling: f64,
-        principles: [&str; 2],
-        domains: [&str; 2],
-    ) -> TestEpisode {
+        principles: [&'a str; 2],
+        domains: [&'a str; 2],
+    }
+
+    fn episode(fixture: EpisodeFixture<'_>) -> TestEpisode {
+        let EpisodeFixture {
+            id,
+            configuration,
+            start,
+            end,
+            load,
+            torque,
+            cooling,
+            principles,
+            domains,
+        } = fixture;
         let mut torque_measurement = measurement(
             "m-torque",
             "propulsion_delivery_pressure",
@@ -1075,28 +1088,28 @@ mod tests {
                 started_at_seconds: 10.0,
                 completed_at_seconds: 11.0,
             },
-            pre_repair_episode: episode(
-                "pre",
-                digest('a'),
-                0.0,
-                9.0,
-                75.0,
-                80.0,
-                25.0,
-                ["torque-flange", "pressure-tap"],
-                ["independent-daq", "independent-pressure-logger"],
-            ),
-            post_repair_episode: episode(
-                "post",
-                digest('b'),
-                12.0,
-                20.0,
-                75.5,
-                110.0,
-                25.0,
-                ["torque-flange", "pressure-tap"],
-                ["independent-daq", "independent-pressure-logger"],
-            ),
+            pre_repair_episode: episode(EpisodeFixture {
+                id: "pre",
+                configuration: digest('a'),
+                start: 0.0,
+                end: 9.0,
+                load: 75.0,
+                torque: 80.0,
+                cooling: 25.0,
+                principles: ["torque-flange", "pressure-tap"],
+                domains: ["independent-daq", "independent-pressure-logger"],
+            }),
+            post_repair_episode: episode(EpisodeFixture {
+                id: "post",
+                configuration: digest('b'),
+                start: 12.0,
+                end: 20.0,
+                load: 75.5,
+                torque: 110.0,
+                cooling: 25.0,
+                principles: ["torque-flange", "pressure-tap"],
+                domains: ["independent-daq", "independent-pressure-logger"],
+            }),
             concurrent_changes: Vec::new(),
         }
     }
