@@ -1,0 +1,466 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/construction-production-optioneering-v0-1/schemas/optioneering-input-v0.1.schema.json",
+  "title": "Construction Production Optioneering Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "functional_contract",
+    "stage_decisions",
+    "scenarios",
+    "options"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "functional_contract": {
+      "$ref": "#/$defs/functionalContract"
+    },
+    "stage_decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stageDecision"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/option"
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "authority_ref",
+            "receipt_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "qualified"
+            },
+            "authority_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "receipt_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "authority_ref",
+            "finding_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "rejected"
+            },
+            "authority_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "finding_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "unknown"
+            },
+            "reason_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "performanceRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "unit_symbol",
+        "scale"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_value": {
+          "type": "integer"
+        },
+        "maximum_value": {
+          "type": "integer"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "minimum_value"
+          ]
+        },
+        {
+          "required": [
+            "maximum_value"
+          ]
+        }
+      ]
+    },
+    "functionalContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_id",
+        "contract_digest",
+        "project_context_digest",
+        "unit_class_id",
+        "unit_symbol",
+        "required_units",
+        "acceptance_contract_ref",
+        "currency_code",
+        "carbon_assessment_boundary_ref",
+        "assessment_horizon_months",
+        "required_gate_ids",
+        "performance_requirements"
+      ],
+      "properties": {
+        "contract_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contract_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_context_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_class_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "acceptance_contract_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currency_code": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3
+        },
+        "carbon_assessment_boundary_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assessment_horizon_months": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_gate_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "performance_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/performanceRequirement"
+          }
+        }
+      }
+    },
+    "stageDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tier",
+        "disposition",
+        "accountable_owner_ref",
+        "project_context_digest",
+        "evidence_refs",
+        "rationale"
+      ],
+      "properties": {
+        "tier": {
+          "enum": [
+            "avoid",
+            "switch",
+            "improve"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "open_for_evaluation",
+            "closed_no_viable_alternative",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "accountable_owner_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_context_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scenarioResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "option_design_digest",
+        "assessment_horizon_months",
+        "acceptance_contract_digest",
+        "accepted_option_design_digest",
+        "acceptance",
+        "hard_gate_results",
+        "accepted_units",
+        "performance_values",
+        "direct_cost_minor_units",
+        "shared_cost_minor_units",
+        "maintenance_cost_minor_units",
+        "repair_cost_minor_units",
+        "end_of_life_cost_minor_units",
+        "elapsed_minutes",
+        "workflow_crew_minutes",
+        "energy_wh",
+        "carbon_gco2e",
+        "material_mass_kg_milli",
+        "rework_units"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "option_design_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assessment_horizon_months": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "acceptance_contract_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accepted_option_design_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance": {
+          "$ref": "#/$defs/evidence"
+        },
+        "hard_gate_results": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "accepted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "performance_values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "direct_cost_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared_cost_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maintenance_cost_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_cost_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_of_life_cost_minor_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elapsed_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "workflow_crew_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_wh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "carbon_gco2e": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "material_mass_kg_milli": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rework_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_id",
+        "tier",
+        "functional_contract_id",
+        "functional_contract_digest",
+        "option_design_digest",
+        "method_profile_digest",
+        "scheduler_profile_digest",
+        "fleet_profile_digest",
+        "scenario_results"
+      ],
+      "properties": {
+        "option_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tier": {
+          "enum": [
+            "avoid",
+            "switch",
+            "improve"
+          ]
+        },
+        "functional_contract_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_contract_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "option_design_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scheduler_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fleet_profile_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "matched_reference_option_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_results": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/scenarioResult"
+          }
+        }
+      }
+    }
+  }
+}
