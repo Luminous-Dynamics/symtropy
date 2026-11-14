@@ -107,3 +107,8 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Filtration industry comparator snapshot (14 Nov 2026)
+
+The dated internal comparator crosswalk is in [FILTRATION_INDUSTRY_COMPARATOR_CROSSWALK_V0_1.md](./FILTRATION_INDUSTRY_COMPARATOR_CROSSWALK_V0_1.md), with machine-readable [register](./filtration-industry-comparator-register-v0.1.json), [schema](./filtration-industry-comparator.schema.json) and [manifest](./filtration-industry-comparator-manifest-v0.1.json). It separates WHO microbial HWT performance, NSF claim families, NSF P549 glyphosate reduction protocol, live NSF POE UV listings and South African SANS 241/service obligations. The WHO examples are internal scientific references only and not for commercial/promotional use.
