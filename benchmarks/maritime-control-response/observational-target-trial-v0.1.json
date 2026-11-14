@@ -26,7 +26,8 @@
       "restoration authorization",
       "work orders",
       "actuation"
-    ]
+    ],
+    "causal_estimates_enabled": false
   },
   "paradigm": {
     "per_unit_time_zero": "Eligibility, treatment assignment and follow-up start must align within each asset. Different assets may enter at different wall-clock times; forcing one cohort-wide timestamp would be incorrect.",
@@ -87,7 +88,9 @@
     "calibration_validity_rejection_rate",
     "unadjusted_association_bias_vs_synthetic_truth",
     "sign_reversal_rate_under_confounding_by_indication",
-    "not_identified_rate"
+    "not_identified_rate",
+    "propensity_fit_covariate_set_match_rate",
+    "retrospective_propensity_feature_leakage_rejection_rate"
   ],
   "cases": [
     {
@@ -156,5 +159,33 @@
       "expected": "rejected_post_treatment_propensity_feature"
     }
   ],
-  "claim_ceiling": "The P0 module validates target-trial design structure under declared metadata and reports not-identified reasons. It does not estimate a causal effect, prove conditional exchangeability, authenticate source evidence, establish censoring exchangeability, identify unmeasured confounding, transport to marine engines, or authorize maintenance/operation."
+  "claim_ceiling": "The P0 module validates target-trial design structure under declared metadata and reports not-identified reasons. It does not estimate a causal effect, prove conditional exchangeability, authenticate source evidence, establish censoring exchangeability, identify unmeasured confounding, transport to marine engines, or authorize maintenance/operation.",
+  "hard_gates": [
+    "The input is explicitly an observational target-trial emulation, never a randomized experiment.",
+    "Eligibility, assignment and follow-up start align within each unit's per-unit time-zero tolerance.",
+    "Different assets may have different wall-clock time-zero values; cohort-wide timestamp equality is not required.",
+    "Treatment and comparator strategy versions are distinct, explicit and immutable within the trial.",
+    "The analysis plan, eligibility rule, causal graph, propensity model and fit-data set bind SHA-256 digests.",
+    "A preregistration reference is present; issuer authenticity and pre-outcome timestamp remain upstream checks.",
+    "The propensity model fit-covariate set exactly equals the declared baseline covariate set.",
+    "Propensity fit-covariate IDs are non-empty and unique.",
+    "Each unit's propensity estimate is finite and lies in the unit interval.",
+    "The propensity support floor and ceiling are finite, ordered and strictly inside (0,1).",
+    "Propensity estimates outside the preregistered support are not identified.",
+    "Each declared baseline covariate is present exactly once for each eligible unit.",
+    "Baseline covariate evidence is observed and available before the unit's per-unit time zero.",
+    "Post-treatment covariates are rejected as baseline inputs and propensity-model features.",
+    "Each unit belongs to one declared stratum and has a unique independent unit ID.",
+    "Each stratum declares minimum counts for both treatment strategies.",
+    "Each stratum reports coarsened propensity range overlap and effective sample size by arm.",
+    "Positivity failure and insufficient effective sample size are separate not-identified reasons.",
+    "Recorded strategy version must agree with the assigned treatment arm.",
+    "Concurrent interventions block single-repair attribution unless explicitly modeled in a later protocol.",
+    "Complete follow-up requires a source-bound outcome after the declared horizon.",
+    "Preventive replacement, competing events, loss to follow-up and administrative censoring are not treated as successful outcomes.",
+    "Outcome measurements bind metric, unit, source, measurement principle, dependency domain, evidence digest, quality, calibration and uncertainty.",
+    "Calibration validity must cover outcome observation through evidence availability.",
+    "Review references are required for exchangeability, treatment versions, censoring and interference.",
+    "The evaluator never estimates a causal effect and never grants maintenance or operating authority."
+  ]
 }
