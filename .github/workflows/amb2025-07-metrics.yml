@@ -1,0 +1,43 @@
+name: AMB2025-07 TAM/SCR metric reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/ambench-2025/amb2025_07_tam_scr.rs"
+      - "tools/ambench-2025/README.md"
+      - "tools/ambench-2025/expected.csv"
+      - ".github/workflows/amb2025-07-metrics.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ambench-2025/amb2025_07_tam_scr.rs"
+      - "tools/ambench-2025/README.md"
+      - "tools/ambench-2025/expected.csv"
+      - ".github/workflows/amb2025-07-metrics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tam-scr-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run metric/filter tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/ambench-2025/amb2025_07_tam_scr.rs -o "$RUNNER_TEMP/amb07-tests"
+          "$RUNNER_TEMP/amb07-tests"
+      - name: Build and verify frozen NIST summary reference
+        run: |
+          rustc --edition=2024 -D warnings tools/ambench-2025/amb2025_07_tam_scr.rs -o "$RUNNER_TEMP/amb07"
+          "$RUNNER_TEMP/amb07" --verify
+          "$RUNNER_TEMP/amb07" --reference > "$RUNNER_TEMP/amb07-reference.csv"
+          diff -u tools/ambench-2025/expected.csv "$RUNNER_TEMP/amb07-reference.csv"
+          cat "$RUNNER_TEMP/amb07-reference.csv"
+      - name: Emit code/reference digests
+        run: |
+          sha256sum tools/ambench-2025/amb2025_07_tam_scr.rs tools/ambench-2025/expected.csv "$RUNNER_TEMP/amb07-reference.csv"
