@@ -1,0 +1,10 @@
+[package]
+name = "fed-res-001"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Synthetic reference checks for the Federated Defensive Resilience Benchmark"
+
+[workspace]
+resolver = "3"
