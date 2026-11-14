@@ -1,0 +1,39 @@
+name: One-shot Rust 1.96 formatting (shipyard-tandem-gmaw-admission)
+
+on:
+  push:
+    branches:
+      - "research/tandem-gmaw-admission-2026-11-14"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Apply pinned rustfmt to isolated workspace
+        run: cargo fmt --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all
+
+      - name: Commit formatter-only changes
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          if git diff --quiet -- crates/tools/shipyard-tandem-gmaw-admission/src; then
+            echo "Rust source already matches rustfmt 1.96"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/tools/shipyard-tandem-gmaw-admission/src
+          git commit -m "style: apply Rust 1.96 formatting to shipyard-tandem-gmaw-admission"
+          git push origin "HEAD:${TARGET_BRANCH}"
