@@ -45,12 +45,81 @@ jobs:
           WATER_SERVICE_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 -- \
+          cargo run --locked --package water-service-t0 --bin water-service-t0 -- \
             research/water-service-engineering/t0-known-answer-vectors-v0.1.json \
             research/water-service-engineering/benchmark-manifest-v0.1.json \
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for filter barrier schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate claim-scoped filter barrier contract and negative controls
+        id: filter_barrier_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "filter-barrier-assurance.schema.json").read_text())
+          inputs = json.loads((root / "filter-barrier-assurance-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "filter-barrier-assurance-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "filter-barrier-assurance-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"FILTER_BARRIER_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          ids = [row["case_id"] for row in inputs["cases"]]
+          oracle_ids = [row["case_id"] for row in oracle["cases"]]
+          if len(ids) != 9 or len(set(ids)) != 9 or len(oracle_ids) != 9 or len(set(oracle_ids)) != 9:
+              raise SystemExit("FILTER_BARRIER_CASE_IDENTITY_FAIL")
+          if sorted(ids) != sorted(oracle_ids) or manifest["case_count"] != 9:
+              raise SystemExit("FILTER_BARRIER_INPUT_ORACLE_MANIFEST_FAIL")
+          if any(row.get("expected") is not None for row in inputs["cases"]):
+              raise SystemExit("FILTER_BARRIER_INPUT_EMBEDS_ORACLE_FAIL")
+          if any(row["expected"]["potability_or_compliance_claim_allowed"] is not False for row in oracle["cases"]):
+              raise SystemExit("FILTER_BARRIER_ORACLE_AUTHORITY_GUARD_FAIL")
+
+          required = {
+              "FBA-002-open-bypass": "BYPASSED",
+              "FBA-003-critical-sensor-offline": "UNKNOWN",
+              "FBA-004-out-of-envelope": "OUT_OF_DOMAIN",
+              "FBA-005-expired-media": "OUT_OF_SERVICE",
+              "FBA-006-no-challenge-evidence": "NOT_QUALIFIED",
+              "FBA-007-replaced-no-requalification": "UNKNOWN",
+              "FBA-008-scope-mismatch": "CLAIM_SCOPE_MISMATCH",
+              "FBA-009-critical-sensor-calibration-expired": "UNKNOWN",
+          }
+          actual = {row["case_id"]: row["expected"]["qualification_disposition"] for row in oracle["cases"]}
+          if any(actual.get(case_id) != state for case_id, state in required.items()):
+              raise SystemExit("FILTER_BARRIER_NEGATIVE_CONTROL_ORACLE_FAIL")
+          print("FILTER_BARRIER_M0_PASS: 9 synthetic fixtures, claim scope and fail-closed negative controls verified")
+          PY
+      - name: Evaluate filter barrier assurance M0 at exact revision
+        id: filter_barrier_assurance
+        env:
+          FILTER_BARRIER_ASSURANCE_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin filter-barrier-assurance -- \
+            research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json \
+            research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json \
+            research/water-service-engineering/filter-barrier-assurance.schema.json \
+            research/water-service-engineering/filter-barrier-assurance-manifest-v0.1.json \
+            artifacts/filter-barrier-assurance/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +131,20 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/FILTER_BARRIER_ASSURANCE_PROTOCOL_V0_1.md
+            research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json
+            research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json
+            research/water-service-engineering/filter-barrier-assurance.schema.json
+            research/water-service-engineering/filter-barrier-assurance-manifest-v0.1.json
+            artifacts/filter-barrier-assurance/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          FILTER_BARRIER_CONTRACTS_OUTCOME: ${{ steps.filter_barrier_contracts.outcome }}
+          FILTER_BARRIER_ASSURANCE_OUTCOME: ${{ steps.filter_barrier_assurance.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$FILTER_BARRIER_CONTRACTS_OUTCOME" = "success"
+          test "$FILTER_BARRIER_ASSURANCE_OUTCOME" = "success"

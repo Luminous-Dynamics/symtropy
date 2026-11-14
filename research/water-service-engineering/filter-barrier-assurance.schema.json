@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Filter barrier assurance synthetic case inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "filter-barrier-assurance-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_barrier_state_contract_fixture"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_contract_semantics_only_no_filter_or_water_safety_claim"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^FBA-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "requested_claim_scope",
+              "independent_challenge_status",
+              "qualified_claim_scopes",
+              "operating_envelope_status",
+              "bypass_state",
+              "sensor_health",
+              "media_service_state",
+              "maintenance_state",
+              "lab_sample_state",
+              "calibration_state"
+            ],
+            "properties": {
+              "requested_claim_scope": {
+                "enum": [
+                  "aesthetic",
+                  "health_chemical",
+                  "microbial_bacteria",
+                  "microbial_virus",
+                  "microbial_protozoa",
+                  "RO_solute"
+                ]
+              },
+              "independent_challenge_status": {
+                "enum": [
+                  "valid",
+                  "missing",
+                  "expired",
+                  "failed"
+                ]
+              },
+              "qualified_claim_scopes": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "aesthetic",
+                    "health_chemical",
+                    "microbial_bacteria",
+                    "microbial_virus",
+                    "microbial_protozoa",
+                    "RO_solute"
+                  ]
+                }
+              },
+              "operating_envelope_status": {
+                "enum": [
+                  "in_profile",
+                  "out_of_profile",
+                  "unknown"
+                ]
+              },
+              "bypass_state": {
+                "enum": [
+                  "closed",
+                  "open",
+                  "unknown"
+                ]
+              },
+              "sensor_health": {
+                "enum": [
+                  "healthy",
+                  "degraded",
+                  "offline"
+                ]
+              },
+              "media_service_state": {
+                "enum": [
+                  "within_service",
+                  "expired",
+                  "unknown"
+                ]
+              },
+              "maintenance_state": {
+                "enum": [
+                  "none_since_qualification",
+                  "requalification_pending"
+                ]
+              },
+              "lab_sample_state": {
+                "enum": [
+                  "not_available",
+                  "sample_result_present",
+                  "sample_flagged_for_authority_review"
+                ]
+              },
+              "calibration_state": {
+                "enum": [
+                  "current",
+                  "expired",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
