@@ -740,6 +740,103 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    struct OracleScore {
+        crew_minutes: u64,
+        cost_minor_units: u64,
+        energy_wh: u64,
+        span_ms: u64,
+        action_count: usize,
+        action_ids: Vec<String>,
+    }
+
+    /// Independent tiny-fixture oracle. It enumerates subsets and uses fixture-authored
+    /// forbidden action pairs as the ground truth for compatibility; it does not call
+    /// the production reservation or geometry implementation.
+    fn independent_subset_oracle(
+        actions: &[ObservationAction],
+        needs: &[WorkNeed],
+        forbidden_pairs: &[(&str, &str)],
+    ) -> Option<Vec<String>> {
+        assert!(actions.len() <= MAX_EXACT_ACTIONS);
+        let subset_count = 1_usize << actions.len();
+        let mut best: Option<(OracleScore, Vec<String>)> = None;
+
+        for mask in 0..subset_count {
+            let selected: Vec<&ObservationAction> = actions
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| mask & (1_usize << index) != 0)
+                .map(|(_, action)| action)
+                .collect();
+
+            let incompatible = selected.iter().enumerate().any(|(left_index, left)| {
+                selected.iter().skip(left_index + 1).any(|right| {
+                    forbidden_pairs.iter().any(|(first, second)| {
+                        (left.action_id == *first && right.action_id == *second)
+                            || (left.action_id == *second && right.action_id == *first)
+                    })
+                })
+            });
+            if incompatible {
+                continue;
+            }
+
+            let covered_regions: BTreeSet<&str> = selected
+                .iter()
+                .flat_map(|action| action.covered_region_ids.iter().map(String::as_str))
+                .collect();
+            if needs
+                .iter()
+                .any(|need| !covered_regions.contains(need.region_id.as_str()))
+            {
+                continue;
+            }
+
+            let crew_minutes = selected.iter().map(|action| action.crew_minutes).sum();
+            let cost_minor_units = selected.iter().map(|action| action.cost_minor_units).sum();
+            let energy_wh = selected.iter().map(|action| action.energy_wh).sum();
+            let earliest_start = selected
+                .iter()
+                .map(|action| {
+                    action.occupancy.reservation.interval_start_ms
+                        - action.occupancy.reservation.clock_uncertainty_ms
+                })
+                .min()
+                .unwrap_or(0);
+            let latest_end = selected
+                .iter()
+                .map(|action| {
+                    action.occupancy.reservation.interval_end_ms
+                        + action.occupancy.reservation.clock_uncertainty_ms
+                })
+                .max()
+                .unwrap_or(0);
+            let mut action_ids: Vec<String> = selected
+                .iter()
+                .map(|action| action.action_id.clone())
+                .collect();
+            action_ids.sort();
+
+            let score = OracleScore {
+                crew_minutes,
+                cost_minor_units,
+                energy_wh,
+                span_ms: latest_end - earliest_start,
+                action_count: selected.len(),
+                action_ids: action_ids.clone(),
+            };
+            if best
+                .as_ref()
+                .is_none_or(|(current, _)| score < *current)
+            {
+                best = Some((score, action_ids));
+            }
+        }
+
+        best.map(|(_, action_ids)| action_ids)
+    }
+
     fn books(
         actions: &[ObservationAction],
         capacity: u32,
@@ -846,6 +943,95 @@ mod tests {
         );
         assert_eq!(greedy.campaign.total_crew_minutes, 14);
         assert_eq!(greedy.campaign.total_cost_minor_units, 1_000);
+    }
+
+    #[test]
+    fn exact_search_matches_independent_subset_oracle_for_frozen_campaign_fixture() {
+        let actions = vec![
+            action(
+                "large-expensive",
+                &["a", "b", "c"],
+                0,
+                "r-large",
+                (0, 60_000),
+                10,
+                900,
+            ),
+            action(
+                "cheap-ab",
+                &["a", "b"],
+                2_000,
+                "r-ab",
+                (0, 60_000),
+                4,
+                100,
+            ),
+            action(
+                "cheap-cd",
+                &["c", "d"],
+                4_000,
+                "r-cd",
+                (0, 60_000),
+                4,
+                100,
+            ),
+        ];
+        let needs = vec![
+            need("unit-a", "a"),
+            need("unit-b", "b"),
+            need("unit-c", "c"),
+            need("unit-d", "d"),
+        ];
+        let expected = independent_subset_oracle(&actions, &needs, &[])
+            .expect("independent oracle finds complete subset");
+        let (occupancy, reservations) = books(&actions, 1);
+        let actual = plan_observation_campaign(
+            &actions,
+            &needs,
+            &occupancy,
+            &reservations,
+            0,
+            1_000,
+        )
+        .expect("production exact search");
+
+        assert!(actual.optimality_proven);
+        assert_eq!(
+            actual
+                .best_campaign
+                .selected_actions
+                .iter()
+                .map(|action| action.action_id.clone())
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+
+    #[test]
+    fn independent_oracle_and_production_owner_agree_on_incompatible_pair() {
+        let actions = vec![
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
+            action("scan-b", &["b"], 250, "r-b", (0, 60_000), 5, 100),
+        ];
+        let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
+        let expected = independent_subset_oracle(
+            &actions,
+            &needs,
+            &[("scan-a", "scan-b")],
+        );
+        let (occupancy, reservations) = books(&actions, 1);
+        let actual = plan_observation_campaign(
+            &actions,
+            &needs,
+            &occupancy,
+            &reservations,
+            0,
+            1_000,
+        )
+        .expect("production exact search");
+
+        assert_eq!(expected, None);
+        assert!(actual.infeasibility_proven);
     }
 
     #[test]
