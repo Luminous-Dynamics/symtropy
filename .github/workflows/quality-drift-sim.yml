@@ -1,0 +1,60 @@
+name: quality-drift-sim
+
+on:
+  pull_request:
+    paths:
+      - "tools/quality-drift-sim/**"
+      - "docs/tech/QUALITY_DRIFT_MANUFACTURING_SIMULATION_V0_1.md"
+      - ".github/workflows/quality-drift-sim.yml"
+  push:
+    paths:
+      - "tools/quality-drift-sim/**"
+      - "docs/tech/QUALITY_DRIFT_MANUFACTURING_SIMULATION_V0_1.md"
+      - ".github/workflows/quality-drift-sim.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-drift-sim-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --check --manifest-path tools/quality-drift-sim/Cargo.toml
+      - name: Unit tests
+        run: cargo test --locked --manifest-path tools/quality-drift-sim/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/quality-drift-sim/Cargo.toml --all-targets -- -D warnings
+      - name: Frozen simulation and negative controls
+        run: cargo run --locked --quiet --manifest-path tools/quality-drift-sim/Cargo.toml -- --check
+      - name: Emit replayable summary
+        run: cargo run --locked --quiet --manifest-path tools/quality-drift-sim/Cargo.toml > quality-drift-report.json
+      - name: Validate report schema and coverage
+        run: |
+          jq -e '
+            .schema_version == "0.1.0"
+            and .model_id == "QDRIFT-SYNTH-001"
+            and .evidence_class == "synthetic_reference_simulation_not_calibrated"
+            and .replications_per_scenario == 100
+            and .parts_per_replication == 500
+            and (.scenarios | length) == 4
+            and all(.scenarios[]; (.results | keys | sort) == ["condition_based", "fixed_cycle", "no_maintenance"])
+          ' quality-drift-report.json > /dev/null
+      - name: Upload synthetic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-drift-report-${{ github.sha }}
+          path: quality-drift-report.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Show report summary
+        run: cat quality-drift-report.json
