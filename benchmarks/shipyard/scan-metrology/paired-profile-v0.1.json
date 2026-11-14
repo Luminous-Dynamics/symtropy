@@ -93,7 +93,22 @@
       }
     ],
     "claim_ceiling": "SURFACE_ENVELOPE_CHANGE_ONLY",
-    "comparison_frame": "WELDING-FRAME-R1"
+    "comparison_frame": "WELDING-FRAME-R1",
+    "reference_health_receipt": {
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "producer": "SHIPYARD-REFERENCE-DRIFT-001",
+      "sequence_id": "HEALTH-SEQ-SYNTH-001",
+      "decision": "continue_within_declared_check_limits",
+      "instrument_id": "SCANNER-SYNTH-01",
+      "calibration_revision": "CAL-R1",
+      "reference_artifact_id": "ARTIFACT-SYNTH-01",
+      "characteristic_id": "LENGTH-X-100MM",
+      "policy_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "certificate_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "first_observation_at_ms": 500,
+      "last_observation_at_ms": 2500,
+      "claim_ceiling": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
+    }
   },
   "expected_report": {
     "pair_id": "PAIR-SYNTH-001",
@@ -119,7 +134,8 @@
     "signed_area_interval_um2": [
       210000,
       390000
-    ]
+    ],
+    "reference_health_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
   },
   "negative_controls": [
     {
