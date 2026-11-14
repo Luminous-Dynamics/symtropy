@@ -1,0 +1,42 @@
+name: Physics Experiment Atlas
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/physics-experiment-atlas/**"
+      - "docs/research/PHYSICS_EXPERIMENT_ATLAS_V0_1.md"
+      - "docs/research/PHYSICS_EXPERIMENT_HISTORICAL_CATALOG_V0_1.md"
+      - ".github/workflows/physics-experiment-atlas.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/physics-experiment-atlas/**"
+      - "docs/research/PHYSICS_EXPERIMENT_ATLAS_V0_1.md"
+      - "docs/research/PHYSICS_EXPERIMENT_HISTORICAL_CATALOG_V0_1.md"
+      - ".github/workflows/physics-experiment-atlas.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Analytic and synthetic reference checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: clippy, rustfmt
+      - name: Verify shared Galileo handoff fixture fingerprint
+        run: test "$(git hash-object tools/physics-experiment-atlas/fixtures/galileo-discrimination-v0.1.json)" = "0548cf58562517e69c93e5f810bfee822acee1a2"
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/physics-experiment-atlas/Cargo.toml -- --check
+      - name: Run locked unit tests
+        run: cargo test --locked --manifest-path tools/physics-experiment-atlas/Cargo.toml
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/physics-experiment-atlas/Cargo.toml --all-targets -- -D warnings
+      - name: Run deterministic JSON receipt
+        run: cargo run --locked --manifest-path tools/physics-experiment-atlas/Cargo.toml -- --json
