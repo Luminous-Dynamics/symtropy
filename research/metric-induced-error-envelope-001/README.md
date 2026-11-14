@@ -123,3 +123,11 @@ Run the synthetic fixture:
     cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example redundant_constraint_quotient
 
 The unit tests cover duplicate rows, multiplier null shifts, unique physical correction, incompatible residual rejection, an exact-rational Delassus oracle, multiplier-norm invariance under row re-description, a combined generalized-coordinate and constraint-equation rebase, and rank-zero constraints. This does not yet qualify nonlinear constraints, unilateral/frictional contact, active-set changes, or sparse articulated solvers.
+
+### Hard-constraint quotient versus diagonal regularization
+
+A second deterministic example compares the compatible hard-constraint quotient solve with solving (W + epsilon I) lambda_epsilon = r on the same duplicated-row fixture:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_regularization_bias_ladder
+
+It reports the quotient-restricted condition separately from the full regularized-matrix condition, along with physical residual norm and relative kinetic-correction error. This is a semantic comparison, not a claim that every industrial regularizer uses the same formulation. The regularized path is a soft/penalized problem and is not reported as equivalent to the hard-constraint quotient.
