@@ -497,3 +497,19 @@ A second 2026 rotating-machinery study illustrates why measurement-chain evidenc
 References:
 - Horvath, K. (2026). *From Benchmark Accuracy to Industrial Evidence: A Registered Systematic Map and Nested Experiment-Level Audit of Validation Credibility in AI-Based Rotating-Machinery Fault Diagnosis*. Vibration 9(4), 62. https://doi.org/10.3390/vibration9040062
 - (2026). *Machine learning condition monitoring systems for rotating machinery fault detection*. Frontiers in Mechanical Engineering, 12 November 2026. https://doi.org/10.3389/fmech.2026.1979480
+
+
+## 14. Machine-readable validation evidence profile
+
+The new `maritime_validation_evidence_profile` executable reports four separate dimensions:
+
+1. **Physical independence A0–A4**, inferred from the holdout unit and disjoint development/evaluation identities: windows, recordings/runs, physical components, machines/test systems, or sites/fleets.
+2. **Domain shift B0–B4**, inferred from operating-condition, sensor/measurement configuration, machine and site identities that are new in the evaluation partition.
+3. **Target-domain access**, reported independently as none, unlabeled adaptation, labeled adaptation, self-supervised pretraining or unclear.
+4. **Leakage risk**, derived from grouping before segmentation, cross-partition sample overlap, preprocessing fit scope, model-selection data and evaluation-set threshold use. Output states are LOW, SOME_CONCERNS, HIGH and UNCLEAR.
+
+The evaluator rejects A-level claims above the structural holdout evidence and B-level claims above the identities that changed. It does not collapse these axes into one score. Target-domain adaptation alone is not leakage; test-set model selection, global preprocessing or cross-partition overlap is HIGH; incomplete reporting is UNCLEAR. The output explicitly states that metadata-only profiling does not verify physical evidence or source artifact payloads.
+
+The six frozen synthetic profiles cover A0/B0 random-window leakage, A1/B1 recording holdout, A2/B2 component and sensor shift with unlabeled adaptation, A3/B3 machine holdout with a documented concern, A4/B4 site holdout, and incomplete reporting. Mutation tests cover inflated independence claims, test-set tuning and global preprocessing.
+
+This is an executable interpretation of the 2026 Industrial Evidence Matrix, not a claim that the taxonomy is a universal standard. The underlying research describes a nested, access-influenced review cohort; its proportions are not whole-literature prevalence.

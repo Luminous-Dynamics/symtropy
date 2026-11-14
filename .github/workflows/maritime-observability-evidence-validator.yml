@@ -4,6 +4,8 @@ on:
     branches: ["research/maritime-fault-observability-v0-1"]
     paths:
       - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/validation-evidence-profiles.v0.1.json"
+      - "docs/tech/MARITIME_VALIDATION_EVIDENCE_PROFILE_V0_1.schema.json"
       - "benchmarks/maritime-observability/**"
       - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
       - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
@@ -17,6 +19,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/validation-evidence-profiles.v0.1.json"
+      - "docs/tech/MARITIME_VALIDATION_EVIDENCE_PROFILE_V0_1.schema.json"
       - "benchmarks/maritime-observability/**"
       - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
       - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
@@ -130,6 +134,31 @@ jobs:
             and .authorization_granted == false
           ' maritime-pairwise-observability-receipt.json
 
+      - name: Execute industrial validation-evidence profile evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/validation-evidence-profiles.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin maritime_validation_evidence_profile -- \
+            "$input" --source-commit "$source_commit" --profile-sha256 "$digest" > maritime-validation-evidence-profile-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .corpus_sha256 == $digest
+            and .profile_count == 6
+            and (.profiles | map(.computed_physical_independence_ceiling) | unique | sort) == ["A0","A1","A2","A3","A4"]
+            and (.profiles | map(.computed_domain_shift_ceiling) | unique | sort) == ["B0","B1","B2","B3","B4"]
+            and .leakage_risk_counts.HIGH == 1
+            and .leakage_risk_counts.LOW == 3
+            and .leakage_risk_counts.SOME_CONCERNS == 1
+            and .leakage_risk_counts.UNCLEAR == 1
+            and .physical_evidence_verified == false
+            and .source_artifact_payloads_verified == false
+          ' maritime-validation-evidence-profile-receipt.json
+
       - name: Execute passive observation value-of-information evaluator
         shell: bash
         run: |
@@ -164,6 +193,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin
           cp tools/maritime-observability-evidence-validator/src/bin/maritime_pairwise_observability.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/maritime_validation_evidence_profile.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/observation_value.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/qualification_impact.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/main.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
@@ -184,5 +214,6 @@ jobs:
             maritime-observability-evidence-receipt.json
             maritime-qualification-impact-receipt.json
             maritime-observation-value-receipt.json
+            maritime-validation-evidence-profile-receipt.json
           if-no-files-found: error
           retention-days: 90

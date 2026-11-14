@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_VALIDATION_EVIDENCE_PROFILE_V0_1.schema.json",
+  "title": "Maritime validation evidence profile corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "profiles",
+    "authority_boundary",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "physical_independence",
+          "domain_shift",
+          "target_domain_access",
+          "unit_records",
+          "leakage_audit",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "physical_independence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "declared_level",
+              "partition_unit"
+            ],
+            "properties": {
+              "declared_level": {
+                "enum": [
+                  "A0",
+                  "A1",
+                  "A2",
+                  "A3",
+                  "A4"
+                ]
+              },
+              "partition_unit": {
+                "enum": [
+                  "window",
+                  "recording",
+                  "component",
+                  "machine",
+                  "site"
+                ]
+              }
+            }
+          },
+          "domain_shift": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "declared_level"
+            ],
+            "properties": {
+              "declared_level": {
+                "enum": [
+                  "B0",
+                  "B1",
+                  "B2",
+                  "B3",
+                  "B4"
+                ]
+              }
+            }
+          },
+          "target_domain_access": {
+            "enum": [
+              "NONE",
+              "UNLABELED_ADAPTATION",
+              "LABELED_ADAPTATION",
+              "SELF_SUPERVISED_PRETRAINING",
+              "UNCLEAR"
+            ]
+          },
+          "unit_records": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 10000,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unit_id",
+                "partition",
+                "recording_id",
+                "component_id",
+                "machine_id",
+                "site_id",
+                "operating_condition_sha256",
+                "sensor_configuration_sha256",
+                "test_rig_id",
+                "artifact_sha256"
+              ],
+              "properties": {
+                "unit_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "partition": {
+                  "enum": [
+                    "DEVELOPMENT",
+                    "EVALUATION"
+                  ]
+                },
+                "recording_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "component_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "machine_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "site_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "operating_condition_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "sensor_configuration_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "test_rig_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "artifact_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          },
+          "leakage_audit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "grouping_before_segmentation",
+              "overlapping_samples_across_partitions",
+              "preprocessing_fit_scope",
+              "model_selection_data",
+              "evaluation_used_for_thresholds",
+              "documented_concerns",
+              "split_manifest_sha256"
+            ],
+            "properties": {
+              "grouping_before_segmentation": {
+                "type": "boolean"
+              },
+              "overlapping_samples_across_partitions": {
+                "type": "boolean"
+              },
+              "preprocessing_fit_scope": {
+                "enum": [
+                  "TRAIN_ONLY",
+                  "TRAIN_PLUS_VALIDATION",
+                  "ALL_DATA",
+                  "UNKNOWN"
+                ]
+              },
+              "model_selection_data": {
+                "enum": [
+                  "TRAIN_ONLY",
+                  "VALIDATION_ONLY",
+                  "TEST_USED",
+                  "UNKNOWN"
+                ]
+              },
+              "evaluation_used_for_thresholds": {
+                "type": "boolean"
+              },
+              "documented_concerns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "split_manifest_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 40
+          }
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "mutation_performed",
+        "authorization_granted"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "mutation_performed": {
+          "const": false
+        },
+        "authorization_granted": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    }
+  }
+}
