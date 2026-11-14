@@ -94,6 +94,15 @@ pub struct ConventionProfile {
     pub quantity_signs: Option<QuantitySigns>,
 }
 
+/// Immutable declared identity for the convention definition consumed by an adapter.
+/// The profile digest is metadata only; v0.1 does not fetch or hash its source bytes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConventionProfileRef {
+    pub profile_id: String,
+    pub profile_sha256: String,
+    pub profile: ConventionProfile,
+}
+
 /// Complete declared identity and semantics for one equilibrium payload.
 ///
 /// psi_frames is always expressed as frames -> R rows -> Z columns.
@@ -159,6 +168,7 @@ pub enum ValidationError {
     StaleProducerIdentity,
     StaleTaskIdentity,
     StaleConventionIdentity,
+    StaleConventionProfileIdentity,
     StaleRepresentationIdentity,
 }
 
@@ -193,6 +203,10 @@ pub struct NormalizationReceipt {
     pub source_artifact_sha256: String,
     /// Always false in v0.1: the crate checks declared identity, not raw source bytes.
     pub source_artifact_payload_verified: bool,
+    pub convention_profile_id: String,
+    pub convention_profile_sha256: String,
+    /// Always false in v0.1: the adapter records the declared profile digest but does not fetch/hash its source bytes.
+    pub convention_profile_payload_verified: bool,
     pub source_flux_unit: FluxUnit,
     pub source_axis_unit: AxisUnit,
     pub source_time_unit: TimeUnit,
@@ -230,13 +244,17 @@ pub enum ClaimCeiling {
 /// profile; this function never guesses it from a solver name or COCOS code.
 pub fn normalize(
     input: &EquilibriumInput,
-    expected_convention: ConventionProfile,
+    expected_profile: &ConventionProfileRef,
 ) -> Result<NormalizedEquilibrium, Vec<ValidationError>> {
     let mut errors = Vec::new();
 
     require_nonempty(&input.source_profile_id, "source_profile_id", &mut errors);
     require_nonempty(&input.producer_id, "producer_id", &mut errors);
     require_nonempty(&input.producer_revision, "producer_revision", &mut errors);
+    require_nonempty(&expected_profile.profile_id, "convention_profile_id", &mut errors);
+    if !is_sha256(&expected_profile.profile_sha256) {
+        errors.push(ValidationError::InvalidSha256("convention_profile_sha256"));
+    }
 
     if !is_sha256(&input.geometry_sha256) {
         errors.push(ValidationError::InvalidSha256("geometry_sha256"));
@@ -245,8 +263,8 @@ pub fn normalize(
         errors.push(ValidationError::InvalidSha256("source_artifact_sha256"));
     }
 
-    validate_convention(input.convention, &mut errors);
-    if input.convention != expected_convention {
+    validate_convention(expected_profile.profile, &mut errors);
+    if input.convention != expected_profile.profile {
         errors.push(ValidationError::ConventionMismatch);
     }
 
@@ -374,6 +392,9 @@ pub fn normalize(
         geometry_sha256: input.geometry_sha256.clone(),
         source_artifact_sha256: input.source_artifact_sha256.clone(),
         source_artifact_payload_verified: false,
+        convention_profile_id: expected_profile.profile_id.clone(),
+        convention_profile_sha256: expected_profile.profile_sha256.clone(),
+        convention_profile_payload_verified: false,
         source_flux_unit: input.flux_unit,
         source_axis_unit: input.axis_unit,
         source_time_unit: input.time_unit,
@@ -405,6 +426,7 @@ pub fn normalize(
 /// identity and representation. This checks declared metadata, not source bytes.
 pub fn verify_receipt(
     input: &EquilibriumInput,
+    expected_profile: &ConventionProfileRef,
     receipt: &NormalizationReceipt,
 ) -> Result<(), ValidationError> {
     if input.geometry_sha256 != receipt.geometry_sha256 {
@@ -424,6 +446,13 @@ pub fn verify_receipt(
     }
     if input.convention != receipt.convention {
         return Err(ValidationError::StaleConventionIdentity);
+    }
+    if expected_profile.profile_id != receipt.convention_profile_id
+        || expected_profile.profile_sha256 != receipt.convention_profile_sha256
+        || expected_profile.profile != receipt.convention
+        || !is_sha256(&expected_profile.profile_sha256)
+    {
+        return Err(ValidationError::StaleConventionProfileIdentity);
     }
     if input.flux_unit != receipt.source_flux_unit
         || input.axis_unit != receipt.source_axis_unit
@@ -526,6 +555,14 @@ mod tests {
         }
     }
 
+    fn expected_profile() -> ConventionProfileRef {
+        ConventionProfileRef {
+            profile_id: "synthetic/freegsnke-3.1.1-convention-v1".into(),
+            profile_sha256: "f".repeat(64),
+            profile: convention(),
+        }
+    }
+
     fn input() -> EquilibriumInput {
         EquilibriumInput {
             source_profile_id: "synthetic/freegsnke-like-v1".into(),
@@ -565,7 +602,7 @@ mod tests {
 
     #[test]
     fn wb_per_radian_passes_without_scaling() {
-        let normalized = normalize(&input(), convention()).unwrap();
+        let normalized = normalize(&input(), &expected_profile()).unwrap();
         assert_eq!(
             normalized.receipt.flux_transform,
             FluxTransform::Identity
@@ -584,11 +621,34 @@ mod tests {
     }
 
     #[test]
+    fn convention_profile_identity_is_bound_but_payload_is_not_verified() {
+        let normalized = normalize(&input(), &expected_profile()).unwrap();
+        assert_eq!(
+            normalized.receipt.convention_profile_id,
+            "synthetic/freegsnke-3.1.1-convention-v1"
+        );
+        assert!(!normalized.receipt.convention_profile_payload_verified);
+    }
+
+    #[test]
+    fn verify_receipt_rejects_a_changed_convention_profile_identity() {
+        let source = input();
+        let profile = expected_profile();
+        let normalized = normalize(&source, &profile).unwrap();
+        let mut changed_profile = profile;
+        changed_profile.profile_sha256 = "e".repeat(64);
+        assert_eq!(
+            verify_receipt(&source, &changed_profile, &normalized.receipt),
+            Err(ValidationError::StaleConventionProfileIdentity)
+        );
+    }
+
+    #[test]
     fn explicitly_declared_weber_flux_is_divided_by_two_pi_once() {
         let mut source = input();
         source.flux_unit = FluxUnit::Weber;
         source.psi_frames[0][0][0] = TAU;
-        let normalized = normalize(&source, convention()).unwrap();
+        let normalized = normalize(&source, &expected_profile()).unwrap();
         assert_eq!(
             normalized.receipt.flux_transform,
             FluxTransform::DivideByTwoPi
@@ -729,7 +789,7 @@ mod tests {
         let mut changed = source;
         changed.geometry_sha256 = "c".repeat(64);
         assert_eq!(
-            verify_receipt(&changed, &normalized.receipt),
+            verify_receipt(&changed, &expected_profile(), &normalized.receipt),
             Err(ValidationError::StaleGeometryIdentity)
         );
     }
