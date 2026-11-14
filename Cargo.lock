@@ -9360,6 +9360,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-render-benchmark"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "serde",
+ "serde_json",
+ "sha2",
+ "symtropy-demo-capture",
+]
+
+[[package]]
 name = "symtropy-render-bridge"
 version = "0.1.0"
 dependencies = [

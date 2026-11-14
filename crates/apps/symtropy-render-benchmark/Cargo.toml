@@ -1,0 +1,25 @@
+[package]
+name = "symtropy-render-benchmark"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Frozen procedural PBR scene for reproducible Symtropy renderer benchmarks"
+
+[dependencies]
+bevy = { version = "0.19", default-features = false, features = [
+    "bevy_asset", "bevy_core_pipeline", "bevy_render",
+    "bevy_sprite", "bevy_sprite_render",
+    "bevy_text", "bevy_ui", "bevy_ui_render",
+    "bevy_winit", "bevy_color", "bevy_state",
+    "bevy_log", "bevy_post_process", "bevy_shader",
+    "bevy_gizmos", "bevy_gizmos_render", "bevy_pbr",
+    "multi_threaded", "x11", "default_font", "png",
+] }
+symtropy-demo-capture = { path = "../symtropy-demo-capture" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[lints.clippy]
+all = "warn"

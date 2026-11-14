@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "fixture_id": "SCENE-LIGHT-01",
+  "title": "Procedural physically based material grid",
+  "generator": {
+    "crate": "symtropy-render-benchmark",
+    "algorithm": "integer-lattice-v1",
+    "external_assets": [],
+    "randomness": "none",
+    "mesh_policy": "one shared cuboid mesh",
+    "material_policy": "eight shared StandardMaterial assets"
+  },
+  "camera": {
+    "camera_id": "auto-grid-camera-v1",
+    "projection": "perspective",
+    "target": [0.0, 0.35, 0.0],
+    "position_policy": "derived deterministically from rows and columns",
+    "up": [0.0, 1.0, 0.0]
+  },
+  "lighting": {
+    "ambient": {
+      "color_srgb": [0.82, 0.86, 0.96],
+      "brightness": 180.0
+    },
+    "key_directional_illuminance_lux": 12000.0,
+    "key_light_shadow_control": "SYMTROPY_RENDER_BENCH_SHADOWS",
+    "clear_color_srgb": [0.035, 0.045, 0.065]
+  },
+  "profiles": {
+    "quality-1080p": {
+      "width_px": 1920,
+      "height_px": 1080,
+      "object_count": 256,
+      "shadows": true
+    },
+    "balanced-1080p": {
+      "width_px": 1920,
+      "height_px": 1080,
+      "object_count": 144,
+      "shadows": true
+    },
+    "low-power-720p": {
+      "width_px": 1280,
+      "height_px": 720,
+      "object_count": 64,
+      "shadows": false
+    }
+  },
+  "limits": {
+    "minimum_objects": 1,
+    "maximum_objects": 10000,
+    "capture_mode": "static scene after startup",
+    "claim_ceiling": "rendering fixture definition only; no performance or visual-quality result implied"
+  }
+}
