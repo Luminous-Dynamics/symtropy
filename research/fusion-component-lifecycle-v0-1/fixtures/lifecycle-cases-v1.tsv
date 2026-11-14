@@ -1,0 +1,15 @@
+# Synthetic-only frozen contract fixtures; fields are pipe-delimited.
+# No row represents measured, simulated, manufactured, or qualified fusion hardware.
+case_id|material_applicability|process_capability|tolerance_stack|inspection_access|assembly_access|replacement_access|integrity_mutation|expected
+all-pass|P|P|P|P|P|P|none|REVIEW
+unknown-material-domain|U|P|P|P|P|P|none|INDETERMINATE
+unknown-process-profile|P|U|P|P|P|P|none|INDETERMINATE
+inspection-failure|P|P|P|F|P|P|none|BLOCKED
+failure-dominates-unknown|U|P|P|P|P|F|none|BLOCKED
+all-unknown|U|U|U|U|U|U|none|INDETERMINATE
+pass-without-evidence|P|P|P|P|P|P|pass_without_evidence|REJECT
+unknown-without-reason|U|P|P|P|P|P|missing_reason|REJECT
+dangling-evidence-id|P|P|P|P|P|P|dangling_reference|REJECT
+cross-gate-evidence-scope|P|P|P|P|P|P|scope_mismatch|REJECT
+duplicate-evidence-identity|P|P|P|P|P|P|duplicate_id|REJECT
+malformed-geometry-digest|P|P|P|P|P|P|malformed_digest|REJECT
