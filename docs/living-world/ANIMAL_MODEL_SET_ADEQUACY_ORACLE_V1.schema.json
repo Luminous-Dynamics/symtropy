@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/living-world/ANIMAL_MODEL_SET_ADEQUACY_ORACLE_V1.schema.json",
+  "title": "Animal Model-Set Adequacy Oracle V1",
+  "description": "Frozen structural schema for 52 synthetic expected-contract cases; unique IDs and receipt semantics require additional semantic validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "research_snapshot",
+    "tracking_issue",
+    "note",
+    "case_count",
+    "independent_unit",
+    "required_run_identity",
+    "uncertainty_layers",
+    "comparison_policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ANIMAL-MODEL-SET-ADEQUACY-ORACLE-V1"
+    },
+    "status": {
+      "const": "synthetic_contract_fixture"
+    },
+    "research_snapshot": {
+      "type": "string",
+      "format": "date"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_count": {
+      "const": 52
+    },
+    "independent_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_run_identity": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "uncertainty_layers": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "aleatoric",
+          "parameter",
+          "structural_registered",
+          "observation_or_state",
+          "omission_misspecification"
+        ]
+      }
+    },
+    "comparison_policy": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 52,
+      "maxItems": 52,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "setup",
+          "challenge",
+          "expected",
+          "fail_if",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "setup": {
+            "type": "string",
+            "minLength": 1
+          },
+          "challenge": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "required_properties"
+            ],
+            "properties": {
+              "required_properties": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "fail_if": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$comment": "Semantic validator must additionally verify count equals length, unique case IDs, run-identity fields, and blinding/budget/receipt invariants."
+}
