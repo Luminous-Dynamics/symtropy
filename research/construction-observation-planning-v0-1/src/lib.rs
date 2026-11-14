@@ -44,6 +44,8 @@ pub struct ObservationAction {
     pub duration_minutes: u64,
     pub crew_minutes: u64,
     pub cost_minor_units: u64,
+    /// ISO 4217-style currency code for the integer minor-unit amount.
+    pub cost_currency_code: String,
     pub energy_wh: u64,
 }
 
@@ -52,6 +54,7 @@ impl ObservationAction {
         require_non_empty("action_id", &self.action_id)?;
         require_non_empty("coverage_profile_ref", &self.coverage_profile_ref)?;
         require_non_empty("calibration_ref", &self.calibration_ref)?;
+        require_non_empty("cost_currency_code", &self.cost_currency_code)?;
         if self.duration_minutes == 0 {
             return Err(ObservationPlanError::InvalidDuration);
         }
@@ -84,6 +87,7 @@ pub struct ObservationChoice {
     pub duration_minutes: u64,
     pub crew_minutes: u64,
     pub cost_minor_units: u64,
+    pub cost_currency_code: String,
     pub energy_wh: u64,
 }
 
@@ -168,6 +172,7 @@ pub fn choose_targeted_observation(
 ) -> Result<TargetedPlan, ObservationPlanError> {
     let mut seen_actions = BTreeSet::new();
     let mut seen_work = BTreeSet::new();
+    let mut cost_currency_code: Option<&str> = None;
 
     for need in work_needs {
         need.validate()?;
@@ -184,6 +189,16 @@ pub fn choose_targeted_observation(
 
     for action in actions {
         action.validate()?;
+        if let Some(expected) = cost_currency_code {
+            if expected != action.cost_currency_code {
+                return Err(ObservationPlanError::MixedCostCurrency {
+                    expected: expected.to_owned(),
+                    received: action.cost_currency_code.clone(),
+                });
+            }
+        } else {
+            cost_currency_code = Some(&action.cost_currency_code);
+        }
         if !seen_actions.insert(action.action_id.as_str()) {
             return Err(ObservationPlanError::DuplicateAction(
                 action.action_id.clone(),
@@ -352,6 +367,7 @@ pub struct ObservationEvaluation {
     pub work_disposition: WorkDisposition,
     pub no_observation_loss_minor_units: u64,
     pub observation_cost_minor_units: u64,
+    pub observation_cost_currency_code: Option<String>,
     pub observation_duration_minutes: u64,
     pub observation_crew_minutes: u64,
     pub observation_energy_wh: u64,
@@ -373,6 +389,7 @@ pub fn evaluate_no_observation(
         work_disposition: WorkDisposition::HeldUnknown,
         no_observation_loss_minor_units: scenario.no_observation_loss_minor_units,
         observation_cost_minor_units: 0,
+        observation_cost_currency_code: None,
         observation_duration_minutes: 0,
         observation_crew_minutes: 0,
         observation_energy_wh: 0,
@@ -417,6 +434,7 @@ pub fn evaluate_observation(
         work_disposition,
         no_observation_loss_minor_units: scenario.no_observation_loss_minor_units,
         observation_cost_minor_units: action.cost_minor_units,
+        observation_cost_currency_code: Some(action.cost_currency_code.clone()),
         observation_duration_minutes: action.duration_minutes,
         observation_crew_minutes: action.crew_minutes,
         observation_energy_wh: action.energy_wh,
@@ -432,6 +450,7 @@ pub enum ObservationPlanError {
     NoCoveredRegions,
     DuplicateAction(String),
     DuplicateWorkUnit(String),
+    MixedCostCurrency { expected: String, received: String },
     UnknownAction(String),
     MissingScenarioActionResult(String),
     Spatial(SpatialError),
@@ -519,6 +538,7 @@ mod tests {
             duration_minutes: 10,
             crew_minutes,
             cost_minor_units,
+            cost_currency_code: "USD".to_owned(),
             energy_wh: 50,
         }
     }
@@ -767,6 +787,36 @@ mod tests {
             .expect("threshold plan");
         assert!(plan.selected.is_none());
         assert_eq!(plan.irrelevant_action_ids, vec!["scan-low"]);
+    }
+
+    #[test]
+    fn targeted_policy_rejects_mixed_cost_currencies() {
+        let mut usd = action(
+            "survey-usd",
+            &["region-a"],
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+            5,
+            100,
+        );
+        let mut eur = action(
+            "survey-eur",
+            &["region-b"],
+            bounds([3_000, 0, 0], [4_000, 1_000, 1_000]),
+            0,
+            100,
+            5,
+            100,
+        );
+        eur.cost_currency_code = "EUR".to_owned();
+        assert_eq!(
+            choose_targeted_observation(&[usd, eur], &[], &book()),
+            Err(ObservationPlanError::MixedCostCurrency {
+                expected: "USD".to_owned(),
+                received: "EUR".to_owned(),
+            })
+        );
     }
 
     #[test]
