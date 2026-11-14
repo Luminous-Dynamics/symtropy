@@ -25,9 +25,9 @@ These are design references, not a conformance claim. No universal micrometre th
 
 ## Known answers
 
-The stable case uses residuals [2, −1, 3, 0] µm with 10 µm observation uncertainty plus 1 µm certificate uncertainty, and remains within the 100 µm pointwise and 45 µm EWMA limits.
+The stable case uses residuals [2, −1, 3, 0] µm with 10 µm observation uncertainty plus 1 µm certificate uncertainty (maximum pointwise guard 14 µm), and remains within the 100 µm pointwise and 45 µm EWMA limits.
 
-The persistent-drift case uses [20, 20, 30, 40, 50, 60] µm residuals, each still inside the pointwise limit (worst pointwise guard 71 µm after certificate uncertainty). With lambda 0.5 and a frozen zero baseline, the EWMA plus uncertainty crosses the 45 µm limit and returns HOLD. This demonstrates the added value of a history-sensitive channel over a pointwise-only detector; the values are synthetic.
+The persistent-drift case uses [20, 20, 30, 40, 50, 60] µm residuals. Every input point is below the 100 µm pointwise limit (full-input maximum guard 71 µm including certificate uncertainty). With lambda 0.5 and a frozen zero baseline, the EWMA plus propagated uncertainty crosses the 45 µm limit at the fifth observation (guard 52 µm) and returns HOLD before consuming the sixth. This demonstrates the added value of a history-sensitive channel over a pointwise-only detector; the values are synthetic.
 
 ## Claim ceiling
 
@@ -39,3 +39,9 @@ A PASS establishes only deterministic implementation of the supplied policy on t
 The check-artifact certificate now carries its own expanded uncertainty. Each pointwise residual guard includes both observation uncertainty and certificate uncertainty. The EWMA uncertainty is propagated recursively using the same positive weights as the EWMA residual, including a frozen initial baseline uncertainty; it is not replaced by only the latest sample's uncertainty. Regression tests demonstrate that an earlier high-uncertainty observation remains represented in the EWMA decision, and that certificate uncertainty can independently trigger a pointwise HOLD.
 
 All SHA-256 fields in the synthetic fixture are identifier-shaped placeholders. The v0 verifier validates their syntax and binds them through the report; it does not claim to hash raw artifact bytes or authenticate policy signatures.
+
+
+### Uncertainty regression examples
+
+- A 90 µm residual plus 5 µm observation uncertainty and 6 µm certificate uncertainty yields a 101 µm pointwise guard and HOLD against a 100 µm policy limit.
+- The sequence [0, 40, 40, 40] µm with observation uncertainties [50, 1, 1, 1] µm and 1 µm certificate uncertainty keeps each point below the 100 µm pointwise limit. With an EWMA limit of 39 µm, propagated uncertainty from the first observation makes the final EWMA guard exceed the limit; using only the latest sample uncertainty would understate the guard.
