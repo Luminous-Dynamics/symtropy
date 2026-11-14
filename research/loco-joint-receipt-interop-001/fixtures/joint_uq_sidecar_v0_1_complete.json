@@ -35,7 +35,8 @@
       "calibration_valid_from_tick": "50",
       "calibration_valid_through_tick": "250",
       "disposition": "qualified",
-      "uncertainty_receipt_id": "uq-torque-001"
+      "uncertainty_receipt_id": "uq-torque-001",
+      "node_id": null
     },
     {
       "measurement_id": "bus-voltage-001",
@@ -50,7 +51,8 @@
       "calibration_valid_from_tick": "50",
       "calibration_valid_through_tick": "250",
       "disposition": "qualified",
-      "uncertainty_receipt_id": "uq-voltage-001"
+      "uncertainty_receipt_id": "uq-voltage-001",
+      "node_id": null
     },
     {
       "measurement_id": "electrical-energy-001",
@@ -65,7 +67,40 @@
       "calibration_valid_from_tick": "50",
       "calibration_valid_through_tick": "250",
       "disposition": "qualified",
-      "uncertainty_receipt_id": "uq-energy-001"
+      "uncertainty_receipt_id": "uq-energy-001",
+      "node_id": null
+    },
+    {
+      "measurement_id": "motor-temp",
+      "kind": "thermal_node",
+      "node_id": "hip-flexion-left-motor",
+      "measurement_artifact_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instrument_configuration_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "calibration_receipt_digest": "ef89dba954fe8a4e5d13aa184e6b8d85e47f4185d545eb866ea85e8855087548",
+      "unit_code": "degC",
+      "decimal_exponent": -2,
+      "start_tick": "90",
+      "end_tick": "110",
+      "calibration_valid_from_tick": "50",
+      "calibration_valid_through_tick": "250",
+      "disposition": "qualified",
+      "uncertainty_receipt_id": "uq-motor-temp-001"
+    },
+    {
+      "measurement_id": "drive-temp",
+      "kind": "thermal_node",
+      "node_id": "hip-flexion-left-drive",
+      "measurement_artifact_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "instrument_configuration_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "calibration_receipt_digest": "ef89dba954fe8a4e5d13aa184e6b8d85e47f4185d545eb866ea85e8855087548",
+      "unit_code": "degC",
+      "decimal_exponent": -2,
+      "start_tick": "90",
+      "end_tick": "110",
+      "calibration_valid_from_tick": "50",
+      "calibration_valid_through_tick": "250",
+      "disposition": "qualified",
+      "uncertainty_receipt_id": "uq-drive-temp-001"
     }
   ],
   "uncertainty_receipts": [
@@ -235,6 +270,120 @@
       "disposition": "qualified",
       "valid_from_tick": "50",
       "valid_through_tick": "250"
+    },
+    {
+      "receipt_id": "uq-motor-temp-001",
+      "measurement_id": "motor-temp",
+      "scope_digest": "4d8cb5d18f77532cda4014cf71fc3240190765efe5710b0a80d536a4a5928a88",
+      "measurement_artifact_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instrument_configuration_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "calibration_receipt_digest": "ef89dba954fe8a4e5d13aa184e6b8d85e47f4185d545eb866ea85e8855087548",
+      "unit_code": "degC",
+      "decimal_exponent": -2,
+      "coverage": {
+        "kind": "conservative_bound",
+        "lower_scaled": "-2000",
+        "upper_scaled": "2000",
+        "unit_code": "degC",
+        "decimal_exponent": -2
+      },
+      "components": [
+        {
+          "component_id": "motor-temp-shared-thermal-cal",
+          "kind": "calibration_reference",
+          "source_receipt_digest": "ef89dba954fe8a4e5d13aa184e6b8d85e47f4185d545eb866ea85e8855087548",
+          "dependence_group_id": "shared-thermal-calibration"
+        },
+        {
+          "component_id": "motor-temp-repeatability",
+          "kind": "repeatability",
+          "source_receipt_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "dependence_group_id": "motor-temp-local-noise"
+        }
+      ],
+      "dependence": [
+        {
+          "dependence_group_id": "shared-thermal-calibration",
+          "component_ids": [
+            "motor-temp-shared-thermal-cal"
+          ],
+          "decision": {
+            "kind": "joint_model",
+            "receipt_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        {
+          "dependence_group_id": "motor-temp-local-noise",
+          "component_ids": [
+            "motor-temp-repeatability"
+          ],
+          "decision": {
+            "kind": "independence_supported",
+            "receipt_digest": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      ],
+      "budget_result_receipt_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "disposition": "qualified",
+      "valid_from_tick": "50",
+      "valid_through_tick": "250"
+    },
+    {
+      "receipt_id": "uq-drive-temp-001",
+      "measurement_id": "drive-temp",
+      "scope_digest": "4d8cb5d18f77532cda4014cf71fc3240190765efe5710b0a80d536a4a5928a88",
+      "measurement_artifact_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "instrument_configuration_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "calibration_receipt_digest": "ef89dba954fe8a4e5d13aa184e6b8d85e47f4185d545eb866ea85e8855087548",
+      "unit_code": "degC",
+      "decimal_exponent": -2,
+      "coverage": {
+        "kind": "conservative_bound",
+        "lower_scaled": "-2000",
+        "upper_scaled": "2000",
+        "unit_code": "degC",
+        "decimal_exponent": -2
+      },
+      "components": [
+        {
+          "component_id": "drive-temp-shared-thermal-cal",
+          "kind": "calibration_reference",
+          "source_receipt_digest": "ef89dba954fe8a4e5d13aa184e6b8d85e47f4185d545eb866ea85e8855087548",
+          "dependence_group_id": "shared-thermal-calibration"
+        },
+        {
+          "component_id": "drive-temp-repeatability",
+          "kind": "repeatability",
+          "source_receipt_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+          "dependence_group_id": "drive-temp-local-noise"
+        }
+      ],
+      "dependence": [
+        {
+          "dependence_group_id": "shared-thermal-calibration",
+          "component_ids": [
+            "drive-temp-shared-thermal-cal"
+          ],
+          "decision": {
+            "kind": "joint_model",
+            "receipt_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          }
+        },
+        {
+          "dependence_group_id": "drive-temp-local-noise",
+          "component_ids": [
+            "drive-temp-repeatability"
+          ],
+          "decision": {
+            "kind": "independence_supported",
+            "receipt_digest": "7777777777777777777777777777777777777777777777777777777777777777"
+          }
+        }
+      ],
+      "budget_result_receipt_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "disposition": "qualified",
+      "valid_from_tick": "50",
+      "valid_through_tick": "250"
     }
   ],
   "derived_results": [
@@ -260,5 +409,59 @@
     "canonicalization": "RFC8785-JCS-UTF8",
     "digest_scope": "top_level_without_integrity",
     "payload_sha256": "dcb4672f36b37d18e69c8cb5f1f750dfcf0b506cd1bd0831e21eb2f6c9dc5dd3"
-  }
+  },
+  "profile_id": "single-joint-uq-golden-001",
+  "profile_version": "0.1.0",
+  "evaluation_tick": "120",
+  "measurement_requirements": [
+    {
+      "measurement_id": "torque-001",
+      "kind": "shaft_torque",
+      "node_id": null,
+      "applicability": {
+        "kind": "required"
+      }
+    },
+    {
+      "measurement_id": "bus-voltage-001",
+      "kind": "electrical_voltage",
+      "node_id": null,
+      "applicability": {
+        "kind": "required"
+      }
+    },
+    {
+      "measurement_id": "motor-temp",
+      "kind": "thermal_node",
+      "node_id": "hip-flexion-left-motor",
+      "applicability": {
+        "kind": "required"
+      }
+    },
+    {
+      "measurement_id": "drive-temp",
+      "kind": "thermal_node",
+      "node_id": "hip-flexion-left-drive",
+      "applicability": {
+        "kind": "required"
+      }
+    },
+    {
+      "measurement_id": "gearbox-temp",
+      "kind": "thermal_node",
+      "node_id": "hip-flexion-left-gearbox",
+      "applicability": {
+        "kind": "not_applicable",
+        "reason": "The frozen synthetic single-joint fixture has no separately instrumented gearbox thermal node; parent receipt requires motor and drive nodes only"
+      }
+    },
+    {
+      "measurement_id": "electrical-energy-001",
+      "kind": "derived_electrical_energy",
+      "node_id": null,
+      "applicability": {
+        "kind": "required"
+      }
+    }
+  ]
 }
