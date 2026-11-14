@@ -30,7 +30,14 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// With damping disabled and conservative forces derived from V(q), this
+/// velocity-first / position-second update is symplectic Euler for a separable
+/// Hamiltonian H(q, p) = T(p) + V(q). Configured damping or non-conservative
+/// external forces remove that guarantee. Symplectic does not mean
+/// unconditionally stable: the useful timestep range still depends on the
+/// system's frequencies and stiffness, and position error remains first-order
+/// globally for constant acceleration.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -233,6 +240,43 @@ mod tests {
         let vx = body.linear_velocity[0];
         assert!(vx > 3.0, "vx = {vx}, expected > 3.0");
         assert!(vx < 6.0, "vx = {vx}, expected < 6.0");
+    }
+
+    #[test]
+    fn constant_acceleration_matches_closed_form_and_converges_first_order() {
+        fn simulate(dt: f64, duration: f64, acceleration: f64) -> (f64, f64) {
+            let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 2.0);
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+            let steps = (duration / dt).round() as usize;
+            assert!((steps as f64 * dt - duration).abs() < 1e-12);
+
+            let gravity = SVector::from([0.0, -acceleration, 0.0]);
+            for _ in 0..steps {
+                integrate(&mut body, &gravity, dt);
+            }
+
+            (body.transform.translation.coord(1), body.linear_velocity[1])
+        }
+
+        let duration = 1.0;
+        let acceleration = 9.81;
+        let (coarse_position, coarse_velocity) = simulate(0.02, duration, acceleration);
+        let (fine_position, fine_velocity) = simulate(0.01, duration, acceleration);
+
+        let exact_position = -0.5 * acceleration * duration * duration;
+        let exact_velocity = -acceleration * duration;
+        let coarse_error = (coarse_position - exact_position).abs();
+        let fine_error = (fine_position - exact_position).abs();
+
+        // Semi-implicit Euler updates velocity exactly for constant
+        // acceleration, then uses the new velocity for position. The global
+        // position error is therefore |a| * T * dt / 2, and halves with dt.
+        assert!((coarse_velocity - exact_velocity).abs() < 1e-11);
+        assert!((fine_velocity - exact_velocity).abs() < 1e-11);
+        assert!((coarse_error / fine_error - 2.0).abs() < 1e-9);
+        assert!((coarse_error - 0.5 * acceleration * duration * 0.02).abs() < 1e-10);
+        assert!((fine_error - 0.5 * acceleration * duration * 0.01).abs() < 1e-10);
     }
 
     #[test]
