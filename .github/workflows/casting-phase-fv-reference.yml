@@ -1,0 +1,44 @@
+name: Casting phase finite-volume enthalpy reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/finite_volume.rs"
+      - "tools/casting-phase-reference/finite_volume-README.md"
+      - ".github/workflows/casting-phase-fv-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/finite_volume.rs"
+      - "tools/casting-phase-reference/finite_volume-README.md"
+      - ".github/workflows/casting-phase-fv-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run finite-volume tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/finite_volume.rs -o "$RUNNER_TEMP/stefan-fv-tests"
+          "$RUNNER_TEMP/stefan-fv-tests"
+      - name: Build and verify finite-volume reference
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/finite_volume.rs -o "$RUNNER_TEMP/stefan-fv"
+          "$RUNNER_TEMP/stefan-fv" --verify
+      - name: Check deterministic output
+        run: |
+          "$RUNNER_TEMP/stefan-fv" --csv > "$RUNNER_TEMP/stefan-fv-a.csv"
+          "$RUNNER_TEMP/stefan-fv" --csv > "$RUNNER_TEMP/stefan-fv-b.csv"
+          diff -u "$RUNNER_TEMP/stefan-fv-a.csv" "$RUNNER_TEMP/stefan-fv-b.csv"
+          cat "$RUNNER_TEMP/stefan-fv-a.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/casting-phase-reference/finite_volume.rs "$RUNNER_TEMP/stefan-fv-a.csv"
