@@ -960,7 +960,7 @@ fn validate_executable_model_set_corpus(
             .as_array()
             .ok_or_else(|| format!("cases[{index}].candidates must be an array"))?;
         let mut candidates = Vec::with_capacity(candidate_values.len());
-        for (candidate_index, candidate) in candidate_values.iter().enumerate() {
+        for candidate in candidate_values {
             candidates.push(model_set_kernel::CandidateForecast {
                 model_id: string_at(candidate, &["model_id"])?,
                 historical_total_biomass: number_at(
@@ -978,9 +978,6 @@ fn validate_executable_model_set_corpus(
                     )?,
                 },
             });
-            if candidate_index >= candidate_values.len() {
-                return Err("candidate index exceeded declared candidate count".to_string());
-            }
         }
 
         let scenario = model_set_kernel::KnownTruthScenario {
