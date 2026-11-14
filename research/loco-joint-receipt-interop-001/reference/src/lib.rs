@@ -785,6 +785,140 @@ mod tests {
 
     const GOLDEN_PACKET: &str = include_str!("../../fixtures/joint_receipt_v0_1_complete.json");
     const GOLDEN_DIGEST: &str = "cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8";
+    const GOLDEN_UQ_SIDECAR: &str =
+        include_str!("../../fixtures/joint_uq_sidecar_v0_1_complete.json");
+    const GOLDEN_UQ_DIGEST: &str = "caca630c5fbd91cd3afe917ad1deade3fa860be876403f4652e6179c52073e3e";
+
+    fn resign_uq_sidecar(input: &str) -> String {
+        let placeholder = "0000000000000000000000000000000000000000000000000000000000000000";
+        let provisional = input.replace(GOLDEN_UQ_DIGEST, placeholder);
+        let digest = payload_sha256(provisional.as_bytes()).unwrap();
+        provisional.replace(placeholder, &digest)
+    }
+
+    #[test]
+    fn synthetic_uq_sidecar_is_integrity_verified_and_parent_bound() {
+        let report =
+            validate_uq_sidecar(GOLDEN_UQ_SIDECAR.as_bytes(), GOLDEN_PACKET.as_bytes()).unwrap();
+        assert_eq!(report.protocol_id, UQ_SIDECAR_PROTOCOL_ID);
+        assert_eq!(report.schema_version, SCHEMA_VERSION);
+        assert_eq!(report.payload_sha256, GOLDEN_UQ_DIGEST);
+        assert_eq!(report.parent_receipt_payload_sha256, GOLDEN_DIGEST);
+        assert_eq!(report.measurement_count, 3);
+        assert_eq!(report.uncertainty_receipt_count, 3);
+        assert_eq!(report.derived_result_count, 1);
+        assert!(!report.actuation_authorized);
+        assert!(!report.conformity_certified);
+    }
+
+    #[test]
+    fn uq_sidecar_parent_payload_mismatch_is_rejected_after_resealing() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            GOLDEN_DIGEST,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarBindingMismatch("parent payload digest"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_actuator_scope_drift_is_rejected_after_resealing() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "\"actuator_id\": \"hip-flexion-left\"",
+            "\"actuator_id\": \"hip-flexion-other\"",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarBindingMismatch("actuator identity"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_physical_state_predecessor_drift_is_rejected_after_resealing() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "6af5552cd30ac3a4aa8a44ccb39d502d5294aff2e59777793a69e51b302feb32",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarBindingMismatch("physical-state predecessor"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_derived_input_uncertainty_omission_is_rejected_after_resealing() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "\"input_uncertainty_receipt_ids\": [\n        \"uq-torque-001\",\n        \"uq-voltage-001\"\n      ]",
+            "\"input_uncertainty_receipt_ids\": [\n        \"uq-torque-001\"\n      ]",
+        );
+        assert_ne!(changed, GOLDEN_UQ_SIDECAR);
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarLineageMismatch(
+                "derived input uncertainty receipt set"
+            ))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_measurement_artifact_must_match_its_uncertainty_receipt() {
+        let changed = GOLDEN_UQ_SIDECAR.replacen(
+            "98134ec5203d4c75386c1088adea2e4fe960c3ef935076c840c7a1749c953527",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            1,
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarBindingMismatch(
+                "measurement/uncertainty receipt binding"
+            ))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_actuation_authority_true_is_never_accepted() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "\"actuation_authorized\": false",
+            "\"actuation_authorized\": true",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::InvalidField("actuation_authorized"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_digest_tampering_is_rejected() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            GOLDEN_UQ_DIGEST,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        );
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::DigestMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_duplicate_nested_json_key_is_rejected() {
+        let changed = GOLDEN_UQ_SIDECAR.replacen(
+            "\"measurement_id\": \"torque-001\"",
+            "\"measurement_id\": \"torque-001\", \"measurement_id\": \"forged\"",
+            1,
+        );
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::InvalidJson(_))
+        ));
+    }
 
     #[test]
     fn synthetic_golden_receipt_matches_rfc8785_sha256_known_answer() {
