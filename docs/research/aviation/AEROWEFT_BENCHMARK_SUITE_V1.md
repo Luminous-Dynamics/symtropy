@@ -307,3 +307,13 @@ and tests joint batch space-time allocation while measuring retained
 maneuverability and recovery options. It composes existing optimizer and
 aircraft-model owners; it does not create another generic optimizer or flight
 dynamics model.
+
+
+## 10. Cross-project model / intent / authority contract
+
+The machine-interface design is specified in
+[AEROWEFT_MODEL_BOUNDARY_V1.md](AEROWEFT_MODEL_BOUNDARY_V1.md). Benchmark
+records must keep mission intent, physical model/configuration, environment,
+predicted trajectory, deterministic reachable enclosure, probabilistic
+prediction envelope, resource reservation and external authority decision as
+separate typed claims. A checksum or reservation receipt is not authorization.
