@@ -911,6 +911,236 @@ fn optional_number_matches(actual: Option<f64>, expected: &Value, tolerance: f64
     }
 }
 
+
+fn validate_binary_event_brier_corpus(
+    raw: &[u8],
+    manifest: &Value,
+) -> Result<Value, String> {
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let event_name = string_at(manifest, &["target", "event_name"])?;
+    let horizon = u32::try_from(usize_at(manifest, &["target", "horizon_days"])?)
+        .map_err(|_| "target.horizon_days exceeds u32".to_string())?;
+    let baseline_kind = string_at(manifest, &["baseline_kind"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "BRIER-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-BINARY-EVENT-BRIER-001"
+            && status == "PUBLIC_SYNTHETIC_BINARY_EVENT_SCORE_CASES_NOT_ECOLOGICAL_CALIBRATION"
+            && ceiling.contains("Six public synthetic binary-event forecasts")
+            && ceiling.contains("No event prevalence")
+            && baseline_kind == "FIXED_SYNTHETIC_BERNOULLI_REFERENCE",
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; event={event_name}; horizon={horizon}"),
+    );
+
+    let mut event_cases = Vec::with_capacity(cases.len());
+    let mut seen = BTreeSet::new();
+    let mut case_rows = Vec::with_capacity(cases.len());
+    for case in cases {
+        let forecast_id = string_at(case, &["forecast_id"])?;
+        let unique = seen.insert(forecast_id.clone());
+        let event_probability = match at(case, &["event_probability"])? {
+            value if value.is_null() => None,
+            value => Some(
+                value.as_f64()
+                    .filter(|number| number.is_finite())
+                    .ok_or_else(|| format!("forecast_id={forecast_id}; event_probability must be finite or null"))?,
+            ),
+        };
+        let event_case = forecast_kernel::BinaryEventForecast {
+            forecast_id: forecast_id.clone(),
+            event_name: string_at(case, &["event_name"])?,
+            horizon_days: u32::try_from(usize_at(case, &["horizon_days"])?)
+                .map_err(|_| "case.horizon_days exceeds u32".to_string())?,
+            event_probability,
+            observed_event: at(case, &["observed_event"])?
+                .as_bool()
+                .ok_or_else(|| "observed_event must be boolean".to_string())?,
+            baseline_probability: number_at(case, &["baseline_probability"])?,
+        };
+        let score = forecast_kernel::score_binary_event_case(&event_case)
+            .map_err(|error| format!("forecast_id={forecast_id}; Brier scoring failed: {error}"))?;
+        let expected = at(case, &["expected"])?;
+        let case_matches = unique
+            && optional_number_matches(
+                score.model_brier,
+                expected.get("model_brier").unwrap_or(&Value::Null),
+                1e-12,
+            )
+            && close_enough(
+                score.baseline_brier,
+                number_at(expected, &["baseline_brier"])?,
+                1e-12,
+            );
+        push_check(
+            &mut checks,
+            "BRIER-CASE-SCORE-ORACLE-001",
+            case_matches,
+            format!(
+                "forecast_id={forecast_id}; model_brier={:?}; baseline_brier={}; unique={unique}; expected_fields_match={case_matches}",
+                score.model_brier,
+                score.baseline_brier
+            ),
+        );
+        case_rows.push(json!({
+            "forecast_id": forecast_id,
+            "model_brier": score.model_brier,
+            "baseline_brier": score.baseline_brier
+        }));
+        event_cases.push(event_case);
+    }
+
+    let summary = forecast_kernel::summarize_binary_event_forecasts(&event_cases)
+        .map_err(|error| format!("binary event Brier summary failed: {error}"))?;
+    let expected_summary = at(manifest, &["expected_summary"])?;
+    let expected_disposition = string_at(expected_summary, &["disposition"])?;
+    let expected_bins = at(expected_summary, &["reliability_bins"])?
+        .as_array()
+        .ok_or_else(|| "expected_summary.reliability_bins must be an array".to_string())?;
+    let mut bins_match = expected_bins.len() == summary.reliability_bins.len()
+        && expected_bins.len() == 5;
+    for (index, (actual, expected)) in summary
+        .reliability_bins
+        .iter()
+        .zip(expected_bins)
+        .enumerate()
+    {
+        bins_match &= actual.case_count == usize_at(expected, &["case_count"])?;
+        bins_match &= close_enough(
+            actual.lower_bound,
+            number_at(expected, &["lower_bound"])?,
+            1e-12,
+        );
+        bins_match &= close_enough(
+            actual.upper_bound,
+            number_at(expected, &["upper_bound"])?,
+            1e-12,
+        );
+        bins_match &= optional_number_matches(
+            actual.mean_forecast_probability,
+            expected.get("mean_forecast_probability").unwrap_or(&Value::Null),
+            1e-12,
+        );
+        bins_match &= optional_number_matches(
+            actual.observed_event_frequency,
+            expected.get("observed_event_frequency").unwrap_or(&Value::Null),
+            1e-12,
+        );
+        if index >= 5 {
+            bins_match = false;
+        }
+    }
+
+    let summary_matches = summary.eligible_case_count
+        == usize_at(expected_summary, &["eligible_case_count"])?
+        && summary.forecast_case_count
+            == usize_at(expected_summary, &["forecast_case_count"])?
+        && summary.abstained_case_count
+            == usize_at(expected_summary, &["abstained_case_count"])?
+        && close_enough(
+            summary.forecast_coverage_fraction,
+            number_at(expected_summary, &["forecast_coverage_fraction"])?,
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.mean_model_brier,
+            expected_summary.get("mean_model_brier").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.mean_baseline_brier_paired,
+            expected_summary.get("mean_baseline_brier_paired").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && close_enough(
+            summary.mean_baseline_brier_all,
+            number_at(expected_summary, &["mean_baseline_brier_all"])?,
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.brier_skill_score,
+            expected_summary.get("brier_skill_score").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && summary.disposition == expected_disposition
+        && bins_match;
+
+    push_check(
+        &mut checks,
+        "BRIER-SUMMARY-RELIABILITY-001",
+        summary_matches
+            && summary.eligible_case_count == cases.len()
+            && seen.len() == cases.len()
+            && event_name == event_cases.first().map(|case| case.event_name.as_str()).unwrap_or("")
+            && Some(horizon) == event_cases.first().map(|case| case.horizon_days),
+        format!(
+            "eligible={}; forecasts={}; abstained={}; coverage={}; model_brier={:?}; paired_baseline={:?}; skill={:?}; reliability_bins_match={bins_match}",
+            summary.eligible_case_count,
+            summary.forecast_case_count,
+            summary.abstained_case_count,
+            summary.forecast_coverage_fraction,
+            summary.mean_model_brier,
+            summary.mean_baseline_brier_paired,
+            summary.brier_skill_score
+        ),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let calibration = string_at(execution, &["event_calibration"])?;
+    let ecological_skill = string_at(execution, &["ecological_forecast_skill"])?;
+    let blind = string_at(execution, &["blind_evaluation"])?;
+    push_check(
+        &mut checks,
+        "BRIER-SYNTHETIC-CLAIM-BOUNDARY-001",
+        runner == "BERNOULLI_BRIER_AND_FIXED_BIN_RELIABILITY"
+            && !external
+            && calibration == "NOT_ESTABLISHED"
+            && ecological_skill == "NOT_ESTABLISHED"
+            && blind == "NOT_CREATED",
+        "synthetic Bernoulli scoring only; no event calibration, ecological forecast skill or blind evaluation is claimed",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| json!({
+            "id": check.id,
+            "passed": check.passed,
+            "detail": check.detail
+        }))
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_BRIER" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "summary": summary,
+        "case_scores": case_rows,
+        "event_calibration": "NOT_ESTABLISHED",
+        "ecological_forecast_skill": "NOT_ESTABLISHED",
+        "external_data_ingested": false
+    }))
+}
+
 fn validate_probabilistic_forecast_corpus(
     raw: &[u8],
     manifest: &Value,
@@ -2740,6 +2970,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return validate_consilience_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-BINARY-EVENT-BRIER-001")
+    {
+        return validate_binary_event_brier_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-PROBABILISTIC-FORECAST-SCORING-001")
     {
         return validate_probabilistic_forecast_corpus(raw, &manifest);
@@ -3090,6 +3325,8 @@ mod tests {
         include_str!("../../cases/forest-model-set-known-truth-diagnostics-synthetic-v0.1.json");
     const FORECAST_SCORING_FIXTURE: &str =
         include_str!("../../cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json");
+    const BINARY_EVENT_BRIER_FIXTURE: &str =
+        include_str!("../../cases/forest-binary-event-brier-synthetic-v0.1.json");
     const DECISION_VALUE_FIXTURE: &str =
         include_str!("../../cases/forest-decision-value-development-v0.1.json");
     const OBSERVATION_ADMISSION_FIXTURE: &str =
@@ -3345,6 +3582,40 @@ mod tests {
 
 
 
+
+
+    #[test]
+    fn binary_event_brier_corpus_matches_case_scores_reliability_and_abstention() {
+        let receipt = evaluate(BINARY_EVENT_BRIER_FIXTURE.as_bytes())
+            .expect("binary event Brier corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_BRIER");
+        assert_eq!(receipt["summary"]["eligible_case_count"], 6);
+        assert_eq!(receipt["summary"]["forecast_case_count"], 5);
+        assert_eq!(receipt["summary"]["abstained_case_count"], 1);
+        assert_eq!(receipt["summary"]["reliability_bins"].as_array().unwrap().len(), 5);
+        assert_eq!(receipt["event_calibration"], "NOT_ESTABLISHED");
+    }
+
+    #[test]
+    fn binary_event_brier_corpus_rejects_skill_oracle_mutation() {
+        let mut manifest: Value = serde_json::from_str(BINARY_EVENT_BRIER_FIXTURE)
+            .expect("valid Brier corpus");
+        manifest["expected_summary"]["brier_skill_score"] = json!(0.99);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated Brier corpus");
+        let receipt = evaluate(&bytes).expect("well-formed Brier corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn binary_event_brier_corpus_rejects_reliability_bin_mutation() {
+        let mut manifest: Value = serde_json::from_str(BINARY_EVENT_BRIER_FIXTURE)
+            .expect("valid Brier corpus");
+        manifest["expected_summary"]["reliability_bins"][4]["observed_event_frequency"] =
+            json!(1.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated Brier corpus");
+        let receipt = evaluate(&bytes).expect("well-formed Brier corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn forecast_scoring_corpus_matches_crps_skill_intervals_and_abstention() {
