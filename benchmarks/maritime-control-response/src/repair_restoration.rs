@@ -1205,6 +1205,8 @@ mod tests {
     fn restoration_of_only_one_of_two_target_capabilities_is_partial() {
         let mut case = valid_case();
         case.binding.capability_envelopes[1].targeted_by_intervention = true;
+        case.binding.acceptance_envelope_sha256 =
+            capability_envelopes_sha256(&case.binding.capability_envelopes).unwrap();
         case.pre_repair_episode.measurements[1].value = 40.0;
         case.post_repair_episode.measurements[1].value = 10.0;
         let report = evaluate_repair_restoration(&case).unwrap();
