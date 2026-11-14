@@ -1,0 +1,530 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-repair-restoration-v0.1.json",
+  "title": "Marine engine repair restoration verification case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "binding",
+    "repair",
+    "pre_repair_episode",
+    "post_repair_episode",
+    "concurrent_changes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-repair-restoration-v0.1"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "component_id",
+        "configuration_before_sha256",
+        "configuration_after_sha256",
+        "diagnostic_measurement_principle_ids",
+        "diagnostic_dependency_domain_ids",
+        "condition_tolerances",
+        "capability_envelopes",
+        "diagnostic_revision_receipt_sha256",
+        "acceptance_envelope_owner_ref",
+        "acceptance_envelope_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_before_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "configuration_after_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "diagnostic_measurement_principle_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "diagnostic_dependency_domain_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "condition_tolerances": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "condition_id",
+              "unit",
+              "maximum_absolute_difference"
+            ],
+            "properties": {
+              "condition_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "maximum_absolute_difference": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "capability_envelopes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "capability_id",
+              "metric_id",
+              "unit",
+              "lower_bound",
+              "upper_bound",
+              "maximum_measurement_uncertainty",
+              "targeted_by_intervention"
+            ],
+            "properties": {
+              "capability_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metric_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "lower_bound": {
+                "type": "number"
+              },
+              "upper_bound": {
+                "type": "number"
+              },
+              "maximum_measurement_uncertainty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "targeted_by_intervention": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "diagnostic_revision_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "acceptance_envelope_owner_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "repair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repair_id",
+        "component_id",
+        "action_description",
+        "authorization_record_ref",
+        "repair_record_sha256",
+        "started_at_seconds",
+        "completed_at_seconds",
+        "intervention_kind",
+        "authorization_record_sha256"
+      ],
+      "properties": {
+        "repair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorization_record_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repair_record_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "started_at_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "completed_at_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "intervention_kind": {
+          "enum": [
+            "physical_component_repair",
+            "sensor_replacement_or_calibration",
+            "controller_or_configuration_change",
+            "inspection_only",
+            "sham_or_no_op",
+            "other"
+          ]
+        },
+        "authorization_record_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "pre_repair_episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "asset_id",
+        "configuration_sha256",
+        "started_at_seconds",
+        "ended_at_seconds",
+        "conditions",
+        "measurements"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "started_at_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ended_at_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "condition_id",
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "condition_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "measurements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "measurement_id",
+              "metric_id",
+              "measurement_principle_id",
+              "dependency_domain_id",
+              "value",
+              "uncertainty_abs",
+              "unit",
+              "quality",
+              "calibration",
+              "source_id",
+              "observed_at_seconds",
+              "available_at_seconds",
+              "calibration_record_sha256",
+              "measurement_evidence_sha256",
+              "calibration_valid_until_seconds"
+            ],
+            "properties": {
+              "measurement_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metric_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "measurement_principle_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dependency_domain_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "uncertainty_abs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quality": {
+                "enum": [
+                  "valid",
+                  "missing",
+                  "stale",
+                  "rejected",
+                  "conflicted"
+                ]
+              },
+              "calibration": {
+                "enum": [
+                  "verified",
+                  "unknown",
+                  "expired"
+                ]
+              },
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_seconds": {
+                "type": "number",
+                "minimum": 0
+              },
+              "available_at_seconds": {
+                "type": "number",
+                "minimum": 0
+              },
+              "calibration_record_sha256": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "measurement_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "calibration_valid_until_seconds": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "post_repair_episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "asset_id",
+        "configuration_sha256",
+        "started_at_seconds",
+        "ended_at_seconds",
+        "conditions",
+        "measurements"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "started_at_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ended_at_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "condition_id",
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "condition_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "measurements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "measurement_id",
+              "metric_id",
+              "measurement_principle_id",
+              "dependency_domain_id",
+              "value",
+              "uncertainty_abs",
+              "unit",
+              "quality",
+              "calibration"
+            ],
+            "properties": {
+              "measurement_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metric_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "measurement_principle_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dependency_domain_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "uncertainty_abs": {
+                "type": "number",
+                "minimum": 0
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quality": {
+                "enum": [
+                  "valid",
+                  "missing",
+                  "stale",
+                  "rejected",
+                  "conflicted"
+                ]
+              },
+              "calibration": {
+                "enum": [
+                  "verified",
+                  "unknown",
+                  "expired"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "concurrent_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "change_id",
+          "description"
+        ],
+        "properties": {
+          "change_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

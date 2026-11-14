@@ -1,0 +1,197 @@
+{
+  "schema_version": "symtropy-marine-repair-restoration-v0.1",
+  "status": "protocol_only_not_executed",
+  "title": "Matched-duty verification of maintenance intervention and physical capability restoration",
+  "parent_issue": 5094,
+  "composition": {
+    "diagnosis_revision_issue": 5085,
+    "engineering_health_parent": 4444,
+    "prognostics_maintenance_utility_issue": 4545,
+    "causal_risk_issue": 4548,
+    "data_trust_issue": 4535,
+    "observability_issue": 4609,
+    "control_aware_diagnosis_issue": 4628,
+    "liu_ice_dx2027_issue": 5068
+  },
+  "scope": {
+    "owns": [
+      "pre/post test episode identity",
+      "repair record chronology",
+      "matched operating-condition validation",
+      "capability-envelope comparison",
+      "independent post-repair measurement path",
+      "non-target capability regression reporting",
+      "before/after attribution ceiling",
+      "diagnosis-revision digest binding",
+      "authorization-record digest binding",
+      "acceptance-envelope owner and content digest binding",
+      "measurement-level evidence digest and calibration validity interval",
+      "exact case-content digest"
+    ],
+    "does_not_own": [
+      "fault diagnosis",
+      "RUL forecasting",
+      "maintenance policy optimization",
+      "work-order authorization",
+      "actuator or controller commands",
+      "vessel ODD clearance",
+      "physical truth authentication",
+      "verification of diagnosis-revision chain authenticity",
+      "authorization adjudication",
+      "statistical independence proof",
+      "OEM/class approval"
+    ]
+  },
+  "paradigm": {
+    "repair_assertion_is_not_restoration": "A work order or technician statement records an intervention; it does not prove that a physical function was restored.",
+    "matched_conditions": "Pre- and post-repair episodes must satisfy frozen load/speed/ambient/control-mode tolerances before a restoration comparison is eligible.",
+    "independent_measurement": "Both pre-repair baseline and post-repair verification use the same currently calibrated reference measurement principle and dependency domain; that path is structurally distinct from the diagnostic path. This establishes pathway diversity, not statistical independence or source authenticity.",
+    "per_capability_non_compensation": "Required capabilities are reported separately. A pass for the repaired function cannot compensate for regression in another required function.",
+    "causal_ceiling": "Even matched pre/post evidence without concurrent changes establishes an observed association only. Causal repair-effect claims require an appropriate controlled/counterfactual design."
+  },
+  "evidence_lifecycle": [
+    "diagnosis_revision",
+    "authorized_repair_record_reference",
+    "pre_repair_episode",
+    "post_repair_episode",
+    "matched_operating_context",
+    "independent_capability_measurements",
+    "per_capability_envelope_result",
+    "non_target_regression_review",
+    "recurrence_follow_up"
+  ],
+  "dispositions": [
+    "restored_within_declared_envelope",
+    "partial_restoration",
+    "not_restored",
+    "non_target_capability_regression",
+    "not_evaluable"
+  ],
+  "capability_statuses": [
+    "restored",
+    "not_restored",
+    "preserved",
+    "regression",
+    "collateral_improvement",
+    "existing_deficit"
+  ],
+  "attribution_statuses": [
+    "before_after_association_only",
+    "confounded_concurrent_changes"
+  ],
+  "hard_gates": [
+    "Repair record identity, component identity and source digest must be present.",
+    "Pre-repair episode must end before intervention begins.",
+    "Post-repair episode must begin after intervention completion.",
+    "Pre and post episodes must bind the same asset.",
+    "Pre episode configuration must match the declared before-configuration digest.",
+    "Post episode configuration must match the declared after-configuration digest.",
+    "Every declared matching condition must be present in both episodes and satisfy its frozen unit and tolerance.",
+    "All measurements must have finite values and non-negative finite uncertainty.",
+    "Missing, stale, rejected or conflicted measurements cannot establish restoration.",
+    "Unknown or expired calibration cannot establish restoration.",
+    "Post-repair measurement uncertainty must not exceed the envelope-specific limit.",
+    "Post-repair verification measurement principle must be independent of the diagnostic measurement principles.",
+    "Post-repair verification dependency domain must be independent of the diagnostic dependency domains.",
+    "A targeted capability must have an independently observed pre-repair deficit.",
+    "The uncertainty interval must be wholly inside or wholly outside the acceptance envelope; boundary-overlapping results are not evaluable.",
+    "Every required non-target capability is checked for regression.",
+    "No single aggregate score may compensate for a non-target capability regression.",
+    "Concurrent changes must downgrade attribution to confounded; a before/after difference alone is not causal proof.",
+    "The evaluator always emits false for physical-restoration authorization, maintenance authorization and operating-restriction clearance.",
+    "Each measurement must bind observed_at and available_at, with observed_at no earlier than the episode start and available_at no later than episode end.",
+    "A Verified calibration state must reference a valid calibration-record SHA-256 digest.",
+    "Pre-repair and post-repair capability measurements must use the same independent reference measurement principle and dependency domain.",
+    "Both pre-repair baseline and post-repair verification paths must be independent of the diagnostic measurement principles and dependency domains.",
+    "The repair record must identify its intervention kind; only physical component repair can enter the physical restoration assessment.",
+    "Sensor replacement/calibration, controller/configuration changes, inspection-only, sham/no-op or unknown interventions cannot be reported as physical component restoration.",
+    "The case must bind a valid SHA-256 digest of the diagnosis revision that motivated the intervention; receipt-chain verification remains upstream.",
+    "The repair authorization reference must be bound to a valid authorization-record SHA-256 digest; this evaluator does not adjudicate authority.",
+    "Every capability measurement must bind a valid SHA-256 digest of its evidence bytes or evidence record.",
+    "A Verified calibration must bind a calibration-record digest and a validity-until time not earlier than measurement availability.",
+    "The acceptance-envelope set must be bound to a named owner reference and a digest matching the canonical capability-envelope set.",
+    "Both pre-repair baseline and post-repair verification must use the same measurement principle and dependency domain, both outside the diagnostic evidence path.",
+    "Every report must bind the exact serialized case content digest."
+  ],
+  "comparators": [
+    {
+      "id": "repair_record_only",
+      "description": "Accept a work-order/repair assertion as proof of restoration.",
+      "status": "negative_control"
+    },
+    {
+      "id": "alarm_reset_or_sensor_only",
+      "description": "Treat cleared alarms or sensor-path correction as physical restoration.",
+      "status": "negative_control"
+    },
+    {
+      "id": "unmatched_before_after",
+      "description": "Compare pre/post outcomes without matched operating conditions.",
+      "status": "negative_control"
+    },
+    {
+      "id": "single_target_only",
+      "description": "Check the repaired metric but ignore non-target capability regression.",
+      "status": "negative_control"
+    },
+    {
+      "id": "matched_same_sensor",
+      "description": "Use the same diagnostic sensor/dependency path for post-repair verification.",
+      "status": "negative_control"
+    },
+    {
+      "id": "matched_independent_noncompensatory",
+      "description": "Compare matched duty using independent calibrated measurements across every declared capability.",
+      "status": "reference_contract"
+    }
+  ],
+  "metrics": [
+    "false_restoration_acceptance_rate",
+    "false_non_restoration_rate",
+    "restoration_precision_by_capability",
+    "restoration_recall_by_capability",
+    "matched_condition_rejection_rate",
+    "independent_verification_coverage",
+    "non_target_capability_regression_rate",
+    "time_to_independently_verified_restoration",
+    "concurrent_change_confounding_rate",
+    "recurrence_per_engine_hour_or_cycle",
+    "case_content_replay_digest_integrity",
+    "diagnosis_revision_link_coverage",
+    "calibration_expiry_rejection_rate",
+    "sensor_only_intervention_false_restoration_rate"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "synthetic_false_acceptance",
+      "target": "0 false restoration acceptances in the frozen synthetic fault/confounder corpus",
+      "status": "aspirational"
+    },
+    {
+      "id": "sensor_only_repair",
+      "target": "0 physical restoration claims from sensor-path changes alone",
+      "status": "aspirational"
+    },
+    {
+      "id": "independent_verification",
+      "target": "100% of verified restoration claims include a calibrated independent measurement path",
+      "status": "aspirational"
+    },
+    {
+      "id": "capability_non_regression",
+      "target": "0 unreported non-target capability regressions",
+      "status": "aspirational"
+    },
+    {
+      "id": "matched_duty",
+      "target": "At least 95% correct capability dispositions on adequately sampled independent matched-duty cases",
+      "status": "aspirational"
+    },
+    {
+      "id": "lineage",
+      "target": "100% of restoration claims bind diagnosis revision, repair record, post-test evidence and envelope digests",
+      "status": "aspirational"
+    }
+  ],
+  "claim_ceiling": "The evaluator checks consistency of declared repair records, matched test conditions, measurement quality/independence and capability envelopes. It does not authenticate issuers, prove causal effects, establish durable safe life, authorize maintenance, clear operating restrictions or demonstrate physical restoration on a real engine. The diagnosis-revision digest is a lineage reference, not independent validation of its receipt chain. The acceptance-envelope owner reference and digest bind declared limits but do not establish OEM authority. Same-principle/dependency checks establish declared pathway diversity only, not statistical independence."
+}
