@@ -1,0 +1,408 @@
+{
+  "schema_version": "mixing-design-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-EXPERIMENT-DESIGN-QUAL-001",
+  "parameter_count": 3,
+  "target_parameter_count": 2,
+  "parameter_scales": [
+    1,
+    1,
+    1
+  ],
+  "rank_relative_tolerance": 1e-8,
+  "budget_limit_units": 8,
+  "maximum_condition_number": 100,
+  "minimum_model_separation": 0.1,
+  "candidates": [
+    {
+      "design_id": "MDT-T0-001-balanced-orthogonal",
+      "cost_units": 4,
+      "sensor_count": 3,
+      "duration_minutes": 30,
+      "strata": [
+        {
+          "stratum_id": "nominal-junction",
+          "sensitivity_matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "complete_mixing": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "geometry_aware": [
+              0.8,
+              0.2,
+              0.5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "design_id": "MDT-T0-002-ill-conditioned",
+      "cost_units": 3,
+      "sensor_count": 3,
+      "duration_minutes": 25,
+      "strata": [
+        {
+          "stratum_id": "nominal-junction",
+          "sensitivity_matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0.001,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "complete_mixing": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "geometry_aware": [
+              0.51,
+              0.49,
+              0.5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "design_id": "MDT-T0-003-rank-deficient",
+      "cost_units": 1,
+      "sensor_count": 3,
+      "duration_minutes": 15,
+      "strata": [
+        {
+          "stratum_id": "nominal-junction",
+          "sensitivity_matrix": [
+            [
+              1,
+              1,
+              0
+            ],
+            [
+              2,
+              2,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "complete_mixing": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "alternative_model": [
+              0.5,
+              0.5,
+              0.5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "design_id": "MDT-T0-004-robust-two-strata",
+      "cost_units": 7,
+      "sensor_count": 4,
+      "duration_minutes": 90,
+      "strata": [
+        {
+          "stratum_id": "cross-high-momentum-ratio",
+          "sensitivity_matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0.5,
+              0
+            ],
+            [
+              0.5,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "EPANET_complete_mix": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "geometry_aware": [
+              1.5,
+              -0.5,
+              0.5
+            ]
+          }
+        },
+        {
+          "stratum_id": "cross-low-momentum-ratio",
+          "sensitivity_matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0.8,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              4,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "EPANET_complete_mix": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "geometry_aware": [
+              1.2,
+              -0.2,
+              0.5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "design_id": "MDT-T0-005-nuisance-confounded",
+      "cost_units": 2,
+      "sensor_count": 3,
+      "duration_minutes": 20,
+      "strata": [
+        {
+          "stratum_id": "sensor-delay-confounded",
+          "sensitivity_matrix": [
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              0,
+              1,
+              1
+            ],
+            [
+              1,
+              1,
+              2
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "nominal_model": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "alternative_model": [
+              0.8,
+              0.2,
+              0.5
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "design_id": "MDT-T0-006-nuisance-unresolved",
+      "cost_units": 2,
+      "sensor_count": 3,
+      "duration_minutes": 20,
+      "strata": [
+        {
+          "stratum_id": "uncalibrated-delay",
+          "sensitivity_matrix": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              1,
+              1,
+              0
+            ]
+          ],
+          "measurement_covariance": [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "model_predictions": {
+            "nominal_model": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "alternative_model": [
+              0.8,
+              0.2,
+              0.5
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
