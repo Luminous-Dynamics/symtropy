@@ -37,10 +37,44 @@
       "minLength": 1
     },
     "transform_budget": {
-      "$ref": "#/$defs/budget"
+      "allOf": [
+        {
+          "$ref": "#/$defs/budget"
+        },
+        {
+          "properties": {
+            "contributions": {
+              "items": {
+                "properties": {
+                  "kind": {
+                    "const": "Registration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "datum_budget": {
-      "$ref": "#/$defs/budget"
+      "allOf": [
+        {
+          "$ref": "#/$defs/budget"
+        },
+        {
+          "properties": {
+            "contributions": {
+              "items": {
+                "properties": {
+                  "kind": {
+                    "const": "Datum"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "decision_boundary": {
       "type": "object",
@@ -92,7 +126,8 @@
         "registration_receipt_sha256",
         "observed_at_tick",
         "value_units",
-        "budget"
+        "budget",
+        "unit"
       ],
       "properties": {
         "measurement_id": {
@@ -136,6 +171,10 @@
         },
         "budget": {
           "$ref": "#/$defs/budget"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
