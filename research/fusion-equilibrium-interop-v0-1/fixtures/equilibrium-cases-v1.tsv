@@ -1,0 +1,20 @@
+# Synthetic-only contract fixtures. No row is a solver result or physical observation.
+# The corpus audit checks fixture completeness; Rust unit tests exercise the contract implementation.
+case_id|expected|mutation
+valid-wb-per-radian|ACCEPT|none
+explicit-weber-2pi|ACCEPT|none
+explicit-mm-and-ms-units|ACCEPT|none
+unknown-psi-unit|REJECT|unknown_flux_unit
+missing-cocos-flags|REJECT|missing_cocos_flags
+missing-quantity-signs|REJECT|missing_quantity_signs
+cocos-sign-mismatch|REJECT|convention_mismatch
+rz-transposed|REJECT|unsupported_frame_layout
+nonmonotonic-r|REJECT|nonmonotonic_r
+nonmonotonic-z|REJECT|nonmonotonic_z
+shape-mismatch|REJECT|shape_mismatch
+nonfinite-psi|REJECT|nonfinite_psi
+static-two-frames|REJECT|static_frame_count
+evolving-one-frame|REJECT|evolving_frame_count
+nonmonotonic-time|REJECT|nonmonotonic_time
+stale-geometry-receipt|REJECT|stale_geometry
+fec-unknown-psi-convention|REJECT|missing_cocos_flags
