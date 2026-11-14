@@ -45,12 +45,147 @@ jobs:
           WATER_SERVICE_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 -- \
+          cargo run --locked --package water-service-t0 --bin water-service-t0 -- \
             research/water-service-engineering/t0-known-answer-vectors-v0.1.json \
             research/water-service-engineering/benchmark-manifest-v0.1.json \
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for filter ELI F0 contract
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate filter ELI F0 schema and independent oracle
+        id: filter_eli_f0_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "filter-eli-f0.schema.json").read_text())
+          inputs = json.loads((root / "filter-eli-f0-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "filter-eli-f0-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "filter-eli-f0-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"FILTER_ELI_F0_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          input_ids = [row["case_id"] for row in inputs["cases"]]
+          oracle_by_id = {row["case_id"]: row["expected"] for row in oracle["cases"]}
+          if len(input_ids) != 13 or len(set(input_ids)) != 13 or len(oracle_by_id) != 13:
+              raise SystemExit("FILTER_ELI_F0_CASE_IDENTITY_FAIL")
+          if sorted(input_ids) != sorted(oracle_by_id) or manifest["case_count"] != 13:
+              raise SystemExit("FILTER_ELI_F0_INPUT_ORACLE_MANIFEST_MISMATCH")
+          if any("expected" in row for row in inputs["cases"]):
+              raise SystemExit("FILTER_ELI_F0_INPUTS_EMBED_ORACLE_FAIL")
+
+          policy = inputs["policy"]
+          def evaluate(i):
+              state = i["sample_state"]
+              value = i["effluent_concentration_mg_l"]
+              if state == "no_sample":
+                  if value is not None:
+                      raise SystemExit("FILTER_ELI_F0_NO_SAMPLE_HAS_VALUE")
+                  sample = "NO_CURRENT_CLAIM_SAMPLE"
+              elif state == "rejected_qc":
+                  if value is not None:
+                      raise SystemExit("FILTER_ELI_F0_REJECTED_SAMPLE_HAS_VALUE")
+                  sample = "REJECTED_LAB_SAMPLE_NOT_CLAIM_EVIDENCE"
+              elif state in ("accepted_below_lod", "accepted_below_loq"):
+                  if value is not None:
+                      raise SystemExit("FILTER_ELI_F0_CENSORED_RESULT_MUST_REMAIN_NULL")
+                  sample = "CENSORED_RESULT_NO_NUMERIC_COMPARISON"
+              elif state == "accepted_quantified":
+                  if not i["sample_claim_binding_valid"]:
+                      sample = "SAMPLE_CLAIM_BINDING_INVALID"
+                  elif value is None:
+                      sample = "SAMPLE_VALUE_MISSING"
+                  elif value > policy["declared_claim_effluent_limit_mg_l"]:
+                      sample = "BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+                  else:
+                      sample = "SAMPLE_WITHIN_DECLARED_LIMIT_AT_SAMPLE"
+              else:
+                  raise SystemExit("FILTER_ELI_F0_UNKNOWN_SAMPLE_STATE")
+
+              if not i["configuration_matches"]:
+                  service = "CONFIGURATION_MISMATCH"
+              elif not i["service_history_continuous"]:
+                  service = "SERVICE_HISTORY_UNTRUSTED"
+              elif not i["bypass_closed_verified"]:
+                  service = "BYPASS_OPEN_OR_NOT_VERIFIED"
+              elif not i["sensor_calibration_valid"]:
+                  service = "MEASUREMENT_UNQUALIFIED"
+              elif not i["source_profile_matches"]:
+                  service = "SOURCE_PROFILE_OUT_OF_DOMAIN"
+              elif i["measured_flow_lpm"] > policy["qualified_max_flow_lpm"]:
+                  service = "FLOW_ABOVE_QUALIFIED_ENVELOPE"
+              elif i["differential_pressure_kpa"] > policy["qualified_max_differential_pressure_kpa"]:
+                  service = "DIFFERENTIAL_PRESSURE_ABOVE_QUALIFIED_ENVELOPE"
+              elif sample == "BREAKTHROUGH_OBSERVED_AT_SAMPLE":
+                  service = "CLAIM_BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+              elif i["throughput_l"] >= policy["rated_capacity_l"]:
+                  service = "REPLACEMENT_DUE_BY_DECLARED_CAPACITY"
+              elif i["elapsed_service_hours"] >= policy["maximum_service_hours"]:
+                  service = "REPLACEMENT_DUE_BY_DECLARED_TIME"
+              else:
+                  service = "WITHIN_DECLARED_SERVICE_ENVELOPE"
+              return {
+                  "service_disposition": service,
+                  "claim_sample_disposition": sample,
+                  "water_safety_claim_allowed": False,
+                  "potability_claim_allowed": False,
+                  "certification_claim_allowed": False,
+                  "release_allowed": False,
+              }
+
+          def equal(actual, expected):
+              if isinstance(actual, float) and isinstance(expected, (int, float)):
+                  return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
+              if isinstance(actual, dict) and isinstance(expected, dict):
+                  return actual.keys() == expected.keys() and all(equal(actual[k], expected[k]) for k in actual)
+              if isinstance(actual, list) and isinstance(expected, list):
+                  return len(actual) == len(expected) and all(equal(a, b) for a, b in zip(actual, expected))
+              return actual == expected
+
+          for case in inputs["cases"]:
+              actual = evaluate(case["inputs"])
+              expected = oracle_by_id[case["case_id"]]
+              if not equal(actual, expected):
+                  raise SystemExit(f"FILTER_ELI_F0_ORACLE_MISMATCH: {case['case_id']}")
+              if any(actual[key] is not False for key in (
+                  "water_safety_claim_allowed",
+                  "potability_claim_allowed",
+                  "certification_claim_allowed",
+                  "release_allowed",
+              )):
+                  raise SystemExit(f"FILTER_ELI_F0_FALSE_SAFE_GUARD_FAIL: {case['case_id']}")
+          print("FILTER_ELI_F0_PASS: 13 synthetic service-state cases match independent oracle; no water-safety or release claim emitted")
+          PY
+      - name: Evaluate filter ELI F0 at exact revision
+        id: filter_eli_f0
+        env:
+          FILTER_ELI_F0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin filter-eli-f0 -- \
+            research/water-service-engineering/filter-eli-f0-cases-v0.1.json \
+            research/water-service-engineering/filter-eli-f0-oracle-v0.1.json \
+            research/water-service-engineering/filter-eli-f0.schema.json \
+            research/water-service-engineering/filter-eli-f0-manifest-v0.1.json \
+            artifacts/filter-eli-f0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +197,20 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/FILTER_ELI_OBSERVABILITY_PROTOCOL_V0_1.md
+            research/water-service-engineering/filter-eli-f0-cases-v0.1.json
+            research/water-service-engineering/filter-eli-f0-oracle-v0.1.json
+            research/water-service-engineering/filter-eli-f0.schema.json
+            research/water-service-engineering/filter-eli-f0-manifest-v0.1.json
+            artifacts/filter-eli-f0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          FILTER_ELI_CONTRACTS_OUTCOME: ${{ steps.filter_eli_f0_contracts.outcome }}
+          FILTER_ELI_EVALUATOR_OUTCOME: ${{ steps.filter_eli_f0.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$FILTER_ELI_CONTRACTS_OUTCOME" = "success"
+          test "$FILTER_ELI_EVALUATOR_OUTCOME" = "success"
