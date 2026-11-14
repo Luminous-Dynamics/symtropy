@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-physics-family-index-v0",
+  "status": "mixed_implemented_and_planned_no_global_performance_claim",
+  "families": [
+    {
+      "id": "analytic_smooth_dynamics",
+      "examples": ["free_fall_constant_gravity", "harmonic_oscillator", "kepler_orbit"],
+      "status": "first_free_fall_order_test_open",
+      "implementation_reference": "https://github.com/Luminous-Dynamics/symtropy/pull/3870",
+      "metrics": ["position_error", "velocity_error", "order_of_convergence", "mechanical_energy_drift"]
+    },
+    {
+      "id": "anisotropic_rotational_dynamics",
+      "examples": ["asymmetric_top", "long_rod_torque", "compound_parallel_axis", "off_axis_products_of_inertia"],
+      "status": "planned_mass_properties_and_bivector_inertia_operator",
+      "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3871",
+      "metrics": ["angular_momentum_error", "rotational_energy_drift", "frame_covariance_error", "torque_work_residual"]
+    },
+    {
+      "id": "ccd_and_contact",
+      "examples": ["sphere_plane", "sphere_sphere_grazing", "thin_wall_projectile", "rotating_thin_box"],
+      "status": "analytical_sphere_toi_hardening_open_general_convex_not_implemented",
+      "implementation_reference": "https://github.com/Luminous-Dynamics/symtropy/pull/3868",
+      "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3867",
+      "metrics": ["toi_absolute_error", "toi_relative_error", "missed_hit_count", "false_positive_count", "max_penetration", "ccd_iterations"]
+    },
+    {
+      "id": "independent_small_environments_cpu",
+      "examples": ["five_sphere_replay_rollouts"],
+      "status": "implemented_open_pr",
+      "implementation_reference": "https://github.com/Luminous-Dynamics/symtropy/pull/3657",
+      "metrics": ["environments_per_second", "batch_latency_p50_p95", "bitwise_replay_equivalence", "failure_rate"]
+    },
+    {
+      "id": "large_single_world_rigid_body",
+      "examples": ["pyramids", "stacks", "sparse_large_world", "high_contact_density"],
+      "status": "planned",
+      "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3866",
+      "metrics": ["bodies_per_second", "contacts_per_second", "broadphase_candidates", "solver_time", "memory_per_body", "energy_per_frame"]
+    },
+    {
+      "id": "many_small_gpu_environments",
+      "examples": ["robotics_rollouts", "policy_training_environments"],
+      "status": "planned",
+      "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3866",
+      "metrics": ["environments_per_second", "state_bytes_per_environment", "host_device_transfer_bytes", "gpu_occupancy", "joules_per_completed_environment"]
+    },
+    {
+      "id": "nonrigid_mpm",
+      "examples": ["elastic_material", "sand", "snow", "cutting"],
+      "status": "separate_future_solver_architecture",
+      "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3866",
+      "metrics": ["particles_per_second", "mass_residual", "momentum_residual", "energy_residual", "constitutive_error"]
+    }
+  ],
+  "industry_reference_families": [
+    {
+      "name": "MuJoCo",
+      "version": "3.17.0",
+      "relevance": "deterministic native batch simulation and CPU rigid-body reference",
+      "source": "https://mujoco.readthedocs.io/en/3.17.0/changelog.html"
+    },
+    {
+      "name": "Rapier",
+      "version": "0.35.3",
+      "relevance": "Rust CPU rigid-body reference; newer parallelism work must be commit-pinned separately",
+      "source": "https://github.com/dimforge/rapier/blob/master/CHANGELOG.md"
+    },
+    {
+      "name": "Nexus",
+      "version": "0.7.0",
+      "relevance": "GPU Rust multiphysics reference; vendor-reported 505K-body scene on RTX 5080 is not a matched Symtropy result",
+      "source": "https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/"
+    },
+    {
+      "name": "Physmark",
+      "version": "2026-10",
+      "relevance": "cross-engine GPU physics benchmark covering large rigid scenes, many environments, and MPM",
+      "source": "https://physmark.dimforge.com"
+    },
+    {
+      "name": "Project Chrono",
+      "version": "10.0.0",
+      "relevance": "multibody, vehicle, FSI, and deformable material reference",
+      "source": "https://projectchrono.org/news/"
+    },
+    {
+      "name": "SUNDIALS",
+      "version": "7.9.0",
+      "relevance": "ODE/DAE and multirate numerical solver reference, not a rigid-body engine comparator",
+      "source": "https://computing.llnl.gov/projects/sundials/sundials-software"
+    }
+  ],
+  "comparison_policy": {
+    "match_physical_model_and_contact_semantics": true,
+    "pin_engine_version_and_commit": true,
+    "report_hardware_and_runtime": true,
+    "retain_failed_or_timed_out_runs": true,
+    "separate_cpu_gpu_and_end_to_end_measurements": true,
+    "separate_reproducibility_verification_validation_and_performance": true,
+    "no_superiority_claim_without_independent_matched_reproduction": true
+  }
+}

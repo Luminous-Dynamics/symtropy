@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-independent-rollout-batch-v0",
+  "scenario_id": "mixed-contact-five-sphere-replay-v0",
+  "status": "research_only_no_performance_claim",
+  "engine": {
+    "crate": "symtropy-physics",
+    "release_line": "0.2.1",
+    "profile": "default",
+    "integrator": "semi_implicit_euler",
+    "determinism_class": "same_binary_same_host_sequential_vs_independent_workers"
+  },
+  "model": {
+    "dimension": 3,
+    "gravity_m_per_s2": [0.0, -9.81, 0.0],
+    "solver_iterations": 4,
+    "body_count": 5,
+    "shape": "sphere",
+    "radius_m": 0.5,
+    "mass_kg_formula": "1.0 + (body_index % 3) * 0.25",
+    "initial_position_m_formula": [
+      "(body_index % 3) * 0.82 + (rollout_id % 7) * 0.015",
+      "2.0 + (body_index / 3) * 0.86",
+      0.0
+    ],
+    "initial_velocity_m_per_s_formula": [
+      "((rollout_id * 13 + body_index * 7) % 11) * 0.01",
+      0.0,
+      0.0
+    ],
+    "linear_damping": 0.0,
+    "angular_damping": 0.0
+  },
+  "replay": {
+    "ticks": 90,
+    "timestep_seconds": 0.008333333333333333,
+    "command_schedule": {
+      "ticks": [0, 30, 60],
+      "target_body_index_formula": "(tick / 30) % body_count",
+      "command": "apply_force",
+      "force_n_formula": [
+        "0.05 + (rollout_id % 7) * 0.015",
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "campaign": {
+    "criterion_rollout_count": 64,
+    "unit_test_rollout_count": 16,
+    "worker_counts": [1, 2, 4, 8],
+    "rollout_id_range": {
+      "start_inclusive": 0,
+      "end_exclusive": 64
+    },
+    "seed_rule": "all scenario variation is a deterministic function of rollout_id; it is never a function of worker identity, completion order, wall clock or process scheduling",
+    "parallel_backends": ["std_threads_spawned_independent_worlds", "rayon_persistent_independent_worlds"],
+    "worker_pool_construction_in_timed_region": {
+      "std_threads_spawned": true,
+      "rayon_persistent": false
+    }
+  },
+  "outputs": {
+    "per_rollout": [
+      "rollout_id",
+      "WorldSnapshot.bodies",
+      "WorldSnapshot.collision_events"
+    ],
+    "canonical_order": "ascending_rollout_id",
+    "state_encoding": "f64_to_u64_bits",
+    "body_order": "ascending_BodyHandle",
+    "collision_event_order": "body_a_body_b_impulse_bits_depth_bits",
+    "failure_policy": "missing_duplicate_unexpected_or_panicked_rollout_fails_campaign"
+  },
+  "acceptance": {
+    "same_host_bitwise_equal_vs_sequential": true,
+    "complete_rollout_id_coverage": true,
+    "zero_duplicate_rollout_ids": true,
+    "zero_missing_rollout_ids": true,
+    "zero_unexpected_rollout_ids": true,
+    "zero_non_finite_body_state": true,
+    "physical_validity_claimed": false,
+    "industry_superiority_claimed": false
+  },
+  "metrics_to_collect": [
+    "rollouts_per_second",
+    "batch_latency_p50_ms",
+    "batch_latency_p95_ms",
+    "campaign_wall_time_ms",
+    "peak_memory_bytes",
+    "allocation_bytes_per_rollout",
+    "worker_count",
+    "failure_rate",
+    "snapshot_digest"
+  ],
+  "energy_measurement": {
+    "enabled": false,
+    "planned_metric": "joules_per_completed_rollout",
+    "requirement": "enable only when a supported sensor scope and raw energy receipt are available; do not infer energy from operation count"
+  }
+}
