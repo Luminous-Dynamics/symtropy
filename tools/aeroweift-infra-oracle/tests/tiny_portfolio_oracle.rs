@@ -93,7 +93,7 @@ fn adding_failures_never_restores_a_complete_chain() {
     }
 
     for (failed, service) in &checked {
-        if !service {
+        if *service {
             continue;
         }
         for domain in ALL_FAILURE_DOMAINS {
@@ -102,7 +102,7 @@ fn adding_failures_never_restores_a_complete_chain() {
             if let Some((_, expanded_service)) =
                 checked.iter().find(|(candidate, _)| candidate == &expanded)
             {
-                assert!(*expanded_service);
+                assert!(!expanded_service);
             }
         }
     }
