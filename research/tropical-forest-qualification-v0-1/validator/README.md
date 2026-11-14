@@ -31,7 +31,7 @@ Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_S
 
 ## Headless canopy kernel
 
-The exported `canopy_kernel` module provides a minimal spatial cohort-to-cell LAI representation, explicit one-way cohort mortality, derived Beer–Lambert transmittance, four-neighbour gap components and an optical understory eligibility mask. It is a synthetic analytical kernel only; it does not implement crown allometry, multiple scattering, species physiology, recruitment, succession or a calibrated radiation model. Its seven unit tests are included in the library test suite.
+The exported `canopy_kernel` module provides a minimal spatial cohort-to-cell LAI representation, explicit one-way cohort mortality, derived Beer–Lambert transmittance, four-neighbour gap components and an optical understory eligibility mask. It is a synthetic analytical kernel only; it does not implement crown allometry, multiple scattering, species physiology, recruitment, succession or a calibrated radiation model. Its eight unit tests are included in the library test suite.
 
 ## Model-set adequacy
 
@@ -70,4 +70,4 @@ These results are deliberately narrow:
 - Observation `PASS_SYNTHETIC_RULES` means only that the nine machine-readable synthetic input descriptors triggered the intended Rust rule dispositions; it does not mean a production observation adapter rejected real-world invalid claims.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 23 Rust unit tests across the accounting verifier, synthetic observation rules, canopy manifest checks, model-set manifest checks and headless cohort-canopy kernel. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
