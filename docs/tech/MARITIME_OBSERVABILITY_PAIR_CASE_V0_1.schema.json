@@ -215,7 +215,10 @@
           "minimum_independent_principles",
           "responses",
           "measurement_window_id_a",
-          "measurement_window_id_b"
+          "measurement_window_id_b",
+          "measurement_window_a",
+          "measurement_window_b",
+          "comparison_tolerances"
         ],
         "properties": {
           "pair_id": {
@@ -347,6 +350,271 @@
           "measurement_window_id_b": {
             "type": "string",
             "minLength": 1
+          },
+          "measurement_window_a": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "window_id",
+              "recording_id",
+              "artifact_sha256",
+              "timebase_id",
+              "timebase_qualification_state",
+              "timebase_qualification_sha256",
+              "start_timestamp_ms",
+              "start_timestamp_uncertainty_ms",
+              "end_timestamp_ms",
+              "end_timestamp_uncertainty_ms",
+              "regime_id",
+              "load_percent",
+              "speed_rpm",
+              "ambient_temperature_c",
+              "transient_state",
+              "sample_count",
+              "independent_episode_count",
+              "episode_definition_id",
+              "episode_definition_sha256"
+            ],
+            "properties": {
+              "window_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recording_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timebase_qualification_state": {
+                "enum": [
+                  "qualified",
+                  "unqualified",
+                  "unknown"
+                ]
+              },
+              "timebase_qualification_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "start_timestamp_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "start_timestamp_uncertainty_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "end_timestamp_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "end_timestamp_uncertainty_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "regime_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "load_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "speed_rpm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "ambient_temperature_c": {
+                "type": "number"
+              },
+              "transient_state": {
+                "enum": [
+                  "steady",
+                  "transient",
+                  "mixed",
+                  "unknown"
+                ]
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "independent_episode_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "episode_definition_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "episode_definition_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "measurement_window_b": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "window_id",
+              "recording_id",
+              "artifact_sha256",
+              "timebase_id",
+              "timebase_qualification_state",
+              "timebase_qualification_sha256",
+              "start_timestamp_ms",
+              "start_timestamp_uncertainty_ms",
+              "end_timestamp_ms",
+              "end_timestamp_uncertainty_ms",
+              "regime_id",
+              "load_percent",
+              "speed_rpm",
+              "ambient_temperature_c",
+              "transient_state",
+              "sample_count",
+              "independent_episode_count",
+              "episode_definition_id",
+              "episode_definition_sha256"
+            ],
+            "properties": {
+              "window_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recording_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timebase_qualification_state": {
+                "enum": [
+                  "qualified",
+                  "unqualified",
+                  "unknown"
+                ]
+              },
+              "timebase_qualification_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "start_timestamp_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "start_timestamp_uncertainty_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "end_timestamp_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "end_timestamp_uncertainty_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "regime_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "load_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "speed_rpm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "ambient_temperature_c": {
+                "type": "number"
+              },
+              "transient_state": {
+                "enum": [
+                  "steady",
+                  "transient",
+                  "mixed",
+                  "unknown"
+                ]
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "independent_episode_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "episode_definition_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "episode_definition_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "comparison_tolerances": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "profile_id",
+              "profile_sha256",
+              "profile_state",
+              "maximum_load_delta_percent",
+              "maximum_speed_delta_rpm",
+              "maximum_ambient_temperature_delta_c",
+              "require_same_transient_state"
+            ],
+            "properties": {
+              "profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "profile_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "profile_state": {
+                "enum": [
+                  "PREREGISTERED",
+                  "DRAFT",
+                  "UNKNOWN"
+                ]
+              },
+              "maximum_load_delta_percent": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_speed_delta_rpm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "maximum_ambient_temperature_delta_c": {
+                "type": "number",
+                "minimum": 0
+              },
+              "require_same_transient_state": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }
