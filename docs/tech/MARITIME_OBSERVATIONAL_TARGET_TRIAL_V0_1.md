@@ -107,7 +107,7 @@ The 15 machine-readable scenarios cover:
 14. treatment strategy label lacks its bound work-order/strategy record digest;
 15. an independent exchangeability review reference is missing.
 
-The Rust suite currently contains 16 tests. It exercises the structural validator, the synthetic oracle/association separation, sign reversal, per-unit time-zero logic, leakage, overlap, censoring, concurrent actions and protocol/corpus binding.
+The Rust suite currently contains 17 tests. It exercises the structural validator, the synthetic oracle/association separation, sign reversal, per-unit time-zero logic, missing baseline covariates, post-treatment leakage in both outcome and propensity features, overlap/support, treatment-version and strategy-record binding, censoring, calibration, concurrent actions, missing review references and protocol/corpus binding.
 
 ## What this P0 does not identify
 
