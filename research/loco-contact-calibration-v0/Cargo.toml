@@ -1,0 +1,9 @@
+[package]
+name = "loco-contact-calibration"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Exact fixed-point calibration metrics for continuous contact reliability"
+
+[workspace]
