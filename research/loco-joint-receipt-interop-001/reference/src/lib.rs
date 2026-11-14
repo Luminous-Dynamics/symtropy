@@ -990,11 +990,74 @@ mod tests {
         assert_eq!(report.schema_version, SCHEMA_VERSION);
         assert_eq!(report.payload_sha256, GOLDEN_UQ_DIGEST);
         assert_eq!(report.parent_receipt_payload_sha256, GOLDEN_DIGEST);
-        assert_eq!(report.measurement_count, 3);
-        assert_eq!(report.uncertainty_receipt_count, 3);
+        assert_eq!(report.evaluation_tick, 120);
+        assert_eq!(report.measurement_requirement_count, 6);
+        assert_eq!(report.required_measurement_count, 5);
+        assert_eq!(report.not_applicable_requirement_count, 1);
+        assert_eq!(report.measurement_count, 5);
+        assert_eq!(report.uncertainty_receipt_count, 5);
         assert_eq!(report.derived_result_count, 1);
         assert!(!report.actuation_authorized);
         assert!(!report.conformity_certified);
+    }
+
+    #[test]
+    fn uq_sidecar_missing_predeclared_required_channel_is_incomplete() {
+        let changed = GOLDEN_UQ_SIDECAR.replacen(
+            "\"measurement_id\": \"motor-temp\"",
+            "\"measurement_id\": \"motor-temp-missing\"",
+            1,
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarIncompleteEvidence("required channel missing"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_supplied_not_applicable_channel_is_rejected() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "\"measurement_id\": \"drive-temp\",\n      \"kind\": \"thermal_node\",\n      \"node_id\": \"hip-flexion-left-drive\",\n      \"applicability\": {\n        \"kind\": \"required\"\n      }",
+            "\"measurement_id\": \"drive-temp\",\n      \"kind\": \"thermal_node\",\n      \"node_id\": \"hip-flexion-left-drive\",\n      \"applicability\": {\n        \"kind\": \"not_applicable\",\n        \"reason\": \"This is a mutated negative control\"\n      }",
+        );
+        assert_ne!(changed, GOLDEN_UQ_SIDECAR);
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarLineageMismatch("NotApplicable channel supplied"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_required_measurand_kind_mismatch_is_rejected() {
+        let changed = GOLDEN_UQ_SIDECAR.replacen(
+            "\"measurement_id\": \"torque-001\",\n      \"kind\": \"shaft_torque\"",
+            "\"measurement_id\": \"torque-001\",\n      \"kind\": \"angular_velocity\"",
+            1,
+        );
+        assert_ne!(changed, GOLDEN_UQ_SIDECAR);
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarBindingMismatch("required measurement kind"))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_audit_tick_outside_calibration_validity_is_incomplete() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "\"evaluation_tick\": \"120\"",
+            "\"evaluation_tick\": \"300\"",
+        );
+        assert_ne!(changed, GOLDEN_UQ_SIDECAR);
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarIncompleteEvidence(
+                "calibration not valid at evaluation tick"
+            ))
+        ));
     }
 
     #[test]
