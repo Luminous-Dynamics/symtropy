@@ -1,0 +1,7 @@
+% Authored synthetic fixture; not a MineLib instance and not site data.
+% Columns: id x y z tonnage_tonnes grade_gpt block_value_usd
+0 0 0 0 1000 1.250 150000.00
+1 0 0 1 1000 0.750 25000.50
+2 0 0 2 1000 0.100 -5000.00
+3 1 0 0 500 1.100 60000.00
+4 1 0 1 500 0.800 20000.00
