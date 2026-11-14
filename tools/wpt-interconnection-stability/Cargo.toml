@@ -1,0 +1,7 @@
+[package]
+name = "wpt-interconnection-stability"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Analytic known-truth stability oracle for small WPT network interconnections"
