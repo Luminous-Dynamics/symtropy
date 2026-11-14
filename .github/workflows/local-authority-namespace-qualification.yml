@@ -1,0 +1,224 @@
+name: PHYS-ID-03/04 Local Authority Namespace Qualification
+
+on:
+  push:
+    branches:
+      - "ci/local-authority-namespace-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-authority-namespace-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 24ef5c25d2be2bed3d4d484d1bb6bbcfcab21fa8
+  PRODUCT_PARENT: 1b024ece9a981243db88c14b95edb16a2c84c267
+
+jobs:
+  qualify:
+    name: Frozen PHYS-ID-03/04 local namespace / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact one-commit product subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}")
+          test "${#changed[@]}" = "4"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md"
+            "crates/core/symtropy-physics/src/authority_namespace.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs"
+          )
+          for i in "${!expected[@]}"; do
+            test "${changed[$i]}" = "${expected[$i]}"
+          done
+          git diff --quiet "${PRODUCT_PARENT}..${PRODUCT_HEAD}" -- \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/world.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs \
+            > "${RUNNER_TEMP}/local-authority-namespace-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run local namespace theorem
+        run: cargo test -p symtropy-physics --locked --test local_authority_namespace_v01
+
+      - name: Run authority identity regression
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run temporal-sequence regression
+        run: cargo test -p symtropy-physics --locked --test authority_temporal_sequence_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit capability claim boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          module=crates/core/symtropy-physics/src/authority_namespace.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md
+          lib=crates/core/symtropy-physics/src/lib.rs
+
+          grep -Fq 'pub struct LocalQualifiedPhysicalAuthority' "${module}"
+          grep -Fq 'pub struct LocalQualifiedWorldGeneration' "${module}"
+          grep -Fq 'pub struct LocalNamespacePhysicsAuthorityWorld' "${module}"
+          grep -Fq 'pub fn mint()' "${module}"
+          grep -Fq 'pub fn mint_generation(' "${module}"
+          grep -Fq '.fetch_update(Ordering::Relaxed, Ordering::Relaxed' "${module}"
+          test "$(grep -Fc '.checked_add(1)' "${module}")" -ge 2
+          grep -Fq 'generation: LocalQualifiedWorldGeneration' "${module}"
+          grep -Fq 'pub fn into_unqualified(self) -> PhysicsAuthorityWorld<D>' "${module}"
+          grep -Fq 'pub mod authority_namespace;' "${lib}"
+          grep -Fq 'LocalQualifiedPhysicalAuthority' "${lib}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('crates/core/symtropy-physics/src/authority_namespace.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md').read_text()
+
+          capability_types = [
+              'LocalQualifiedPhysicalAuthority',
+              'LocalQualifiedWorldGeneration',
+          ]
+
+          for name in capability_types:
+              assert not re.search(r'#\[derive\([^\)]*\)\]\s*pub struct\s+' + name, text)
+              assert f'impl Clone for {name}' not in text
+              assert f'impl Copy for {name}' not in text
+              assert f'impl serde::Serialize for {name}' not in text
+              assert f'impl serde::Deserialize' not in text or name not in text[text.find('impl serde::Deserialize'):text.find('impl serde::Deserialize') + 300]
+
+              start = text.index(f'pub struct {name}')
+              end = text.index('\n}\n', start) + 2
+              block = text[start:end]
+              assert not any(line.lstrip().startswith('pub ') for line in block.splitlines()[1:])
+
+          generation_impl = text[text.index('impl LocalQualifiedWorldGeneration'):]
+          generation_impl = generation_impl[:generation_impl.index('\n}\n') + 2]
+          assert 'pub fn new' not in generation_impl
+          assert 'pub const fn new' not in generation_impl
+          assert 'pub fn from' not in generation_impl
+
+          assert 'impl std::ops::Deref for LocalNamespacePhysicsAuthorityWorld' not in text
+          assert 'impl Deref for LocalNamespacePhysicsAuthorityWorld' not in text
+          assert 'unsafe ' not in text
+
+          bind_start = text.index('pub fn bind(')
+          bind_block = text[bind_start:text.index('\n    }\n', bind_start) + 6]
+          assert 'generation: LocalQualifiedWorldGeneration' in bind_block
+          assert '&LocalQualifiedWorldGeneration' not in bind_block
+          assert 'PhysicsAuthorityWorld::new(' in bind_block
+
+          down_start = text.index('pub fn into_unqualified(self)')
+          down_block = text[down_start:text.index('\n    }\n', down_start) + 6]
+          assert 'LocalQualifiedWorldGeneration' not in down_block
+          assert 'self.authority_world' in down_block
+
+          assert 'process-local' in contract
+          assert 'No cross-process uniqueness' in contract
+          assert 'no cryptographic authentication' in contract
+          assert 'no complete-world structural validity' in contract
+          assert 'no temporal-incarnation identity' in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/PHYSICAL_AUTHORITY_NAMESPACE_CAPABILITIES_V01.md \
+            crates/core/symtropy-physics/src/authority_namespace.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/authority_time.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/tests/local_authority_namespace_v01.rs \
+            > "${RUNNER_TEMP}/local-authority-namespace-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/local-authority-namespace-source-sha256.txt" \
+            "${RUNNER_TEMP}/local-authority-namespace-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-ID-03/04 local authority namespace capabilities v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'process_local_root_uniqueness': True,
+              'generation_nonreuse_within_root': True,
+              'generation_capability_noncloneable_source_audit': True,
+              'qualified_wrapper_consumes_generation': True,
+              'legacy_constructor_unchanged': True,
+              'cross_process_uniqueness': False,
+              'persistent_authenticated_authority': False,
+              'complete_world_structural_integrity': False,
+              'net_id_tombstone_nonreuse': False,
+              'temporal_incarnation_identity': False,
+              'observation_or_delivery_authority': False,
+          }
+          Path('local-authority-namespace-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-authority-namespace-${{ env.PRODUCT_HEAD }}
+          path: |
+            local-authority-namespace-qualification-receipt.json
+            ${{ runner.temp }}/local-authority-namespace-source-sha256.txt
+            ${{ runner.temp }}/local-authority-namespace-source-sha256-post.txt
+          if-no-files-found: error
