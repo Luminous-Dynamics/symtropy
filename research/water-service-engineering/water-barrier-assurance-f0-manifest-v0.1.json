@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WATER-BARRIER-ASSURANCE-F0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5136",
+  "status": "synthetic_claim_compatibility_and_fail_closed_contract_only",
+  "input_corpus": "research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/water-barrier-assurance-f0.schema.json",
+  "case_count": 18,
+  "microbial_reference": {
+    "source": "WHO International Scheme for Household Water Treatment Technologies, Round IV",
+    "protocol_version": "4.0",
+    "thresholds_log10": {
+      "comprehensive_2_star": {
+        "bacteria": 2,
+        "viruses": 3,
+        "protozoa": 2
+      },
+      "comprehensive_3_star": {
+        "bacteria": 4,
+        "viruses": 5,
+        "protozoa": 4
+      }
+    },
+    "note": "Reference comparator only; synthetic cases do not constitute product tests or WHO certification."
+  },
+  "hard_rules": [
+    "only_exact_model_configuration_specific_verified_claims_count",
+    "generic_technology_names_do_not_grant_contaminant_removal_credit",
+    "microbial_classes_are_scored_separately",
+    "unknown_hazard_or_stale_source_profile_forces_indeterminate",
+    "out_of_envelope_modules_contribute_no_claim_coverage",
+    "expired_capacity_or_bypass_blocks_claim_coverage",
+    "post_treatment_lab_verification_is_required_for_authority_review",
+    "lab_sample_scope_is_sample_time_location_analyte_only",
+    "release_authorized_is_always_false",
+    "potability_claim_permitted_is_always_false"
+  ],
+  "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim"
+}
