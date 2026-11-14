@@ -258,9 +258,10 @@ impl fmt::Display for MaintenanceEffectError {
                 formatter,
                 "supplied effect estimate does not match the observed trial estimator output"
             ),
-            Self::OracleUnitMismatch(id) => {
-                write!(formatter, "oracle unit set differs from randomized trial: {id}")
-            }
+            Self::OracleUnitMismatch(id) => write!(
+                formatter,
+                "oracle unit set differs from randomized trial: {id}"
+            ),
             Self::OracleObservedOutcomeMismatch(id) => write!(
                 formatter,
                 "observed outcome does not match the selected oracle potential outcome: {id}"
