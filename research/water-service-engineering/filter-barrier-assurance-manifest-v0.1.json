@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "FILTER-BARRIER-ASSURANCE-M0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5104",
+  "status": "synthetic_barrier_state_contract_only",
+  "protocol": "research/water-service-engineering/FILTER_BARRIER_ASSURANCE_PROTOCOL_V0_1.md",
+  "cases": "research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/filter-barrier-assurance.schema.json",
+  "case_count": 8,
+  "evidence_ceiling": "no_filter_or_water_safety_claim"
+}
