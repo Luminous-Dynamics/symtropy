@@ -1,0 +1,104 @@
+{
+  "schema_version": "groundairbench-episode-v0",
+  "episode_id": "synthetic-rf-dynamic-flight-ambiguous-observability-001",
+  "record_state": "FIXTURE",
+  "evidence_class": "SYNTHETIC",
+  "partition": "TEST",
+  "scenario": {
+    "bearer": "RF_MICROWAVE",
+    "motion": "DYNAMIC_FLIGHT",
+    "environment_tags": [
+      "ring_null_alias",
+      "high_signal_proxy",
+      "held_out_pose_family"
+    ]
+  },
+  "inputs_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "policy": {
+    "policy_id": "highest-signal-baseline",
+    "revision": "v0",
+    "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "baseline_family": "SIGNAL_THRESHOLD"
+  },
+  "required_receipts": [
+    {
+      "owner": "SOURCE_CATALOGUE",
+      "receipt_id": "synthetic-source-001",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "PASS",
+      "claim_ceiling": "Synthetic source index only."
+    },
+    {
+      "owner": "PHYSICAL_SUPPORT",
+      "receipt_id": "synthetic-support-001",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "PASS",
+      "claim_ceiling": "Synthetic field support only."
+    },
+    {
+      "owner": "OBSERVABILITY",
+      "receipt_id": "synthetic-observability-ambiguous-001",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "AMBIGUOUS",
+      "signal_strength_proxy_uw": 9999999999,
+      "claim_ceiling": "Distinct poses share an indistinguishable synthetic signature; signal proxy does not establish unique pose."
+    },
+    {
+      "owner": "SESSION_LIFECYCLE",
+      "receipt_id": "synthetic-session-001",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "NOT_ADMITTED",
+      "claim_ceiling": "Synthetic lifecycle rejection only."
+    },
+    {
+      "owner": "SITE_CAPACITY",
+      "receipt_id": "synthetic-site-001",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "PASS",
+      "claim_ceiling": "Synthetic site allocation only."
+    },
+    {
+      "owner": "ENERGY_METROLOGY",
+      "receipt_id": "synthetic-metrology-001",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "PASS",
+      "claim_ceiling": "Synthetic meter-plane definitions only; no measured energy."
+    },
+    {
+      "owner": "STANDARDS_APPLICABILITY",
+      "receipt_id": "synthetic-standards-001",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "evidence_class": "SYNTHETIC",
+      "disposition": "UNKNOWN",
+      "claim_ceiling": "Applicability unresolved; no compliance or authorization inference."
+    }
+  ],
+  "metric_contracts": [
+    {
+      "metric_id": "useful_battery_energy",
+      "boundary_id": "SOURCE_TO_BATTERY",
+      "unit": "Wh",
+      "aggregation": "SUM"
+    },
+    {
+      "metric_id": "unique_pose_fraction",
+      "boundary_id": "POSE_OBSERVABILITY",
+      "unit": "ratio",
+      "aggregation": "NONE"
+    },
+    {
+      "metric_id": "reacquisition_latency_p95",
+      "boundary_id": "SESSION_RELIABILITY",
+      "unit": "ms",
+      "aggregation": "P95"
+    }
+  ],
+  "expected_session_state": "NOT_ADMITTED",
+  "claim_ceiling": "Synthetic manifest composition only. No physical feasibility, energy delivery, safety, authorization, flight or operational autonomy claim."
+}

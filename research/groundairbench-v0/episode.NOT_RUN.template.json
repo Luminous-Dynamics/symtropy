@@ -1,0 +1,14 @@
+{
+  "schema_version": "groundairbench-episode-v0",
+  "episode_id": "NOT_RUN",
+  "record_state": "NOT_RUN",
+  "evidence_class": "NOT_RUN",
+  "partition": "UNASSIGNED",
+  "scenario": null,
+  "inputs_sha256": null,
+  "policy": null,
+  "required_receipts": [],
+  "metric_contracts": [],
+  "expected_session_state": "NOT_ADMITTED",
+  "claim_ceiling": "Template only. No scenario or evidence references supplied. NOT_RUN is not a pass."
+}

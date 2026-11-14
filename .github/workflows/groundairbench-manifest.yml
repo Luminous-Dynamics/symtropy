@@ -1,0 +1,34 @@
+name: GroundAirBench Manifest
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/groundairbench-v0/**"
+      - "tools/groundairbench-manifest-validator/**"
+      - ".github/workflows/groundairbench-manifest.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/groundairbench-v0/**"
+      - "tools/groundairbench-manifest-validator/**"
+      - ".github/workflows/groundairbench-manifest.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test GroundAirBench manifest validator
+        run: cargo test --locked --manifest-path tools/groundairbench-manifest-validator/Cargo.toml
+      - name: Validate ambiguous-pose negative control
+        run: cargo run --locked --manifest-path tools/groundairbench-manifest-validator/Cargo.toml -- research/groundairbench-v0/ambiguous-pose.synthetic.json
