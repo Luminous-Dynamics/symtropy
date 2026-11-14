@@ -567,16 +567,29 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         profile: MetricProfileV1,
     ) -> Result<Metric<To, N>, MetricErrorV1> {
         validate_profile(profile)?;
-        let mut upper = [[0.0; N]; N];
-        for (row, upper_row) in upper.iter_mut().enumerate() {
-            for (column, output) in upper_row.iter_mut().enumerate().skip(row) {
+        // Two dense matrix products keep the congruence at O(N^3):
+        // first P = M_q S, then M_y = S^T P. Only the upper triangle of
+        // the final symmetric metric is accumulated; it is mirrored once.
+        let mut mass_times_basis = [[0.0; N]; N];
+        for (row, output_row) in mass_times_basis.iter_mut().enumerate() {
+            for (column, output) in output_row.iter_mut().enumerate() {
                 let mut value = 0.0;
-                for left in 0..N {
-                    for right in 0..N {
-                        value += self.matrix[left][row]
-                            * metric_from.matrix[left][right]
-                            * self.matrix[right][column];
-                    }
+                for inner in 0..N {
+                    value += metric_from.matrix[row][inner] * self.matrix[inner][column];
+                }
+                if !value.is_finite() {
+                    return Err(MetricErrorV1::NonFiniteIntermediate);
+                }
+                *output = value;
+            }
+        }
+
+        let mut upper = [[0.0; N]; N];
+        for (row, output_row) in upper.iter_mut().enumerate() {
+            for (column, output) in output_row.iter_mut().enumerate().skip(row) {
+                let mut value = 0.0;
+                for inner in 0..N {
+                    value += self.matrix[inner][row] * mass_times_basis[inner][column];
                 }
                 if !value.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
@@ -859,6 +872,37 @@ mod tests {
             .map(|(row, column)| (correct.matrix()[row][column] - wrong[row][column]).abs())
             .fold(0.0_f64, f64::max);
         assert!(difference > 1.0e-3);
+    }
+
+    #[test]
+    fn six_dof_metric_congruence_matches_independent_two_stage_product() {
+        const N: usize = 6;
+        let mass = [
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 2.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 3.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 4.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 5.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 6.0],
+        ];
+        let basis = [
+            [1.0, 2.0, -1.0, 0.0, 1.0, 0.0],
+            [0.0, 1.0, 3.0, -1.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 2.0, -1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0, 3.0, -1.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 2.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        ];
+        let metric_q = Metric::<CartesianQ, N>::admit(mass, profile()).unwrap();
+        let rebasis = Rebasis::<CartesianQ, DenseY, N>::new(basis, profile()).unwrap();
+        let metric_y = rebasis.metric_to_to(&metric_q, profile()).unwrap();
+        let expected = multiply(&multiply(&transpose(&basis), &mass), &basis);
+
+        for row in 0..N {
+            for column in 0..N {
+                close(metric_y.matrix()[row][column], expected[row][column], 2.0e-13);
+            }
+        }
     }
 
     #[test]
