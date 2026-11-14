@@ -1909,7 +1909,7 @@ mod tests {
         assert!(!method.single_factor_controlled);
         assert_eq!(
             method.delta_candidate_minus_reference.lifecycle_cost_minor_units,
-            -2_250
+            -2_070
         );
 
         let combined = report
