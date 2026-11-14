@@ -529,6 +529,139 @@ mod tests {
         assert_eq!(metrics.held_items, 1);
     }
 
+    fn adversarial_feed_case(case_id: &str) -> FeedRun {
+        let mut run = valid_run();
+        match case_id {
+            "FEED-001-COMPLETE-KNOWN-ANSWER" => {}
+            "FEED-002-MISSING-TERMINAL" => {
+                run.terminal_dispositions.pop();
+            }
+            "FEED-003-DUPLICATE-TERMINAL" => {
+                run.terminal_dispositions.push(run.terminal_dispositions[0].clone());
+            }
+            "FEED-004-ORPHAN-ATTEMPT" => {
+                run.attempts.push(attempt(
+                    "A-99",
+                    "UNKNOWN-ITEM",
+                    1,
+                    None,
+                    PresentationState::Unknown,
+                    1,
+                    2,
+                    '9',
+                ));
+            }
+            "FEED-005-ATTEMPT-NUMBER-GAP" => {
+                run.attempts[2].attempt_number = 3;
+            }
+            "FEED-006-RETRY-CHAIN-MISMATCH" => {
+                run.attempts[2].predecessor_attempt_id = Some("A-01".to_owned());
+            }
+            "FEED-007-RETRY-TIME-OVERLAP" => {
+                run.attempts[2].started_at_ns = 18;
+            }
+            "FEED-008-TERMINAL-BEFORE-ATTEMPT" => {
+                run.terminal_dispositions[1].completed_at_ns = 30;
+            }
+            "FEED-009-ROUTED-WITHOUT-DESTINATION" => {
+                run.terminal_dispositions[0].actual_destination = None;
+            }
+            "FEED-010-ROUTED-WITHOUT-VALID-PRESENTATION" => {
+                run.attempts.retain(|entry| entry.item_id != "ITEM-01");
+            }
+            "FEED-011-BAD-EVIDENCE-DIGEST" => {
+                run.attempts[0].evidence.sha256 = "not-a-digest".to_owned();
+            }
+            "FEED-012-EVIDENCE-ID-REUSED" => {
+                run.terminal_dispositions[0].evidence.evidence_id =
+                    run.attempts[0].evidence.evidence_id.clone();
+            }
+            "FEED-013-DUPLICATE-INCOMING-ITEM" => {
+                run.incoming_items.push(run.incoming_items[0].clone());
+            }
+            "FEED-014-NONROUTED-WITH-DESTINATION" => {
+                run.terminal_dispositions[2].actual_destination =
+                    Some("cotton".to_owned());
+            }
+            "FEED-015-ORPHAN-TERMINAL" => {
+                run.terminal_dispositions.push(terminal(
+                    "UNKNOWN-ITEM",
+                    TerminalOutcome::Held,
+                    None,
+                    40,
+                    '3',
+                ));
+            }
+            "FEED-016-DUPLICATE-ATTEMPT-ID" => {
+                run.attempts.push(run.attempts[0].clone());
+            }
+            "FEED-017-INVALID-ATTEMPT-INTERVAL" => {
+                run.attempts[0].completed_at_ns = run.attempts[0].started_at_ns;
+            }
+            "FEED-018-EMPTY-REFERENCE-DESTINATION" => {
+                run.incoming_items[0].reference_destination = Some(String::new());
+            }
+            other => panic!("unknown feed presentation corpus case: {other}"),
+        }
+        run
+    }
+
+    #[test]
+    fn synthetic_feed_corpus_executes_all_adversarial_cases() {
+        const CORPUS: &str = include_str!("../feed-cases.example.json");
+        const SCHEMA: &str = include_str!("../feed-cases.schema.json");
+
+        let corpus: serde_json::Value =
+            serde_json::from_str(CORPUS).expect("feed corpus must parse as JSON");
+        let schema: serde_json::Value =
+            serde_json::from_str(SCHEMA).expect("feed corpus schema must parse as JSON");
+        assert_eq!(corpus["schema_version"], "0.1.0");
+        assert_eq!(corpus["corpus_id"], "TEXTILE-FEED-PRESENTATION-CASES-001");
+        assert_eq!(corpus["fixture_class"], "synthetic");
+        assert_eq!(schema["properties"]["cases"]["minItems"].as_u64(), Some(18));
+        assert_eq!(schema["properties"]["cases"]["maxItems"].as_u64(), Some(18));
+
+        let cases = corpus["cases"]
+            .as_array()
+            .expect("feed cases must be an array");
+        assert_eq!(cases.len(), 18);
+        let mut seen = BTreeSet::new();
+
+        for case in cases {
+            let case_id = case["case_id"]
+                .as_str()
+                .expect("case_id must be a string");
+            assert!(seen.insert(case_id), "duplicate feed case {case_id}");
+            let expected = &case["expected"];
+            let expected_valid = expected["valid"]
+                .as_bool()
+                .expect("expected.valid must be boolean");
+            let expected_findings: BTreeSet<String> = expected["findings"]
+                .as_array()
+                .expect("expected.findings must be an array")
+                .iter()
+                .map(|value| value.as_str().expect("finding must be a string").to_owned())
+                .collect();
+
+            let run = adversarial_feed_case(case_id);
+            let report = run.validate();
+            let actual_findings: BTreeSet<String> =
+                report.findings.iter().map(|finding| finding.code.clone()).collect();
+
+            assert_eq!(report.valid, expected_valid, "case {case_id} validity");
+            assert_eq!(
+                actual_findings,
+                expected_findings,
+                "case {case_id} findings: {:#?}",
+                report.findings
+            );
+            if !expected_valid {
+                assert!(run.metrics().is_err(), "invalid corpus case {case_id} must not emit metrics");
+            }
+        }
+        assert_eq!(seen.len(), 18);
+    }
+
     #[test]
     fn synthetic_feed_run_example_deserializes_and_qualifies() {
         const EXAMPLE: &str = include_str!("../feed-run.example.json");
