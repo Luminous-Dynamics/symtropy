@@ -485,6 +485,7 @@ fn same_problem_bits(left: &MidpointProblemV1, right: &MidpointProblemV1) -> boo
         )
         && same_vector_bits(&left.free_relative_position, &right.free_relative_position)
         && same_matrix_bits(&left.delassus, &right.delassus)
+        && same_matrix_bits(&left.constraint_jacobian, &right.constraint_jacobian)
         && same_vector_bits(&left.initial_position, &right.initial_position)
         && same_vector_bits(&left.initial_velocity, &right.initial_velocity)
         && same_vector_bits(&left.free_midpoint_velocity, &right.free_midpoint_velocity)
@@ -659,6 +660,10 @@ fn evaluate_reduced_equation(
     Ok((residual, derivative, relative_midpoint))
 }
 
+fn is_exactly_symmetric<const N: usize>(matrix: &[[f64; N]; N]) -> bool {
+    (0..N).all(|row| (0..N).all(|column| matrix[row][column].to_bits() == matrix[column][row].to_bits()))
+}
+
 fn cholesky_check<const N: usize>(matrix: &[[f64; N]; N], symmetry_tolerance: f64) -> bool {
     let mut scale = 0.0_f64;
     for matrix_row in matrix {
@@ -715,10 +720,16 @@ impl MidpointProblemV1 {
         if !all_finite {
             return Err(ProblemErrorV1::NonFiniteInput);
         }
-        if !cholesky_check(&self.delassus, 1.0e-13) {
+        if !is_exactly_symmetric(&self.delassus) {
+            return Err(ProblemErrorV1::DelassusNotSymmetric);
+        }
+        if !is_exactly_symmetric(&self.mass_metric) {
+            return Err(ProblemErrorV1::MassMetricNotSymmetric);
+        }
+        if !cholesky_check(&self.delassus, 0.0) {
             return Err(ProblemErrorV1::DelassusNotPositiveDefinite);
         }
-        if !cholesky_check(&self.mass_metric, 1.0e-13) {
+        if !cholesky_check(&self.mass_metric, 0.0) {
             return Err(ProblemErrorV1::MassMetricNotPositiveDefinite);
         }
         verify_reduced_operator_provenance(self)?;
@@ -1110,6 +1121,39 @@ mod tests {
         let problem = fixture();
         assert_eq!(problem.validate(), Ok(()));
         verify_reduced_operator_provenance(&problem).unwrap();
+    }
+
+    #[test]
+    fn delassus_and_mass_metric_asymmetry_are_classified_separately() {
+        let mut wrong_delassus = fixture();
+        wrong_delassus.delassus[0][1] = 0.25;
+        assert_eq!(
+            wrong_delassus.validate(),
+            Err(ProblemErrorV1::DelassusNotSymmetric)
+        );
+
+        let mut wrong_mass = fixture();
+        wrong_mass.mass_metric[0][3] = 0.25;
+        assert_eq!(
+            wrong_mass.validate(),
+            Err(ProblemErrorV1::MassMetricNotSymmetric)
+        );
+    }
+
+    #[test]
+    fn step_replay_rejects_a_changed_constraint_jacobian() {
+        let problem = fixture();
+        let candidate = -0.1 / (0.01 * 1.5);
+        let outcome = certify_midpoint_step(&problem, candidate, 1.0e-5).unwrap();
+        let RootOutcomeV1::CertifiedUniqueRoot(root) = outcome else {
+            panic!("expected a unique multiplier certificate");
+        };
+        let mut altered = problem;
+        altered.constraint_jacobian[0][0] = -0.5;
+        assert_eq!(
+            certify_step_error_bounds(&altered, &root),
+            Err(IntervalErrorV1::ProblemBindingMismatch)
+        );
     }
 
     #[test]
