@@ -16,8 +16,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
-pub const MONTE_CARLO_RANDOMIZATION_SCHEMA: &str =
-    "symtropy-marine-monte-carlo-randomization-v0.1";
+pub const MONTE_CARLO_RANDOMIZATION_SCHEMA: &str = "symtropy-marine-monte-carlo-randomization-v0.1";
 pub const MONTE_CARLO_RANDOMIZATION_ALGORITHM: &str = "splitmix64_v1";
 pub const MIN_MONTE_CARLO_DRAWS: usize = 100;
 pub const MAX_MONTE_CARLO_DRAWS: usize = 2_000_000;
@@ -96,7 +95,10 @@ impl fmt::Display for MonteCarloRandomizationError {
             Self::InvalidTrial(error) => write!(formatter, "blocked trial is invalid: {error}"),
             Self::MissingStratum(id) => write!(formatter, "randomization stratum is missing: {id}"),
             Self::InvalidAssignmentSpace => {
-                write!(formatter, "no admissible blocked assignment could be sampled")
+                write!(
+                    formatter,
+                    "no admissible blocked assignment could be sampled"
+                )
             }
             Self::Serialization => write!(formatter, "failed to serialize Monte Carlo provenance"),
         }
@@ -146,9 +148,7 @@ impl SplitMix64 {
     }
 }
 
-fn stratum_indices(
-    trial: &BlockedRandomizedMaintenanceTrial,
-) -> BTreeMap<String, Vec<usize>> {
+fn stratum_indices(trial: &BlockedRandomizedMaintenanceTrial) -> BTreeMap<String, Vec<usize>> {
     let mut result = BTreeMap::<String, Vec<usize>>::new();
     for (index, observation) in trial.observations.iter().enumerate() {
         result
@@ -166,9 +166,7 @@ fn stratum_indices(
     result
 }
 
-fn allocation_map(
-    trial: &BlockedRandomizedMaintenanceTrial,
-) -> BTreeMap<&str, (usize, usize)> {
+fn allocation_map(trial: &BlockedRandomizedMaintenanceTrial) -> BTreeMap<&str, (usize, usize)> {
     trial
         .stratum_allocations
         .iter()
@@ -325,10 +323,11 @@ fn wilson_interval_95(successes: usize, trials: usize) -> [f64; 2] {
     let z2 = WILSON_95_Z * WILSON_95_Z;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half_width = WILSON_95_Z
-        * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt())
-        / denominator;
-    [(center - half_width).max(0.0), (center + half_width).min(1.0)]
+    let half_width = WILSON_95_Z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    [
+        (center - half_width).max(0.0),
+        (center + half_width).min(1.0),
+    ]
 }
 
 /// Estimate a two-sided Fisher randomization tail probability by fixed-budget Monte Carlo.
@@ -343,7 +342,9 @@ pub fn estimate_monte_carlo_randomization_p_value(
 ) -> Result<MonteCarloRandomizationResult, MonteCarloRandomizationError> {
     trial.validate()?;
     if !(MIN_MONTE_CARLO_DRAWS..=MAX_MONTE_CARLO_DRAWS).contains(&config.draw_count) {
-        return Err(MonteCarloRandomizationError::InvalidDrawCount(config.draw_count));
+        return Err(MonteCarloRandomizationError::InvalidDrawCount(
+            config.draw_count,
+        ));
     }
     if trial.observations.len() > MAX_MONTE_CARLO_UNITS {
         return Err(MonteCarloRandomizationError::TooManyUnits(
@@ -359,8 +360,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
         .iter()
         .map(|observation| observation.assigned_arm == AssignedArm::Treatment)
         .collect::<Vec<_>>();
-    let observed_statistic =
-        stratified_difference_in_means(trial, &groups, &observed_mask)?;
+    let observed_statistic = stratified_difference_in_means(trial, &groups, &observed_mask)?;
     let mut rng = SplitMix64::new(config.seed_u64);
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-monte-carlo-assignment-stream-v1\0");
@@ -382,11 +382,9 @@ pub fn estimate_monte_carlo_randomization_p_value(
         }
     }
     let tail_probability_estimate = exceedances as f64 / config.draw_count as f64;
-    let p_value_plus_one =
-        (exceedances as f64 + 1.0) / (config.draw_count as f64 + 1.0);
+    let p_value_plus_one = (exceedances as f64 + 1.0) / (config.draw_count as f64 + 1.0);
     let monte_carlo_standard_error =
-        (tail_probability_estimate * (1.0 - tail_probability_estimate)
-            / config.draw_count as f64)
+        (tail_probability_estimate * (1.0 - tail_probability_estimate) / config.draw_count as f64)
             .sqrt();
     let sampled_assignments_sha256 = format!("{:x}", hasher.finalize());
 
@@ -417,8 +415,8 @@ pub fn estimate_monte_carlo_randomization_p_value(
 mod tests {
     use super::*;
     use crate::maintenance_effect::{
-        estimate_blocked_randomized_maintenance_effect, AssignmentMethod, OutcomeDirection,
-        RandomizedUnitObservation, StratumAllocation,
+        AssignmentMethod, OutcomeDirection, RandomizedUnitObservation, StratumAllocation,
+        estimate_blocked_randomized_maintenance_effect,
     };
 
     fn trial() -> BlockedRandomizedMaintenanceTrial {
@@ -556,8 +554,14 @@ mod tests {
         };
         let first = estimate_monte_carlo_randomization_p_value(&original, config).unwrap();
         let second = estimate_monte_carlo_randomization_p_value(&reordered, config).unwrap();
-        assert_eq!(first.randomization_frame_sha256, second.randomization_frame_sha256);
-        assert_eq!(first.sampled_assignments_sha256, second.sampled_assignments_sha256);
+        assert_eq!(
+            first.randomization_frame_sha256,
+            second.randomization_frame_sha256
+        );
+        assert_eq!(
+            first.sampled_assignments_sha256,
+            second.sampled_assignments_sha256
+        );
         assert_eq!(first.p_value_plus_one, second.p_value_plus_one);
     }
 
@@ -676,8 +680,7 @@ mod tests {
         )
         .unwrap();
         assert!(
-            mc.tail_probability_wilson_95[0] <= exact
-                && exact <= mc.tail_probability_wilson_95[1]
+            mc.tail_probability_wilson_95[0] <= exact && exact <= mc.tail_probability_wilson_95[1]
         );
         assert!((0.0..=1.0).contains(&mc.p_value_plus_one));
     }
@@ -758,12 +761,10 @@ mod tests {
             observation.assignment_evidence_sha256 = format!("{:064x}", 10_000 + index);
             observation.baseline_evidence_sha256 = format!("{:064x}", 30_000 + index);
             observation.baseline_source_id = format!("baseline-source-{index}");
-            observation.baseline_calibration_record_sha256 =
-                format!("{:064x}", 50_000 + index);
+            observation.baseline_calibration_record_sha256 = format!("{:064x}", 50_000 + index);
             observation.outcome_evidence_sha256 = format!("{:064x}", 70_000 + index);
             observation.outcome_source_id = format!("outcome-source-{index}");
-            observation.outcome_calibration_record_sha256 =
-                format!("{:064x}", 90_000 + index);
+            observation.outcome_calibration_record_sha256 = format!("{:064x}", 90_000 + index);
             oversized.observations.push(observation);
         }
 
@@ -804,7 +805,10 @@ mod tests {
             serde_json::from_str(include_str!("../monte-carlo-randomization-cases-v0.1.json"))
                 .unwrap();
         assert_eq!(protocol["schema_version"], MONTE_CARLO_RANDOMIZATION_SCHEMA);
-        assert_eq!(protocol["algorithm"]["id"], MONTE_CARLO_RANDOMIZATION_ALGORITHM);
+        assert_eq!(
+            protocol["algorithm"]["id"],
+            MONTE_CARLO_RANDOMIZATION_ALGORITHM
+        );
         assert_eq!(protocol["algorithm"]["max_units"], MAX_MONTE_CARLO_UNITS);
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 29);
         assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
