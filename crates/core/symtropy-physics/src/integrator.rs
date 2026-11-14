@@ -30,7 +30,15 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// For smooth separable Hamiltonian systems, the underlying kick-drift map is
+/// symplectic. Symplecticity is not unconditional stability or exact energy
+/// conservation: stability and phase error depend on the system and timestep.
+/// For the undamped scalar harmonic oscillator, this update is linearly stable
+/// only when 0 < omega * dt < 2. The complete world pipeline also includes
+/// non-Hamiltonian operations (contacts, damping, constraints, velocity clamps
+/// and callbacks), so the method-level property must not be promoted to a
+/// global conservation claim.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
@@ -179,6 +187,120 @@ pub fn apply_angular_impulse<const D: usize>(body: &mut RigidBody<D>, impulse: &
 mod tests {
     use super::*;
     use crate::body::BodyHandle;
+
+    fn simulate_harmonic_oscillator(dt: f64, steps: usize) -> (f64, f64) {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::new([1.0, 0.0, 0.0]),
+            0.1,
+            1.0,
+        );
+        body.linear_damping = 0.0;
+        let zero_gravity = SVector::zeros();
+        let mut max_abs_position = 1.0_f64;
+
+        for _ in 0..steps {
+            let restoring_force = SVector::from([-body.position()[0], 0.0, 0.0]);
+            body.apply_force(restoring_force);
+            integrate(&mut body, &zero_gravity, dt);
+            max_abs_position = max_abs_position.max(body.position()[0].abs());
+        }
+
+        (max_abs_position, body.linear_velocity[0].abs())
+    }
+
+    #[test]
+    fn constant_acceleration_matches_the_exact_discrete_kick_drift_update() {
+        let mut body =
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([1.0, 3.0, -2.0]), 0.5, 2.0);
+        body.linear_damping = 0.0;
+        body.linear_velocity = SVector::from([1.2, -0.4, 0.3]);
+
+        let gravity = SVector::from([0.0, -9.81, 0.0]);
+        let dt = 0.025;
+        let steps = 40_u32;
+        let total_time = f64::from(steps) * dt;
+        let initial_position = body.position();
+        let initial_velocity = body.linear_velocity;
+
+        for _ in 0..steps {
+            integrate(&mut body, &gravity, dt);
+        }
+
+        let expected_velocity = initial_velocity + gravity * total_time;
+        let expected_position = initial_position
+            + initial_velocity * total_time
+            + gravity * (dt * dt * f64::from(steps) * f64::from(steps + 1) / 2.0);
+
+        assert!(
+            (body.linear_velocity - expected_velocity).norm() < 1e-10,
+            "velocity {:?} did not match discrete update {:?}",
+            body.linear_velocity,
+            expected_velocity
+        );
+        assert!(
+            (body.position() - expected_position).norm() < 1e-10,
+            "position {:?} did not match discrete update {:?}",
+            body.position(),
+            expected_position
+        );
+    }
+
+    #[test]
+    fn free_fall_position_error_converges_at_first_order_when_timestep_is_halved() {
+        fn final_position_error(dt: f64) -> f64 {
+            let total_time = 1.0;
+            let steps = (total_time / dt).round() as usize;
+            let initial_position = 10.0;
+            let gravity = SVector::from([0.0, -9.81, 0.0]);
+            let mut body = RigidBody::<3>::dynamic_sphere(
+                BodyHandle(0),
+                Point::new([0.0, initial_position, 0.0]),
+                0.5,
+                1.0,
+            );
+            body.linear_damping = 0.0;
+
+            for _ in 0..steps {
+                integrate(&mut body, &gravity, dt);
+            }
+
+            let analytical_position = initial_position + 0.5 * gravity[1] * total_time * total_time;
+            (body.position()[1] - analytical_position).abs()
+        }
+
+        let coarse_error = final_position_error(0.04);
+        let medium_error = final_position_error(0.02);
+        let fine_error = final_position_error(0.01);
+
+        assert!(
+            (coarse_error / medium_error - 2.0).abs() < 1e-10,
+            "halving dt should halve first-order global error: coarse={coarse_error}, medium={medium_error}"
+        );
+        assert!(
+            (medium_error / fine_error - 2.0).abs() < 1e-10,
+            "halving dt should halve first-order global error: medium={medium_error}, fine={fine_error}"
+        );
+    }
+
+    #[test]
+    fn harmonic_oscillator_exposes_timestep_dependent_stability() {
+        // For this unit-frequency undamped oscillator, omega * dt = 1.5 is
+        // inside the semi-implicit Euler stability interval (0, 2).
+        let (stable_max_position, stable_final_velocity) = simulate_harmonic_oscillator(1.5, 1_000);
+        assert!(
+            stable_max_position < 2.0 && stable_final_velocity < 2.0,
+            "inside stability interval should remain bounded: max_x={stable_max_position}, final_v={stable_final_velocity}"
+        );
+
+        // omega * dt = 2.1 is outside the linear stability interval; this is
+        // a negative control against claims of unconditional stability.
+        let (unstable_max_position, unstable_final_velocity) = simulate_harmonic_oscillator(2.1, 8);
+        assert!(
+            unstable_max_position > 10.0 && unstable_final_velocity > 10.0,
+            "outside stability interval should exhibit growth: max_x={unstable_max_position}, final_v={unstable_final_velocity}"
+        );
+    }
 
     #[test]
     fn free_fall_3d() {
