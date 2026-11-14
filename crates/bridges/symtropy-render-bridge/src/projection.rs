@@ -13,7 +13,10 @@ pub trait Projector<const D: usize>: Send + Sync {
     /// Returns (x, y, z) — for 2D rendering, z is used for sprite ordering.
     fn project(&self, point: &Point<D>) -> [f32; 3];
 
-    /// Whether an ND point is visible (within the projection's view).
+    /// Whether the point passes this projector's slice/domain and numeric-validity checks.
+    ///
+    /// This is not viewport/frustum culling; the host camera still decides whether a
+    /// finite projected point lies inside the rendered viewport.
     fn is_visible(&self, point: &Point<D>) -> bool;
 
     /// Scale factor: how many render pixels per physics unit.
@@ -37,17 +40,27 @@ impl Projector2D {
             camera_y: 0.0,
         }
     }
+
+    fn configuration_is_valid(&self) -> bool {
+        self.pixels_per_unit.is_finite()
+            && self.pixels_per_unit > 0.0
+            && self.camera_x.is_finite()
+            && self.camera_y.is_finite()
+    }
 }
 
 impl Projector<2> for Projector2D {
     fn project(&self, point: &Point<2>) -> [f32; 3] {
-        let x = (point.coord(0) - self.camera_x) as f32 * self.pixels_per_unit;
-        let y = (point.coord(1) - self.camera_y) as f32 * self.pixels_per_unit;
-        [x, y, 0.0]
+        if !self.configuration_is_valid() {
+            return [f32::NAN; 3];
+        }
+        let x = (point.coord(0) - self.camera_x) * f64::from(self.pixels_per_unit);
+        let y = (point.coord(1) - self.camera_y) * f64::from(self.pixels_per_unit);
+        representable_xyz([x, y, 0.0])
     }
 
-    fn is_visible(&self, _point: &Point<2>) -> bool {
-        true // 2D is always visible (camera culling handled by Bevy)
+    fn is_visible(&self, point: &Point<2>) -> bool {
+        self.project(point).iter().all(|value| value.is_finite())
     }
 
     fn scale(&self) -> f32 {
@@ -68,15 +81,19 @@ impl Projector3D {
 
 impl Projector<3> for Projector3D {
     fn project(&self, point: &Point<3>) -> [f32; 3] {
-        [
-            point.coord(0) as f32 * self.scale_factor,
-            point.coord(1) as f32 * self.scale_factor,
-            point.coord(2) as f32 * self.scale_factor,
-        ]
+        if !self.scale_factor.is_finite() || self.scale_factor <= 0.0 {
+            return [f32::NAN; 3];
+        }
+        let scale = f64::from(self.scale_factor);
+        representable_xyz([
+            point.coord(0) * scale,
+            point.coord(1) * scale,
+            point.coord(2) * scale,
+        ])
     }
 
-    fn is_visible(&self, _point: &Point<3>) -> bool {
-        true // Bevy handles 3D frustum culling
+    fn is_visible(&self, point: &Point<3>) -> bool {
+        self.project(point).iter().all(|value| value.is_finite())
     }
 
     fn scale(&self) -> f32 {
@@ -84,11 +101,13 @@ impl Projector<3> for Projector3D {
     }
 }
 
-/// 4D projector: cross-section slicing.
+/// Legacy W-axis projector for 4D points and body centers.
 ///
-/// Slices the 4D world with a 3D hyperplane perpendicular to the W axis.
-/// Objects that intersect the slice appear as their 3D cross-sections.
-/// Moving the slice position along W reveals hidden geometry.
+/// Filters points by distance from the hyperplane w = w_slice and projects their
+/// first three coordinates. It does not compute exact intersections of extended
+/// geometry with the hyperplane; use a dedicated mesh/collider slicing adapter for
+/// actual continuous cross-sections. Moving the slice position reveals different
+/// sets of point/body-center samples.
 #[derive(Resource, Reflect, Debug, Clone, Copy)]
 pub struct Projector4D {
     /// Position of the slicing hyperplane along the W axis.
@@ -108,22 +127,39 @@ impl Projector4D {
         }
     }
 
+    /// True only when the W-slice configuration has finite values and positive
+    /// thickness/scale. The constructor remains source-compatible; consumers should
+    /// check this before wiring the projector into a render system.
+    pub fn configuration_is_valid(&self) -> bool {
+        self.w_slice.is_finite()
+            && self.slice_thickness.is_finite()
+            && self.slice_thickness > 0.0
+            && self.scale_factor.is_finite()
+            && self.scale_factor > 0.0
+    }
+
     /// The slicing hyperplane: { (x,y,z,w) : w = w_slice }.
     pub fn slice_plane(&self) -> Hyperplane<4> {
         Hyperplane::new(SVector::from([0.0, 0.0, 0.0, 1.0]), self.w_slice)
     }
 
     /// Distance of a 4D point from the slicing hyperplane (along W).
+    /// Returns infinity for non-finite W coordinates or an invalid slice position.
     pub fn w_distance(&self, point: &Point<4>) -> f64 {
+        if !self.w_slice.is_finite() || !point.coord(3).is_finite() {
+            return f64::INFINITY;
+        }
         (point.coord(3) - self.w_slice).abs()
     }
 
-    /// Alpha (opacity) based on distance from slice plane.
-    /// Objects exactly on the plane are fully opaque; objects at the edge
-    /// of the slice thickness fade to transparent.
+    /// Alpha (opacity) based on distance from slice plane. Invalid configurations
+    /// and non-finite points fail closed as fully transparent.
     pub fn alpha(&self, point: &Point<4>) -> f32 {
+        if !self.configuration_is_valid() || (0..4).any(|axis| !point.coord(axis).is_finite()) {
+            return 0.0;
+        }
         let dist = self.w_distance(point);
-        if dist >= self.slice_thickness {
+        if !dist.is_finite() || dist >= self.slice_thickness {
             return 0.0;
         }
         (1.0 - dist / self.slice_thickness) as f32
@@ -132,20 +168,43 @@ impl Projector4D {
 
 impl Projector<4> for Projector4D {
     fn project(&self, point: &Point<4>) -> [f32; 3] {
-        // Project (x, y, z, w) → (x, y, z), discarding w
-        [
-            point.coord(0) as f32 * self.scale_factor,
-            point.coord(1) as f32 * self.scale_factor,
-            point.coord(2) as f32 * self.scale_factor,
-        ]
+        if !self.configuration_is_valid() {
+            return [f32::NAN; 3];
+        }
+        let scale = f64::from(self.scale_factor);
+        // Project (x, y, z, w) to (x, y, z), retaining W in slice visibility.
+        representable_xyz([
+            point.coord(0) * scale,
+            point.coord(1) * scale,
+            point.coord(2) * scale,
+        ])
     }
 
     fn is_visible(&self, point: &Point<4>) -> bool {
-        self.w_distance(point) < self.slice_thickness
+        self.configuration_is_valid()
+            && self.w_distance(point) < self.slice_thickness
+            && self.project(point).iter().all(|value| value.is_finite())
     }
 
     fn scale(&self) -> f32 {
         self.scale_factor
+    }
+}
+
+/// Converts f64 projected coordinates to f32 only when every coordinate is
+/// representable. Non-finite/overflowing output uses NaNs so callers can fail closed.
+fn representable_xyz(coordinates: [f64; 3]) -> [f32; 3] {
+    if coordinates
+        .iter()
+        .all(|value| value.is_finite() && value.abs() <= f64::from(f32::MAX))
+    {
+        [
+            coordinates[0] as f32,
+            coordinates[1] as f32,
+            coordinates[2] as f32,
+        ]
+    } else {
+        [f32::NAN; 3]
     }
 }
 
@@ -232,6 +291,40 @@ mod tests {
         // Move slice to w=5.0 — now visible
         proj.w_slice = 5.0;
         assert!(proj.is_visible(&hidden));
+    }
+
+    #[test]
+    fn planar_projector_fails_closed_for_invalid_scales_and_coordinates() {
+        let invalid_scale = Projector2D::new(f32::NAN);
+        let point = Point::new([1.0, 2.0]);
+        assert!(!invalid_scale.is_visible(&point));
+        assert!(
+            !invalid_scale
+                .project(&point)
+                .iter()
+                .all(|value| value.is_finite())
+        );
+
+        let overflow = Projector3D::new(f32::MAX);
+        let huge_point = Point::new([f64::MAX, 0.0, 0.0]);
+        assert!(!overflow.is_visible(&huge_point));
+    }
+
+    #[test]
+    fn legacy_four_d_projector_rejects_invalid_slice_and_nonfinite_points() {
+        let invalid = Projector4D::new(0.0, 0.0, 1.0);
+        let point = Point::new([1.0, 2.0, 3.0, 0.0]);
+        assert!(!invalid.configuration_is_valid());
+        assert!(!invalid.is_visible(&point));
+        assert_eq!(invalid.alpha(&point), 0.0);
+
+        let valid = Projector4D::new(0.0, 1.0, 1.0);
+        let nonfinite_w = Point::new([1.0, 2.0, 3.0, f64::NAN]);
+        let nonfinite_xyz = Point::new([f64::NAN, 2.0, 3.0, 0.0]);
+        assert!(!valid.is_visible(&nonfinite_w));
+        assert_eq!(valid.alpha(&nonfinite_w), 0.0);
+        assert!(!valid.is_visible(&nonfinite_xyz));
+        assert_eq!(valid.alpha(&nonfinite_xyz), 0.0);
     }
 
     #[test]
