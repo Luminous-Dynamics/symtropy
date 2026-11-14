@@ -1,0 +1,71 @@
+{
+  "benchmark_id": "glass-silicon-decision-value-synthetic-v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic finite-pool mechanics only; no materials, model, process, or manufacturing claim is validated.",
+  "utility_unit": "synthetic accepted-output utility units",
+  "cost_unit": "synthetic reference-call units",
+  "max_measurement_cost": 4,
+  "max_duration_seconds": 100,
+  "producer_access": {
+    "ground_truth": false,
+    "unobserved_utilities": false,
+    "oracle_scores": false,
+    "future_outcomes": false
+  },
+  "acquisition_policy_comparison": {
+    "protocol_version": 1,
+    "random_seeds": [
+      3,
+      5,
+      7,
+      11,
+      13,
+      17,
+      19,
+      23,
+      29,
+      31,
+      37,
+      41,
+      43,
+      47,
+      53,
+      59
+    ]
+  },
+  "measurements": [
+    {
+      "id": "measure-regime",
+      "cost_units": 2,
+      "duration_seconds": 20,
+      "selection_features": {
+        "uncalibrated_uncertainty": 0.5,
+        "calibrated_uncertainty": 0.4,
+        "novelty": 0.9,
+        "estimated_voi": 8
+      }
+    },
+    {
+      "id": "measure-noise",
+      "cost_units": 3,
+      "duration_seconds": 30,
+      "selection_features": {
+        "uncalibrated_uncertainty": 0.99,
+        "calibrated_uncertainty": 0.98,
+        "novelty": 0.2,
+        "estimated_voi": 0.1
+      }
+    },
+    {
+      "id": "measure-expensive",
+      "cost_units": 9,
+      "duration_seconds": 900,
+      "selection_features": {
+        "uncalibrated_uncertainty": 1,
+        "calibrated_uncertainty": 1,
+        "novelty": 1,
+        "estimated_voi": 100
+      }
+    }
+  ]
+}

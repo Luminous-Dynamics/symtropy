@@ -1,0 +1,172 @@
+{
+  "benchmark_id": "glass-silicon-decision-value-synthetic-v0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic finite-pool mechanics only; no materials, model, process, or manufacturing claim is validated.",
+  "utility_unit": "synthetic accepted-output utility units",
+  "cost_unit": "synthetic reference-call units",
+  "max_measurement_cost": 4,
+  "max_duration_seconds": 100,
+  "producer_access": {
+    "ground_truth": false,
+    "unobserved_utilities": false,
+    "oracle_scores": false,
+    "future_outcomes": false
+  },
+  "scenarios": [
+    {
+      "id": "s1"
+    },
+    {
+      "id": "s2"
+    },
+    {
+      "id": "s3"
+    },
+    {
+      "id": "s4"
+    }
+  ],
+  "actions": [
+    {
+      "id": "conventional",
+      "utility_by_scenario": {
+        "s1": 4,
+        "s2": 4,
+        "s3": 4,
+        "s4": 4
+      },
+      "feasible_by_scenario": {
+        "s1": true,
+        "s2": true,
+        "s3": true,
+        "s4": true
+      }
+    },
+    {
+      "id": "route-a",
+      "utility_by_scenario": {
+        "s1": 9,
+        "s2": 8,
+        "s3": 0,
+        "s4": 0
+      },
+      "feasible_by_scenario": {
+        "s1": true,
+        "s2": true,
+        "s3": false,
+        "s4": false
+      }
+    },
+    {
+      "id": "route-b",
+      "utility_by_scenario": {
+        "s1": 0,
+        "s2": 0,
+        "s3": 9,
+        "s4": 8
+      },
+      "feasible_by_scenario": {
+        "s1": false,
+        "s2": false,
+        "s3": true,
+        "s4": true
+      }
+    }
+  ],
+  "constraint_controls": [
+    {
+      "action_id": "route-a",
+      "scenario_id": "s3",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-a",
+      "scenario_id": "s4",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "s1",
+      "must_be_feasible": false
+    },
+    {
+      "action_id": "route-b",
+      "scenario_id": "s2",
+      "must_be_feasible": false
+    }
+  ],
+  "measurements": [
+    {
+      "id": "measure-regime",
+      "cost_units": 2,
+      "duration_seconds": 20,
+      "observation_by_scenario": {
+        "s1": "warm",
+        "s2": "warm",
+        "s3": "cold",
+        "s4": "cold"
+      },
+      "selection_features": {
+        "uncalibrated_uncertainty": 0.5,
+        "calibrated_uncertainty": 0.4,
+        "novelty": 0.9,
+        "estimated_voi": 8
+      }
+    },
+    {
+      "id": "measure-noise",
+      "cost_units": 3,
+      "duration_seconds": 30,
+      "observation_by_scenario": {
+        "s1": "same",
+        "s2": "same",
+        "s3": "same",
+        "s4": "same"
+      },
+      "selection_features": {
+        "uncalibrated_uncertainty": 0.99,
+        "calibrated_uncertainty": 0.98,
+        "novelty": 0.2,
+        "estimated_voi": 0.1
+      }
+    },
+    {
+      "id": "measure-expensive",
+      "cost_units": 9,
+      "duration_seconds": 900,
+      "observation_by_scenario": {
+        "s1": "warm",
+        "s2": "warm",
+        "s3": "cold",
+        "s4": "cold"
+      },
+      "selection_features": {
+        "uncalibrated_uncertainty": 1,
+        "calibrated_uncertainty": 1,
+        "novelty": 1,
+        "estimated_voi": 100
+      }
+    }
+  ],
+  "acquisition_policy_comparison": {
+    "protocol_version": 1,
+    "random_seeds": [
+      3,
+      5,
+      7,
+      11,
+      13,
+      17,
+      19,
+      23,
+      29,
+      31,
+      37,
+      41,
+      43,
+      47,
+      53,
+      59
+    ]
+  }
+}

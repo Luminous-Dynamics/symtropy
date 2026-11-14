@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "space_id": "glass-synthetic-space-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic space-version mechanics only; no material or industrial claim is validated.",
+  "allowed_domains": ["glass", "metallurgical_grade_silicon"],
+  "hard_constraints": [
+    {"id": "accepted-grade-output", "definition": "A feasible result requires independently qualified accepted-grade output."},
+    {"id": "mass-balance", "definition": "Material inputs and outputs must reconcile under the registered mass-balance protocol."}
+  ],
+  "candidate_families": [
+    {"id": "baseline-glass-family", "domain": "glass", "description": "Initial synthetic glass family."},
+    {"id": "baseline-silicon-family", "domain": "metallurgical_grade_silicon", "description": "Initial synthetic MG-Si family."}
+  ]
+}

@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Glass–Silicon Paired Causal Trial Input v0.1",
+  "description": "Preregistered paired-block trial input. A valid contract does not independently establish data authenticity, treatment assignment custody, or real industrial causal impact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "preregistration",
+    "blocks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-causal-trial-synthetic-v0-1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "preregistered_at",
+        "analysis_plan_sha256",
+        "assignment_schedule_sha256",
+        "endpoint",
+        "direction",
+        "minimum_relative_reduction",
+        "alpha",
+        "design"
+      ],
+      "properties": {
+        "protocol_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "preregistered_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "analysis_plan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "assignment_schedule_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "endpoint": {
+          "const": "energy_per_accepted_tonne_kwh"
+        },
+        "direction": {
+          "const": "lower_is_better"
+        },
+        "minimum_relative_reduction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 0.5
+        },
+        "design": {
+          "const": "balanced_paired_randomized_crossover"
+        }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "block_id",
+          "allocation_order",
+          "control",
+          "treatment"
+        ],
+        "properties": {
+          "block_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "allocation_order": {
+            "enum": [
+              "CONTROL_THEN_TREATMENT",
+              "TREATMENT_THEN_CONTROL"
+            ]
+          },
+          "control": {
+            "$ref": "#/$defs/period"
+          },
+          "treatment": {
+            "$ref": "#/$defs/period"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period_id",
+        "measured_at",
+        "measurement_status",
+        "energy_kwh",
+        "accepted_tonnes",
+        "quality_status",
+        "evidence_ref"
+      ],
+      "properties": {
+        "period_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "measured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "measurement_status": {
+          "enum": [
+            "VALID",
+            "INVALID",
+            "CENSORED",
+            "FAILED",
+            "STALE",
+            "OUT_OF_DOMAIN",
+            "CONTRADICTORY"
+          ]
+        },
+        "energy_kwh": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accepted_tonnes": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quality_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN"
+          ]
+        },
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "measurement_status": {
+                "const": "VALID"
+              }
+            },
+            "required": [
+              "measurement_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "energy_kwh": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "accepted_tonnes": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "measurement_status": {
+                "enum": [
+                  "INVALID",
+                  "CENSORED",
+                  "FAILED",
+                  "STALE",
+                  "OUT_OF_DOMAIN",
+                  "CONTRADICTORY"
+                ]
+              }
+            },
+            "required": [
+              "measurement_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "energy_kwh": {
+                "type": "null"
+              },
+              "accepted_tonnes": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

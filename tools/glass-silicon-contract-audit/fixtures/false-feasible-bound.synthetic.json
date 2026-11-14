@@ -1,0 +1,14 @@
+{
+  "benchmark_id": "glass-false-feasible-bound-synthetic-v0-1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic statistical-arithmetic control only. The fixture does not establish independence, representativeness, label quality, glass feasibility, or manufacturing performance.",
+  "independent_negative_units": 600,
+  "false_feasible_count": 0,
+  "confidence_level": 0.95,
+  "target_upper_bound": 0.05,
+  "independence_unit": "one independently grouped negative composition-family/campaign unit",
+  "independence_evidence_ref": "synthetic-fixture-only",
+  "negative_label_evidence_ref": "synthetic-fixture-only",
+  "protocol_pre_registered": true,
+  "test_set_frozen": true
+}

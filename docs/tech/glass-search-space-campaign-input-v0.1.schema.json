@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Glass–Silicon Space-Expansion Public Campaign Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "budgets",
+    "initial_candidate_family_ids",
+    "campaigns"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "glass-space-expansion-trial-synthetic-v0-1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_cost_units",
+        "max_duration_seconds"
+      ],
+      "properties": {
+        "max_cost_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "initial_candidate_family_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+      }
+    },
+    "campaigns": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "campaign_id",
+          "environment_id",
+          "policy_id",
+          "policy_class",
+          "events"
+        ],
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "environment_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
+          },
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_class": {
+            "enum": [
+              "fixed_space",
+              "random_expansion",
+              "rule_based_expansion",
+              "llm_expansion"
+            ]
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "event_seq",
+                    "event_id",
+                    "event_type",
+                    "candidate_family_id",
+                    "expansion_method",
+                    "proposal_sha256"
+                  ],
+                  "properties": {
+                    "event_seq": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "event_type": {
+                      "const": "expand_space"
+                    },
+                    "candidate_family_id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                    },
+                    "expansion_method": {
+                      "enum": [
+                        "random",
+                        "rule_based",
+                        "llm"
+                      ]
+                    },
+                    "proposal_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-fA-F0-9]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "event_seq",
+                    "event_id",
+                    "event_type",
+                    "candidate_family_id",
+                    "claimed_feasible"
+                  ],
+                  "properties": {
+                    "event_seq": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "event_type": {
+                      "const": "evaluate_candidate"
+                    },
+                    "candidate_family_id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                    },
+                    "claimed_feasible": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
