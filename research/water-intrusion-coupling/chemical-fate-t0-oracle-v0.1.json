@@ -1,0 +1,141 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "WATER-INTRUSION-CHEMICAL-FATE-T0",
+  "evidence_class": "synthetic_expected_outputs_only",
+  "evidence_ceiling": "analytical_equation_and_model_scope_semantics_only_no_physical_chemical_qualification",
+  "input_profile_id": "LUMINOUS-WATER-CHEMICAL-FATE-T0",
+  "cases": [
+    {
+      "case_id": "CF-T0-001-first-order-decay-known-answer",
+      "expected": {
+        "chemical_disposition": "ANALYTICAL_FIRST_ORDER_KNOWN_ANSWER",
+        "parent_remaining_concentration_mg_l": 1.5163266492815834,
+        "parent_transformed_concentration_mg_l": 0.9836733507184166,
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-002-sequential-reaction-unequal-rate-constants",
+      "expected": {
+        "chemical_disposition": "ANALYTICAL_SEQUENTIAL_REACTION_KNOWN_ANSWER",
+        "A_mg_l": 0.5488116360940264,
+        "B_mg_l": 0.384013169175383,
+        "C_mg_l": 0.06717519473059064,
+        "conserved_moiety_total_mg_l": 1,
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-003-sequential-reaction-equal-rate-limit",
+      "expected": {
+        "chemical_disposition": "ANALYTICAL_SEQUENTIAL_REACTION_EQUAL_RATE_LIMIT",
+        "A_mg_l": 0.5488116360940264,
+        "B_mg_l": 0.32928698165641584,
+        "C_mg_l": 0.12190138224955777,
+        "conserved_moiety_total_mg_l": 1,
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-004-langmuir-bulk-wall-equilibrium",
+      "expected": {
+        "chemical_disposition": "ANALYTICAL_LANGMUIR_EQUILIBRIUM_KNOWN_ANSWER",
+        "surface_loading_mg_m2": 5,
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-005-conserved-moiety-ledger-complete",
+      "expected": {
+        "mass_balance_disposition": "MOIETY_BALANCE_CLOSED_WITHIN_DECLARED_ARITHMETIC_TOLERANCE",
+        "initial_moiety_mass_mg": 10,
+        "recovered_moiety_mass_mg": 10,
+        "residual_moiety_mass_mg": 0,
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-006-missing-residual-stream-does-not-force-closure",
+      "expected": {
+        "mass_balance_disposition": "MASS_BALANCE_UNRESOLVED",
+        "reason": "DECLARED_RESIDUAL_STREAM_UNMEASURED",
+        "measured_moiety_mass_mg": 9.5,
+        "initial_moiety_mass_mg": 10,
+        "unresolved_moiety_mass_mg": 0.5,
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-007-missing-water-matrix-temperature-and-ph",
+      "expected": {
+        "chemical_disposition": "INDETERMINATE",
+        "reason": "WATER_MATRIX_TEMPERATURE_AND_PH_REQUIRED",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-008-missing-reaction-kinetic-parameter",
+      "expected": {
+        "chemical_disposition": "INDETERMINATE",
+        "reason": "REACTION_PARAMETER_UNAVAILABLE",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-009-wall-species-requested-in-mixed-tank",
+      "expected": {
+        "chemical_disposition": "UNSUPPORTED_MODEL_SCOPE",
+        "reason": "EPANET_MSX_WALL_SPECIES_NOT_DEFINED_IN_STORAGE_TANKS",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-010-pressure-driven-input-required-but-not-supplied-by-msx",
+      "expected": {
+        "chemical_disposition": "UNSUPPORTED_MODEL_SCOPE",
+        "reason": "MSX_HYDRAULIC_INPUT_NOT_PRESSURE_DRIVEN_TRANSIENT",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-011-dispersion-required-but-disabled",
+      "expected": {
+        "chemical_disposition": "UNSUPPORTED_MODEL_SCOPE",
+        "reason": "REQUIRED_DISPERSION_OPTION_DISABLED",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-012-negative-concentration-or-rate",
+      "expected": {
+        "chemical_disposition": "INVALID_INPUT",
+        "reason": "NEGATIVE_CONCENTRATION_OR_RATE",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}
