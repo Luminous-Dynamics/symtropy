@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_kind": "synthetic_metadata_example",
+  "evidence_id": "ev-9d4a7b31c8e2056f",
+  "purpose_id": "night-route-planning",
+  "data_class": "public_synthetic",
+  "control_role": "resident_controlled",
+  "access_tier": "public_synthetic_only",
+  "source_type": "synthetic_fixture",
+  "scope": {
+    "description": "Invented example describing a hypothetical night-route evidence item; no real property or resident involved.",
+    "observed_at_precision": "not_applicable_synthetic",
+    "context_ref": "synthetic://accessible-home/privacy-demo/night-route"
+  },
+  "evidence_state": "unknown",
+  "review_role": "synthetic fixture reviewer role",
+  "retention": {
+    "rule_id": "synthetic-fixture-retention",
+    "expires_or_review_due": "2099-01-01",
+    "local_policy_ref": "synthetic://accessible-home/privacy-demo/retention"
+  },
+  "deletion_path": "synthetic_no_payload",
+  "payload_location": "none_synthetic_only",
+  "consent_or_authority_ref": "synthetic://accessible-home/privacy-demo/authority",
+  "share_recipient_roles": [
+    "public-synthetic-reviewer"
+  ],
+  "claim_boundary": "SYNTHETIC METADATA ONLY. Does not contain resident payload; does not prove truth, anonymity or legal compliance."
+}

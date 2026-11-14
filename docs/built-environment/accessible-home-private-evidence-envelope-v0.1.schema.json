@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/built-environment/accessible-home-private-evidence-envelope-v0.1.schema.json",
+  "title": "Synthetic evidence-envelope metadata contract",
+  "description": "Metadata envelope only. Public examples must be synthetic. This schema does not authorize processing real resident data or prove privacy/legal compliance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_kind",
+    "evidence_id",
+    "purpose_id",
+    "data_class",
+    "control_role",
+    "access_tier",
+    "source_type",
+    "scope",
+    "evidence_state",
+    "review_role",
+    "retention",
+    "deletion_path",
+    "payload_location",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "fixture_kind": { "const": "synthetic_metadata_example" },
+    "evidence_id": { "type": "string", "pattern": "^ev-[a-f0-9]{16,32}$" },
+    "purpose_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "data_class": {
+      "type": "string",
+      "enum": ["public_synthetic", "resident_local", "project_confidential", "shareable_derivative"]
+    },
+    "control_role": {
+      "type": "string",
+      "enum": ["resident_controlled", "named_project_controller", "qualified_reviewer"]
+    },
+    "access_tier": {
+      "type": "string",
+      "enum": ["public_synthetic_only", "resident_local_only", "named_project_roles", "named_reviewers_only", "resident_approved_export"]
+    },
+    "source_type": {
+      "type": "string",
+      "enum": ["synthetic_fixture", "resident_statement", "site_measurement", "professional_review", "participant_report", "other"]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "observed_at_precision", "context_ref"],
+      "properties": {
+        "description": { "type": "string", "minLength": 3 },
+        "observed_at_precision": {
+          "type": "string",
+          "enum": ["not_applicable_synthetic", "day", "month", "year", "withheld_local"]
+        },
+        "context_ref": {
+          "type": "string",
+          "pattern": "^(synthetic://|local://|restricted://)[a-z0-9/_-]+$"
+        }
+      }
+    },
+    "evidence_state": {
+      "type": "string",
+      "enum": ["verified_for_declared_scope", "known_barrier", "unknown", "proposed", "needs_site_measurement", "needs_professional_review"]
+    },
+    "review_role": { "type": "string", "minLength": 1 },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "expires_or_review_due", "local_policy_ref"],
+      "properties": {
+        "rule_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+        "expires_or_review_due": { "type": "string", "format": "date" },
+        "local_policy_ref": {
+          "type": "string",
+          "pattern": "^(synthetic://|local://|restricted://)[a-z0-9/_-]+$"
+        }
+      }
+    },
+    "deletion_path": {
+      "type": "string",
+      "enum": ["synthetic_no_payload", "resident_local_delete", "restricted_store_delete_and_track_copies", "not_exportable_until_defined"]
+    },
+    "payload_location": {
+      "type": "string",
+      "enum": ["none_synthetic_only", "local_encrypted_store", "restricted_project_store", "resident_approved_derivative_store"]
+    },
+    "consent_or_authority_ref": {
+      "type": "string",
+      "pattern": "^(synthetic://|local://|restricted://)[a-z0-9/_-]+$"
+    },
+    "share_recipient_roles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "claim_boundary": {
+      "const": "SYNTHETIC METADATA ONLY. Does not contain resident payload; does not prove truth, anonymity or legal compliance."
+    }
+  }
+}
