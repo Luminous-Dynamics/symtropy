@@ -61,6 +61,11 @@
       "case_id": "MC12",
       "scenario": "Monte Carlo uncertainty is explicitly separated from the ATE sampling interval.",
       "expected": "uncertainty_channel_separation"
+    },
+    {
+      "case_id": "MC13",
+      "scenario": "A valid blocked trial containing 10,001 independent units is rejected before Monte Carlo sampling.",
+      "expected": "unit_ceiling_rejected"
     }
   ]
 }
