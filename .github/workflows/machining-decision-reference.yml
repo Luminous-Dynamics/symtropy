@@ -1,0 +1,47 @@
+name: Machining first-passage risk and inspection EVSI reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/machining-decision/inspection_voi.rs"
+      - "tools/machining-decision/README.md"
+      - "tools/machining-decision/expected.csv"
+      - ".github/workflows/machining-decision-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/machining-decision/inspection_voi.rs"
+      - "tools/machining-decision/README.md"
+      - "tools/machining-decision/expected.csv"
+      - ".github/workflows/machining-decision-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run exact-enumeration tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/machining-decision/inspection_voi.rs -o "$RUNNER_TEMP/inspection-voi-tests"
+          "$RUNNER_TEMP/inspection-voi-tests"
+      - name: Build and verify benchmark
+        run: |
+          rustc --edition=2024 -D warnings tools/machining-decision/inspection_voi.rs -o "$RUNNER_TEMP/inspection-voi"
+          "$RUNNER_TEMP/inspection-voi" --verify
+      - name: Verify deterministic output and frozen table
+        run: |
+          "$RUNNER_TEMP/inspection-voi" --csv > "$RUNNER_TEMP/inspection-a.csv"
+          "$RUNNER_TEMP/inspection-voi" --csv > "$RUNNER_TEMP/inspection-b.csv"
+          diff -u "$RUNNER_TEMP/inspection-a.csv" "$RUNNER_TEMP/inspection-b.csv"
+          diff -u tools/machining-decision/expected.csv "$RUNNER_TEMP/inspection-a.csv"
+          cat "$RUNNER_TEMP/inspection-a.csv"
+      - name: Emit exact source and output digests
+        run: |
+          sha256sum tools/machining-decision/inspection_voi.rs tools/machining-decision/expected.csv "$RUNNER_TEMP/inspection-a.csv"
