@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/visual-technology/display-stimulus-report.schema.json",
+  "title": "ODRH-STIM-001 generated raster report",
+  "description": "A valid report establishes source raster identity, not actual signal or physical display output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_schema_version",
+    "manifest_id",
+    "stimulus_id",
+    "source_case_id",
+    "source_corpus_id",
+    "source_corpus_git_blob_sha1",
+    "manifest_sha256",
+    "recipe_sha256",
+    "recipe_schema_sha256",
+    "report_schema_sha256",
+    "generator",
+    "generator_version",
+    "generator_source_revision",
+    "raster",
+    "output_bytes",
+    "output_sha256",
+    "evidence_class",
+    "status",
+    "physical_output_validation",
+    "global_claim_ceiling",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "report_schema_version": {"type": "string", "const": "0.1.0"},
+    "manifest_id": {"type": "string", "const": "ODRH-STIM-001"},
+    "stimulus_id": {"type": "string", "pattern": "^ODRH-STIM-[A-Z0-9-]+$"},
+    "source_case_id": {"type": "string", "pattern": "^VIS-DISP-[A-Z0-9-]+$"},
+    "source_corpus_id": {"type": "string", "const": "VIS-DISP-CORPUS-001"},
+    "source_corpus_git_blob_sha1": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "recipe_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "recipe_schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "report_schema_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "generator": {"type": "string", "const": "display-stimulus-reference"},
+    "generator_version": {"type": "string", "minLength": 1},
+    "generator_source_revision": {"type": "string", "minLength": 1},
+    "raster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format", "channel_order", "origin", "width", "height", "bit_depth",
+        "maxval", "bytes_per_sample", "sixteen_bit_sample_byte_order",
+        "transfer_semantics", "color_profile", "metadata_transport"
+      ],
+      "properties": {
+        "format": {"type": "string", "const": "PPM_P6"},
+        "channel_order": {"type": "string", "const": "RGB"},
+        "origin": {"type": "string", "const": "TOP_LEFT"},
+        "width": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "height": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "bit_depth": {"type": "integer", "enum": [8, 10]},
+        "maxval": {"type": "integer", "enum": [255, 1023]},
+        "bytes_per_sample": {"type": "integer", "enum": [1, 2]},
+        "sixteen_bit_sample_byte_order": {
+          "type": "string", "enum": ["BIG_ENDIAN", "NOT_APPLICABLE"]
+        },
+        "transfer_semantics": {"type": "string", "const": "EXPLICIT_CODE_VALUES_ONLY"},
+        "color_profile": {"type": "string", "const": "NONE_EMBEDDED"},
+        "metadata_transport": {"type": "string", "const": "NOT_REPRESENTED"}
+      }
+    },
+    "output_bytes": {"type": "integer", "minimum": 1},
+    "output_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidence_class": {"type": "string", "const": "SYNTHETIC_STIMULUS"},
+    "status": {"type": "string", "const": "UNQUALIFIED"},
+    "physical_output_validation": {"type": "string", "const": "NOT_PERFORMED"},
+    "global_claim_ceiling": {
+      "type": "string",
+      "const": "The generated file bytes and code-level raster are specified. Signal negotiation, host/compositor/video-path preservation, physical panel output, photometry, colorimetry, HDR transport, and human perception are not evaluated."
+    },
+    "claim_ceiling": {"type": "string", "minLength": 1}
+  }
+}
