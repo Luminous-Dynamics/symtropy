@@ -1,0 +1,66 @@
+{
+  "protocol_id": "LOCO-JOINT-UQ-SIDECAR-MUTATIONS-001",
+  "schema_version": "0.1.0",
+  "cases": [
+    {
+      "case_id": "UQ01_PARENT_DIGEST_DRIFT",
+      "path": "/parent_binding/payload_sha256",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ02_ACTUATOR_SCOPE_DRIFT",
+      "path": "/scope/actuator_id",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ03_SHARED_SOURCE_GROUP_SPLIT",
+      "path": "/uncertainty_receipts/1/components/0/dependence_group_id",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ04_SHARED_MODEL_RECEIPT_MISMATCH",
+      "path": "/uncertainty_receipts/1/dependence/0/decision/receipt_digest",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ05_DERIVED_INPUT_UQ_OMISSION",
+      "path": "/derived_results/0/input_uncertainty_receipt_ids",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ06_CALIBRATION_WINDOW_EXPIRED",
+      "path": "/measurements/0/calibration_valid_through_tick",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ07_MONTE_CARLO_CONVERGENCE_MISSING",
+      "path": "/uncertainty_receipts/2/coverage/convergence_receipt_digest",
+      "mutation": "replace",
+      "expected_disposition": "inconclusive"
+    },
+    {
+      "case_id": "UQ08_ACTUATION_AUTHORITY_TRUE",
+      "path": "/actuation_authorized",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ09_DUPLICATE_JSON_KEY",
+      "path": "$",
+      "mutation": "duplicate_key",
+      "expected_disposition": "rejected"
+    },
+    {
+      "case_id": "UQ10_PAYLOAD_DIGEST_TAMPER",
+      "path": "/integrity/payload_sha256",
+      "mutation": "replace",
+      "expected_disposition": "rejected"
+    }
+  ]
+}
