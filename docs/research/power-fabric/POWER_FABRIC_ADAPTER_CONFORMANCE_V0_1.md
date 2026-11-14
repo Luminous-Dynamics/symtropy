@@ -71,13 +71,16 @@ Start with a narrow frozen subset of IEC 61970-301:2020 + AMD1:2022 and the rele
 ### IEC 61850 SCL
 Limit the initial scope to IEC 61850-6:2009 + AMD1:2018 + AMD2:2024 consolidated publication and its IED/substation configuration exchange domain. Do not generalize SCL into an entire building-installation ontology.
 
+### Prosumer installations and mode transitions
+Prioritize IEC 60364-8-82:2022 + AMD1:2026. The consolidated publication covers prosumer low-voltage installations with local sources/storage, whether connected or not to a distribution network, and explicitly addresses grid interaction and islanded/stand-alone operation. Its technical changes include clarified earthing-system change sequencing and DSO connection/disconnection conditions. These are installation-safety requirements, not fields to infer from a simple module compatibility result.
+
 ### Cybersecurity and storage
 Map exact applicable parts individually. IEC 62351 is a multi-part series; IEC 62351-7:2025 is a distinct network/system-management data-object model edition. Storage profiles should assess relevant IEC 62933 parts, notably IEC 62933-3-1:2025 for planning/performance and IEC 62933-5-1:2024 for safety considerations.
 
 For low-voltage installation principles, include IEC 60364-1:2025 in the dated standards register. Its 2025 edition addresses safety services and standby supplies, energy efficiency, prosumer installations, and periodic verification of protective measures. It is a normative installation standard, not a data interchange format; its obligations belong in qualified jurisdiction/rule profiles, not guessed CIM mappings.
 
 ### South Africa
-A national applicability profile is separate from IEC mapping success. The current SANS register, SANS 10142-1 edition/amendments, Electrical Installation Regulations, utility requirements and registered-practitioner responsibilities require authoritative confirmation. Public sources identify SANS 10142-1:2024 Ed 3.2. The Department of Employment and Labour notice dated 2025-10-22 says owners remain responsible and CoCs require inspection/testing by competent registered electrical contractors. This programme does not automate or issue CoCs.
+A national applicability profile is separate from IEC mapping success. The ECA(SA) announced availability of SANS 10142-1:2026 Ed 3.03 on 2026-06-26; it supersedes the previously listed 2024 Ed 3.2. Obtain the current authoritative SABS text and amendments, and confirm Electrical Installation Regulations, utility requirements and registered-practitioner responsibilities. The Department of Employment and Labour notice dated 2025-10-22 reiterates owner responsibility and CoC inspection/testing by competent registered electrical contractors. This programme does not automate or issue CoCs.
 
 ## 7. Frozen adapter benchmark
 
@@ -121,12 +124,13 @@ This contract is a mapping/benchmark layer. It is not a standards conformity ass
 - IEC 62933-3-1:2025: https://webstore.iec.ch/en/publication/75427
 - IEC 62933-5-1:2024: https://webstore.iec.ch/en/publication/72239
 - IEC 60364-1:2025: https://webstore.iec.ch/en/publication/63699
+- IEC 60364-8-82:2022 + AMD1:2026: https://webstore.iec.ch/en/publication/113148
 - OpenFMB reference architecture: https://openfmb.openenergysolutions.com/docs/openfmb/intro/
 - NIST Smart Grid Testing and Certification: https://www.nist.gov/programs-projects/smart-grid-testing-and-certification
 - ETAP digital twin: https://etap.com/products/etap-digital-twin
 - SPAN on-premise: https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
 - SPAN app safety guidance: https://support.span.io/hc/en-us/articles/4411214235159-Navigating-the-SPAN-Home-App
-- South African SANS 10142-1:2024 Ed 3.2 notice: https://www.gov.za/sites/default/files/gcis_document/202408/51050gen2686.pdf
+- South African SANS 10142-1:2026 Ed 3.03 availability notice (ECA(SA), 2026-06-26): https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/
 - South African CoC/registered-contractor notice, 2025-10-22: https://www.gov.za/news/media-statements/employment-and-labour-electrical-installation-laws-and-certificate-compliance
 
 These sources establish public scope and publication metadata, not a complete normative applicability determination. Edition, amendments, national adoption, licensing, and installation scope must be checked before implementing normative rules.

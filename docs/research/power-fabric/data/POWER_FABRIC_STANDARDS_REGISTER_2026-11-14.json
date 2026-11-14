@@ -110,15 +110,15 @@
       "source_url": "https://webstore.iec.ch/en/publication/72239"
     },
     {
-      "record_id": "SANS-10142-1-2024-ED3-2",
+      "record_id": "SANS-10142-1-2026-ED3-03",
       "kind": "national_standard",
       "standard_id": "SANS 10142-1",
-      "edition": "2024 Ed 3.2",
+      "edition": "2026 Ed 3.03",
       "publication_status": "national_adoption",
       "jurisdiction": "South Africa",
-      "scope": "The wiring of premises — Part 1: Low-voltage installations.",
-      "power_fabric_role": "Independent South African jurisdiction profile; current normative text and applicability must be confirmed with SABS and competent practitioners.",
-      "source_url": "https://www.gov.za/sites/default/files/gcis_document/202408/51050gen2686.pdf"
+      "scope": "The wiring of premises — Part 1: Low-voltage installations. ECA(SA) announced availability on 2026-06-26; supersedes SANS 10142-1:2024 Ed 3.2.",
+      "power_fabric_role": "Primary South African low-voltage installation jurisdiction profile. Confirm the current authoritative SABS text, amendments, regulations and applicability with competent registered practitioners.",
+      "source_url": "https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/"
     },
     {
       "record_id": "OPENFMB-REFERENCE-ARCHITECTURE",
@@ -139,6 +139,19 @@
       "scope": "Standards-based smart-grid interoperability test-programme development and certification coordination.",
       "power_fabric_role": "Benchmark/test-programme design reference.",
       "source_url": "https://www.nist.gov/programs-projects/smart-grid-testing-and-certification"
+    },
+    {
+      "record_id": "IEC-60364-8-82-2022-AMD1-2026",
+      "kind": "standard",
+      "standard_id": "IEC 60364-8-82",
+      "edition": "2022",
+      "amendments": [
+        "AMD1:2026"
+      ],
+      "publication_status": "published",
+      "scope": "Prosumer low-voltage electrical installations connected or not to a distribution network, with local generation and/or storage; includes grid interaction and islanded/stand-alone operational aspects.",
+      "power_fabric_role": "High-priority prosumer installation jurisdiction/rule profile for grid/PV/storage/mode transitions. Map applicable requirements only through qualified installation rules, not generic CIM semantics.",
+      "source_url": "https://webstore.iec.ch/en/publication/113148"
     }
   ]
 }
