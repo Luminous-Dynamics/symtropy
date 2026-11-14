@@ -387,7 +387,7 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         status == "SYNTHETIC_RULE_FIXTURES_NOT_REAL_OBSERVATIONS"
             && ceiling.contains("Only the deterministic rules")
             && ceiling.contains("No real source data ingested"),
-        "corpus must remain explicitly unevaluated specification data");
+        "corpus must remain explicitly synthetic and non-production");
 
     for (index, case) in cases.iter().enumerate() {
         let id = case.get("case_id").and_then(Value::as_str)
