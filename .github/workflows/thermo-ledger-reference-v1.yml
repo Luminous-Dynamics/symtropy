@@ -1,0 +1,103 @@
+name: Thermodynamic Ledger Reference V1
+
+on:
+  push:
+    branches:
+      - research/thermo-ledger-reference-v1
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - '.github/workflows/thermo-ledger-reference-v1.yml'
+      - 'Cargo.lock'
+      - 'crates/domains/symtropy-consciousness-physics/Cargo.toml'
+      - 'crates/domains/symtropy-consciousness-physics/tests/thermo_ledger_reference_v1.rs'
+      - 'crates/domains/symtropy-consciousness-physics/tests/data/thermo-ledger-reference-v1.json'
+      - 'docs/research/THERMO_LEDGER_REFERENCE_V1_2026-10.md'
+
+permissions:
+  contents: read
+
+# Every exact qualification subject keeps its own run history.
+concurrency:
+  group: thermo-ledger-reference-v1-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_TARGET_DIR: /tmp/symtropy-thermo-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+  QUALIFIED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  reference:
+    name: Exact-head bounded energy ledger reference
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact qualification subject
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert tested commit
+        run: |
+          test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+          git status --short --branch
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # master @ 2025-08-23
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Assert toolchain identity
+        run: |
+          test "$(rustc +1.96.0 --version)" = "rustc 1.96.0 (ac68faa20 2026-05-25)"
+          rustfmt +1.96.0 --version
+          cargo +1.96.0 --version
+
+      - name: Check target package formatting
+        run: cargo +1.96.0 fmt --manifest-path crates/domains/symtropy-consciousness-physics/Cargo.toml -- --check
+
+      - name: Validate locked package metadata
+        run: cargo +1.96.0 metadata --manifest-path crates/domains/symtropy-consciousness-physics/Cargo.toml --locked --no-deps --format-version 1 > /dev/null
+
+      - name: Run frozen ledger reference oracle
+        run: cargo +1.96.0 test --manifest-path crates/domains/symtropy-consciousness-physics/Cargo.toml --locked --test thermo_ledger_reference_v1
+
+      - name: Run thermodynamics library tests
+        run: cargo +1.96.0 test --manifest-path crates/domains/symtropy-consciousness-physics/Cargo.toml --locked --lib
+
+      - name: Verify clean postflight and emit evidence
+        run: |
+          git status --short --branch
+          postflight_status="$(git status --porcelain=v1 -uall)"
+          if [ -n "$postflight_status" ]; then
+            echo "Unexpected repository changes after verification:"
+            printf 'status_repr=%q\\n' "$postflight_status"
+            printf '%s\\n' "$postflight_status" | od -An -tx1c
+            exit 1
+          fi
+          {
+            echo "profile=BoundedEnergyBoundaryAccountingV1"
+            echo "status=reference-gate-passed"
+            echo "qualified_sha=$QUALIFIED_SHA"
+            echo "event=$GITHUB_EVENT_NAME"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "runner_os=$RUNNER_OS"
+            echo "rust=$(rustc +1.96.0 --version)"
+            echo "rust_commit=$(rustc +1.96.0 --version --verbose | sed -n 's/^commit-hash: //p')"
+            echo "cargo=$(cargo +1.96.0 --version)"
+            echo "rustfmt=$(rustfmt +1.96.0 --version)"
+            echo "workflow_blob=$(git hash-object .github/workflows/thermo-ledger-reference-v1.yml)"
+            echo "manifest_blob=$(git hash-object crates/domains/symtropy-consciousness-physics/Cargo.toml)"
+            echo "lock_sha256=$(sha256sum Cargo.lock | cut -d' ' -f1)"
+            echo "corpus_blob=$(git hash-object crates/domains/symtropy-consciousness-physics/tests/data/thermo-ledger-reference-v1.json)"
+            echo "corpus_sha256=$(sha256sum crates/domains/symtropy-consciousness-physics/tests/data/thermo-ledger-reference-v1.json | cut -d' ' -f1)"
+            echo "test_blob=$(git hash-object crates/domains/symtropy-consciousness-physics/tests/thermo_ledger_reference_v1.rs)"
+            echo "test_sha256=$(sha256sum crates/domains/symtropy-consciousness-physics/tests/thermo_ledger_reference_v1.rs | cut -d' ' -f1)"
+            echo "production_correspondence=NOT_ESTABLISHED"
+            echo "postflight=clean"
+          } >> "$GITHUB_STEP_SUMMARY"
