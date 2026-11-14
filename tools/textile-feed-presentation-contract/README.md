@@ -10,6 +10,7 @@ Standalone Rust contract for bulk textile feed, singulation and sensor-ready pre
 - every incoming item ends in exactly one terminal disposition;
 - missing, duplicate and orphan items cannot disappear from the run;
 - physical route destinations are recorded only for routed outcomes;
+- a routed outcome requires at least one valid single-item presentation attempt;
 - derived metrics retain their denominator and separate first-pass, eventual, conditional and end-to-end performance.
 
 ## Metrics are not interchangeable
