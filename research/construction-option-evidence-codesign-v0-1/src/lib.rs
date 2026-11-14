@@ -262,6 +262,64 @@ impl JointObjectives {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointObjectiveDelta {
+    pub construction_lifecycle_cost_minor_units: i128,
+    pub observation_campaign_cost_minor_units: i128,
+    pub combined_lifecycle_cost_minor_units: i128,
+    pub construction_elapsed_minutes: i128,
+    pub observation_duration_minutes: i128,
+    pub observation_scheduled_span_ms: i128,
+    pub total_workflow_crew_minutes: i128,
+    pub total_energy_wh: i128,
+    pub construction_carbon_gco2e: i128,
+    pub construction_material_mass_kg_milli: i128,
+    pub construction_rework_units: i128,
+}
+
+impl JointObjectiveDelta {
+    fn between(reference: &JointObjectives, candidate: &JointObjectives) -> Self {
+        Self {
+            construction_lifecycle_cost_minor_units: i128::from(
+                candidate.construction_lifecycle_cost_minor_units,
+            ) - i128::from(reference.construction_lifecycle_cost_minor_units),
+            observation_campaign_cost_minor_units: i128::from(
+                candidate.observation_campaign_cost_minor_units,
+            ) - i128::from(reference.observation_campaign_cost_minor_units),
+            combined_lifecycle_cost_minor_units: i128::from(
+                candidate.combined_lifecycle_cost_minor_units,
+            ) - i128::from(reference.combined_lifecycle_cost_minor_units),
+            construction_elapsed_minutes: i128::from(candidate.construction_elapsed_minutes)
+                - i128::from(reference.construction_elapsed_minutes),
+            observation_duration_minutes: i128::from(candidate.observation_duration_minutes)
+                - i128::from(reference.observation_duration_minutes),
+            observation_scheduled_span_ms: i128::from(candidate.observation_scheduled_span_ms)
+                - i128::from(reference.observation_scheduled_span_ms),
+            total_workflow_crew_minutes: i128::from(candidate.total_workflow_crew_minutes)
+                - i128::from(reference.total_workflow_crew_minutes),
+            total_energy_wh: i128::from(candidate.total_energy_wh)
+                - i128::from(reference.total_energy_wh),
+            construction_carbon_gco2e: i128::from(candidate.construction_carbon_gco2e)
+                - i128::from(reference.construction_carbon_gco2e),
+            construction_material_mass_kg_milli: i128::from(
+                candidate.construction_material_mass_kg_milli,
+            ) - i128::from(reference.construction_material_mass_kg_milli),
+            construction_rework_units: i128::from(candidate.construction_rework_units)
+                - i128::from(reference.construction_rework_units),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointMatchedComparison {
+    pub reference_option_id: String,
+    pub candidate_option_id: String,
+    pub changed_axes: Vec<construction_production_optioneering_core::InterventionAxis>,
+    pub single_factor_controlled: bool,
+    /// Candidate minus reference; only emitted when both joint packages are proven feasible.
+    pub delta_candidate_minus_reference: JointObjectiveDelta,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum JointPackageStatus {
     /// Construction option passed every scenario; campaign is feasible and proven optimal.
     JointOptimalFeasible,
@@ -294,6 +352,11 @@ pub struct JointOptioneeringReport {
     pub assessment_horizon_months: u64,
     pub evaluated_tier: Option<construction_production_optioneering_core::OptionTier>,
     pub joint_evaluations: Vec<JointOptionEvaluation>,
+    /// Construction-only matched contrasts from the existing option evaluator.
+    pub matched_option_comparisons:
+        Vec<construction_production_optioneering_core::MatchedOptionComparison>,
+    /// Full option-plus-campaign deltas, emitted only when both packages are proven feasible.
+    pub joint_matched_comparisons: Vec<JointMatchedComparison>,
     /// Only options with complete, optimality-proven campaigns enter this frontier.
     pub proven_frontier_option_ids: Vec<String>,
     /// Complete campaigns found before the search budget ended.
@@ -541,6 +604,38 @@ pub fn evaluate_option_evidence_packages(
         .collect();
     provisional_feasible_option_ids.sort();
 
+    let proven_objectives_by_option: BTreeMap<&str, &JointObjectives> = joint_evaluations
+        .iter()
+        .filter(|evaluation| evaluation.status == JointPackageStatus::JointOptimalFeasible)
+        .filter_map(|evaluation| {
+            evaluation
+                .objectives
+                .as_ref()
+                .map(|objectives| (evaluation.option_id.as_str(), objectives))
+        })
+        .collect();
+
+    let joint_matched_comparisons = option_report
+        .matched_option_comparisons
+        .iter()
+        .filter_map(|comparison| {
+            let reference = proven_objectives_by_option
+                .get(comparison.reference_option_id.as_str())?;
+            let candidate = proven_objectives_by_option
+                .get(comparison.candidate_option_id.as_str())?;
+            Some(JointMatchedComparison {
+                reference_option_id: comparison.reference_option_id.clone(),
+                candidate_option_id: comparison.candidate_option_id.clone(),
+                changed_axes: comparison.changed_axes.clone(),
+                single_factor_controlled: comparison.single_factor_controlled,
+                delta_candidate_minus_reference: JointObjectiveDelta::between(
+                    reference,
+                    candidate,
+                ),
+            })
+        })
+        .collect();
+
     let construction_frontier_resolved = matches!(
         option_report.disposition,
         ReportDisposition::FrontierComputed
@@ -558,6 +653,8 @@ pub fn evaluate_option_evidence_packages(
         assessment_horizon_months: option_report.assessment_horizon_months,
         evaluated_tier: option_report.evaluated_tier,
         joint_evaluations,
+        matched_option_comparisons: option_report.matched_option_comparisons,
+        joint_matched_comparisons,
         proven_frontier_option_ids,
         provisional_feasible_option_ids,
         joint_frontier_proven,
@@ -1446,27 +1543,51 @@ mod tests {
                 .all(|item| item.status == JointPackageStatus::JointOptimalFeasible)
         );
 
-        let assisted_comparison = report
-            .joint_evaluations[1]
-            .construction_evaluation
-            .option_id
-            .clone();
-        assert_eq!(assisted_comparison, "panel-guarded-robot");
-
-        let matched = report
-            .joint_evaluations
-            .iter()
-            .filter(|item| item.construction_evaluation.option_id != "panel-manual")
-            .collect::<Vec<_>>();
-        assert_eq!(matched.len(), 2);
-        for item in matched {
-            let comparison = report
-                .joint_evaluations
-                .iter()
-                .flat_map(|_| std::iter::empty::<()>())
-                .count();
-            assert_eq!(comparison, 0);
+        assert_eq!(report.matched_option_comparisons.len(), 2);
+        assert_eq!(report.joint_matched_comparisons.len(), 2);
+        for comparison in &report.matched_option_comparisons {
+            assert_eq!(
+                comparison.changed_axes,
+                vec![construction_production_optioneering_core::InterventionAxis::Fleet]
+            );
+            assert!(comparison.single_factor_controlled);
         }
+
+        let assisted_delta = report
+            .joint_matched_comparisons
+            .iter()
+            .find(|comparison| comparison.candidate_option_id == "panel-assisted")
+            .expect("assisted versus manual joint contrast");
+        assert_eq!(
+            assisted_delta.delta_candidate_minus_reference.combined_lifecycle_cost_minor_units,
+            2_200
+        );
+        assert_eq!(
+            assisted_delta.delta_candidate_minus_reference.total_workflow_crew_minutes,
+            -95
+        );
+        assert_eq!(
+            assisted_delta.delta_candidate_minus_reference.construction_elapsed_minutes,
+            -80
+        );
+
+        let robot_delta = report
+            .joint_matched_comparisons
+            .iter()
+            .find(|comparison| comparison.candidate_option_id == "panel-guarded-robot")
+            .expect("guarded robot versus manual joint contrast");
+        assert_eq!(
+            robot_delta.delta_candidate_minus_reference.combined_lifecycle_cost_minor_units,
+            8_500
+        );
+        assert_eq!(
+            robot_delta.delta_candidate_minus_reference.total_workflow_crew_minutes,
+            -240
+        );
+        assert_eq!(
+            robot_delta.delta_candidate_minus_reference.construction_elapsed_minutes,
+            -180
+        );
 
         let objectives: BTreeMap<&str, &JointObjectives> = report
             .joint_evaluations
