@@ -191,6 +191,66 @@ fn checked_area_interval(center: i64, radius: u64) -> Result<[i64; 2], RejectRea
     checked_interval(center, radius)
 }
 
+fn round_half_away_from_zero(twice_value: i128) -> Result<i128, RejectReason> {
+    if twice_value >= 0 {
+        twice_value
+            .checked_add(1)
+            .ok_or(RejectReason::NumericOverflow)
+            .map(|value| value / 2)
+    } else {
+        twice_value
+            .checked_sub(1)
+            .ok_or(RejectReason::NumericOverflow)
+            .map(|value| value / 2)
+    }
+}
+
+fn ceil_half_nonnegative(twice_value: u128) -> Result<u128, RejectReason> {
+    twice_value
+        .checked_add(1)
+        .ok_or(RejectReason::NumericOverflow)
+        .map(|value| value / 2)
+}
+
+fn absolute_segment_area_twice(
+    dx_um: u64,
+    displacement_start_um: i64,
+    displacement_end_um: i64,
+) -> Result<u128, RejectReason> {
+    let dx = u128::from(dx_um);
+    let start = u128::from(displacement_start_um.unsigned_abs());
+    let end = u128::from(displacement_end_um.unsigned_abs());
+    let crosses_zero = (displacement_start_um < 0 && displacement_end_um > 0)
+        || (displacement_start_um > 0 && displacement_end_um < 0);
+
+    if crosses_zero {
+        // Split the piecewise-linear segment at its zero crossing. The exact
+        // doubled area is dx * (a² + b²) / (a + b). Round upward at the
+        // half-µm² representation boundary so absolute area is conservative.
+        let denominator = start
+            .checked_add(end)
+            .ok_or(RejectReason::NumericOverflow)?;
+        let squares = start
+            .checked_mul(start)
+            .and_then(|value| end.checked_mul(end).and_then(|other| value.checked_add(other)))
+            .ok_or(RejectReason::NumericOverflow)?;
+        let numerator = dx
+            .checked_mul(squares)
+            .ok_or(RejectReason::NumericOverflow)?;
+        let quotient = numerator / denominator;
+        if numerator % denominator == 0 {
+            Ok(quotient)
+        } else {
+            quotient.checked_add(1).ok_or(RejectReason::NumericOverflow)
+        }
+    } else {
+        start
+            .checked_add(end)
+            .and_then(|sum| sum.checked_mul(dx))
+            .ok_or(RejectReason::NumericOverflow)
+    }
+}
+
 fn integer_sqrt(value: u128) -> u128 {
     if value < 2 {
         return value;
@@ -428,8 +488,13 @@ pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementRepo
                     signed_area_twice = signed_area_twice
                         .checked_add(segment_twice)
                         .ok_or(RejectReason::NumericOverflow)?;
+                    let segment_absolute_twice = absolute_segment_area_twice(
+                        dx,
+                        previous_displacement,
+                        displacement,
+                    )?;
                     absolute_area_twice = absolute_area_twice
-                        .checked_add(segment_twice.unsigned_abs())
+                        .checked_add(segment_absolute_twice)
                         .ok_or(RejectReason::NumericOverflow)?;
                     valid_span_length_um = valid_span_length_um
                         .checked_add(dx)
@@ -463,8 +528,8 @@ pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementRepo
         return Err(RejectReason::NoValidMeasuredSpan);
     }
 
-    let signed_area = signed_area_twice / 2;
-    let absolute_area = absolute_area_twice / 2;
+    let signed_area = round_half_away_from_zero(signed_area_twice)?;
+    let absolute_area = ceil_half_nonnegative(absolute_area_twice)?;
     let signed_area_change_um2 =
         i64::try_from(signed_area).map_err(|_| RejectReason::NumericOverflow)?;
     let absolute_area_change_um2 =
@@ -491,6 +556,7 @@ pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementRepo
     let mean_displacement_interval_um = checked_interval(mean_signed_displacement_um, uncertainty)?;
     let area_uncertainty = uncertainty
         .checked_mul(valid_span_length_um)
+        .and_then(|value| value.checked_add(1))
         .ok_or(RejectReason::NumericOverflow)?;
     let signed_area_interval_um2 = checked_area_interval(signed_area_change_um2, area_uncertainty)?;
 
@@ -637,6 +703,61 @@ mod tests {
         assert_eq!(report.coverage_permille, 1_000);
         assert_eq!(report.combined_uncertainty_um, 30);
         assert_eq!(report.claim_ceiling, CLAIM_CEILING);
+    }
+
+    #[test]
+    fn absolute_area_splits_a_zero_crossing_instead_of_cancelling_it() {
+        let mut input = base_input();
+        input.profile_samples = vec![
+            sample(0, Some(0), Some(100)),
+            sample(1_000, Some(0), Some(0)),
+            sample(2_000, Some(0), Some(-100)),
+        ];
+        let report = evaluate_profile_pair(&input).expect("zero-crossing profile should measure");
+        assert_eq!(report.signed_area_change_um2, 0);
+        assert_eq!(report.absolute_area_change_um2, 50_000);
+    }
+
+    #[test]
+    fn half_square_micrometre_signed_area_rounds_away_from_zero() {
+        let mut input = base_input();
+        input.uncertainty = UncertaintyBudget {
+            instrument_um: Some(0),
+            calibration_um: Some(0),
+            registration_um: Some(0),
+            repeatability_um: Some(0),
+            datum_um: Some(0),
+            interpolation_um: Some(0),
+        };
+        input.profile_samples = vec![
+            sample(0, Some(0), Some(0)),
+            sample(1, Some(0), Some(1)),
+            sample(2, Some(0), Some(1)),
+        ];
+        let report = evaluate_profile_pair(&input).expect("fractional area should be rounded");
+        assert_eq!(report.signed_area_change_um2, 2);
+        assert_eq!(report.absolute_area_change_um2, 2);
+    }
+
+    #[test]
+    fn negative_half_square_micrometre_signed_area_rounds_away_from_zero() {
+        let mut input = base_input();
+        input.uncertainty = UncertaintyBudget {
+            instrument_um: Some(0),
+            calibration_um: Some(0),
+            registration_um: Some(0),
+            repeatability_um: Some(0),
+            datum_um: Some(0),
+            interpolation_um: Some(0),
+        };
+        input.profile_samples = vec![
+            sample(0, Some(0), Some(0)),
+            sample(1, Some(0), Some(-1)),
+            sample(2, Some(0), Some(-1)),
+        ];
+        let report = evaluate_profile_pair(&input).expect("fractional negative area should round");
+        assert_eq!(report.signed_area_change_um2, -2);
+        assert_eq!(report.absolute_area_change_um2, 2);
     }
 
     #[test]
