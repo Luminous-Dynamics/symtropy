@@ -313,6 +313,9 @@ fn adjudicate_observation_case(case: &Value) -> Result<&'static str, String> {
         }
         "PLOT-CAMPAIGN-LEAKAGE-001" => {
             let unit = string_at(case, &["input", "split_group_unit"])?;
+            if unit.trim().is_empty() {
+                return Err("split_group_unit must not be empty".to_string());
+            }
             let same_plot = at(case, &["input", "same_plot_across_splits"])?
                 .as_bool().ok_or_else(|| "same_plot_across_splits must be boolean".to_string())?;
             Ok(if same_plot { "REJECT_LEAKAGE" } else { "NO_WITHIN_PLOT_SPLIT_CONFLICT_DETECTED" })
