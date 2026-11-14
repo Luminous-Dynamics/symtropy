@@ -65,7 +65,7 @@ The manifest contains sixteen scenarios:
 15. an independent recount rejects an invalid sampled block before statistic evaluation;
 16. zero exceedances still produce the plus-one minimum p-value.
 
-The Rust suite currently contains sixteen tests. An opt-in `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL throughput/replay records. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
+The Rust suite currently contains sixteen tests. The `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL timing/throughput/replay records. The exact-head workflow runs the harness and uploads the JSONL output together with Rust and runner/CPU metadata. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials. The v0.1 harness measures elapsed time, draws/second and unit-draws/second; it does not yet measure peak memory.
 
 ## SOTA comparison and next benchmarks
 
@@ -84,7 +84,8 @@ Report:
 - distribution of Monte Carlo standard errors and interval widths;
 - uniform assignment-frequency deviations in small enumerable blocks;
 - digest replay and row-order-invariance rate;
-- draw throughput, memory and total-work behavior at 16, 32, 64, 128, 256, 1,000 and 10,000 units.
+- measured elapsed time, draws/second, unit-draws/second and total-work behaviour at 16, 32, 64, 128, 256, 1,000 and 10,000 units;
+- peak memory only when separately instrumented with a platform-specific, per-size process measurement.
 
 **Aspirational targets (not achieved):**
 - 100% byte-identical replay for the same algorithm, seed, draw budget and trial frame;
@@ -96,16 +97,40 @@ Report:
 
 Do not claim Monte Carlo is better than exact enumeration. Exact is the standard when the assignment space is tractable; Monte Carlo extends the same reference distribution when it is not.
 
-## Industry comparison
+## Industry, standards and research comparison
 
-ABB Ability Digital Powertrain and Wärtsilä Expert Insight are relevant deployed condition-monitoring / diagnostic-to-action comparators, but their public product descriptions do not publish a comparable Monte Carlo randomization-inference benchmark for maintenance interventions. This module is not an anomaly-detection replacement. It supplies a reproducible statistical testing primitive that can support a future evidence-qualified maintenance-effect workflow.
+This module is a statistical inference primitive, not a replacement for industrial anomaly detection or OEM service expertise.
 
-The fair industry comparison is not “our p-value is better.” It is whether, on the same preregistered intervention trial:
-- the treatment assignment design is known;
-- the randomization distribution is implemented correctly;
-- inference is reproducible;
-- approximation error is visible and bounded;
-- the estimate is kept separate from measurement and causal-identification uncertainty.
+**Wärtsilä Expert Insight** is a strong marine comparator for the complete detect → investigate → intervene service loop. In Wärtsilä's published Aurora Spirit case, the service flagged abnormal turbocharger-inlet lube-oil pressure. Experts considered sensor error or an obstruction, requested onboard checks, then Technical Services confirmed a turbocharger problem and recommended taking the engine offline as a precaution. Inspection identified broken compressor-side bearing location pins; a service engineer completed the repair during the voyage, in time for the vessel's dynamic-positioning work. This illustrates why diagnosis, independent verification and operational response must be evaluated as separate stages. The public case does not publish a controlled randomization distribution or Monte Carlo inference benchmark for repair effects:
+- [Wärtsilä Aurora Spirit case](https://www.wartsila.com/insights/case-study/aurora-spirit)
+- [Wärtsilä Expert Insight](https://www.wartsila.com/marine/services/lifecycle-agreements/expert-insight-service)
+
+**ABB's 2026 Digital Powertrain portfolio** now describes two service models: expert-led Predictive Intelligence, combining ABB experts with analytics and continuous “what to fix and when” guidance; and self-service Digital Powertrain Insights, providing real-time asset-health insights and analytics-driven alerts for in-house teams. This matters for comparison: the benchmark should compare against both human-in-the-loop expert services and self-service fleet intelligence, not a generic dashboard:
+- [ABB Ability Digital Powertrain portfolio (2026)](https://library.e.abb.com/public/ad6138cb14d5433d85a2e4fe43932009/4MWA000447_ABB_Ability_Digital_Powertrain_Drives_Enabling%20Hardware_RevA_Nov2026.pdf)
+- [ABB Digital Powertrain Insights](https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain-insights)
+
+The P0 statistical differentiator is deliberately narrower: reproducible sampling from a frozen blocked-randomization assignment space, exact-small-sample differential testing, fixed-budget Monte Carlo uncertainty and canonical replay evidence. Public product pages do not publish comparable randomization-inference benchmarks. This is a limitation of public comparative data, not evidence that providers lack internal statistical methods.
+
+Relevant standards are guidance, not claims of conformance:
+- **ISO 13379-1:2025**, edition 2, provides general guidelines for condition-monitoring data interpretation and diagnostic techniques: https://www.iso.org/standard/88027.html
+- **ISO 13381-1:2025**, edition 3, provides guidelines and requirements for machinery prognostics processes: https://www.iso.org/standard/88029.html
+
+These standards are complementary to the maintenance-effect and diagnostic evidence architecture; neither defines this Monte Carlo algorithm nor certifies the implementation.
+
+Research methods address different layers and should not be ranked on one number:
+- **Najafi & Taghipour (2026)** model stochastic imperfect-repair effects and regime-dependent feasibility inside a semi-Markov inspection/maintenance policy. This is a downstream decision-policy comparator, not a randomization p-value benchmark: https://doi.org/10.1016/j.cie.2026.112109
+- **Nieminen (2026)** describes a physics-grounded front-door estimator for virtual hydraulic pump repair from sensor logs, with mediator-overlap checks and bootstrap uncertainty. It is an observational identification route on a controlled hydraulic test rig, not a substitute for randomized assignment or Monte Carlo randomization inference: https://doi.org/10.1016/j.eswa.2026.133024
+- **Phipson & Smyth (2010)** motivate plus-one correction for sampled permutation p-values: https://doi.org/10.2202/1544-6115.1585
+- **Steele, Lea & Flood (2014)** describe fast splittable pseudorandom generators; this supports deterministic simulation, not cryptographic seed fairness: https://gee.cs.oswego.edu/dl/papers/oopsla14.pdf
+
+The fair comparison ladder is:
+1. Reproduce exact Fisher inference wherever full enumeration is tractable.
+2. Compare Monte Carlo estimators at identical draw budgets and frozen assignment frames.
+3. Test uniformity, p-value error, Wilson coverage and Type-I calibration on many known-truth randomized trials.
+4. Separately reproduce observational front-door / target-trial methods on their own data and assumptions.
+5. Evaluate downstream policy value only through #4545, with action feasibility and cost assumptions exposed.
+
+Do not claim Monte Carlo is better than exact inference. Exact enumeration is the reference when it is tractable; Monte Carlo extends that reference distribution when it is not.
 
 ## Claim ceiling
 
