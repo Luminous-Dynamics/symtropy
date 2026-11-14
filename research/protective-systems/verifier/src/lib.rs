@@ -109,11 +109,8 @@ fn structural_errors(root: &Value) -> Vec<String> {
     if text(root, "evidence_class") != Some("synthetic") {
         errors.push("evidence_class must equal synthetic".to_owned());
     }
-    if !has_nonempty_text(root, "", "intended_use") {
-        // Root-level lookup is handled separately because nested helpers expect objects.
-        if text(root, "intended_use").map(str::trim).unwrap_or("").is_empty() {
-            errors.push("intended_use must be a non-empty string".to_owned());
-        }
+    if text(root, "intended_use").map(str::trim).unwrap_or("").is_empty() {
+        errors.push("intended_use must be a non-empty string".to_owned());
     }
 
     let declared = match field(root, "decisions").and_then(Value::as_array) {
@@ -177,26 +174,38 @@ fn structural_errors(root: &Value) -> Vec<String> {
         if nested_bool(case, "claim", "performance_claim_permitted").is_none() {
             errors.push(format!("{prefix}.claim.performance_claim_permitted must be boolean"));
         }
-        if field(case, "standard")
+        match field(case, "standard")
             .and_then(|v| v.get("addenda"))
             .and_then(Value::as_array)
-            .is_none()
         {
-            errors.push(format!("{prefix}.standard.addenda must be an array"));
+            Some(addenda) => {
+                let mut seen = BTreeSet::new();
+                for (addendum_index, addendum) in addenda.iter().enumerate() {
+                    match addendum.as_str().filter(|s| !s.trim().is_empty()) {
+                        Some(value) => {
+                            if !seen.insert(value) {
+                                errors.push(format!(
+                                    "{prefix}.standard.addenda contains duplicate {value}"
+                                ));
+                            }
+                        }
+                        None => errors.push(format!(
+                            "{prefix}.standard.addenda[{addendum_index}] must be non-empty text"
+                        )),
+                    }
+                }
+            }
+            None => errors.push(format!("{prefix}.standard.addenda must be an array")),
         }
         match text(case, "domain") {
             Some("human_worn" | "vehicle" | "housing" | "cross_domain") => {}
             _ => errors.push(format!("{prefix}.domain is not a supported domain")),
         }
-        if !has_nonempty_text(case, "", "fixture_class") {
-            if text(case, "fixture_class").map(str::trim).unwrap_or("").is_empty() {
-                errors.push(format!("{prefix}.fixture_class must be non-empty"));
-            }
+        if text(case, "fixture_class").map(str::trim).unwrap_or("").is_empty() {
+            errors.push(format!("{prefix}.fixture_class must be non-empty"));
         }
-        if !has_nonempty_text(case, "", "rationale") {
-            if text(case, "rationale").map(str::trim).unwrap_or("").is_empty() {
-                errors.push(format!("{prefix}.rationale must be non-empty"));
-            }
+        if text(case, "rationale").map(str::trim).unwrap_or("").is_empty() {
+            errors.push(format!("{prefix}.rationale must be non-empty"));
         }
         match text(case, "expected_decision") {
             Some(name) if DECISIONS.contains(&name) && declared_set.contains(name) => {}
@@ -255,10 +264,12 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
         "INCOMPLETE_REFERENCE" | "SUPERSEDED" | "REVOKED" | "STALE" => {
             return decision(REJECT_STALE_OR_REVOKED, "STANDARD_REFERENCE_NOT_CURRENT_OR_COMPLETE");
         }
+        "OUT_OF_SCOPE" => return decision(REJECT_SCOPE, "STANDARD_REFERENCE_OUT_OF_SCOPE"),
         "UNKNOWN" | "DRAFT" | "UNVERIFIED" => {
             return decision(ABSTAIN_UNKNOWN, "STANDARD_CURRENTNESS_UNKNOWN");
         }
-        _ => {}
+        "CURRENT" | "CURRENT_SNAPSHOT" | "CURRENT_REFERENCE" => {}
+        _ => return decision(ABSTAIN_UNKNOWN, "UNRECOGNIZED_STANDARD_CURRENTNESS"),
     }
     if standard_id == "UNSPECIFIED" || standard_scope == "UNKNOWN" || standard_scope.is_empty() {
         return decision(ABSTAIN_UNKNOWN, "STANDARD_ID_OR_APPLICABILITY_UNKNOWN");
@@ -287,6 +298,9 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
         || is_true(case, "evidence", "missing_values_encoded_as_zero")
     {
         return decision(ABSTAIN_UNKNOWN, "INCOMPLETE_OR_UNKNOWN_PROTECTION_DIMENSIONS");
+    }
+    if evidence_class != "synthetic_test_report" {
+        return decision(ABSTAIN_UNKNOWN, "EVIDENCE_CLASS_NOT_ACCEPTED_BY_SYNTHETIC_VERIFIER");
     }
 
     // Domain-specific minimum record requirements; this is not a test-result evaluator.
@@ -462,6 +476,32 @@ mod tests {
         root["cases"][0]["evidence"]["units_present"] = serde_json::json!(false);
         let result = evaluate_case(&root["cases"][0]);
         assert_eq!(result.0, REJECT_MISSING_OR_INVALID);
+    }
+
+    #[test]
+    fn unrecognized_standard_state_abstains_closed() {
+        let mut root = corpus();
+        root["cases"][0]["standard"]["currentness"] = serde_json::json!("MAYBE_CURRENT");
+        let result = evaluate_case(&root["cases"][0]);
+        assert_eq!(result.0, ABSTAIN_UNKNOWN);
+        assert_eq!(result.1, "UNRECOGNIZED_STANDARD_CURRENTNESS");
+    }
+
+    #[test]
+    fn supplier_declaration_is_not_a_synthetic_test_report() {
+        let mut root = corpus();
+        root["cases"][0]["evidence"]["class"] = serde_json::json!("supplier_declared");
+        let result = evaluate_case(&root["cases"][0]);
+        assert_eq!(result.0, ABSTAIN_UNKNOWN);
+    }
+
+    #[test]
+    fn duplicate_addenda_are_rejected_structurally() {
+        let mut root = corpus();
+        root["cases"][0]["standard"]["addenda"] =
+            serde_json::json!(["1", "1", "2", "3"]);
+        let error = evaluate_corpus(&root).expect_err("duplicate addenda must fail");
+        assert!(error.messages.iter().any(|m| m.contains("duplicate 1")));
     }
 
     #[test]
