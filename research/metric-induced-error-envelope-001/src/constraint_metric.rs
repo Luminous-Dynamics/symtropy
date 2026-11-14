@@ -148,8 +148,30 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         &self.whitened_jacobian
     }
 
-    /// ||lambda||_W = sqrt(lambda^T W lambda).
-    /// This equals the kinetic norm of M^-1 J^T lambda.
+    /// Apply W = J M^-1 J^T to a multiplier covector, returning a
+    /// constraint residual vector. This preserves the C* -> C variance.
+    pub fn apply_multiplier(
+        &self,
+        multiplier: &ConstraintMultiplierV1<Space, K>,
+    ) -> Result<ConstraintResidualV1<Space, K>, MetricErrorV1> {
+        let covector = Cotangent::<Space, K>::new(multiplier.components)?;
+        let vector = self.cometric.apply(&covector)?;
+        ConstraintResidualV1::new(*vector.components())
+    }
+
+    /// Solve W lambda = r, mapping a constraint residual vector back to
+    /// its multiplier covector.
+    pub fn solve_residual(
+        &self,
+        residual: &ConstraintResidualV1<Space, K>,
+    ) -> Result<ConstraintMultiplierV1<Space, K>, MetricErrorV1> {
+        let vector = Tangent::<Space, K>::new(residual.components)?;
+        let covector = self.cometric.solve(&vector)?;
+        ConstraintMultiplierV1::new(*covector.components())
+    }
+
+    /// ||lambda||_W = sqrt(lambda^T W lambda): cometric norm of a multiplier
+    /// covector. This equals the kinetic norm of M^-1 J^T lambda.
     pub fn multiplier_norm(
         &self,
         multiplier: &ConstraintMultiplierV1<Space, K>,
@@ -158,8 +180,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         self.cometric.covector_norm(&multiplier_covector)
     }
 
-    /// ||r||_(W^-1) = sqrt(r^T W^-1 r).
-    /// This is the minimum kinetic norm needed to realize J delta_v = r.
+    /// ||r||_(W^-1) = sqrt(r^T W^-1 r): dual metric norm of a residual
+    /// vector. This is the minimum kinetic norm needed to realize J delta_v = r.
     pub fn residual_norm(
         &self,
         residual: &ConstraintResidualV1<Space, K>,
@@ -350,6 +372,38 @@ mod tests {
                     2.0e-13,
                 );
             }
+        }
+    }
+
+    #[test]
+    fn delassus_cometric_maps_multiplier_covectors_to_residual_vectors() {
+        let mass = mass_q();
+        let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass,
+            jacobian_q(),
+            profile(),
+        )
+        .unwrap();
+        let multiplier = ConstraintMultiplierV1::new([0.75, -1.25]).unwrap();
+
+        let residual_from_cometric = delassus.apply_multiplier(&multiplier).unwrap();
+        let correction = delassus.induced_velocity_correction(&multiplier).unwrap();
+        let residual_from_mechanics = delassus.apply_jacobian(&correction).unwrap();
+        for index in 0..2 {
+            close(
+                residual_from_cometric.components()[index],
+                residual_from_mechanics.components()[index],
+                2.0e-13,
+            );
+        }
+
+        let recovered_multiplier = delassus.solve_residual(&residual_from_cometric).unwrap();
+        for index in 0..2 {
+            close(
+                recovered_multiplier.components()[index],
+                multiplier.components()[index],
+                2.0e-13,
+            );
         }
     }
 
