@@ -36,11 +36,11 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 42,
+      "minItems": 43,
       "items": {
         "$ref": "#/$defs/case"
       },
-      "maxItems": 42
+      "maxItems": 43
     }
   },
   "$defs": {
@@ -104,7 +104,9 @@
             "material_group",
             "material_heat_lot",
             "process_family",
-            "thickness_class"
+            "thickness_class",
+            "process_trace_ref",
+            "process_trace_sha256"
           ],
           "properties": {
             "asset_id": {
@@ -142,6 +144,13 @@
             },
             "thickness_class": {
               "type": "string"
+            },
+            "process_trace_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "process_trace_sha256": {
+              "$ref": "#/$defs/digest"
             }
           }
         },
@@ -804,7 +813,8 @@
             "BLOCK_FINAL_RELEASE",
             "BLOCK_SPLIT_LEAKAGE",
             "BLOCK_FEEDBACK_CONFOUNDING",
-            "BLOCK_UNAUTHORIZED_PROMOTION"
+            "BLOCK_UNAUTHORIZED_PROMOTION",
+            "BLOCK_PROCESS_TRACE_LINK"
           ]
         }
       }
