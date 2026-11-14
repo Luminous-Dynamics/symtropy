@@ -130,8 +130,6 @@ pub struct ObservabilityAssessment {
 pub enum ObservabilityError {
     /// A zero family floor cannot define a meaningful coverage policy.
     InvalidMinimumIndependentFamilies,
-    /// The requested traffic class is unknown and cannot be qualified as a positive class.
-    UnknownTrafficClass,
 }
 
 /// Evaluate class-specific coverage and one optional observation.
@@ -154,7 +152,16 @@ pub fn evaluate(
         return Err(ObservabilityError::InvalidMinimumIndependentFamilies);
     }
     if traffic_class == TrafficClass::Unknown {
-        return Err(ObservabilityError::UnknownTrafficClass);
+        return Ok(ObservabilityAssessment {
+            coverage_status: CoverageStatus::NotQualified,
+            observation_status: if observation.is_some() {
+                ObservationStatus::InvalidOrStaleTrack
+            } else {
+                ObservationStatus::NoObservation
+            },
+            independent_family_count: 0,
+            unresolved_possible_occupancy: true,
+        });
     }
 
     let relevant: Vec<_> = claims
@@ -210,7 +217,9 @@ pub fn evaluate(
                     && claim.environment_qualified
                     && claim.pnt_time_qualified
                     && claim.dependency_inventory_complete
-                    && claim.independent_family_id.is_some()
+                    && claim
+                        .independent_family_id
+                        .is_some_and(|family| !family.trim().is_empty())
             });
 
             if report.traffic_class == traffic_class
