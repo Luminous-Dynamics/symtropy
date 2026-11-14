@@ -138,6 +138,8 @@ pub struct ObservationalTargetTrialUnit {
     pub stratum_id: String,
     pub assigned_arm: StrategyArm,
     pub strategy_version_id: String,
+    pub strategy_record_ref: String,
+    pub strategy_record_sha256: String,
     pub eligibility_at_seconds: f64,
     pub assignment_at_seconds: f64,
     pub followup_start_seconds: f64,
@@ -461,6 +463,8 @@ impl ObservationalTargetTrialDataset {
                 || unit.engine_id.trim().is_empty()
                 || unit.campaign_id.trim().is_empty()
                 || unit.strategy_version_id.trim().is_empty()
+                || unit.strategy_record_ref.trim().is_empty()
+                || !is_sha256_hex(&unit.strategy_record_sha256)
             {
                 return Err(TargetTrialValidationError::InvalidIdentity);
             }
@@ -645,6 +649,10 @@ pub fn evaluate_observational_target_trial_design(
         }
         match unit.followup_status {
             FollowupStatus::Complete => {
+                if unit.censoring_at_seconds.is_some() {
+                    reasons.insert(TargetTrialNotIdentifiedReason::FollowupIncomplete);
+                    reasons.insert(TargetTrialNotIdentifiedReason::CensoringRequiresModel);
+                }
                 complete_followup_units += 1;
                 let Some(outcome) = &unit.outcome else {
                     reasons.insert(TargetTrialNotIdentifiedReason::OutcomeMissing);
@@ -682,6 +690,13 @@ pub fn evaluate_observational_target_trial_design(
                 censored_or_competing_units += 1;
                 reasons.insert(TargetTrialNotIdentifiedReason::FollowupIncomplete);
                 reasons.insert(TargetTrialNotIdentifiedReason::CensoringRequiresModel);
+                let censoring_time_valid = unit.censoring_at_seconds.is_some_and(|time| {
+                    time >= unit.followup_start_seconds - TIME_TOLERANCE_SECONDS
+                        && time <= protocol.analysis_as_of_seconds + TIME_TOLERANCE_SECONDS
+                });
+                if !censoring_time_valid {
+                    reasons.insert(TargetTrialNotIdentifiedReason::CensoringRequiresModel);
+                }
             }
         }
     }
@@ -1008,6 +1023,8 @@ mod tests {
                         StrategyArm::RepairStrategy => "repair-v2-complete".into(),
                         StrategyArm::ComparatorStrategy => "deferred-maintenance-v1".into(),
                     },
+                    strategy_record_ref: format!("work-order-record://{id}"),
+                    strategy_record_sha256: digest_from_u64(60_000 + suffix),
                     eligibility_at_seconds: 100.0,
                     assignment_at_seconds: 100.0,
                     followup_start_seconds: 100.0,
@@ -1203,6 +1220,16 @@ mod tests {
         assert!(report.not_identified_reasons.contains(
             &TargetTrialNotIdentifiedReason::CensoringRequiresModel
         ));
+    }
+
+    #[test]
+    fn missing_strategy_record_digest_is_rejected() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0].strategy_record_sha256.clear();
+        assert_eq!(
+            dataset.validate(),
+            Err(TargetTrialValidationError::InvalidIdentity)
+        );
     }
 
     #[test]
