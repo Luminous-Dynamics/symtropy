@@ -443,10 +443,7 @@ fn array_field<'a>(
     }
 }
 
-fn require_false(
-    object: &[(String, JsonValue)],
-    field: &'static str,
-) -> Result<(), WireError> {
+fn require_false(object: &[(String, JsonValue)], field: &'static str) -> Result<(), WireError> {
     match get_member(object, field) {
         Some(JsonValue::Bool(false)) => Ok(()),
         Some(_) => Err(WireError::InvalidField(field)),
@@ -550,7 +547,9 @@ pub fn validate_uq_sidecar(
     if require_string(parent_binding, "protocol_id")? != PROTOCOL_ID
         || require_string(parent_binding, "schema_version")? != SCHEMA_VERSION
     {
-        return Err(WireError::UqSidecarBindingMismatch("parent protocol/version"));
+        return Err(WireError::UqSidecarBindingMismatch(
+            "parent protocol/version",
+        ));
     }
     if require_string(parent_binding, "payload_sha256")? != parent_report.payload_sha256 {
         return Err(WireError::UqSidecarBindingMismatch("parent payload digest"));
@@ -574,13 +573,7 @@ pub fn validate_uq_sidecar(
         ("monotonic_clock_id", "clock_id", "clock identity"),
         ("boot_epoch", "boot_epoch", "boot epoch"),
     ] {
-        require_equal_string_fields(
-            scope,
-            sidecar_field,
-            parent_scope,
-            parent_field,
-            label,
-        )?;
+        require_equal_string_fields(scope, sidecar_field, parent_scope, parent_field, label)?;
     }
     for (sidecar_field, parent_field, label) in [
         (
@@ -622,8 +615,8 @@ pub fn validate_uq_sidecar(
         "physical-state result",
     )?;
 
-    let scope_value = get_member(sidecar_fields, "scope")
-        .ok_or(WireError::MissingField("scope"))?;
+    let scope_value =
+        get_member(sidecar_fields, "scope").ok_or(WireError::MissingField("scope"))?;
     let scope_digest = canonical_value_sha256(scope_value);
 
     let measurements = array_field(sidecar_fields, "measurements")?;
@@ -641,7 +634,10 @@ pub fn validate_uq_sidecar(
             return Err(WireError::InvalidField("measurements"));
         };
         let measurement_id = require_string(measurement, "measurement_id")?.to_owned();
-        if measurements_by_id.insert(measurement_id, measurement).is_some() {
+        if measurements_by_id
+            .insert(measurement_id, measurement)
+            .is_some()
+        {
             return Err(WireError::UqSidecarLineageMismatch(
                 "duplicate measurement identity",
             ));
@@ -692,7 +688,10 @@ pub fn validate_uq_sidecar(
                 "measurement/uncertainty receipt binding",
             )?;
         }
-        match (get_member(measurement, "decimal_exponent"), get_member(receipt, "decimal_exponent")) {
+        match (
+            get_member(measurement, "decimal_exponent"),
+            get_member(receipt, "decimal_exponent"),
+        ) {
             (Some(JsonValue::Integer(left)), Some(JsonValue::Integer(right))) if left == right => {}
             _ => {
                 return Err(WireError::UqSidecarBindingMismatch(
@@ -713,11 +712,12 @@ pub fn validate_uq_sidecar(
                 "derived result/output measurement identity",
             ));
         }
-        let output = measurements_by_id
-            .get(output_id)
-            .ok_or(WireError::UqSidecarLineageMismatch(
-                "derived output measurement missing",
-            ))?;
+        let output =
+            measurements_by_id
+                .get(output_id)
+                .ok_or(WireError::UqSidecarLineageMismatch(
+                    "derived output measurement missing",
+                ))?;
         require_equal_string_fields(
             derived,
             "output_result_digest",
@@ -737,11 +737,12 @@ pub fn validate_uq_sidecar(
             required_array_strings(derived, "input_uncertainty_receipt_ids")?;
         let mut expected_input_receipts = BTreeSet::new();
         for input_id in input_measurements {
-            let input = measurements_by_id
-                .get(&input_id)
-                .ok_or(WireError::UqSidecarLineageMismatch(
-                    "derived input measurement missing",
-                ))?;
+            let input =
+                measurements_by_id
+                    .get(&input_id)
+                    .ok_or(WireError::UqSidecarLineageMismatch(
+                        "derived input measurement missing",
+                    ))?;
             expected_input_receipts
                 .insert(require_string(input, "uncertainty_receipt_id")?.to_owned());
         }
