@@ -1196,8 +1196,7 @@ mod tests {
             ),
         ];
         let p = problem(units, &[("robot-a", 1), ("robot-b", 1)], true);
-        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto)
-            .expect("portfolio search");
+        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto).expect("portfolio search");
         assert!(result.infeasible_declared_portfolio);
         assert!(result.pareto_frontier.is_empty());
     }
