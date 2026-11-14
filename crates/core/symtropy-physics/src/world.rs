@@ -2561,3 +2561,85 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+
+/// Analytic convergence checks for a conservative one-degree-of-freedom system.
+#[cfg(test)]
+mod analytic_oscillator_validation_tests {
+    use super::*;
+    use nalgebra::SVector;
+
+    fn harmonic_oscillator_error(dt: f64) -> (f64, f64) {
+        const FINAL_TIME: f64 = 1.0;
+        const OMEGA: f64 = 1.0;
+        let steps = (FINAL_TIME / dt).round() as usize;
+        assert!((steps as f64 * dt - FINAL_TIME).abs() < 1e-12);
+
+        // m=1 kg, k=1 N/m => omega=sqrt(k/m)=1 rad/s.
+        // The real PhysicsWorld force/integrator path applies F=-k*x each step.
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 0.1, 1.0);
+
+        for _ in 0..steps {
+            let x = world
+                .body(handle)
+                .expect("oscillator body exists")
+                .position()[0];
+            world
+                .body_mut(handle)
+                .expect("oscillator body exists")
+                .apply_force(SVector::from([-x, 0.0, 0.0]));
+            world.step(dt);
+        }
+
+        let body = world.body(handle).expect("oscillator body exists");
+        let exact_x = (OMEGA * FINAL_TIME).cos();
+        let exact_v = -OMEGA * (OMEGA * FINAL_TIME).sin();
+        (
+            (body.position()[0] - exact_x).abs(),
+            (body.linear_velocity[0] - exact_v).abs(),
+        )
+    }
+
+    #[test]
+    fn harmonic_oscillator_position_error_converges_at_first_order() {
+        // Exact solution: x(t)=cos(t), v(t)=-sin(t), x(0)=1, v(0)=0.
+        // The step sizes divide T=1 exactly, avoiding end-time ambiguity.
+        let step_sizes = [0.1, 0.05, 0.025, 0.0125];
+        let errors: Vec<_> = step_sizes
+            .into_iter()
+            .map(harmonic_oscillator_error)
+            .collect();
+
+        for index in 0..errors.len() - 1 {
+            let coarse_position_error = errors[index].0;
+            let fine_position_error = errors[index + 1].0;
+            let ratio = coarse_position_error / fine_position_error;
+            assert!(
+                (1.8..2.2).contains(&ratio),
+                "position-error refinement ratio at dt={} was {ratio}; expected ~2",
+                step_sizes[index]
+            );
+            assert!(
+                errors[index + 1].1 < errors[index].1,
+                "velocity error did not decrease when dt was refined"
+            );
+        }
+    }
+
+    #[test]
+    fn harmonic_oscillator_stays_finite_under_stable_step_refinement() {
+        for dt in [0.1, 0.05, 0.025, 0.0125] {
+            let (position_error, velocity_error) = harmonic_oscillator_error(dt);
+            assert!(position_error.is_finite() && velocity_error.is_finite());
+            assert!(
+                position_error < 0.05,
+                "position error={position_error} at dt={dt}"
+            );
+            assert!(
+                velocity_error < 0.01,
+                "velocity error={velocity_error} at dt={dt}"
+            );
+        }
+    }
+}
