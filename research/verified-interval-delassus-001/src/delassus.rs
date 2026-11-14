@@ -191,6 +191,41 @@ fn finite_bound(value: f64) -> Result<f64, VerifiedDelassusErrorV1> {
     }
 }
 
+/// Outward upper bound for the Euclidean norm of a vector of intervals.
+///
+/// Each component is bounded by its maximum absolute endpoint. Squaring and
+/// summing use the interval crate's outward-rounded arithmetic. The known
+/// non-negativity of a sum of squares lets us reset only the unused lower
+/// endpoint to zero before taking the final square root.
+fn upper_l2_norm<const K: usize>(
+    values: &[Interval; K],
+) -> Result<f64, VerifiedDelassusErrorV1> {
+    if K == 0 {
+        return Err(VerifiedDelassusErrorV1::ZeroDimension);
+    }
+    let mut sum_upper = 0.0_f64;
+    let mut any_nonzero = false;
+    for value in values {
+        let magnitude = value.max_abs();
+        if !magnitude.is_finite() {
+            return Err(VerifiedDelassusErrorV1::NonFiniteBound);
+        }
+        if magnitude == 0.0 {
+            continue;
+        }
+        any_nonzero = true;
+        let magnitude_interval = Interval::point(magnitude)?;
+        let square_upper = magnitude_interval.mul(magnitude_interval)?.upper();
+        let accumulated = Interval::point(sum_upper)?.add(Interval::point(square_upper)?)?;
+        sum_upper = accumulated.upper();
+    }
+    if !any_nonzero {
+        return Ok(0.0);
+    }
+    let nonnegative_sum = Interval::new(0.0, sum_upper)?;
+    finite_bound(nonnegative_sum.sqrt()?.upper())
+}
+
 pub fn point_interval_matrix<const N: usize>(
     matrix: &[[f64; N]; N],
 ) -> Result<IntervalMatrix<N, N>, VerifiedDelassusErrorV1> {
@@ -758,6 +793,20 @@ mod tests {
             certify_delassus_coefficients(&mass, &j, profile()),
             Err(VerifiedDelassusErrorV1::InconclusiveMassSpd { .. })
         ));
+    }
+
+    #[test]
+    fn upper_l2_norm_encloses_interval_vectors_and_handles_zero() {
+        let values = [
+            Interval::new(-3.0, -2.0).unwrap(),
+            Interval::new(4.0, 5.0).unwrap(),
+        ];
+        let bound = upper_l2_norm(&values).unwrap();
+        assert!(bound >= 34.0_f64.sqrt());
+        assert_eq!(
+            upper_l2_norm(&[Interval::zero(), Interval::zero()]).unwrap(),
+            0.0
+        );
     }
 
     #[test]
