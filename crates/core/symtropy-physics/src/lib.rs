@@ -28,6 +28,7 @@ pub mod island;
 pub mod joints;
 pub mod manifold_gen;
 pub mod raycast;
+pub mod region_graph;
 pub mod replay;
 pub mod support_map;
 pub mod world;
@@ -41,5 +42,11 @@ pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use region_graph::{
+    AffineRegionMap, ComposedRegionPath, CrossingDirection, InterfaceId, PlaneBoundary,
+    QuantityPolicy, RegionGraph, RegionGraphError, RegionId, RegionInterface, RegionSpec,
+    RegionState, RegionStateStore, RegionTransitionError, TransitionOutcome, TransitionReceipt,
+    TransitionRequest,
+};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
