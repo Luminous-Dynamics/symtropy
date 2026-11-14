@@ -45,12 +45,223 @@ jobs:
           WATER_SERVICE_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 -- \
+          cargo run --locked --package water-service-t0 --bin water-service-t0 -- \
             research/water-service-engineering/t0-known-answer-vectors-v0.1.json \
             research/water-service-engineering/benchmark-manifest-v0.1.json \
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for water barrier F0 contracts
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate water barrier F0 schema and independent oracle replay
+        id: water_barrier_f0_contract
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          inputs = json.loads((root / "water-barrier-assurance-f0-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "water-barrier-assurance-f0-oracle-v0.1.json").read_text())
+          schema = json.loads((root / "water-barrier-assurance-f0.schema.json").read_text())
+          manifest = json.loads((root / "water-barrier-assurance-f0-manifest-v0.1.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"WATER_BARRIER_F0_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          if inputs["policy"]["allow_release_authorization"] is not False:
+              raise SystemExit("WATER_BARRIER_F0_RELEASE_POLICY_MUST_BE_FALSE")
+          if manifest["case_count"] != 19 or len(inputs["cases"]) != 19 or len(oracle["cases"]) != 19:
+              raise SystemExit("WATER_BARRIER_F0_CASE_COUNT_FAIL")
+          ids = [case["case_id"] for case in inputs["cases"]]
+          oracle_by_id = {row["case_id"]: row["expected"] for row in oracle["cases"]}
+          if len(set(ids)) != 19 or len(oracle_by_id) != 19 or sorted(ids) != sorted(oracle_by_id):
+              raise SystemExit("WATER_BARRIER_F0_CASE_IDENTITY_FAIL")
+          if any("expected" in case for case in inputs["cases"]):
+              raise SystemExit("WATER_BARRIER_F0_INPUTS_EMBED_ORACLE_FAIL")
+
+          t2 = {"bacteria": 2.0, "viruses": 3.0, "protozoa": 2.0}
+          t3 = {"bacteria": 4.0, "viruses": 5.0, "protozoa": 4.0}
+
+          def replay(i):
+              reasons = []
+              indeterminate = False
+              out_of_envelope = False
+              gap = False
+              verification_required = False
+              policy = i.get("policy_microbial_requirement", inputs["policy"]["default_microbial_requirement"])
+              thresholds = t3 if policy == "COMPREHENSIVE_3_STAR" else t2
+              source = i["source_profile"]
+              service = i["service_conditions"]
+              source_age = i["now_unix"] - source["sampled_at_unix"]
+              if source_age < 0 or source_age > inputs["policy"]["max_source_profile_age_s"] or source["source_changed_since_sample"]:
+                  indeterminate = True
+                  reasons.append("SOURCE_PROFILE_STALE_OR_CHANGED")
+              if service["critical_measurements_state"] != "VALID":
+                  indeterminate = True
+                  reasons.append("CRITICAL_MEASUREMENTS_NOT_VALID")
+              if service["storage_integrity"] == "UNKNOWN":
+                  indeterminate = True
+                  reasons.append("STORAGE_INTEGRITY_UNKNOWN")
+              if service["storage_integrity"] == "COMPROMISED":
+                  gap = True
+                  reasons.append("POST_TREATMENT_STORAGE_COMPROMISED")
+              if service["bypass_open"]:
+                  gap = True
+                  reasons.append("TREATMENT_BYPASS_OPEN")
+              if any(h["status"] == "UNKNOWN" for h in source["hazards"]):
+                  indeterminate = True
+                  reasons.append("SOURCE_HAZARD_UNKNOWN")
+
+              required = {h["hazard_id"]: h for h in source["hazards"] if h["status"] == "DETECTED"}
+              usable = []
+              for module in i["modules"]:
+                  module_id = module["module_id"]
+                  if module["module_status"] != "IN_SERVICE" or not module["certificate_valid"] or not module["exact_configuration_match"]:
+                      gap = True
+                      reasons.append("MODULE_CERTIFICATE_OR_SERVICE_STATE_INVALID:" + module_id)
+                      continue
+                  env = module["operating_envelope"]
+                  outside = (
+                      module["remaining_capacity_l"] <= 0
+                      or service["flow_l_min"] < env["min_flow_l_min"]
+                      or service["flow_l_min"] > env["max_flow_l_min"]
+                      or service["pressure_bar"] < env["min_pressure_bar"]
+                      or service["pressure_bar"] > env["max_pressure_bar"]
+                      or service["temperature_c"] < env["min_temperature_c"]
+                      or service["temperature_c"] > env["max_temperature_c"]
+                      or service["influent_turbidity_ntu"] > env["max_influent_turbidity_ntu"]
+                      or (module["power_required"] and not service["power_available"])
+                  )
+                  if outside:
+                      out_of_envelope = True
+                      reasons.append("MODULE_OUTSIDE_CERTIFIED_OPERATING_ENVELOPE:" + module_id)
+                      continue
+                  usable.append(module)
+
+              coverage = []
+              for hazard_id, hazard in sorted(required.items()):
+                  microbial = hazard_id in thresholds
+                  minimum = thresholds[hazard_id] if microbial else hazard.get("minimum_required_reduction_percent", 0)
+                  unit = "log10" if microbial else "percent_reduction"
+                  required_protocol_id = hazard["required_protocol_id"]
+                  required_protocol_version = hazard["required_protocol_version"]
+                  required_claim_basis = hazard["required_claim_basis"]
+                  evidence = []
+                  for module in usable:
+                      for claim in module["claims"]:
+                          if (
+                              claim["hazard_id"] == hazard_id
+                              and claim["independently_verified"]
+                              and claim["evidence_id"]
+                              and claim["claim_unit"] == unit
+                              and claim["claim_value"] >= minimum
+                              and claim["protocol_id"] == required_protocol_id
+                              and claim["protocol_version"] == required_protocol_version
+                              and claim["claim_basis"] == required_claim_basis
+                          ):
+                              evidence.append({
+                                  "module_id": module["module_id"],
+                                  "evidence_id": claim["evidence_id"],
+                                  "claim_value": claim["claim_value"],
+                                  "claim_unit": unit,
+                              })
+                  coverage.append({
+                      "hazard_id": hazard_id,
+                      "minimum_required": minimum,
+                      "claim_unit": unit,
+                      "covered": bool(evidence),
+                      "evidence": evidence,
+                  })
+                  if not evidence:
+                      gap = True
+                      reasons.append("NO_VERIFIED_IN_ENVELOPE_CLAIM:" + hazard_id)
+
+              verification = i["post_treatment_verification"]
+              sampled_at = verification["sampled_at_unix"]
+              lab_age = None if sampled_at is None else i["now_unix"] - sampled_at
+              tested_ids = set(verification["tested_hazard_ids"])
+              missing = [hazard for hazard in required if hazard not in tested_ids]
+              invalid_sample = (
+                  verification["status"] != "PASS"
+                  or not verification["laboratory_method_accredited"]
+                  or not verification["sample_id"]
+                  or not verification["sample_location_id"]
+                  or lab_age is None
+                  or lab_age < 0
+                  or lab_age > inputs["policy"]["max_lab_sample_age_s"]
+                  or bool(missing)
+              )
+              if invalid_sample:
+                  verification_required = True
+                  reasons.append("CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_STALE_OR_INCOMPLETE")
+
+              reasons.sort()
+              if indeterminate:
+                  status = "INDETERMINATE"
+              elif out_of_envelope:
+                  status = "OUT_OF_ENVELOPE"
+              elif gap:
+                  status = "GAP"
+              elif verification_required:
+                  status = "VERIFICATION_REQUIRED"
+              else:
+                  status = "COVERED_WITHIN_DECLARED_CLAIMS_REQUIRES_AUTHORITY_REVIEW"
+              return {
+                  "status": status,
+                  "reasons": reasons,
+                  "coverage": coverage,
+                  "release_authorized": False,
+                  "potability_claim_permitted": False,
+              }
+
+          def equal(a, b):
+              if isinstance(a, (int, float)) and not isinstance(a, bool) and isinstance(b, (int, float)) and not isinstance(b, bool):
+                  return math.isclose(float(a), float(b), rel_tol=1e-9, abs_tol=1e-12)
+              if isinstance(a, list) and isinstance(b, list):
+                  return len(a) == len(b) and all(equal(x, y) for x, y in zip(a, b))
+              if isinstance(a, dict) and isinstance(b, dict):
+                  return a.keys() == b.keys() and all(equal(a[key], b[key]) for key in a)
+              return a == b
+
+          for case in inputs["cases"]:
+              actual = replay(case["input"])
+              expected = oracle_by_id[case["case_id"]]
+              if not equal(actual, expected):
+                  raise SystemExit(
+                      f"WATER_BARRIER_F0_ORACLE_MISMATCH: {case['case_id']} actual={actual} expected={expected}"
+                  )
+              if actual["release_authorized"] or actual["potability_claim_permitted"]:
+                  raise SystemExit(f"WATER_BARRIER_F0_FALSE_ASSURANCE: {case['case_id']}")
+          print("WATER_BARRIER_F0_PASS: 19 cases match independent replay and separate oracle; no release/potability authorization")
+          PY
+      - name: Evaluate water barrier F0 at exact revision
+        id: water_barrier_f0
+        env:
+          WATER_BARRIER_F0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-barrier-f0 -- \
+            research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json \
+            research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json \
+            research/water-service-engineering/water-barrier-assurance-f0.schema.json \
+            research/water-service-engineering/water-barrier-assurance-f0-manifest-v0.1.json \
+            artifacts/water-barrier-f0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +273,20 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/WATER_BARRIER_ASSURANCE_F0_DESIGN_V0_1.md
+            research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json
+            research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json
+            research/water-service-engineering/water-barrier-assurance-f0.schema.json
+            research/water-service-engineering/water-barrier-assurance-f0-manifest-v0.1.json
+            artifacts/water-barrier-f0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          BARRIER_CONTRACT_OUTCOME: ${{ steps.water_barrier_f0_contract.outcome }}
+          BARRIER_EVALUATOR_OUTCOME: ${{ steps.water_barrier_f0.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$BARRIER_CONTRACT_OUTCOME" = "success"
+          test "$BARRIER_EVALUATOR_OUTCOME" = "success"

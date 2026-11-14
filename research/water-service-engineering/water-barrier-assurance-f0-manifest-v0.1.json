@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WATER-BARRIER-ASSURANCE-F0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5136",
+  "status": "synthetic_claim_compatibility_and_fail_closed_contract_only",
+  "input_corpus": "research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/water-barrier-assurance-f0.schema.json",
+  "case_count": 19,
+  "microbial_reference": {
+    "source": "WHO International Scheme for Household Water Treatment Technologies, Round IV",
+    "protocol_version": "4.0",
+    "thresholds_log10": {
+      "comprehensive_2_star": {
+        "bacteria": 2,
+        "viruses": 3,
+        "protozoa": 2
+      },
+      "comprehensive_3_star": {
+        "bacteria": 4,
+        "viruses": 5,
+        "protozoa": 4
+      }
+    },
+    "note": "Reference comparator only; synthetic cases do not constitute product tests or WHO certification."
+  },
+  "hard_rules": [
+    "only_exact_model_configuration_specific_verified_claims_count",
+    "generic_technology_names_do_not_grant_contaminant_removal_credit",
+    "microbial_classes_are_scored_separately",
+    "unknown_hazard_or_stale_source_profile_forces_indeterminate",
+    "out_of_envelope_modules_contribute_no_claim_coverage",
+    "expired_capacity_or_bypass_blocks_claim_coverage",
+    "post_treatment_lab_verification_is_required_for_authority_review",
+    "lab_sample_scope_is_sample_time_location_analyte_only",
+    "release_authorized_is_always_false",
+    "potability_claim_permitted_is_always_false",
+    "protocol_id_version_and_claim_basis_must_match_for_each_required_hazard",
+    "WHO_HWT_FILTRATION_V4_BACTERIA_VIRUS_EVIDENCE_DOES_NOT_IMPLY_PROTOZOA_CREDIT"
+  ],
+  "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim",
+  "protocol_evidence_scope": {
+    "bacteria": {
+      "required_protocol_id": "WHO_HWT_FILTRATION",
+      "required_protocol_version": "4.0",
+      "required_claim_basis": "DIRECT_CHALLENGE_TEST"
+    },
+    "viruses": {
+      "required_protocol_id": "WHO_HWT_FILTRATION",
+      "required_protocol_version": "4.0",
+      "required_claim_basis": "DIRECT_CHALLENGE_TEST"
+    },
+    "protozoa": {
+      "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
+      "required_protocol_version": "ROUND_IV",
+      "required_claim_basis": "WHO_SCHEME_DECISION",
+      "note": "A product-specific WHO Scheme decision or separately applicable test must support protozoa credit. WHO HWT filtration protocol v4.0 Table 3 has bacteria and virus challenge criteria; filtration-v4 results alone do not establish protozoa reduction."
+    },
+    "arsenic": {
+      "required_protocol_id": "NSF_ANSI_53",
+      "required_protocol_version": "2025",
+      "required_claim_basis": "CERTIFICATE_CLAIM",
+      "note": "Synthetic protocol placeholder only. Any deployed claim must bind to the exact current certificate, model, configuration and listed contaminant claim."
+    }
+  }
+}

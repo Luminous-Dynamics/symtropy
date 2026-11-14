@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water barrier assurance F0 corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "water-barrier-assurance-f0-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_claim_compatibility_contract"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_source_profile_age_s",
+        "max_lab_sample_age_s",
+        "default_microbial_requirement",
+        "allow_release_authorization"
+      ],
+      "properties": {
+        "max_source_profile_age_s": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_lab_sample_age_s": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "default_microbial_requirement": {
+          "enum": [
+            "COMPREHENSIVE_2_STAR",
+            "COMPREHENSIVE_3_STAR"
+          ]
+        },
+        "allow_release_authorization": {
+          "const": false
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 19,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "input"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^WBA-F0-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "input": {
+            "type": "object",
+            "required": [
+              "now_unix",
+              "source_profile",
+              "service_conditions",
+              "modules",
+              "post_treatment_verification"
+            ],
+            "properties": {
+              "now_unix": {
+                "type": "integer"
+              },
+              "source_profile": {
+                "type": "object",
+                "required": [
+                  "sampled_at_unix",
+                  "source_changed_since_sample",
+                  "hazards"
+                ],
+                "properties": {
+                  "sampled_at_unix": {
+                    "type": "integer"
+                  },
+                  "source_changed_since_sample": {
+                    "type": "boolean"
+                  },
+                  "hazards": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "hazard_id",
+                        "status",
+                        "required_protocol_id",
+                        "required_protocol_version",
+                        "required_claim_basis"
+                      ],
+                      "properties": {
+                        "hazard_id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "status": {
+                          "enum": [
+                            "DETECTED",
+                            "NOT_DETECTED",
+                            "UNKNOWN"
+                          ]
+                        },
+                        "minimum_required_reduction_percent": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "required_protocol_id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "required_protocol_version": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "required_claim_basis": {
+                          "enum": [
+                            "DIRECT_CHALLENGE_TEST",
+                            "WHO_SCHEME_DECISION",
+                            "CERTIFICATE_CLAIM"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "service_conditions": {
+                "type": "object"
+              },
+              "modules": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "module_id",
+                    "claims"
+                  ],
+                  "properties": {
+                    "module_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "claims": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "hazard_id",
+                          "claim_value",
+                          "claim_unit",
+                          "evidence_id",
+                          "independently_verified",
+                          "protocol_id",
+                          "protocol_version",
+                          "claim_basis"
+                        ],
+                        "properties": {
+                          "hazard_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "claim_value": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "claim_unit": {
+                            "enum": [
+                              "log10",
+                              "percent_reduction"
+                            ]
+                          },
+                          "evidence_id": {
+                            "type": "string"
+                          },
+                          "independently_verified": {
+                            "type": "boolean"
+                          },
+                          "protocol_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "protocol_version": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "claim_basis": {
+                            "enum": [
+                              "DIRECT_CHALLENGE_TEST",
+                              "WHO_SCHEME_DECISION",
+                              "CERTIFICATE_CLAIM"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "post_treatment_verification": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "sampled_at_unix",
+                  "laboratory_method_accredited",
+                  "sample_id",
+                  "sample_location_id",
+                  "tested_hazard_ids"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "MISSING",
+                      "INVALID"
+                    ]
+                  },
+                  "sampled_at_unix": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "laboratory_method_accredited": {
+                    "type": "boolean"
+                  },
+                  "sample_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "sample_location_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "tested_hazard_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1165 @@
+{
+  "schema_version": "water-barrier-assurance-f0-oracle-v0.1",
+  "evidence_class": "synthetic_claim_compatibility_contract",
+  "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim",
+  "cases": [
+    {
+      "case_id": "WBA-F0-001-complete-2star-claims",
+      "expected": {
+        "status": "COVERED_WITHIN_DECLARED_CLAIMS_REQUIRES_AUTHORITY_REVIEW",
+        "reasons": [],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-002-virus-claim-missing",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-003-filter-v4-does-not-cover-protozoa",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-004-arsenic-claim-missing",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:arsenic"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-005-stale-source-profile",
+      "expected": {
+        "status": "INDETERMINATE",
+        "reasons": [
+          "SOURCE_PROFILE_STALE_OR_CHANGED"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-006-unknown-contaminant-hazard",
+      "expected": {
+        "status": "INDETERMINATE",
+        "reasons": [
+          "SOURCE_HAZARD_UNKNOWN"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-007-flow-outside-envelope",
+      "expected": {
+        "status": "OUT_OF_ENVELOPE",
+        "reasons": [
+          "MODULE_OUTSIDE_CERTIFIED_OPERATING_ENVELOPE:SYN-MODULE-01",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:arsenic",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:bacteria",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-008-capacity-exhausted",
+      "expected": {
+        "status": "OUT_OF_ENVELOPE",
+        "reasons": [
+          "MODULE_OUTSIDE_CERTIFIED_OPERATING_ENVELOPE:SYN-MODULE-01",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:arsenic",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:bacteria",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-009-treatment-bypass-open",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "TREATMENT_BYPASS_OPEN"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-010-storage-compromised",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "POST_TREATMENT_STORAGE_COMPROMISED"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-011-lab-verification-missing",
+      "expected": {
+        "status": "VERIFICATION_REQUIRED",
+        "reasons": [
+          "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_STALE_OR_INCOMPLETE"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-012-critical-measurement-invalid",
+      "expected": {
+        "status": "INDETERMINATE",
+        "reasons": [
+          "CRITICAL_MEASUREMENTS_NOT_VALID"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-013-powered-module-without-power",
+      "expected": {
+        "status": "OUT_OF_ENVELOPE",
+        "reasons": [
+          "MODULE_OUTSIDE_CERTIFIED_OPERATING_ENVELOPE:SYN-MODULE-01",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:arsenic",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:bacteria",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-014-configuration-mismatch",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "MODULE_CERTIFICATE_OR_SERVICE_STATE_INVALID:SYN-MODULE-01",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:arsenic",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:bacteria",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-015-lab-sample-stale",
+      "expected": {
+        "status": "VERIFICATION_REQUIRED",
+        "reasons": [
+          "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_STALE_OR_INCOMPLETE"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-016-three-star-required-only-two-star-claims",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:bacteria",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 4,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 4,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 5,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-017-three-star-claims-all-groups",
+      "expected": {
+        "status": "COVERED_WITHIN_DECLARED_CLAIMS_REQUIRES_AUTHORITY_REVIEW",
+        "reasons": [],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 4,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 4,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 4,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 4,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 5,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 5,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-018-critical-measurement-unknown",
+      "expected": {
+        "status": "INDETERMINATE",
+        "reasons": [
+          "CRITICAL_MEASUREMENTS_NOT_VALID"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-PROTOZOA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-019-filter-v4-claim-misapplied-to-protozoa",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    }
+  ]
+}
