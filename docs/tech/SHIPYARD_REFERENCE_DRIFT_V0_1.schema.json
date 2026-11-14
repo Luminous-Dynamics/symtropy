@@ -54,7 +54,8 @@
         "minimum_observations",
         "maximum_gap_ms",
         "minimum_environment_milli_c",
-        "maximum_environment_milli_c"
+        "maximum_environment_milli_c",
+        "initial_ewma_uncertainty_um"
       ],
       "properties": {
         "policy_id": {
@@ -120,6 +121,10 @@
         },
         "maximum_environment_milli_c": {
           "type": "integer"
+        },
+        "initial_ewma_uncertainty_um": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -134,7 +139,8 @@
         "calibration_revision",
         "verified",
         "valid_from_ms",
-        "valid_until_ms"
+        "valid_until_ms",
+        "expanded_uncertainty_um"
       ],
       "properties": {
         "sha256": {
@@ -163,6 +169,10 @@
         "valid_until_ms": {
           "type": "integer",
           "minimum": 0
+        },
+        "expanded_uncertainty_um": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
