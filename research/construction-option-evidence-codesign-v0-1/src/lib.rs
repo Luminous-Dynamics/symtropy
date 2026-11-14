@@ -540,3 +540,468 @@ pub fn evaluate_option_evidence_packages(
     })
 }
 
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    use construction_observation_planning_core::{ObservationAction, WorkNeed};
+    use construction_production_optioneering_core::{
+        EvidenceDisposition, FunctionalOutcomeContract, MeasurementBasis, OptionCandidate,
+        OptionTier, PerformanceRequirement, ScenarioResult, StageDisposition, StageGateDecision,
+    };
+    use construction_robot_interop_core::resources::{ReservationBook, ReservationRequest};
+    use construction_spacetime_occupancy_core::{
+        Bounds3Mm, OccupancyKind, SiteBinding, SpatialOccupancy,
+    };
+
+    fn contract() -> FunctionalOutcomeContract {
+        FunctionalOutcomeContract {
+            contract_id: "partition-m2-v1".to_owned(),
+            contract_digest: "git-blob-sha1:partition-contract".to_owned(),
+            project_context_digest: "git-blob-sha1:project-context".to_owned(),
+            unit_class_id: "non-loadbearing-partition".to_owned(),
+            unit_symbol: "m2".to_owned(),
+            required_units: 1,
+            acceptance_contract_ref: "acceptance:partition-v1".to_owned(),
+            currency_code: "USD".to_owned(),
+            carbon_assessment_boundary_ref: "lca-boundary:cradle-to-end-of-life".to_owned(),
+            assessment_horizon_months: 240,
+            required_gate_ids: vec!["design-authority".to_owned()],
+            performance_requirements: vec![PerformanceRequirement {
+                metric_id: "fire-rating-minutes".to_owned(),
+                unit_symbol: "min".to_owned(),
+                scale: 1,
+                minimum_value: Some(60),
+                maximum_value: None,
+            }],
+        }
+    }
+
+    fn stage_decisions() -> Vec<StageGateDecision> {
+        vec![StageGateDecision {
+            tier: OptionTier::Avoid,
+            disposition: StageDisposition::OpenForEvaluation,
+            accountable_owner_ref: "client-decision-owner".to_owned(),
+            project_context_digest: contract().project_context_digest,
+            evidence_refs: vec!["stage-evidence:avoid".to_owned()],
+            rationale: "evaluate the function-first avoid alternatives".to_owned(),
+        }]
+    }
+
+    fn option(
+        id: &str,
+        design: &str,
+        direct_cost: u64,
+        crew_minutes: u64,
+        elapsed_minutes: u64,
+        energy_wh: u64,
+        carbon_gco2e: u64,
+        acceptance_qualified: bool,
+    ) -> OptionCandidate {
+        let contract = contract();
+        let acceptance = if acceptance_qualified {
+            EvidenceDisposition::Qualified {
+                authority_ref: format!("authority:{id}"),
+                receipt_ref: format!("acceptance-receipt:{id}"),
+            }
+        } else {
+            EvidenceDisposition::Unknown {
+                reason_ref: format!("unknown-acceptance:{id}"),
+            }
+        };
+        let result = ScenarioResult {
+            scenario_id: "nominal".to_owned(),
+            measurement_basis: MeasurementBasis::FullRequiredQuantity,
+            option_design_digest: design.to_owned(),
+            assessment_horizon_months: contract.assessment_horizon_months,
+            acceptance_contract_digest: contract.contract_digest.clone(),
+            accepted_option_design_digest: design.to_owned(),
+            acceptance,
+            hard_gate_results: BTreeMap::from([(
+                "design-authority".to_owned(),
+                EvidenceDisposition::Qualified {
+                    authority_ref: format!("design-authority:{id}"),
+                    receipt_ref: format!("design-receipt:{id}"),
+                },
+            )]),
+            accepted_units: 1,
+            performance_values: BTreeMap::from([("fire-rating-minutes".to_owned(), 90)]),
+            direct_cost_minor_units: direct_cost,
+            shared_cost_minor_units: 0,
+            maintenance_cost_minor_units: 0,
+            repair_cost_minor_units: 0,
+            end_of_life_cost_minor_units: 0,
+            elapsed_minutes,
+            workflow_crew_minutes: crew_minutes,
+            energy_wh,
+            carbon_gco2e,
+            material_mass_kg_milli: 1_000,
+            rework_units: 0,
+        };
+
+        OptionCandidate {
+            option_id: id.to_owned(),
+            tier: OptionTier::Avoid,
+            functional_contract_id: contract.contract_id,
+            functional_contract_digest: contract.contract_digest,
+            option_design_digest: design.to_owned(),
+            method_profile_digest: format!("method:{design}"),
+            scheduler_profile_digest: "scheduler:baseline".to_owned(),
+            fleet_profile_digest: "fleet:baseline".to_owned(),
+            matched_reference_option_id: None,
+            scenario_results: BTreeMap::from([("nominal".to_owned(), result)]),
+        }
+    }
+
+    fn campaign(
+        option: &OptionCandidate,
+        cost_minor_units: u64,
+        crew_minutes: u64,
+        cost_treatment: CampaignCostTreatment,
+    ) -> OptionEvidenceCampaign {
+        let floor_id = "reference-floor-01".to_owned();
+        let site_epoch = "site-epoch-1".to_owned();
+        let target_frame_id = "project-grid-1".to_owned();
+        let clock_domain_id = "site-clock-1".to_owned();
+        let task_id = format!("survey-task-{}", option.option_id);
+        let occupancy_id = format!("survey-occupancy-{}", option.option_id);
+        let reservation_id = format!("survey-reservation-{}", option.option_id);
+        let resource_id = "SURVEY-INSTRUMENT-1".to_owned();
+        let binding = SiteBinding {
+            floor_id: floor_id.clone(),
+            site_epoch: site_epoch.clone(),
+            design_revision_digest: option.option_design_digest.clone(),
+            target_frame_id: target_frame_id.clone(),
+        };
+        let occupancy = SpatialOccupancy {
+            occupancy_id: occupancy_id.clone(),
+            task_id: task_id.clone(),
+            kind: OccupancyKind::InspectionAccess,
+            binding,
+            bounds: Bounds3Mm {
+                min: [0, 0, 0],
+                max: [1_000, 1_000, 1_000],
+            },
+            uncertainty_margin_mm: [10, 10, 10],
+            clearance_margin_mm: [20, 20, 20],
+            reservation: ReservationRequest {
+                reservation_id,
+                resource_id: resource_id.clone(),
+                task_id: task_id.clone(),
+                owner_id: format!("survey-owner:{}", option.option_id),
+                site_epoch: site_epoch.clone(),
+                clock_domain_id: clock_domain_id.clone(),
+                clock_uncertainty_ms: 0,
+                interval_start_ms: 0,
+                interval_end_ms: 60_000,
+                expires_at_ms: 120_000,
+                units: 1,
+            },
+        };
+
+        let action = ObservationAction {
+            action_id: format!("scan-{}", option.option_id),
+            coverage_profile_ref: format!("coverage-profile:{}", option.option_id),
+            calibration_ref: format!("calibration:{}", option.option_id),
+            covered_region_ids: vec!["region-1".to_owned()],
+            occupancy,
+            duration_minutes: 10,
+            crew_minutes,
+            cost_minor_units,
+            cost_currency_code: "USD".to_owned(),
+            energy_wh: 25,
+        };
+
+        let mut reservation_book =
+            ReservationBook::new(site_epoch.clone(), clock_domain_id.clone(), 0)
+                .expect("reservation book");
+        reservation_book
+            .register_resource(resource_id, 1)
+            .expect("survey resource");
+        let occupancy_book =
+            SpatialOccupancyBook::new(
+                SiteBinding {
+                    floor_id: floor_id.clone(),
+                    site_epoch: site_epoch.clone(),
+                    design_revision_digest: option.option_design_digest.clone(),
+                    target_frame_id: target_frame_id.clone(),
+                },
+                clock_domain_id.clone(),
+            )
+            .expect("occupancy book");
+
+        OptionEvidenceCampaign {
+            option_id: option.option_id.clone(),
+            functional_contract_digest: contract().contract_digest,
+            project_context_digest: contract().project_context_digest,
+            option_design_digest: option.option_design_digest.clone(),
+            floor_id,
+            site_epoch,
+            target_frame_id,
+            clock_domain_id,
+            currency_code: "USD".to_owned(),
+            cost_treatment,
+            cost_boundary_ref: format!("cost-boundary:{}", option.option_id),
+            work_needs: vec![WorkNeed {
+                work_unit_id: format!("accepted-work-{}", option.option_id),
+                region_id: "region-1".to_owned(),
+                uncertainty_bound_mm: [100, 100, 100],
+            }],
+            actions: vec![action],
+            occupancy_book,
+            reservation_book,
+        }
+    }
+
+    fn evaluate(
+        options: &[OptionCandidate],
+        campaigns: &[OptionEvidenceCampaign],
+        node_budget: usize,
+    ) -> Result<JointOptioneeringReport, JointEvaluationError> {
+        evaluate_option_evidence_packages(
+            &contract(),
+            &stage_decisions(),
+            &[ScenarioCase {
+                scenario_id: "nominal".to_owned(),
+            }],
+            options,
+            campaigns,
+            0,
+            node_budget,
+        )
+    }
+
+    #[test]
+    fn option_dominated_before_campaign_can_become_joint_frontier_winner() {
+        // option-a is strictly dominated by option-b on construction-only objectives:
+        // lower cost, labour, elapsed time, energy and carbon belong to option-b.
+        let option_a = option(
+            "option-a",
+            "design-a",
+            100,
+            100,
+            100,
+            100,
+            100,
+            true,
+        );
+        let option_b = option(
+            "option-b",
+            "design-b",
+            90,
+            90,
+            90,
+            90,
+            90,
+            true,
+        );
+        let campaigns = vec![
+            campaign(
+                &option_a,
+                0,
+                0,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+            campaign(
+                &option_b,
+                100,
+                100,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+        ];
+
+        let report = evaluate(&[option_a, option_b], &campaigns, 100)
+            .expect("joint option/evidence evaluation");
+
+        let construction_a = report
+            .joint_evaluations
+            .iter()
+            .find(|evaluation| evaluation.option_id == "option-a")
+            .expect("option-a evaluation");
+        assert_eq!(
+            construction_a.construction_evaluation.status,
+            OptionStatus::RobustFeasibleDominated {
+                by_option_ids: vec!["option-b".to_owned()]
+            }
+        );
+        assert_eq!(
+            construction_a.status,
+            JointPackageStatus::JointOptimalFeasible
+        );
+        assert_eq!(
+            report.proven_frontier_option_ids,
+            vec!["option-a".to_owned()]
+        );
+        assert!(report.joint_frontier_proven);
+
+        let objectives_a = construction_a.objectives.as_ref().expect("joint objectives");
+        assert_eq!(objectives_a.construction_lifecycle_cost_minor_units, 100);
+        assert_eq!(objectives_a.observation_campaign_cost_minor_units, 0);
+        assert_eq!(objectives_a.combined_lifecycle_cost_minor_units, 100);
+
+        let evaluation_b = report
+            .joint_evaluations
+            .iter()
+            .find(|evaluation| evaluation.option_id == "option-b")
+            .expect("option-b evaluation");
+        let objectives_b = evaluation_b.objectives.as_ref().expect("joint objectives");
+        assert_eq!(objectives_b.combined_lifecycle_cost_minor_units, 190);
+        assert_eq!(objectives_b.total_workflow_crew_minutes, 190);
+    }
+
+    #[test]
+    fn observation_cost_boundary_prevents_accidental_double_count() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let additional = campaign(
+            &candidate,
+            25,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        let included = campaign(
+            &candidate,
+            25,
+            5,
+            CampaignCostTreatment::AlreadyIncludedInOptionLifecycleCost,
+        );
+
+        let additional_report = evaluate(
+            std::slice::from_ref(&candidate),
+            &[additional],
+            100,
+        )
+        .expect("additional cost evaluation");
+        let included_report = evaluate(&[candidate], &[included], 100)
+            .expect("included cost evaluation");
+
+        let additional_cost = additional_report.joint_evaluations[0]
+            .objectives
+            .as_ref()
+            .expect("additional objectives")
+            .combined_lifecycle_cost_minor_units;
+        let included_cost = included_report.joint_evaluations[0]
+            .objectives
+            .as_ref()
+            .expect("included objectives")
+            .combined_lifecycle_cost_minor_units;
+
+        assert_eq!(additional_cost, 125);
+        assert_eq!(included_cost, 100);
+    }
+
+    #[test]
+    fn robust_infeasible_option_does_not_consume_campaign_search() {
+        let infeasible = option(
+            "bad-option",
+            "design-bad",
+            10,
+            10,
+            10,
+            10,
+            10,
+            false,
+        );
+        let report = evaluate(std::slice::from_ref(&infeasible), &[], 100)
+            .expect("construction rejection is reported before campaign search");
+
+        assert_eq!(report.joint_evaluations.len(), 1);
+        assert_eq!(
+            report.joint_evaluations[0].status,
+            JointPackageStatus::ConstructionNotRobustFeasible
+        );
+        assert!(report.joint_evaluations[0].campaign_search.is_none());
+        assert!(report.joint_frontier_proven);
+        assert!(report.proven_frontier_option_ids.is_empty());
+    }
+
+    #[test]
+    fn design_revision_mismatch_rejects_campaign_before_search() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let mut mismatched = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        mismatched.option_design_digest = "stale-design-revision".to_owned();
+
+        assert_eq!(
+            evaluate(&[candidate], &[mismatched], 100),
+            Err(JointEvaluationError::OptionDesignMismatch {
+                option_id: "option-a".to_owned(),
+                expected: "design-a".to_owned(),
+                received: "stale-design-revision".to_owned(),
+            })
+        );
+    }
+
+    #[test]
+    fn node_budget_exhaustion_never_claims_joint_optimality() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let plan = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        let report = evaluate(&[candidate], &[plan], 1)
+            .expect("budget-limited search is a report");
+
+        assert_eq!(
+            report.joint_evaluations[0].status,
+            JointPackageStatus::CampaignSearchIncomplete
+        );
+        assert!(!report.joint_frontier_proven);
+        assert!(report.proven_frontier_option_ids.is_empty());
+    }
+
+    #[test]
+    fn missing_campaign_is_typed_for_robust_feasible_option() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        assert_eq!(
+            evaluate(&[candidate], &[], 100),
+            Err(JointEvaluationError::MissingCampaignInput(
+                "option-a".to_owned()
+            ))
+        );
+    }
+}
