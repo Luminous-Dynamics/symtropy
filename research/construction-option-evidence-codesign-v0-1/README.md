@@ -46,7 +46,7 @@ cargo clippy --manifest-path research/construction-option-evidence-codesign-v0-1
 cargo bench --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked --bench joint_scale
 ```
 
-The current synthetic Rust corpus includes twelve tests, including construction-only dominated option reversal after campaign burden, explicit included/additional cost treatment, robust-infeasible short-circuit, node-budget exhaustion, exact small Pareto oracle, mismatched base and action design bindings, missing campaign input, zero-work Avoid campaign, proven campaign infeasibility and empty open-stage frontier.
+The current synthetic Rust corpus includes fourteen tests, including construction-only dominated option reversal after campaign burden, explicit included/additional cost treatment, robust-infeasible short-circuit, node-budget exhaustion, exact small Pareto oracle, mismatched base and action design bindings, action clock-domain mismatch, missing campaign input, zero-work Avoid campaign, proven campaign infeasibility, empty open-stage frontier, and read-only preservation of both planning snapshots during joint evaluation.
 
 The hosted benchmark measures composition p50/p95/p99 across 2/4/8/16 alternatives with 25 repetitions each. It reports campaign search nodes and joint frontier size separately. These are runner-specific measurements, not a construction productivity claim or field SLO.
 
