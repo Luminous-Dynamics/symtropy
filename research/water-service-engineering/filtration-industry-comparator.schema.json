@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Filtration industry comparator register snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_date",
+    "tracking_issue",
+    "parent_issue",
+    "use_restriction",
+    "evidence_ceiling",
+    "who_hwt",
+    "nsf_standard_families",
+    "nsf_p549",
+    "nsf_uv_poe_listing_snapshot",
+    "south_africa",
+    "comparison_rules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "filtration-industry-comparator-register-v0.1"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "parent_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "use_restriction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "who_hwt": {
+      "type": "object",
+      "required": [
+        "source",
+        "product_list_last_checked",
+        "classification",
+        "comparator_examples",
+        "caveats"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "product_list_last_checked": {
+          "type": "string",
+          "format": "date"
+        },
+        "classification": {
+          "type": "object"
+        },
+        "comparator_examples": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "manufacturer",
+              "technology",
+              "who_performance",
+              "evaluation_round"
+            ]
+          }
+        },
+        "caveats": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "nsf_standard_families": {
+      "type": "object",
+      "required": [
+        "source",
+        "standards",
+        "note"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "standards": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "object",
+            "required": [
+              "standard",
+              "edition",
+              "scope"
+            ]
+          }
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "nsf_p549": {
+      "type": "object",
+      "required": [
+        "source",
+        "launch_date",
+        "type",
+        "claim",
+        "stated_effluent_benchmark_mg_l",
+        "possible_treatment_methods_in_announcement",
+        "details_not_present_in_public_announcement",
+        "nonclaims"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "launch_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "type": {
+          "type": "string"
+        },
+        "claim": {
+          "type": "string"
+        },
+        "stated_effluent_benchmark_mg_l": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "possible_treatment_methods_in_announcement": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "details_not_present_in_public_announcement": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nonclaims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "nsf_uv_poe_listing_snapshot": {
+      "type": "object",
+      "required": [
+        "source",
+        "listing_as_of",
+        "manufacturer",
+        "examples",
+        "conversion",
+        "caveats"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "listing_as_of": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "model",
+              "standard",
+              "class",
+              "flow_us_gpm",
+              "flow_l_min"
+            ]
+          }
+        },
+        "conversion": {
+          "type": "string"
+        },
+        "caveats": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "south_africa": {
+      "type": "object",
+      "required": [
+        "gazette",
+        "source",
+        "applicable_standard",
+        "obligations",
+        "caveat"
+      ],
+      "properties": {
+        "gazette": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "format": "uri"
+        },
+        "applicable_standard": {
+          "type": "string"
+        },
+        "obligations": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string"
+          }
+        },
+        "caveat": {
+          "type": "string"
+        }
+      }
+    },
+    "comparison_rules": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
