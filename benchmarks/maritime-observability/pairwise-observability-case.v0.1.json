@@ -192,7 +192,8 @@
         "sample_count": 20000,
         "independent_episode_count": 20,
         "episode_definition_id": "synthetic-engine-cycle-v1",
-        "episode_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "episode_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "measurement_window_b": {
         "window_id": "synthetic-window-fault-b",
@@ -213,7 +214,8 @@
         "sample_count": 18000,
         "independent_episode_count": 18,
         "episode_definition_id": "synthetic-engine-cycle-v1",
-        "episode_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "episode_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "comparison_tolerances": {
         "profile_id": "synthetic-preregistered-steady-load-match-v1",
