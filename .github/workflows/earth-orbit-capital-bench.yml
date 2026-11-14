@@ -1,0 +1,75 @@
+name: Earth-orbit adaptive capital benchmark
+
+on:
+  push:
+    branches: ["feat/earth-orbit-adaptive-capital-bench-v0-1"]
+    paths:
+      - "tools/earth-orbit-capital-bench/**"
+      - ".github/workflows/earth-orbit-capital-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/earth-orbit-capital-bench/**"
+      - ".github/workflows/earth-orbit-capital-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: earth-orbit-capital-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate-policy-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+
+      - name: Run standalone unit and independent-oracle tests
+        run: cargo test --locked --manifest-path tools/earth-orbit-capital-bench/Cargo.toml
+
+      - name: Run strict Clippy on the standalone package
+        run: cargo clippy --locked --manifest-path tools/earth-orbit-capital-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen 30-case corpus and verify exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          expected_commit="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "$expected_commit"
+          cargo run --locked --quiet --manifest-path tools/earth-orbit-capital-bench/Cargo.toml > adaptive-capital-report.txt
+          grep -qx "suite=earth-orbit-adaptive-capital-v0.1 cases=30 policies_per_case=12" <(head -n 1 adaptive-capital-report.txt)
+          test "$(grep -c '^A[0-9][0-9] ' adaptive-capital-report.txt)" -eq 30
+          {
+            printf 'source_commit=%s\n' "$source_commit"
+            sha256sum tools/earth-orbit-capital-bench/Cargo.toml
+            sha256sum tools/earth-orbit-capital-bench/Cargo.lock
+            sha256sum tools/earth-orbit-capital-bench/fixtures/adaptive_capital_v0_1.csv
+            sha256sum tools/earth-orbit-capital-bench/src/lib.rs
+            sha256sum adaptive-capital-report.txt
+          } > adaptive-capital-evidence.txt
+
+      - name: Upload deterministic benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: earth-orbit-adaptive-capital-evidence
+          path: |
+            adaptive-capital-report.txt
+            adaptive-capital-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
