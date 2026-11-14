@@ -1,0 +1,46 @@
+name: Textile Feed Presentation Contract
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/textile-feed-presentation-contract/**"
+      - ".github/workflows/textile-feed-presentation-contract.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: textile-feed-presentation-contract-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Exact-head feed presentation contract
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact subject head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Assert exact subject head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SUBJECT_SHA"
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Test feed presentation contract
+        run: cargo test --manifest-path tools/textile-feed-presentation-contract/Cargo.toml -- --nocapture
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/textile-feed-presentation-contract/Cargo.toml --all -- --check
+      - name: Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/textile-feed-presentation-contract/Cargo.toml --all-targets -- -D warnings
