@@ -58,6 +58,7 @@ pub struct ComponentCandidate {
     pub geometry_sha256: String,
     pub material_record_ref: String,
     pub process_plan_ref: String,
+    pub material_applicability: Gate,
     pub process_capability: Gate,
     pub tolerance_stack: Gate,
     pub inspection_access: Gate,
@@ -67,8 +68,9 @@ pub struct ComponentCandidate {
 }
 
 impl ComponentCandidate {
-    fn gates(&self) -> [(&'static str, &'static str, &Gate); 5] {
+    fn gates(&self) -> [(&'static str, &'static str, &Gate); 6] {
         [
+            ("material_applicability", "material-applicability", &self.material_applicability),
             ("process_capability", "process-capability", &self.process_capability),
             ("tolerance_stack", "tolerance-stack", &self.tolerance_stack),
             ("inspection_access", "inspection-access", &self.inspection_access),
@@ -302,12 +304,14 @@ mod tests {
             geometry_sha256: HASH_A.to_owned(),
             material_record_ref: "symthaea://materials/synthetic-mat-01".to_owned(),
             process_plan_ref: "symthaea://process-plans/synthetic-route-01".to_owned(),
+            material_applicability: passing_gate("ev-material"),
             process_capability: passing_gate("ev-process"),
             tolerance_stack: passing_gate("ev-tolerance"),
             inspection_access: passing_gate("ev-inspection"),
             assembly_access: passing_gate("ev-assembly"),
             replacement_access: passing_gate("ev-replacement"),
             evidence: vec![
+                evidence("ev-material", "material-applicability", HASH_B),
                 evidence("ev-process", "process-capability", HASH_A),
                 evidence("ev-tolerance", "tolerance-stack", HASH_B),
                 evidence("ev-inspection", "inspection-access", HASH_A),
@@ -328,6 +332,18 @@ mod tests {
             result.claim_ceiling,
             ClaimCeiling::ContractAndSyntheticFixtureOnly
         );
+    }
+
+    #[test]
+    fn unknown_material_domain_is_indeterminate_not_feasible() {
+        let mut package = candidate();
+        package.material_applicability = Gate {
+            state: GateState::Unknown,
+            reason_code: Some("MATERIAL_ENVIRONMENT_DOMAIN_NOT_ADMITTED".to_owned()),
+            evidence_ids: vec![],
+        };
+        let result = assess(&package).expect("unknown material domain is a valid explicit disposition");
+        assert_eq!(result.disposition, Disposition::Indeterminate);
     }
 
     #[test]
