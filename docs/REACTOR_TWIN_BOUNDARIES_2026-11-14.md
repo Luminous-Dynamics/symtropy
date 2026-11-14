@@ -192,3 +192,23 @@ Relevant external references:
 Symtropy should remain the neutral scenario and evidence adapter. It records exact solver revision, inputs, machine geometry, boundary conditions, source-function assumptions, convergence, outputs, residuals, uncertainty, raw artifact hashes and applicability domain. It does not reinterpret a Symthaea prediction as a solver result or an external solver result as an EFIT measurement.
 
 Any generated MAST-like synthetic equilibrium may be conditioned on MAST geometry and input signals, but no MAST EFIT equilibrium target or target-derived archive may enter model training, calibration, validation or model selection. Preserve the distinction between **synthetic solver reference**, **inferred model output**, and **external EFIT target** in the run receipt and projection type.
+
+
+## Spark numerical reference provenance — 14 Nov 2026
+
+Spark's standalone D-D Maxwellian calculation is undergoing a numerical correction in [Spark PR #7](https://github.com/Luminous-Dynamics/spark-engine/pull/7):
+- the keV·barn → cm³/s integration prefactor is being corrected;
+- the total low-energy D-D constant-S baseline is being changed from a one-branch S-factor to the sum of the two branch coefficients;
+- a 1–20 keV comparison against the 2019 NRL Plasma Formulary is being added.
+
+This constant-S comparison is a limited reference benchmark (35% regression envelope), not a full energy-dependent Bosch–Hale implementation. The 300 K lattice/beam regime remains outside its validated domain. Full branch fits and sample-location/geometry-matched NASA source-rate reconstruction are tracked in Spark issues [#5](https://github.com/Luminous-Dynamics/spark-engine/issues/5) and [#6](https://github.com/Luminous-Dynamics/spark-engine/issues/6).
+
+Symtropy must carry, rather than hide, this provenance in any downstream scenario/run receipt:
+- Spark repository and exact commit/release;
+- reaction model identity and branch convention;
+- validity envelope, extrapolation flag and parameter assumptions;
+- source dataset/observation identity and units;
+- distinct detector/source/volume/system boundaries;
+- uncertainty and unresolved model discrepancy.
+
+A deterministic run receipt can preserve this metadata; it cannot turn an extrapolated Spark result into a validated physical reactivity or measured energy flow.
