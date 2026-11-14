@@ -116,16 +116,41 @@ impl<const D: usize> ConformalMetric<D> {
             raw
         }
     }
-    /// Ricci scalar curvature for validation (Fix 8).
+    /// Small-σ approximation to the Ricci scalar for g = e^(2σ)δ.
     ///
-    /// For conformal metric g = e^{2σ}δ in D dimensions:
-    /// R = -2(D-1)(∇²σ + (D-1)|∇σ|²)   (small σ approximation)
+    /// This preserves the original API. Dropping the conformal prefactor
+    /// e^(-2σ) ≈ 1 gives
     ///
-    /// Negative R = positive curvature (space bends toward source).
-    /// Zero R = flat space. Used for experiment validation, not dynamics.
+    /// R ≈ -2(D-1) Δσ - (D-1)(D-2)|∇σ|².
+    ///
+    /// Use ricci_scalar_with_sigma when σ itself is available.
+    /// Curvature is calculated from the supplied gradient and Laplacian; their
+    /// numerical accuracy depends on the caller's derivative estimates.
     pub fn ricci_scalar(&self, sigma_gradient: &SVector<f64, D>, sigma_laplacian: f64) -> f64 {
+        self.ricci_scalar_with_sigma(0.0, sigma_gradient, sigma_laplacian)
+    }
+
+    /// Ricci scalar of the conformal Riemannian metric g_ij = e^(2σ)δ_ij.
+    ///
+    /// For a flat Euclidean reference metric in D dimensions, the exact
+    /// conformal-transformation formula is
+    ///
+    /// R = e^(-2σ) * [-2(D-1) Δσ - (D-1)(D-2)|∇σ|²].
+    ///
+    /// In D=1 the scalar curvature is identically zero; in D=2 the
+    /// gradient-squared term vanishes. This is spatial Riemannian curvature,
+    /// not a solution of Einstein's field equations.
+    pub fn ricci_scalar_with_sigma(
+        &self,
+        sigma: f64,
+        sigma_gradient: &SVector<f64, D>,
+        sigma_laplacian: f64,
+    ) -> f64 {
         let d = D as f64;
-        -2.0 * (d - 1.0) * (sigma_laplacian + (d - 1.0) * sigma_gradient.norm_squared())
+        let d_minus_one = d - 1.0;
+        (-2.0 * sigma).exp()
+            * (-2.0 * d_minus_one * sigma_laplacian
+                - d_minus_one * (d - 2.0) * sigma_gradient.norm_squared())
     }
 
     /// Integrate geodesic velocity correction using 4th-order Runge-Kutta.
@@ -265,6 +290,65 @@ mod tests {
         assert!(
             correction[1] > 0.0,
             "Direction should point in gradient direction"
+        );
+    }
+
+    #[test]
+    fn ricci_scalar_2d_has_no_gradient_squared_term() {
+        let metric = ConformalMetric::<2>::new();
+        let sigma = 0.3;
+        let gradient = SVector::from([2.0, -3.0]);
+        let laplacian = 2.0;
+
+        // In two dimensions, (D-1)(D-2) = 0, so R = -2 e^(-2σ) Δσ,
+        // independent of the gradient norm.
+        let expected = -2.0 * (-2.0 * sigma).exp() * laplacian;
+        let actual = metric.ricci_scalar_with_sigma(sigma, &gradient, laplacian);
+        assert!(
+            (actual - expected).abs() < 1e-12,
+            "2D conformal Ricci scalar: actual={actual}, expected={expected}"
+        );
+    }
+
+    #[test]
+    fn ricci_scalar_3d_uses_correct_gradient_squared_coefficient() {
+        let metric = ConformalMetric::<3>::new();
+        let gradient = SVector::from([1.0, 2.0, 2.0]); // |∇σ|² = 9
+        let laplacian = 4.0;
+        // At σ = 0: R = -2(2)*4 - (2)(1)*9 = -34.
+        let expected = -34.0;
+        let actual = metric.ricci_scalar_with_sigma(0.0, &gradient, laplacian);
+        let legacy_approximation = metric.ricci_scalar(&gradient, laplacian);
+        assert!((actual - expected).abs() < 1e-12);
+        assert!(
+            (legacy_approximation - expected).abs() < 1e-12,
+            "small-σ API must use the correct coefficient: {legacy_approximation}"
+        );
+    }
+
+    #[test]
+    fn ricci_scalar_4d_includes_conformal_prefactor() {
+        let metric = ConformalMetric::<4>::new();
+        let sigma = 0.2;
+        let gradient = SVector::from([1.0, 1.0, 1.0, 1.0]); // |∇σ|² = 4
+        let laplacian = 3.0;
+        // Bracket = -2*3*3 - 3*2*4 = -42.
+        let expected = (-2.0 * sigma).exp() * -42.0;
+        let actual = metric.ricci_scalar_with_sigma(sigma, &gradient, laplacian);
+        assert!(
+            (actual - expected).abs() < 1e-12,
+            "4D conformal prefactor: actual={actual}, expected={expected}"
+        );
+    }
+
+    #[test]
+    fn ricci_scalar_vanishes_in_one_dimension() {
+        let metric = ConformalMetric::<1>::new();
+        let gradient = SVector::from([5.0]);
+        let actual = metric.ricci_scalar_with_sigma(0.7, &gradient, 9.0);
+        assert!(
+            actual.abs() < 1e-12,
+            "one-dimensional scalar curvature must vanish, got {actual}"
         );
     }
 
