@@ -361,12 +361,7 @@ impl ObservationalTargetTrialProtocol {
                 return Err(TargetTrialValidationError::InvalidDigest);
             }
         }
-        if self.preregistration_record_ref.trim().is_empty()
-            || self.exchangeability_review_ref.trim().is_empty()
-            || self.treatment_version_review_ref.trim().is_empty()
-            || self.censoring_review_ref.trim().is_empty()
-            || self.interference_review_ref.trim().is_empty()
-        {
+        if self.preregistration_record_ref.trim().is_empty() {
             return Err(TargetTrialValidationError::InvalidIdentity);
         }
         if !self.propensity_floor.is_finite()
@@ -504,13 +499,6 @@ impl ObservationalTargetTrialDataset {
                     self.protocol.comparator_strategy_version_id.as_str()
                 }
             };
-            if unit.strategy_version_id != expected_version {
-                return Err(TargetTrialValidationError::InvalidProtocol(format!(
-                    "strategy version mismatch for unit {}",
-                    unit.unit_id
-                )));
-            }
-
             let mut unit_covariates = BTreeSet::new();
             for covariate in &unit.baseline_covariates {
                 if covariate.covariate_id.trim().is_empty()
@@ -615,6 +603,13 @@ pub fn evaluate_observational_target_trial_design(
         .collect::<BTreeSet<_>>();
 
     for unit in &dataset.units {
+        let expected_version = match unit.assigned_arm {
+            StrategyArm::RepairStrategy => protocol.treatment_strategy_version_id.as_str(),
+            StrategyArm::ComparatorStrategy => protocol.comparator_strategy_version_id.as_str(),
+        };
+        if unit.strategy_version_id != expected_version {
+            reasons.insert(TargetTrialNotIdentifiedReason::TreatmentVersionMismatch);
+        }
         let unit_time_zero = unit.eligibility_at_seconds;
         if (unit.assignment_at_seconds - unit_time_zero).abs()
             > protocol.time_zero_tolerance_seconds
