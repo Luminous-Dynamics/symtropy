@@ -116,13 +116,13 @@ A compatible residual lies in `range(J) = range(W). The solver returns a quotien
 
 **Compatibility tolerances are not measured in raw Euclidean coordinates.** The caller supplies an SPD residual-space metric H. When rows are re-described by `r_new = T r_old`, that metric must be re-described as `H_new = T^-T H_old T^-1`. The same H metric drives rank revelation and residual compatibility. This is what makes the floating-point acceptance rule meaningful under arbitrary nonsingular row scaling/shearing.
 
-The rank is still numerical and profile-bound. Near-threshold cases are not promoted to PASS. The hard-constraint quotient is a different semantic model from `W + epsilon I`; regularization must be declared as a soft-constraint problem with a separate identity.
+The rank is still numerical and profile-bound. The profile has a two-sided multiplicative uncertainty band around the rank threshold: pivots well above it are admitted, pivots well below it are treated as resolved null directions, and pivots inside it mark the rank unresolved. In that middle band the solve returns INCONCLUSIVE with no correction. Near-threshold cases are not promoted to PASS. The hard-constraint quotient is a different semantic model from `W + epsilon I`; regularization must be declared as a soft-constraint problem with a separate identity.
 
 Run the synthetic fixture:
 
     cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example redundant_constraint_quotient
 
-The unit tests cover duplicate rows, multiplier null shifts, unique physical correction, incompatible residual rejection, an exact-rational Delassus oracle, multiplier-norm invariance under row re-description, a combined generalized-coordinate and constraint-equation rebase, and rank-zero constraints. This does not yet qualify nonlinear constraints, unilateral/frictional contact, active-set changes, or sparse articulated solvers.
+The unit tests cover duplicate rows, multiplier null shifts, unique physical correction, incompatible residual rejection, an exact-rational Delassus oracle, multiplier-norm invariance under row re-description, a combined generalized-coordinate and constraint-equation rebase, an ambiguous near-rank control that must abstain, a separated full-rank control, and rank-zero constraints. This does not yet qualify nonlinear constraints, unilateral/frictional contact, active-set changes, or sparse articulated solvers.
 
 ### Hard-constraint quotient versus diagonal regularization
 
