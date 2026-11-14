@@ -959,6 +959,98 @@ fn validate_probabilistic_forecast_corpus(
 
     let summary = forecast_kernel::summarize_forecasts(&forecast_cases)
         .map_err(|error| format!("forecast scoring failed: {error}"))?;
+    let mut seen_forecast_ids = BTreeSet::new();
+    let mut forecast_rows = Vec::with_capacity(cases.len());
+    for (manifest_case, forecast_case) in cases.iter().zip(&forecast_cases) {
+        let forecast_id = string_at(manifest_case, &["forecast_id"])?;
+        let unique = seen_forecast_ids.insert(forecast_id.clone());
+        let expected = at(manifest_case, &["expected"])?;
+        let score = forecast_kernel::score_forecast_case(forecast_case)
+            .map_err(|error| format!("forecast_id={forecast_id}; scoring failed: {error}"))?;
+        let case_matches = unique
+            && optional_number_matches(
+                score.model_crps,
+                expected.get("model_crps").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && close_enough(score.baseline_crps, number_at(expected, &["baseline_crps"])? , 1e-9)
+            && optional_number_matches(
+                score.model_mean,
+                expected.get("model_mean").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.absolute_error,
+                expected.get("absolute_error").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.median,
+                expected.get("median").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.lower_50,
+                expected.get("lower_50").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.upper_50,
+                expected.get("upper_50").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.lower_80,
+                expected.get("lower_80").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.upper_80,
+                expected.get("upper_80").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.lower_95,
+                expected.get("lower_95").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && optional_number_matches(
+                score.upper_95,
+                expected.get("upper_95").unwrap_or(&Value::Null),
+                1e-9,
+            );
+        push_check(
+            &mut checks,
+            "FORECAST-CASE-SCORE-ORACLE-001",
+            case_matches,
+            format!(
+                "forecast_id={forecast_id}; model_crps={:?}; baseline_crps={}; model_mean={:?}; unique={unique}; expected_fields_match={case_matches}",
+                score.model_crps,
+                score.baseline_crps,
+                score.model_mean
+            ),
+        );
+        forecast_rows.push(json!({
+            "forecast_id": forecast_id,
+            "model_crps": score.model_crps,
+            "baseline_crps": score.baseline_crps,
+            "model_mean": score.model_mean,
+            "absolute_error": score.absolute_error,
+            "median": score.median,
+            "lower_50": score.lower_50,
+            "upper_50": score.upper_50,
+            "lower_80": score.lower_80,
+            "upper_80": score.upper_80,
+            "lower_95": score.lower_95,
+            "upper_95": score.upper_95
+        }));
+    }
+    push_check(
+        &mut checks,
+        "FORECAST-CASE-IDENTITY-001",
+        seen_forecast_ids.len() == cases.len() && cases.len() == 6,
+        format!("{} unique forecast IDs; {} cases", seen_forecast_ids.len(), cases.len()),
+    );
     let expected_summary = at(manifest, &["expected_summary"])?;
     let summary_matches = summary.eligible_case_count
         == usize_at(expected_summary, &["eligible_case_count"])?
@@ -1071,30 +1163,6 @@ fn validate_probabilistic_forecast_corpus(
             "detail": check.detail
         }))
         .collect();
-    let forecast_rows: Vec<Value> = forecast_cases
-        .iter()
-        .map(|case| {
-            let score = forecast_kernel::score_forecast_case(case);
-            match score {
-                Ok(score) => json!({
-                    "forecast_id": case.forecast_id,
-                    "model_crps": score.model_crps,
-                    "baseline_crps": score.baseline_crps,
-                    "model_mean": score.model_mean,
-                    "absolute_error": score.absolute_error,
-                    "median": score.median,
-                    "lower_50": score.lower_50,
-                    "upper_50": score.upper_50,
-                    "lower_80": score.lower_80,
-                    "upper_80": score.upper_80,
-                    "lower_95": score.lower_95,
-                    "upper_95": score.upper_95
-                }),
-                Err(error) => json!({"forecast_id": case.forecast_id, "error": error.to_string()}),
-            }
-        })
-        .collect();
-
     Ok(json!({
         "receipt_version": "0.1.0",
         "validator": "symtropy-tropical-forest-qualifier",
