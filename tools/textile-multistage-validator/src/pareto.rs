@@ -46,7 +46,20 @@ pub enum ObjectiveMetric {
 }
 
 impl ObjectiveMetric {
-    pub const ALL: [Self; 13] = [
+    pub const BASELINE: [Self; 10] = [
+        Self::AcceptedOutputMassMg,
+        Self::FibreLengthQualifiedOutputPerInputPpm,
+        Self::ResidualTrimMassMg,
+        Self::DamageAreaMm2,
+        Self::ElectricityWhPerAcceptedKg,
+        Self::SteamGramsPerAcceptedKg,
+        Self::WaterMlPerAcceptedKg,
+        Self::WastewaterMlPerAcceptedKg,
+        Self::OperatorMinutesPerAcceptedKg,
+        Self::MakespanTicks,
+    ];
+
+    pub const DISRUPTION: [Self; 13] = [
         Self::AcceptedOutputMassMg,
         Self::FibreLengthQualifiedOutputPerInputPpm,
         Self::ResidualTrimMassMg,
@@ -61,6 +74,14 @@ impl ObjectiveMetric {
         Self::PlanChurnOperationCount,
         Self::RecoveryHorizonTicks,
     ];
+
+    pub fn for_scenario(disruption: bool) -> &'static [Self] {
+        if disruption {
+            &Self::DISRUPTION
+        } else {
+            &Self::BASELINE
+        }
+    }
 
     pub fn unit(self) -> &'static str {
         match self {
@@ -366,6 +387,18 @@ fn validate_objectives(
 ) -> BTreeMap<ObjectiveMetric, u64> {
     let mut observations = BTreeMap::new();
     for observation in &candidate.objectives {
+        if !required_metrics.contains(&observation.metric) {
+            add(
+                findings,
+                "OBJECTIVE_UNEXPECTED",
+                format!(
+                    "objective {:?} does not apply to this tournament type",
+                    observation.metric
+                ),
+            );
+        }
+    }
+    for observation in &candidate.objectives {
         if observations.insert(observation.metric, observation).is_some() {
             add(
                 findings,
@@ -374,7 +407,8 @@ fn validate_objectives(
             );
         }
     }
-    for metric in ObjectiveMetric::ALL {
+    let required_metrics = ObjectiveMetric::for_scenario(candidate.requires_disruption_replay);
+    for metric in required_metrics {
         let Some(observation) = observations.get(&metric) else {
             add(
                 findings,
@@ -713,9 +747,13 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
     }
 }
 
-fn dominates(left: &BTreeMap<ObjectiveMetric, u64>, right: &BTreeMap<ObjectiveMetric, u64>) -> bool {
+fn dominates(
+    left: &BTreeMap<ObjectiveMetric, u64>,
+    right: &BTreeMap<ObjectiveMetric, u64>,
+    metrics: &[ObjectiveMetric],
+) -> bool {
     let mut strictly_better = false;
-    for metric in ObjectiveMetric::ALL {
+    for metric in metrics {
         let Some(left_value) = left.get(&metric) else {
             return false;
         };
@@ -836,6 +874,7 @@ pub fn evaluate_tournament(candidates: &[Candidate]) -> TournamentReport {
             if dominates(
                 &assessments[left].objective_values,
                 &assessments[right].objective_values,
+                ObjectiveMetric::for_scenario(reference.is_some_and(|value| value.requires_disruption_replay)),
             ) {
                 dominates_map.entry(left).or_default().push(right);
                 *dominated_by_count.entry(right).or_default() += 1;
@@ -992,9 +1031,6 @@ mod tests {
             objective(ObjectiveMetric::WastewaterMlPerAcceptedKg, 80, id, "baseline"),
             objective(ObjectiveMetric::OperatorMinutesPerAcceptedKg, 30, id, "baseline"),
             objective(ObjectiveMetric::MakespanTicks, makespan, id, "baseline"),
-            objective(ObjectiveMetric::TotalTardinessTicks, 0, id, "baseline"),
-            objective(ObjectiveMetric::PlanChurnOperationCount, 0, id, "baseline"),
-            objective(ObjectiveMetric::RecoveryHorizonTicks, makespan, id, "baseline"),
         ];
 
         Candidate {
@@ -1265,6 +1301,24 @@ mod tests {
         for observation in &mut candidate.objectives {
             observation.evidence.scenario_id = scenario_id.clone();
         }
+        candidate.objectives.push(objective(
+            ObjectiveMetric::TotalTardinessTicks,
+            0,
+            "replay",
+            "machine-outage-01",
+        ));
+        candidate.objectives.push(objective(
+            ObjectiveMetric::PlanChurnOperationCount,
+            0,
+            "replay",
+            "machine-outage-01",
+        ));
+        candidate.objectives.push(objective(
+            ObjectiveMetric::RecoveryHorizonTicks,
+            12,
+            "replay",
+            "machine-outage-01",
+        ));
         candidate.resilience_validation = Some(ResilienceReport {
             scenario_id: candidate.scenario_id.clone(),
             observed_at_tick: 5,
