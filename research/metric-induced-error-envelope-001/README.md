@@ -134,3 +134,34 @@ The combined constant is sharp: the one-DOF, one-constraint fixture attains the 
 **Important evidence boundary:** `ConstrainedKktResidualReceiptV1` is a floating-point evaluation of an exact-arithmetic theorem. Its `evidence_status` explicitly says `FloatingPointEvaluationOfExactArithmeticTheorem`; it is not an outward-rounded interval certificate and does not account for roundoff in the residual/norm evaluation. The fixed-linear theorem does not apply by itself to nonlinear midpoint steps, changing active sets, redundant constraints, unilateral contact or friction. Those require a separate residual-to-state proof and, for validated real-number claims, outward-rounded interval or other validated numerics.
 
 Authored KKT tests cover an independently known diagonal solution, the sharp golden-ratio combined bound, the sharp acceleration bound on a constraint nullspace, dense generalized-coordinate rebasing invariance, redundant-constraint rejection, and a wrong force-covector variance negative control. The pinned Rust workflow runs these tests with the rest of the metric reference.
+
+## Fixed-linear constrained KKT residual theorem
+
+The KKT residual module adds a narrow theorem-backed result for a fixed linear constrained system with SPD mass metric M and full-row-rank constraint Jacobian J:
+
+    [ M  J^T ] [a] = [f]
+    [ J   0  ] [λ]   [b]
+    W = J M^-1 J^T
+
+For a candidate (â, λ̂), independently evaluate:
+
+    r_m = f - (M â + J^T λ̂)
+    r_c = b - J â
+
+and the paired metric residual:
+
+    ρ² = ||r_m||_(M^-1)² + ||r_c||_(W^-1)²
+
+In exact arithmetic, whiten with the mass and Delassus metrics. Let U = M^-1/2 J^T W^-1/2, so U^T U = I; let g = M^-1/2 r_m and h = W^-1/2 r_c. The error equations become x + U y = g and U^T x = h. Thus x = (I-UU^T)g + U h, y = U^T g - h. The nullspace component has gain 1; the coupled parallel component has matrix [[0,1],[1,-1]], whose spectral norm is the golden ratio φ.
+
+Therefore:
+
+    ||a - â||_M ≤ ρ
+    ||λ - λ̂||_W ≤ sqrt(2) ρ
+    sqrt(||a - â||_M² + ||λ - λ̂||_W²) ≤ φ ρ
+
+The combined constant is sharp: the one-DOF, one-constraint fixture attains the golden-ratio factor. The implementation binds the calculation to the exact Delassus object, so force residual, constraint residual, mass metric and Jacobian cannot be accidentally taken from mismatched caller inputs.
+
+**Evidence boundary:** `ConstrainedKktResidualReceiptV1` is a floating-point evaluation of an exact-arithmetic theorem. Its `evidence_status` explicitly says `FloatingPointEvaluationOfExactArithmeticTheorem`; it is not an outward-rounded interval certificate and does not account for roundoff in the residual/norm evaluation. The fixed-linear theorem does not apply by itself to nonlinear midpoint steps, changing active sets, redundant constraints, unilateral contact or friction. Those require a separate residual-to-state proof and, for validated real-number claims, outward-rounded interval or other validated numerics.
+
+Authored KKT tests cover an independently known diagonal solution, the sharp golden-ratio combined bound, the sharp acceleration bound on a constraint nullspace, dense generalized-coordinate rebasing invariance, redundant-constraint rejection, and a wrong force-covector variance negative control. The microbenchmark adds a separate fixed-linear KKT receipt-evaluation measurement so its overhead can be reported separately from solving the KKT system.
