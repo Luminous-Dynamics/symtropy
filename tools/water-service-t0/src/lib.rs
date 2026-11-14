@@ -943,11 +943,8 @@ mod tests {
     fn unknown_operating_envelope_never_assumes_in_profile() {
         let mut inputs = load("filter_barrier_inputs");
         inputs["cases"][0]["inputs"]["operating_envelope_status"] = json!("unknown");
-        let result = evaluate_filter_barrier_assurance(
-            &inputs,
-            &load("filter_barrier_oracle"),
-        )
-        .expect("unknown envelope should produce an inspectable disposition");
+        let result = evaluate_filter_barrier_assurance(&inputs, &load("filter_barrier_oracle"))
+            .expect("unknown envelope should produce an inspectable disposition");
         let row = result["results"]
             .as_array()
             .unwrap()
