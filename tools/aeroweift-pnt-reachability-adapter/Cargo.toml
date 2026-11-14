@@ -8,7 +8,7 @@ repository = "https://github.com/Luminous-Dynamics/symtropy"
 publish = false
 
 [dependencies]
-aeroweift-reachability-core = { path = "../aeroweift-reachability" }
+aeroweft-reachability-core = { path = "../aeroweft-reachability" }
 
 [lib]
 path = "src/lib.rs"
