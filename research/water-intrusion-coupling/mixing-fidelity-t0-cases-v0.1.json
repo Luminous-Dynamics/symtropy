@@ -1,0 +1,446 @@
+{
+  "schema_version": "water-mixing-fidelity-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "evidence_class": "synthetic_fixture",
+  "evidence_ceiling": "analytical_mass_routing_and_discrete_rtd_arithmetic_only_no_physical_mixing_qualification",
+  "case_count": 15,
+  "cases": [
+    {
+      "case_id": "JMF-T0-001-complete-mixing-cross",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-002-segregated-inlet-origin-routing",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-003-partial-mixing-cross",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            0.75,
+            0.25
+          ],
+          [
+            0.25,
+            0.75
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-004-asymmetric-flow-routing",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          3,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          2,
+          2
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            0.75,
+            0.25
+          ],
+          [
+            0.25,
+            0.75
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-005-mass-fraction-columns-do-not-close",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            0.8,
+            0.5
+          ],
+          [
+            0.3,
+            0.5
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-006-negative-mass-fraction",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            1.1,
+            -0.1
+          ],
+          [
+            -0.1,
+            1.1
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-007-inlet-outlet-volume-flow-mismatch",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "cross",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          0.9,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "JMF-T0-008-unsupported-junction-topology",
+      "case_kind": "junction",
+      "inputs": {
+        "topology": "elbow",
+        "inlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "outlet_flow_l_s": [
+          1,
+          1
+        ],
+        "inlet_mass_fraction_to_outlet": [
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ],
+        "matrix_semantics": "fraction_of_each_inlet_tracer_mass_flux_delivered_to_each_outlet"
+      }
+    },
+    {
+      "case_id": "RTD-T0-001-closed-pulse-tracer",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 10,
+            "tracer_mass_mg": 20
+          },
+          {
+            "sample_time_s": 30,
+            "tracer_mass_mg": 30
+          },
+          {
+            "sample_time_s": 90,
+            "tracer_mass_mg": 30
+          },
+          {
+            "sample_time_s": 270,
+            "tracer_mass_mg": 20
+          }
+        ],
+        "early_threshold_s": 15,
+        "tail_threshold_s": 180,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "aligned",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "RTD-T0-002-short-circuit-and-long-tail",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 5,
+            "tracer_mass_mg": 10
+          },
+          {
+            "sample_time_s": 30,
+            "tracer_mass_mg": 40
+          },
+          {
+            "sample_time_s": 60,
+            "tracer_mass_mg": 30
+          },
+          {
+            "sample_time_s": 600,
+            "tracer_mass_mg": 20
+          }
+        ],
+        "early_threshold_s": 10,
+        "tail_threshold_s": 300,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "aligned",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "RTD-T0-003-incomplete-tracer-recovery",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 20,
+            "tracer_mass_mg": 20
+          },
+          {
+            "sample_time_s": 50,
+            "tracer_mass_mg": 20
+          },
+          {
+            "sample_time_s": 100,
+            "tracer_mass_mg": 20
+          }
+        ],
+        "early_threshold_s": 10,
+        "tail_threshold_s": 300,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "aligned",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "RTD-T0-004-negative-tracer-mass",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 10,
+            "tracer_mass_mg": 50
+          },
+          {
+            "sample_time_s": 20,
+            "tracer_mass_mg": -1
+          },
+          {
+            "sample_time_s": 30,
+            "tracer_mass_mg": 51
+          }
+        ],
+        "early_threshold_s": 10,
+        "tail_threshold_s": 300,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "aligned",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "RTD-T0-005-nonmonotonic-sample-times",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 10,
+            "tracer_mass_mg": 20
+          },
+          {
+            "sample_time_s": 30,
+            "tracer_mass_mg": 30
+          },
+          {
+            "sample_time_s": 20,
+            "tracer_mass_mg": 50
+          }
+        ],
+        "early_threshold_s": 10,
+        "tail_threshold_s": 300,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "aligned",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "RTD-T0-006-timebase-not-aligned",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 10,
+            "tracer_mass_mg": 20
+          },
+          {
+            "sample_time_s": 30,
+            "tracer_mass_mg": 30
+          },
+          {
+            "sample_time_s": 90,
+            "tracer_mass_mg": 50
+          }
+        ],
+        "early_threshold_s": 10,
+        "tail_threshold_s": 300,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "offset_unresolved",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "RTD-T0-007-calibration-not-current",
+      "case_kind": "tank_rtd",
+      "inputs": {
+        "tracer_input_mass_mg": 100,
+        "samples": [
+          {
+            "sample_time_s": 10,
+            "tracer_mass_mg": 20
+          },
+          {
+            "sample_time_s": 30,
+            "tracer_mass_mg": 30
+          },
+          {
+            "sample_time_s": 90,
+            "tracer_mass_mg": 50
+          }
+        ],
+        "early_threshold_s": 10,
+        "tail_threshold_s": 300,
+        "recovery_tolerance_low": 0.95,
+        "recovery_tolerance_high": 1.05,
+        "timebase_state": "aligned",
+        "calibration_state": "expired"
+      }
+    }
+  ]
+}
