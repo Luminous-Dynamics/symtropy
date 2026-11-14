@@ -1,0 +1,461 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-observational-target-trial-v0.1.json",
+  "title": "Observational maritime target-trial design dataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol",
+    "units"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-observational-target-trial-v0.1"
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "trial_id",
+        "assignment_method",
+        "target_population_ref",
+        "eligibility_rule_sha256",
+        "analysis_plan_sha256",
+        "preregistration_record_ref",
+        "treatment_strategy_version_id",
+        "comparator_strategy_version_id",
+        "outcome_metric_id",
+        "outcome_unit",
+        "outcome_measurement_principle_id",
+        "causal_graph_sha256",
+        "propensity_model_sha256",
+        "propensity_fit_data_sha256",
+        "propensity_floor",
+        "propensity_ceiling",
+        "time_zero_tolerance_seconds",
+        "followup_horizon_seconds",
+        "analysis_as_of_seconds",
+        "baseline_covariate_ids",
+        "strata",
+        "exchangeability_review_ref",
+        "treatment_version_review_ref",
+        "censoring_review_ref",
+        "interference_review_ref",
+        "propensity_fit_covariate_ids"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "symtropy-marine-observational-target-trial-v0.1"
+        },
+        "trial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assignment_method": {
+          "const": "observational_target_trial"
+        },
+        "target_population_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "eligibility_rule_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "analysis_plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "preregistration_record_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "treatment_strategy_version_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparator_strategy_version_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outcome_measurement_principle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "causal_graph_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "propensity_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "propensity_fit_data_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "propensity_floor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "propensity_ceiling": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "time_zero_tolerance_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "followup_horizon_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "analysis_as_of_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "baseline_covariate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "strata": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "stratum_id",
+              "minimum_repair_units",
+              "minimum_comparator_units",
+              "minimum_propensity_overlap",
+              "minimum_effective_sample_size_per_arm"
+            ],
+            "properties": {
+              "stratum_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minimum_repair_units": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "minimum_comparator_units": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "minimum_propensity_overlap": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minimum_effective_sample_size_per_arm": {
+                "type": "number",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "exchangeability_review_ref": {
+          "type": "string"
+        },
+        "treatment_version_review_ref": {
+          "type": "string"
+        },
+        "censoring_review_ref": {
+          "type": "string"
+        },
+        "interference_review_ref": {
+          "type": "string"
+        },
+        "propensity_fit_covariate_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "asset_id",
+          "engine_id",
+          "campaign_id",
+          "stratum_id",
+          "assigned_arm",
+          "strategy_version_id",
+          "eligibility_at_seconds",
+          "assignment_at_seconds",
+          "followup_start_seconds",
+          "propensity_repair",
+          "baseline_covariates",
+          "followup_status",
+          "censoring_at_seconds",
+          "concurrent_intervention_ids",
+          "outcome",
+          "strategy_record_ref",
+          "strategy_record_sha256"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "engine_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "campaign_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assigned_arm": {
+            "enum": [
+              "repair_strategy",
+              "comparator_strategy"
+            ]
+          },
+          "strategy_version_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "eligibility_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "assignment_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "followup_start_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "propensity_repair": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "baseline_covariates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "covariate_id",
+                "temporal_role",
+                "value",
+                "unit",
+                "observed_at_seconds",
+                "available_at_seconds",
+                "source_id",
+                "evidence_sha256"
+              ],
+              "properties": {
+                "covariate_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "temporal_role": {
+                  "enum": [
+                    "baseline",
+                    "post_treatment"
+                  ]
+                },
+                "value": {
+                  "type": "number"
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "observed_at_seconds": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "available_at_seconds": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "source_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          },
+          "followup_status": {
+            "enum": [
+              "complete",
+              "lost_to_followup",
+              "competing_event",
+              "preventive_replacement",
+              "administrative_censoring"
+            ]
+          },
+          "censoring_at_seconds": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "concurrent_intervention_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "outcome": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "metric_id",
+                  "value",
+                  "unit",
+                  "observed_at_seconds",
+                  "available_at_seconds",
+                  "source_id",
+                  "evidence_sha256",
+                  "measurement_principle_id",
+                  "dependency_domain_id",
+                  "quality",
+                  "calibration_status",
+                  "calibration_record_sha256",
+                  "calibration_valid_from_seconds",
+                  "calibration_valid_until_seconds",
+                  "uncertainty_abs"
+                ],
+                "properties": {
+                  "metric_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "observed_at_seconds": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "available_at_seconds": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "source_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "evidence_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "measurement_principle_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dependency_domain_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "quality": {
+                    "enum": [
+                      "valid",
+                      "missing",
+                      "stale",
+                      "rejected",
+                      "conflicted"
+                    ]
+                  },
+                  "calibration_status": {
+                    "enum": [
+                      "verified",
+                      "unknown",
+                      "expired"
+                    ]
+                  },
+                  "calibration_record_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "calibration_valid_from_seconds": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "calibration_valid_until_seconds": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "uncertainty_abs": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strategy_record_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_record_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

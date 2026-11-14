@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-observational-target-trial-report-v0.1.json",
+  "title": "Structural observational target-trial validation report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "disposition",
+    "not_identified_reasons",
+    "unit_count",
+    "repair_units",
+    "comparator_units",
+    "complete_followup_units",
+    "censored_or_competing_units",
+    "stratum_reports",
+    "analysis_plan_sha256",
+    "causal_graph_sha256",
+    "propensity_model_sha256",
+    "propensity_fit_data_sha256",
+    "dataset_sha256",
+    "causal_effect_estimated",
+    "maintenance_authorized",
+    "physical_restoration_authorized",
+    "operating_restriction_clearance_authorized",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-observational-target-trial-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "enum": [
+        "structurally_eligible_under_declared_assumptions",
+        "not_identified"
+      ]
+    },
+    "not_identified_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "time_zero_misaligned",
+          "missing_baseline_covariate",
+          "post_treatment_covariate_leakage",
+          "treatment_version_mismatch",
+          "positivity_failure",
+          "insufficient_effective_sample_size",
+          "propensity_outside_declared_support",
+          "followup_incomplete",
+          "censoring_requires_model",
+          "concurrent_intervention_unresolved",
+          "outcome_missing",
+          "outcome_not_in_followup_window",
+          "outcome_evidence_unavailable",
+          "outcome_measurement_contract_mismatch",
+          "assumption_review_reference_missing"
+        ]
+      }
+    },
+    "unit_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repair_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "comparator_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "complete_followup_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "censored_or_competing_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stratum_reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stratum_id",
+          "repair_units",
+          "comparator_units",
+          "repair_propensity_min",
+          "repair_propensity_max",
+          "comparator_propensity_min",
+          "comparator_propensity_max",
+          "propensity_overlap_width",
+          "repair_effective_sample_size",
+          "comparator_effective_sample_size"
+        ],
+        "properties": {
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repair_units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "comparator_units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "repair_propensity_min": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repair_propensity_max": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparator_propensity_min": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "comparator_propensity_max": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "propensity_overlap_width": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "repair_effective_sample_size": {
+            "type": "number",
+            "minimum": 0
+          },
+          "comparator_effective_sample_size": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "analysis_plan_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "causal_graph_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "propensity_model_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "propensity_fit_data_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dataset_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "causal_effect_estimated": {
+      "const": false
+    },
+    "maintenance_authorized": {
+      "const": false
+    },
+    "physical_restoration_authorized": {
+      "const": false
+    },
+    "operating_restriction_clearance_authorized": {
+      "const": false
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

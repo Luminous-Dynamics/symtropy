@@ -1,0 +1,37 @@
+{
+  "schema_version": "symtropy-marine-observational-target-trial-v0.1",
+  "trial_id": "synthetic-example-only",
+  "disposition": "not_identified",
+  "not_identified_reasons": [
+    "positivity_failure"
+  ],
+  "unit_count": 8,
+  "repair_units": 4,
+  "comparator_units": 4,
+  "complete_followup_units": 8,
+  "censored_or_competing_units": 0,
+  "stratum_reports": [
+    {
+      "stratum_id": "low_load",
+      "repair_units": 2,
+      "comparator_units": 2,
+      "repair_propensity_min": 0.52,
+      "repair_propensity_max": 0.55,
+      "comparator_propensity_min": 0.5,
+      "comparator_propensity_max": 0.54,
+      "propensity_overlap_width": 0.02,
+      "repair_effective_sample_size": 1.99,
+      "comparator_effective_sample_size": 1.99
+    }
+  ],
+  "analysis_plan_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "causal_graph_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "propensity_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "propensity_fit_data_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "dataset_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "causal_effect_estimated": false,
+  "maintenance_authorized": false,
+  "physical_restoration_authorized": false,
+  "operating_restriction_clearance_authorized": false,
+  "claim_ceiling": "Structural validation only; no causal effect or authorization."
+}

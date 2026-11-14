@@ -1,0 +1,105 @@
+name: Maritime Observational Target Trial Contract
+
+on:
+  pull_request:
+    branches: [research/maritime-maintenance-effect-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/observational_target_trial.rs"
+      - "benchmarks/maritime-control-response/src/lib.rs"
+      - "benchmarks/maritime-control-response/observational-target-trial-*"
+      - "docs/tech/MARITIME_OBSERVATIONAL_TARGET_TRIAL_V0_1.md"
+      - ".github/workflows/maritime-observational-target-trial-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-observational-target-trial-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  observational-target-trial-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned JSON Schema validator
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Validate dataset, oracle and report schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/maritime-control-response")
+          protocol = json.loads((root / "observational-target-trial-v0.1.json").read_text())
+          dataset_schema = json.loads((root / "observational-target-trial.schema.json").read_text())
+          oracle_schema = json.loads((root / "observational-target-trial-oracle.schema.json").read_text())
+          report_schema = json.loads((root / "observational-target-trial-report.schema.json").read_text())
+          report_example = json.loads((root / "observational-target-trial-report.example.json").read_text())
+          corpus = json.loads((root / "observational-target-trial-cases-v0.1.json").read_text())
+
+          for schema in (dataset_schema, oracle_schema, report_schema):
+              Draft202012Validator.check_schema(schema)
+          Draft202012Validator(report_schema).validate(report_example)
+
+          assert protocol["schema_version"] == "symtropy-marine-observational-target-trial-v0.1"
+          assert protocol["status"] == "protocol_only_not_executed"
+          assert protocol["scope"]["causal_estimates_enabled"] is False
+          assert len(protocol["hard_gates"]) >= 30
+          assert len(protocol["cases"]) == 15
+          assert len(corpus["cases"]) == 15
+          assert len({case["case_id"] for case in corpus["cases"]}) == 15
+          assert dataset_schema["additionalProperties"] is False
+          assert oracle_schema["additionalProperties"] is False
+          assert report_schema["additionalProperties"] is False
+          assert report_schema["properties"]["causal_effect_estimated"]["const"] is False
+          assert report_schema["properties"]["maintenance_authorized"]["const"] is False
+
+          protocol_required = set(dataset_schema["properties"]["protocol"]["required"])
+          assert "propensity_fit_covariate_ids" in protocol_required
+          assert "propensity_floor" in protocol_required
+          assert "propensity_ceiling" in protocol_required
+          unit_required = set(dataset_schema["properties"]["units"]["items"]["required"])
+          assert "baseline_covariates" in unit_required
+          assert "concurrent_intervention_ids" in unit_required
+          assert "propensity_repair" in unit_required
+          assert "strategy_record_sha256" in unit_required
+          assert "strategy_record_ref" in unit_required
+          assert "propensity_fit_covariate_ids" in dataset_schema["properties"]["protocol"]["required"]
+          assert dataset_schema["properties"]["protocol"]["properties"]["propensity_fit_covariate_ids"]["uniqueItems"] is True
+          assert "outcome" in unit_required
+          print("Observational target-trial protocol/schema/corpus checks: PASS")
+          PY
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify full crate formatting
+        working-directory: benchmarks/maritime-control-response
+        run: cargo fmt -- --check
+
+      - name: Run complete library regression suite
+        working-directory: benchmarks/maritime-control-response
+        run: cargo test --locked --lib
+
+      - name: Run strict library Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib -- -D warnings
