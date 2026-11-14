@@ -342,3 +342,12 @@ This is a contract over upstream clock qualification evidence. It does not imple
 ### Command-conditioned residual timing
 
 The command-conditioned response evaluator now uses the same bounded event-time primitive as the append-only stream. It binds a timebase ID and qualification digest, command/prediction/response uncertainty half-widths, and records conservative bounds in the evaluation output. It requires the latest possible command availability to be no later than the earliest possible prediction; the earliest possible physical response must be strictly after the latest possible prediction. Command age and response horizon use worst-case intervals. Overlap is NOT_EVALUABLE, not midpoint-ordered and not converted into an actuator diagnosis.
+
+
+### Benchmark run-manifest v2: mandatory validation evidence profile
+
+Every run manifest now carries an Industrial Evidence Matrix profile beside the score: physical independence (A0–A4), domain shift (B0–B4), holdout unit/count, target-domain access, leakage risk, receipt digest, physical-identity and source-payload review, and known limitations.
+
+A planned or unaudited run must explicitly use NOT_EVALUATED and cannot publish a score. Structural metadata assessment documents split identities but cannot qualify a score. A score claim requires an independently reviewed physical-evidence profile, at least A1 recording/run independence, verified physical identity and source payload, a profile receipt digest, disclosed target access, and LOW or SOME_CONCERNS leakage. HIGH or UNCLEAR leakage blocks score publication. Target-domain adaptation is reported separately and is not automatically leakage.
+
+Schema v1 remains available as a historical format. New manifests use `benchmark-run-manifest-v2.schema.json`. The physical-transfer claim remains prohibited: reproducing a public test-bench benchmark does not establish cross-engine or fleet transfer.
