@@ -1,0 +1,118 @@
+name: Recovery Field Validation Packet Audit
+
+on:
+  push:
+    branches: ["feat/recovery-field-validation-v0-1"]
+    paths:
+      - "docs/tech/recovery-field-validation-packet-v0.1.json"
+      - "schemas/recovery/field-validation-packet-v0.1.schema.json"
+      - "docs/tech/RIGHTS_AWARE_RECOVERY_FIELD_VALIDATION_V0_1.md"
+      - "tools/recovery-field-validation-audit/**"
+      - ".github/workflows/recovery-field-validation-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/recovery-field-validation-packet-v0.1.json"
+      - "schemas/recovery/field-validation-packet-v0.1.schema.json"
+      - "docs/tech/RIGHTS_AWARE_RECOVERY_FIELD_VALIDATION_V0_1.md"
+      - "tools/recovery-field-validation-audit/**"
+      - ".github/workflows/recovery-field-validation-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-field-validation-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  field-validation-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Check packet schema contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            ."$schema" == "https://json-schema.org/draft/2020-12/schema"
+            and .properties.schema_version.const == "recovery-field-validation-packet-v0.1"
+            and .["$defs"].claimCeiling.properties.real_field_observations.const == false
+            and .["$defs"].claimCeiling.properties.expected_actuation.const == false
+            and (.["$defs"].fieldRecord.required | index("decision_manifest_payload_json") != null)
+            and (.["$defs"].fieldRecord.required | index("episode_status") != null)
+            and (.["$defs"].measurement.properties.measurement_state.enum | index("NOT_MEASURED") != null)
+          ' schemas/recovery/field-validation-packet-v0.1.schema.json
+      - name: Check formatting
+        run: cargo fmt --check --manifest-path tools/recovery-field-validation-audit/Cargo.toml
+      - name: Run unit and adversarial tests
+        run: cargo test --manifest-path tools/recovery-field-validation-audit/Cargo.toml
+      - name: Audit exact-head synthetic packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-field-validation-audit/Cargo.toml -- \
+            docs/tech/recovery-field-validation-packet-v0.1.json \
+            --source-commit "$source_commit" > recovery-field-validation-receipt.json
+          jq -e --arg head "$source_commit" '
+            .result == "pass"
+            and .schema_version == "recovery-field-validation-packet-v0.1"
+            and .protocol_id == "rights-aware-recovery-field-validation-v0.1"
+            and .source_commit == $head
+            and .case_count == 7
+            and .evidence_record_count == 11
+            and .decision_input_reference_count == 63
+            and .post_decision_outcome_reference_count == 7
+            and .manifest_match_count == 7
+            and .profile_scope_counts.IN_SCOPE == 6
+            and .profile_scope_counts.OUT_OF_SCOPE == 1
+            and .data_rights_counts.ALLOWED == 5
+            and .data_rights_counts.BLOCKED == 1
+            and .data_rights_counts.UNKNOWN == 1
+            and .authority_counts.PASS == 5
+            and .authority_counts.UNKNOWN == 1
+            and .authority_counts.BLOCK == 1
+            and .evidence_counts.SUFFICIENT == 6
+            and .evidence_counts.INSUFFICIENT == 1
+            and .disposition_counts.REVIEW_ONLY_CANDIDATE == 1
+            and .disposition_counts.REASSESS_SCOPE == 1
+            and .disposition_counts.BLOCKED_DATA_RIGHTS == 1
+            and .disposition_counts.HOLD_DATA_RIGHTS == 1
+            and .disposition_counts.BLOCKED_AUTHORITY == 1
+            and .disposition_counts.HOLD_AUTHORITY == 1
+            and .disposition_counts.HOLD_EVIDENCE == 1
+            and .episode_status_counts.NO_ACTION == 3
+            and .episode_status_counts.REFERRED == 3
+            and .episode_status_counts.FOLLOW_UP_CENSORED == 1
+            and .measurement_state_counts.MEASURED == 7
+            and .measurement_state_counts.NOT_MEASURED == 7
+            and .decision_time_future_evidence_violation_count == 0
+            and .outcome_before_decision_violation_count == 0
+            and .missing_evidence_reference_count == 0
+            and .duplicate_identity_count == 0
+            and .expected_dispositions_match == true
+            and .all_records_synthetic == true
+            and .all_actuation_disabled == true
+            and .synthetic_review_candidate_count == 1
+            and (.case_results | length) == 7
+            and (.errors | length) == 0
+          ' recovery-field-validation-receipt.json
+      - name: Upload deterministic field-validation receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-field-validation-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: recovery-field-validation-receipt.json
+          if-no-files-found: warn
+          retention-days: 14
