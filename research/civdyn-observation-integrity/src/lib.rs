@@ -34,6 +34,27 @@ pub enum EvidenceResult {
     IntegrityIndicator,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DependencyProfile {
+    /// Identity of the underlying physical observation, before broker/format duplication.
+    pub observation_root_id: Option<String>,
+    /// Upstream dataset or alert record from which this evidence was acquired.
+    pub upstream_dataset_id: Option<String>,
+    /// Processing/model/mapping lineage that produced this evidence record.
+    pub processing_lineage_id: Option<String>,
+    /// Organization or administrative domain controlling the evidence source.
+    pub operator_domain_id: Option<String>,
+    /// Sensor/instrument lineage, distinct from access gateway identity.
+    pub instrument_lineage_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DependencyRelation {
+    IndependentForThisProfile,
+    Correlated,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceRecord {
     pub evidence_id: String,
@@ -46,6 +67,8 @@ pub struct EvidenceRecord {
     pub source_id: String,
     pub gateway_id: String,
     pub trust_root_id: String,
+    /// Explicit common-cause lineage; missing dimensions remain unknown.
+    pub dependencies: DependencyProfile,
     pub calibration_revision: String,
     pub configuration_revision: String,
     pub authenticated: bool,
@@ -123,6 +146,11 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
         || record.source_id.trim().is_empty()
         || record.gateway_id.trim().is_empty()
         || record.trust_root_id.trim().is_empty()
+        || record.dependencies.observation_root_id.as_ref().is_some_and(|v| v.trim().is_empty())
+        || record.dependencies.upstream_dataset_id.as_ref().is_some_and(|v| v.trim().is_empty())
+        || record.dependencies.processing_lineage_id.as_ref().is_some_and(|v| v.trim().is_empty())
+        || record.dependencies.operator_domain_id.as_ref().is_some_and(|v| v.trim().is_empty())
+        || record.dependencies.instrument_lineage_id.as_ref().is_some_and(|v| v.trim().is_empty())
         || record.calibration_revision.trim().is_empty()
         || record.configuration_revision.trim().is_empty()
     {
@@ -175,10 +203,52 @@ fn contract_matches(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
         && record.configuration_revision == policy.expected_configuration_revision
 }
 
-fn independent(primary: &EvidenceRecord, side: &EvidenceRecord) -> bool {
-    primary.source_id != side.source_id
-        && primary.gateway_id != side.gateway_id
-        && primary.trust_root_id != side.trust_root_id
+fn dependency_relation(primary: &EvidenceRecord, side: &EvidenceRecord) -> DependencyRelation {
+    // A known shared dependency is stronger evidence than an unknown dimension.
+    if primary.source_id == side.source_id
+        || primary.gateway_id == side.gateway_id
+        || primary.trust_root_id == side.trust_root_id
+    {
+        return DependencyRelation::Correlated;
+    }
+
+    let mut unknown = false;
+    let dimensions = [
+        (
+            primary.dependencies.observation_root_id.as_deref(),
+            side.dependencies.observation_root_id.as_deref(),
+        ),
+        (
+            primary.dependencies.upstream_dataset_id.as_deref(),
+            side.dependencies.upstream_dataset_id.as_deref(),
+        ),
+        (
+            primary.dependencies.processing_lineage_id.as_deref(),
+            side.dependencies.processing_lineage_id.as_deref(),
+        ),
+        (
+            primary.dependencies.operator_domain_id.as_deref(),
+            side.dependencies.operator_domain_id.as_deref(),
+        ),
+        (
+            primary.dependencies.instrument_lineage_id.as_deref(),
+            side.dependencies.instrument_lineage_id.as_deref(),
+        ),
+    ];
+
+    for (left, right) in dimensions {
+        match (left, right) {
+            (Some(a), Some(b)) if a == b => return DependencyRelation::Correlated,
+            (Some(_), Some(_)) => {}
+            _ => unknown = true,
+        }
+    }
+
+    if unknown {
+        DependencyRelation::Unknown
+    } else {
+        DependencyRelation::IndependentForThisProfile
+    }
 }
 
 fn finish(mut d: CandidateDecision) -> CandidateDecision {
@@ -284,9 +354,12 @@ pub fn triage_observation_integrity(
                         "{}:measurement_contract_mismatch",
                         side.evidence_id
                     ));
-                } else if !independent(primary, side) {
+                } else if dependency_relation(primary, side) == DependencyRelation::Correlated {
                     rejected.push(side.evidence_id.clone());
                     reasons.push(format!("{}:shared_dependency", side.evidence_id));
+                } else if dependency_relation(primary, side) == DependencyRelation::Unknown {
+                    rejected.push(side.evidence_id.clone());
+                    reasons.push(format!("{}:dependency_unknown", side.evidence_id));
                 } else {
                     admitted.push(side.evidence_id.clone());
                     if let EvidenceResult::Numeric(value) = side.result {
@@ -295,27 +368,45 @@ pub fn triage_observation_integrity(
                 }
             }
             EvidenceKind::InstrumentSelfTest => {
-                if side.class != EvidenceClass::Attested || !independent(primary, side) {
+                if side.class != EvidenceClass::Attested {
                     rejected.push(side.evidence_id.clone());
-                    reasons.push(format!(
-                        "{}:self_test_not_independent_or_attested",
-                        side.evidence_id
-                    ));
+                    reasons.push(format!("{}:self_test_not_attested", side.evidence_id));
                 } else {
-                    admitted.push(side.evidence_id.clone());
-                    self_test_failed |= side.result == EvidenceResult::SelfTestFail;
+                    match dependency_relation(primary, side) {
+                        DependencyRelation::Correlated => {
+                            rejected.push(side.evidence_id.clone());
+                            reasons.push(format!("{}:shared_dependency", side.evidence_id));
+                        }
+                        DependencyRelation::Unknown => {
+                            rejected.push(side.evidence_id.clone());
+                            reasons.push(format!("{}:dependency_unknown", side.evidence_id));
+                        }
+                        DependencyRelation::IndependentForThisProfile => {
+                            admitted.push(side.evidence_id.clone());
+                            self_test_failed |= side.result == EvidenceResult::SelfTestFail;
+                        }
+                    }
                 }
             }
             EvidenceKind::ForensicIntegrityReview => {
-                if side.class != EvidenceClass::Attested || !independent(primary, side) {
+                if side.class != EvidenceClass::Attested {
                     rejected.push(side.evidence_id.clone());
-                    reasons.push(format!(
-                        "{}:forensic_receipt_not_independent_or_attested",
-                        side.evidence_id
-                    ));
+                    reasons.push(format!("{}:forensic_receipt_not_attested", side.evidence_id));
                 } else {
-                    admitted.push(side.evidence_id.clone());
-                    forensic |= side.result == EvidenceResult::IntegrityIndicator;
+                    match dependency_relation(primary, side) {
+                        DependencyRelation::Correlated => {
+                            rejected.push(side.evidence_id.clone());
+                            reasons.push(format!("{}:shared_dependency", side.evidence_id));
+                        }
+                        DependencyRelation::Unknown => {
+                            rejected.push(side.evidence_id.clone());
+                            reasons.push(format!("{}:dependency_unknown", side.evidence_id));
+                        }
+                        DependencyRelation::IndependentForThisProfile => {
+                            admitted.push(side.evidence_id.clone());
+                            forensic |= side.result == EvidenceResult::IntegrityIndicator;
+                        }
+                    }
                 }
             }
             EvidenceKind::DerivedReconstruction => {
@@ -439,6 +530,13 @@ mod tests {
             source_id: source.to_owned(),
             gateway_id: gateway.to_owned(),
             trust_root_id: trust.to_owned(),
+            dependencies: DependencyProfile {
+                observation_root_id: Some(format!("observation-{id}")),
+                upstream_dataset_id: Some(format!("dataset-{id}")),
+                processing_lineage_id: Some(format!("pipeline-{id}")),
+                operator_domain_id: Some(format!("operator-{source}")),
+                instrument_lineage_id: Some(format!("instrument-{source}")),
+            },
             calibration_revision: "cal-7".to_owned(),
             configuration_revision: "cfg-3".to_owned(),
             authenticated: true,
