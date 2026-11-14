@@ -811,24 +811,32 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
     let p_negative = 1.0 - p_positive;
     let posterior_positive = if p_positive > 0.0 { prior * sensitivity / p_positive } else { f64::NAN };
     let posterior_negative = if p_negative > 0.0 { prior * (1.0 - sensitivity) / p_negative } else { f64::NAN };
-    let baseline_loss = (protect_stable * (1.0 - prior) + protect_degraded * prior)
-        .min(no_action_stable * (1.0 - prior) + no_action_degraded * prior);
-    let post_positive_loss = (protect_stable * (1.0 - posterior_positive)
-        + protect_degraded * posterior_positive)
-        .min(no_action_stable * (1.0 - posterior_positive)
-            + no_action_degraded * posterior_positive);
-    let post_negative_loss = (protect_stable * (1.0 - posterior_negative)
-        + protect_degraded * posterior_negative)
-        .min(no_action_stable * (1.0 - posterior_negative)
-            + no_action_degraded * posterior_negative);
+    let baseline_protect_loss = protect_stable * (1.0 - prior) + protect_degraded * prior;
+    let baseline_no_action_loss = no_action_stable * (1.0 - prior) + no_action_degraded * prior;
+    let post_positive_protect_loss =
+        protect_stable * (1.0 - posterior_positive) + protect_degraded * posterior_positive;
+    let post_positive_no_action_loss =
+        no_action_stable * (1.0 - posterior_positive) + no_action_degraded * posterior_positive;
+    let post_negative_protect_loss =
+        protect_stable * (1.0 - posterior_negative) + protect_degraded * posterior_negative;
+    let post_negative_no_action_loss =
+        no_action_stable * (1.0 - posterior_negative) + no_action_degraded * posterior_negative;
+    let baseline_loss = baseline_protect_loss.min(baseline_no_action_loss);
+    let post_positive_loss = post_positive_protect_loss.min(post_positive_no_action_loss);
+    let post_negative_loss = post_negative_protect_loss.min(post_negative_no_action_loss);
     let expected_after = p_positive * post_positive_loss + p_negative * post_negative_loss;
     let gross_evsi = baseline_loss - expected_after;
     let net_value = gross_evsi - cost;
+    let action_switches = baseline_protect_loss < baseline_no_action_loss
+        && post_positive_protect_loss < post_positive_no_action_loss
+        && post_negative_no_action_loss < post_negative_protect_loss;
     let valid_probabilities = (0.0..=1.0).contains(&prior)
         && (0.0..=1.0).contains(&sensitivity)
         && (0.0..=1.0).contains(&specificity)
-        && cost >= 0.0;
+        && cost >= 0.0
+        && close_enough(p_positive + p_negative, 1.0, 1e-12);
     let worked_example_matches = valid_probabilities
+        && action_switches
         && close_enough(baseline_loss, declared_without, 1e-9)
         && close_enough(p_positive, declared_p_positive, 1e-9)
         && close_enough(p_negative, declared_p_negative, 1e-9)
@@ -840,7 +848,7 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
         && declared_positive_disposition == "POSITIVE_NET_DECISION_VALUE";
     push_check(&mut checks, "DECISION-VALUE-EVSI-ARITHMETIC-001",
         worked_example_matches,
-        format!("baseline={baseline_loss}; p+={p_positive}; p-={p_negative}; post+={posterior_positive}; post-={posterior_negative}; after={expected_after}; gross={gross_evsi}; net={net_value}"));
+        format!("baseline={baseline_loss}; p+={p_positive}; p-={p_negative}; post+={posterior_positive}; post-={posterior_negative}; after={expected_after}; gross={gross_evsi}; net={net_value}; action_switches={action_switches}"));
 
     let execution = at(manifest, &["execution"])?;
     let evaluator = string_at(execution, &["evaluator"])?;
