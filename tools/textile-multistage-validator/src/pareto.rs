@@ -1097,6 +1097,190 @@ mod tests {
         }
     }
 
+    fn exercise_corpus_case(case_id: &str) -> &'static str {
+        match case_id {
+            "PARETO-001-INCOMPARABLE" => {
+                let a = candidate("high-output", 8_000_000, 150, 15);
+                let b = candidate("low-energy", 7_000_000, 90, 17);
+                let report = evaluate_tournament(&[a, b]);
+                if report.valid
+                    && report.pareto_fronts.len() == 1
+                    && report.pareto_fronts[0].len() == 2
+                {
+                    "same_first_front"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-002-STRICT-DOMINANCE" => {
+                let mut dominant = candidate("dominant", 9_000_000, 80, 12);
+                let dominated = candidate("dominated", 8_000_000, 120, 15);
+                dominant
+                    .objectives
+                    .iter_mut()
+                    .find(|item| item.metric == ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm)
+                    .unwrap()
+                    .value = 800_000;
+                let report = evaluate_tournament(&[dominated, dominant]);
+                if report.valid
+                    && report.pareto_fronts.len() == 2
+                    && report.pareto_fronts[0] == vec!["dominant".to_owned()]
+                {
+                    "later_front"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-003-EQUAL-VECTOR-TIE" => {
+                let a = candidate("a", 8_000_000, 100, 12);
+                let mut b = candidate("b", 8_000_000, 100, 12);
+                b.output_lot_id = "output-b".to_owned();
+                b.receiver_acceptance.output_lot_id = "output-b".to_owned();
+                b.process_trial_evidence_id = "trial-b".to_owned();
+                b.receiver_acceptance.process_trial_evidence_id = "trial-b".to_owned();
+                b.receiver_acceptance.evidence_id = "receiver-b".to_owned();
+                let report = evaluate_tournament(&[b, a]);
+                if report.valid
+                    && report.pareto_fronts == vec![vec!["a".to_owned(), "b".to_owned()]]
+                    && report.dominance_relations.is_empty()
+                {
+                    "same_first_front"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-004-SCHEDULE-INFEASIBLE" => {
+                let mut item = candidate("invalid", 9_000_000, 80, 10);
+                item.schedule_validation.valid = false;
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::Ineligible {
+                    "candidate_ineligible"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-005-ROUTE-GATE-FAILED" => {
+                let mut item = candidate("route-failed", 9_000_000, 80, 10);
+                item.route_findings.push(crate::Finding {
+                    code: "ROUTE_NOT_ELIGIBLE",
+                    entity_id: "job-1".to_owned(),
+                    message: "synthetic route failure".to_owned(),
+                });
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::Ineligible {
+                    "candidate_ineligible"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-006-UTILITY-UNKNOWN" => {
+                let mut item = candidate("utility-missing", 9_000_000, 0, 10);
+                item.utility_validation = None;
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::InsufficientEvidence {
+                    "candidate_insufficient"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-007-RECEIVER-CONDITIONAL" => {
+                let mut item = candidate("receiver-conditional", 9_000_000, 80, 10);
+                item.receiver_acceptance.outcome = ReceiverOutcome::Conditional;
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::InsufficientEvidence {
+                    "candidate_insufficient"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-008-BORROWED-OUTPUT-ACCEPTANCE" => {
+                let mut item = candidate("borrowed-output", 9_000_000, 80, 10);
+                item.receiver_acceptance.output_lot_id = "other-output".to_owned();
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::Ineligible {
+                    "candidate_ineligible"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-009-ESTIMATED-UTILITY" => {
+                let mut item = candidate("estimated", 9_000_000, 80, 10);
+                item.objectives
+                    .iter_mut()
+                    .find(|entry| entry.metric == ObjectiveMetric::ElectricityWhPerAcceptedKg)
+                    .unwrap()
+                    .evidence
+                    .basis = MetricEvidenceBasis::EngineeringEstimate;
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::Ineligible {
+                    "candidate_ineligible"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-010-MIXED-INPUT-LOT" => {
+                let a = candidate("a", 9_000_000, 100, 10);
+                let mut b = candidate("b", 8_000_000, 90, 11);
+                b.input_lot_id = "another-input-lot".to_owned();
+                let report = evaluate_tournament(&[a, b]);
+                if !report.valid && report.pareto_fronts.is_empty() {
+                    "tournament_invalid"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-011-DUPLICATE-CANDIDATE-ID" => {
+                let a = candidate("duplicate", 9_000_000, 100, 10);
+                let b = candidate("duplicate", 8_000_000, 90, 11);
+                let report = evaluate_tournament(&[a, b]);
+                if !report.valid && report.pareto_fronts.is_empty() {
+                    "tournament_invalid"
+                } else {
+                    "unexpected"
+                }
+            }
+            "PARETO-012-MISSING-DISRUPTION-REPLAY" => {
+                let mut item = candidate("static-only", 8_000_000, 100, 12);
+                item.requires_disruption_replay = true;
+                item.scenario_id = "machine-outage-01".to_owned();
+                for observation in &mut item.objectives {
+                    observation.evidence.scenario_id = item.scenario_id.clone();
+                }
+                let report = evaluate_tournament(&[item]);
+                if report.assessments[0].eligibility == CandidateEligibility::InsufficientEvidence {
+                    "candidate_insufficient"
+                } else {
+                    "unexpected"
+                }
+            }
+            other => panic!("unknown Pareto corpus case {other}"),
+        }
+    }
+
+    #[test]
+    fn synthetic_corpus_executes_hard_gate_and_pareto_regressions() {
+        const CORPUS: &str = include_str!("../fixtures/pareto-cases-v0.1.json");
+        let corpus: serde_json::Value = serde_json::from_str(CORPUS).unwrap();
+        assert_eq!(corpus["schema_version"], "0.1.0");
+        assert_eq!(corpus["corpus_id"], "TEXTILE-SCHEDULE-PARETO-CASES-001");
+        assert_eq!(corpus["fixture_class"], "synthetic");
+        assert_eq!(corpus["objective_schema_version"], OBJECTIVE_SCHEMA_VERSION);
+        let cases = corpus["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 12);
+        let mut seen = BTreeSet::new();
+        for case in cases {
+            let case_id = case["case_id"].as_str().unwrap();
+            assert!(seen.insert(case_id), "duplicate case {case_id}");
+            let actual = exercise_corpus_case(case_id);
+            assert_eq!(
+                Some(actual),
+                case["expected"].as_str(),
+                "Pareto corpus expectation failed for {case_id}"
+            );
+        }
+        assert_eq!(seen.len(), 12);
+    }
+
     #[test]
     fn incomparable_eligible_candidates_share_first_pareto_front() {
         let a = candidate("high-output", 8_000_000, 150, 15);
