@@ -1,0 +1,393 @@
+{
+  "schema_version": "symtropy.dc-network-deliverability-fixtures.v1",
+  "protocol": "GRID-LOC-DELIV-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "sign_convention": "positive non-slack injection is generation or demand reduction; slack balances all non-slack injections",
+  "model": {
+    "buses": [
+      {
+        "id": "S",
+        "slack": true
+      },
+      {
+        "id": "A",
+        "slack": false
+      },
+      {
+        "id": "B",
+        "slack": false
+      }
+    ],
+    "branches": [
+      {
+        "id": "S-A",
+        "from": "S",
+        "to": "A",
+        "x_pu": 0.1,
+        "normal_limit_mw": 100,
+        "emergency_limit_mw": 120
+      },
+      {
+        "id": "A-B",
+        "from": "A",
+        "to": "B",
+        "x_pu": 0.1,
+        "normal_limit_mw": 40,
+        "emergency_limit_mw": 60
+      },
+      {
+        "id": "S-B",
+        "from": "S",
+        "to": "B",
+        "x_pu": 0.1,
+        "normal_limit_mw": 45,
+        "emergency_limit_mw": 80
+      }
+    ],
+    "slack_bus": "S",
+    "topology_effective_at_ns": 0,
+    "base_mva": 100
+  },
+  "cases": [
+    {
+      "case_id": "triangle-hand-computed",
+      "baseline_non_slack_injections_mw": {
+        "A": 100,
+        "B": 0
+      },
+      "load_reductions_mw": {
+        "B": 30
+      },
+      "expected": {
+        "baseline_flow_mw": {
+          "S-A": -66.6666666667,
+          "A-B": 33.3333333333,
+          "S-B": -33.3333333333
+        },
+        "flexible_flow_mw": {
+          "S-A": -76.6666666667,
+          "A-B": 23.3333333333,
+          "S-B": -53.3333333333
+        },
+        "flow_delta_mw": {
+          "S-A": -10,
+          "A-B": -10,
+          "S-B": -20
+        },
+        "claim": "DC active-power screening only"
+      }
+    },
+    {
+      "case_id": "relief-at-one-constraint-overload-another",
+      "baseline_non_slack_injections_mw": {
+        "A": 100,
+        "B": 0
+      },
+      "load_reductions_mw": {
+        "B": 30
+      },
+      "expected": {
+        "A_B_absolute_relief_mw": 10,
+        "S_B_absolute_relief_mw": -20,
+        "S_B_overload": true,
+        "full_dispatch_network_deliverable": false
+      }
+    },
+    {
+      "case_id": "maximum-feasible-action-fraction",
+      "baseline_non_slack_injections_mw": {
+        "A": 100,
+        "B": 0
+      },
+      "load_reductions_mw": {
+        "B": 30
+      },
+      "expected": {
+        "minimum_feasible_action_fraction": 0,
+        "maximum_feasible_action_fraction": 0.5833333333,
+        "maximum_network_deliverable_reduction_mw": 17.5
+      }
+    },
+    {
+      "case_id": "radial-outage-islands-load-bus",
+      "model": {
+        "buses": [
+          "S",
+          "A",
+          "B"
+        ],
+        "branches": [
+          [
+            "S",
+            "A",
+            0.1
+          ],
+          [
+            "A",
+            "B",
+            0.1
+          ]
+        ]
+      },
+      "outage": "A-B",
+      "expected": {
+        "islanded_or_singular": true,
+        "feasible": false
+      }
+    },
+    {
+      "case_id": "triangle-single-line-contingencies",
+      "contingencies": [
+        "S-A",
+        "A-B",
+        "S-B"
+      ],
+      "expected": {
+        "all_contingencies_connected": true,
+        "each_recomputed": true
+      }
+    },
+    {
+      "case_id": "topology-effective-after-interval",
+      "topology_effective_at_ns": 10000,
+      "interval_start_ns": 0,
+      "expected": {
+        "accepted": false,
+        "reason": "stale_topology"
+      }
+    },
+    {
+      "case_id": "topology-age-exceeded",
+      "topology_effective_at_ns": 0,
+      "interval_start_ns": 100,
+      "maximum_topology_age_ns": 10,
+      "expected": {
+        "accepted": false,
+        "reason": "stale_topology"
+      }
+    },
+    {
+      "case_id": "wrong-pcc-bus-mapping",
+      "injection_bus": "UNKNOWN",
+      "expected": {
+        "accepted": false,
+        "reason": "unknown_injection_bus"
+      }
+    },
+    {
+      "case_id": "slack-injection-provided-explicitly",
+      "injection_bus": "S",
+      "expected": {
+        "accepted": false,
+        "reason": "slack_bus_injection_supplied"
+      }
+    },
+    {
+      "case_id": "negative-load-reduction-sign",
+      "load_reductions_mw": {
+        "B": -5
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "invalid_load_reduction"
+      }
+    },
+    {
+      "case_id": "required-n1-with-empty-contingency-list",
+      "require_n1": true,
+      "contingencies": [],
+      "expected": {
+        "accepted": false,
+        "reason": "missing_required_contingencies"
+      }
+    },
+    {
+      "case_id": "non-contiguous-chronology",
+      "intervals": [
+        {
+          "start_ns": 0,
+          "duration_ns": 100
+        },
+        {
+          "start_ns": 200,
+          "duration_ns": 100
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "non_contiguous_intervals"
+      }
+    },
+    {
+      "case_id": "unknown-contingency-branch",
+      "contingencies": [
+        "missing-branch"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "unknown_contingency_branch"
+      }
+    },
+    {
+      "case_id": "duplicate-bus-id",
+      "buses": [
+        "S",
+        "A",
+        "A"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "duplicate_bus"
+      }
+    },
+    {
+      "case_id": "duplicate-branch-id",
+      "branches": [
+        "line-1",
+        "line-1"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "duplicate_branch"
+      }
+    },
+    {
+      "case_id": "zero-or-negative-reactance",
+      "reactance_pu": 0,
+      "expected": {
+        "accepted": false,
+        "reason": "invalid_quantity"
+      }
+    },
+    {
+      "case_id": "emergency-rating-below-normal",
+      "normal_limit_mw": 100,
+      "emergency_limit_mw": 90,
+      "expected": {
+        "accepted": false,
+        "reason": "emergency_limit_below_normal"
+      }
+    },
+    {
+      "case_id": "baseline-overload-needs-minimum-dispatch",
+      "baseline_non_slack_injections_mw": {
+        "A": 0,
+        "B": -100
+      },
+      "load_reductions_mw": {
+        "B": 60
+      },
+      "expected": {
+        "S_B_baseline_over_limit": true,
+        "minimum_feasible_action_fraction": 0.5416666667,
+        "maximum_feasible_action_fraction": 1,
+        "full_action_network_deliverable": true
+      }
+    },
+    {
+      "case_id": "pcc-bus-not-in-topology",
+      "pcc_bus_id": "UNKNOWN",
+      "expected": {
+        "accepted": false,
+        "reason": "unknown_bus"
+      }
+    },
+    {
+      "case_id": "pcc-maps-to-slack",
+      "pcc_bus_id": "S",
+      "expected": {
+        "accepted": false,
+        "reason": "pcc_bus_maps_to_slack"
+      }
+    },
+    {
+      "case_id": "pcc-action-assigned-to-another-bus",
+      "pcc_bus_id": "B",
+      "load_reductions_mw": {
+        "A": 5
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "pcc_bus_mismatch"
+      }
+    },
+    {
+      "case_id": "per-unit-base-invariance",
+      "base_mva_values": [
+        1,
+        1000
+      ],
+      "expected": {
+        "branch_flow_mw_equal": true
+      }
+    },
+    {
+      "case_id": "network-base-invariance",
+      "base_mva_values": [
+        1,
+        100
+      ],
+      "injections_mw": {
+        "A": 100,
+        "B": 0
+      },
+      "expected": {
+        "branch_flows_mw_equal": true,
+        "flow_tolerance_mw": 1e-9
+      }
+    },
+    {
+      "case_id": "mwh-unit-known-truth",
+      "load_reduction_mw": 30,
+      "duration_hours": 1,
+      "expected": {
+        "requested_reduction_energy_mwh": 30,
+        "network_deliverable_reduction_energy_mwh": 17.5
+      }
+    },
+    {
+      "case_id": "topology-expires-mid-interval",
+      "topology_effective_at_ns": 0,
+      "maximum_topology_age_ns": 10000,
+      "interval_start_ns": 9990,
+      "interval_duration_ns": 20,
+      "expected": {
+        "accepted": false,
+        "reason": "stale_topology_at_interval_end"
+      }
+    }
+  ],
+  "negative_controls": [
+    "wrong_sign_convention",
+    "duplicate_or_missing_bus_ids",
+    "unknown_branch_endpoints",
+    "slack_bus_injection_is_supplied",
+    "negative_load_reduction",
+    "non_finite_injection",
+    "non_contiguous_chronology",
+    "stale_topology",
+    "unknown_contingency",
+    "duplicate_contingency",
+    "outage_islanding",
+    "normal_rating_exceeded",
+    "emergency_rating_exceeded",
+    "branch-relief-overload-elsewhere",
+    "N0_result_promoted_to_N1",
+    "missing_or_stale_pcc_bus_identity",
+    "PCC_mapped_to_slack",
+    "site_flexibility_reassigned_to_other_bus",
+    "per_unit_base_mva_omitted_or_mismatched",
+    "baseline_already_overloaded_minimum_action_fraction_ignored",
+    "incorrect_mva_base_not_converted_to_per_unit",
+    "mw_hours_divided_by_1000_twice",
+    "topology_fresh_at_interval_start_but_stale_before_interval_end"
+  ],
+  "claim_boundary": "linearized active-power screening for a pinned network snapshot. No AC voltage/reactive, losses, protection, RMS/EMT, distribution hosting capacity, market accreditation or ELCC claim.",
+  "identity": {
+    "site_id": "dc-site",
+    "pcc_id": "pcc-b",
+    "pcc_bus_id": "B",
+    "baseline_trace_digest": "sha256:baseline",
+    "flexible_trace_digest": "sha256:flexible"
+  }
+}
