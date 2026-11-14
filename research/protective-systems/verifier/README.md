@@ -11,6 +11,8 @@ From the repository root:
 cargo test --manifest-path research/protective-systems/verifier/Cargo.toml
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml -- path/to/fixture-corpus.json
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
+
 ```
 
 With no argument, the binary evaluates the frozen v0.1 corpus embedded at compile
@@ -20,6 +22,16 @@ JSON report and exits:
 - `0`: every declared expected decision matches;
 - `1`: corpus is structurally valid but one or more decisions mismatch;
 - `2`: input, JSON, or corpus structure is invalid.
+
+The crate also contains the exact finite VOI microbenchmark:
+
+```sh
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
+```
+
+It is a synthetic binary decision fixture, not evidence of improved materials
+discovery. Its known-answer negative controls include an anti-correlated proxy
+and a cheapest experiment that is worse than doing nothing.
 
 ## Claim ceiling
 
