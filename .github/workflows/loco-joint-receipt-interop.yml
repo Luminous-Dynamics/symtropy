@@ -1,0 +1,480 @@
+name: LOCO Joint Receipt Interop Fixture Qualification
+
+on:
+  push:
+    branches:
+      - research/loco-joint-receipt-interop-001
+    paths:
+      - "research/loco-joint-receipt-interop-001/**"
+      - ".github/workflows/loco-joint-receipt-interop.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/loco-joint-receipt-interop-001/**"
+      - ".github/workflows/loco-joint-receipt-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-contract:
+    name: Draft 2020-12 schema and causal golden-packet preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate schemas, golden packet, mutation corpus and integrity digest
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import re
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/loco-joint-receipt-interop-001/fixtures")
+          packet_path = root / "joint_receipt_v0_1_complete.json"
+          packet_schema_path = root / "joint_receipt_v0_1.schema.json"
+          mutations_path = root / "mutations_v0_1.json"
+          mutations_schema_path = root / "mutations_v0_1.schema.json"
+
+          def reject_duplicate_keys(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      raise ValueError(f"duplicate JSON object key: {key}")
+                  result[key] = value
+              return result
+
+          def load_unique(path):
+              return json.loads(path.read_text(), object_pairs_hook=reject_duplicate_keys)
+
+          packet = load_unique(packet_path)
+          packet_schema = load_unique(packet_schema_path)
+          mutations = load_unique(mutations_path)
+          mutations_schema = load_unique(mutations_schema_path)
+
+          for label, schema in (
+              ("packet", packet_schema),
+              ("mutations", mutations_schema),
+          ):
+              Draft202012Validator.check_schema(schema)
+              print(f"{label} schema meta-validation: PASS")
+
+          for label, value, schema in (
+              ("golden packet", packet, packet_schema),
+              ("mutation corpus", mutations, mutations_schema),
+          ):
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(value),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{label} schema error at {list(error.absolute_path)}: {error.message}")
+                  raise SystemExit(1)
+              print(f"{label} schema validation: PASS")
+
+          # The v0.1 profile forbids floats. Wide integers must be decimal strings.
+          def reject_floats(value, path="$"):
+              if isinstance(value, float):
+                  raise SystemExit(f"floating-point value forbidden in v0.1 packet: {path}")
+              if isinstance(value, dict):
+                  for key, child in value.items():
+                      reject_floats(child, f"{path}/{key}")
+              elif isinstance(value, list):
+                  for index, child in enumerate(value):
+                      reject_floats(child, f"{path}/{index}")
+
+          reject_floats(packet)
+
+          # RFC 8785 JCS for this v0.1 fixture: ASCII property names and no
+          # floating-point numbers. All wide integers are decimal strings.
+          integrity = packet["integrity"]
+          if integrity["canonicalization"] != "RFC8785-JCS-UTF8":
+              raise SystemExit("unexpected canonicalization profile")
+          if integrity["digest_scope"] != "top_level_without_integrity":
+              raise SystemExit("unexpected digest scope")
+          payload = dict(packet)
+          del payload["integrity"]
+          canonical = json.dumps(
+              payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+          ).encode("utf-8")
+          observed_digest = hashlib.sha256(canonical).hexdigest()
+          expected_digest = integrity["payload_sha256"]
+          if observed_digest != expected_digest:
+              raise SystemExit(
+                  f"payload digest mismatch: expected={expected_digest} observed={observed_digest}"
+              )
+          print(f"payload SHA-256: PASS ({observed_digest})")
+
+          # Verify sequence ordering and exact event-edge correspondence.
+          events = packet["events"]
+          ordered = [
+              "source_observation", "decision", "proposal", "assurance",
+              "command", "actuator_application", "physical_transition", "terminal",
+          ]
+          sequences = [int(events[name]["sequence"]) for name in ordered]
+          if any(left >= right for left, right in zip(sequences, sequences[1:])):
+              raise SystemExit("causal event sequences are not strictly increasing")
+          expected_edges = []
+          for left, right in zip(ordered, ordered[1:]):
+              expected_edges.append({
+                  "from_event_id": events[left]["event_id"],
+                  "to_event_id": events[right]["event_id"],
+                  "from_sequence": events[left]["sequence"],
+                  "to_sequence": events[right]["sequence"],
+              })
+          if packet["causal_edges"] != expected_edges:
+              raise SystemExit("causal edge list does not exactly match event identities/sequences")
+
+          # Same-clock golden case: every timestamp must bind to one boot epoch.
+          relation = packet["clock_relation"]
+          if relation["kind"] != "same_monotonic_clock_verified":
+              raise SystemExit("golden packet must be the same-monotonic-clock known answer")
+          expected_clock = relation["clock_id"]
+          expected_boot = relation["boot_epoch"]
+          stamps = [
+              events["source_observation"]["capture"],
+              events["actuator_application"]["stamp"],
+              events["motion_onset"]["stamp"],
+              events["physical_transition"]["stamp"],
+              events["terminal"]["stamp"],
+          ]
+          for stamp in stamps:
+              if stamp["clock_id"] != expected_clock or stamp["boot_epoch"] != expected_boot:
+                  raise SystemExit("timestamp clock/boot identity mismatch")
+              if int(stamp["lower_ns"]) > int(stamp["upper_ns"]):
+                  raise SystemExit("invalid timestamp interval")
+
+          source = events["source_observation"]["capture"]
+          application = events["actuator_application"]["stamp"]
+          motion = events["motion_onset"]["stamp"]
+          aoi = packet["measurements"]["source_to_actuator_aoi"]["value"]
+          response = packet["measurements"]["command_to_motion"]["value"]
+          expected_aoi = (
+              int(application["lower_ns"]) - int(source["upper_ns"]),
+              int(application["upper_ns"]) - int(source["lower_ns"]),
+          )
+          expected_response = (
+              int(motion["lower_ns"]) - int(application["upper_ns"]),
+              int(motion["upper_ns"]) - int(application["lower_ns"]),
+          )
+          if (int(aoi["lower_ns"]), int(aoi["upper_ns"])) != expected_aoi:
+              raise SystemExit("source-to-actuator AoI interval arithmetic mismatch")
+          if (int(response["lower_ns"]), int(response["upper_ns"])) != expected_response:
+              raise SystemExit("command-to-motion interval arithmetic mismatch")
+
+          decision = packet["decision"]
+          if decision["disposition"] != "Sufficient":
+              raise SystemExit("golden decision must be sufficient")
+          if int(decision["regret_upper_units"]) > int(decision["epsilon_task_loss_units"]):
+              raise SystemExit("golden decision regret exceeds epsilon")
+          if int(decision["application_tick"]) > int(decision["valid_through_tick"]):
+              raise SystemExit("golden decision expired before application")
+          if events["proposal"]["executed_prefix_expected_digest"] != events["proposal"]["executed_prefix_observed_digest"]:
+              raise SystemExit("golden executed-prefix identity mismatch")
+          if packet["configuration"]["executed_prefix_expected_digest"] != packet["configuration"]["executed_prefix_observed_digest"]:
+              raise SystemExit("configuration prefix identity mismatch")
+
+          thermal = packet["thermal"]
+          if thermal["required_node_ids"] != thermal["observed_node_ids"]:
+              raise SystemExit("golden thermal node coverage incomplete")
+          if thermal["expected_predecessor_digest"] != thermal["observed_predecessor_digest"]:
+              raise SystemExit("golden thermal predecessor mismatch")
+          if thermal["sequence_reset"] is not False:
+              raise SystemExit("golden packet contains a thermal sequence reset")
+
+          energy = packet["energy"]
+          if energy["boundary_complete"] is not True or energy["upstream_disposition"] != "Balanced":
+              raise SystemExit("golden packet must carry a complete upstream balanced energy receipt")
+          if not energy["closure_receipt_digest"]:
+              raise SystemExit("balanced energy receipt digest missing")
+
+          terminal = events["terminal"]
+          physical = events["physical_transition"]
+          if terminal["reserve_digest"] != physical["reserve_result_digest"]:
+              raise SystemExit("terminal reserve digest does not match final physical transition")
+          if terminal["safe_stop_qualified"] is not True:
+              raise SystemExit("golden packet lacks a qualified terminal safe-stop")
+          if packet["actuation_authorized"] is not False:
+              raise SystemExit("retrospective packet must never authorize actuation")
+          if packet["replay"]["causal_chain_complete"] is not True:
+              raise SystemExit("golden packet causal chain is not complete")
+          if packet["replay"]["mission_closure"]["disposition"] != "Closed":
+              raise SystemExit("golden packet mission is not closed")
+
+          future = packet["future_options"]
+          if future["disposition"] != "NotEvaluated" or future["observation_classes"]:
+              raise SystemExit("joint-only golden packet must not invent future-option evidence")
+          if future["clairvoyant_upper_bound"] is not None:
+              raise SystemExit("unevaluated future-option slot must not contain a clairvoyant result")
+
+          # Mutation corpus shape and unique case identities.
+          cases = mutations["cases"]
+          ids = [case["case_id"] for case in cases]
+          expected_ids = [f"M{index:02d}_" for index in range(1, 14)]
+          if len(cases) != 13 or len(set(ids)) != 13:
+              raise SystemExit("expected exactly 13 unique mutation cases")
+          if any(not case_id.startswith(prefix) for case_id, prefix in zip(ids, expected_ids)):
+              raise SystemExit("mutation case IDs or their declared order changed")
+          for case in cases:
+              if case["expected_disposition"] not in {"Qualified", "Unknown", "Inconclusive", "Rejected"}:
+                  raise SystemExit(f"invalid expected disposition for {case['case_id']}")
+              for mutation in case["mutations"]:
+                  if mutation["operation"] not in {"replace", "remove"}:
+                      raise SystemExit(f"invalid mutation operation in {case['case_id']}")
+                  if not mutation["path"].startswith("/"):
+                      raise SystemExit(f"mutation path is not a JSON pointer in {case['case_id']}")
+
+          # Versioned UQ sidecar: it extends rather than mutates the v0.1 parent packet.
+          uq_sidecar_path = root / "joint_uq_sidecar_v0_1_complete.json"
+          uq_schema_path = root / "joint_uq_sidecar_v0_1.schema.json"
+          uq_mutations_path = root / "joint_uq_mutations_v0_1.json"
+          uq_sidecar = load_unique(uq_sidecar_path)
+          uq_schema = load_unique(uq_schema_path)
+          uq_mutations = load_unique(uq_mutations_path)
+          Draft202012Validator.check_schema(uq_schema)
+          uq_errors = sorted(
+              Draft202012Validator(uq_schema).iter_errors(uq_sidecar),
+              key=lambda error: list(error.absolute_path),
+          )
+          if uq_errors:
+              for error in uq_errors:
+                  print(f"UQ sidecar schema error at {list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          reject_floats(uq_sidecar)
+
+          uq_integrity = uq_sidecar["integrity"]
+          uq_payload = dict(uq_sidecar)
+          del uq_payload["integrity"]
+          uq_canonical = json.dumps(
+              uq_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+          ).encode("utf-8")
+          uq_digest = hashlib.sha256(uq_canonical).hexdigest()
+          if uq_digest != uq_integrity["payload_sha256"]:
+              raise SystemExit(
+                  f"UQ sidecar digest mismatch: expected={uq_integrity['payload_sha256']} observed={uq_digest}"
+              )
+          if uq_sidecar["parent_binding"]["payload_sha256"] != expected_digest:
+              raise SystemExit("UQ sidecar is not bound to this exact parent v0.1 packet")
+          if uq_sidecar["parent_binding"]["protocol_id"] != packet["protocol_id"]:
+              raise SystemExit("UQ sidecar parent protocol identity mismatch")
+
+          uq_scope = uq_sidecar["scope"]
+          scope_canonical = json.dumps(
+              uq_scope, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+          ).encode("utf-8")
+          scope_digest = hashlib.sha256(scope_canonical).hexdigest()
+          parent_scope = packet["scope"]
+          parent_configuration = packet["configuration"]
+          parent_physical = packet["events"]["physical_transition"]
+          exact_bindings = (
+              uq_scope["mission_id"] == parent_scope["mission_id"],
+              uq_scope["robot_id"] == parent_scope["robot_id"],
+              uq_scope["actuator_id"] == parent_scope["actuator_id"],
+              uq_scope["actuator_configuration_digest"] == parent_configuration["actuator_configuration_digest"],
+              uq_scope["controller_configuration_digest"] == parent_configuration["controller_configuration_digest"],
+              uq_scope["scenario_manifest_digest"] == parent_scope["scenario_manifest_digest"],
+              uq_scope["physical_boundary_manifest_digest"] == parent_configuration["energy_boundary_manifest_digest"],
+              uq_scope["physical_state_predecessor_digest"] == parent_physical["reserve_predecessor_digest"],
+              uq_scope["physical_state_result_digest"] == parent_physical["reserve_result_digest"],
+              uq_scope["monotonic_clock_id"] == parent_scope["clock_id"],
+              uq_scope["boot_epoch"] == parent_scope["boot_epoch"],
+          )
+          if not all(exact_bindings):
+              raise SystemExit("UQ sidecar mission/robot/actuator/configuration/clock/state scope differs from parent")
+
+          evaluation_tick = int(uq_sidecar["evaluation_tick"])
+          requirements = uq_sidecar["measurement_requirements"]
+          requirement_by_id = {item["measurement_id"]: item for item in requirements}
+          if len(requirement_by_id) != len(requirements):
+              raise SystemExit("duplicate predeclared measurement requirement identity")
+          measurements = uq_sidecar["measurements"]
+          measurement_by_id = {item["measurement_id"]: item for item in measurements}
+          if len(measurement_by_id) != len(measurements):
+              raise SystemExit("duplicate UQ measurement identity")
+          uncertainty_receipts = uq_sidecar["uncertainty_receipts"]
+          uncertainty_by_id = {item["receipt_id"]: item for item in uncertainty_receipts}
+          if len(uncertainty_by_id) != len(uncertainty_receipts):
+              raise SystemExit("duplicate UQ uncertainty receipt identity")
+
+          parent_thermal_nodes = set(packet["thermal"]["required_node_ids"])
+          sidecar_thermal_requirements = {
+              item["node_id"]
+              for item in requirements
+              if item["kind"] == "thermal_node"
+              and item["applicability"]["kind"] == "required"
+          }
+          if parent_thermal_nodes != sidecar_thermal_requirements:
+              raise SystemExit("UQ required thermal-node set differs from parent joint receipt")
+
+          required_measurement_ids = set()
+          not_applicable_ids = set()
+          for requirement in requirements:
+              measurement_id = requirement["measurement_id"]
+              applicability = requirement["applicability"]
+              if applicability["kind"] == "required":
+                  required_measurement_ids.add(measurement_id)
+                  if measurement_id not in measurement_by_id:
+                      raise SystemExit(f"required measurement missing: {measurement_id}")
+              else:
+                  if not applicability.get("reason", "").strip():
+                      raise SystemExit(f"NotApplicable channel requires rationale: {measurement_id}")
+                  not_applicable_ids.add(measurement_id)
+                  if measurement_id in measurement_by_id:
+                      raise SystemExit(f"NotApplicable measurement supplied: {measurement_id}")
+
+          if set(measurement_by_id) != required_measurement_ids:
+              raise SystemExit("measurement list is not exactly the predeclared Required channel set")
+
+          for measurement_id, measurement in measurement_by_id.items():
+              requirement = requirement_by_id.get(measurement_id)
+              if requirement is None or requirement["applicability"]["kind"] != "required":
+                  raise SystemExit(f"measurement lacks a Required predeclaration: {measurement_id}")
+              if requirement["kind"] != measurement["kind"] or requirement.get("node_id") != measurement.get("node_id"):
+                  raise SystemExit(f"measurement kind/node binding mismatch: {measurement_id}")
+
+          shared_sources = {}
+          for measurement in measurements:
+              receipt_id = measurement["uncertainty_receipt_id"]
+              if receipt_id not in uncertainty_by_id:
+                  raise SystemExit(f"measurement has no UQ receipt: {measurement['measurement_id']}")
+              receipt = uncertainty_by_id[receipt_id]
+              if receipt["measurement_id"] != measurement["measurement_id"]:
+                  raise SystemExit("measurement points to a different UQ measurement")
+              for field in (
+                  "measurement_artifact_digest",
+                  "instrument_configuration_digest",
+                  "calibration_receipt_digest",
+                  "unit_code",
+                  "decimal_exponent",
+              ):
+                  if receipt[field] != measurement[field]:
+                      raise SystemExit(f"measurement/UQ binding mismatch: {measurement['measurement_id']}:{field}")
+              if receipt["scope_digest"] != scope_digest:
+                  raise SystemExit(f"UQ receipt has a different common scope: {receipt_id}")
+              start = int(measurement["start_tick"])
+              end = int(measurement["end_tick"])
+              if start > end:
+                  raise SystemExit(f"measurement interval inverted: {measurement['measurement_id']}")
+              calibration_from = int(measurement["calibration_valid_from_tick"])
+              calibration_through = int(measurement["calibration_valid_through_tick"])
+              if calibration_from > start or calibration_through < end:
+                  raise SystemExit(f"calibration does not cover full measurement window: {measurement['measurement_id']}")
+              if evaluation_tick < calibration_from or evaluation_tick > calibration_through:
+                  raise SystemExit(f"calibration is not valid at UQ evaluation tick: {measurement['measurement_id']}")
+              uq_from = int(receipt["valid_from_tick"])
+              uq_through = int(receipt["valid_through_tick"])
+              if uq_from > start or uq_through < end:
+                  raise SystemExit(f"UQ receipt does not cover full measurement window: {receipt_id}")
+              if evaluation_tick < uq_from or evaluation_tick > uq_through:
+                  raise SystemExit(f"UQ receipt is not valid at evaluation tick: {receipt_id}")
+
+              required_group_members = {}
+              for component in receipt["components"]:
+                  group = component["dependence_group_id"]
+                  required_group_members.setdefault(group, set()).add(component["component_id"])
+                  shared_sources.setdefault(component["source_receipt_digest"], []).append(
+                      (measurement["measurement_id"], group)
+                  )
+              observed_group_members = {}
+              for declaration in receipt["dependence"]:
+                  group = declaration["dependence_group_id"]
+                  if group in observed_group_members:
+                      raise SystemExit(f"duplicate dependence declaration: {receipt_id}:{group}")
+                  observed_group_members[group] = set(declaration["component_ids"])
+                  decision = declaration["decision"]
+                  if decision["kind"] in {"joint_model", "independence_supported"} and not decision["receipt_digest"]:
+                      raise SystemExit(f"dependence decision lacks receipt: {receipt_id}:{group}")
+                  if decision["kind"] == "unknown" and decision["receipt_digest"] is not None:
+                      raise SystemExit(f"Unknown dependence must not masquerade as a qualified receipt: {receipt_id}:{group}")
+              if required_group_members != observed_group_members:
+                  raise SystemExit(f"dependence group component set mismatch: {receipt_id}")
+
+              coverage = receipt["coverage"]
+              if coverage["kind"] == "probability_interval":
+                  if coverage["method"] == "monte_carlo_distribution" and not coverage["convergence_receipt_digest"]:
+                      raise SystemExit(f"Monte Carlo interval lacks convergence receipt: {receipt_id}")
+                  if coverage["method"] not in {"first_order_gum", "higher_order_gum", "monte_carlo_distribution", "other_approved"}:
+                      raise SystemExit(f"unsupported probability coverage method: {receipt_id}")
+              elif coverage["kind"] != "conservative_bound":
+                  raise SystemExit(f"unsupported coverage representation: {receipt_id}")
+
+          for source_digest, source_members in shared_sources.items():
+              member_measurements = {item[0] for item in source_members}
+              if len(member_measurements) < 2:
+                  continue
+              group_ids = {item[1] for item in source_members}
+              if len(group_ids) != 1:
+                  raise SystemExit(f"shared source has inconsistent dependence groups: {source_digest}")
+              shared_group = next(iter(group_ids))
+              decisions = set()
+              for measurement_id, _ in source_members:
+                  measurement = measurement_by_id[measurement_id]
+                  receipt = uncertainty_by_id[measurement["uncertainty_receipt_id"]]
+                  declaration = next(
+                      item for item in receipt["dependence"]
+                      if item["dependence_group_id"] == shared_group
+                  )
+                  decision = declaration["decision"]
+                  decisions.add((decision["kind"], decision["receipt_digest"]))
+              if len(decisions) != 1 or next(iter(decisions))[0] == "unknown":
+                  raise SystemExit(f"shared source dependence is missing or inconsistent: {source_digest}")
+
+          for derived in uq_sidecar["derived_results"]:
+              output = measurement_by_id.get(derived["output_measurement_id"])
+              if output is None:
+                  raise SystemExit(f"derived output measurement missing: {derived['result_id']}")
+              if derived["result_id"] != derived["output_measurement_id"]:
+                  raise SystemExit("derived result and output measurement identities differ")
+              if derived["output_result_digest"] != output["measurement_artifact_digest"]:
+                  raise SystemExit("derived output artifact digest mismatch")
+              if derived["output_uncertainty_receipt_id"] != output["uncertainty_receipt_id"]:
+                  raise SystemExit("derived output uncertainty receipt mismatch")
+              expected_inputs = set()
+              for measurement_id in derived["input_measurement_ids"]:
+                  source_measurement = measurement_by_id.get(measurement_id)
+                  if source_measurement is None:
+                      raise SystemExit(f"derived input measurement missing: {measurement_id}")
+                  expected_inputs.add(source_measurement["uncertainty_receipt_id"])
+              if expected_inputs != set(derived["input_uncertainty_receipt_ids"]):
+                  raise SystemExit("derived input uncertainty receipt set mismatch")
+              if any(item not in uncertainty_by_id for item in derived["input_uncertainty_receipt_ids"]):
+                  raise SystemExit("derived input uncertainty receipt is not present")
+              if derived["output_uncertainty_receipt_id"] not in uncertainty_by_id:
+                  raise SystemExit("derived output uncertainty receipt is not present")
+
+          if uq_sidecar["actuation_authorized"] is not False or uq_sidecar["conformity_certified"] is not False:
+              raise SystemExit("UQ evidence sidecar cannot authorize actuation or conformity")
+
+          uq_cases = uq_mutations["cases"]
+          uq_ids = [item["case_id"] for item in uq_cases]
+          if len(uq_cases) != 10 or len(set(uq_ids)) != 10:
+              raise SystemExit("expected ten unique UQ sidecar mutation oracles")
+          print(f"UQ sidecar schema/integrity/requirements/scope/derived/dependence preflight: PASS ({uq_digest})")
+          print("UQ sidecar mutation oracle inventory: PASS (10 cases; oracle inventory is not a claim that every Rust mutation is executed)")
+          print("golden packet causal/physical-semantic preflight: PASS")
+          print(f"mutation oracle inventory: PASS ({len(cases)} cases; not executed against Rust adapters)")
+          PY
+
+  rust-wire-integrity:
+    name: Rust 1.96 strict JSON, JCS and SHA-256 reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml -- --check
+      - name: Run locked deterministic tests
+        run: cargo test --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml --all-targets -- -D warnings

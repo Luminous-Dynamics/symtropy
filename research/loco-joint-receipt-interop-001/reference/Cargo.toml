@@ -1,0 +1,13 @@
+[package]
+name = "loco-joint-receipt-wire"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[dependencies]
+serde = "=1.0.228"
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[workspace]
