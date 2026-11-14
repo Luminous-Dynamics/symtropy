@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "case_id": "SOURCE-CITYPOWER-INDUSTRIAL-TOU-ROLLING-RATCHET-2026-27-001",
+  "evidence_class": "PUBLISHED_TARIFF_RULE_WITH_SYNTHETIC_STATE",
+  "tariff_rule": {
+    "utility": "City Power Johannesburg",
+    "tariff_name": "Industrial Time-of-Use tariff, 2026/27",
+    "source_url": "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf",
+    "eligibility_rule": "Budget section 5.4.3: business supply capacity strictly greater than 100 kVA, by application and approval for qualifying consumers. Actual approved account evidence governs.",
+    "demand_rule": "Billed kVA = max(current measured monthly peak, 70 kVA, 80% × average of the three highest monthly peaks in the preceding twelve months)",
+    "demand_meter_interval_status": "SECONDARY_COMPARATOR_ONLY",
+    "demand_meter_interval_note": "Focal Energy's 25 September 2026 engineering note describes half-hour demand slots for City Power. The primary budget section reviewed here does not state the interval length; use the actual account meter/tariff statement to confirm."
+  },
+  "billing_state": {
+    "billing_month": "2026-07",
+    "prior_month_peaks": [
+      {
+        "month": "2025-07",
+        "peak_kva": 200,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2025-08",
+        "peak_kva": 130,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2025-09",
+        "peak_kva": 120,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2025-10",
+        "peak_kva": 110,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2025-11",
+        "peak_kva": 105,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2025-12",
+        "peak_kva": 100,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2026-01",
+        "peak_kva": 95,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2026-02",
+        "peak_kva": 90,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2026-03",
+        "peak_kva": 85,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2026-04",
+        "peak_kva": 80,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2026-05",
+        "peak_kva": 75,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      },
+      {
+        "month": "2026-06",
+        "peak_kva": 70,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:prior-12m"
+      }
+    ],
+    "calculation": {
+      "top_three_months": [
+        {
+          "month": "2025-07",
+          "peak_kva": 200,
+          "evidence_status": "SYNTHETIC",
+          "source_ref": "fixture:prior-12m"
+        },
+        {
+          "month": "2025-08",
+          "peak_kva": 130,
+          "evidence_status": "SYNTHETIC",
+          "source_ref": "fixture:prior-12m"
+        },
+        {
+          "month": "2025-09",
+          "peak_kva": 120,
+          "evidence_status": "SYNTHETIC",
+          "source_ref": "fixture:prior-12m"
+        }
+      ],
+      "top_three_average_kva": 150,
+      "ratchet_fraction": 0.8,
+      "ratchet_floor_kva": 120,
+      "minimum_floor_kva": 70,
+      "current_measured_peak_kva": 95,
+      "billed_demand_kva": 120,
+      "status": "ARITHMETIC_CHECK"
+    }
+  },
+  "current_month": {
+    "month": "2026-07",
+    "measured_peak_kva": 95,
+    "evidence_status": "SYNTHETIC",
+    "note": "July 2026 current measured monthly peak is below the prior-history ratchet floor."
+  },
+  "next_month_transition": {
+    "next_billing_month": "2026-08",
+    "history_after_rollover": [
+      {
+        "month": "2025-08",
+        "peak_kva": 130,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2025-09",
+        "peak_kva": 120,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2025-10",
+        "peak_kva": 110,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2025-11",
+        "peak_kva": 105,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2025-12",
+        "peak_kva": 100,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-01",
+        "peak_kva": 95,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-02",
+        "peak_kva": 90,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-03",
+        "peak_kva": 85,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-04",
+        "peak_kva": 80,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-05",
+        "peak_kva": 75,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-06",
+        "peak_kva": 70,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:rolled-history"
+      },
+      {
+        "month": "2026-07",
+        "peak_kva": 95,
+        "evidence_status": "SYNTHETIC",
+        "source_ref": "fixture:current-month"
+      }
+    ],
+    "calculation": {
+      "top_three_months": [
+        {
+          "month": "2025-08",
+          "peak_kva": 130,
+          "evidence_status": "SYNTHETIC",
+          "source_ref": "fixture:rolled-history"
+        },
+        {
+          "month": "2025-09",
+          "peak_kva": 120,
+          "evidence_status": "SYNTHETIC",
+          "source_ref": "fixture:rolled-history"
+        },
+        {
+          "month": "2025-10",
+          "peak_kva": 110,
+          "evidence_status": "SYNTHETIC",
+          "source_ref": "fixture:rolled-history"
+        }
+      ],
+      "top_three_average_kva": 120,
+      "ratchet_fraction": 0.8,
+      "ratchet_floor_kva": 96,
+      "minimum_floor_kva": 70,
+      "current_measured_peak_kva": 80,
+      "billed_demand_kva": 96,
+      "status": "SYNTHETIC_TRANSITION"
+    },
+    "transition_note": "The 200 kVA July 2025 peak expires from the rolling prior-12-month history. July 2026 measured peak of 95 kVA enters; the top-three average falls from 150 to 120 kVA and the ratchet floor falls from 120 to 96 kVA. A later month's lower current peak is still billed at the 96 kVA ratchet floor."
+  },
+  "comparators": [
+    "No-storage/static schedule",
+    "Rule-based peak threshold battery heuristic",
+    "Current-month-peak-only MPC (ratchet-blind negative comparator)",
+    "Rolling-top-three-history-aware MPC",
+    "Stochastic MPC with explicit historical peak state",
+    "Tariff-aware imitation learning with explicit ratchet-state features",
+    "Prescient MILP lower-bound oracle on bounded cases"
+  ],
+  "metrics": [
+    "energy-charge and demand-charge components separately",
+    "billed kVA and top-three ratchet floor over successive billing months",
+    "complete bill with surcharge/VAT unknowns retained as incomplete",
+    "new/avoided peaks and months of ratchet persistence",
+    "BESS SOC, energy throughput, degradation proxy, inverter kW/kVA and reserve",
+    "whole-facility kWh, peak kW/kVA, crop harvest service and climate constraint violations",
+    "forecast calibration, oracle gap, fallback and infeasible solve rates"
+  ],
+  "claim_ceiling": "Source-pinned rule and synthetic rolling-state arithmetic only. No actual meter data, customer eligibility, battery performance, site-specific invoice, control saving or operational qualification is established."
+}
