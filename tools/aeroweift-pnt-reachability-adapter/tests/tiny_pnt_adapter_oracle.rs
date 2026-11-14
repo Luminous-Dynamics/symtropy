@@ -60,8 +60,11 @@ fn input(state: PntServiceState) -> AdapterInput {
         service_state: state,
         primary: Some(claim()),
         fallback: None,
-        assessment_time_utc_ms: 3_000,
+        assessment_time_lower_utc_ms: 2_990,
+        assessment_time_upper_utc_ms: 3_010,
         assessment_time_scale_id: "SYNTHETIC-UTC-LIKE".to_owned(),
+        assessment_clock_qualification: ClockQualification::Qualified,
+        assessment_clock_correlation_sha256: Some("f".repeat(64)),
         service_state_receipt_sha256: "c".repeat(64),
         policy: policy(),
     }
@@ -116,10 +119,10 @@ fn golden_fixture_identity_and_claim_ceiling_are_bound() {
 fn normal_claim_expands_position_by_full_clock_interval_and_velocity_bounds() {
     let (elapsed, position) = accepted(evaluate(&input(PntServiceState::Normal)));
 
-    assert_contains(elapsed, 1.9, 2.1);
-    assert_contains(position.east_m, 107.6, 111.5);
-    assert_contains(position.north_m, -24.2, -20.9);
-    assert_contains(position.up_m, 5.95, 8.1);
+    assert_contains(elapsed, 1.89, 2.11);
+    assert_contains(position.east_m, 107.56, 111.55);
+    assert_contains(position.north_m, -24.22, -20.89);
+    assert_contains(position.up_m, 5.945, 8.11);
 }
 
 #[test]
@@ -138,9 +141,9 @@ fn exact_sample_time_produces_no_wider_enclosure_than_uncertain_sample_time() {
     let exact_width = exact.east_m.upper() - exact.east_m.lower();
 
     assert!(exact_width <= uncertain_width);
-    assert!(exact_elapsed.lower() <= uncertain_elapsed.lower());
-    assert!(exact_elapsed.upper() >= uncertain_elapsed.upper());
-    assert_contains(exact.east_m, 108.0, 111.0);
+    assert!(exact_elapsed.lower() >= uncertain_elapsed.lower());
+    assert!(exact_elapsed.upper() <= uncertain_elapsed.upper());
+    assert_contains(exact.east_m, 107.96, 111.05);
 }
 
 #[test]
@@ -169,9 +172,9 @@ fn degraded_state_uses_only_qualified_fallback_claim() {
             ..
         } => {
             assert_eq!(source_id, "synthetic-independent-fallback");
-            assert_contains(position.east_m, 195.8, 207.3);
-            assert_contains(position.north_m, -22.1, -16.9);
-            assert_contains(position.up_m, 5.0, 8.1);
+            assert_contains(position.east_m, 195.78, 207.33);
+            assert_contains(position.north_m, -22.11, -16.89);
+            assert_contains(position.up_m, 5.0, 8.11);
         }
         other => panic!("expected fallback admission, got {other:?}"),
     }
@@ -238,7 +241,7 @@ fn unknown_clock_or_dependency_evidence_is_not_independence() {
     source.clock_qualification = ClockQualification::Unknown;
     assert_rejected(
         evaluate(&sample),
-        NotAssessableReason::ClockCorrelationUnqualified,
+        NotAssessableReason::ClockCorrelationUnknown,
     );
 
     let mut sample = input(PntServiceState::Normal);
@@ -247,6 +250,24 @@ fn unknown_clock_or_dependency_evidence_is_not_independence() {
     assert_rejected(
         evaluate(&sample),
         NotAssessableReason::IndependenceNotQualified,
+    );
+}
+
+
+#[test]
+fn unknown_evaluation_clock_and_incompatible_time_scales_are_rejected() {
+    let mut sample = input(PntServiceState::Normal);
+    sample.assessment_clock_qualification = ClockQualification::Unknown;
+    assert_rejected(
+        evaluate(&sample),
+        NotAssessableReason::AssessmentClockUnqualified,
+    );
+
+    let mut sample = input(PntServiceState::Normal);
+    sample.assessment_time_scale_id = "OTHER-SCALE".to_owned();
+    assert_rejected(
+        evaluate(&sample),
+        NotAssessableReason::TimeScaleMismatch,
     );
 }
 
