@@ -1,0 +1,79 @@
+{
+  "schema_version": "filter-barrier-assurance-oracle-v0.1",
+  "evidence_class": "synthetic_barrier_state_contract_fixture",
+  "evidence_ceiling": "synthetic_contract_semantics_only_no_filter_or_water_safety_claim",
+  "cases": [
+    {
+      "case_id": "FBA-001-qualified-in-profile",
+      "expected": {
+        "qualification_disposition": "QUALIFIED_FOR_DECLARED_ENVELOPE",
+        "current_operating_disposition": "OBSERVED_IN_PROFILE",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-002-open-bypass",
+      "expected": {
+        "qualification_disposition": "BYPASSED",
+        "current_operating_disposition": "BYPASSED",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-003-critical-sensor-offline",
+      "expected": {
+        "qualification_disposition": "UNKNOWN",
+        "current_operating_disposition": "UNKNOWN",
+        "sample_evidence_disposition": "SAMPLE_RESULT_PRESENT",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-004-out-of-envelope",
+      "expected": {
+        "qualification_disposition": "OUT_OF_DOMAIN",
+        "current_operating_disposition": "OUT_OF_PROFILE",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-005-expired-media",
+      "expected": {
+        "qualification_disposition": "OUT_OF_SERVICE",
+        "current_operating_disposition": "OUT_OF_SERVICE",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-006-no-challenge-evidence",
+      "expected": {
+        "qualification_disposition": "NOT_QUALIFIED",
+        "current_operating_disposition": "NOT_OBSERVED",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-007-replaced-no-requalification",
+      "expected": {
+        "qualification_disposition": "UNKNOWN",
+        "current_operating_disposition": "UNKNOWN",
+        "sample_evidence_disposition": "SAMPLE_FLAGGED_FOR_AUTHORITY_REVIEW",
+        "potability_or_compliance_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "FBA-008-scope-mismatch",
+      "expected": {
+        "qualification_disposition": "CLAIM_SCOPE_MISMATCH",
+        "current_operating_disposition": "NOT_OBSERVED",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
+    }
+  ]
+}
