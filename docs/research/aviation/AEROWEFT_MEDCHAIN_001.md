@@ -184,3 +184,13 @@ A public map or public API does not automatically grant commercial, operational 
 7. Expand to a regional scenario only after the tiny oracle and end-to-end replay pass.
 
 The first successful result is a reproducible demonstration of when aerial service does and does not add value—not a claim that every medical shipment should fly.
+
+
+## Capacity-allocation follow-on
+
+The medical-chain scenario may later feed the air-resource scheduling benchmark
+[AEROWEFT-DCB-001 #5186](https://github.com/Luminous-Dynamics/symtropy/issues/5186).
+That benchmark compares sequential and batch resource allocation, while
+preserving mission-chain continuity (#1887), existing multimodal optimization
+(#1601), aircraft model applicability and recovery constraints. It must not
+introduce a second generic route or mission-chain solver.
