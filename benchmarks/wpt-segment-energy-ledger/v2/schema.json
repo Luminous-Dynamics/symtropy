@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/wpt-segment-energy-ledger-v2.json",
+  "title": "WPT dynamic segment and trajectory-linked route energy ledger v2",
+  "description": "Standards-aligned segment energy boundaries linked to a canonical nanosecond vehicle trajectory receipt and separately typed extended route boundary measurements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "route_run_id",
+    "evidence_class",
+    "power_flow_direction",
+    "route_geometry_digest",
+    "route_start_ns",
+    "route_end_ns",
+    "segments",
+    "idle_intervals",
+    "trajectory_id",
+    "trajectory_artifact_digest",
+    "trajectory_coordinate_frame_id",
+    "trajectory_samples"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-segment-energy-ledger-v2"
+    },
+    "route_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_known_truth",
+        "published_data_replay",
+        "experimental_data_replay",
+        "field_measurement"
+      ]
+    },
+    "power_flow_direction": {
+      "enum": [
+        "grid_to_vehicle",
+        "vehicle_to_grid"
+      ]
+    },
+    "route_geometry_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "route_start_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "route_end_ns": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/segment"
+      }
+    },
+    "idle_intervals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/idle"
+      }
+    },
+    "trajectory_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trajectory_artifact_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "trajectory_coordinate_frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trajectory_samples": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/trajectory_sample"
+      },
+      "maxItems": 512
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "meter_id",
+        "measurement_plane_id",
+        "energy_wh",
+        "deterministic_absolute_bound_wh",
+        "calibration_receipt_digest",
+        "source_artifact_digest"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "meter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_plane_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "energy_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "deterministic_absolute_bound_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_artifact_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "start_ns",
+        "end_ns",
+        "spc_input",
+        "evpc_output"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "inverter_rise",
+            "pre_power",
+            "transfer_ramp_up",
+            "active_transfer",
+            "transfer_ramp_down",
+            "inverter_fall"
+          ]
+        },
+        "start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "spc_input": {
+          "$ref": "#/$defs/quantity"
+        },
+        "evpc_output": {
+          "$ref": "#/$defs/quantity"
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary",
+        "quantity"
+      ],
+      "properties": {
+        "boundary": {
+          "enum": [
+            "grid_ac_input",
+            "bess_dc_output",
+            "roadway_inverter_dc_input",
+            "vehicle_dc_bus_output",
+            "battery_terminal_input"
+          ]
+        },
+        "quantity": {
+          "$ref": "#/$defs/quantity"
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "segment_id",
+        "vehicle_id",
+        "geometry_digest",
+        "start_ns",
+        "end_ns",
+        "phases",
+        "segment_spc_input",
+        "segment_evpc_output",
+        "boundary_measurements",
+        "trajectory_sample_ids"
+      ],
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vehicle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phases": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/phase"
+          }
+        },
+        "segment_spc_input": {
+          "$ref": "#/$defs/quantity"
+        },
+        "segment_evpc_output": {
+          "$ref": "#/$defs/quantity"
+        },
+        "boundary_measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/boundary"
+          },
+          "minItems": 4,
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "boundary"
+                ],
+                "properties": {
+                  "boundary": {
+                    "const": "grid_ac_input"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "boundary"
+                ],
+                "properties": {
+                  "boundary": {
+                    "const": "roadway_inverter_dc_input"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "boundary"
+                ],
+                "properties": {
+                  "boundary": {
+                    "const": "vehicle_dc_bus_output"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "boundary"
+                ],
+                "properties": {
+                  "boundary": {
+                    "const": "battery_terminal_input"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "trajectory_sample_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "idle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "interval_id",
+        "start_ns",
+        "end_ns",
+        "boundary_measurements"
+      ],
+      "properties": {
+        "interval_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "boundary_measurements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/boundary"
+          },
+          "minItems": 2,
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "boundary"
+                ],
+                "properties": {
+                  "boundary": {
+                    "const": "grid_ac_input"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "boundary"
+                ],
+                "properties": {
+                  "boundary": {
+                    "const": "roadway_inverter_dc_input"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "trajectory_sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "timestamp_ns"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
