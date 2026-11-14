@@ -1103,9 +1103,7 @@ mod tests {
             choose_targeted_observation_with_resources(&[scan], &needs, &book(), &resources, 250)
                 .expect("expired reservation no longer consumes capacity");
         assert_eq!(
-            plan.selected
-                .expect("scan selected")
-                .reservation_outcome,
+            plan.selected.expect("scan selected").reservation_outcome,
             Some(ReservationOutcome::Granted)
         );
         assert_eq!(resources, before);
