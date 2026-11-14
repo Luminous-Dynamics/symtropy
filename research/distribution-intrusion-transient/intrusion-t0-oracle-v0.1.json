@@ -10,9 +10,9 @@
       "expected": {
         "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
         "tracer_mass_recomputed_mg": 5,
-        "mass_balance_disposition": "CLOSED_WITHIN_DECLARED_SYNTHETIC_TOLERANCE",
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "tracer_mass_arithmetic": "MATCHED_WITHIN_DECLARED_SYNTHETIC_TOLERANCE"
       }
     },
     {
