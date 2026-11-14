@@ -1,0 +1,12 @@
+[package]
+name = "sim-rel-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Exact adaptive decision-tree cost oracle for finite deterministic experimental design"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
