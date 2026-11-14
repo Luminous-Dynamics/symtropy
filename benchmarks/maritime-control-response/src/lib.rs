@@ -17,6 +17,7 @@ pub mod event_metrics;
 pub mod external_dataset;
 pub mod joint_scenario_posterior;
 pub mod maintenance_effect;
+pub mod target_trial_contract;
 pub mod published_baseline_audit;
 pub mod repair_restoration;
 pub mod sequential_evidence;
