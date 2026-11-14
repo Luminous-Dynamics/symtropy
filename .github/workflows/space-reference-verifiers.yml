@@ -1,0 +1,80 @@
+name: Space Reference Verifiers
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/neo-reference-verifier/**"
+      - "tools/propulsion-reference-verifier/**"
+      - "docs/space-engineering/reference-cases/**"
+      - "docs/space-engineering/schemas/**"
+  workflow_dispatch:
+
+concurrency:
+  group: space-reference-verifiers-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: Space reference verifiers (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache verifier dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            tools/neo-reference-verifier -> tools/neo-reference-verifier/target
+            tools/propulsion-reference-verifier -> tools/propulsion-reference-verifier/target
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          cargo fmt --manifest-path tools/neo-reference-verifier/Cargo.toml -- --check
+          cargo fmt --manifest-path tools/propulsion-reference-verifier/Cargo.toml -- --check
+
+      - name: Clippy
+        shell: bash
+        run: |
+          cargo clippy --manifest-path tools/neo-reference-verifier/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path tools/propulsion-reference-verifier/Cargo.toml --all-targets -- -D warnings
+
+      - name: Unit tests
+        shell: bash
+        run: |
+          cargo test --manifest-path tools/neo-reference-verifier/Cargo.toml
+          cargo test --manifest-path tools/propulsion-reference-verifier/Cargo.toml
+
+      - name: Emit and inspect deterministic reference receipts
+        shell: bash
+        run: |
+          cargo run --quiet --manifest-path tools/neo-reference-verifier/Cargo.toml -- docs/space-engineering/reference-cases/dart-dimorphos-v0.1.json | tee neo-reference-receipt.json
+          grep -q '"status":"PASS_DATA_CONTRACT_ONLY"' neo-reference-receipt.json
+          cargo run --quiet --manifest-path tools/propulsion-reference-verifier/Cargo.toml -- docs/space-engineering/reference-cases/ideal-rocket-thrust-delta-v-v0.1.json | tee propulsion-reference-receipt.json
+          grep -q '"status":"PASS_ANALYTIC_INVARIANT_ONLY"' propulsion-reference-receipt.json
+
+      - name: Preserve exact dependency locks and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: space-reference-verifier-evidence-${{ matrix.os }}-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            tools/neo-reference-verifier/Cargo.lock
+            tools/propulsion-reference-verifier/Cargo.lock
+            neo-reference-receipt.json
+            propulsion-reference-receipt.json
