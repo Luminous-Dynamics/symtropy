@@ -55,12 +55,17 @@ jobs:
           Draft202012Validator.check_schema(oracle_schema)
           assert protocol["schema_version"] == "symtropy-marine-maintenance-effect-v0.1"
           assert protocol["status"] == "protocol_only_not_executed"
-          assert len(protocol["hard_gates"]) >= 20
+          assert len(protocol["hard_gates"]) >= 29
           assert protocol["estimator"]["exact_test_limit_units"] == 16
           assert len(corpus["cases"]) == 10
           assert len({case["case_id"] for case in corpus["cases"]}) == 10
           assert trial_schema["additionalProperties"] is False
           assert oracle_schema["additionalProperties"] is False
+          required_measurements = trial_schema["properties"]["observations"]["items"]["required"]
+          assert "outcome_calibration_record_sha256" in required_measurements
+          assert "outcome_calibration_valid_until_seconds" in required_measurements
+          assert "outcome_uncertainty_abs" in required_measurements
+          assert "outcome_measurement_principle_id" in trial_schema["required"]
           print("Maintenance-effect protocol/schema/oracle/case checks: PASS")
           PY
 
