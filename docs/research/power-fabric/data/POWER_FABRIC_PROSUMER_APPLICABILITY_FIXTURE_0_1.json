@@ -1,0 +1,70 @@
+{
+  "profile_set": [
+    {
+      "profile_id": "profile:iec60364-8-82",
+      "standard_id": "IEC 60364-8-82",
+      "edition": "2022",
+      "amendments": ["AMD1:2026"],
+      "publication_status": "published",
+      "jurisdiction": null,
+      "scope": "Prosumer low-voltage installations with local generation and/or storage, grid-connected, islanded or stand-alone operating context.",
+      "source_url": "https://webstore.iec.ch/en/publication/113148"
+    },
+    {
+      "profile_id": "profile:sans10142-1-za",
+      "standard_id": "SANS 10142-1",
+      "edition": "2026 Ed 3.03",
+      "amendments": [],
+      "publication_status": "national_adoption",
+      "jurisdiction": "South Africa",
+      "scope": "The wiring of premises — Part 1: Low-voltage installations. Clause-level content requires authoritative SABS text.",
+      "source_url": "https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/"
+    }
+  ],
+  "mapping_candidates": [
+    { "theme_id": "mode:grid-connected", "target_claim": "operating_mode", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82", "profile:sans10142-1-za"], "requires_normative_review": true },
+    { "theme_id": "mode:islanded", "target_claim": "operating_mode", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82", "profile:sans10142-1-za"], "requires_normative_review": true },
+    { "theme_id": "mode:stand-alone", "target_claim": "operating_mode", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82", "profile:sans10142-1-za"], "requires_normative_review": true },
+    { "theme_id": "source:local-generation", "target_claim": "source_asset_and_operating_envelope", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82"], "requires_normative_review": true },
+    { "theme_id": "storage:local-storage", "target_claim": "storage_asset_and_service", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82"], "requires_normative_review": true },
+    { "theme_id": "grid:connect-disconnect", "target_claim": "grid_interface_transition", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82", "profile:sans10142-1-za"], "requires_normative_review": true },
+    { "theme_id": "earthing:arrangement", "target_claim": "earthing_system_reference", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82", "profile:sans10142-1-za"], "requires_normative_review": true },
+    { "theme_id": "earthing:transition-sequencing", "target_claim": "earthing_transition_record", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:iec60364-8-82", "profile:sans10142-1-za"], "requires_normative_review": true },
+    { "theme_id": "verification:handover", "target_claim": "installation_evidence_package", "candidate_status": "theme_level_candidate", "source_profiles": ["profile:sans10142-1-za"], "requires_normative_review": true }
+  ],
+  "negative_scenarios": [
+    {
+      "scenario_id": "grid-loss-local-sources-remain",
+      "claims": { "grid_connected": false, "local_storage_state": "unknown", "local_generation_state": "unknown" },
+      "expected": "Do not report the installation de-energized or without sources."
+    },
+    {
+      "scenario_id": "unknown-earthing-transition",
+      "claims": { "from_mode": "grid_connected", "to_mode": "islanded", "earthing_before": "declared", "earthing_after": "unknown", "transition_evidence": null },
+      "expected": "Affected transition qualification is incomplete; preserve unknown earthing and missing evidence."
+    },
+    {
+      "scenario_id": "grid-disconnect-command-unconfirmed",
+      "claims": { "disconnect_command": "issued", "physical_disconnect_observation": "unknown" },
+      "expected": "A command is not a verified disconnection or safe isolation state."
+    },
+    {
+      "scenario_id": "stale-inverter-mode",
+      "claims": { "inverter_configuration": "replaced", "mode_evidence_revision": "previous" },
+      "expected": "Invalidate dependent mode, source map and resident documentation claims until reconciled."
+    },
+    {
+      "scenario_id": "iec-profile-without-sa-profile",
+      "claims": { "iec_mapping": "complete", "south_african_jurisdiction_profile": "unknown" },
+      "expected": "Do not infer South African installation conformity from IEC mapping success."
+    }
+  ],
+  "prohibited_automations": [
+    "automatic_distribution_network_connection_or_disconnection",
+    "automatic_earthing_arrangement_selection",
+    "protection_setting_or_coordination",
+    "conductor_sizing",
+    "certificate_of_compliance_issuance",
+    "absence_of_voltage_or_safe_to_touch_inference"
+  ]
+}

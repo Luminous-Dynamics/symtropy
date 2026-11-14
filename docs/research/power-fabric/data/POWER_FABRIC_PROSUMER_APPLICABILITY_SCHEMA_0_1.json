@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-prosumer-applicability-0.1.schema.json",
+  "title": "Power Fabric Prosumer Applicability Fixture v0.1",
+  "type": "object", "additionalProperties": false,
+  "required": ["profile_set", "mapping_candidates", "negative_scenarios", "prohibited_automations"],
+  "properties": {
+    "profile_set": { "type": "array", "items": { "$ref": "#/$defs/profile" } },
+    "mapping_candidates": { "type": "array", "items": { "$ref": "#/$defs/mapping_candidate" } },
+    "negative_scenarios": { "type": "array", "items": { "$ref": "#/$defs/scenario" } },
+    "prohibited_automations": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profile_id", "standard_id", "edition", "amendments", "publication_status", "jurisdiction", "scope", "source_url"],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "standard_id": { "type": "string", "minLength": 1 },
+        "edition": { "type": "string", "minLength": 1 },
+        "amendments": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "publication_status": { "enum": ["published", "working_draft", "national_adoption", "unknown"] },
+        "jurisdiction": { "type": ["string", "null"] },
+        "scope": { "type": "string", "minLength": 1 },
+        "source_url": { "type": "string", "format": "uri" }
+      }
+    },
+    "mapping_candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["theme_id", "target_claim", "candidate_status", "source_profiles", "requires_normative_review"],
+      "properties": {
+        "theme_id": { "type": "string", "minLength": 1 },
+        "target_claim": { "type": "string", "minLength": 1 },
+        "candidate_status": { "const": "theme_level_candidate" },
+        "source_profiles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "requires_normative_review": { "const": true }
+      }
+    },
+    "scenario": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scenario_id", "claims", "expected"],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "claims": { "type": "object" },
+        "expected": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}
