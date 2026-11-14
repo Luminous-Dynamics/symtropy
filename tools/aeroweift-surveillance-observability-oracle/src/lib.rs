@@ -161,6 +161,25 @@ pub enum ObservabilityError {
     InvalidMinimumIndependentFamilies,
 }
 
+
+fn modality_supports_traffic_class(
+    modality: SensorModality,
+    traffic_class: TrafficClass,
+) -> bool {
+    match modality {
+        // ADS-B and TDoA/MLAT derive their surveillance evidence from
+        // cooperative transponder emissions in this benchmark's claim model.
+        SensorModality::Adsb | SensorModality::TdoaMlat => {
+            traffic_class == TrafficClass::CooperativeCrewed
+        }
+        // EO/IR and radar may support non-cooperative targets only where the
+        // exact source profile explicitly claims and qualifies that class.
+        SensorModality::Eoir | SensorModality::GroundRadar => {
+            traffic_class != TrafficClass::Unknown
+        }
+    }
+}
+
 /// Evaluate class-specific coverage and one optional observation.
 ///
 /// A claim only contributes if its traffic class, cell and half-open validity
@@ -211,6 +230,9 @@ pub fn evaluate(
     let mut upstream_degraded = false;
 
     for claim in &relevant {
+        if !modality_supports_traffic_class(claim.modality, traffic_class) {
+            continue;
+        }
         if claim.upstream_degraded {
             upstream_degraded = true;
             continue;
