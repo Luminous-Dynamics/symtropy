@@ -81,7 +81,7 @@ This protects vendor-specific or future-standard data against premature normaliz
 
 ## 9. Validated wire ingestion
 
-External JSON is first decoded into WireDocument, an untrusted DTO with unknown fields rejected. Call WireDocument::into_validated() to construct trusted IR through the same invariant-enforcing constructors used by native Rust callers.
+External JSON is first decoded into WireDocument, an untrusted DTO with unknown fields rejected. Call WireDocument::into_validated() to construct trusted IR through the same invariant-enforcing constructors used by native Rust callers. Trusted IR serialization uses the same top-level array wire shape for objects, relationships, extensions, and per-object claims; it does not implement Deserialize directly.
 
 Do not add Deserialize directly to trusted IR types: that creates a second path around validation. A future adapter can retain unknown vendor data only through explicit extension records; unrecognized top-level fields are rejected rather than silently dropped.
 

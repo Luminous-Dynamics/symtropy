@@ -94,7 +94,7 @@ pub enum ClaimDomain {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum PropertyValue {
     Text { value: String },
     Boolean { value: bool },
@@ -128,7 +128,7 @@ impl PropertyValue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "state", content = "value", rename_all = "snake_case")]
+#[serde(tag = "state", content = "value", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ClaimState {
     Value(PropertyValue),
     Unknown,
@@ -220,6 +220,7 @@ impl PropertyClaim {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct IrObject {
+    #[serde(flatten)]
     identity: ObjectIdentity,
     kind: NamespacedType,
     #[serde(serialize_with = "serialize_map_values")]
@@ -321,7 +322,7 @@ impl IrRelationship {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(tag = "scope", rename_all = "snake_case")]
+#[serde(tag = "scope", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ExtensionOwner {
     Document,
     Object { object_id: String },
@@ -397,7 +398,7 @@ impl PowerFabricDocument {
         let mut claim_ids = BTreeSet::new();
         for object in objects {
             let id = object.identity.stable_id.clone();
-            if object_map.insert(id.clone(), object.clone()).is_some() {
+            if object_map.contains_key(&id) {
                 return Err(IrError::DuplicateObjectId { object_id: id });
             }
             for claim_id in object.claims.keys() {
@@ -405,6 +406,7 @@ impl PowerFabricDocument {
                     return Err(IrError::DuplicateClaimId { claim_id: claim_id.clone() });
                 }
             }
+            object_map.insert(id, object);
         }
 
         let mut relationship_map = BTreeMap::new();

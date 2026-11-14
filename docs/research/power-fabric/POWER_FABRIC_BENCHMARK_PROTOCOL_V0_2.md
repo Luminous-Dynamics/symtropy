@@ -88,3 +88,30 @@ Do not claim superiority until tasks, files, participants, tools, versions, and 
 The strongest result would be a reproducible public benchmark in which at least two independent source systems can be imported into a shared Power Fabric IR, transformed to one or more standards profiles, changed, recompiled, and checked for explicit semantic preservation/loss; an independent verifier reproduces the result; and users complete matched comprehension tasks with fewer or less severe errors than conventional documentation.
 
 A result showing Power Fabric performs worse is still publishable and useful. Do not weaken baselines after observing results.
+
+
+## 5. Public research references
+
+Sources checked for this snapshot on 2026-11-14:
+
+- ISO 81346-10:2022 publication record: https://www.iso.org/standard/75471.html
+- ISO/WD 81346-10 edition 2 lifecycle (working draft, not published): https://www.iso.org/standard/93711.html
+- IEC 61850-6 consolidated SCL publication: https://webstore.iec.ch/en/publication/103863
+- IEC 61970-301 CIM base: https://webstore.iec.ch/en/publication/62698
+- IEC 61968-11 distribution CIM extensions: https://webstore.iec.ch/en/publication/6199
+- IEC 62351 2026 series catalogue: https://webstore.iec.ch/en/publication/6912
+- IEC 62351-7:2025 network/system management objects: https://webstore.iec.ch/en/publication/76108
+- IEC 62933-3-1:2025 EES planning/performance: https://webstore.iec.ch/en/publication/75427
+- IEC 62933-5-1:2024 EES safety: https://webstore.iec.ch/en/publication/72239
+- IEC 60364-1:2025 low-voltage installation fundamental principles: https://webstore.iec.ch/en/publication/63699
+- IEEE 1547-2018 DER interconnection and interoperability: https://standards.ieee.org/ieee/1547/5915/
+- OpenFMB reference architecture and CIM/61850-derived model: https://openfmb.openenergysolutions.com/docs/openfmb/intro/
+- NIST smart-grid testing and certification programme: https://www.nist.gov/programs-projects/smart-grid-testing-and-certification
+- ETAP Digital Twin fact sheet: https://etap.com/docs/default-source/brochures/fact-sheets/digital-twin-fact-sheet-web.pdf
+- SPAN Home app update: https://www.span.io/blog/a-new-span-home-app-experience
+- SPAN documented on-premise operation: https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
+- SPAN software OFF service-isolation warning: https://support.span.io/hc/en-us/articles/4411214235159-Navigating-the-SPAN-Home-App
+- South African Government standards notice identifying SANS 10142-1:2024 Ed 3.2: https://www.gov.za/sites/default/files/gcis_document/202408/51050gen2686.pdf
+- South African Department of Employment and Labour CoC notice (2025-10-22): https://www.gov.za/news/media-statements/employment-and-labour-electrical-installation-laws-and-certificate-compliance
+
+The referenced publications establish scope and publication metadata, not a complete standards-compliance rule set. Standards access, edition, amendment, national adoption, applicability and licensing must be checked before normative rules or conformance claims are implemented.
