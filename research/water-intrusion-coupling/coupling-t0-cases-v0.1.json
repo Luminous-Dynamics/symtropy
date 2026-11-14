@@ -32,7 +32,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -46,7 +47,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -60,7 +62,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -75,7 +78,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -89,7 +93,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -98,31 +103,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -141,7 +152,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -155,7 +167,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -169,7 +182,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -184,7 +198,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -198,7 +213,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -207,31 +223,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "modelled",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "modelled",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -250,7 +272,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -264,7 +287,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -278,7 +302,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -293,7 +318,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -307,7 +333,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -316,31 +343,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-OTHER-002",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -359,7 +392,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -373,7 +407,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -387,7 +422,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -402,7 +438,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -416,7 +453,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -425,31 +463,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -468,7 +512,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -482,7 +527,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "out_of_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -496,7 +542,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -511,7 +558,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -525,7 +573,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -534,31 +583,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -577,7 +632,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -591,7 +647,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -605,7 +662,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -620,7 +678,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -629,31 +688,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -672,7 +737,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -686,7 +752,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -700,7 +767,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "unbounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -715,7 +783,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -729,7 +798,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -738,31 +808,37 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
@@ -781,7 +857,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "transient_pressure",
@@ -795,7 +872,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "defect_ingress",
@@ -809,7 +887,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "network_transport",
@@ -824,7 +903,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "stage_id": "chemical_fate",
@@ -838,7 +918,8 @@
             "clock_uncertainty_ms": 1,
             "validity_state": "in_domain",
             "uncertainty_state": "bounded",
-            "uncertainty_coverage_percent": 95
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
           }
         ],
         "observations": [
@@ -847,30 +928,36 @@
             "kind": "pressure_trace",
             "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
-            "event_time_s": 5
+            "event_time_s": 5,
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
             "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
-            "evidence_class": "measured",
+            "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "sample_time_s": 45,
-            "sample_result": "detected"
+            "sample_result": "detected",
+            "observation_origin": "measured",
+            "digest_origin": "synthetic_fixture_marker"
           }
         ]
       }
