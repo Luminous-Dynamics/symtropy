@@ -1,0 +1,445 @@
+{
+  "schema_version": "aero-inspection-observability-corpus/0.1.0",
+  "corpus_id": "AER01-INSPECTION-SHM-SYNTHETIC-2026-11",
+  "claim_ceiling": "synthetic_contract_conformance_only",
+  "physical_probability_of_detection_claim": false,
+  "aircraft_acceptance_claim": false,
+  "cases": [
+    {
+      "case_id": "SYN-IO-001",
+      "title": "Complete synthetic region coverage with no seeded anomaly",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT",
+          "R-SPAR",
+          "R-SKIN"
+        ],
+        "observed_regions": [
+          "R-ROOT",
+          "R-SPAR",
+          "R-SKIN"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "NO_ANOMALY_IN_SYNTHETIC_FIXTURE"
+    },
+    {
+      "case_id": "SYN-IO-002",
+      "title": "95 percent aggregate scan misses a required critical root region",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 0.95,
+        "required_regions": [
+          "R-ROOT",
+          "R-SPAR",
+          "R-SKIN"
+        ],
+        "observed_regions": [
+          "R-SPAR",
+          "R-SKIN"
+        ],
+        "critical_regions_observed": false
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "UNRESOLVED_INCOMPLETE_CRITICAL_COVERAGE"
+    },
+    {
+      "case_id": "SYN-IO-003",
+      "title": "Inspection uses a stale geometry generation",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G2",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": false,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "REJECT_IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "SYN-IO-004",
+      "title": "Inspection result is registered in the wrong coordinate frame",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": false,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "REJECT_IDENTITY_MISMATCH"
+    },
+    {
+      "case_id": "SYN-IO-005",
+      "title": "Expired equipment calibration",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": false,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "REJECT_INVALID_INSPECTION_STATE"
+    },
+    {
+      "case_id": "SYN-IO-006",
+      "title": "Inspection method outside the declared material/defect domain",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-METAL-B"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": false,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "UNRESOLVED_METHOD_OUT_OF_DOMAIN"
+    },
+    {
+      "case_id": "SYN-IO-007",
+      "title": "Structural anomaly candidate with healthy sensing channels",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": true,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "REQUIRE_INDEPENDENT_NDE"
+    },
+    {
+      "case_id": "SYN-IO-008",
+      "title": "Healthy-structure hypothesis with sensor drift",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": true,
+        "environment_shift": false,
+        "correction_applied": true
+      },
+      "expected_disposition": "SENSOR_FAULT_SUSPECTED_NO_STRUCTURAL_CLEARANCE"
+    },
+    {
+      "case_id": "SYN-IO-009",
+      "title": "Simultaneous structural damage and sensor drift",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": true,
+        "sensor_fault_candidate": true,
+        "environment_shift": false,
+        "correction_applied": true
+      },
+      "expected_disposition": "REQUIRE_INDEPENDENT_NDE"
+    },
+    {
+      "case_id": "SYN-IO-010",
+      "title": "Environmental shift without a structural or sensor anomaly hypothesis",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": true,
+        "correction_applied": false
+      },
+      "expected_disposition": "REASSESS_ENVIRONMENT"
+    },
+    {
+      "case_id": "SYN-IO-011",
+      "title": "Correction aligns signals to the healthy manifold while a damage hypothesis remains",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": true,
+        "structural_damage_candidate": true,
+        "sensor_fault_candidate": true,
+        "environment_shift": false,
+        "correction_applied": true,
+        "corrected_signal_looks_healthy": true
+      },
+      "expected_disposition": "REQUIRE_INDEPENDENT_NDE"
+    },
+    {
+      "case_id": "SYN-IO-012",
+      "title": "Sensing channel health is unknown",
+      "evidence_class": "synthetic",
+      "article": {
+        "configuration_id": "SYN-AIRFRAME-A",
+        "geometry_generation": "G1",
+        "material_family": "SYN-CFRP-A"
+      },
+      "inspection": {
+        "method": "synthetic-ultrasonic-placeholder",
+        "procedure_revision": "SYN-PROC-1",
+        "procedure_current": true,
+        "calibration_current": true,
+        "coordinate_frame_match": true,
+        "geometry_generation_match": true,
+        "method_applicable": true,
+        "surface_coverage_fraction": 1,
+        "required_regions": [
+          "R-ROOT"
+        ],
+        "observed_regions": [
+          "R-ROOT"
+        ],
+        "critical_regions_observed": true
+      },
+      "sensing": {
+        "state_known": false,
+        "structural_damage_candidate": false,
+        "sensor_fault_candidate": false,
+        "environment_shift": false,
+        "correction_applied": false
+      },
+      "expected_disposition": "UNRESOLVED_SENSING_STATE"
+    }
+  ],
+  "invariant_contract": {
+    "synthetic_POD_claim": "FORBIDDEN",
+    "synthetic_sensor_reliability_probability": "FORBIDDEN",
+    "maintenance_release": "NOT_AUTHORIZED",
+    "required_region_coverage": "ALL_CRITICAL_REGIONS",
+    "correction_must_not_clear_damage_hypothesis": true,
+    "unknown_sensing_state_must_abstain": true
+  }
+}

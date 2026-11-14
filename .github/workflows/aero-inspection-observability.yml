@@ -1,0 +1,81 @@
+name: AER-01 inspection observability synthetic contract
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-inspection-observability.yml"
+      - "tools/civil-aero-benchmark/inspection-observability/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-inspection-observability-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact subject revision
+        env:
+          EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual_subject_sha="$(git rev-parse HEAD)"
+          test "$actual_subject_sha" = "$EXPECTED_SUBJECT_SHA"
+          printf 'subject_commit=%s\n' "$actual_subject_sha"
+          printf 'event_commit=%s\n' "$GITHUB_SHA"
+          printf 'workflow_ref=%s\n' "$GITHUB_WORKFLOW_REF"
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml -- --check
+
+      - name: Run Rust policy oracle and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+
+      - name: Generate Rust inspection-observability result
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/inspection-observability/Cargo.toml > inspection-observability-rust-result.json
+
+      - name: Independently recompute and compare using Python
+        run: |
+          python3 tools/civil-aero-benchmark/inspection-observability/verify_independent.py \
+            --rust-output inspection-observability-rust-result.json > inspection-observability-python-audit.json
+
+      - name: Create source and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/inspection-observability/inspection-observability-corpus-v0.1.json > inspection-observability-source.sha256
+          sha256sum inspection-observability-rust-result.json > inspection-observability-rust-result.sha256
+          sha256sum inspection-observability-python-audit.json > inspection-observability-python-audit.sha256
+
+      - name: Retain corpus, schema, Rust result, Python audit and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-inspection-observability-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/civil-aero-benchmark/inspection-observability/Cargo.toml
+            tools/civil-aero-benchmark/inspection-observability/src/main.rs
+            tools/civil-aero-benchmark/inspection-observability/inspection-observability-corpus-v0.1.json
+            tools/civil-aero-benchmark/inspection-observability/inspection-observability-corpus-v0.1.schema.json
+            inspection-observability-rust-result.json
+            inspection-observability-python-audit.json
+            inspection-observability-source.sha256
+            inspection-observability-rust-result.sha256
+            inspection-observability-python-audit.sha256
+          if-no-files-found: error
+          retention-days: 90
