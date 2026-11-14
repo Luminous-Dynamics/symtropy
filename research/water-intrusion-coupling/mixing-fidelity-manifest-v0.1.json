@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5216",
+  "status": "research_design_and_synthetic_t0_vectors",
+  "evidence_class": "synthetic_fixture_only",
+  "evidence_ceiling": "analytical_mass_routing_and_discrete_rtd_arithmetic_only_no_physical_mixing_qualification_no_potability_or_release",
+  "input_file": "mixing-fidelity-t0-cases-v0.1.json",
+  "oracle_file": "mixing-fidelity-t0-oracle-v0.1.json",
+  "comparator_register_file": "mixing-fidelity-comparator-register-v0.1.json",
+  "protocol_file": "MIXING_FIDELITY_BENCHMARK_PROTOCOL_V0_1.md",
+  "scenario_count": 15,
+  "scenario_ids": [
+    "JMF-T0-001-complete-mixing-cross",
+    "JMF-T0-002-segregated-inlet-origin-routing",
+    "JMF-T0-003-partial-mixing-cross",
+    "JMF-T0-004-asymmetric-flow-routing",
+    "JMF-T0-005-mass-fraction-columns-do-not-close",
+    "JMF-T0-006-negative-mass-fraction",
+    "JMF-T0-007-inlet-outlet-volume-flow-mismatch",
+    "JMF-T0-008-unsupported-junction-topology",
+    "RTD-T0-001-closed-pulse-tracer",
+    "RTD-T0-002-short-circuit-and-long-tail",
+    "RTD-T0-003-incomplete-tracer-recovery",
+    "RTD-T0-004-negative-tracer-mass",
+    "RTD-T0-005-nonmonotonic-sample-times",
+    "RTD-T0-006-timebase-not-aligned",
+    "RTD-T0-007-calibration-not-current"
+  ],
+  "non_compensable_invariants": [
+    "junction_mass_fraction_columns_sum_to_one",
+    "inlet_and_outlet_volume_flow_must_balance",
+    "negative_mass_fraction_or_concentration_is_invalid",
+    "complete_mixing_is_a_baseline_not_a_universal_physical_truth",
+    "tank_rtd_preserves_unrecovered_tracer_mass",
+    "rtd_is_not_reported_as_qualified_when_mass_recovery_is_outside_declared_tolerance",
+    "pulse_tracer_sampling_requires_aligned_timebase_and_current_calibration",
+    "mixing_and_reaction_errors_are_separated_using_conservative_tracer_before_reactive_tests",
+    "synthetic_arithmetic_pass_is_not_physical_mixing_qualification",
+    "no_result_authorizes_potability_or_release"
+  ],
+  "evidence_status": {
+    "snapshot_date": "2026-11-14",
+    "synthetic_cases": 15,
+    "independent_fixture_oracle_cross_check": "pending",
+    "native_rust_tests_rustfmt_clippy": "pending",
+    "hosted_ci_exact_head": "pending",
+    "physical_tracer_tests": "not_performed",
+    "raw_physical_measurements": "none",
+    "production_evidence_digests": "not_applicable_synthetic_fixture_markers_only"
+  }
+}
