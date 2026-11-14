@@ -1,0 +1,62 @@
+name: Bevy 0.20 Graphics Probe
+
+on:
+  push:
+    branches: [ "feat/bevy-020-graphics-probe" ]
+    paths:
+      - "research/bevy-020-graphics-probe/**"
+      - ".github/workflows/bevy-020-probe.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "research/bevy-020-graphics-probe/**"
+      - ".github/workflows/bevy-020-probe.yml"
+
+concurrency:
+  group: bevy-020-probe-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Bevy 0.20 isolated API compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux rendering build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev pkg-config
+
+      - name: Install Bevy 0.20 MSRV toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+          components: clippy, rustfmt
+
+      - name: Cache isolated probe dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            research/bevy-020-graphics-probe -> target
+
+      - name: Check formatting
+        run: cargo +1.97.1 fmt --manifest-path research/bevy-020-graphics-probe/Cargo.toml -- --check
+
+      - name: Run isolated probe unit tests
+        run: cargo +1.97.1 test --manifest-path research/bevy-020-graphics-probe/Cargo.toml --bin symtropy-bevy-020-graphics-probe
+
+      - name: Run strict Clippy
+        run: cargo +1.97.1 clippy --manifest-path research/bevy-020-graphics-probe/Cargo.toml --all-targets -- -D warnings
+
+      - name: Compile real Bevy 0.20 renderer probe
+        run: cargo +1.97.1 check --manifest-path research/bevy-020-graphics-probe/Cargo.toml --bin symtropy-bevy-020-graphics-probe
+
+      - name: Preserve isolated lockfile for review
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bevy-020-probe-lockfile
+          path: research/bevy-020-graphics-probe/Cargo.lock
+          if-no-files-found: warn
+          retention-days: 14
