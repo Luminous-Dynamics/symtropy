@@ -397,21 +397,28 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
         "manifest programme mismatch",
     )?;
     require(
-        text(manifest, "input_file")? == "chemical-fate-t0-cases-v0.1.json",
-        "manifest input filename mismatch",
+        text(manifest, "chemical_fate_cases_file")?
+            == "chemical-fate-t0-cases-v0.1.json",
+        "manifest chemical-fate input filename mismatch",
     )?;
     require(
-        text(manifest, "oracle_file")? == "chemical-fate-t0-oracle-v0.1.json",
-        "manifest oracle filename mismatch",
+        text(manifest, "chemical_fate_oracle_file")?
+            == "chemical-fate-t0-oracle-v0.1.json",
+        "manifest chemical-fate oracle filename mismatch",
     )?;
     require(
-        text(manifest, "comparator_register_file")?
+        text(manifest, "chemical_fate_comparator_register_file")?
             == "chemical-fate-comparator-register-v0.1.json",
-        "manifest comparator register filename mismatch",
+        "manifest chemical-fate comparator register filename mismatch",
     )?;
     require(
-        number(manifest, "scenario_count")? == CASE_COUNT as f64,
-        "manifest scenario count mismatch",
+        number(manifest, "chemical_fate_scenario_count")? == CASE_COUNT as f64,
+        "manifest chemical-fate scenario count mismatch",
+    )?;
+    require(
+        text(manifest, "chemical_fate_evidence_ceiling")?
+            == "analytical_reaction_and_model_scope_contracts_only_no_physical_chemical_qualification",
+        "manifest chemical-fate evidence ceiling mismatch",
     )?;
     let input_cases = field(inputs, "cases")?
         .as_array()
@@ -423,9 +430,9 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
     require(oracle_cases.len() == CASE_COUNT, "oracle case count mismatch")?;
     let input_ids = ids(input_cases)?;
     let oracle_ids = ids(oracle_cases)?;
-    let manifest_ids = read_ids(manifest, "scenario_ids")?;
+    let manifest_ids = read_ids(manifest, "chemical_fate_scenario_ids")?;
     validate_same_ids(&input_ids, &oracle_ids, "input/oracle")?;
-    validate_same_ids(&input_ids, &manifest_ids, "input/manifest")?;
+    validate_same_ids(&input_ids, &manifest_ids, "input/chemical-fate manifest")?;
 
     for row in oracle_cases {
         let expected = field(row, "expected")?;
@@ -724,7 +731,11 @@ mod tests {
     fn msx_demand_driven_hydraulics_are_not_transient_intrusion_hydraulics() {
         let result = evaluated();
         let row = result["results"].as_array().unwrap()
-            .iter().find(|row| row["case_id"] == "CF-T0-010-pressure-driven-input-required-but-not-supplied-by-msx")
+            .iter()
+            .find(|row| {
+                row["case_id"]
+                    == "CF-T0-010-pressure-driven-input-required-but-not-supplied-by-msx"
+            })
             .unwrap();
         assert_eq!(row["computed"]["reason"], "MSX_HYDRAULIC_INPUT_NOT_PRESSURE_DRIVEN_TRANSIENT");
     }
