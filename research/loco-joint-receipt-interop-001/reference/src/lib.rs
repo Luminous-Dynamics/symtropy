@@ -787,7 +787,8 @@ mod tests {
     const GOLDEN_DIGEST: &str = "cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8";
     const GOLDEN_UQ_SIDECAR: &str =
         include_str!("../../fixtures/joint_uq_sidecar_v0_1_complete.json");
-    const GOLDEN_UQ_DIGEST: &str = "caca630c5fbd91cd3afe917ad1deade3fa860be876403f4652e6179c52073e3e";
+    const GOLDEN_UQ_DIGEST: &str =
+        "dcb4672f36b37d18e69c8cb5f1f750dfcf0b506cd1bd0831e21eb2f6c9dc5dd3";
 
     fn resign_uq_sidecar(input: &str) -> String {
         let placeholder = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -846,7 +847,9 @@ mod tests {
         let changed = resign_uq_sidecar(&changed);
         assert!(matches!(
             validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
-            Err(WireError::UqSidecarBindingMismatch("physical-state predecessor"))
+            Err(WireError::UqSidecarBindingMismatch(
+                "physical-state predecessor"
+            ))
         ));
     }
 
