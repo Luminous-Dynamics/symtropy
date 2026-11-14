@@ -192,6 +192,33 @@ For physical coverage, report calibration-set size, blind geometry/operating str
 
 The future sequential design loop is an engineering-research planner only: observe a controlled test, reconcile raw data and calibration, update uncertainty, choose the next test, preregister it, then execute under approved human oversight. It is not an autonomous controller of a live water asset.
 
+
+## 12. Industry baseline and competitive position
+
+The closest industry comparison is not a single competing algorithm:
+
+- **Bentley OpenFlows WaterGEMS 2026** provides broad network-scale hydraulic analysis, extended-period simulation, scenario management, calibration, water-age/constituent/source-trace analysis and tank mixing. Its published product documentation describes these capabilities as network modelling and operational analysis. This is a strong baseline for network workflow coverage; it is not evidence that a particular junction's physical outlet mixing or tank RTD has been independently identified from a purpose-designed tracer experiment.
+- **EPANET 2.2** remains the transparent, reproducible open reference for the network transport abstraction and its declared mixing options.
+- **OpenFOAM** offers a general passive-scalar transport function object with flux, diffusivity and source controls. Its scalarTransport documentation explicitly warns that boundedness depends on the selected discretization (the documented function object is bounded only with an upwind scheme). It is a useful open CFD comparator, not automatically validated physical truth.
+- **Commercial CFD**, including Ansys Fluent, can represent geometry-resolved flow/species transport within a chosen model and numerical setup. Mesh/time-step/turbulence/scalar-diffusivity sensitivity and independent tracer observations remain mandatory before a CFD field is treated as a qualified comparator.
+- **The 2026 sensor-placement review** confirms that water-system sensor selection is already multi-objective and cost-constrained, while highlighting practical gaps in uncertainty handling, sparse deployment and transfer to operational networks. The differentiator here is not simply D-optimal sensor placement; it is joint parameter identifiability, model-structure discrimination, nuisance handling, geometry/regime holdout and a reproducible abstention contract.
+
+The competitive strategy is therefore **interoperate, then qualify**. Keep EPANET/WaterGEMS-class network workflows for network scale; use CFD and reduced-order models as competing local hypotheses; use controlled tracer experiments to anchor them; and let the qualification layer decide which local operator is supported in which domain. The proposed advantage is evidence quality, calibration efficiency, explainable uncertainty and lower-cost deployment—not a present claim of better raw accuracy than CFD or commercial network simulators.
+
+A 2026 AWWA survey article reports interest in AI, digital twins and predictive analytics among utilities, while noting that many surveyed utilities had not yet developed well-defined implementation plans. This supports a practical product direction: deliver an interoperable qualification module with a clear evidence trail, rather than asking utilities to replace their network model stack.
+
+## 13. Implemented T0 candidate-design evaluator
+
+The continuation branch adds:
+
+- Rust binary: `tools/water-service-t0/src/bin/mixing-design-t0.rs`.
+- Six frozen candidate-design cases: balanced, ill-conditioned, rank-deficient, two-stratum robust, nuisance-confounded and nuisance-unresolved.
+- Full covariance Cholesky whitening, scale-aware Fisher information, singular-spectrum/rank-threshold reporting, D-optimal and E-optimal metrics, nuisance Schur-complement adjustment, pairwise Mahalanobis model separation and a cost-aware Pareto frontier.
+- Frozen oracle and identity manifest.
+- Exact-revision workflow for format, native Rust tests, Clippy, oracle replay and receipt archival.
+
+The evaluator compares pre-registered candidate bundles; it does not yet construct arbitrary sensor layouts or run a water-quality/CFD solver. Synthetic arithmetic has been independently mirrored outside the Rust implementation. Native Cargo/rustfmt/Clippy and exact-head hosted CI are not yet evidenced by this document. A matched frozen-oracle replay, even when later green, establishes only T0 design arithmetic—not physical qualification.
+
 ## References
 
 - US EPA, EPANET 2.2, analysis algorithms and junction/tank mixing documentation: https://usepa.github.io/EPANET2.2/12_analysis_algorithms.html
@@ -199,4 +226,4 @@ The future sequential design loop is an engineering-research planner only: obser
 - Shao, Y. et al. (2014), *Experimental testing and modeling analysis of solute mixing at water distribution pipe junctions*, DOI: https://doi.org/10.1016/j.watres.2014.02.053
 - Crowther, J. M. & Dandy, G. C. (2012), *Model comparisons for tracer experiments at a clear water storage tank*, DOI: https://doi.org/10.7158/W10-835.2012
 - Yao, Y., Wallner, M. & Klawonn, F. (2026), *Optimal Sensor and Sampling Placement for Contaminant Detection*, DOI: https://doi.org/10.3390/eng7030121
-- (2026), *Modeling Incomplete Solute Mixing at Pipe Junctions in Water Distribution Networks: Parametric CFD Simulations and a Predictive Regression Approach*, DOI: https://doi.org/10.1061/JHEND8.HYENG-14715
+- Bentley Systems, OpenFlows WaterGEMS 2026 help, model/optimize distribution systems: https://docs.bentley.com/LiveContent/web/OpenFlows%20WaterGEMS-v2026/Help/en/topics/1481500/GUID-A6DA3DD143154E4096020FE7D7C4B85C.html\n- Bentley Systems, OpenFlows WaterGEMS 2026 water-quality analysis: https://docs.bentley.com/LiveContent/web/OpenFlows%20WaterGEMS-v2026/Help/en/topics/1481527/GUID-BA828BDA-8ED0-466F-81B3-F6C08413C3DD.html\n- OpenFOAM v2606, scalar transport function object: https://doc.openfoam.com/2606/tools/post-processing/function-objects/solvers/scalarTransport/\n- Chenevey & Cooper (2026), *Model or Digital Twin? AWWA Survey on Water Distribution Technology*, DOI: https://doi.org/10.1002/awwa.70075\n- (2026), *Modeling Incomplete Solute Mixing at Pipe Junctions in Water Distribution Networks: Parametric CFD Simulations and a Predictive Regression Approach*, DOI: https://doi.org/10.1061/JHEND8.HYENG-14715
