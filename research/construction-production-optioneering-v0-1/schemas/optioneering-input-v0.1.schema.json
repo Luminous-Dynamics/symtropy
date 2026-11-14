@@ -293,6 +293,7 @@
       "additionalProperties": false,
       "required": [
         "scenario_id",
+        "measurement_basis",
         "option_design_digest",
         "assessment_horizon_months",
         "acceptance_contract_digest",
@@ -396,6 +397,9 @@
         "rework_units": {
           "type": "integer",
           "minimum": 0
+        },
+        "measurement_basis": {
+          "const": "full_required_quantity"
         }
       }
     },
