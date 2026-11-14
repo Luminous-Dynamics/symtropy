@@ -1,0 +1,117 @@
+{
+  "schema_version": "lead-lag-rssct-f0-oracle-v0.1",
+  "evidence_class": "synthetic_adsorption_scaling_and_lead_lag_state",
+  "evidence_ceiling": "synthetic_scaling_arithmetic_and_sample_state_only_no_adsorbent_or_water_quality_claim",
+  "scaling_cases": [
+    {
+      "case_id": "RSSCT-F0-001-sf-2-CD",
+      "expected": {
+        "ebct_and_time_ratio": 0.25,
+        "small_scale_duration_days": 182.5,
+        "scaling_assumption": "CONSTANT_DIFFUSIVITY"
+      }
+    },
+    {
+      "case_id": "RSSCT-F0-002-sf-2-PD",
+      "expected": {
+        "ebct_and_time_ratio": 0.5,
+        "small_scale_duration_days": 365,
+        "scaling_assumption": "PROPORTIONAL_DIFFUSIVITY"
+      }
+    },
+    {
+      "case_id": "RSSCT-F0-003-sf-5-CD",
+      "expected": {
+        "ebct_and_time_ratio": 0.04,
+        "small_scale_duration_days": 29.2,
+        "scaling_assumption": "CONSTANT_DIFFUSIVITY"
+      }
+    },
+    {
+      "case_id": "RSSCT-F0-004-sf-5-PD",
+      "expected": {
+        "ebct_and_time_ratio": 0.2,
+        "small_scale_duration_days": 146,
+        "scaling_assumption": "PROPORTIONAL_DIFFUSIVITY"
+      }
+    },
+    {
+      "case_id": "RSSCT-F0-005-sf-10-CD",
+      "expected": {
+        "ebct_and_time_ratio": 0.01,
+        "small_scale_duration_days": 7.3,
+        "scaling_assumption": "CONSTANT_DIFFUSIVITY"
+      }
+    },
+    {
+      "case_id": "RSSCT-F0-006-sf-10-PD",
+      "expected": {
+        "ebct_and_time_ratio": 0.1,
+        "small_scale_duration_days": 73,
+        "scaling_assumption": "PROPORTIONAL_DIFFUSIVITY"
+      }
+    }
+  ],
+  "lead_lag_cases": [
+    {
+      "case_id": "LEADLAG-F0-001-no-interstage-sample",
+      "expected": {
+        "interstage_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "final_outlet_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "guard_bed_evidence_disposition": "GUARD_CAPACITY_NOT_INFERABLE_FROM_CURRENT_INTERSTAGE_EVIDENCE",
+        "maintenance_advisory": "ABSTAIN_OR_HOLD",
+        "automatic_bed_switch_authorized": false,
+        "final_water_release_allowed": false,
+        "water_safety_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-002-interstage-breakthrough-final-missing",
+      "expected": {
+        "interstage_disposition": "BREAKTHROUGH_OBSERVED_AT_SAMPLE",
+        "final_outlet_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "guard_bed_evidence_disposition": "GUARD_FINAL_OUTLET_EVIDENCE_INSUFFICIENT",
+        "maintenance_advisory": "REVIEW_LEAD_BED_ROTATION_WITH_APPROVED_PROCEDURE",
+        "automatic_bed_switch_authorized": false,
+        "final_water_release_allowed": false,
+        "water_safety_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-003-interstage-breakthrough-final-accepted-below",
+      "expected": {
+        "interstage_disposition": "BREAKTHROUGH_OBSERVED_AT_SAMPLE",
+        "final_outlet_disposition": "BELOW_REGISTERED_THRESHOLD_AT_SAMPLE",
+        "guard_bed_evidence_disposition": "FINAL_OUTLET_BELOW_REGISTERED_THRESHOLD_AT_SAMPLE",
+        "maintenance_advisory": "REVIEW_LEAD_BED_ROTATION_WITH_APPROVED_PROCEDURE",
+        "automatic_bed_switch_authorized": false,
+        "final_water_release_allowed": false,
+        "water_safety_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-004-interstage-censored-below-loq",
+      "expected": {
+        "interstage_disposition": "CENSORED_RESULT_NO_NUMERIC_COMPARISON",
+        "final_outlet_disposition": "BELOW_REGISTERED_THRESHOLD_AT_SAMPLE",
+        "guard_bed_evidence_disposition": "GUARD_CAPACITY_NOT_INFERABLE_FROM_CURRENT_INTERSTAGE_EVIDENCE",
+        "maintenance_advisory": "ABSTAIN_OR_HOLD",
+        "automatic_bed_switch_authorized": false,
+        "final_water_release_allowed": false,
+        "water_safety_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-005-interstage-breakthrough-guard-identity-lost",
+      "expected": {
+        "interstage_disposition": "BREAKTHROUGH_OBSERVED_AT_SAMPLE",
+        "final_outlet_disposition": "BELOW_REGISTERED_THRESHOLD_AT_SAMPLE",
+        "guard_bed_evidence_disposition": "GUARD_BED_IDENTITY_OR_HISTORY_UNTRUSTED",
+        "maintenance_advisory": "ABSTAIN_OR_HOLD",
+        "automatic_bed_switch_authorized": false,
+        "final_water_release_allowed": false,
+        "water_safety_claim_allowed": false
+      }
+    }
+  ]
+}
