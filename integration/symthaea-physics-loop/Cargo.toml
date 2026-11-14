@@ -1,0 +1,15 @@
+[package]
+name = "symtropy-real-symthaea-physics-loop"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Dual-checkout smoke test for real Symthaea cognition inside Symtropy PhysicsWorld"
+
+[dependencies]
+bevy = { version = "0.19", default-features = false, features = ["bevy_log", "bevy_state", "multi_threaded", "x11"] }
+symthaea-bevy-brain = { path = "../../crates/bridges/symthaea-bevy-brain" }
+symtropy-bevy-core = { path = "../../crates/core/symtropy-bevy-core" }
+symtropy-math = { path = "../../crates/core/symtropy-math" }
+symtropy-physics = { path = "../../crates/core/symtropy-physics" }
+symtropy-robotics-bridge = { path = "../../crates/bridges/symtropy-robotics-bridge" }
