@@ -107,11 +107,11 @@
         "propensity_floor": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "maximum": 0.5
+          "exclusiveMaximum": 1
         },
         "propensity_ceiling": {
           "type": "number",
-          "exclusiveMinimum": 0.5,
+          "exclusiveMinimum": 0,
           "exclusiveMaximum": 1
         },
         "time_zero_tolerance_seconds": {
