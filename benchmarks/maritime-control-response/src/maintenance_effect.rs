@@ -1006,13 +1006,8 @@ mod tests {
             .iter()
             .zip(counterfactual_oracle.outcomes.iter_mut())
         {
-            match observation.assigned_arm {
-                AssignedArm::Treatment => {
-                    potential.potential_outcome_control += 10.0;
-                }
-                AssignedArm::Control => {
-                    potential.potential_outcome_treatment += 10.0;
-                }
+            if observation.assigned_arm == AssignedArm::Treatment {
+                potential.potential_outcome_control += 10.0;
             }
         }
         let recomputed_estimate = estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
