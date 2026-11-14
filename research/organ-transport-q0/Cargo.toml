@@ -1,0 +1,17 @@
+[package]
+name = "symtropy-organ-transport-q0"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "Dependency-free analytic reference primitives for organ-engineering transport benchmarks"
+publish = false
+
+# Keep this exploratory crate isolated from the production workspace until its
+# numerical contract and integration boundary are reviewed.
+[workspace]
+
+# Test-only JSON parsing keeps the reference library itself dependency-free while
+# allowing the executable corpus tests to validate the pinned fixture files.
+[dev-dependencies]
+serde_json = "1"
+sha2 = "0.10"

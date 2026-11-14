@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1.0",
+  "manifest_id": "ORGAN-TRANSPORT-Q0-CORPUS-MANIFEST",
+  "status": "PINNED_INPUTS_NOT_EXECUTION_RECEIPT",
+  "purpose": "Pin exact fixture bytes for reproducible Q0 verification. This manifest is not a test result or physical/biological evidence.",
+  "fixtures": [
+    {
+      "path": "tube-reference-cases.v0.json",
+      "corpus_id": "ORGAN-TRANSPORT-Q0-TUBE",
+      "schema_version": "0.1.0",
+      "sha256": "c06c6db575b8b88077f524cc93a13f6d10ad7e6987fbed2d0c1a6ff6b57ce031",
+      "byte_length": 3574,
+      "case_count": 5,
+      "case_ids": [
+        "q0-tube-baseline",
+        "q0-tube-reverse-pressure",
+        "q0-tube-zero-pressure",
+        "q0-tube-nonpositive-radius",
+        "q0-tube-nonfinite-pressure"
+      ]
+    },
+    {
+      "path": "network-reference-cases.v0.json",
+      "corpus_id": "ORGAN-TRANSPORT-Q0-NETWORK",
+      "schema_version": "0.1.0",
+      "sha256": "a58b71124763fcd5104e23418ade3e94a4929b0140eaaccc21f5e5eebf16a744",
+      "byte_length": 12318,
+      "case_count": 6,
+      "case_ids": [
+        "q0-network-series-equal-resistance",
+        "q0-network-bifurcation-two-equal-outlets",
+        "q0-network-merge-two-inlets",
+        "q0-network-bifurcation-three-to-one-flow-split",
+        "q0-network-two-level-branching",
+        "q0-network-reversed-edge-orientation"
+      ]
+    }
+  ],
+  "notes": [
+    "SHA-256 values bind the exact UTF-8 file bytes, including the trailing newline.",
+    "A matching digest establishes byte identity, not scientific truth or correctness.",
+    "Execution status comes from an exact-source verifier/CI receipt; this manifest does not certify that tests ran."
+  ]
+}
