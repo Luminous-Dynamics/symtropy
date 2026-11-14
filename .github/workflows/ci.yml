@@ -86,3 +86,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT hybrid transition energy validator
+      run: cargo test --locked -p wpt-hybrid-transition-validator
+
+    - name: Validate WPT hybrid transition known-truth corpus
+      run: cargo run --locked -p wpt-hybrid-transition-validator -- benchmarks/wpt-hybrid-transition/v1/known-truth.jsonl
