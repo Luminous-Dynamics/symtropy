@@ -375,8 +375,7 @@ mod tests {
     #[test]
     fn the_2026_score_cannot_be_promoted_to_a_2027_result() {
         let mut profile = fixture();
-        profile["edition_comparison"]["dx2026_score_may_be_reused_as_dx2027_result"] =
-            true.into();
+        profile["edition_comparison"]["dx2026_score_may_be_reused_as_dx2027_result"] = true.into();
         assert!(validate_profile(&profile).is_err());
     }
 }
