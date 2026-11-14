@@ -184,6 +184,31 @@ Safety, privacy, legal constraints, noise limits and ground-risk limits are hard
 
 Benchmark 10 / 100 / 1,000 / 10,000 trajectories first. Only extend beyond that after recall and soundness gates pass. Candidate-generation latency alone is not full traffic-management latency.
 
+
+### Track H — infrastructure recovery portfolios and common-cause exposure
+
+Question: does a selected portfolio preserve complete, aircraft-applicable landing + energy + ground-transfer chains under declared single and compound failures, rather than merely providing nominal geographic coverage?
+
+This track is owned by [AEROWEFT-INFRA-RECOVERY-001 #5224](https://github.com/Luminous-Dynamics/symtropy/issues/5224). It supplies aviation-specific constraints and outage evidence to the existing multimodal investment optimizer #1601; it does not implement a second site-selection or location-routing solver.
+
+**Metrics**
+- Complete recovery/service-chain availability by mission and community class.
+- All inclusion-minimal failure sets and exact common-cause witnesses.
+- Shared weather, power, ground-access, source and provider dependencies across nominal alternatives.
+- Service-floor pass/fail under every declared singleton and compound outage.
+- Landing-only recovery versus repeat-service chains that additionally require energy and ground transfer.
+- Lifecycle investment, cost per protected service class and public-access distribution.
+- Incomplete failure-domain inventory, unknown site status, stale/rights-pending source and unsupported aircraft applicability.
+
+**Initial targets**
+- 100% agreement with an independently authored exhaustive oracle on the frozen tiny portfolio.
+- 100% exact minimal failure-set identification on that bounded corpus.
+- Zero unknown/unqualified sites, energy resources or transfer links admitted as available.
+- Zero asset-ID differences treated as proof of independent failure domains.
+- All named service floors reported separately; no aggregate coverage score can conceal a failed group.
+
+All numeric failure sets in this track are conditional on the fixture's declared dependency inventory. No empirical failure probability or real-world reliability rate is inferred.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -195,8 +220,12 @@ Benchmark 10 / 100 / 1,000 / 10,000 trajectories first. Only extend beyond that 
 | Static corridor reservations | Baseline utilization and starvation | Rigid space-time allocation |
 | FIFO, shortest-feasible, greedy and rolling-horizon planners | Traffic scheduling quality | Must use the same hard constraints and compute budget |
 | EUROCONTROL trajectory-prediction requirements and NASA formal-methods / ATM research | Scope, modelling, verification and operational-system expectations | Reference specifications / research, not directly comparable executable products |
+| 2026 Dubai integrated UAM MIP | Joint site, fleet, route, schedule and partial-recharge decisions; multi-trip and speed-dependent battery discharge | Paper reports 4–30% improvement over its studied heuristics; vertiport simultaneous landing/parking capacity is omitted and charging-plug availability is simplified; data/implementation/assumptions must be pinned before reproduction |
+| 2026 demand-uncertain vertiport planning | Risk-based two-stage site selection and fleet optimization; route-extension sensitivity under airspace restrictions; existing heliport use | Paper-level comparator until exact formulation, uncertainty set, data and code are reviewed |
+| 2026 TU Delft / Île-de-France integrated planning | Land-use, aeronautical feasibility and community-acceptance screening plus bidirectional demand-supply, infrastructure, fleet, dispatch and repositioning | Large-scale integrated reference; do not claim reproduction without matched source, data, assumptions and solver setup |
+| 2026 data-driven location optimization | Revealed/stated preference choice modeling, user time-value and three-phase multi-objective site selection | Compare access, uptake and equity dimensions only where exact input data and survey rights are admitted |
 
-AeroWeft must not claim to outperform EUROCONTROL, FAA UTM, EASA U-space or NASA programmes from a toy simulator comparison. Compare only matched tasks. Treat established systems as a reference architecture and evaluation standard where executable data or baselines are not available.
+AeroWeft must not claim to outperform EUROCONTROL, FAA UTM, EASA U-space, NASA or published 2026 UAM optimizers from a toy simulator comparison. For published optimization papers, distinguish (a) paper-level feature comparison, (b) transparent local baseline implementing the published algorithm class, and (c) faithful reproduction with source, data, parameters and compute budget pinned. Only (c) supports a direct numerical comparison to the published result.
 
 ## 4. Data admission and rights
 
