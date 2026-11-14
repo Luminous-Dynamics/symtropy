@@ -159,3 +159,48 @@ The 17 route-gate unit tests cover eligible multi-lot binding, missing and
 non-eligible receipts, digest/lot/route/spec/mass mismatch, duplicate
 requirements/receipts, unknown jobs, malformed digests, independent verifier
 identity and combined schedule validation.
+
+
+## Multiobjective schedule tournament and Pareto qualification v0.1
+
+The `pareto` module evaluates a tournament of caller-supplied candidate schedules. It is deliberately **not an optimizer**. It consumes:
+- the independent schedule `ValidationReport`;
+- the upstream `validate_route_gates` findings plus exact route-receipt IDs, receipt digests and evidence-manifest digests;
+- a valid time-indexed `UtilityReport` with the same problem/tick unit;
+- an exact disruption `ResilienceReport` when the tournament declares a disruption scenario;
+- independent receiver acceptance for the exact output lot, process trial and receiving specification;
+- source-bound objective observations with fixed units, provenance class and evidence digests.
+
+A hard gate is never an objective. An infeasible schedule, failed route/utility check or rejected receiver is excluded before Pareto sorting. Missing utility or conditional/unknown receiver acceptance is insufficient evidence and is not treated as a zero-cost or accepted result.
+
+The objective schema preserves 13 separate directions:
+
+| Direction | Objective | Unit |
+|---|---|---|
+| Maximize | Receiver-accepted output mass | mg |
+| Maximize | Conservative fibre-length-qualified output per input mass | ppm |
+| Minimize | Residual trim mass | mg |
+| Minimize | Independently inspected damage area | mm² |
+| Minimize | Electricity per accepted kg | Wh/kg accepted |
+| Minimize | Steam per accepted kg | g/kg accepted |
+| Minimize | Water per accepted kg | mL/kg accepted |
+| Minimize | Wastewater per accepted kg | mL/kg accepted |
+| Minimize | Operator/setup labour per accepted kg | min/kg accepted |
+| Minimize | Makespan | tick |
+| Minimize | Total tardiness | tick |
+| Minimize | Plan churn | operations |
+| Minimize | Post-disruption recovery horizon | tick |
+
+The evaluator requires every metric. It checks unit and provenance class; binds accepted mass to the independent receiver evidence; binds fibre length, trim and output metrics to the exact output lot/trial; binds damage to the incoming lot/trial; checks schedule makespan against the independent report; and checks disruption metrics against the exact replay. Engineering estimates cannot stand in for calibrated meter observations or worker time records.
+
+Candidates in one tournament must share exact benchmark suite/version, objective schema, hard-gate policy, problem, scenario, incoming lot/mass, receiving specification and utility tick unit. A mismatch invalidates the comparator; it is not repaired by rescaling or filtering.
+
+Pareto dominance is computed on the full objective vector. Incomparable trade-offs remain on the same front. Equal vectors tie; candidate IDs provide deterministic display order only. No weighted scalar, hypervolume or single “winner” is invented. A later hypervolume report would require a preregistered normalization and reference point and would remain supplementary.
+
+Run the focused tests with:
+
+~~~sh
+cargo test --manifest-path tools/textile-multistage-validator/Cargo.toml pareto
+~~~
+
+The comparator checks structural evidence references and report identities, not source-byte authenticity, worker consent or the physical truth of measurements. Upstream source/receipt verification remains mandatory.
