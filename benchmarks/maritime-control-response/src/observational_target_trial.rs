@@ -1252,6 +1252,6 @@ mod tests {
         assert_eq!(protocol["schema_version"], OBSERVATIONAL_TARGET_TRIAL_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["scope"]["causal_estimates_enabled"], false);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 13);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
     }
 }
