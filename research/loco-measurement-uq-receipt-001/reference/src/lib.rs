@@ -118,6 +118,8 @@ pub enum DependenceDisposition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DependenceDeclaration {
     pub dependence_group_id: String,
+    /// Exact budget-component members covered by this decision.
+    pub component_ids: Vec<String>,
     pub disposition: DependenceDisposition,
 }
 
@@ -155,6 +157,9 @@ pub struct MeasurementReceipt {
     pub decimal_exponent: i8,
     pub start_tick: u64,
     pub end_tick: u64,
+    /// Calibration owner's validity interval on the bound robot clock.
+    pub calibration_valid_from_tick: u64,
+    pub calibration_valid_through_tick: u64,
     pub disposition: EvidenceDisposition,
     pub uncertainty_receipt_id: Option<String>,
 }
@@ -478,6 +483,16 @@ fn validate_uncertainty_receipt(
 
     match measurement {
         Some(measurement) => {
+            if receipt.valid_from_tick > measurement.start_tick
+                || receipt.valid_through_tick < measurement.end_tick
+            {
+                push(
+                    report,
+                    EvidenceDisposition::Rejected,
+                    "UNCERTAINTY_VALIDITY_DOES_NOT_COVER_MEASUREMENT_WINDOW",
+                    identity,
+                );
+            }
             if receipt.measurement_id != measurement.measurement_id
                 || receipt.measurement_artifact_digest != measurement.measurement_artifact_digest
                 || receipt.instrument_configuration_digest
@@ -521,6 +536,7 @@ fn validate_uncertainty_receipt(
 
     let mut component_ids = BTreeSet::new();
     let mut required_groups = BTreeSet::new();
+    let mut component_ids_by_group: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     for component in &receipt.components {
         if !nonempty(&component.component_id)
             || !nonempty(&component.source_receipt_digest)
@@ -542,6 +558,10 @@ fn validate_uncertainty_receipt(
             );
         }
         required_groups.insert(component.dependence_group_id.as_str());
+        component_ids_by_group
+            .entry(component.dependence_group_id.as_str())
+            .or_default()
+            .insert(component.component_id.as_str());
     }
 
     let mut observed_groups = BTreeSet::new();
@@ -560,6 +580,25 @@ fn validate_uncertainty_receipt(
                 report,
                 EvidenceDisposition::Rejected,
                 "DUPLICATE_DEPENDENCE_DECLARATION",
+                format!("{identity}:{group}"),
+            );
+        }
+        let mut declared_components = BTreeSet::new();
+        for component_id in &declaration.component_ids {
+            if !nonempty(component_id) || !declared_components.insert(component_id.as_str()) {
+                push(
+                    report,
+                    EvidenceDisposition::Rejected,
+                    "DEPENDENCE_COMPONENT_ID_EMPTY_OR_DUPLICATE",
+                    format!("{identity}:{group}:{component_id}"),
+                );
+            }
+        }
+        if component_ids_by_group.get(group) != Some(&declared_components) {
+            push(
+                report,
+                EvidenceDisposition::Rejected,
+                "DEPENDENCE_COMPONENT_SET_MISMATCH",
                 format!("{identity}:{group}"),
             );
         }
@@ -762,6 +801,99 @@ fn validate_derived_result(
     }
 }
 
+fn validate_shared_source_dependencies(
+    profile: &UncertaintyProfile,
+    report: &mut UncertaintyAuditReport,
+) {
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    enum Decision {
+        JointModel(String),
+        Independence(String),
+        Unknown,
+        Missing,
+    }
+
+    let mut source_members: BTreeMap<&str, Vec<(&str, &str, Decision)>> = BTreeMap::new();
+    for receipt in &profile.uncertainty_receipts {
+        for component in &receipt.components {
+            let decision = match receipt
+                .dependence
+                .iter()
+                .find(|item| item.dependence_group_id == component.dependence_group_id)
+            {
+                Some(DependenceDeclaration {
+                    disposition: DependenceDisposition::JointModel {
+                        joint_model_receipt_digest,
+                    },
+                    ..
+                }) if nonempty(joint_model_receipt_digest) => {
+                    Decision::JointModel(joint_model_receipt_digest.clone())
+                }
+                Some(DependenceDeclaration {
+                    disposition: DependenceDisposition::IndependenceSupported {
+                        independence_receipt_digest,
+                    },
+                    ..
+                }) if nonempty(independence_receipt_digest) => {
+                    Decision::Independence(independence_receipt_digest.clone())
+                }
+                Some(_) => Decision::Unknown,
+                None => Decision::Missing,
+            };
+            source_members
+                .entry(component.source_receipt_digest.as_str())
+                .or_default()
+                .push((
+                    receipt.measurement_id.as_str(),
+                    component.dependence_group_id.as_str(),
+                    decision,
+                ));
+        }
+    }
+
+    for (source_digest, members) in source_members {
+        let measurement_ids = members
+            .iter()
+            .map(|(measurement_id, _, _)| *measurement_id)
+            .collect::<BTreeSet<_>>();
+        if measurement_ids.len() < 2 {
+            continue;
+        }
+        let group_ids = members
+            .iter()
+            .map(|(_, group_id, _)| *group_id)
+            .collect::<BTreeSet<_>>();
+        if group_ids.len() != 1 {
+            push(
+                report,
+                EvidenceDisposition::Rejected,
+                "SHARED_SOURCE_GROUP_ID_MISMATCH",
+                source_digest,
+            );
+            continue;
+        }
+        let decisions = members
+            .iter()
+            .map(|(_, _, decision)| decision.clone())
+            .collect::<BTreeSet<_>>();
+        if decisions.contains(&Decision::Missing) || decisions.contains(&Decision::Unknown) {
+            push(
+                report,
+                EvidenceDisposition::Unknown,
+                "SHARED_SOURCE_DEPENDENCE_UNRESOLVED",
+                source_digest,
+            );
+        } else if decisions.len() != 1 {
+            push(
+                report,
+                EvidenceDisposition::Rejected,
+                "SHARED_SOURCE_DEPENDENCE_DECISION_MISMATCH",
+                source_digest,
+            );
+        }
+    }
+}
+
 /// Audit uncertainty receipts against exact robot measurement scope.
 ///
 /// The function consumes upstream budget and distribution conclusions. It
@@ -862,6 +994,35 @@ pub fn audit_measurement_uncertainty(
                 id,
             );
         }
+        if measurement.calibration_valid_from_tick > measurement.calibration_valid_through_tick {
+            push(
+                &mut report,
+                EvidenceDisposition::Rejected,
+                "CALIBRATION_VALIDITY_INTERVAL_INVERTED",
+                id,
+            );
+        } else {
+            if profile.evaluation_tick < measurement.calibration_valid_from_tick
+                || profile.evaluation_tick > measurement.calibration_valid_through_tick
+            {
+                push(
+                    &mut report,
+                    EvidenceDisposition::Unknown,
+                    "CALIBRATION_STALE_OR_NOT_YET_VALID",
+                    id,
+                );
+            }
+            if measurement.start_tick < measurement.calibration_valid_from_tick
+                || measurement.end_tick > measurement.calibration_valid_through_tick
+            {
+                push(
+                    &mut report,
+                    EvidenceDisposition::Rejected,
+                    "CALIBRATION_NOT_VALID_FOR_MEASUREMENT_WINDOW",
+                    id,
+                );
+            }
+        }
         match measurement.disposition {
             EvidenceDisposition::Qualified => {}
             EvidenceDisposition::Unknown => push(
@@ -886,18 +1047,31 @@ pub fn audit_measurement_uncertainty(
     }
 
     for requirement in &profile.measurement_requirements {
-        if let MeasurementApplicability::NotApplicable { reason } = &requirement.applicability {
-            if profile.measurements.iter().any(|measurement| {
-                measurement.kind == requirement.kind
-            }) {
-                push(
-                    &mut report,
-                    EvidenceDisposition::Rejected,
-                    "NOT_APPLICABLE_MEASUREMENT_WAS_SUPPLIED",
-                    &requirement.measurement_id,
-                );
+        match &requirement.applicability {
+            MeasurementApplicability::Required => {
+                if let Some(measurement) = measurement_map.get(requirement.measurement_id.as_str()) {
+                    if measurement.kind != requirement.kind {
+                        push(
+                            &mut report,
+                            EvidenceDisposition::Rejected,
+                            "MEASUREMENT_KIND_MISMATCH",
+                            &requirement.measurement_id,
+                        );
+                    }
+                }
             }
-            let _ = reason;
+            MeasurementApplicability::NotApplicable { .. } => {
+                if profile.measurements.iter().any(|measurement| {
+                    measurement.kind == requirement.kind
+                }) {
+                    push(
+                        &mut report,
+                        EvidenceDisposition::Rejected,
+                        "NOT_APPLICABLE_MEASUREMENT_WAS_SUPPLIED",
+                        &requirement.measurement_id,
+                    );
+                }
+            }
         }
     }
 
@@ -975,6 +1149,8 @@ pub fn audit_measurement_uncertainty(
         }
         validate_derived_result(derived, &measurement_map, &uncertainty_map, &mut report);
     }
+    validate_shared_source_dependencies(profile, &mut report);
+
     for measurement in &profile.measurements {
         if matches!(
             &measurement.kind,
@@ -1024,6 +1200,8 @@ mod tests {
             decimal_exponent: -3,
             start_tick: 100,
             end_tick: 200,
+            calibration_valid_from_tick: 50,
+            calibration_valid_through_tick: 250,
             disposition: EvidenceDisposition::Qualified,
             uncertainty_receipt_id: receipt_id.map(str::to_owned),
         }
@@ -1057,6 +1235,7 @@ mod tests {
             }],
             dependence: vec![DependenceDeclaration {
                 dependence_group_id: format!("group-{id}"),
+                component_ids: vec![format!("component-{id}")],
                 disposition: DependenceDisposition::IndependenceSupported {
                     independence_receipt_digest: format!("independence-{id}"),
                 },
