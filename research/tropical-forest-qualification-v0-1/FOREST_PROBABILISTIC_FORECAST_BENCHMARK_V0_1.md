@@ -21,6 +21,7 @@ An October 2026 review of digital-twin forestry identifies tropical and boreal e
 ## 2. Kernel scope
 
 The Rust module `validator/src/forecast_kernel.rs` provides:
+- Brier score for binary event probabilities, paired baseline Brier skill and fixed-width reliability bins;
 - empirical CRPS for equally weighted finite ensemble samples;
 - nearest-rank median and central 50%, 80% and 95% prediction intervals;
 - point-summary MAE;
@@ -29,6 +30,7 @@ The Rust module `validator/src/forecast_kernel.rs` provides:
 - explicit abstention accounting and forecast coverage.
 
 The six-case public corpus is `cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json`.
+The binary-event extension is `cases/forest-binary-event-brier-synthetic-v0.1.json` and uses a separate event/horizon evaluation slice.
 
 ### CRPS
 
@@ -53,6 +55,28 @@ This convention is explicitly different from the signed difference used by some 
 This v0.1 implementation uses an empirical nearest-rank quantile for finite ensembles. It reports nominal 50%, 80% and 95% interval coverage, as well as mean widths for 80% and 95% intervals.
 
 Coverage and width are reported separately. Coverage alone rewards arbitrarily wide intervals; width alone rewards overconfident forecasts. These six synthetic cases exercise the arithmetic but are far too small to establish statistical calibration, and finite ensemble quantiles are discrete. Production evaluation should add PIT/reliability analysis, interval scores or weighted interval score, and block-bootstrap uncertainty over site/campaign/time groups.
+
+## Binary event forecasts: Brier and reliability
+
+For an event probability $p$ and binary outcome $o\in\{0,1\}$:
+
+`Brier = (p-o)^2`
+
+The binary-event path also uses paired Brier skill:
+
+`BSS = 1 - \frac{\overline{Brier}_{model}}{\overline{Brier}_{baseline}}`
+
+Positive values mean lower model Brier than the paired reference. A zero-score baseline leaves skill undefined. The baseline is scored over all eligible cases and on the exact issued subset; the model score is evaluated only for emitted probabilities.
+
+Five fixed reliability bins summarize mean predicted probability against observed event frequency. Empty bins remain empty/null. These bins are diagnostic summaries, not a formal proof of calibration; their usefulness depends on enough independent events and non-events per bin. A proper Brier score is not sufficient on its own to establish calibration or decision utility.
+
+The six-case binary corpus includes correct event forecasts, a confident false alarm, an abstention and a non-event with low predicted probability. Its independent reference values are:
+- five issued probabilities and one abstention (83.33% forecast coverage);
+- mean model Brier 0.222;
+- paired baseline Brier 0.250;
+- Brier skill +0.112.
+
+The small fixed example is solely a mathematical conformance suite. It does not estimate event prevalence, reliability, discrimination, calibration or forest disturbance skill.
 
 ## 3. Abstention is part of the denominator
 
@@ -135,14 +159,14 @@ A +0.10 CRPSS target is meaningful only against a strong baseline, frozen paired
 Not implemented:
 - empirical PIT and reliability diagnostics;
 - weighted interval score / interval score;
-- Brier score and event-probability reliability for disturbance or mortality events;
+- confidence intervals / calibration belts for Brier reliability bins and event-stratified uncertainty;
 - confidence-ranked risk–coverage curves;
 - block-bootstrap confidence intervals and hierarchical region/site aggregation;
 - distributional parameters beyond equally weighted finite ensembles;
 - multi-year process forecast evaluation;
 - real source-data adapters, rights adjudication, field calibration or prospective forecasts.
 
-The next extension should add Brier/reliability for binary events and risk–coverage curves based on a declared acceptance score. It should compose with the shared forecast and uncertainty owners rather than creating a second ecological forecasting engine.
+The next extension should add confidence-ranked risk–coverage curves based on a declared acceptance score, proper interval scores/WIS, PIT diagnostics and block-bootstrap uncertainty. It should compose with the shared forecast and uncertainty owners rather than creating a second ecological forecasting engine.
 
 ## 8. Claim ceiling
 
