@@ -45,13 +45,13 @@
   ],
   "evidence_status_snapshot": {
     "snapshot_date": "2026-11-14",
-    "t0_case_count": 8,
-    "independent_source_level_oracle_replay": "pending_final_replay",
-    "native_rust_build_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
-    "upstream_model_qualification": "not_performed",
-    "physical_t1_chain_validation": "not_performed",
-    "potable_water_health_or_sans_claim": "not_performed"
+    "t0_cases": 8,
+    "independent_source_level_oracle_replay": "pending_final_replay_after_synthetic_digest_labeling",
+    "rust_unit_tests": 12,
+    "native_cargo_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "model_or_solver_physical_qualification": "not_performed",
+    "raw_physical_measurements_acquired": "none_in_this_t0_fixture"
   },
-  "digest_semantics": "synthetic_fixture_marker_only; not hashes of raw observations or actual model outputs",
-  "observation_evidence_semantics": "all case observation rows are synthetic_fixture; observation_origin identifies the represented source class; no actual physical measurement is claimed"
+  "digest_semantics": "output_digest and raw_data_digest_marker in T0 fixtures are synthetic_fixture_marker values, not hashes of source bytes; production must use SHA-256 over exact serialized stage outputs and raw observations",
+  "observation_evidence_semantics": "all case rows are synthetic_fixture. observation_origin=measurement_channel means a future required channel, not acquired data. No actual measurement is present."
 }
