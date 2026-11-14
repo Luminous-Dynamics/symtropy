@@ -264,6 +264,43 @@ fn integer_sqrt(value: u128) -> u128 {
     current
 }
 
+fn integer_sqrt_ceil(value: u128) -> Result<u128, RejectReason> {
+    let floor = integer_sqrt(value);
+    let floor_square = floor
+        .checked_mul(floor)
+        .ok_or(RejectReason::NumericOverflow)?;
+    if floor_square == value {
+        Ok(floor)
+    } else {
+        floor.checked_add(1).ok_or(RejectReason::NumericOverflow)
+    }
+}
+
+fn rounded_mean_signed(sum: i128, count: usize) -> Result<i64, RejectReason> {
+    let denominator = i128::try_from(count).map_err(|_| RejectReason::NumericOverflow)?;
+    if denominator == 0 {
+        return Err(RejectReason::NoValidMeasuredSpan);
+    }
+    let quotient = sum / denominator;
+    let remainder = sum % denominator;
+    let round_away = remainder
+        .unsigned_abs()
+        .checked_mul(2)
+        .ok_or(RejectReason::NumericOverflow)?
+        >= denominator as u128;
+    let rounded = if round_away {
+        if sum >= 0 {
+            quotient.checked_add(1)
+        } else {
+            quotient.checked_sub(1)
+        }
+        .ok_or(RejectReason::NumericOverflow)?
+    } else {
+        quotient
+    };
+    i64::try_from(rounded).map_err(|_| RejectReason::NumericOverflow)
+}
+
 fn combine_uncertainty(budget: &UncertaintyBudget) -> Result<u64, RejectReason> {
     let values = [
         budget.instrument_um,
@@ -534,12 +571,14 @@ pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementRepo
         i64::try_from(signed_area).map_err(|_| RejectReason::NumericOverflow)?;
     let absolute_area_change_um2 =
         u64::try_from(absolute_area).map_err(|_| RejectReason::NumericOverflow)?;
-    let mean_displacement_um = displacement_sum / (valid_count as i128);
-    let mean_signed_displacement_um =
-        i64::try_from(mean_displacement_um).map_err(|_| RejectReason::NumericOverflow)?;
-    let mean_square = displacement_square_sum / (valid_count as u128);
-    let rmse_displacement_um =
-        u64::try_from(integer_sqrt(mean_square)).map_err(|_| RejectReason::NumericOverflow)?;
+    let mean_signed_displacement_um = rounded_mean_signed(displacement_sum, valid_count)?;
+    let sample_count = u128::try_from(valid_count).map_err(|_| RejectReason::NumericOverflow)?;
+    let mean_square_ceil = displacement_square_sum
+        .checked_add(sample_count - 1)
+        .ok_or(RejectReason::NumericOverflow)?
+        / sample_count;
+    let rmse_displacement_um = u64::try_from(integer_sqrt_ceil(mean_square_ceil)?)
+        .map_err(|_| RejectReason::NumericOverflow)?;
 
     absolute_displacements.sort_unstable();
     let percentile_rank = (95 * absolute_displacements.len()).div_ceil(100);
@@ -758,6 +797,53 @@ mod tests {
         let report = evaluate_profile_pair(&input).expect("fractional negative area should round");
         assert_eq!(report.signed_area_change_um2, -2);
         assert_eq!(report.absolute_area_change_um2, 2);
+    }
+
+    #[test]
+    fn rmse_is_rounded_up_instead_of_underreported() {
+        let mut input = base_input();
+        input.uncertainty = UncertaintyBudget {
+            instrument_um: Some(0),
+            calibration_um: Some(0),
+            registration_um: Some(0),
+            repeatability_um: Some(0),
+            datum_um: Some(0),
+            interpolation_um: Some(0),
+        };
+        input.profile_samples = vec![
+            sample(0, Some(0), Some(0)),
+            sample(1, Some(0), Some(1)),
+            sample(2, Some(0), Some(0)),
+        ];
+        let report = evaluate_profile_pair(&input).expect("fractional RMSE should be bounded");
+        assert_eq!(report.rmse_displacement_um, 1);
+        assert_eq!(report.mean_signed_displacement_um, 0);
+    }
+
+    #[test]
+    fn positive_half_micrometre_mean_rounds_away_from_zero() {
+        let mut input = base_input();
+        input.profile_samples = vec![
+            sample(0, Some(0), Some(0)),
+            sample(1, Some(0), Some(0)),
+            sample(2, Some(0), Some(1)),
+            sample(3, Some(0), Some(1)),
+        ];
+        let report = evaluate_profile_pair(&input).expect("positive mean tie should round");
+        assert_eq!(report.mean_signed_displacement_um, 1);
+    }
+
+    #[test]
+    fn negative_half_micrometre_mean_rounds_away_from_zero() {
+        let mut input = base_input();
+        input.profile_samples = vec![
+            sample(0, Some(0), Some(0)),
+            sample(1, Some(0), Some(0)),
+            sample(2, Some(0), Some(-1)),
+            sample(3, Some(0), Some(-1)),
+        ];
+        let report = evaluate_profile_pair(&input).expect("negative mean tie should round");
+        assert_eq!(report.mean_signed_displacement_um, -1);
     }
 
     #[test]
