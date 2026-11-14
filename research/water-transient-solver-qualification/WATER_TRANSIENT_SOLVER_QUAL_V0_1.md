@@ -32,7 +32,27 @@ Sources:
 - [Journal paper](https://doi.org/10.1016/j.jwpe.2026.110770)
 - [Public implementation cited by the paper](https://github.com/MehmetMelihKosucu/EPANET-AWH)
 
-This is a new candidate baseline, not an accepted solver. Agreement with a commercial solver does not establish physical validity. The reported 26% runtime reduction is not real-time operation; the reported large-network run still took roughly 37 times the simulated event horizon. The extension's exact revision, licence, build instructions, feature matrix and input assumptions must be inspected before code is built, copied or adapted. Do not infer the extension's licence from upstream EPANET.
+This is a research-code candidate, not a maintained production tool or an accepted solver. The repository README explicitly states it has no test suite or CI and that verification is by the HAMMER example comparisons. The repo includes `LICENSE_1-AWH`, an MIT licence naming both Open Water Analytics' 2016 EPANET 3 copyright and the 2025 AWH extension copyright; do not infer this from the upstream EPANET licence, and retain both attribution notices.
+
+The README's disclosed implementation limits are decisive for our use case:
+
+- Wave speed is hard-coded from diameter (350 m/s for diameter <=0.4 m, 1050 m/s otherwise); the elastic material/wall/restraint formula exists in source but is commented out. This is especially important because the paper reports peak head scales approximately linearly with wave speed.
+- The transient timestep `Delta_WH` is a compile-time constant (0.002 s for the shipped Nault setup; 0.05 s for Onizuka) and does not follow EPANET's `[TIMES]` section after AWH engages.
+- The results writer uses a fixed Windows path and fixed node list. The README says non-Windows runs may complete while losing exported time series. Its CMake file declares a minimum below the `target_precompile_headers()` feature it uses; the README says CMake 3.16+ is actually required.
+- There is no cavitation or column-separation model. The README says the Onizuka case produces a minimum calculated head around -200 m, below water vapour pressure, and explicitly states these values are not physically attainable or suitable for cavitation-protection sizing. **Do not use EPANET-AWH as the pressure reference in scenarios that cross the vapour/column-separation domain.**
+- The switch to AWH is one-way. Event detection uses a setting-change threshold greater than 0.1 or a link status change; gradual setting changes smaller than 0.1 without a status change may not trigger it.
+- Pressure-dependent demand and leakage under transient operation are explicitly uncharacterized.
+
+The repository README says the HAMMER validation compares the first 20 seconds of the simulations. Its detailed node table is more useful than a single NSE headline: Onizuka J1/J2 have R² 0.741/0.939, NSE 0.720/0.936, and RMSE 14.18/26.64 m; the README attributes the large RMSE in these cases to timing offsets of a few hundredths of a second during very large head swings (about 300 m at J1 and 490 m at J2), while peak errors are 0.8–3.5%. The Nault shutdown/startup/demand rows vary by node; one sudden-demand NSE is explicitly marked not meaningful because the event head change is smaller than the systematic difference between models. The README also notes different wave treatments (HAMMER reach discretization versus AWH nodal boundaries) and short stub pipes inserted when HAMMER imports the EPANET model.
+
+The 1,489-pipe Nault run is reported as 1,490 s for a 40 s event versus 2,013 s for HAMMER. A 26% relative improvement over HAMMER is not a real-time claim; it is about 37.25 times the simulated horizon.
+
+Repository records inspected:
+- [EPANET-AWH README and limitations](https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/README.md)
+- [LICENSE_1-AWH (MIT)](https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/LICENSE_1-AWH)
+- [CMake build definition](https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/CMakeLists.txt)
+
+The exact source commit is still not pinned in our benchmark, and no independent build, test, numerical convergence or physical pressure validation has been performed by Symtropy.
 
 ### Bentley OpenFlows HAMMER
 
