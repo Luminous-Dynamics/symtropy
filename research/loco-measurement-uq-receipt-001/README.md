@@ -18,14 +18,15 @@ Compose with:
 
 ## Implemented contract
 
-- Exact mission, robot, actuator, controller, scenario, test-manifest and measurement-window binding.
+- Exact mission, robot, actuator, controller, scenario, test-manifest, measurement-window, physical-boundary and predecessor/result physical-state binding.
 - Predeclared channel applicability: Required or NotApplicable with a non-empty rationale; supplying a channel declared NotApplicable is rejected.
-- Measurement identity binds raw artifact, instrument configuration, calibration receipt, measurand, unit and scale.
+- Measurement identity binds raw artifact, instrument configuration, calibration receipt, measurand, unit and scale; calibration validity must cover the entire acquired measurement window and the audit tick.
 - Every uncertainty receipt binds to exactly one measurement and its exact artifact, instrument, calibration, unit and scope.
 - Conservative deterministic bounds and probabilistic coverage intervals are distinct types.
 - Monte Carlo coverage requires an explicit convergence receipt.
-- Every budget component must be assigned to a dependence group.
+- Every budget component must be assigned to a dependence group, and each group declaration must enumerate the exact component-member set it covers.
 - Every dependence group must carry a joint-model receipt, an evidence-backed independence receipt, or remain Unknown. There is no default-to-independence behavior.
+- Reused source receipts across different measurement channels must resolve to one shared group and one consistent dependence decision/receipt; conflicting group or model bindings are rejected.
 - Derived results enumerate exact input measurement and uncertainty-receipt sets.
 - Upstream Unknown/Inconclusive/Rejected states are never promoted.
 - Report never grants actuation authority or conformity certification.
@@ -38,7 +39,7 @@ The reference validates evidence identity/completeness only. It does not validat
     cargo test --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml
     cargo clippy --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml --all-targets -- -D warnings
 
-The 19 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
+The 32 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
 
 ## Research basis
 
