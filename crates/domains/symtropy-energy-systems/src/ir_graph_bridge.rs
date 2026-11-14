@@ -509,7 +509,7 @@ mod tests {
         let standard_pin = StandardProfilePin::new(
             "profile:prosumer-pei", "0.1", standard,
             Sha256Digest::from_bytes(b"synthetic registry record"),
-            Some(Sha256Digest::from_bytes(b"synthetic applicability rules")),
+            Sha256Digest::from_bytes(b"synthetic applicability rules"),
         ).unwrap();
         let upstream = UpstreamArtifactPin::new(
             "artifact:module-catalogue", "revision:catalogue:1", "module identity catalogue",
@@ -518,6 +518,7 @@ mod tests {
         BuildMetadata::new(
             "symtropy-energy-systems", "0.1.0",
             "rustc:1.96.0;target:x86_64-unknown-linux-gnu",
+            Sha256Digest::from_bytes(b"synthetic Cargo.lock"),
             vec![standard_pin], vec![upstream],
         ).unwrap()
     }

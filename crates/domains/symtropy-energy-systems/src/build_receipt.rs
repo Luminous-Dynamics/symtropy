@@ -45,7 +45,7 @@ pub struct StandardProfilePin {
     profile_version: String,
     standard: StandardReference,
     registry_record_digest: Sha256Digest,
-    applicability_rules_digest: Option<Sha256Digest>,
+    applicability_rules_digest: Sha256Digest,
 }
 impl StandardProfilePin {
     pub fn new(
@@ -53,7 +53,7 @@ impl StandardProfilePin {
         profile_version: impl Into<String>,
         standard: StandardReference,
         registry_record_digest: Sha256Digest,
-        applicability_rules_digest: Option<Sha256Digest>,
+        applicability_rules_digest: Sha256Digest,
     ) -> Result<Self, BuildReceiptError> {
         let profile_id = profile_id.into();
         let profile_version = profile_version.into();
@@ -68,7 +68,7 @@ impl StandardProfilePin {
     pub fn profile_version(&self) -> &str { &self.profile_version }
     pub fn standard(&self) -> &StandardReference { &self.standard }
     pub fn registry_record_digest(&self) -> &Sha256Digest { &self.registry_record_digest }
-    pub fn applicability_rules_digest(&self) -> Option<&Sha256Digest> { self.applicability_rules_digest.as_ref() }
+    pub fn applicability_rules_digest(&self) -> &Sha256Digest { &self.applicability_rules_digest }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -104,6 +104,7 @@ pub struct BuildMetadata {
     compiler_id: String,
     compiler_version: String,
     toolchain_fingerprint: String,
+    dependency_lock_digest: Sha256Digest,
     standard_profiles: Vec<StandardProfilePin>,
     upstream_artifacts: Vec<UpstreamArtifactPin>,
 }
@@ -112,6 +113,7 @@ impl BuildMetadata {
         compiler_id: impl Into<String>,
         compiler_version: impl Into<String>,
         toolchain_fingerprint: impl Into<String>,
+        dependency_lock_digest: Sha256Digest,
         mut standard_profiles: Vec<StandardProfilePin>,
         mut upstream_artifacts: Vec<UpstreamArtifactPin>,
     ) -> Result<Self, BuildReceiptError> {
@@ -131,11 +133,12 @@ impl BuildMetadata {
         if upstream_artifacts.windows(2).any(|pair| pair[0].artifact_id == pair[1].artifact_id && pair[0].revision_id == pair[1].revision_id) {
             return Err(BuildReceiptError::DuplicateUpstreamArtifactPin);
         }
-        Ok(Self { compiler_id, compiler_version, toolchain_fingerprint, standard_profiles, upstream_artifacts })
+        Ok(Self { compiler_id, compiler_version, toolchain_fingerprint, dependency_lock_digest, standard_profiles, upstream_artifacts })
     }
     pub fn compiler_id(&self) -> &str { &self.compiler_id }
     pub fn compiler_version(&self) -> &str { &self.compiler_version }
     pub fn toolchain_fingerprint(&self) -> &str { &self.toolchain_fingerprint }
+    pub fn dependency_lock_digest(&self) -> &Sha256Digest { &self.dependency_lock_digest }
     pub fn standard_profiles(&self) -> &[StandardProfilePin] { &self.standard_profiles }
     pub fn upstream_artifacts(&self) -> &[UpstreamArtifactPin] { &self.upstream_artifacts }
 }
@@ -148,6 +151,7 @@ pub struct PowerFabricBuildReceipt {
     compiler_id: String,
     compiler_version: String,
     toolchain_fingerprint: String,
+    dependency_lock_digest: Sha256Digest,
     source_document_id: String,
     source_document_revision_id: String,
     source_schema_version: crate::IrSchemaVersion,
@@ -182,6 +186,7 @@ impl PowerFabricBuildReceipt {
             compiler_id: &metadata.compiler_id,
             compiler_version: &metadata.compiler_version,
             toolchain_fingerprint: &metadata.toolchain_fingerprint,
+            dependency_lock_digest: &metadata.dependency_lock_digest,
             source_document_id: document.document_id(),
             source_document_revision_id: document.revision_id(),
             source_schema_version: document.schema_version(),
@@ -205,6 +210,7 @@ impl PowerFabricBuildReceipt {
             compiler_id: metadata.compiler_id,
             compiler_version: metadata.compiler_version,
             toolchain_fingerprint: metadata.toolchain_fingerprint,
+            dependency_lock_digest: metadata.dependency_lock_digest,
             source_document_id: document.document_id().to_owned(),
             source_document_revision_id: document.revision_id().to_owned(),
             source_schema_version: document.schema_version(),
@@ -253,6 +259,7 @@ struct BuildLockMaterial<'a> {
     compiler_id: &'a str,
     compiler_version: &'a str,
     toolchain_fingerprint: &'a str,
+    dependency_lock_digest: &'a Sha256Digest,
     source_document_id: &'a str,
     source_document_revision_id: &'a str,
     source_schema_version: crate::IrSchemaVersion,
@@ -335,8 +342,30 @@ mod tests {
         assert_eq!(Sha256Digest::from_hex("A".repeat(64)), Err(BuildReceiptError::InvalidSha256Hex));
     }
     #[test]
-    fn metadata_requires_a_pinned_standard_and_rejects_unknown_lifecycle() {
-        assert_eq!(BuildMetadata::new("compiler", "0.1", "rustc+target", Vec::new(), Vec::new()),
-            Err(BuildReceiptError::NoStandardProfilesPinned));
+    fn metadata_requires_a_pinned_standard() {
+        assert_eq!(
+            BuildMetadata::new(
+                "compiler", "0.1", "rustc+target",
+                Sha256Digest::from_bytes(b"Cargo.lock"),
+                Vec::new(), Vec::new(),
+            ),
+            Err(BuildReceiptError::NoStandardProfilesPinned)
+        );
+    }
+
+    #[test]
+    fn standard_profile_pin_rejects_unknown_publication_lifecycle() {
+        let standard = StandardReference::new(
+            "IEC", None, "unknown edition", Vec::new(),
+            crate::StandardPublicationStatus::Unknown, None,
+        ).unwrap();
+        assert_eq!(
+            StandardProfilePin::new(
+                "profile:unknown", "0.1", standard,
+                Sha256Digest::from_bytes(b"registry"),
+                Sha256Digest::from_bytes(b"rules"),
+            ),
+            Err(BuildReceiptError::UnknownStandardLifecycle)
+        );
     }
 }
