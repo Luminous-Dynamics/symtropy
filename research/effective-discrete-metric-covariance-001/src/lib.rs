@@ -586,6 +586,68 @@ mod tests {
     }
 
     #[test]
+    fn noncommuting_mass_damping_and_stiffness_are_present_in_fixture() {
+        let problem = fixture(0.2);
+        let mass_damping = multiply(problem.mass, problem.damping);
+        let damping_mass = multiply(problem.damping, problem.mass);
+        let mass_stiffness = multiply(problem.mass, problem.stiffness);
+        let stiffness_mass = multiply(problem.stiffness, problem.mass);
+        let commutator_md = [
+            [
+                mass_damping[0][0] - damping_mass[0][0],
+                mass_damping[0][1] - damping_mass[0][1],
+            ],
+            [
+                mass_damping[1][0] - damping_mass[1][0],
+                mass_damping[1][1] - damping_mass[1][1],
+            ],
+        ];
+        let commutator_mk = [
+            [
+                mass_stiffness[0][0] - stiffness_mass[0][0],
+                mass_stiffness[0][1] - stiffness_mass[0][1],
+            ],
+            [
+                mass_stiffness[1][0] - stiffness_mass[1][0],
+                mass_stiffness[1][1] - stiffness_mass[1][1],
+            ],
+        ];
+        assert!(matrix_inf(commutator_md) > 0.0);
+        assert!(matrix_inf(commutator_mk) > 0.0);
+    }
+
+    #[test]
+    fn effective_metric_itself_transforms_by_congruence() {
+        let profile = EffectiveMetricProfileV1::default();
+        let physical = fixture(0.35);
+        let frame = IntegerFrame2V1::upper_shear(5);
+        let rebased = rebase_problem(&physical, &frame, profile).unwrap();
+        let expected = congruence(physical.effective_metric().unwrap(), frame.basis());
+        let actual = rebased.effective_metric().unwrap();
+
+        for (actual_row, expected_row) in actual.iter().zip(expected.iter()) {
+            for (actual_value, expected_value) in actual_row.iter().zip(expected_row.iter()) {
+                assert!((actual_value - expected_value).abs() < 1.0e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn solved_map_satisfies_original_implicit_damped_stiff_equation() {
+        let problem = fixture(0.2);
+        let result = solve_discrete_step(&problem, EffectiveMetricProfileV1::default()).unwrap();
+        let acceleration = result.step_acceleration;
+        let damped_velocity = apply(problem.damping, result.next_velocity);
+        let stiff_position = apply(problem.stiffness, result.next_position);
+        let inertial = apply(problem.mass, acceleration);
+        let balance = [
+            inertial[0] + damped_velocity[0] + stiff_position[0] - problem.force_covector[0],
+            inertial[1] + damped_velocity[1] + stiff_position[1] - problem.force_covector[1],
+        ];
+        assert!(vector_inf(balance) < 1.0e-12);
+    }
+
+    #[test]
     fn exact_dyadic_diagonal_fixture_has_closed_form_step() {
         let problem = LinearDiscreteProblem2V1 {
             case_id: "exact-dyadic-effective-metric".to_owned(),
@@ -621,6 +683,28 @@ mod tests {
                 assert!(comparison.rebased_backward_residual_inf < 1.0e-11);
             }
         }
+    }
+
+    #[test]
+    fn nonsymmetric_damping_is_rejected_before_effective_metric_formation() {
+        let mut problem = fixture(0.2);
+        problem.damping[0][1] += 0.05;
+        assert_eq!(
+            problem.validate(EffectiveMetricProfileV1::default()),
+            Err(EffectiveMetricErrorV1::MatrixNotSymmetric)
+        );
+    }
+
+    #[test]
+    fn effective_condition_profile_abstains_on_excessive_operator_condition() {
+        let profile = EffectiveMetricProfileV1 {
+            maximum_effective_condition_inf: 1.1,
+            ..EffectiveMetricProfileV1::default()
+        };
+        assert_eq!(
+            solve_discrete_step(&fixture(0.2), profile),
+            Err(EffectiveMetricErrorV1::EffectiveMetricOutsideConditionEnvelope)
+        );
     }
 
     #[test]
