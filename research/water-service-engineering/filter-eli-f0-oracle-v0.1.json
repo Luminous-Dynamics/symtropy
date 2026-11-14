@@ -1,0 +1,150 @@
+{
+  "schema_version": "filter-eli-f0-oracle-v0.1",
+  "evidence_class": "synthetic_filter_service_state",
+  "evidence_ceiling": "synthetic_filter_service_disposition_only_no_water_safety_or_product_claim",
+  "cases": [
+    {
+      "case_id": "FILTER-F0-001-within-declared-envelope",
+      "expected": {
+        "service_disposition": "WITHIN_DECLARED_SERVICE_ENVELOPE",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-002-capacity-reached",
+      "expected": {
+        "service_disposition": "REPLACEMENT_DUE_BY_DECLARED_CAPACITY",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-003-time-limit-reached",
+      "expected": {
+        "service_disposition": "REPLACEMENT_DUE_BY_DECLARED_TIME",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-004-flow-above-envelope",
+      "expected": {
+        "service_disposition": "FLOW_ABOVE_QUALIFIED_ENVELOPE",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-005-differential-pressure-above-envelope",
+      "expected": {
+        "service_disposition": "DIFFERENTIAL_PRESSURE_ABOVE_QUALIFIED_ENVELOPE",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-006-bypass-open",
+      "expected": {
+        "service_disposition": "BYPASS_OPEN_OR_NOT_VERIFIED",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-007-accepted-sample-breakthrough",
+      "expected": {
+        "service_disposition": "CLAIM_BREAKTHROUGH_OBSERVED_AT_SAMPLE",
+        "claim_sample_disposition": "BREAKTHROUGH_OBSERVED_AT_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-008-missing-effluent-sample",
+      "expected": {
+        "service_disposition": "WITHIN_DECLARED_SERVICE_ENVELOPE",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-009-calibration-stale",
+      "expected": {
+        "service_disposition": "MEASUREMENT_UNQUALIFIED",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-010-source-profile-out-of-domain",
+      "expected": {
+        "service_disposition": "SOURCE_PROFILE_OUT_OF_DOMAIN",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-011-below-LOQ-censored",
+      "expected": {
+        "service_disposition": "WITHIN_DECLARED_SERVICE_ENVELOPE",
+        "claim_sample_disposition": "CENSORED_RESULT_NO_NUMERIC_COMPARISON",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-012-configuration-mismatch",
+      "expected": {
+        "service_disposition": "CONFIGURATION_MISMATCH",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "FILTER-F0-013-service-counter-reset-unreconciled",
+      "expected": {
+        "service_disposition": "SERVICE_HISTORY_UNTRUSTED",
+        "claim_sample_disposition": "NO_CURRENT_CLAIM_SAMPLE",
+        "water_safety_claim_allowed": false,
+        "potability_claim_allowed": false,
+        "certification_claim_allowed": false,
+        "release_allowed": false
+      }
+    }
+  ]
+}

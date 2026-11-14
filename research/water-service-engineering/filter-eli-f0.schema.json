@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Filter ELI F0 synthetic service-state inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "filter-eli-f0-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_filter_service_state"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_filter_service_disposition_only_no_water_safety_or_product_claim"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_claim_id",
+        "cartridge_revision",
+        "source_profile_id",
+        "rated_capacity_l",
+        "maximum_service_hours",
+        "qualified_max_flow_lpm",
+        "qualified_max_differential_pressure_kpa",
+        "declared_claim_effluent_limit_mg_l",
+        "note"
+      ],
+      "properties": {
+        "product_claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cartridge_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rated_capacity_l": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_service_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "qualified_max_flow_lpm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "qualified_max_differential_pressure_kpa": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "declared_claim_effluent_limit_mg_l": {
+          "type": "number",
+          "minimum": 0
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^FILTER-F0-[0-9]{3}-[A-Za-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "configuration_matches",
+              "service_history_continuous",
+              "bypass_closed_verified",
+              "sensor_calibration_valid",
+              "source_profile_matches",
+              "throughput_l",
+              "elapsed_service_hours",
+              "measured_flow_lpm",
+              "differential_pressure_kpa",
+              "sample_state",
+              "sample_claim_binding_valid",
+              "effluent_concentration_mg_l"
+            ],
+            "properties": {
+              "configuration_matches": {
+                "type": "boolean"
+              },
+              "service_history_continuous": {
+                "type": "boolean"
+              },
+              "bypass_closed_verified": {
+                "type": "boolean"
+              },
+              "sensor_calibration_valid": {
+                "type": "boolean"
+              },
+              "source_profile_matches": {
+                "type": "boolean"
+              },
+              "throughput_l": {
+                "type": "number",
+                "minimum": 0
+              },
+              "elapsed_service_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "measured_flow_lpm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "differential_pressure_kpa": {
+                "type": "number",
+                "minimum": 0
+              },
+              "sample_state": {
+                "enum": [
+                  "no_sample",
+                  "accepted_quantified",
+                  "accepted_below_lod",
+                  "accepted_below_loq",
+                  "rejected_qc"
+                ]
+              },
+              "sample_claim_binding_valid": {
+                "type": "boolean"
+              },
+              "effluent_concentration_mg_l": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

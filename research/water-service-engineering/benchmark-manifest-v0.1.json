@@ -160,5 +160,16 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "filter_eli_observability": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5084",
+    "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+    "protocol": "research/water-service-engineering/FILTER_ELI_OBSERVABILITY_PROTOCOL_V0_1.md",
+    "cases": "research/water-service-engineering/filter-eli-f0-cases-v0.1.json",
+    "oracle": "research/water-service-engineering/filter-eli-f0-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/filter-eli-f0.schema.json",
+    "manifest": "research/water-service-engineering/filter-eli-f0-manifest-v0.1.json",
+    "cli": "tools/water-service-t0/src/bin/filter-eli-f0.rs",
+    "status": "synthetic_service_disposition_only"
   }
 }

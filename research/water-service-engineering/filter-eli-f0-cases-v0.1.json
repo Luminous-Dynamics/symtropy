@@ -1,0 +1,239 @@
+{
+  "schema_version": "filter-eli-f0-cases-v0.1",
+  "evidence_class": "synthetic_filter_service_state",
+  "evidence_ceiling": "synthetic_filter_service_disposition_only_no_water_safety_or_product_claim",
+  "policy": {
+    "product_claim_id": "SYNTHETIC-CLAIM-01",
+    "cartridge_revision": "SYNTHETIC-CARTRIDGE-R1",
+    "source_profile_id": "SYNTHETIC-SOURCE-PROFILE-A",
+    "rated_capacity_l": 1000,
+    "maximum_service_hours": 4320,
+    "qualified_max_flow_lpm": 3,
+    "qualified_max_differential_pressure_kpa": 80,
+    "declared_claim_effluent_limit_mg_l": 0.01,
+    "note": "Synthetic policy values only; not product ratings, regulatory limits or drinking-water limits."
+  },
+  "cases": [
+    {
+      "case_id": "FILTER-F0-001-within-declared-envelope",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-002-capacity-reached",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 1000,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-003-time-limit-reached",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 4320,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-004-flow-above-envelope",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 3.5,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-005-differential-pressure-above-envelope",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 92,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-006-bypass-open",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": false,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-007-accepted-sample-breakthrough",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "accepted_quantified",
+        "sample_claim_binding_valid": true,
+        "effluent_concentration_mg_l": 0.025
+      }
+    },
+    {
+      "case_id": "FILTER-F0-008-missing-effluent-sample",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-009-calibration-stale",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": false,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-010-source-profile-out-of-domain",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": false,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-011-below-LOQ-censored",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "accepted_below_loq",
+        "sample_claim_binding_valid": true,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-012-configuration-mismatch",
+      "inputs": {
+        "configuration_matches": false,
+        "service_history_continuous": true,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    },
+    {
+      "case_id": "FILTER-F0-013-service-counter-reset-unreconciled",
+      "inputs": {
+        "configuration_matches": true,
+        "service_history_continuous": false,
+        "bypass_closed_verified": true,
+        "sensor_calibration_valid": true,
+        "source_profile_matches": true,
+        "throughput_l": 450,
+        "elapsed_service_hours": 1200,
+        "measured_flow_lpm": 2,
+        "differential_pressure_kpa": 22,
+        "sample_state": "no_sample",
+        "sample_claim_binding_valid": false,
+        "effluent_concentration_mg_l": null
+      }
+    }
+  ]
+}

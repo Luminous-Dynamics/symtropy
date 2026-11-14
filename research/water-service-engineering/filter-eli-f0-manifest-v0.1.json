@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "FILTER-ELI-OBSERVABILITY-F0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5084",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+  "status": "synthetic_filter_service_disposition_contract_only",
+  "inputs": "research/water-service-engineering/filter-eli-f0-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/filter-eli-f0-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/filter-eli-f0.schema.json",
+  "case_count": 13,
+  "policy_precedence": [
+    "configuration_mismatch",
+    "service_history_untrusted",
+    "bypass_open_or_not_verified",
+    "measurement_unqualified",
+    "source_profile_out_of_domain",
+    "flow_above_qualified_envelope",
+    "differential_pressure_above_qualified_envelope",
+    "claim_breakthrough_observed_at_sample",
+    "replacement_due_by_declared_capacity",
+    "replacement_due_by_declared_time",
+    "within_declared_service_envelope"
+  ],
+  "invariants": [
+    "water_safety_claim_allowed_false",
+    "potability_claim_allowed_false",
+    "certification_claim_allowed_false",
+    "release_allowed_false",
+    "no_sample_is_not_no_breakthrough",
+    "below_LOD_LOQ_is_not_zero",
+    "pressure_drop_is_not_contaminant_measurement",
+    "ELI_is_not_a_contaminant_reduction_measurement"
+  ],
+  "evidence_ceiling": "synthetic_filter_service_disposition_only_no_water_safety_or_product_claim"
+}

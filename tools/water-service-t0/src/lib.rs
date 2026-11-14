@@ -665,6 +665,229 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_filter_eli_f0(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 13;
+    const CEILING: &str =
+        "synthetic_filter_service_disposition_only_no_water_safety_or_product_claim";
+
+    if string(inputs, &["schema_version"])? != "filter-eli-f0-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_filter_service_state"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "filter-eli-f0-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_filter_service_state"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("filter ELI F0 input/oracle identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let policy = at(inputs, &["policy"])?;
+    let rated_capacity = number(policy, &["rated_capacity_l"])?;
+    let maximum_service_hours = number(policy, &["maximum_service_hours"])?;
+    let qualified_max_flow = number(policy, &["qualified_max_flow_lpm"])?;
+    let qualified_max_pressure = number(policy, &["qualified_max_differential_pressure_kpa"])?;
+    let claim_effluent_limit = number(policy, &["declared_claim_effluent_limit_mg_l"])?;
+    if rated_capacity <= 0.0
+        || maximum_service_hours <= 0.0
+        || qualified_max_flow <= 0.0
+        || qualified_max_pressure <= 0.0
+        || claim_effluent_limit < 0.0
+    {
+        return Err("filter ELI F0 policy limits must be finite and in-domain".to_owned());
+    }
+
+    let cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "filter ELI F0 cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "filter ELI F0 oracle cases must be an array".to_owned())?;
+    if cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "filter ELI F0 expected {EXPECTED_CASES} input and oracle cases; got {} and {}",
+            cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["case_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("filter ELI F0 duplicate oracle case ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("filter ELI F0 duplicate input case ID: {id}"));
+        }
+        let input = at(case, &["inputs"])?;
+        let configuration_matches = boolean(input, &["configuration_matches"])?;
+        let service_history_continuous = boolean(input, &["service_history_continuous"])?;
+        let bypass_closed = boolean(input, &["bypass_closed_verified"])?;
+        let calibration_valid = boolean(input, &["sensor_calibration_valid"])?;
+        let source_profile_matches = boolean(input, &["source_profile_matches"])?;
+        let throughput = number(input, &["throughput_l"])?;
+        let elapsed_hours = number(input, &["elapsed_service_hours"])?;
+        let flow = number(input, &["measured_flow_lpm"])?;
+        let differential_pressure = number(input, &["differential_pressure_kpa"])?;
+        let sample_state = string(input, &["sample_state"])?;
+        let sample_claim_binding_valid = boolean(input, &["sample_claim_binding_valid"])?;
+
+        if throughput < 0.0 || elapsed_hours < 0.0 || flow < 0.0 || differential_pressure < 0.0 {
+            return Err(format!(
+                "{id}: filter service measurements must be nonnegative"
+            ));
+        }
+
+        let sample_value = match at(input, &["effluent_concentration_mg_l"])? {
+            Value::Null => None,
+            value => Some(
+                value
+                    .as_f64()
+                    .filter(|number| number.is_finite() && *number >= 0.0)
+                    .ok_or_else(|| format!("{id}: invalid effluent concentration"))?,
+            ),
+        };
+        let claim_sample_disposition = match sample_state.as_str() {
+            "no_sample" => {
+                if sample_value.is_some() {
+                    return Err(format!("{id}: no_sample must not carry an effluent result"));
+                }
+                "NO_CURRENT_CLAIM_SAMPLE"
+            }
+            "rejected_qc" => {
+                if sample_value.is_some() {
+                    return Err(format!(
+                        "{id}: rejected lab sample must not carry a claim value"
+                    ));
+                }
+                "REJECTED_LAB_SAMPLE_NOT_CLAIM_EVIDENCE"
+            }
+            "accepted_below_lod" | "accepted_below_loq" => {
+                if sample_value.is_some() {
+                    return Err(format!(
+                        "{id}: below-LOD/LOQ result must preserve a null numeric value"
+                    ));
+                }
+                "CENSORED_RESULT_NO_NUMERIC_COMPARISON"
+            }
+            "accepted_quantified" => {
+                if !sample_claim_binding_valid {
+                    "SAMPLE_CLAIM_BINDING_INVALID"
+                } else if let Some(value) = sample_value {
+                    if value > claim_effluent_limit {
+                        "BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+                    } else {
+                        "SAMPLE_WITHIN_DECLARED_LIMIT_AT_SAMPLE"
+                    }
+                } else {
+                    "SAMPLE_VALUE_MISSING"
+                }
+            }
+            _ => {
+                return Err(format!(
+                    "{id}: unsupported claim sample state {sample_state}"
+                ));
+            }
+        };
+
+        let service_disposition = if !configuration_matches {
+            "CONFIGURATION_MISMATCH"
+        } else if !service_history_continuous {
+            "SERVICE_HISTORY_UNTRUSTED"
+        } else if !bypass_closed {
+            "BYPASS_OPEN_OR_NOT_VERIFIED"
+        } else if !calibration_valid {
+            "MEASUREMENT_UNQUALIFIED"
+        } else if !source_profile_matches {
+            "SOURCE_PROFILE_OUT_OF_DOMAIN"
+        } else if flow > qualified_max_flow {
+            "FLOW_ABOVE_QUALIFIED_ENVELOPE"
+        } else if differential_pressure > qualified_max_pressure {
+            "DIFFERENTIAL_PRESSURE_ABOVE_QUALIFIED_ENVELOPE"
+        } else if claim_sample_disposition == "BREAKTHROUGH_OBSERVED_AT_SAMPLE" {
+            "CLAIM_BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+        } else if throughput >= rated_capacity {
+            "REPLACEMENT_DUE_BY_DECLARED_CAPACITY"
+        } else if elapsed_hours >= maximum_service_hours {
+            "REPLACEMENT_DUE_BY_DECLARED_TIME"
+        } else {
+            "WITHIN_DECLARED_SERVICE_ENVELOPE"
+        };
+
+        let actual = json!({
+            "service_disposition": service_disposition,
+            "claim_sample_disposition": claim_sample_disposition,
+            "water_safety_claim_allowed": false,
+            "potability_claim_allowed": false,
+            "certification_claim_allowed": false,
+            "release_allowed": false
+        });
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("filter ELI F0 oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "family": "FILTER_SERVICE_STATE",
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "filter ELI F0 input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|a, b| {
+        a.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+
+    Ok(json!({
+        "schema_version": "filter-eli-f0-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_filter_service_state",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "This evaluator returns filter-service dispositions only; it does not declare water safe or potable.",
+            "A declared capacity or time limit is not a contaminant measurement.",
+            "A missing sample is not evidence of no breakthrough.",
+            "Below-LOD/LOQ results are censored and are not encoded as zero.",
+            "Pressure loss and flow are hydraulic observations, not contaminant-removal measurements.",
+            "No certification, regulatory compliance, physical filter performance or field reliability is established."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -683,9 +906,116 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "filter_eli_inputs" => include_str!(
+                "../../../research/water-service-engineering/filter-eli-f0-cases-v0.1.json"
+            ),
+            "filter_eli_oracle" => include_str!(
+                "../../../research/water-service-engineering/filter-eli-f0-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_thirteen_filter_eli_f0_cases_match_separate_oracle() {
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
+        assert_eq!(result["result_count"], 13);
+        assert_eq!(result["matched_case_count"], 13);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn filter_eli_missing_sample_is_not_no_breakthrough() {
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FILTER-F0-008-missing-effluent-sample")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["claim_sample_disposition"],
+            "NO_CURRENT_CLAIM_SAMPLE"
+        );
+        assert_eq!(
+            row["computed"]["service_disposition"],
+            "WITHIN_DECLARED_SERVICE_ENVELOPE"
+        );
+    }
+
+    #[test]
+    fn filter_eli_below_loq_is_censored_not_zero() {
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FILTER-F0-011-below-LOQ-censored")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["claim_sample_disposition"],
+            "CENSORED_RESULT_NO_NUMERIC_COMPARISON"
+        );
+    }
+
+    #[test]
+    fn filter_eli_breakthrough_requires_accepted_claim_bound_sample() {
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FILTER-F0-007-accepted-sample-breakthrough")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["service_disposition"],
+            "CLAIM_BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+        );
+    }
+
+    #[test]
+    fn filter_eli_never_emits_water_safety_or_release_claims() {
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
+        for row in result["results"].as_array().unwrap() {
+            assert_eq!(row["computed"]["water_safety_claim_allowed"], false);
+            assert_eq!(row["computed"]["potability_claim_allowed"], false);
+            assert_eq!(row["computed"]["certification_claim_allowed"], false);
+            assert_eq!(row["computed"]["release_allowed"], false);
+        }
+    }
+
+    #[test]
+    fn filter_eli_noncontinuous_counter_history_is_untrusted() {
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FILTER-F0-013-service-counter-reset-unreconciled")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["service_disposition"],
+            "SERVICE_HISTORY_UNTRUSTED"
+        );
+    }
+
+    #[test]
+    fn filter_eli_oracle_mismatch_is_reported_not_hidden() {
+        let mut oracle = load("filter_eli_oracle");
+        oracle["cases"][0]["expected"]["service_disposition"] = json!("POTABLE");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &oracle)
+            .expect("oracle mismatch should produce a receipt");
+        assert_eq!(result["verification_state"], "OracleMismatch");
+        assert_eq!(result["matched_case_count"], 12);
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
     }
 
     #[test]
