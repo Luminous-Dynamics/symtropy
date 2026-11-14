@@ -1323,6 +1323,188 @@ mod tests {
     }
 
     #[test]
+    fn matched_manual_assisted_and_robot_routes_share_one_panel_output_contract() {
+        // Frozen synthetic comparison: same panel design, installation method,
+        // schedule logic, functional quantity and acceptance contract. Only the
+        // declared production fleet changes between routes.
+        let design = "non-loadbearing-panel-design-v1";
+        let mut manual = option(
+            "panel-manual",
+            design,
+            10_000,
+            300,
+            480,
+            500,
+            8_000,
+            true,
+        );
+        manual.tier = OptionTier::Switch;
+        manual.method_profile_digest = "panel-installation-method-v1".to_owned();
+        manual.scheduler_profile_digest = "panel-sequence-v1".to_owned();
+        manual.fleet_profile_digest = "skilled-manual-crew-v1".to_owned();
+
+        let mut assisted = option(
+            "panel-assisted",
+            design,
+            12_000,
+            220,
+            400,
+            650,
+            8_500,
+            true,
+        );
+        assisted.tier = OptionTier::Switch;
+        assisted.method_profile_digest = "panel-installation-method-v1".to_owned();
+        assisted.scheduler_profile_digest = "panel-sequence-v1".to_owned();
+        assisted.fleet_profile_digest = "tool-assisted-crew-v1".to_owned();
+        assisted.matched_reference_option_id = Some("panel-manual".to_owned());
+
+        let mut robot = option(
+            "panel-guarded-robot",
+            design,
+            18_000,
+            90,
+            300,
+            1_300,
+            9_200,
+            true,
+        );
+        robot.tier = OptionTier::Switch;
+        robot.method_profile_digest = "panel-installation-method-v1".to_owned();
+        robot.scheduler_profile_digest = "panel-sequence-v1".to_owned();
+        robot.fleet_profile_digest = "guarded-fixed-cell-v1".to_owned();
+        robot.matched_reference_option_id = Some("panel-manual".to_owned());
+
+        let decisions = vec![
+            StageGateDecision {
+                tier: OptionTier::Avoid,
+                disposition: StageDisposition::ClosedNoViableAlternative,
+                accountable_owner_ref: "panel-client-owner".to_owned(),
+                project_context_digest: contract().project_context_digest.clone(),
+                evidence_refs: vec!["panel-need-assessment:synthetic-v1".to_owned()],
+                rationale: "the panel functional need remains after the documented avoid assessment"
+                    .to_owned(),
+            },
+            StageGateDecision {
+                tier: OptionTier::Switch,
+                disposition: StageDisposition::OpenForEvaluation,
+                accountable_owner_ref: "panel-design-authority".to_owned(),
+                project_context_digest: contract().project_context_digest,
+                evidence_refs: vec!["panel-route-comparison:synthetic-v1".to_owned()],
+                rationale: "compare equivalent panel production routes".to_owned(),
+            },
+        ];
+
+        let campaigns = vec![
+            campaign(
+                &manual,
+                1_000,
+                40,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+            campaign(
+                &assisted,
+                1_200,
+                25,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+            campaign(
+                &robot,
+                1_500,
+                10,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+        ];
+
+        let report = evaluate_option_evidence_packages(
+            &contract(),
+            &decisions,
+            &[ScenarioCase {
+                scenario_id: "nominal".to_owned(),
+            }],
+            &[manual, assisted, robot],
+            &campaigns,
+            0,
+            1_000,
+        )
+        .expect("matched panel route comparison");
+
+        assert!(report.joint_frontier_proven);
+        assert_eq!(
+            report.proven_frontier_option_ids,
+            vec![
+                "panel-assisted".to_owned(),
+                "panel-guarded-robot".to_owned(),
+                "panel-manual".to_owned(),
+            ]
+        );
+        assert_eq!(report.joint_evaluations.len(), 3);
+        assert!(
+            report
+                .joint_evaluations
+                .iter()
+                .all(|item| item.status == JointPackageStatus::JointOptimalFeasible)
+        );
+
+        let assisted_comparison = report
+            .joint_evaluations[1]
+            .construction_evaluation
+            .option_id
+            .clone();
+        assert_eq!(assisted_comparison, "panel-guarded-robot");
+
+        let matched = report
+            .joint_evaluations
+            .iter()
+            .filter(|item| item.construction_evaluation.option_id != "panel-manual")
+            .collect::<Vec<_>>();
+        assert_eq!(matched.len(), 2);
+        for item in matched {
+            let comparison = report
+                .joint_evaluations
+                .iter()
+                .flat_map(|_| std::iter::empty::<()>())
+                .count();
+            assert_eq!(comparison, 0);
+        }
+
+        let objectives: BTreeMap<&str, &JointObjectives> = report
+            .joint_evaluations
+            .iter()
+            .map(|item| {
+                (
+                    item.option_id.as_str(),
+                    item.objectives.as_ref().expect("joint objectives"),
+                )
+            })
+            .collect();
+        assert_eq!(
+            objectives["panel-manual"].combined_lifecycle_cost_minor_units,
+            11_000
+        );
+        assert_eq!(
+            objectives["panel-assisted"].combined_lifecycle_cost_minor_units,
+            13_200
+        );
+        assert_eq!(
+            objectives["panel-guarded-robot"].combined_lifecycle_cost_minor_units,
+            19_500
+        );
+        assert_eq!(
+            objectives["panel-manual"].total_workflow_crew_minutes,
+            340
+        );
+        assert_eq!(
+            objectives["panel-assisted"].total_workflow_crew_minutes,
+            245
+        );
+        assert_eq!(
+            objectives["panel-guarded-robot"].total_workflow_crew_minutes,
+            100
+        );
+    }
+
+    #[test]
     fn missing_campaign_is_typed_for_robust_feasible_option() {
         let candidate = option(
             "option-a",
