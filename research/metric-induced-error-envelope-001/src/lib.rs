@@ -901,13 +901,9 @@ mod tests {
         let metric_y = rebasis.metric_to_to(&metric_q, profile()).unwrap();
         let expected = multiply(&multiply(&transpose(&basis), &mass), &basis);
 
-        for row in 0..N {
-            for column in 0..N {
-                close(
-                    metric_y.matrix()[row][column],
-                    expected[row][column],
-                    2.0e-13,
-                );
+        for (metric_row, expected_row) in metric_y.matrix().iter().zip(expected.iter()) {
+            for (actual, expected_value) in metric_row.iter().zip(expected_row.iter()) {
+                close(*actual, *expected_value, 2.0e-13);
             }
         }
     }
