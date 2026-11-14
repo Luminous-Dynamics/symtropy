@@ -51,14 +51,14 @@
     "raw_data_digest",
     "timebase_id",
     "evidence_class",
-    "calibration_state",
-    "method_state",
     "observation_origin",
-    "digest_origin"
+    "digest_origin",
+    "calibration_state",
+    "method_state"
   ],
-  "digest_contract": "T0 uses deterministic 64-character lowercase-hex synthetic_fixture_marker values only; production interfaces must use SHA-256 of exact serialized stage outputs and raw observation bytes, with custody/rights metadata.",
+  "digest_contract": "T0 fixture values are deterministic lowercase-hex 64-character synthetic_fixture_marker values; they are not cryptographic hashes of raw data or true model outputs. Production interface v1 must use SHA-256 of exact serialized stage outputs and raw observation bytes.",
   "timebase_contract": "all time-dependent stages and measured observations share one declared timebase_id; clock_uncertainty_ms must be explicit",
-  "evidence_contract": "T0 fixture evidence_class is synthetic_fixture; observation_origin describes the represented source type (measured or modelled) but no fixture row is actual acquired measurement data. Production measured observations require actual raw-data SHA-256, calibration, method and custody.",
+  "evidence_contract": "all T0 observation rows carry evidence_class=synthetic_fixture. observation_origin=measurement_channel denotes the required future measured channel, not evidence that data were acquired. observation_origin=modelled is intentionally rejected as a substitute. No physical observations are claimed.",
   "uncertainty_contract": "each stage declares bounded or unbounded uncertainty; unbounded upstream uncertainty prevents a bounded chain acceptance",
   "noncompensable_invariants": [
     "missing_chemical_fate_model_is_not_assumed_inert",
@@ -71,6 +71,13 @@
     "no_chain_result_authorizes_potability_or_release",
     "synthetic_fixture_marker_is_not_a_raw_data_or_model_output_SHA256",
     "synthetic_fixture_evidence_class_never_claims_physical_measurement_acquisition",
-    "observation_origin_modelled_never_satisfies_a_measured_observation_requirement"
-  ]
+    "observation_origin_modelled_never_satisfies_a_measured_observation_requirement",
+    "synthetic_fixture_marker_is_not_a_raw_data_or_model_output_SHA256",
+    "synthetic_fixture_evidence_class_never_claims_physical_measurement_acquisition",
+    "observation_origin_modelled_never_satisfies_a_measurement_channel_requirement"
+  ],
+  "observation_origin_values": {
+    "measurement_channel": "synthetic fixture describing the type of observation required; not an acquired measurement",
+    "modelled": "synthetic fixture representing a model output, which cannot satisfy a measured-observation requirement"
+  }
 }
