@@ -67,13 +67,13 @@ pub struct ComponentCandidate {
 }
 
 impl ComponentCandidate {
-    fn gates(&self) -> [(&'static str, &Gate); 5] {
+    fn gates(&self) -> [(&'static str, &'static str, &Gate); 5] {
         [
-            ("process_capability", &self.process_capability),
-            ("tolerance_stack", &self.tolerance_stack),
-            ("inspection_access", &self.inspection_access),
-            ("assembly_access", &self.assembly_access),
-            ("replacement_access", &self.replacement_access),
+            ("process_capability", "process-capability", &self.process_capability),
+            ("tolerance_stack", "tolerance-stack", &self.tolerance_stack),
+            ("inspection_access", "inspection-access", &self.inspection_access),
+            ("assembly_access", "assembly-access", &self.assembly_access),
+            ("replacement_access", "replacement-access", &self.replacement_access),
         ]
     }
 }
@@ -125,6 +125,12 @@ pub enum ValidationError {
         gate: &'static str,
         evidence_id: String,
     },
+    EvidenceScopeMismatch {
+        gate: &'static str,
+        evidence_id: String,
+        expected_scope: &'static str,
+        actual_scope: String,
+    },
     PassingGateWithoutEvidence(&'static str),
     NonPassingGateWithoutReason(&'static str),
 }
@@ -172,7 +178,7 @@ pub fn assess(candidate: &ComponentCandidate) -> Result<Assessment, Vec<Validati
         }
     }
 
-    for (gate_name, gate) in candidate.gates() {
+    for (gate_name, expected_scope, gate) in candidate.gates() {
         let mut gate_evidence_ids = BTreeSet::new();
         for evidence_id in &gate.evidence_ids {
             if !gate_evidence_ids.insert(evidence_id.as_str()) {
@@ -186,6 +192,19 @@ pub fn assess(candidate: &ComponentCandidate) -> Result<Assessment, Vec<Validati
                     gate: gate_name,
                     evidence_id: evidence_id.clone(),
                 });
+            } else if let Some(reference) = candidate
+                .evidence
+                .iter()
+                .find(|reference| reference.id == *evidence_id)
+            {
+                if reference.scope_ref != expected_scope {
+                    errors.push(ValidationError::EvidenceScopeMismatch {
+                        gate: gate_name,
+                        evidence_id: evidence_id.clone(),
+                        expected_scope,
+                        actual_scope: reference.scope_ref.clone(),
+                    });
+                }
             }
         }
 
@@ -209,7 +228,7 @@ pub fn assess(candidate: &ComponentCandidate) -> Result<Assessment, Vec<Validati
     let findings = candidate
         .gates()
         .into_iter()
-        .map(|(gate, value)| GateFinding {
+        .map(|(gate, _expected_scope, value)| GateFinding {
             gate,
             state: value.state,
             reason_code: value.reason_code.clone(),
@@ -374,6 +393,21 @@ mod tests {
                 gate: "process_capability",
                 evidence_id
             } if evidence_id == "missing-evidence"
+        )));
+    }
+
+    #[test]
+    fn evidence_from_a_different_gate_scope_is_rejected() {
+        let mut package = candidate();
+        package.evidence[0].scope_ref = "inspection-access".to_owned();
+        let errors = assess(&package).expect_err("gate evidence scope must match its proposition");
+        assert!(errors.iter().any(|error| matches!(
+            error,
+            ValidationError::EvidenceScopeMismatch {
+                gate: "process_capability",
+                expected_scope: "process-capability",
+                ..
+            }
         )));
     }
 
