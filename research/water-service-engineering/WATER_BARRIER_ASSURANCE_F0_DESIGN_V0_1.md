@@ -7,11 +7,7 @@
 
 A filter's technology label is not a removal claim. The assurance kernel accepts only explicit contaminant/pathogen claims attached to an exact module configuration, independent evidence identifier, certificate state, service state and operating envelope. Modules contribute only claims while in service, certificate-valid, exact-configuration matched, within their declared flow/pressure/temperature/turbidity range and with remaining capacity.
 
-For microbial claims, bacteria, viruses and protozoa remain separate. The default comprehensive 2-star and 3-star comparison thresholds follow the WHO International Scheme:
-- 2-star: bacteria ≥2 log10, viruses ≥3 log10, protozoa ≥2 log10.
-- 3-star: bacteria ≥4 log10, viruses ≥5 log10, protozoa ≥4 log10.
-
-WHO's Round IV protocols are the current protocol references for product assessment; F0 does not reproduce a WHO lab challenge or award a star rating. The 2026 Scheme report records 51 products evaluated across Rounds I–IV. Sources: [WHO scheme](https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies), [2026 results](https://www.who.int/westernpacific/publications/i/item/9789240112124), [Round IV protocols](https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies/resources).
+For microbial claims, bacteria, viruses and protozoa remain separate, but **their evidence protocols are not interchangeable**. The WHO HWT filtration protocol v4.0 Table 3 gives challenge criteria for bacteria and viruses; it does not itself establish protozoa reduction. General WHO Scheme thresholds are 2-star: bacteria 2 / viruses 3 / protozoa 2 log10; 3-star: bacteria 4 / viruses 5 / protozoa 4 log10. F0 therefore binds each hazard to an exact protocol ID, version and claim basis: filtration v4.0 direct challenge for bacteria/viruses; a product-specific WHO Scheme decision or separately applicable method for protozoa. A bacteria/virus result may not be reused as protozoa evidence. F0 does not reproduce a WHO lab challenge or award a star rating. The 2026 Scheme report records 51 products evaluated across Rounds I–IV. Sources: [WHO scheme](https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies), [2026 results](https://www.who.int/westernpacific/publications/i/item/9789240112124), [Round IV protocols](https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies/resources).
 
 Chemical hazards require exact contaminant identifiers and explicit percentage-reduction claims. No generic carbon, ceramic, UF, NF, RO or UV module name provides implied coverage. NSF/ANSI 42, 53 and 401 claims are also contaminant-specific; retain exact edition, model, configuration and certificate scope: [NSF overview](https://www.nsf.org/in/en/knowledge-library/nsf-ansi-42-53-and-401-filtration-systems-standards).
 
@@ -35,7 +31,7 @@ For South African Water Services Institutions, align deployments with applicable
 
 ## F0 synthetic test population
 
-Eighteen adversarial cases test complete 2-star evidence and higher 3-star requirement; missing virus claim and two-class-only targeted coverage; chemical claim gap; stale or changed source profile; unknown hazard; flow outside the certificate envelope; exhausted capacity; bypass and compromised storage; absent or stale accredited post-treatment sample; invalid/unknown critical measurements; power unavailable for a powered module; and certificate/configuration mismatch.
+Nineteen adversarial cases test complete 2-star evidence and higher 3-star requirement; missing virus claim and two-class-only targeted coverage; chemical claim gap; stale or changed source profile; unknown hazard; flow outside the certificate envelope; exhausted capacity; bypass and compromised storage; absent or stale accredited post-treatment sample; invalid/unknown critical measurements; power unavailable for a powered module; certificate/configuration mismatch; and a negative control that misapplies filtration-v4 evidence to protozoa.
 
 The one-day source freshness and laboratory-sample-age windows are explicit synthetic policy inputs, not regulatory monitoring frequencies. A deployment must set them from its approved water safety plan and jurisdictional requirements.
 
@@ -48,3 +44,10 @@ Benchmark against WHO-evaluated household products, claim-specific NSF-certified
 ## Nonclaims
 
 F0 does not certify a product, treatment train, water quality, potability or field service. No filter performance, chemical/pathogen removal, laboratory result, water saving or health outcome is claimed.
+
+
+## Protocol provenance and the protozoa boundary
+
+Every required source hazard and every module claim carries protocol ID, version and claim basis. A claim counts only when all three match the source requirement, in addition to the contaminant ID, unit, quantitative threshold, independent verification and operating-envelope checks. This prevents a generic standards label or an adjacent pathogen test from being transferred to an unsupported claim.
+
+The WHO Round IV **filtration-specific** protocol v4.0 is not a three-organism blanket test: its Table 3 contains bacterial and viral challenge criteria. Protozoa claims need a separately applicable test or an explicit product-specific WHO Scheme decision/report. Case WBA-F0-019 deliberately gives a protozoa claim with WHO filtration v4.0 provenance and expects GAP. Sources: [WHO filtration protocol v4.0](https://cdn.who.int/media/docs/default-source/wash-documents/water-safety-and-quality/household-water-treatment/hwt_scheme_filtration_protocol_4.0.pdf), [WHO 2026 product evaluation report](https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies/products-evaluated).
