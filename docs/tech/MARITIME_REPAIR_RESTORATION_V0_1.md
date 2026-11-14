@@ -36,7 +36,13 @@ The contract keeps seven different facts separate:
 6. independent calibrated measurements are compared to an owner-defined capability envelope;
 7. follow-up exposure is later needed to establish recurrence/durability.
 
-This P0 evaluator covers steps 2–6. It intentionally does not claim that the intervention was authorized, that the evidence issuer is authentic, or that the repaired condition will remain healthy.
+This P0 evaluator covers steps 2–6. It intentionally does not claim that the intervention was authorized, that the evidence issuer is authentic, or that the repaired condition will remain healthy. 
+
+The intervention is typed. Only `physical_component_repair` can be assessed as a plant-restoration intervention. Sensor replacement/calibration, controller/configuration changes, inspection-only, sham/no-op and unknown interventions are returned as `not_evaluable` for physical component restoration. They remain useful negative controls and must not be relabelled as a successful plant repair.
+
+Every case now binds the exact diagnostic-revision receipt digest, a named acceptance-envelope owner reference and content digest, an external authorization-record digest, per-measurement evidence digests, and a deterministic case-content digest. The evaluator checks digest shape and envelope-content consistency; it does not validate the upstream diagnosis chain, prove the authorization is valid, or authenticate the issuing party.
+
+A verified calibration is bound to a calibration-record digest and a validity-until timestamp. Its validity must extend at least through the time the measurement became available to the evaluator.
 
 ## Executable P0 semantics
 
@@ -50,13 +56,13 @@ Every configured condition (for example engine load and speed) must be present i
 
 Every pre- and post-repair metric must:
 - be current and valid;
-- have verified calibration tied to a calibration-record SHA-256 digest;
-- bind source identity, observation time and availability time within the episode window;
+- have verified calibration tied to a calibration-record SHA-256 digest whose validity extends through measurement availability;
+- bind a source identity, measurement evidence digest, observation time and availability time within the episode window;
 - have uncertainty no greater than the metric envelope's maximum;
 - use a measurement principle not present in the diagnostic evidence path;
 - use a dependency domain not present in the diagnostic evidence path.
 
-The pre-repair baseline and post-repair verification must also use the **same independent reference measurement principle and dependency domain**. Otherwise a change of instrument or acquisition path could mimic an improvement even when the plant did not change.
+The pre-repair baseline and post-repair verification must also use the **same declared reference measurement principle and dependency domain**. Otherwise a change of instrument or acquisition path could mimic an improvement even when the plant did not change. This is a structural pathway-diversity check, not proof of statistical independence or evidence-source authenticity.
 
 If the diagnostic sensor/gateway is also the only post-repair measurement, physical restoration is not established. Replacing or calibrating a sensor may restore measurement quality, but does not by itself prove that the plant has recovered.
 
@@ -82,7 +88,7 @@ Causal repair-effect claims require an appropriate controlled or counterfactual 
 
 ## Synthetic known-answer contract
 
-The evaluator currently contains 18 Rust tests and an 8-case machine-readable challenge manifest. The cases cover:
+The evaluator currently contains 22 Rust tests and an 8-case machine-readable challenge manifest. The cases cover:
 - verified restoration under matched conditions and a consistent independent reference measurement path;
 - pre/post measurement-path changes and diagnostic-dependency reuse;
 - time-of-observation/availability and calibration-record completeness;
@@ -96,20 +102,30 @@ The evaluator currently contains 18 Rust tests and an 8-case machine-readable ch
 - concurrent changes and causal attribution;
 - repair chronology;
 - missing/stale evidence;
-- protocol/corpus integrity.
+- protocol/corpus integrity;
+- sensor-only intervention rejection;
+- calibration expiry and calibration-record binding;
+- envelope-owner/content digest mismatch;
+- stable case digest under reordering of set-like collections.
 
 The JSON corpus describes scenario-level expected outcomes. The Rust tests construct complete episode/case objects with separate measured values.
+
+## Standards and industrial comparators
+
+The standards alignment is conceptual, not a conformance claim. ISO 13379-1:2025 is the current second edition for condition-monitoring data interpretation and diagnostic techniques; ISO 13381-1:2025 is the current third edition for prognostics. They provide relevant machinery-condition-monitoring and prognosis frameworks, but this evaluator has not been assessed for conformity to either standard:
+- https://www.iso.org/standard/88027.html
+- https://www.iso.org/standard/88029.html
 
 ## How to compare against SOTA and industrial platforms
 
 This work does not try to outperform an anomaly classifier on its own metric. It establishes a second evaluation stage after diagnosis.
 
-Industrial offerings such as ABB Ability Digital Powertrain and Digital Powertrain Insights publicly describe monitoring of drives/motors/driven equipment, anomaly detection, condition/trend analysis and prioritized maintenance intelligence. ABB's current Digital Powertrain help also distinguishes strong, weak and unknown issues and invites users to review asset evidence to confirm or reject a diagnosis. These are meaningful deployed capabilities; the public product material does not provide a matched marine-engine repair-restoration benchmark score. See:
+Industrial offerings such as ABB Ability Digital Powertrain and Digital Powertrain Insights publicly describe monitoring of drives/motors/driven equipment, anomaly detection, condition/trend analysis and prioritized maintenance intelligence. ABB describes a deployed monitor/analyze/optimize workflow with anomaly detection, condition/trend analysis, fleet visibility and prioritized predictive-maintenance guidance. This is a meaningful industrial comparator, not a straw man. Public product material does not publish a matched marine-engine repair-restoration benchmark with independent pre/post reference instruments, acceptance-envelope binding, sensor-only negative controls and recurrence follow-up. See:
 - https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain
 - https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain-insights
 - https://powertrain.abb.com/powertrainonlinehelp/en
 
-The differentiator to test is whether a system can tie the exact diagnosis revision and intervention to independent, matched-duty, per-capability restoration evidence—without confusing a sensor fix, alarm reset or low-load trial with recovered physical service.
+The differentiator to test is whether a system can tie the exact diagnosis revision and typed intervention to matched-duty, per-capability restoration evidence with a stable reference measurement path, explicit evidence/calibration digests, sensor-only negative controls and follow-up recurrence—without confusing a sensor fix, alarm reset or low-load trial with recovered physical service.
 
 A 2025 systematic review of industrial condition-monitoring evaluations found substantial heterogeneity in performance measures and economic analysis, motivating transparent maintenance-policy, sensitivity and uncertainty reporting. A 2025 intervention-aware risk-curve study explicitly models measured maintenance effectiveness and collateral effects, but its validation is limited to a feedwater-pump type. A 2026 causal repair-impact workflow using hydraulic sensor logs is a replication lead, not a marine-engine result:
 - https://doi.org/10.1016/j.jmsy.2025.06.015
