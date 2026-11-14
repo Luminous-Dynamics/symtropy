@@ -46,16 +46,19 @@ fn main() -> ExitCode {
         }
     };
 
-    println!("simulator\tversion\tmethod\tcontact\testimator\tcalibration_n\tevaluation_n\tmultiplier\tcoverage\twilson95_lower\twilson95_upper\tfalse_accept_fraction\tfalse_reject_fraction\ttrue_accept\tfalse_accept\tfalse_reject\ttrue_reject\tobserved_error_p50\tobserved_error_p95\twall_ms_p50\twall_ms_p95\tmemory_p95_bytes");
+    println!("simulator\tversion\tmethod\tcontact\testimator\ttime_step_s\tstate_dimension\tconstraint_count\tcalibration_n\tevaluation_n\tmultiplier\tcoverage\twilson95_lower\twilson95_upper\tfalse_accept_fraction\tfalse_reject_fraction\ttrue_accept\tfalse_accept\tfalse_reject\ttrue_reject\tobserved_error_p50\tobserved_error_p95\twall_ms_p50\twall_ms_p95\tmemory_p95_bytes");
     for report in reports {
         let wilson = report.evaluation_coverage_wilson_95;
         println!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             report.simulator,
             report.simulator_version,
             report.method,
             report.contact_regime,
             report.estimator_kind,
+            report.time_step_s,
+            report.state_dimension,
+            report.constraint_count,
             report.calibration_sample_count,
             report.evaluation_sample_count,
             fmt_option(report.calibration_multiplier),
