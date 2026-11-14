@@ -21,7 +21,7 @@
         "product_id": "product-alpha",
         "lineage_complete": true,
         "upstream_asset_ids": [
-          "product-alpha-asset"
+          "raw-scene-01"
         ],
         "campaign_id": "product-alpha-campaign",
         "site_id": "product-alpha-site",
@@ -91,7 +91,7 @@
         "upstream_asset_ids": [
           "plot-census-asset"
         ],
-        "campaign_id": "plot-census-campaign",
+        "campaign_id": "campaign-2026-01",
         "site_id": "plot-census-site",
         "sensor_id": "plot-census-sensor",
         "calibration_dataset_ids": [
@@ -163,7 +163,7 @@
         "site_id": "gedi-product-site",
         "sensor_id": "gedi-product-sensor",
         "calibration_dataset_ids": [
-          "gedi-product-calibration"
+          "field-calibration-01"
         ],
         "training_dataset_ids": [
           "gedi-product-training"
@@ -234,7 +234,7 @@
           "vision-model-a-calibration"
         ],
         "training_dataset_ids": [
-          "vision-model-a-training"
+          "camera-trap-training-01"
         ],
         "common_cause_ids": [
           "vision-model-a-cause"
@@ -305,7 +305,7 @@
           "optical-sensor-training"
         ],
         "common_cause_ids": [
-          "optical-sensor-cause"
+          "regional-storm-01"
         ],
         "processing_pipeline_ids": [
           "optical-sensor-pipeline"
@@ -364,7 +364,7 @@
           "plot-census-a-asset"
         ],
         "campaign_id": "plot-census-a-campaign",
-        "site_id": "plot-census-a-site",
+        "site_id": "site-01",
         "sensor_id": "plot-census-a-sensor",
         "calibration_dataset_ids": [
           "plot-census-a-calibration"
@@ -433,7 +433,7 @@
         ],
         "campaign_id": "sensor-product-a-campaign",
         "site_id": "sensor-product-a-site",
-        "sensor_id": "sensor-product-a-sensor",
+        "sensor_id": "sensor-platform-01",
         "calibration_dataset_ids": [
           "sensor-product-a-calibration"
         ],
@@ -512,7 +512,7 @@
           "classifier-a-cause"
         ],
         "processing_pipeline_ids": [
-          "classifier-a-pipeline"
+          "pipeline-family-01"
         ],
         "dependency_dimensions_assessed": [
           "upstream_assets",
@@ -768,7 +768,7 @@
         "product_id": "jrc-tmf-product",
         "lineage_complete": true,
         "upstream_asset_ids": [
-          "jrc-tmf-product-asset"
+          "landsat-scene-198"
         ],
         "campaign_id": "jrc-tmf-product-campaign",
         "site_id": "jrc-tmf-product-site",
