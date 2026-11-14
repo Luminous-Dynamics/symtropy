@@ -1,0 +1,80 @@
+{
+  "schema_version": "luminous.civ_infra.robust_fixture.v0.1",
+  "fixture_id": "synthetic-four-state-corridor-v0.1",
+  "exhaustive_joint_state_set": true,
+  "uncertainties": [
+    {
+      "id": "ground",
+      "unit": "synthetic_ground_class",
+      "support": { "kind": "finite_values", "values": [0.0, 1.0] },
+      "evidence_state": "synthetic_fixture",
+      "evidence_ref": "synthetic-ground-domain-v0.1"
+    },
+    {
+      "id": "storm",
+      "unit": "synthetic_storm_class",
+      "support": { "kind": "finite_values", "values": [0.0, 1.0] },
+      "evidence_state": "synthetic_fixture",
+      "evidence_ref": "synthetic-storm-domain-v0.1"
+    }
+  ],
+  "states": [
+    { "id": "firm-dry", "values": { "ground": 0.0, "storm": 0.0 } },
+    { "id": "firm-storm", "values": { "ground": 0.0, "storm": 1.0 } },
+    { "id": "soft-dry", "values": { "ground": 1.0, "storm": 0.0 } },
+    { "id": "soft-storm", "values": { "ground": 1.0, "storm": 1.0 } }
+  ],
+  "required_constraints": ["grade_limit", "hydraulic_capacity", "utility_clearance"],
+  "objectives": [
+    { "id": "route_length_m", "unit": "m", "direction": "minimize" },
+    { "id": "earthworks_m3", "unit": "m3", "direction": "minimize" },
+    { "id": "hydraulic_margin_lps", "unit": "L/s", "direction": "maximize" }
+  ],
+  "candidates": [
+    {
+      "id": "A-shortest",
+      "state_results": [
+        { "state_id": "firm-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 900.0, "earthworks_m3": 2400.0, "hydraulic_margin_lps": 15.0 } },
+        { "state_id": "firm-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": false, "utility_clearance": true }, "objectives": { "route_length_m": 900.0, "earthworks_m3": 2400.0, "hydraulic_margin_lps": -10.0 } },
+        { "state_id": "soft-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 900.0, "earthworks_m3": 2400.0, "hydraulic_margin_lps": 12.0 } },
+        { "state_id": "soft-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": false, "utility_clearance": true }, "objectives": { "route_length_m": 900.0, "earthworks_m3": 2400.0, "hydraulic_margin_lps": -12.0 } }
+      ]
+    },
+    {
+      "id": "B-resilient",
+      "state_results": [
+        { "state_id": "firm-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1200.0, "earthworks_m3": 3000.0, "hydraulic_margin_lps": 20.0 } },
+        { "state_id": "firm-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1200.0, "earthworks_m3": 3000.0, "hydraulic_margin_lps": 12.0 } },
+        { "state_id": "soft-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1200.0, "earthworks_m3": 3000.0, "hydraulic_margin_lps": 16.0 } },
+        { "state_id": "soft-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1200.0, "earthworks_m3": 3000.0, "hydraulic_margin_lps": 8.0 } }
+      ]
+    },
+    {
+      "id": "C-fragile-clearance",
+      "state_results": [
+        { "state_id": "firm-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1050.0, "earthworks_m3": 2000.0, "hydraulic_margin_lps": 12.0 } },
+        { "state_id": "firm-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1050.0, "earthworks_m3": 2000.0, "hydraulic_margin_lps": 5.0 } },
+        { "state_id": "soft-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": false }, "objectives": { "route_length_m": 1050.0, "earthworks_m3": 2000.0, "hydraulic_margin_lps": 8.0 } },
+        { "state_id": "soft-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": false }, "objectives": { "route_length_m": 1050.0, "earthworks_m3": 2000.0, "hydraulic_margin_lps": 1.0 } }
+      ]
+    },
+    {
+      "id": "D-high-margin",
+      "state_results": [
+        { "state_id": "firm-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1400.0, "earthworks_m3": 3600.0, "hydraulic_margin_lps": 35.0 } },
+        { "state_id": "firm-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1400.0, "earthworks_m3": 3600.0, "hydraulic_margin_lps": 30.0 } },
+        { "state_id": "soft-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1400.0, "earthworks_m3": 3600.0, "hydraulic_margin_lps": 32.0 } },
+        { "state_id": "soft-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": true, "utility_clearance": true }, "objectives": { "route_length_m": 1400.0, "earthworks_m3": 3600.0, "hydraulic_margin_lps": 25.0 } }
+      ]
+    },
+    {
+      "id": "E-overcapacity",
+      "state_results": [
+        { "state_id": "firm-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": false, "utility_clearance": true }, "objectives": { "route_length_m": 1100.0, "earthworks_m3": 1900.0, "hydraulic_margin_lps": -2.0 } },
+        { "state_id": "firm-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": false, "utility_clearance": true }, "objectives": { "route_length_m": 1100.0, "earthworks_m3": 1900.0, "hydraulic_margin_lps": -5.0 } },
+        { "state_id": "soft-dry", "constraints": { "grade_limit": true, "hydraulic_capacity": false, "utility_clearance": true }, "objectives": { "route_length_m": 1100.0, "earthworks_m3": 1900.0, "hydraulic_margin_lps": -1.0 } },
+        { "state_id": "soft-storm", "constraints": { "grade_limit": true, "hydraulic_capacity": false, "utility_clearance": true }, "objectives": { "route_length_m": 1100.0, "earthworks_m3": 1900.0, "hydraulic_margin_lps": -6.0 } }
+      ]
+    }
+  ]
+}
