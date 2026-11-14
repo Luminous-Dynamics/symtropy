@@ -37,6 +37,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-admission-contract-synthetic-v0.1.json
 
+# Binary event Brier / reliability scoring (disturbance event probabilities)
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-binary-event-brier-synthetic-v0.1.json
+
 # Probabilistic forest forecast scoring (CRPS, intervals, paired skill, abstention)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json
@@ -55,7 +59,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -96,6 +100,12 @@ Twenty kernel unit tests cover identity, containment, partial and zero overlap, 
 
 The public forest decision-value corpus defines twenty case families and checks two worked synthetic examples. The arithmetic oracle verifies that high information can have zero decision value when the loss matrix is state-invariant, and independently recomputes the positive-EVSI example (gross 8.8 synthetic loss units; net 5.8 after cost). This is not execution of the existing EVSI policy kernel or a field-survey recommendation.
 
+## Binary event Brier scoring
+
+The same `forecast_kernel` module includes Bernoulli-event Brier scoring, paired Brier skill and five fixed-width reliability bins. An abstention is a missing probability, not probability zero; it remains in the eligible-case coverage denominator. The six-case corpus returns `PASS_SYNTHETIC_BRIER` with five issued forecasts, one abstention, mean model Brier 0.222, paired baseline Brier 0.250 and Brier skill +0.112. Its reliability bins are small-sample descriptive diagnostics, not calibration evidence.
+
+The corpus checks each case score, aggregate paired skill, all five bin counts/means/event rates and abstention coverage. Five unit tests cover Brier arithmetic, invalid probabilities, all-abstention behavior, duplicates and mixed horizons; three library tests cover corpus execution and score/reliability mutations. See [FOREST_PROBABILISTIC_FORECAST_BENCHMARK_V0_1.md](../FOREST_PROBABILISTIC_FORECAST_BENCHMARK_V0_1.md) and [#5277](https://github.com/Luminous-Dynamics/symtropy/issues/5277).
+
 ## Probabilistic forecast scoring
 
 The `forecast_kernel` scores equally weighted finite ensembles with empirical CRPS, reports nearest-rank central 50/80/95% intervals, interval coverage and width, ensemble-mean MAE, paired baseline CRPS skill, and forecast coverage including abstentions. The paired skill convention is `CRPSS = 1 - model_CRPS / baseline_CRPS`; positive is better. Model and baseline are scored on identical issued cases; baseline performance on all eligible cases is reported separately.
@@ -132,6 +142,7 @@ The public forest model-set corpus contains 30 development descriptors (three va
 | Model-set adequacy | `MANIFEST_VALID` | Thirty public development variants (three per family) have known family dispositions and unique IDs; no blind generator or independent custodian is provided |
 | Known-truth model-set diagnostics | `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS` | Five public toy counterexamples distinguish structural disagreement, common omission, history-fit failure and matched control; no ecological detector is claimed |
 | Probabilistic forecast scoring | `PASS_SYNTHETIC_FORECAST_SCORING` | Six cases check empirical CRPS, paired baseline skill, central interval coverage/width and explicit abstention coverage; no empirical calibration is claimed |
+| Binary event Brier scoring | `PASS_SYNTHETIC_BRIER` | Six cases check Bernoulli Brier scores, paired baseline skill, five reliability bins and explicit abstention coverage; no event calibration is claimed |
 | Decision value | `MANIFEST_VALID` | Twenty public development cases, the zero-EVSI counterexample, and the positive-EVSI worked arithmetic are coherent; the existing EVSI policy kernel is not executed by this validator |
 
 ## Dataset candidate register
@@ -161,4 +172,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 104 Rust unit tests: 39 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel and 12 in the probabilistic forecast kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 112 Rust unit tests: 42 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel and 17 in the probabilistic/event-forecast kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
