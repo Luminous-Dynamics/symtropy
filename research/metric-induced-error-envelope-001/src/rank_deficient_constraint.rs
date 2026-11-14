@@ -2,27 +2,28 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
-//! Quotient geometry for redundant linear holonomic constraints.
+//! Rank-aware quotient geometry for redundant linear holonomic constraints.
 //!
-//! W = J M^-1 J^T is positive semidefinite when constraint rows are redundant.
-//! Multipliers are equivalent modulo ker(J^T); physical generalized force and
-//! minimum-kinetic correction are unique even when a multiplier vector is not.
+//! W = J M^-1 J^T may be positive semidefinite when constraint rows are
+//! redundant. Multipliers are equivalence classes modulo ker(J^T); the
+//! generalized-force correction and minimum-kinetic correction are unique.
 //!
-//! Floating-point rank and residual compatibility are measured in an explicit
-//! SPD residual-space metric H. Under r_new = T r_old, callers must provide
-//! H_new = T^-T H_old T^-1. This prevents row units from changing acceptance.
-
-use core::marker::PhantomData;
+//! Numerical rank and residual compatibility are evaluated on the doubly
+//! whitened operator B = L_H^T J L_M^-T. A one-sided Jacobi SVD avoids
+//! forming normal equations for the quotient solve. Under generalized and
+//! constraint-coordinate changes, B changes by orthogonal factors, so its
+//! singular values are the invariant rank coordinates.
 
 use super::{ConstraintMultiplierV1, ConstraintResidualV1};
-use crate::{CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent};
+use crate::{CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Tangent};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstraintQuotientProfileV1 {
     pub relative_rank_tolerance: f64,
-    /// Multiplicative uncertainty band around the rank threshold; must exceed one.
+    /// Multiplicative uncertainty band around the singular-value rank threshold; must exceed one.
     pub rank_uncertainty_factor: f64,
     pub relative_compatibility_tolerance: f64,
+    /// Relative consistency threshold for reconstructed physical equations.
     pub relative_reduced_pivot_tolerance: f64,
 }
 
@@ -66,9 +67,13 @@ pub struct ConstraintQuotientAdmissionReceiptV1 {
     pub numerical_rank: usize,
     pub multiplier_nullity: usize,
     pub rank_resolved: bool,
+    /// Relative singular value inside the declared uncertainty band, if any.
     pub unresolved_relative_pivot: Option<f64>,
+    /// Orthogonality defect of the retained left singular vectors.
     pub maximum_residual_basis_orthogonality_defect: f64,
-    pub minimum_reduced_cholesky_pivot: Option<f64>,
+    pub minimum_resolved_singular_value: Option<f64>,
+    pub jacobi_svd_converged: bool,
+    pub jacobi_sweeps: usize,
     pub residual_metric: MetricAdmissionSummaryV1,
 }
 
@@ -78,7 +83,6 @@ pub enum ConstraintQuotientErrorV1 {
     InvalidProfile,
     NonFiniteJacobian,
     NonFiniteIntermediate,
-    ReducedOperatorNotPositiveDefinite { pivot: usize },
     NegativeQuotientQuadraticForm,
     Metric(MetricErrorV1),
 }
@@ -166,21 +170,6 @@ fn validate_profile(profile: ConstraintQuotientProfileV1) -> Result<(), Constrai
     Ok(())
 }
 
-fn h_inner<Space: CoordinateFrame, const K: usize>(
-    metric: &Metric<Space, K>,
-    left: &[f64; K],
-    right: &[f64; K],
-) -> Result<f64, ConstraintQuotientErrorV1> {
-    let left_whitened = metric.whiten_tangent(&Tangent::<Space, K>::new(*left)?)?;
-    let right_whitened = metric.whiten_tangent(&Tangent::<Space, K>::new(*right)?)?;
-    let value = crate::dot(&left_whitened, &right_whitened);
-    if value.is_finite() {
-        Ok(value)
-    } else {
-        Err(ConstraintQuotientErrorV1::NonFiniteIntermediate)
-    }
-}
-
 fn h_norm<Space: CoordinateFrame, const K: usize>(
     metric: &Metric<Space, K>,
     vector: &[f64; K],
@@ -192,190 +181,6 @@ fn h_norm<Space: CoordinateFrame, const K: usize>(
     } else {
         Err(ConstraintQuotientErrorV1::NonFiniteIntermediate)
     }
-}
-
-fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const K: usize>(
-    jacobian: &[[f64; N]; K],
-    residual_metric: &Metric<Space, K>,
-    relative_rank_tolerance: f64,
-    rank_uncertainty_factor: f64,
-) -> Result<([[f64; K]; K], usize, f64, bool, Option<f64>), ConstraintQuotientErrorV1> {
-    // First map the residual space into Euclidean coordinates z=L^T r,
-    // where H=L L^T. Then range revelation and orthogonal projection run
-    // entirely in whitened coordinates. Under r_new=T r_old and
-    // H_new=T^-T H_old T^-1, the two whitened Jacobians differ only by an
-    // orthogonal row transform; this avoids direct H-inner-product
-    // accumulation in a poorly scaled coordinate basis.
-    let mut columns = [[0.0; K]; N];
-    let mut scale = 0.0_f64;
-    for dof in 0..N {
-        let source_column = std::array::from_fn(|row| jacobian[row][dof]);
-        let tangent = Tangent::<Space, K>::new(source_column)?;
-        columns[dof] = residual_metric.whiten_tangent(&tangent)?;
-        scale = scale.max(crate::vector_euclidean(&columns[dof]));
-    }
-    if !scale.is_finite() {
-        return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-    }
-    let threshold = relative_rank_tolerance * scale;
-    let lower_threshold = threshold / rank_uncertainty_factor;
-    let upper_threshold = threshold * rank_uncertainty_factor;
-    if !threshold.is_finite() || !lower_threshold.is_finite() || !upper_threshold.is_finite() {
-        return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-    }
-
-    let mut whitened_basis = [[0.0; K]; K]; // basis[whitened-coordinate][axis]
-    let mut rank = 0usize;
-    let mut rank_resolved = true;
-    let mut unresolved_relative_pivot = None;
-    for pivot_index in 0..N.min(K) {
-        let mut selected = pivot_index;
-        let mut selected_norm = crate::vector_euclidean(&columns[selected]);
-        for (candidate, column) in columns.iter().enumerate().skip(pivot_index + 1) {
-            let candidate_norm = crate::vector_euclidean(column);
-            if candidate_norm > selected_norm {
-                selected = candidate;
-                selected_norm = candidate_norm;
-            }
-        }
-        columns.swap(pivot_index, selected);
-        if selected_norm <= lower_threshold {
-            break; // Resolved numerical null direction.
-        }
-        if selected_norm < upper_threshold {
-            rank_resolved = false;
-            unresolved_relative_pivot = Some(selected_norm / scale);
-            break; // Ambiguous: do not promote either rank or incompatibility.
-        }
-
-        let pivot = crate::vector_euclidean(&columns[pivot_index]);
-        if !pivot.is_finite() || pivot == 0.0 {
-            return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-        }
-        let basis_column: [f64; K] =
-            std::array::from_fn(|coordinate| columns[pivot_index][coordinate] / pivot);
-        for coordinate in 0..K {
-            whitened_basis[coordinate][rank] = basis_column[coordinate];
-        }
-
-        // Two Euclidean reorthogonalization passes after whitening.
-        for candidate in (pivot_index + 1)..N {
-            for _ in 0..2 {
-                let projection = crate::dot(&basis_column, &columns[candidate]);
-                for coordinate in 0..K {
-                    columns[candidate][coordinate] -= projection * basis_column[coordinate];
-                }
-            }
-        }
-        rank += 1;
-    }
-
-    // Map the Euclidean orthonormal basis back to residual coordinates:
-    // U=L^-T Q, so U^T H U=I.
-    let mut basis = [[0.0; K]; K]; // basis[residual-coordinate][axis]
-    for axis in 0..rank {
-        let whitened_column =
-            std::array::from_fn(|coordinate| whitened_basis[coordinate][axis]);
-        let residual_column = residual_metric.unwhiten_tangent(&whitened_column)?;
-        for coordinate in 0..K {
-            basis[coordinate][axis] = residual_column.components()[coordinate];
-        }
-    }
-
-    let mut maximum_defect = 0.0_f64;
-    for left_axis in 0..rank {
-        for right_axis in 0..rank {
-            let left: [f64; K] =
-                std::array::from_fn(|coordinate| whitened_basis[coordinate][left_axis]);
-            let right: [f64; K] =
-                std::array::from_fn(|coordinate| whitened_basis[coordinate][right_axis]);
-            let actual = crate::dot(&left, &right);
-            let expected = if left_axis == right_axis { 1.0 } else { 0.0 };
-            maximum_defect = maximum_defect.max((actual - expected).abs());
-        }
-    }
-    Ok((
-        basis,
-        rank,
-        maximum_defect,
-        rank_resolved,
-        unresolved_relative_pivot,
-    ))
-}
-fn cholesky_reduced<const K: usize>(
-    matrix: &[[f64; K]; K],
-    rank: usize,
-    relative_pivot_tolerance: f64,
-) -> Result<([[f64; K]; K], Option<f64>), ConstraintQuotientErrorV1> {
-    if rank == 0 {
-        return Ok(([[0.0; K]; K], None));
-    }
-    let scale = (0..rank)
-        .map(|index| matrix[index][index].abs())
-        .fold(0.0_f64, f64::max);
-    let threshold = relative_pivot_tolerance * scale;
-    if !scale.is_finite() || scale == 0.0 || !threshold.is_finite() {
-        return Err(ConstraintQuotientErrorV1::ReducedOperatorNotPositiveDefinite { pivot: 0 });
-    }
-
-    let mut lower = [[0.0; K]; K];
-    let mut minimum_pivot = f64::INFINITY;
-    for row in 0..rank {
-        for column in 0..=row {
-            let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
-            }
-            if !value.is_finite() {
-                return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-            }
-            if row == column {
-                if value <= threshold {
-                    return Err(
-                        ConstraintQuotientErrorV1::ReducedOperatorNotPositiveDefinite {
-                            pivot: row,
-                        },
-                    );
-                }
-                lower[row][column] = value.sqrt();
-                minimum_pivot = minimum_pivot.min(value);
-            } else {
-                lower[row][column] = value / lower[column][column];
-            }
-            if !lower[row][column].is_finite() {
-                return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-            }
-        }
-    }
-    Ok((lower, Some(minimum_pivot)))
-}
-
-fn solve_reduced<const K: usize>(
-    lower: &[[f64; K]; K],
-    rank: usize,
-    rhs: &[f64; K],
-) -> Result<[f64; K], ConstraintQuotientErrorV1> {
-    let mut intermediate = [0.0; K];
-    for row in 0..rank {
-        let mut value = rhs[row];
-        for column in 0..row {
-            value -= lower[row][column] * intermediate[column];
-        }
-        intermediate[row] = value / lower[row][row];
-    }
-
-    let mut solution = [0.0; K];
-    for row in (0..rank).rev() {
-        let mut value = intermediate[row];
-        for column in (row + 1)..rank {
-            value -= lower[column][row] * solution[column];
-        }
-        solution[row] = value / lower[row][row];
-        if !solution[row].is_finite() {
-            return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-        }
-    }
-    Ok(solution)
 }
 
 fn mat_vec<const K: usize>(
@@ -394,7 +199,236 @@ fn mat_vec<const K: usize>(
     Ok(result)
 }
 
+#[derive(Debug, Clone, Copy)]
+struct WhitenedConstraintSvdV1<const N: usize, const K: usize> {
+    left: [[f64; N]; K],
+    right: [[f64; N]; N],
+    singular_values: [f64; N],
+    rank: usize,
+    rank_resolved: bool,
+    unresolved_relative_singular: Option<f64>,
+    orthogonality_defect: f64,
+    converged: bool,
+    sweeps: usize,
+}
+
+fn one_sided_jacobi_svd<const N: usize, const K: usize>(
+    input: &[[f64; N]; K],
+) -> Result<([[f64; N]; K], [[f64; N]; N], [f64; N], bool, usize), ConstraintQuotientErrorV1> {
+    let mut work = *input;
+    let mut right = [[0.0; N]; N];
+    for index in 0..N {
+        right[index][index] = 1.0;
+    }
+
+    // The cyclic one-sided Jacobi method orthogonalizes columns directly.
+    // Unlike eigendecomposition of B^T B or B B^T, it does not square the
+    // condition number before revealing small singular values.
+    let relative_jacobi_tolerance = 16.0 * f64::EPSILON;
+    let maximum_sweeps = N.saturating_mul(N).saturating_mul(8).max(32);
+    let mut converged = false;
+    let mut sweeps = 0usize;
+
+    for sweep in 0..maximum_sweeps {
+        let mut rotated = false;
+        for left_column in 0..N {
+            for right_column in (left_column + 1)..N {
+                let mut alpha = 0.0_f64;
+                let mut beta = 0.0_f64;
+                let mut gamma = 0.0_f64;
+                for row in 0..K {
+                    let left_value = work[row][left_column];
+                    let right_value = work[row][right_column];
+                    alpha += left_value * left_value;
+                    beta += right_value * right_value;
+                    gamma += left_value * right_value;
+                }
+                if !alpha.is_finite() || !beta.is_finite() || !gamma.is_finite() {
+                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+                }
+                if alpha == 0.0 || beta == 0.0 {
+                    continue;
+                }
+                let cross_scale = alpha.sqrt() * beta.sqrt();
+                if !cross_scale.is_finite() {
+                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+                }
+                if gamma.abs() <= relative_jacobi_tolerance * cross_scale {
+                    continue;
+                }
+
+                let zeta = (beta - alpha) / (2.0 * gamma);
+                if !zeta.is_finite() {
+                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+                }
+                let tangent = if zeta == 0.0 {
+                    1.0
+                } else {
+                    zeta.signum() / (zeta.abs() + (1.0 + zeta * zeta).sqrt())
+                };
+                let cosine = 1.0 / (1.0 + tangent * tangent).sqrt();
+                let sine = cosine * tangent;
+                if !cosine.is_finite() || !sine.is_finite() {
+                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+                }
+
+                for row in 0..K {
+                    let left_value = work[row][left_column];
+                    let right_value = work[row][right_column];
+                    work[row][left_column] = cosine * left_value - sine * right_value;
+                    work[row][right_column] = sine * left_value + cosine * right_value;
+                }
+                for row in 0..N {
+                    let left_value = right[row][left_column];
+                    let right_value = right[row][right_column];
+                    right[row][left_column] = cosine * left_value - sine * right_value;
+                    right[row][right_column] = sine * left_value + cosine * right_value;
+                }
+                rotated = true;
+            }
+        }
+
+        sweeps = sweep + 1;
+        if !rotated {
+            converged = true;
+            break;
+        }
+    }
+
+    let mut singular_values = [0.0; N];
+    for column in 0..N {
+        let values: [f64; K] = std::array::from_fn(|row| work[row][column]);
+        singular_values[column] = crate::vector_euclidean(&values);
+        if !singular_values[column].is_finite() {
+            return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+        }
+    }
+
+    // Deterministic descending singular-value order; tie breaks retain the
+    // prior column order for stable replay.
+    for position in 0..N {
+        let mut selected = position;
+        for candidate in (position + 1)..N {
+            if singular_values[candidate] > singular_values[selected] {
+                selected = candidate;
+            }
+        }
+        if selected != position {
+            singular_values.swap(position, selected);
+            for row in 0..K {
+                work[row].swap(position, selected);
+            }
+            for row in 0..N {
+                right[row].swap(position, selected);
+            }
+        }
+    }
+
+    let mut left = [[0.0; N]; K];
+    for column in 0..N {
+        let singular_value = singular_values[column];
+        if singular_value > 0.0 {
+            for row in 0..K {
+                left[row][column] = work[row][column] / singular_value;
+                if !left[row][column].is_finite() {
+                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+                }
+            }
+        }
+    }
+
+    Ok((left, right, singular_values, converged, sweeps))
+}
+
+fn build_whitened_constraint_svd<
+    Frame: CoordinateFrame,
+    Space: CoordinateFrame,
+    const N: usize,
+    const K: usize,
+>(
+    mass: &Metric<Frame, N>,
+    jacobian: &[[f64; N]; K],
+    residual_metric: &Metric<Space, K>,
+    profile: ConstraintQuotientProfileV1,
+) -> Result<WhitenedConstraintSvdV1<N, K>, ConstraintQuotientErrorV1> {
+    // A = L_H^T J L_M^-T. First whiten every constraint covector by M,
+    // then whiten each resulting residual-space column by H.
+    let mut mass_whitened_rows = [[0.0; N]; K];
+    for row in 0..K {
+        let covector = Cotangent::<Frame, N>::new(jacobian[row])?;
+        mass_whitened_rows[row] = mass.whiten_cotangent(&covector)?;
+    }
+
+    let mut whitened_jacobian = [[0.0; N]; K];
+    for column in 0..N {
+        let residual_column =
+            std::array::from_fn(|row| mass_whitened_rows[row][column]);
+        let tangent = Tangent::<Space, K>::new(residual_column)?;
+        let whitened_column = residual_metric.whiten_tangent(&tangent)?;
+        for row in 0..K {
+            whitened_jacobian[row][column] = whitened_column[row];
+        }
+    }
+
+    let (left, right, singular_values, converged, sweeps) =
+        one_sided_jacobi_svd(&whitened_jacobian)?;
+    let maximum_singular_value = singular_values[0];
+    let mut rank = 0usize;
+    let mut rank_resolved = converged;
+    let mut unresolved_relative_singular = None;
+
+    if maximum_singular_value > 0.0 {
+        let threshold = profile.relative_rank_tolerance * maximum_singular_value;
+        let lower_threshold = threshold / profile.rank_uncertainty_factor;
+        let upper_threshold = threshold * profile.rank_uncertainty_factor;
+        if !threshold.is_finite() || !lower_threshold.is_finite() || !upper_threshold.is_finite() {
+            return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+        }
+        for singular_value in singular_values {
+            if singular_value <= lower_threshold {
+                break;
+            }
+            if singular_value < upper_threshold {
+                rank_resolved = false;
+                unresolved_relative_singular = Some(singular_value / maximum_singular_value);
+                break;
+            }
+            rank += 1;
+        }
+    }
+
+    let mut orthogonality_defect = 0.0_f64;
+    for left_axis in 0..rank {
+        for right_axis in 0..rank {
+            let left_column: [f64; K] =
+                std::array::from_fn(|row| left[row][left_axis]);
+            let right_column: [f64; K] =
+                std::array::from_fn(|row| left[row][right_axis]);
+            let actual = crate::dot(&left_column, &right_column);
+            let expected = if left_axis == right_axis { 1.0 } else { 0.0 };
+            orthogonality_defect = orthogonality_defect.max((actual - expected).abs());
+        }
+    }
+
+    Ok(WhitenedConstraintSvdV1 {
+        left,
+        right,
+        singular_values,
+        rank,
+        rank_resolved,
+        unresolved_relative_singular,
+        orthogonality_defect,
+        converged,
+        sweeps,
+    })
+}
+
 /// Rank-aware Delassus quotient for W = J M^-1 J^T.
+///
+/// The solve uses the SVD of the doubly whitened constraint operator. The
+/// original Delassus matrix is retained for multiplier-fibre diagnostics and
+/// independent equation reconstruction, but is not used as a normal equation
+/// for the minimum-kinetic correction.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RankDeficientDelassusQuotientV1<
     Frame: CoordinateFrame,
@@ -406,14 +440,13 @@ pub struct RankDeficientDelassusQuotientV1<
     jacobian: [[f64; N]; K],
     delassus: [[f64; K]; K],
     residual_metric: Metric<Space, K>,
-    range_basis: [[f64; K]; K],
-    dual_range_basis: [[f64; K]; K],
-    reduced_cholesky: [[f64; K]; K],
+    left_singular_vectors: [[f64; N]; K],
+    right_singular_vectors: [[f64; N]; N],
+    singular_values: [f64; N],
     rank: usize,
     rank_resolved: bool,
     profile: ConstraintQuotientProfileV1,
     receipt: ConstraintQuotientAdmissionReceiptV1,
-    _spaces: PhantomData<(Frame, Space)>,
 }
 
 impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: usize>
@@ -433,16 +466,17 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             return Err(ConstraintQuotientErrorV1::NonFiniteJacobian);
         }
 
-        // W = J M^-1 J^T using Cholesky-whitened constraint covectors.
-        let mut whitened = [[0.0; N]; K];
+        // W = J M^-1 J^T, formed from whitened covectors without explicitly
+        // forming M^-1. This remains an independent operator for verification.
+        let mut mass_whitened_rows = [[0.0; N]; K];
         for row in 0..K {
             let covector = Cotangent::<Frame, N>::new(jacobian[row])?;
-            whitened[row] = mass.whiten_cotangent(&covector)?;
+            mass_whitened_rows[row] = mass.whiten_cotangent(&covector)?;
         }
         let mut delassus = [[0.0; K]; K];
         for row in 0..K {
             for column in row..K {
-                let value = crate::dot(&whitened[row], &whitened[column]);
+                let value = crate::dot(&mass_whitened_rows[row], &mass_whitened_rows[column]);
                 if !value.is_finite() {
                     return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
                 }
@@ -451,75 +485,38 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             }
         }
 
-        let (range_basis, rank, orthogonality_defect, rank_resolved, unresolved_relative_pivot) =
-            build_h_orthonormal_range_basis(
-                &jacobian,
-                residual_metric,
-                profile.relative_rank_tolerance,
-                profile.rank_uncertainty_factor,
-            )?;
-
-        // H U is the dual basis. In these coordinates the reduced quotient
-        // operator K_r = U^T H W H U is positive definite on range(W).
-        let mut dual_range_basis = [[0.0; K]; K];
-        for axis in 0..rank {
-            for row in 0..K {
-                for column in 0..K {
-                    dual_range_basis[row][axis] +=
-                        residual_metric.matrix()[row][column] * range_basis[column][axis];
-                }
-                if !dual_range_basis[row][axis].is_finite() {
-                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-                }
-            }
-        }
-
-        let mut reduced = [[0.0; K]; K];
-        for left_axis in 0..rank {
-            let left = std::array::from_fn(|coordinate| dual_range_basis[coordinate][left_axis]);
-            for right_axis in left_axis..rank {
-                let right =
-                    std::array::from_fn(|coordinate| dual_range_basis[coordinate][right_axis]);
-                let mapped = mat_vec(&delassus, &right)?;
-                let value = crate::dot(&left, &mapped);
-                if !value.is_finite() {
-                    return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-                }
-                reduced[left_axis][right_axis] = value;
-                reduced[right_axis][left_axis] = value;
-            }
-        }
-
-        let (reduced_cholesky, minimum_pivot) =
-            cholesky_reduced(&reduced, rank, profile.relative_reduced_pivot_tolerance)?;
+        let svd = build_whitened_constraint_svd(mass, &jacobian, residual_metric, profile)?;
+        let minimum_resolved_singular_value = if svd.rank > 0 {
+            Some(svd.singular_values[svd.rank - 1])
+        } else {
+            None
+        };
 
         Ok(Self {
             mass: *mass,
             jacobian,
             delassus,
             residual_metric: *residual_metric,
-            range_basis,
-            dual_range_basis,
-            reduced_cholesky,
-            rank,
-            rank_resolved,
+            left_singular_vectors: svd.left,
+            right_singular_vectors: svd.right,
+            singular_values: svd.singular_values,
+            rank: svd.rank,
+            rank_resolved: svd.rank_resolved,
             profile,
             receipt: ConstraintQuotientAdmissionReceiptV1 {
-                numerical_rank: rank,
-                multiplier_nullity: K - rank,
-                rank_resolved,
-                unresolved_relative_pivot,
-                maximum_residual_basis_orthogonality_defect: orthogonality_defect,
-                minimum_reduced_cholesky_pivot: minimum_pivot,
+                numerical_rank: svd.rank,
+                multiplier_nullity: K - svd.rank,
+                rank_resolved: svd.rank_resolved,
+                unresolved_relative_pivot: svd.unresolved_relative_singular,
+                maximum_residual_basis_orthogonality_defect: svd.orthogonality_defect,
+                minimum_resolved_singular_value,
+                jacobi_svd_converged: svd.converged,
+                jacobi_sweeps: svd.sweeps,
                 residual_metric: residual_metric.admission_receipt().into(),
             },
-            _spaces: PhantomData,
         })
     }
 
-    pub fn matrix(&self) -> &[[f64; K]; K] {
-        &self.delassus
-    }
     pub fn rank(&self) -> usize {
         self.rank
     }
@@ -549,38 +546,35 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         Ok(squared.max(0.0).sqrt())
     }
 
-    /// Solve W lambda = r on the quotient. Incompatible residuals are returned
-    /// explicitly; the method never silently projects and reports success.
+    /// Solve W lambda = r on the quotient using the SVD of
+    /// B = L_H^T J L_M^-T. The minimum-kinetic correction is obtained directly
+    /// from B^+; the multiplier representative is reconstructed in whitened
+    /// dual coordinates and checked against the original Delassus operator.
     pub fn solve_residual(
         &self,
         residual: &ConstraintResidualV1<Space, K>,
     ) -> Result<ConstraintQuotientSolveReceiptV1<Frame, Space, N, K>, ConstraintQuotientErrorV1>
     {
         let residual_components = *residual.components();
-        let residual_norm = h_norm(&self.residual_metric, &residual_components)?;
-        if !self.rank_resolved {
-            return Ok(self.empty_receipt(
-                ConstraintResidualStatusV1::Inconclusive,
-                0.0,
-                f64::INFINITY,
-            ));
-        }
+        let whitened_residual = self
+            .residual_metric
+            .whiten_tangent(&Tangent::<Space, K>::new(residual_components)?)?;
+        let residual_norm = crate::vector_euclidean(&whitened_residual);
 
-        // H-orthogonal projection onto range(W)=range(J).
-        let mut coefficients = [0.0; K];
-        for axis in 0..self.rank {
-            let basis_column = std::array::from_fn(|coordinate| self.range_basis[coordinate][axis]);
-            coefficients[axis] =
-                h_inner(&self.residual_metric, &basis_column, &residual_components)?;
-        }
+        let mut coefficients = [0.0; N];
         let mut projected = [0.0; K];
-        for row in 0..K {
-            for axis in 0..self.rank {
-                projected[row] += self.range_basis[row][axis] * coefficients[axis];
+        for axis in 0..self.rank {
+            for row in 0..K {
+                coefficients[axis] +=
+                    self.left_singular_vectors[row][axis] * whitened_residual[row];
+            }
+            for row in 0..K {
+                projected[row] += self.left_singular_vectors[row][axis] * coefficients[axis];
             }
         }
-        let defect = std::array::from_fn(|row| residual_components[row] - projected[row]);
-        let defect_norm = h_norm(&self.residual_metric, &defect)?;
+        let whitened_defect: [f64; K] =
+            std::array::from_fn(|row| whitened_residual[row] - projected[row]);
+        let defect_norm = crate::vector_euclidean(&whitened_defect);
         let compatibility_relative_defect = if residual_norm == 0.0 {
             defect_norm
         } else {
@@ -588,6 +582,14 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         };
         if !compatibility_relative_defect.is_finite() {
             return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
+        }
+
+        if !self.rank_resolved {
+            return Ok(self.empty_receipt(
+                ConstraintResidualStatusV1::Inconclusive,
+                compatibility_relative_defect,
+                f64::INFINITY,
+            ));
         }
 
         let tolerance = self.profile.relative_compatibility_tolerance;
@@ -606,38 +608,63 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             ));
         }
 
-        // Solve K_r mu = U^T H r, where K_r = U^T H W H U.
-        // Choose lambda = H U mu. Other solutions differ by ker(W).
-        let mu = solve_reduced(&self.reduced_cholesky, self.rank, &coefficients)?;
-        let mut multiplier_components = [0.0; K];
-        for row in 0..K {
-            for axis in 0..self.rank {
-                multiplier_components[row] += self.dual_range_basis[row][axis] * mu[axis];
+        // z = V Sigma^-1 U^T b is the minimum-Euclidean-norm solution
+        // of B z = b, hence delta-v = L_M^-T z is the minimum-kinetic
+        // physical correction.
+        let mut whitened_correction = [0.0; N];
+        let mut whitened_multiplier = [0.0; K];
+        for axis in 0..self.rank {
+            let singular_value = self.singular_values[axis];
+            if !singular_value.is_finite() || singular_value <= 0.0 {
+                return Ok(self.empty_receipt(
+                    ConstraintResidualStatusV1::Inconclusive,
+                    compatibility_relative_defect,
+                    f64::INFINITY,
+                ));
+            }
+            let inverse = 1.0 / singular_value;
+            let inverse_squared = inverse * inverse;
+            if !inverse.is_finite() || !inverse_squared.is_finite() {
+                return Ok(self.empty_receipt(
+                    ConstraintResidualStatusV1::Inconclusive,
+                    compatibility_relative_defect,
+                    f64::INFINITY,
+                ));
+            }
+            let correction_coefficient = coefficients[axis] * inverse;
+            let multiplier_coefficient = coefficients[axis] * inverse_squared;
+            if !correction_coefficient.is_finite() || !multiplier_coefficient.is_finite() {
+                return Ok(self.empty_receipt(
+                    ConstraintResidualStatusV1::Inconclusive,
+                    compatibility_relative_defect,
+                    f64::INFINITY,
+                ));
+            }
+            for dof in 0..N {
+                whitened_correction[dof] +=
+                    self.right_singular_vectors[dof][axis] * correction_coefficient;
+            }
+            for row in 0..K {
+                whitened_multiplier[row] +=
+                    self.left_singular_vectors[row][axis] * multiplier_coefficient;
             }
         }
-        let multiplier = ConstraintMultiplierV1::<Space, K>::new(multiplier_components)?;
-
-        let mapped = mat_vec(&self.delassus, &multiplier_components)?;
-        let equation_defect = std::array::from_fn(|row| mapped[row] - projected[row]);
-        let equation_defect_norm = h_norm(&self.residual_metric, &equation_defect)?;
-        let reduced_solve_relative_defect = if residual_norm == 0.0 {
-            equation_defect_norm
-        } else {
-            equation_defect_norm / residual_norm
-        };
-        if !reduced_solve_relative_defect.is_finite() {
-            return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
-        }
-        if reduced_solve_relative_defect > tolerance {
+        if whitened_correction.iter().any(|value| !value.is_finite())
+            || whitened_multiplier.iter().any(|value| !value.is_finite())
+        {
             return Ok(self.empty_receipt(
                 ConstraintResidualStatusV1::Inconclusive,
                 compatibility_relative_defect,
-                reduced_solve_relative_defect,
+                f64::INFINITY,
             ));
         }
 
-        let dual_pairing = crate::dot(&multiplier_components, &residual_components);
-        if !dual_pairing.is_finite() || dual_pairing < -tolerance * residual_norm.max(1.0) {
+        let lambda = self.residual_metric.unwhiten_cotangent(&whitened_multiplier)?;
+        let multiplier = ConstraintMultiplierV1::<Space, K>::new(*lambda.components())?;
+        let dual_pairing = crate::dot(lambda.components(), &residual_components);
+        if !dual_pairing.is_finite()
+            || dual_pairing < -tolerance * residual_norm.max(1.0)
+        {
             return Err(ConstraintQuotientErrorV1::NegativeQuotientQuadraticForm);
         }
         let residual_dual_norm = dual_pairing.max(0.0).sqrt();
@@ -645,13 +672,24 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         let mut generalized_force = [0.0; N];
         for row in 0..K {
             for dof in 0..N {
-                generalized_force[dof] += self.jacobian[row][dof] * multiplier_components[row];
+                generalized_force[dof] +=
+                    self.jacobian[row][dof] * multiplier.components()[row];
             }
         }
-        let correction = self
-            .mass
-            .raise(&Cotangent::<Frame, N>::new(generalized_force)?)?;
+        let correction = self.mass.raise(&Cotangent::<Frame, N>::new(generalized_force)?)?;
         let kinetic_norm = self.mass.tangent_norm(&correction)?;
+        let recovered_whitened_correction = self.mass.whiten_tangent(&correction)?;
+        let correction_defect: [f64; N] = std::array::from_fn(|dof| {
+            recovered_whitened_correction[dof] - whitened_correction[dof]
+        });
+        let correction_relative_defect = crate::vector_euclidean(&correction_defect)
+            / crate::vector_euclidean(&whitened_correction).max(1.0);
+
+        let mapped = mat_vec(&self.delassus, multiplier.components())?;
+        let equation_defect: [f64; K] =
+            std::array::from_fn(|row| mapped[row] - residual_components[row]);
+        let equation_relative_defect =
+            h_norm(&self.residual_metric, &equation_defect)? / residual_norm.max(1.0);
 
         let mut reconstructed = [0.0; K];
         for row in 0..K {
@@ -659,19 +697,24 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
                 reconstructed[row] += self.jacobian[row][dof] * correction.components()[dof];
             }
         }
-        let reconstruction_defect =
+        let reconstruction_defect: [f64; K] =
             std::array::from_fn(|row| reconstructed[row] - residual_components[row]);
-        let reconstruction_norm = h_norm(&self.residual_metric, &reconstruction_defect)?;
-        let reconstruction_relative_defect = if residual_norm == 0.0 {
-            reconstruction_norm
-        } else {
-            reconstruction_norm / residual_norm
-        };
-        if reconstruction_relative_defect > tolerance {
+        let reconstruction_relative_defect =
+            h_norm(&self.residual_metric, &reconstruction_defect)? / residual_norm.max(1.0);
+
+        let norm_identity_defect = (residual_dual_norm - kinetic_norm).abs()
+            / residual_dual_norm.max(kinetic_norm).max(1.0);
+        let reduced_solve_relative_defect = correction_relative_defect
+            .max(equation_relative_defect)
+            .max(reconstruction_relative_defect)
+            .max(norm_identity_defect);
+        if !reduced_solve_relative_defect.is_finite()
+            || reduced_solve_relative_defect > tolerance
+        {
             return Ok(self.empty_receipt(
                 ConstraintResidualStatusV1::Inconclusive,
                 compatibility_relative_defect,
-                reconstruction_relative_defect,
+                reduced_solve_relative_defect,
             ));
         }
 
@@ -680,8 +723,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             numerical_rank: self.rank,
             multiplier_nullity: K - self.rank,
             compatibility_relative_defect,
-            reduced_solve_relative_defect: reduced_solve_relative_defect
-                .max(reconstruction_relative_defect),
+            reduced_solve_relative_defect,
             multiplier_representative: Some(multiplier),
             residual_dual_norm: Some(residual_dual_norm),
             minimum_kinetic_correction: Some(correction),
