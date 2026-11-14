@@ -99,7 +99,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -186,7 +193,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -273,7 +287,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -360,7 +381,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -454,7 +482,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -553,7 +588,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -647,7 +689,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -741,7 +790,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -835,7 +891,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -929,7 +992,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -1023,7 +1093,9 @@
           "status": "MISSING",
           "sampled_at_unix": null,
           "laboratory_method_accredited": false,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": null,
+          "tested_hazard_ids": []
         }
       }
     },
@@ -1117,7 +1189,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -1211,7 +1290,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -1305,7 +1391,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -1399,7 +1492,14 @@
           "status": "PASS",
           "sampled_at_unix": 100000,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     },
@@ -1493,7 +1593,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         },
         "policy_microbial_requirement": "COMPREHENSIVE_3_STAR"
       }
@@ -1588,7 +1695,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         },
         "policy_microbial_requirement": "COMPREHENSIVE_3_STAR"
       }
@@ -1683,7 +1797,14 @@
           "status": "PASS",
           "sampled_at_unix": 199950,
           "laboratory_method_accredited": true,
-          "sample_id": "SYN-LAB-001"
+          "sample_id": "SYN-LAB-001",
+          "sample_location_id": "SYN-POINT-OF-USE",
+          "tested_hazard_ids": [
+            "bacteria",
+            "viruses",
+            "protozoa",
+            "arsenic"
+          ]
         }
       }
     }
