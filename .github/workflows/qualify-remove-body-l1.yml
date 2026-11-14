@@ -1,0 +1,98 @@
+name: Qualify PhysicsWorld remove_body L1
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qualify-remove-body-l1-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  exact-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCT_SHA: ce1b4b4c57bee8f84cd1efb700297f239b2fcca0
+      PARENT_SHA: 96ec4e7a5b16a578d880780f6311e1932eda726f
+      PRODUCT_BRANCH: physics/remove-body-l1-96ec4e7
+      PRODUCT_FILE: crates/core/symtropy-physics/src/world.rs
+      PRODUCT_BLOB: 346d3b2014b71ff465e39f7adec413f77e520c9c
+      REPORT: /tmp/remove-body-l1-qualification.txt
+      CARGO_TARGET_DIR: /tmp/remove-body-l1-target
+      CARGO_INCREMENTAL: 0
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout immutable product
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ce1b4b4c57bee8f84cd1efb700297f239b2fcca0
+          persist-credentials: false
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+
+      - name: Prove exact immutable subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-list --count "$PARENT_SHA"..HEAD)" = 1
+          test "$(git diff --name-only "$PARENT_SHA" "$PRODUCT_SHA")" = "$PRODUCT_FILE"
+          test "$(git rev-parse "HEAD:$PRODUCT_FILE")" = "$PRODUCT_BLOB"
+          test "$(git status --porcelain=v1 --untracked-files=all)" = ""
+          test ! -e target
+
+      - name: Execute exact Rust 1.96 gates
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > "$REPORT"
+          fail=0
+          gate() {
+            name="$1"; shift
+            if "$@"; then
+              printf 'PASS %s\n' "$name" | tee -a "$REPORT"
+            else
+              rc=$?
+              printf 'FAIL %s rc=%s\n' "$name" "$rc" | tee -a "$REPORT"
+              fail=1
+            fi
+          }
+          gate exact_file_format rustfmt +1.96.0 --edition 2024 --check "$PRODUCT_FILE"
+          gate focused_tests cargo test --locked -p symtropy-physics
+          gate strict_clippy cargo clippy --locked -p symtropy-physics --all-targets -- -D warnings
+          gate all_target_check cargo check --locked -p symtropy-physics --all-targets
+          if test "$fail" -eq 0; then
+            printf 'RESULT TheoremExecutedPass\n' | tee -a "$REPORT"
+          else
+            printf 'RESULT TheoremExecutedFail\n' | tee -a "$REPORT"
+            exit "$fail"
+          fi
+
+      - name: Immutable postflight
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git rev-parse HEAD^)" = "$PARENT_SHA"
+          test "$(git rev-parse HEAD:$PRODUCT_FILE)" = "$PRODUCT_BLOB"
+          test "$(git status --porcelain=v1 --untracked-files=all)" = ""
+          test ! -e target
+          test -d "$CARGO_TARGET_DIR"
+
+      - name: Retain qualification receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: remove-body-l1-qualification
+          path: /tmp/remove-body-l1-qualification.txt
+          if-no-files-found: error
+          retention-days: 30
