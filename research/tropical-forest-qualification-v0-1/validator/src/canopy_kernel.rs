@@ -78,7 +78,7 @@ impl CanopyPatch {
         }
         let added_total = lai_per_cell * support.len() as f64;
         if !added_total.is_finite() || !(self.total_lai() + added_total).is_finite() {
-            return Err("cohort LAI would overflow the patch-wide biomass-light state".to_string());
+            return Err("cohort LAI would overflow the patch-wide canopy LAI state".to_string());
         }
         let current_field = self.lai_field();
         for (x, y) in &support {
