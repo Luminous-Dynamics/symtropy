@@ -66,6 +66,11 @@
       "case_id": "OT13",
       "scenario": "The propensity model declares a post-treatment covariate outside the preregistered baseline set.",
       "expected": "rejected_post_treatment_propensity_feature"
+    },
+    {
+      "case_id": "OT14",
+      "scenario": "A treatment strategy label is present but its underlying work-order/strategy record digest is missing.",
+      "expected": "rejected_unbound_strategy_record"
     }
   ]
 }
