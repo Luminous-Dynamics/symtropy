@@ -8,6 +8,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
+pub mod damage;
 pub mod voi;
 
 pub const ACCEPT_RECORD_ONLY: &str = "ACCEPT_RECORD_ONLY";
