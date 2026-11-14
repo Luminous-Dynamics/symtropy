@@ -60,9 +60,14 @@
     "raw_physical_measurements_acquired": "none_in_this_t0_fixture",
     "digest_semantics": "synthetic_fixture_markers_only_not_raw_data_or_model_output_SHA256",
     "chemical_fate_t0_cases": 12,
-    "chemical_fate_source_level_oracle_replay": "pending_independent_replay",
+    "chemical_fate_source_level_oracle_replay": "12_of_12_matched",
     "chemical_fate_native_rust_tests": "pending_exact_head_hosted_workflow",
-    "chemical_fate_field_lab_validation": "not_performed"
+    "chemical_fate_field_lab_validation": "not_performed",
+    "chemical_fate_rust_unit_tests": 12,
+    "chemical_fate_native_cargo_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "chemical_fate_upstream_solver_qualification": "not_performed",
+    "chemical_fate_physical_or_laboratory_validation": "not_performed",
+    "chemical_fate_raw_site_samples_acquired": "none_in_this_T0_corpus"
   },
   "digest_semantics": "output_digest and raw_data_digest_marker in T0 fixtures are synthetic_fixture_marker values, not hashes of source bytes; production must use SHA-256 over exact serialized stage outputs and raw observations",
   "observation_evidence_semantics": "all case rows are synthetic_fixture. observation_origin=measurement_channel means a future required channel, not acquired data. No actual measurement is present.",
