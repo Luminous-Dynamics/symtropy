@@ -1,0 +1,689 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "mission-resilience-v0.1",
+  "provenance": {
+    "kind": "synthetic_only",
+    "external_real_world_data_included": false,
+    "notes": "All missions, routes, durations, reserves, margins, capabilities, gates, disruptions and outcomes are invented as software regression fixtures; they are not real route or vehicle data."
+  },
+  "claim_ceiling": "synthetic_stress_coverage_is_not_route_authorization_or_real_world_safety_validation",
+  "missions": [
+    {
+      "mission_id": "amazon-medical-cold-chain",
+      "deadline_minutes": 180,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 2,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "environment_id": "amazon_basin"
+    },
+    {
+      "mission_id": "antarctic-accessible-relief",
+      "deadline_minutes": 240,
+      "minimum_energy_reserve_pct": 25,
+      "minimum_condition_margin_c": 0,
+      "requirements": {
+        "condition_control": false,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "environment_id": "antarctica"
+    },
+    {
+      "mission_id": "congo-fragile-sample",
+      "deadline_minutes": 210,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 2,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "environment_id": "congo_basin"
+    },
+    {
+      "mission_id": "sahara-water-medical-kit",
+      "environment_id": "sahara",
+      "deadline_minutes": 300,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 1,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    },
+    {
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "environment_id": "afghanistan",
+      "deadline_minutes": 300,
+      "minimum_energy_reserve_pct": 20,
+      "minimum_condition_margin_c": 0,
+      "requirements": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      }
+    }
+  ],
+  "plans": [
+    {
+      "plan_id": "amazon-air-river",
+      "mission_id": "amazon-medical-cold-chain",
+      "mode_chain": [
+        "rivercraft",
+        "aerial-carrier"
+      ],
+      "duration_minutes": 95,
+      "energy_reserve_pct": 25,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "amazon-river-ground",
+      "mission_id": "amazon-medical-cold-chain",
+      "mode_chain": [
+        "rivercraft",
+        "ground-carrier"
+      ],
+      "duration_minutes": 145,
+      "energy_reserve_pct": 38,
+      "condition_margin_c": 4,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "amazon-low-reserve-road",
+      "mission_id": "amazon-medical-cold-chain",
+      "mode_chain": [
+        "ground-carrier"
+      ],
+      "duration_minutes": 130,
+      "energy_reserve_pct": 12,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "antarctic-tracked-accessible",
+      "mission_id": "antarctic-accessible-relief",
+      "mode_chain": [
+        "tracked-carrier"
+      ],
+      "duration_minutes": 190,
+      "energy_reserve_pct": 42,
+      "condition_margin_c": 1,
+      "capabilities": {
+        "condition_control": false,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "antarctic-sled-accessible",
+      "mission_id": "antarctic-accessible-relief",
+      "mode_chain": [
+        "sled-carrier"
+      ],
+      "duration_minutes": 210,
+      "energy_reserve_pct": 35,
+      "condition_margin_c": 0.5,
+      "capabilities": {
+        "condition_control": false,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "antarctic-air-low-reserve",
+      "mission_id": "antarctic-accessible-relief",
+      "mode_chain": [
+        "aerial-carrier"
+      ],
+      "duration_minutes": 135,
+      "energy_reserve_pct": 16,
+      "condition_margin_c": 1,
+      "capabilities": {
+        "condition_control": false,
+        "securement": true,
+        "accessible_transfer": true,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "congo-watercraft-carrier",
+      "mission_id": "congo-fragile-sample",
+      "mode_chain": [
+        "watercraft",
+        "ground-carrier"
+      ],
+      "duration_minutes": 160,
+      "energy_reserve_pct": 30,
+      "condition_margin_c": 3,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "congo-ground-vehicle",
+      "mission_id": "congo-fragile-sample",
+      "mode_chain": [
+        "ground-carrier"
+      ],
+      "duration_minutes": 175,
+      "energy_reserve_pct": 24,
+      "condition_margin_c": 2.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "congo-improper-securement",
+      "mission_id": "congo-fragile-sample",
+      "mode_chain": [
+        "ground-carrier"
+      ],
+      "duration_minutes": 205,
+      "energy_reserve_pct": 26,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": false,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "sahara-dune-carrier",
+      "mission_id": "sahara-water-medical-kit",
+      "mode_chain": [
+        "dune-rover"
+      ],
+      "duration_minutes": 220,
+      "energy_reserve_pct": 32,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "sahara-night-relay",
+      "mission_id": "sahara-water-medical-kit",
+      "mode_chain": [
+        "ground-carrier",
+        "night-relay"
+      ],
+      "duration_minutes": 260,
+      "energy_reserve_pct": 45,
+      "condition_margin_c": 1.5,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "sahara-air-low-reserve",
+      "mission_id": "sahara-water-medical-kit",
+      "mode_chain": [
+        "aerial-carrier"
+      ],
+      "duration_minutes": 155,
+      "energy_reserve_pct": 18,
+      "condition_margin_c": 1.2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "passed",
+        "environmental_protection": "passed",
+        "hazard_status": "passed",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "afghanistan-held-route-primary",
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "mode_chain": [
+        "ground-carrier"
+      ],
+      "duration_minutes": 190,
+      "energy_reserve_pct": 35,
+      "condition_margin_c": 2,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    },
+    {
+      "plan_id": "afghanistan-held-route-alternate",
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "mode_chain": [
+        "ground-carrier",
+        "humanitarian-hub"
+      ],
+      "duration_minutes": 245,
+      "energy_reserve_pct": 28,
+      "condition_margin_c": 1,
+      "capabilities": {
+        "condition_control": true,
+        "securement": true,
+        "accessible_transfer": false,
+        "patient_support": false,
+        "operator_present": true,
+        "recovery_available": true
+      },
+      "gates": {
+        "route_authorization": "unknown",
+        "environmental_protection": "passed",
+        "hazard_status": "unknown",
+        "recovery_status": "passed",
+        "operator_status": "passed",
+        "condition_control_status": "passed"
+      }
+    }
+  ],
+  "stress_cases": [
+    {
+      "case_id": "amazon-rivercraft-outage",
+      "mission_id": "amazon-medical-cold-chain",
+      "description": "The slower backup river-ground plan becomes unavailable; the air-river plan absorbs a bounded delay.",
+      "expected_feasible_plan": true,
+      "impacts": [
+        {
+          "plan_id": "amazon-river-ground",
+          "available": false,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": 0,
+          "condition_margin_delta_c": 0
+        },
+        {
+          "plan_id": "amazon-air-river",
+          "available": true,
+          "duration_delta_minutes": 20,
+          "energy_reserve_delta_pct": -2,
+          "condition_margin_delta_c": 0
+        }
+      ]
+    },
+    {
+      "case_id": "amazon-thermal-disturbance",
+      "mission_id": "amazon-medical-cold-chain",
+      "description": "A thermal disturbance invalidates one plan's condition-control evidence while the second plan retains bounded condition margin.",
+      "expected_feasible_plan": true,
+      "impacts": [
+        {
+          "plan_id": "amazon-air-river",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": 0,
+          "condition_margin_delta_c": -2.5,
+          "gate_overrides": {
+            "condition_control_status": "failed"
+          }
+        },
+        {
+          "plan_id": "amazon-river-ground",
+          "available": true,
+          "duration_delta_minutes": 10,
+          "energy_reserve_delta_pct": -2,
+          "condition_margin_delta_c": -1.5
+        }
+      ]
+    },
+    {
+      "case_id": "antarctic-snow-delay",
+      "mission_id": "antarctic-accessible-relief",
+      "description": "A bounded storm delay makes the faster tracked carrier miss its deadline; the accessible sled plan remains within the deadline.",
+      "expected_feasible_plan": true,
+      "impacts": [
+        {
+          "plan_id": "antarctic-tracked-accessible",
+          "available": true,
+          "duration_delta_minutes": 75,
+          "energy_reserve_delta_pct": -5,
+          "condition_margin_delta_c": 0
+        },
+        {
+          "plan_id": "antarctic-sled-accessible",
+          "available": true,
+          "duration_delta_minutes": 15,
+          "energy_reserve_delta_pct": -4,
+          "condition_margin_delta_c": 0
+        }
+      ]
+    },
+    {
+      "case_id": "antarctic-accessibility-degradation",
+      "mission_id": "antarctic-accessible-relief",
+      "description": "The fastest platform's accessible-transfer capability becomes unavailable; a slower candidate still meets human-access requirements.",
+      "expected_feasible_plan": true,
+      "impacts": [
+        {
+          "plan_id": "antarctic-tracked-accessible",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": 0,
+          "condition_margin_delta_c": 0,
+          "capability_overrides": {
+            "accessible_transfer": false
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "congo-waterway-closure",
+      "mission_id": "congo-fragile-sample",
+      "description": "A waterway corridor closes; the qualified ground-only candidate remains within the mission envelope.",
+      "expected_feasible_plan": true,
+      "impacts": [
+        {
+          "plan_id": "congo-watercraft-carrier",
+          "available": false,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": 0,
+          "condition_margin_delta_c": 0
+        },
+        {
+          "plan_id": "congo-ground-vehicle",
+          "available": true,
+          "duration_delta_minutes": 25,
+          "energy_reserve_delta_pct": -1,
+          "condition_margin_delta_c": 0
+        }
+      ]
+    },
+    {
+      "case_id": "congo-energy-collapse-negative",
+      "mission_id": "congo-fragile-sample",
+      "description": "An intentionally unrecoverable energy event leaves no candidate above reserve requirements; the correct result is no admissible plan.",
+      "expected_feasible_plan": false,
+      "impacts": [
+        {
+          "plan_id": "congo-watercraft-carrier",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": -15,
+          "condition_margin_delta_c": 0
+        },
+        {
+          "plan_id": "congo-ground-vehicle",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": -6,
+          "condition_margin_delta_c": 0
+        },
+        {
+          "plan_id": "congo-improper-securement",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": -4,
+          "condition_margin_delta_c": 0
+        }
+      ]
+    },
+    {
+      "case_id": "sahara-dust-delay",
+      "mission_id": "sahara-water-medical-kit",
+      "description": "Dust and heat increase travel duration; the faster dune route exceeds deadline while the slower relay remains inside its declared condition and reserve envelope.",
+      "expected_feasible_plan": true,
+      "impacts": [
+        {
+          "plan_id": "sahara-dune-carrier",
+          "available": true,
+          "duration_delta_minutes": 90,
+          "energy_reserve_delta_pct": -5,
+          "condition_margin_delta_c": -0.4
+        },
+        {
+          "plan_id": "sahara-night-relay",
+          "available": true,
+          "duration_delta_minutes": 15,
+          "energy_reserve_delta_pct": -3,
+          "condition_margin_delta_c": -0.2
+        },
+        {
+          "plan_id": "sahara-air-low-reserve",
+          "available": true,
+          "duration_delta_minutes": 10,
+          "energy_reserve_delta_pct": -1,
+          "condition_margin_delta_c": -0.1
+        }
+      ]
+    },
+    {
+      "case_id": "sahara-heat-margin-collapse-negative",
+      "mission_id": "sahara-water-medical-kit",
+      "description": "A severe heat event collapses every candidate's condition margin or energy reserve; refusing all plans is the expected outcome.",
+      "expected_feasible_plan": false,
+      "impacts": [
+        {
+          "plan_id": "sahara-dune-carrier",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": -2,
+          "condition_margin_delta_c": -1.2
+        },
+        {
+          "plan_id": "sahara-night-relay",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": -4,
+          "condition_margin_delta_c": -0.6
+        },
+        {
+          "plan_id": "sahara-air-low-reserve",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": -1,
+          "condition_margin_delta_c": -0.1
+        }
+      ]
+    },
+    {
+      "case_id": "afghanistan-route-evidence-unknown-negative",
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "description": "Both otherwise capable candidates retain unknown route authorization and hazard evidence; no plan may become eligible.",
+      "expected_feasible_plan": false,
+      "impacts": [
+        {
+          "plan_id": "afghanistan-held-route-primary",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": 0,
+          "condition_margin_delta_c": 0
+        }
+      ]
+    },
+    {
+      "case_id": "afghanistan-hazard-evidence-failed-negative",
+      "mission_id": "afghanistan-civilian-aid-payload",
+      "description": "The primary candidate receives failed hazard evidence and the alternate still has unknown route and hazard evidence; no plan may be accepted.",
+      "expected_feasible_plan": false,
+      "impacts": [
+        {
+          "plan_id": "afghanistan-held-route-primary",
+          "available": true,
+          "duration_delta_minutes": 0,
+          "energy_reserve_delta_pct": 0,
+          "condition_margin_delta_c": 0,
+          "gate_overrides": {
+            "hazard_status": "failed"
+          }
+        }
+      ]
+    }
+  ]
+}

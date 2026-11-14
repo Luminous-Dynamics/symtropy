@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/mission_resilience_benchmark_v0_1.schema.json",
+  "title": "Synthetic Mission Resilience Benchmark v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "provenance",
+    "claim_ceiling",
+    "missions",
+    "plans",
+    "stress_cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "const": "mission-resilience-v0.1"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_stress_coverage_is_not_route_authorization_or_real_world_safety_validation"
+    },
+    "missions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/mission"
+      }
+    },
+    "plans": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/plan"
+      }
+    },
+    "stress_cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stress_case"
+      }
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "external_real_world_data_included",
+        "notes"
+      ],
+      "properties": {
+        "kind": {
+          "const": "synthetic_only"
+        },
+        "external_real_world_data_included": {
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "unknown",
+        "failed"
+      ]
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition_control",
+        "securement",
+        "accessible_transfer",
+        "patient_support",
+        "operator_present",
+        "recovery_available"
+      ],
+      "properties": {
+        "condition_control": {
+          "type": "boolean"
+        },
+        "securement": {
+          "type": "boolean"
+        },
+        "accessible_transfer": {
+          "type": "boolean"
+        },
+        "patient_support": {
+          "type": "boolean"
+        },
+        "operator_present": {
+          "type": "boolean"
+        },
+        "recovery_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "capability_overrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "condition_control": {
+          "type": "boolean"
+        },
+        "securement": {
+          "type": "boolean"
+        },
+        "accessible_transfer": {
+          "type": "boolean"
+        },
+        "patient_support": {
+          "type": "boolean"
+        },
+        "operator_present": {
+          "type": "boolean"
+        },
+        "recovery_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_authorization",
+        "environmental_protection",
+        "hazard_status",
+        "recovery_status",
+        "operator_status",
+        "condition_control_status"
+      ],
+      "properties": {
+        "route_authorization": {
+          "$ref": "#/$defs/status"
+        },
+        "environmental_protection": {
+          "$ref": "#/$defs/status"
+        },
+        "hazard_status": {
+          "$ref": "#/$defs/status"
+        },
+        "recovery_status": {
+          "$ref": "#/$defs/status"
+        },
+        "operator_status": {
+          "$ref": "#/$defs/status"
+        },
+        "condition_control_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "gate_overrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "route_authorization": {
+          "$ref": "#/$defs/status"
+        },
+        "environmental_protection": {
+          "$ref": "#/$defs/status"
+        },
+        "hazard_status": {
+          "$ref": "#/$defs/status"
+        },
+        "recovery_status": {
+          "$ref": "#/$defs/status"
+        },
+        "operator_status": {
+          "$ref": "#/$defs/status"
+        },
+        "condition_control_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition_control",
+        "securement",
+        "accessible_transfer",
+        "patient_support",
+        "operator_present",
+        "recovery_available"
+      ],
+      "properties": {
+        "condition_control": {
+          "type": "boolean"
+        },
+        "securement": {
+          "type": "boolean"
+        },
+        "accessible_transfer": {
+          "type": "boolean"
+        },
+        "patient_support": {
+          "type": "boolean"
+        },
+        "operator_present": {
+          "type": "boolean"
+        },
+        "recovery_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_id",
+        "environment_id",
+        "deadline_minutes",
+        "minimum_energy_reserve_pct",
+        "minimum_condition_margin_c",
+        "requirements"
+      ],
+      "properties": {
+        "mission_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "deadline_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "minimum_energy_reserve_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimum_condition_margin_c": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "requirements": {
+          "$ref": "#/$defs/requirements"
+        },
+        "environment_id": {
+          "type": "string",
+          "enum": [
+            "amazon_basin",
+            "congo_basin",
+            "antarctica",
+            "sahara",
+            "afghanistan"
+          ]
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "mission_id",
+        "mode_chain",
+        "duration_minutes",
+        "energy_reserve_pct",
+        "condition_margin_c",
+        "capabilities",
+        "gates"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "mission_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "mode_chain": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "energy_reserve_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "condition_margin_c": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "gates": {
+          "$ref": "#/$defs/gates"
+        }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "available",
+        "duration_delta_minutes",
+        "energy_reserve_delta_pct",
+        "condition_margin_delta_c"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "duration_delta_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "energy_reserve_delta_pct": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "condition_margin_delta_c": {
+          "type": "number",
+          "minimum": -2000,
+          "maximum": 2000
+        },
+        "capability_overrides": {
+          "$ref": "#/$defs/capability_overrides"
+        },
+        "gate_overrides": {
+          "$ref": "#/$defs/gate_overrides"
+        }
+      }
+    },
+    "stress_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "mission_id",
+        "description",
+        "expected_feasible_plan",
+        "impacts"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "mission_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_feasible_plan": {
+          "type": "boolean"
+        },
+        "impacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/impact"
+          }
+        }
+      }
+    }
+  }
+}

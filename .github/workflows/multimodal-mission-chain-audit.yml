@@ -1,0 +1,77 @@
+name: Multimodal Mission Chain Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/multimodal_mission_chain_v0_1.schema.json"
+      - "fixtures/transport/multimodal_mission_chain_scenarios_v0_1.json"
+      - "docs/tech/MULTIMODAL_MISSION_CHAIN_V0_1.md"
+      - "tools/multimodal-mission-chain-audit/**"
+      - ".github/workflows/multimodal-mission-chain-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/multimodal_mission_chain_v0_1.schema.json"
+      - "fixtures/transport/multimodal_mission_chain_scenarios_v0_1.json"
+      - "docs/tech/MULTIMODAL_MISSION_CHAIN_V0_1.md"
+      - "tools/multimodal-mission-chain-audit/**"
+      - ".github/workflows/multimodal-mission-chain-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: multimodal-mission-chain-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Normalize Rust formatting in the test working tree
+        run: cargo fmt --manifest-path tools/multimodal-mission-chain-audit/Cargo.toml
+      - name: Verify canonical formatting
+        run: cargo fmt --manifest-path tools/multimodal-mission-chain-audit/Cargo.toml -- --check
+      - name: Export formatter-produced source for exact commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustfmt-normalized-multimodal-chain
+          path: tools/multimodal-mission-chain-audit/src/main.rs
+          if-no-files-found: error
+      - name: Run chain, handoff and gate-state tests
+        run: cargo test --manifest-path tools/multimodal-mission-chain-audit/Cargo.toml --all-targets
+      - name: Audit synthetic multimodal mission chains
+        run: |
+          cargo run --manifest-path tools/multimodal-mission-chain-audit/Cargo.toml -- fixtures/transport/multimodal_mission_chain_scenarios_v0_1.json > "$RUNNER_TEMP/multimodal-chain-report.json"
+          jq -e '
+            .benchmark_id == "multimodal-mission-chain-v0.1"
+            and .environment_count == 5
+            and .payload_profile_count == 8
+            and .platform_profile_count == 14
+            and .hub_profile_count == 21
+            and .mission_count == 7
+            and .assessment_count == 8
+            and .eligible_for_human_review_count == 4
+            and .blocked_hard_gate_count == 1
+            and .blocked_chain_mismatch_count == 1
+            and .needs_gate_evidence_count == 2
+            and .weighted_utility_score_produced == false
+            and .universal_winner_produced == false
+            and .route_or_deployment_authorized == false
+            and .patient_care_authorized == false
+            and .autonomous_hazard_handling_authorized == false
+            and ([.chain_assessments[] | select(.assessment_id == "amz-coldchain-good") | .deadline_guaranteed] == [true])
+            and ([.chain_assessments[] | select(.assessment_id == "congo-sample-temperature-break-negative") | .chain_disposition] == ["blocked_hard_gate"])
+            and ([.chain_assessments[] | select(.assessment_id == "sahara-deadline-negative") | .chain_disposition] == ["blocked_chain_mismatch"])
+            and ([.chain_assessments[] | select(.assessment_id == "afg-medical-route-unknown") | .chain_disposition] == ["needs_gate_evidence"])
+          ' "$RUNNER_TEMP/multimodal-chain-report.json"
+          sha256sum "$RUNNER_TEMP/multimodal-chain-report.json"

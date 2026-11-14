@@ -1,0 +1,85 @@
+name: Mission Resilience Stress Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mission_resilience_benchmark_v0_1.schema.json"
+      - "fixtures/transport/mission_resilience_scenarios_v0_1.json"
+      - "docs/tech/MISSION_RESILIENCE_STRESS_BENCHMARK_V0_1.md"
+      - "tools/mission-resilience-audit/**"
+      - ".github/workflows/mission-resilience-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mission_resilience_benchmark_v0_1.schema.json"
+      - "fixtures/transport/mission_resilience_scenarios_v0_1.json"
+      - "docs/tech/MISSION_RESILIENCE_STRESS_BENCHMARK_V0_1.md"
+      - "tools/mission-resilience-audit/**"
+      - ".github/workflows/mission-resilience-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mission-resilience-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Normalize Rust formatting in the test working tree
+        run: cargo fmt --manifest-path tools/mission-resilience-audit/Cargo.toml
+      - name: Verify canonical formatting
+        run: cargo fmt --manifest-path tools/mission-resilience-audit/Cargo.toml -- --check
+      - name: Export formatter-produced source for exact commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustfmt-normalized-mission-resilience
+          path: tools/mission-resilience-audit/src/main.rs
+          if-no-files-found: error
+      - name: Run fail-closed contract and resilience tests
+        run: cargo test --manifest-path tools/mission-resilience-audit/Cargo.toml --all-targets
+      - name: Audit the synthetic stress corpus
+        run: |
+          cargo run --manifest-path tools/mission-resilience-audit/Cargo.toml -- fixtures/transport/mission_resilience_scenarios_v0_1.json > "$RUNNER_TEMP/mission-resilience-report.json"
+          jq -e '
+            .benchmark_id == "mission-resilience-v0.1"
+            and .mission_count == 5
+            and .environment_count == 5
+            and .candidate_plan_count == 14
+            and .stress_case_count == 10
+            and .baseline_eligible_plan_count == 8
+            and .expected_recoverable_case_count == 6
+            and .expected_recoverable_case_coverage_percent == 100
+            and .expected_no_plan_control_count == 4
+            and .expected_no_plan_control_correct_count == 4
+            and .expected_viability_oracle_match_count == 10
+            and .expected_viability_oracle_match_percent == 100
+            and ([.environment_summaries[] | select(.environment_id == "afghanistan") | .baseline_feasible_plan_count] == [0])
+            and ([.environment_summaries[] | select(.environment_id == "afghanistan") | .expected_no_plan_control_correct_count] == [2])
+            and ([.scenario_assessments[] | select(.case_id == "sahara-heat-margin-collapse-negative") | .no_admissible_plan] == [true])
+            and ([.scenario_assessments[] | select(.case_id == "afghanistan-route-evidence-unknown-negative") | .no_admissible_plan] == [true])
+            and ([.scenario_assessments[] | select(.case_id == "afghanistan-hazard-evidence-failed-negative") | .no_admissible_plan] == [true])
+            and .weighted_utility_score_produced == false
+            and .universal_winner_produced == false
+            and .route_or_deployment_authorized == false
+            and .patient_care_authorized == false
+            and .autonomous_hazard_handling_authorized == false
+            and .real_world_validated == false
+            and ([.scenario_assessments[] | select(.case_id == "congo-energy-collapse-negative") | .no_admissible_plan] == [true])
+            and ([.baseline_assessments[] | select(.plan_id == "amazon-low-reserve-road") | .disposition] == ["blocked_constraints"])
+            and ([.baseline_assessments[] | select(.plan_id == "congo-improper-securement") | .disposition] == ["blocked_constraints"])
+            and ([.scenario_assessments[] | select(.case_id == "antarctic-accessibility-degradation") | .feasible_plan_ids] == [["antarctic-sled-accessible"]])
+          ' "$RUNNER_TEMP/mission-resilience-report.json"
+          sha256sum "$RUNNER_TEMP/mission-resilience-report.json"
+
