@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_RUL_FORECAST_V0_1.schema.json",
+  "title": "Maritime remaining-useful-life forecast contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "forecast_id",
+    "subject",
+    "event_definition",
+    "forecast_origin",
+    "duty_profile",
+    "prediction",
+    "censoring",
+    "provenance",
+    "limitations",
+    "authority"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "forecast_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subject": {
+      "$ref": "#/$defs/subject"
+    },
+    "event_definition": {
+      "$ref": "#/$defs/event"
+    },
+    "forecast_origin": {
+      "$ref": "#/$defs/time"
+    },
+    "duty_profile": {
+      "$ref": "#/$defs/duty"
+    },
+    "prediction": {
+      "$ref": "#/$defs/prediction"
+    },
+    "censoring": {
+      "$ref": "#/$defs/censoring"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "authority": {
+      "$ref": "#/$defs/authority"
+    }
+  },
+  "$defs": {
+    "time": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "unit",
+            "clock_domain"
+          ],
+          "properties": {
+            "value": {
+              "type": "number"
+            },
+            "unit": {
+              "enum": [
+                "unix_ms",
+                "unix_s",
+                "monotonic_ns",
+                "monotonic_ms"
+              ]
+            },
+            "clock_domain": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "unit",
+            "clock_domain"
+          ],
+          "properties": {
+            "value": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "unit": {
+              "const": "iso8601"
+            },
+            "clock_domain": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vessel_id",
+        "asset_id",
+        "component_id",
+        "config_revision",
+        "capability"
+      ],
+      "properties": {
+        "vessel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "config_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_type",
+        "event_definition_ref",
+        "event_unit",
+        "event_scope",
+        "competing_events"
+      ],
+      "properties": {
+        "event_type": {
+          "enum": [
+            "functional_failure",
+            "physical_failure",
+            "threshold_crossing",
+            "maintenance_intervention",
+            "retirement",
+            "other_declared_event"
+          ]
+        },
+        "event_definition_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_unit": {
+          "enum": [
+            "operating_hours",
+            "calendar_hours",
+            "calendar_days",
+            "engine_cycles",
+            "starts",
+            "load_cycles",
+            "other_declared_unit"
+          ],
+          "description": "The single unit used by all forecast horizons, RUL quantiles and censoring durations in this record."
+        },
+        "event_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "competing_events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "duty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_revision",
+        "profile_digest",
+        "assumption"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "assumption": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Duration expressed in the event_unit declared in event_definition."
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distribution_family",
+        "forecast_horizon",
+        "quantiles",
+        "uncertainty_method",
+        "calibration_reference",
+        "calibration_status"
+      ],
+      "properties": {
+        "distribution_family": {
+          "enum": [
+            "survival",
+            "weibull",
+            "lognormal",
+            "empirical",
+            "quantile",
+            "competing_risk",
+            "other_declared_distribution"
+          ]
+        },
+        "forecast_horizon": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Duration expressed in the event_unit declared in event_definition."
+        },
+        "quantiles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "p05",
+            "p50",
+            "p95"
+          ],
+          "properties": {
+            "p05": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Duration expressed in the event_unit declared in event_definition."
+            },
+            "p50": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Duration expressed in the event_unit declared in event_definition."
+            },
+            "p95": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Duration expressed in the event_unit declared in event_definition."
+            }
+          }
+        },
+        "uncertainty_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_status": {
+          "enum": [
+            "calibrated_on_independent_validation",
+            "calibration_pending",
+            "uncalibrated",
+            "out_of_domain"
+          ]
+        }
+      }
+    },
+    "censoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_status",
+        "observation_duration",
+        "event_observed",
+        "censoring_reason",
+        "censoring_time",
+        "event_time"
+      ],
+      "properties": {
+        "observation_status": {
+          "enum": [
+            "event_observed",
+            "right_censored",
+            "interval_censored",
+            "intervention_censored",
+            "competing_event_observed",
+            "unknown"
+          ]
+        },
+        "observation_duration": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Duration expressed in the event_unit declared in event_definition."
+        },
+        "event_observed": {
+          "type": "boolean"
+        },
+        "censoring_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "censoring_time": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "description": "Duration expressed in the event_unit declared in event_definition."
+            }
+          ]
+        },
+        "event_time": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "description": "Duration expressed in the event_unit declared in event_definition."
+            }
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_evidence_digest",
+        "model_artifact_digest",
+        "model_version",
+        "code_commit",
+        "evaluator_id",
+        "generated_at"
+      ],
+      "properties": {
+        "input_evidence_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_artifact_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "evaluator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect",
+        "may_authorize_maintenance",
+        "may_clear_restriction",
+        "may_change_odd_or_mode"
+      ],
+      "properties": {
+        "effect": {
+          "const": "no_authority_granted"
+        },
+        "may_authorize_maintenance": {
+          "const": false
+        },
+        "may_clear_restriction": {
+          "const": false
+        },
+        "may_change_odd_or_mode": {
+          "const": false
+        }
+      }
+    }
+  }
+}

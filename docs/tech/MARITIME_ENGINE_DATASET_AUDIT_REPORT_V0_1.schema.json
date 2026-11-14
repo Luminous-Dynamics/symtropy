@@ -1,0 +1,537 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json",
+  "title": "Marine engine dataset payload audit report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "dataset_doi",
+    "dataset_version",
+    "audit_state",
+    "claim_ceiling",
+    "archive",
+    "files_expected",
+    "files_found",
+    "scenario_csvs_audited",
+    "baseline_csvs_audited",
+    "total_data_rows",
+    "file_audits",
+    "split_template",
+    "errors",
+    "warnings"
+  ],
+  "properties": {
+    "report_version": {
+      "const": "0.1.0"
+    },
+    "dataset_doi": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dataset_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "audit_state": {
+      "enum": [
+        "content_audited_pending_independent_review",
+        "incomplete_or_invalid"
+      ]
+    },
+    "claim_ceiling": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "archive": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/archive"
+        }
+      ]
+    },
+    "files_expected": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files_found": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scenario_csvs_audited": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "baseline_csvs_audited": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_data_rows": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "file_audits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/file"
+      }
+    },
+    "split_template": {
+      "$ref": "#/$defs/split"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "archive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "size_bytes",
+        "sha256",
+        "publisher_md5",
+        "observed_md5",
+        "publisher_md5_matches",
+        "md5_tool_available",
+        "zip_signature_valid"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "publisher_md5": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_md5": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publisher_md5_matches": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "md5_tool_available": {
+          "type": "boolean"
+        },
+        "zip_signature_valid": {
+          "type": "boolean"
+        }
+      }
+    },
+    "missingColumn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "name",
+        "unit",
+        "missing_cells"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "missing_cells": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "csv": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "header_rows",
+        "column_count",
+        "data_rows",
+        "header_names",
+        "shorthand_symbols",
+        "units",
+        "anomaly_label_column",
+        "time_abs_column",
+        "time_abs_nonempty_rows",
+        "time_abs_empty_rows",
+        "time_abs_duplicate_rows",
+        "first_time_abs",
+        "last_time_abs",
+        "anomaly_zero_rows",
+        "anomaly_one_rows",
+        "anomaly_invalid_rows",
+        "anomaly_onset_transitions",
+        "anomaly_only_expected",
+        "anomaly_only_observed",
+        "anomaly_onset_evaluable",
+        "time_rel_column",
+        "time_rel_numeric_rows",
+        "time_rel_non_numeric_rows",
+        "time_rel_backsteps",
+        "time_rel_duplicates",
+        "first_time_rel",
+        "last_time_rel",
+        "missing_columns",
+        "missing_header_names",
+        "missing_shorthand_symbols",
+        "missing_units"
+      ],
+      "properties": {
+        "header_rows": {
+          "const": 3
+        },
+        "column_count": {
+          "enum": [
+            70,
+            73
+          ]
+        },
+        "data_rows": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "header_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "shorthand_symbols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "units": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "anomaly_label_column": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "anomaly_zero_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "anomaly_one_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "anomaly_invalid_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "anomaly_onset_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "anomaly_only_expected": {
+          "type": "boolean"
+        },
+        "anomaly_only_observed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "time_rel_column": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "time_rel_numeric_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_rel_non_numeric_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_rel_backsteps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_rel_duplicates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_time_rel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_time_rel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "missing_columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/missingColumn"
+          }
+        },
+        "time_abs_column": {
+          "type": "integer",
+          "const": 0
+        },
+        "missing_header_names": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "missing_shorthand_symbols": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "missing_units": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "time_abs_nonempty_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_abs_empty_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_abs_duplicate_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_time_abs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_time_abs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "anomaly_onset_evaluable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "role",
+        "exists",
+        "size_bytes",
+        "preview_reported_size",
+        "preview_size_delta_bytes",
+        "sha256",
+        "utf8_valid",
+        "metadata_csv_rows",
+        "csv",
+        "errors"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "scenario_csv",
+            "baseline_csv",
+            "metadata",
+            "license"
+          ]
+        },
+        "exists": {
+          "type": "boolean"
+        },
+        "size_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "preview_reported_size": {
+          "type": "string"
+        },
+        "preview_size_delta_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "utf8_valid": {
+          "type": "boolean"
+        },
+        "metadata_csv_rows": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "csv": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/csv"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "splitGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_id",
+        "source_file",
+        "group_type",
+        "assignment",
+        "assignment_state",
+        "note"
+      ],
+      "properties": {
+        "group_id": {
+          "type": "string"
+        },
+        "source_file": {
+          "type": "string"
+        },
+        "group_type": {
+          "enum": [
+            "original_recording_file",
+            "baseline_reference_recording"
+          ]
+        },
+        "assignment": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "train",
+            "validation",
+            "test",
+            "reference_only",
+            null
+          ]
+        },
+        "assignment_state": {
+          "enum": [
+            "unassigned_requires_review",
+            "preassigned_reference_only"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "assignment_policy",
+        "group_key",
+        "random_window_split_allowed",
+        "groups"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0"
+        },
+        "assignment_policy": {
+          "const": "explicit_group_assignment_after_payload_audit"
+        },
+        "group_key": {
+          "const": "original_recording_file_and_physical_fault_run"
+        },
+        "random_window_split_allowed": {
+          "const": false
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/splitGroup"
+          }
+        }
+      }
+    }
+  }
+}

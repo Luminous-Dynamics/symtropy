@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_ENGINEERING_HEALTH_CAPABILITY_IMPACT_V0_1.schema.json",
+  "title": "Maritime engineering-health capability impact v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_sha256",
+    "case_id",
+    "vessel_id",
+    "asset_id",
+    "component_id",
+    "config_revision",
+    "capability",
+    "status",
+    "admitted_observations",
+    "decision_evidence_observations",
+    "distinct_declared_dependency_groups",
+    "authority_effect",
+    "may_authorize_transition",
+    "may_clear_restriction"
+  ],
+  "properties": {
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vessel_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "asset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "component_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "config_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capability": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "restriction_recommended",
+        "no_restriction_indicated",
+        "unknown_needs_evidence",
+        "recovery_blocked",
+        "recovery_evidence_ready_for_independent_review"
+      ]
+    },
+    "admitted_observations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_evidence_observations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "distinct_declared_dependency_groups": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "authority_effect": {
+      "const": "no_authority_granted"
+    },
+    "may_authorize_transition": {
+      "const": false
+    },
+    "may_clear_restriction": {
+      "const": false
+    }
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "manifest_id": "luminous.symtropy.external-dataset.marine-engine-fault.v1",
+  "manifest_version": "0.1.0",
+  "status": "metadata_verified_payload_not_yet_audited",
+  "dataset": {
+    "title": "Marine Engine Fault Dataset: Open-Access Data under Controlled Reference and Fault Scenario Conditions",
+    "zenodo_record": "https://zenodo.org/records/19857425",
+    "doi": "10.5281/zenodo.19857425",
+    "version": "v1",
+    "associated_preprint": {
+      "title": "Marine Engine Fault Dataset: Open-Access Data under Controlled Reference and Fault Scenario Conditions",
+      "url": "https://arxiv.org/abs/2607.19444",
+      "submitted": "2026-07-21",
+      "status": "preprint_submitted_to_journal_under_review"
+    },
+    "publisher": "Zenodo",
+    "license": "CC-BY-4.0",
+    "attribution_required": true,
+    "creators": [
+      "Ahmad BahooToroody",
+      "Oleksiy Bondarenko",
+      "Mohammad Mahdi Abaei",
+      "Niki Yoichi",
+      "Enrico Zio"
+    ]
+  },
+  "experimental_platform": {
+    "engine_manufacturer": "Matsui Iron Works",
+    "engine_model": "MU323DGSC",
+    "configuration": "turbocharged_intercooled_three_cylinder_marine_diesel_engine",
+    "environment": "controlled_test_bench",
+    "measurement_scope": "multi_sensor_operating_thermal_pressure_flow_and_combustion_related_variables",
+    "deployment_scope": "laboratory_test_bench_not_shipboard_fleet_operation"
+  },
+  "public_record_metadata": {
+    "csv_files": 16,
+    "baseline_reference_files": 1,
+    "fault_scenario_files": 15,
+    "approximate_timestamped_samples": 115000,
+    "approximate_measured_and_derived_channels": 70,
+    "scenario_file_columns": 73,
+    "baseline_file_columns": 70,
+    "header_rows": 3,
+    "encoding": "UTF-8",
+    "scenario_label": {
+      "column": "Anomaly State",
+      "encoding": {
+        "0": "pre_anomaly",
+        "1": "anomaly"
+      },
+      "applies_to": "scenario_files_except_the_two_injection_nozzle_files_with_anomaly_only",
+      "interpretation": "Binary per-row anomaly-state target only; fault-family identity is supplied by scenario/recording metadata, not a per-row multi-class label. Do not claim row-level root-cause or severity ground truth from this field."
+    },
+    "missing_channel_notes": [
+      "Compressor Filter Loss",
+      "Turbine Back Pressure"
+    ],
+    "missing_channel_runs": 5,
+    "included_metadata_files": [
+      "dataset_index",
+      "variable_dictionary",
+      "normalization_script"
+    ],
+    "archive": {
+      "filename": "Marine_Engine_Fault_Data_v1.zip",
+      "reported_size_mb": 26.5,
+      "source_published_md5": "f4d246c1bb46e05b26e56221acc2606c",
+      "md5_verified_against_downloaded_payload": false,
+      "sha256": null,
+      "sha256_verified": false,
+      "downloaded": false,
+      "preview_url": "https://zenodo.org/records/19857425/preview/Marine_Engine_Fault_Data_v1.zip?include_deleted=0",
+      "preview_tree_verified": true,
+      "file_inventory": [
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_40_Load.csv",
+          "reported_size": "3.4 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_60_Load.csv",
+          "reported_size": "4.8 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_75_Load.csv",
+          "reported_size": "4.6 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AC_Fouling/AC_Fouling_85_Load.csv",
+          "reported_size": "4.1 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_40_Load.csv",
+          "reported_size": "3.5 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_60_Load.csv",
+          "reported_size": "4.9 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_75_Load.csv",
+          "reported_size": "4.3 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/AF_Clogging/AF_Clogging_85_Load.csv",
+          "reported_size": "5.7 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Injector_Nozzle/Clogged_Injector_Nozzle1_40_60_85_Load.csv",
+          "reported_size": "4.5 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Injector_Nozzle/Clogged_Injector_Nozzle2_LoadProgram.csv",
+          "reported_size": "4.8 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Pump_Cavitation/CW_Pump_Cavitation_60_Load.csv",
+          "reported_size": "4.1 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Pump_Cavitation/CW_Pump_Cavitation_85_Load.csv",
+          "reported_size": "4.4 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Turbine_Degradation/Turbine_Degradation_40_Load.csv",
+          "reported_size": "4.6 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Turbine_Degradation/Turbine_Degradation_60_Load.csv",
+          "reported_size": "3.5 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Turbine_Degradation/Turbine_Degradation_85_Load.csv",
+          "reported_size": "3.8 MB",
+          "role": "scenario_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/Reference_Data.csv",
+          "reported_size": "14.8 MB",
+          "role": "baseline_csv"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/CITATION.cff",
+          "reported_size": "2.8 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/LICENSE",
+          "reported_size": "1.5 kB",
+          "role": "license"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/README.md",
+          "reported_size": "8.5 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/dataset_index.csv",
+          "reported_size": "3.8 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/provenance/normalize.py",
+          "reported_size": "3.2 kB",
+          "role": "metadata"
+        },
+        {
+          "path": "Marine_Engine_Fault_Data/variable_dictionary.csv",
+          "reported_size": "7.7 kB",
+          "role": "metadata"
+        }
+      ]
+    },
+    "record_statistics": {
+      "reported_data_volume": "37.7 GB",
+      "displayed_context": "Zenodo record statistics block alongside view/download counts",
+      "interpretation": "not_assumed_to_be_archive_payload_size",
+      "note": "The individual ZIP file card reports 26.5 MB. The separate 37.7 GB statistics value is retained verbatim but its aggregation semantics are unresolved; do not use it as the archive byte count."
+    }
+  },
+  "fault_scenarios": [
+    {
+      "family": "compressor_air_filter_clogging",
+      "load_percent": [
+        40,
+        60,
+        75,
+        85
+      ],
+      "fault_realization": "physically_induced"
+    },
+    {
+      "family": "air_cooler_fouling",
+      "load_percent": [
+        40,
+        60,
+        75,
+        85
+      ],
+      "fault_realization": "physically_induced"
+    },
+    {
+      "family": "injection_valve_nozzle_clogging",
+      "load_percent": [
+        40,
+        60,
+        85
+      ],
+      "fault_realization": "one_hole_restricted_nozzle"
+    },
+    {
+      "family": "injection_valve_nozzle_clogging",
+      "load_percent": [],
+      "fault_realization": "two_hole_restricted_nozzle_under_load_program",
+      "label_scope": "anomalous_operation_only"
+    },
+    {
+      "family": "cooling_water_pump_cavitation",
+      "load_percent": [
+        60,
+        85
+      ],
+      "fault_realization": "physically_induced"
+    },
+    {
+      "family": "turbine_degradation",
+      "load_percent": [
+        40,
+        60,
+        85
+      ],
+      "fault_realization": "increased_exhaust_side_restriction"
+    }
+  ],
+  "evaluation_constraints": {
+    "raw_dataset_committed": false,
+    "archive_payload_audit_status": "not_downloaded; Zenodo archive preview tree inspected only",
+    "channel_dictionary_audit_status": "not_inspected",
+    "file_index_audit_status": "not_inspected",
+    "no_row_random_split": true,
+    "group_key": "original_recording_file_and_physical_fault_run",
+    "preprocessing_fit_scope": "training_partition_only",
+    "missingness_policy": "preserve_presence_mask; do_not_silently_fill_missing_channels",
+    "baseline_scope": "single_reference_recording; temporal-block false-alarm evaluation is not an independent campaign replication",
+    "anomaly_only_scope": "do_not_score_onset_detection_for_anomaly_only_nozzle_files",
+    "load_transfer_scope": "held_out_load_levels_only_where_each_fault_family_has_supporting_runs",
+    "severity_transfer_scope": "treat_two_hole_nozzle_as_a_separate severity/generalization analysis",
+    "final_split_assignments": "pending_payload_audit"
+  },
+  "claim_ceiling": "Open controlled marine-diesel test-bench evidence only. The dataset does not establish diagnostic performance on shipboard installations, other engine models, other duty cycles, fleet-wide reliability, safe operating limits, seaworthiness, class or statutory approval, maintenance authorization or permission to operate.",
+  "source_references": [
+    "https://doi.org/10.5281/zenodo.19857425",
+    "https://arxiv.org/abs/2607.19444"
+  ]
+}
