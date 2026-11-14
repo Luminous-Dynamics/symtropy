@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "corpus_id": "symtropy-ccd-analytic-sphere-v0",
+  "evidence_class": "analytic_numerical_verification",
+  "status": "qualification_in_progress",
+  "units": {
+    "position": "m",
+    "velocity": "m/s",
+    "radius": "m",
+    "plane_offset": "m",
+    "time_of_impact": "s",
+    "timestep": "s",
+    "normal": "dimensionless_unit_vector"
+  },
+  "algorithms": {
+    "sphere_sphere": "relative-motion closest-approach half-chord",
+    "sphere_halfspace": "normalized-plane signed-distance crossing"
+  },
+  "cases": [
+    {
+      "id": "sphere-head-on",
+      "kind": "sphere_sphere",
+      "pos_a": [0, 0, 0],
+      "vel_a": [10, 0, 0],
+      "radius_a": 0.5,
+      "pos_b": [5, 0, 0],
+      "vel_b": [-10, 0, 0],
+      "radius_b": 0.5,
+      "dt": 1.0,
+      "expected": { "status": "hit", "toi_s": 0.2, "absolute_tolerance_s": 1e-12 }
+    },
+    {
+      "id": "sphere-long-range-small-radius",
+      "kind": "sphere_sphere",
+      "pos_a": [0, 0, 0],
+      "vel_a": [0, 0, 0],
+      "radius_a": 8.0,
+      "pos_b": [1000000000000, 0, 0],
+      "vel_b": [-1, 0, 0],
+      "radius_b": 0.0,
+      "dt": 1000000000000,
+      "expected": { "status": "hit", "toi_s": 999999999992.0, "absolute_tolerance_s": 0.0002 }
+    },
+    {
+      "id": "sphere-tangent",
+      "kind": "sphere_sphere",
+      "pos_a": [0, 0, 0],
+      "vel_a": [10, 0, 0],
+      "radius_a": 0.5,
+      "pos_b": [5, 1, 0],
+      "vel_b": [0, 0, 0],
+      "radius_b": 0.5,
+      "dt": 1.0,
+      "expected": { "status": "hit", "toi_s": 0.5, "absolute_tolerance_s": 1e-12 }
+    },
+    {
+      "id": "sphere-halfspace-non-unit-normal",
+      "kind": "sphere_halfspace",
+      "pos": [0, 10, 0],
+      "vel": [0, -100, 0],
+      "radius": 0.5,
+      "plane_normal": [0, 3, 0],
+      "plane_offset": 0,
+      "dt": 1,
+      "expected": { "status": "hit", "toi_s": 0.095, "absolute_tolerance_s": 1e-12, "normal": [0, 1, 0] }
+    },
+    {
+      "id": "sphere-perpendicular-miss",
+      "kind": "sphere_sphere",
+      "pos_a": [0, 0, 0],
+      "vel_a": [1, 0, 0],
+      "radius_a": 0.5,
+      "pos_b": [0, 10, 0],
+      "vel_b": [0, 0, 0],
+      "radius_b": 0.5,
+      "dt": 1,
+      "expected": { "status": "no_hit" }
+    }
+  ],
+  "metamorphic_properties": [
+    "sphere_body_swap_keeps_toi_and_reverses_normal",
+    "common_velocity_boost_preserves_toi",
+    "positive_plane_normal_scaling_preserves_toi_and_unit_normal"
+  ],
+  "invalid_inputs": [
+    "negative_radius",
+    "negative_timestep",
+    "non_finite_timestep",
+    "zero_plane_normal",
+    "non_finite_plane_offset",
+    "subtraction_overflow"
+  ],
+  "acceptance": {
+    "analytic_toi_error_within_case_tolerance": true,
+    "invalid_inputs_return_typed_error": true,
+    "valid_miss_remains_distinct_from_invalid": true,
+    "unit_normal_error_lte": 1e-12,
+    "world_level_tunneling_claim": false,
+    "general_convex_ccd_claim": false,
+    "rotational_ccd_claim": false,
+    "industry_superiority_claim": false
+  },
+  "performance": {
+    "criterion_benchmark": "ccd_analytic_queries",
+    "case_count_per_family": 512,
+    "families": ["sphere_sphere_mixed", "sphere_halfspace_mixed"],
+    "measured_results": null
+  }
+}
