@@ -403,7 +403,7 @@ mod tests {
 
     fn profile() -> ProfileIdentity {
         ProfileIdentity {
-            profile_id: "synthetic-fixed-wing-constant-velocity-v0".into(),
+            profile_id: "synthetic-bounded-velocity-test-v0".into(),
             revision: "0.1.0".into(),
             horizontal_frame_id: "SYNTHETIC-ENU-LOCAL-01".into(),
             vertical_datum_id: "SYNTHETIC-LOCAL-UP-01".into(),
