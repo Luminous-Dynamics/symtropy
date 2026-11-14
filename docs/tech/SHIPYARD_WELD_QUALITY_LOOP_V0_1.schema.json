@@ -36,11 +36,11 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 40,
+      "minItems": 42,
       "items": {
         "$ref": "#/$defs/case"
       },
-      "maxItems": 40
+      "maxItems": 42
     }
   },
   "$defs": {
@@ -571,7 +571,9 @@
             "reinspection_status",
             "reinspection_region_id",
             "final_release_ref",
-            "final_release_status"
+            "final_release_status",
+            "reinspection_at_utc",
+            "final_release_at_utc"
           ],
           "properties": {
             "required": {
@@ -644,6 +646,12 @@
                 "unknown",
                 "revoked"
               ]
+            },
+            "reinspection_at_utc": {
+              "$ref": "#/$defs/date"
+            },
+            "final_release_at_utc": {
+              "$ref": "#/$defs/date"
             }
           }
         },
