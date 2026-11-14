@@ -291,9 +291,7 @@ pub fn integrate_equatorial_prograde_strong_deflection(
         * phi_at_turn;
     let right_endpoint = 2.0 * impact_parameter / (kappa * compactification_scale);
 
-    let mut evaluations = 0_usize;
     let mut integrand = |x: f64| -> Result<f64, KerrStrongDeflectionError> {
-        evaluations = evaluations.saturating_add(1);
         let value = if x <= 0.0 {
             left_endpoint
         } else if x >= 1.0 {
@@ -319,7 +317,9 @@ pub fn integrate_equatorial_prograde_strong_deflection(
     let fm = integrand(0.5)?;
     let fb = integrand(1.0)?;
     let whole = simpson(0.0, 1.0, fa, fm, fb);
-    let requested_tolerance = options.absolute_tolerance.max(options.relative_tolerance * whole.abs());
+    let requested_tolerance =
+        options.absolute_tolerance.max(options.relative_tolerance * whole.abs());
+    let mut evaluations = 3_usize;
     let (half_orbit_azimuth, estimated_half_orbit_error) = adaptive_simpson(
         &mut integrand,
         0.0,
@@ -400,7 +400,9 @@ fn adaptive_simpson(
             evaluations: *evaluations,
         });
     }
+    *evaluations += 1;
     let flm = function(left_midpoint)?;
+    *evaluations += 1;
     let frm = function(right_midpoint)?;
     let left = simpson(a, midpoint, fa, flm, fm);
     let right = simpson(midpoint, b, fm, frm, fb);
@@ -559,6 +561,8 @@ mod tests {
     #[test]
     fn near_extremal_deflection_fails_closed_when_quadrature_budget_is_exhausted() {
         let options = KerrStrongDeflectionOptions {
+            relative_tolerance: 1.0e-30,
+            absolute_tolerance: 1.0e-30,
             maximum_quadrature_evaluations: 5,
             maximum_quadrature_depth: 1,
             ..KerrStrongDeflectionOptions::default()
