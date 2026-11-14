@@ -1,0 +1,47 @@
+name: Black-hole source spectrum audit
+
+on:
+  push:
+    branches:
+      - research/bh-source-spectrum-audit-v0.1
+    paths:
+      - tools/bh-source-spectrum-audit/**
+      - .github/workflows/bh-source-spectrum-audit.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tools/bh-source-spectrum-audit/**
+      - .github/workflows/bh-source-spectrum-audit.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bh-source-spectrum-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Source-spectrum controls (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/bh-source-spectrum-audit/Cargo.toml -- --check
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/bh-source-spectrum-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test --manifest-path tools/bh-source-spectrum-audit/Cargo.toml --all-targets
