@@ -1911,12 +1911,9 @@ fn adjudicate_evidence_dependence(
     let left_assessed = string_set_at(left, &["dependency_dimensions_assessed"])?;
     let right_assessed = string_set_at(right, &["dependency_dimensions_assessed"])?;
 
-    let required_identity = [
-        ["product_id", "site_id", "campaign_id", "sensor_id"].as_slice(),
-    ];
-    for field in required_identity.iter().flatten() {
-        let left_value = left.get(*field).and_then(Value::as_str).unwrap_or_default();
-        let right_value = right.get(*field).and_then(Value::as_str).unwrap_or_default();
+    for field in ["product_id", "site_id", "campaign_id", "sensor_id"] {
+        let left_value = left.get(field).and_then(Value::as_str).unwrap_or_default();
+        let right_value = right.get(field).and_then(Value::as_str).unwrap_or_default();
         if left_value.trim().is_empty() || right_value.trim().is_empty() {
             return Ok("DEPENDENCE_UNKNOWN");
         }
@@ -1973,7 +1970,7 @@ fn adjudicate_evidence_dependence(
     Ok("DECLARED_INDEPENDENT_GIVEN_CONDITIONS")
 }
 
-fn validate_consilliance_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+fn validate_consilience_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected_ids: BTreeSet<&'static str> = [
         "CONSILIENCE-SHARED-UPSTREAM-001",
         "CONSILIENCE-SHARED-CAMPAIGN-001",
@@ -2144,7 +2141,7 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-CONSILIENCE-DEPENDENCE-001")
     {
-        return validate_consilliance_corpus(raw, &manifest);
+        return validate_consilience_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
