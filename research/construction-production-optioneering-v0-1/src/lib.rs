@@ -35,6 +35,9 @@ impl PerformanceRequirement {
     fn validate(&self) -> Result<(), OptioneeringError> {
         require_non_empty("performance_metric_id", &self.metric_id)?;
         require_non_empty("performance_unit_symbol", &self.unit_symbol)?;
+        if self.scale == 0 {
+            return Err(OptioneeringError::ZeroPerformanceScale(self.metric_id.clone()));
+        }
         if self.minimum_value.is_none() && self.maximum_value.is_none() {
             return Err(OptioneeringError::UnboundedPerformanceRequirement(
                 self.metric_id.clone(),
@@ -66,6 +69,8 @@ pub struct FunctionalOutcomeContract {
     pub unit_symbol: String,
     pub required_units: u64,
     pub acceptance_contract_ref: String,
+    pub currency_code: String,
+    pub carbon_assessment_boundary_ref: String,
     pub assessment_horizon_months: u64,
     pub required_gate_ids: Vec<String>,
     pub performance_requirements: Vec<PerformanceRequirement>,
@@ -79,6 +84,11 @@ impl FunctionalOutcomeContract {
         require_non_empty("unit_class_id", &self.unit_class_id)?;
         require_non_empty("unit_symbol", &self.unit_symbol)?;
         require_non_empty("acceptance_contract_ref", &self.acceptance_contract_ref)?;
+        require_non_empty("currency_code", &self.currency_code)?;
+        require_non_empty(
+            "carbon_assessment_boundary_ref",
+            &self.carbon_assessment_boundary_ref,
+        )?;
         if self.required_units == 0 {
             return Err(OptioneeringError::ZeroRequiredUnits);
         }
@@ -457,6 +467,7 @@ pub enum OptioneeringError {
     ZeroRequiredUnits,
     ZeroAssessmentHorizon,
     UnboundedPerformanceRequirement(String),
+    ZeroPerformanceScale(String),
     InvalidPerformanceRange(String),
     DuplicateRequiredGate(String),
     DuplicatePerformanceMetric(String),
@@ -566,17 +577,8 @@ pub fn evaluate_option_set(
     }
 
     let mut decisions_by_tier = BTreeMap::new();
-    let mut previous_tier_index = 0_usize;
     for (index, decision) in stage_decisions.iter().enumerate() {
-        if let Some(expected_index) = OptionTier::ORDERED
-            .iter()
-            .position(|tier| *tier == decision.tier)
-        {
-            if index > 0 && expected_index <= previous_tier_index {
-                return Err(OptioneeringError::StageOrderInvalid);
-            }
-            previous_tier_index = expected_index;
-        } else {
+        if OptionTier::ORDERED.get(index).copied() != Some(decision.tier) {
             return Err(OptioneeringError::StageOrderInvalid);
         }
         decision.validate(contract)?;
@@ -781,18 +783,22 @@ mod tests {
             unit_symbol: "m2".to_owned(),
             required_units: 100,
             acceptance_contract_ref: "acceptance:partition-fire-acoustic-interface".to_owned(),
+            currency_code: "USD".to_owned(),
+            carbon_assessment_boundary_ref: "lca-boundary:cradle-to-end-of-life-v1".to_owned(),
             assessment_horizon_months: 240,
             required_gate_ids: vec!["design-authority".to_owned(), "fire-performance".to_owned()],
             performance_requirements: vec![
                 PerformanceRequirement {
                     metric_id: "fire-rating-minutes".to_owned(),
                     unit_symbol: "min",
+                    scale: 1,
                     minimum_value: Some(60),
                     maximum_value: None,
                 },
                 PerformanceRequirement {
                     metric_id: "acoustic-insulation".to_owned(),
                     unit_symbol: "dB",
+                    scale: 1,
                     minimum_value: Some(45),
                     maximum_value: None,
                 },
@@ -1569,6 +1575,48 @@ mod tests {
             Err(OptioneeringError::AcceptanceContractMismatch(
                 "prefabricated".to_owned(),
                 "outage-rework".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn stage_decisions_must_be_a_contiguous_hierarchy_prefix() {
+        assert_eq!(
+            evaluate_option_set(
+                &contract(),
+                &[
+                    stage(
+                        OptionTier::Avoid,
+                        StageDisposition::ClosedNoViableAlternative,
+                    ),
+                    stage(
+                        OptionTier::Improve,
+                        StageDisposition::OpenForEvaluation,
+                    ),
+                ],
+                &scenarios(),
+                &[]
+            ),
+            Err(OptioneeringError::StageOrderInvalid)
+        );
+    }
+
+    #[test]
+    fn fixed_point_performance_scale_must_be_positive() {
+        let mut invalid = contract();
+        invalid.performance_requirements[0].scale = 0;
+        assert_eq!(
+            evaluate_option_set(
+                &invalid,
+                &[stage(
+                    OptionTier::Avoid,
+                    StageDisposition::OpenForEvaluation
+                )],
+                &scenarios(),
+                &[]
+            ),
+            Err(OptioneeringError::ZeroPerformanceScale(
+                "fire-rating-minutes".to_owned()
             ))
         );
     }
