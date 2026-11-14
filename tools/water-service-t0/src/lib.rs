@@ -942,6 +942,7 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
             );
         }
 
+        reasons.sort();
         let status = if indeterminate {
             "INDETERMINATE"
         } else if out_of_envelope {
