@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-proportional-fair-dispatch-v0/dispatch-episode.schema.json",
+  "title": "WPT health-aware proportional-fair dispatch episode v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "source_power_limit_kw",
+    "grid_pcc_envelope_pass",
+    "network_stability_pass",
+    "receivers",
+    "quality_flags"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-proportional-fair-dispatch-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_power_limit_kw": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "grid_pcc_envelope_pass": {
+      "type": "boolean"
+    },
+    "network_stability_pass": {
+      "type": "boolean"
+    },
+    "receivers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receiver_id",
+          "asset_id",
+          "segment_id",
+          "route_id",
+          "requested_power_kw",
+          "minimum_service_power_kw",
+          "priority_weight",
+          "urgency_weight",
+          "risk_derating_factor",
+          "health_receipt"
+        ],
+        "properties": {
+          "receiver_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "segment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "route_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requested_power_kw": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minimum_service_power_kw": {
+            "type": "number",
+            "minimum": 0
+          },
+          "priority_weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "urgency_weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "risk_derating_factor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Operator-defined cap multiplier when a qualified forecast exceeds the soft risk budget."
+          },
+          "health_receipt": {
+            "type": "object",
+            "description": "Full wpt-health-dispatch-eligibility-v0 receipt validated by wpt-health-dispatch-contract."
+          }
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "const": "SYNTHETIC_ONLY"
+      }
+    }
+  }
+}

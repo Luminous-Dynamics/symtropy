@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/wpt-health-dispatch-v0/health-dispatch-eligibility.schema.json",
+  "title": "WPT health-aware dispatch forecast eligibility v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "evidence_kind",
+    "asset_identity",
+    "forecast",
+    "censoring_support",
+    "domain_support",
+    "hard_limits",
+    "dispatch_policy",
+    "quality_flags"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-health-dispatch-eligibility-v0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "enum": [
+        "MEASURED",
+        "PUBLISHED_MEASURED",
+        "SIMULATED",
+        "SYNTHETIC_KNOWN_TRUTH"
+      ]
+    },
+    "asset_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "segment_id",
+        "installation_id",
+        "route_id",
+        "material_lot_id",
+        "asset_state_artifact_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "installation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_state_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimand",
+        "target_event_code",
+        "horizon_hours",
+        "competing_event_codes",
+        "cause_specific_cumulative_incidence",
+        "target_event_cif",
+        "event_free_survival",
+        "model_sha256",
+        "outcome_data_sha256",
+        "calibration_receipt_sha256",
+        "calibration_population_id",
+        "calibration_stratum_id",
+        "calibration_method",
+        "calibration_status",
+        "calibration_horizon_max_hours",
+        "hazard_cif_coherence_verified",
+        "source_locator"
+      ],
+      "properties": {
+        "estimand": {
+          "const": "TARGET_EVENT_CIF_AT_HORIZON"
+        },
+        "target_event_code": {
+          "enum": [
+            "STRUCTURAL_CRACK_LIMIT",
+            "RUTTING_LIMIT",
+            "INSULATION_RESISTANCE_LIMIT",
+            "COIL_OPEN_CIRCUIT",
+            "THERMAL_LIMIT",
+            "SERVICE_AVAILABILITY_LIMIT",
+            "OTHER"
+          ]
+        },
+        "horizon_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "target_event_cif": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "event_free_survival": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "outcome_data_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "calibration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "calibration_population_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_stratum_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_method": {
+          "enum": [
+            "A_CALIBRATION",
+            "D_CALIBRATION",
+            "CIF_RELIABILITY_CURVE",
+            "CLUSTER_BOOTSTRAP_COVERAGE",
+            "OTHER_REVIEWED"
+          ]
+        },
+        "calibration_status": {
+          "enum": [
+            "CALIBRATED",
+            "NOT_CALIBRATED",
+            "UNDERPOWERED",
+            "DRIFT_DETECTED"
+          ]
+        },
+        "calibration_horizon_max_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hazard_cif_coherence_verified": {
+          "const": true
+        },
+        "source_locator": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Required when evidence_kind is PUBLISHED_MEASURED."
+        },
+        "competing_event_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "PLANNED_REPLACEMENT",
+              "UNRELATED_ASSET_FAILURE",
+              "ROAD_RECONSTRUCTION"
+            ]
+          }
+        },
+        "cause_specific_cumulative_incidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_code",
+              "probability"
+            ],
+            "properties": {
+              "event_code": {
+                "enum": [
+                  "STRUCTURAL_CRACK_LIMIT",
+                  "RUTTING_LIMIT",
+                  "INSULATION_RESISTANCE_LIMIT",
+                  "COIL_OPEN_CIRCUIT",
+                  "THERMAL_LIMIT",
+                  "SERVICE_AVAILABILITY_LIMIT",
+                  "OTHER",
+                  "PLANNED_REPLACEMENT",
+                  "UNRELATED_ASSET_FAILURE",
+                  "ROAD_RECONSTRUCTION"
+                ]
+              },
+              "probability": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "censoring_support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption",
+        "estimator_id",
+        "minimum_g_observed",
+        "minimum_g_required",
+        "maximum_ipcw_weight",
+        "maximum_ipcw_weight_allowed",
+        "support_status"
+      ],
+      "properties": {
+        "assumption": {
+          "enum": [
+            "INDEPENDENT_RIGHT_CENSORING",
+            "CONDITIONAL_INDEPENDENT_CENSORING",
+            "UNKNOWN_OR_DEPENDENT"
+          ]
+        },
+        "estimator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_g_observed": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_g_required": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "maximum_ipcw_weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_ipcw_weight_allowed": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "support_status": {
+          "enum": [
+            "SUPPORTED",
+            "POSITIVITY_FAILURE",
+            "NOT_ESTIMATED"
+          ]
+        }
+      }
+    },
+    "domain_support": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "support_status",
+        "material_family",
+        "validated_material_family",
+        "ambient_temperature_c",
+        "minimum_validated_temperature_c",
+        "maximum_validated_temperature_c",
+        "duty_cycle_percent",
+        "maximum_validated_duty_cycle_percent",
+        "route_class",
+        "validated_route_class"
+      ],
+      "properties": {
+        "support_status": {
+          "enum": [
+            "IN_DOMAIN",
+            "OUT_OF_DOMAIN",
+            "UNKNOWN"
+          ]
+        },
+        "material_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validated_material_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ambient_temperature_c": {
+          "type": "number"
+        },
+        "minimum_validated_temperature_c": {
+          "type": "number"
+        },
+        "maximum_validated_temperature_c": {
+          "type": "number"
+        },
+        "duty_cycle_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maximum_validated_duty_cycle_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "route_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validated_route_class": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "hard_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receiver_authorized",
+        "electrical_limits_pass",
+        "thermal_limits_pass",
+        "grid_pcc_envelope_pass",
+        "network_stability_pass",
+        "segment_handover_safe"
+      ],
+      "properties": {
+        "receiver_authorized": {
+          "type": "boolean"
+        },
+        "electrical_limits_pass": {
+          "type": "boolean"
+        },
+        "thermal_limits_pass": {
+          "type": "boolean"
+        },
+        "grid_pcc_envelope_pass": {
+          "type": "boolean"
+        },
+        "network_stability_pass": {
+          "type": "boolean"
+        },
+        "segment_handover_safe": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dispatch_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "maximum_target_event_cif",
+        "planned_service_horizon_hours",
+        "maintenance_lead_time_hours",
+        "decision_mode",
+        "policy_sha256"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maximum_target_event_cif": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "planned_service_horizon_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maintenance_lead_time_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "decision_mode": {
+          "enum": [
+            "SOFT_HEALTH_CONSTRAINT_ONLY",
+            "HARD_RISK_CAP"
+          ]
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "SYNTHETIC_ONLY",
+          "SOURCE_INCOMPLETE",
+          "CENSORING_SUPPORT_LIMITED",
+          "CALIBRATION_DRIFT",
+          "DOMAIN_SHIFT"
+        ]
+      }
+    }
+  }
+}

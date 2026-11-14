@@ -86,3 +86,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT health-aware dispatch eligibility contract
+      run: cargo test --locked -p wpt-health-dispatch-contract
+
+    - name: Test WPT proportional-fair service allocator
+      run: cargo test --locked -p wpt-proportional-fair-dispatch
