@@ -15,7 +15,7 @@
 use core::marker::PhantomData;
 
 use crate::{
-    CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Tangent,
+    CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent,
 };
 use super::{ConstraintMultiplierV1, ConstraintResidualV1};
 
@@ -677,6 +677,9 @@ mod tests {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct NewConstraintSpace;
     impl CoordinateFrame for NewConstraintSpace {}
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct DenseFrame;
+    impl CoordinateFrame for DenseFrame {}
 
     fn metric_profile() -> MetricProfileV1 {
         MetricProfileV1::default()
@@ -852,6 +855,193 @@ mod tests {
                 solved_old.minimum_kinetic_correction().unwrap().components()[dof],
                 solved_new.minimum_kinetic_correction().unwrap().components()[dof],
                 2.0e-9,
+            );
+        }
+    }
+
+    #[test]
+    fn exact_rational_delassus_fixture_matches_independent_oracle() {
+        let quotient =
+            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+                &mass(),
+                redundant_jacobian(),
+                &residual_metric(),
+                quotient_profile(),
+            )
+            .unwrap();
+        let expected = [
+            [7.0 / 10.0, -1.0 / 5.0, 7.0 / 10.0],
+            [-1.0 / 5.0, 23.0 / 15.0, -1.0 / 5.0],
+            [7.0 / 10.0, -1.0 / 5.0, 7.0 / 10.0],
+        ];
+        for row in 0..3 {
+            for column in 0..3 {
+                close(quotient.matrix()[row][column], expected[row][column], 2.0e-13);
+            }
+        }
+
+        // Exact rational solution class: (71/155, -123/310, 0) plus
+        // arbitrary multiples of the null multiplier (1, 0, -1).
+        let exact_representative =
+            ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([
+                71.0 / 155.0,
+                -123.0 / 310.0,
+                0.0,
+            ])
+            .unwrap();
+        let residual =
+            ConstraintResidualV1::<OldConstraintSpace, 3>::new([0.4, -0.7, 0.4]).unwrap();
+        let dual_pairing = crate::dot(
+            exact_representative.components(),
+            residual.components(),
+        );
+        close(dual_pairing, 1429.0 / 3100.0, 2.0e-13);
+
+        let solved = quotient.solve_residual(&residual).unwrap();
+        assert_eq!(solved.status(), ConstraintResidualStatusV1::Compatible);
+        close(
+            solved.residual_dual_norm().unwrap().powi(2),
+            1429.0 / 3100.0,
+            2.0e-9,
+        );
+    }
+
+    #[test]
+    fn multiplier_quotient_norm_is_invariant_under_constraint_basis_change() {
+        let h_old = residual_metric::<OldConstraintSpace>();
+        let q_old =
+            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+                &mass(),
+                redundant_jacobian(),
+                &h_old,
+                quotient_profile(),
+            )
+            .unwrap();
+        let s = [[1.0, -2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let rebasis =
+            Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(s, metric_profile())
+                .unwrap();
+        let h_new = rebasis.metric_to_to(&h_old, metric_profile()).unwrap();
+        let j_old = redundant_jacobian();
+        let mut j_new = [[0.0; 3]; 3];
+        for column in 0..3 {
+            j_new[0][column] = j_old[0][column] + 2.0 * j_old[1][column];
+            j_new[1][column] = j_old[1][column];
+            j_new[2][column] = j_old[2][column];
+        }
+        let q_new =
+            RankDeficientDelassusQuotientV1::<Cartesian, NewConstraintSpace, 3, 3>::new(
+                &mass(),
+                j_new,
+                &h_new,
+                quotient_profile(),
+            )
+            .unwrap();
+
+        let lambda_old =
+            ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([0.5, -0.75, 1.25]).unwrap();
+        let lambda_covector = Cotangent::<OldConstraintSpace, 3>::new(
+            *lambda_old.components(),
+        )
+        .unwrap();
+        let lambda_new_components =
+            rebasis.cotangent_to_to(&lambda_covector).unwrap();
+        let lambda_new = ConstraintMultiplierV1::<NewConstraintSpace, 3>::new(
+            *lambda_new_components.components(),
+        )
+        .unwrap();
+        close(
+            q_old.multiplier_quotient_norm(&lambda_old).unwrap(),
+            q_new.multiplier_quotient_norm(&lambda_new).unwrap(),
+            2.0e-11,
+        );
+    }
+
+    #[test]
+    fn generalized_and_constraint_rebases_commute_for_redundant_constraints() {
+        let mass_q = mass();
+        let h_old = residual_metric::<OldConstraintSpace>();
+        let j_q = redundant_jacobian();
+        let residual_q = compatible_residual();
+        let quotient_q =
+            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+                &mass_q,
+                j_q,
+                &h_old,
+                quotient_profile(),
+            )
+            .unwrap();
+        let solved_q = quotient_q
+            .solve_residual(
+                &ConstraintResidualV1::<OldConstraintSpace, 3>::new(residual_q).unwrap(),
+            )
+            .unwrap();
+        assert_eq!(solved_q.status(), ConstraintResidualStatusV1::Compatible);
+
+        // Independent generalized-coordinate rebase q = S y.
+        let generalized_rebasis =
+            Rebasis::<Cartesian, DenseFrame, 3>::new(
+                [[1.0, 2.0, 1.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]],
+                metric_profile(),
+            )
+            .unwrap();
+        let mass_y = generalized_rebasis.metric_to_to(&mass_q, metric_profile()).unwrap();
+        let j_y =
+            crate::constraint_metric::rebase_constraint_jacobian(&j_q, &generalized_rebasis)
+                .unwrap();
+
+        // Independent constraint-equation rebase r_new = T r_old.
+        let constraint_s = [[1.0, -2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let constraint_rebasis =
+            Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(
+                constraint_s,
+                metric_profile(),
+            )
+            .unwrap();
+        let h_new = constraint_rebasis
+            .metric_to_to(&h_old, metric_profile())
+            .unwrap();
+        let mut j_y_new = [[0.0; 3]; 3];
+        for column in 0..3 {
+            j_y_new[0][column] = j_y[0][column] + 2.0 * j_y[1][column];
+            j_y_new[1][column] = j_y[1][column];
+            j_y_new[2][column] = j_y[2][column];
+        }
+        let residual_new = [
+            residual_q[0] + 2.0 * residual_q[1],
+            residual_q[1],
+            residual_q[2],
+        ];
+
+        let quotient_y_new =
+            RankDeficientDelassusQuotientV1::<DenseFrame, NewConstraintSpace, 3, 3>::new(
+                &mass_y,
+                j_y_new,
+                &h_new,
+                quotient_profile(),
+            )
+            .unwrap();
+        let solved_y_new = quotient_y_new
+            .solve_residual(
+                &ConstraintResidualV1::<NewConstraintSpace, 3>::new(residual_new).unwrap(),
+            )
+            .unwrap();
+        assert_eq!(solved_y_new.status(), ConstraintResidualStatusV1::Compatible);
+        assert_eq!(solved_y_new.numerical_rank(), solved_q.numerical_rank());
+        close(
+            solved_y_new.residual_dual_norm().unwrap(),
+            solved_q.residual_dual_norm().unwrap(),
+            3.0e-9,
+        );
+
+        let correction_y_expected = generalized_rebasis
+            .tangent_to_to(solved_q.minimum_kinetic_correction().unwrap())
+            .unwrap();
+        for dof in 0..3 {
+            close(
+                solved_y_new.minimum_kinetic_correction().unwrap().components()[dof],
+                correction_y_expected.components()[dof],
+                3.0e-9,
             );
         }
     }
