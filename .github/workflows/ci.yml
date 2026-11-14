@@ -74,6 +74,21 @@ jobs:
       if: runner.os == 'Linux'
       run: bash scripts/check-licenses.sh
 
+    # The CivBench event evaluator is an intentionally independent, std-only
+    # research crate. It is outside the product workspace and must be checked
+    # explicitly rather than being inferred from the workspace matrix.
+    - name: CivBench Event Evaluator Formatting
+      run: cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all -- --check
+
+    - name: CivBench Event Evaluator Check
+      run: cargo check --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets
+
+    - name: CivBench Event Evaluator Tests
+      run: cargo test --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets
+
+    - name: CivBench Event Evaluator Clippy
+      run: cargo clippy --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets -- -D warnings
+
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 

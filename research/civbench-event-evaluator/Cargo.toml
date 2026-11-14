@@ -1,0 +1,12 @@
+[workspace]
+
+[package]
+name = "civbench-event-evaluator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic event-level scoring primitives for CivBench cyber-physical water evaluations"
+
+[lib]
+path = "src/lib.rs"
