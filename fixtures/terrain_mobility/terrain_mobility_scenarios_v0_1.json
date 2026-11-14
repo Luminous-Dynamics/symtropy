@@ -1,0 +1,2200 @@
+{
+  "schema_version": "0.1",
+  "corpus_id": "terrain-mobility-portfolio-v0.1",
+  "provenance": {
+    "created_on": "2026-10-17",
+    "kind": "hand_authored_synthetic_test_vectors",
+    "external_measurements_included": false,
+    "notes": "Scenario values are synthetic input declarations only; they are not measured platform specifications, validated safe limits, real market frequencies, or performance results."
+  },
+  "claim_ceiling": "synthetic_fixtures_are_not_platform_performance_or_safety_evidence",
+  "scenarios": [
+    {
+      "scenario_id": "PVT-URBAN-DRY-BASELINE",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "passenger_trip",
+        "useful_work_target": 1,
+        "payload_kg": 120,
+        "load_state": "nominal",
+        "distance_m": 12000,
+        "return_required": true,
+        "energy_budget_wh": 12000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": 3600
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "energy_per_useful_work",
+        "stopping_and_stability",
+        "availability",
+        "ride_comfort",
+        "noise_vibration",
+        "accessibility",
+        "cargo_fit",
+        "lifecycle_cost"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "passenger",
+        "consent_required": true,
+        "owner_selected_profile": false,
+        "outcomes": [
+          "ride_comfort",
+          "noise_vibration",
+          "accessible_entry_exit",
+          "cargo_fit",
+          "essential_trip_continuity"
+        ]
+      },
+      "rationale": "Nominal family-trip positive control with an explicitly synthetic trip, load, and energy budget."
+    },
+    {
+      "scenario_id": "PVT-WET-LOW-GRIP",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "paved_wet",
+        "longitudinal_slope_deg": 4,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "rain",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "changing",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "passenger_trip",
+        "useful_work_target": 1,
+        "payload_kg": 180,
+        "load_state": "nominal",
+        "distance_m": 8000,
+        "return_required": true,
+        "energy_budget_wh": 9000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle",
+        "compact_aw_drive_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "stopping_and_stability",
+        "energy_per_useful_work",
+        "safety_disposition"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Paired wet-surface case; simulation measures are not brake or roadworthiness evidence."
+    },
+    {
+      "scenario_id": "PVT-RURAL-GRAVEL",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "gravel",
+        "longitudinal_slope_deg": 6,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "passenger_trip",
+        "useful_work_target": 1,
+        "payload_kg": 220,
+        "load_state": "nominal",
+        "distance_m": 18000,
+        "return_required": true,
+        "energy_budget_wh": 15000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle",
+        "compact_aw_drive_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "energy_per_useful_work",
+        "stopping_and_stability",
+        "availability",
+        "lifecycle_cost"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Rural gravel route with explicit surface uncertainty and a paired candidate comparison requirement."
+    },
+    {
+      "scenario_id": "PVT-WASHBOARD-COMFORT",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "washboard",
+        "longitudinal_slope_deg": 2,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "passenger_trip",
+        "useful_work_target": 1,
+        "payload_kg": 150,
+        "load_state": "nominal",
+        "distance_m": 5000,
+        "return_required": true,
+        "energy_budget_wh": 5000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "energy_per_useful_work",
+        "ride_comfort",
+        "noise_vibration",
+        "availability"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "passenger",
+        "consent_required": true,
+        "owner_selected_profile": false,
+        "outcomes": [
+          "ride_comfort",
+          "noise_vibration"
+        ]
+      },
+      "rationale": "Separates task completion from ride vibration, noise, and subjective comfort."
+    },
+    {
+      "scenario_id": "PVT-POTHOLE-PAYLOAD-SHIFT",
+      "domain": "personal_vehicle",
+      "mission_class": "cargo_delivery",
+      "terrain": {
+        "surface": "pothole_road",
+        "longitudinal_slope_deg": 3,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0.12,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "cargo_kg",
+        "useful_work_target": 80,
+        "payload_kg": 80,
+        "load_state": "cg_shifted",
+        "distance_m": 4000,
+        "return_required": true,
+        "energy_budget_wh": 5000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle",
+        "compact_aw_drive_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "stopping_and_stability",
+        "ride_comfort",
+        "cargo_fit",
+        "availability"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Checks that load and centre-of-gravity assumptions are bound to the exact candidate configuration."
+    },
+    {
+      "scenario_id": "PVT-UNDECLARED-LOOSE-SLOPE",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "loose_slope",
+        "longitudinal_slope_deg": 24,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "unknown",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "stability_envelope",
+        "hazard_unknown_abstention"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "reject_as_out_of_domain",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Negative control: a road-vehicle label cannot imply qualification for an undeclared steep loose slope."
+    },
+    {
+      "scenario_id": "PVT-TYRE-FAULT-REMOTE-RETURN",
+      "domain": "personal_vehicle",
+      "mission_class": "repair_return",
+      "terrain": {
+        "surface": "gravel",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "changing",
+        "faults": [
+          "tire_pressure_loss"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "repair_task",
+        "useful_work_target": 1,
+        "payload_kg": 120,
+        "load_state": "nominal",
+        "distance_m": 15000,
+        "return_required": true,
+        "energy_budget_wh": 9000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "energy_or_retreat_feasible",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "recovery_and_retreat",
+        "repairability",
+        "availability",
+        "lifecycle_cost"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Measures disposition, roadside repair/service access, and household mobility continuity under a synthetic puncture."
+    },
+    {
+      "scenario_id": "PVT-EV-RESERVE-CONFLICT",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "battery_estimator_conflict",
+          "low_energy_reserve"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "passenger_trip",
+        "useful_work_target": 1,
+        "payload_kg": 120,
+        "load_state": "nominal",
+        "distance_m": 28000,
+        "return_required": true,
+        "energy_budget_wh": 1000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "energy_or_retreat_feasible"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "energy_per_useful_work",
+        "recovery_and_retreat",
+        "essential_trip_continuity"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Negative control: conflicting energy estimation and insufficient declared return energy must not be averaged into a pass."
+    },
+    {
+      "scenario_id": "PVT-OWNER-PROFILE-RESTORE",
+      "domain": "personal_vehicle",
+      "mission_class": "owner_personalization",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "configuration_identity_matches",
+        "owner_consent_and_profile_opt_in",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "owner_control",
+        "privacy",
+        "ride_comfort",
+        "noise_vibration"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "passenger",
+        "consent_required": true,
+        "owner_selected_profile": true,
+        "outcomes": [
+          "profile_restore",
+          "owner_control",
+          "privacy",
+          "ride_comfort",
+          "noise_vibration"
+        ]
+      },
+      "rationale": "Tests explicit opt-in and exact restoration of supported comfort/control preferences without silently changing safety settings."
+    },
+    {
+      "scenario_id": "PVT-ACCESS-INGRESS",
+      "domain": "personal_vehicle",
+      "mission_class": "accessible_entry",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "accessibility",
+        "cargo_fit",
+        "owner_control",
+        "privacy"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "accessibility_task",
+        "consent_required": true,
+        "owner_selected_profile": false,
+        "outcomes": [
+          "accessible_entry_exit",
+          "cargo_fit",
+          "owner_control"
+        ]
+      },
+      "rationale": "Uses a non-identifying task profile to measure ingress/egress and cargo access; no user diagnosis or identity is required."
+    },
+    {
+      "scenario_id": "PVT-MULTI-DRIVER-CONFLICT",
+      "domain": "personal_vehicle",
+      "mission_class": "owner_personalization",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "owner_profile_conflict"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "configuration_identity_matches",
+        "owner_consent_and_profile_opt_in",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "owner_control",
+        "privacy"
+      ],
+      "expected_behavior": "require_explicit_human_choice",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "passenger",
+        "consent_required": true,
+        "owner_selected_profile": true,
+        "outcomes": [
+          "profile_restore",
+          "owner_control",
+          "privacy"
+        ]
+      },
+      "rationale": "Negative control: conflicting household profiles require an explicit selection and cannot be resolved by identity inference."
+    },
+    {
+      "scenario_id": "PVT-PARTS-COST-UNKNOWN",
+      "domain": "personal_vehicle",
+      "mission_class": "repair_return",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "parts_availability_unknown"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "service_isolation_verified",
+        "repair_verification"
+      ],
+      "metric_tracks": [
+        "repairability",
+        "availability",
+        "lifecycle_cost",
+        "essential_trip_continuity"
+      ],
+      "expected_behavior": "keep_unknown_unresolved",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Negative control: unknown parts lead time and cost remain unknown rather than zero or free."
+    },
+    {
+      "scenario_id": "UGV-INDOOR-RAMP-BASELINE",
+      "domain": "ground_robotics",
+      "mission_class": "site_logistics",
+      "terrain": {
+        "surface": "indoor_ramp",
+        "longitudinal_slope_deg": 8,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "cargo_kg",
+        "useful_work_target": 10,
+        "payload_kg": 10,
+        "load_state": "nominal",
+        "distance_m": 100,
+        "return_required": true,
+        "energy_budget_wh": 200,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "energy_per_useful_work",
+        "localization_and_sensing",
+        "terrain_contact_and_progress"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Simple ground-contact ramp baseline; it does not imply general off-road or safety certification."
+    },
+    {
+      "scenario_id": "UGV-GRASS-SLOPE",
+      "domain": "ground_robotics",
+      "mission_class": "field_inspection",
+      "terrain": {
+        "surface": "grass",
+        "longitudinal_slope_deg": 10,
+        "cross_slope_deg": 5,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 5,
+        "payload_kg": 15,
+        "load_state": "nominal",
+        "distance_m": 800,
+        "return_required": true,
+        "energy_budget_wh": 800,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "terrain_contact_and_progress",
+        "energy_per_useful_work",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Paired candidate test for grass-field inspection across wheel and track families."
+    },
+    {
+      "scenario_id": "UGV-ARTICULATED-ROCK-STEP",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "rock",
+        "longitudinal_slope_deg": 14,
+        "cross_slope_deg": 6,
+        "step_height_m": 0.22,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 3,
+        "payload_kg": 8,
+        "load_state": "nominal",
+        "distance_m": 500,
+        "return_required": true,
+        "energy_budget_wh": 900,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "terrain_contact_and_progress",
+        "stopping_and_stability",
+        "energy_per_useful_work",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Measures obstacle negotiation and recovery costs for an articulated wheel design; no architecture is presumed superior."
+    },
+    {
+      "scenario_id": "UGV-TRACKED-SAND",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "sand",
+        "longitudinal_slope_deg": 8,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0.08,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 4,
+        "payload_kg": 12,
+        "load_state": "nominal",
+        "distance_m": 700,
+        "return_required": true,
+        "energy_budget_wh": 1200,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "terrain_contact_and_progress",
+        "energy_per_useful_work",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Loose-surface track/hybrid comparison with sinkage and energy observations required where modeled."
+    },
+    {
+      "scenario_id": "UGV-WHEELED-SAND-PAIRED",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "sand",
+        "longitudinal_slope_deg": 8,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0.08,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 4,
+        "payload_kg": 12,
+        "load_state": "nominal",
+        "distance_m": 700,
+        "return_required": true,
+        "energy_budget_wh": 1200,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "terrain_contact_and_progress",
+        "energy_per_useful_work",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Paired baseline for the same synthetic sand mission; platform mass and sensor differences must still be declared in the candidate manifest."
+    },
+    {
+      "scenario_id": "UGV-MUD-SOFT-SOIL",
+      "domain": "ground_robotics",
+      "mission_class": "site_logistics",
+      "terrain": {
+        "surface": "mud",
+        "longitudinal_slope_deg": 7,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0.18,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "changing",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "cargo_kg",
+        "useful_work_target": 20,
+        "payload_kg": 20,
+        "load_state": "nominal",
+        "distance_m": 300,
+        "return_required": true,
+        "energy_budget_wh": 1000,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "tracked_ugv",
+        "articulated_wheeled_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "terrain_contact_and_progress",
+        "energy_per_useful_work",
+        "recovery_and_retreat",
+        "repairability"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Tests soft-ground immobilization and recovery rather than equating low-speed progress with task success."
+    },
+    {
+      "scenario_id": "UGV-FOREST-ROOTS-OCCLUSION",
+      "domain": "ground_robotics",
+      "mission_class": "field_inspection",
+      "terrain": {
+        "surface": "forest_floor",
+        "longitudinal_slope_deg": 12,
+        "cross_slope_deg": 7,
+        "step_height_m": 0.12,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "low_contrast",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "camera_occlusion"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 10,
+        "payload_kg": 6,
+        "load_state": "nominal",
+        "distance_m": 600,
+        "return_required": true,
+        "energy_budget_wh": 1200,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "localization_and_sensing",
+        "terrain_contact_and_progress",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Combines forest-floor geometry and partial visual occlusion; unseen terrain is not treated as known free space."
+    },
+    {
+      "scenario_id": "UGV-RUBBLE-HYBRID",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "rubble",
+        "longitudinal_slope_deg": 10,
+        "cross_slope_deg": 8,
+        "step_height_m": 0.28,
+        "rut_depth_m": 0.1,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 3,
+        "payload_kg": 5,
+        "load_state": "nominal",
+        "distance_m": 250,
+        "return_required": true,
+        "energy_budget_wh": 1000,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv",
+        "tracked_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "energy_per_useful_work",
+        "terrain_contact_and_progress",
+        "stopping_and_stability",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Tests whether extra articulation/legs produce useful mission gains after energy and recovery overhead are counted."
+    },
+    {
+      "scenario_id": "UGV-CROSS-SLOPE-CG-SHIFT",
+      "domain": "ground_robotics",
+      "mission_class": "site_logistics",
+      "terrain": {
+        "surface": "mixed",
+        "longitudinal_slope_deg": 8,
+        "cross_slope_deg": 18,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "cargo_kg",
+        "useful_work_target": 25,
+        "payload_kg": 25,
+        "load_state": "cg_shifted",
+        "distance_m": 200,
+        "return_required": true,
+        "energy_budget_wh": 700,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "stopping_and_stability",
+        "terrain_contact_and_progress",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Tests load-distribution and cross-slope admission gates; a route score cannot override inadequate stability margin."
+    },
+    {
+      "scenario_id": "UGV-WET-ROCK-TRACTION",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "wet_rock",
+        "longitudinal_slope_deg": 12,
+        "cross_slope_deg": 4,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "rain",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "changing",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 2,
+        "payload_kg": 4,
+        "load_state": "nominal",
+        "distance_m": 180,
+        "return_required": true,
+        "energy_budget_wh": 400,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "terrain_contact_and_progress",
+        "stopping_and_stability",
+        "energy_per_useful_work"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "A wet-rock case requires an explicit friction/contact model or must be labeled outside that model's domain."
+    },
+    {
+      "scenario_id": "UGV-SHALLOW-WATER-EDGE",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "shallow_water_edge",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "unknown",
+        "drop_or_void_hazard": true
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 1,
+        "payload_kg": 2,
+        "load_state": "nominal",
+        "distance_m": 60,
+        "return_required": true,
+        "energy_budget_wh": 300,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "surface_amphibious_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "hazard_unknown_abstention",
+        "no_unauthorized_water_entry"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "reject_as_out_of_domain",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "No water entry is implied by ground-contact capability; the exact platform must declare and qualify the surface-water envelope."
+    },
+    {
+      "scenario_id": "UGV-UNKNOWN-VOID-EDGE",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "unknown",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "unknown",
+        "drop_or_void_hazard": true
+      },
+      "environment": {
+        "lighting": "occluded",
+        "weather": "dry",
+        "localization": "degraded",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "hazard_unknown_abstention",
+        "energy_or_retreat_feasible"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "localization_and_sensing",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Hard negative control: an unknown edge/void must not be crossed due to a guessed terrain label or planner optimism."
+    },
+    {
+      "scenario_id": "UGV-GNSS-DENIED-LIDAR-DROPOUT",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "forest_floor",
+        "longitudinal_slope_deg": 6,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "gnss_denied",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "lidar_dropout",
+          "wheel_encoder_dropout"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "hazard_unknown_abstention",
+        "energy_or_retreat_feasible",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "localization_and_sensing",
+        "recovery_and_retreat",
+        "human_override"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Combined localization/sensor failure must trigger a declared bounded fallback or safe stop, not hidden dead reckoning certainty."
+    },
+    {
+      "scenario_id": "UGV-COMMS-LOST-LOCAL-SAFE",
+      "domain": "ground_robotics",
+      "mission_class": "site_logistics",
+      "terrain": {
+        "surface": "mixed",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "lost",
+        "surface_dynamics": "stable",
+        "faults": [
+          "communications_loss"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "recovery_and_retreat",
+        "human_override",
+        "availability"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Tests local safe-state behavior and retention of human control expectations during communications loss."
+    },
+    {
+      "scenario_id": "UGV-ACTUATOR-FAULT-RETURN",
+      "domain": "ground_robotics",
+      "mission_class": "repair_return",
+      "terrain": {
+        "surface": "rock",
+        "longitudinal_slope_deg": 5,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "actuator_fault"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "repair_task",
+        "useful_work_target": 1,
+        "payload_kg": 8,
+        "load_state": "nominal",
+        "distance_m": 450,
+        "return_required": true,
+        "energy_budget_wh": 250,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "stability_envelope",
+        "energy_or_retreat_feasible",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "recovery_and_retreat",
+        "repairability",
+        "availability"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "A faulted platform must not count mission success while bypassing required stability, reserve or recovery gates."
+    },
+    {
+      "scenario_id": "UGV-LOWLIGHT-DUST-COMPOUND",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "rubble",
+        "longitudinal_slope_deg": 7,
+        "cross_slope_deg": 0,
+        "step_height_m": 0.15,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "night",
+        "weather": "dust",
+        "localization": "degraded",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "camera_occlusion",
+          "stale_map"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "hazard_unknown_abstention",
+        "energy_or_retreat_feasible"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "localization_and_sensing",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Compound stress case; each fault and uncertainty contribution must be retained, not averaged away."
+    },
+    {
+      "scenario_id": "UGV-REPAIR-MODULE-SWAP",
+      "domain": "ground_robotics",
+      "mission_class": "repair_return",
+      "terrain": {
+        "surface": "indoor_ramp",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "repair_task",
+        "useful_work_target": 1,
+        "payload_kg": 0,
+        "load_state": "not_applicable",
+        "distance_m": 0,
+        "return_required": false,
+        "energy_budget_wh": 100,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "service_isolation_verified",
+        "repair_verification"
+      ],
+      "metric_tracks": [
+        "repairability",
+        "availability",
+        "lifecycle_cost"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Bench-style serviceability case; separately time diagnosis, isolation, hands-on swap, validation, rework and safe return to service."
+    },
+    {
+      "scenario_id": "UGV-LONG-RETURN-ENERGY",
+      "domain": "ground_robotics",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "mixed",
+        "longitudinal_slope_deg": 9,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "inspected_targets",
+        "useful_work_target": 6,
+        "payload_kg": 6,
+        "load_state": "nominal",
+        "distance_m": 1800,
+        "return_required": true,
+        "energy_budget_wh": 300,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "safe_dispatch",
+        "energy_or_retreat_feasible"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "energy_per_useful_work",
+        "recovery_and_retreat"
+      ],
+      "expected_behavior": "abort_or_retreat_safely",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Energy model must preserve forecast uncertainty; if return cannot be qualified, the correct result may be no dispatch."
+    },
+    {
+      "scenario_id": "UGV-UNDECLARED-CAPABILITY",
+      "domain": "ground_robotics",
+      "mission_class": "field_inspection",
+      "terrain": {
+        "surface": "mixed",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "missing_capability_evidence"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "other_declared_platform"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "safety_disposition"
+      ],
+      "expected_behavior": "reject_as_out_of_domain",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Negative control: a valid platform name without required capability evidence cannot qualify a mission."
+    },
+    {
+      "scenario_id": "CROSS-PAIRED-WEATHER-PAYLOAD",
+      "domain": "cross_platform",
+      "mission_class": "cargo_delivery",
+      "terrain": {
+        "surface": "mixed",
+        "longitudinal_slope_deg": 7,
+        "cross_slope_deg": 4,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "variable",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "rain",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "changing",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "cargo_kg",
+        "useful_work_target": 30,
+        "payload_kg": 30,
+        "load_state": "max_declared",
+        "distance_m": 1000,
+        "return_required": true,
+        "energy_budget_wh": 2000,
+        "return_margin_requirement_pct": 25,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle",
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "configuration_identity_matches",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "mission_completion",
+        "energy_per_useful_work",
+        "terrain_contact_and_progress",
+        "recovery_and_retreat",
+        "lifecycle_cost"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Cross-platform paired case only where the mission unit, useful work and constraints can genuinely be aligned."
+    },
+    {
+      "scenario_id": "CROSS-STALE-CALIBRATION",
+      "domain": "cross_platform",
+      "mission_class": "terrain_scouting",
+      "terrain": {
+        "surface": "mixed",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "missing_calibration",
+          "configuration_mismatch"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle",
+        "articulated_wheeled_ugv",
+        "tracked_ugv",
+        "wheel_leg_hybrid_ugv",
+        "legged_ugv"
+      ],
+      "required_gates": [
+        "configuration_identity_matches",
+        "capability_declared",
+        "safe_dispatch"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "localization_and_sensing"
+      ],
+      "expected_behavior": "reject_as_out_of_domain",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Negative control: calibration/configuration identity mismatch is not corrected by a good historical score."
+    },
+    {
+      "scenario_id": "UX-EXPLICIT-PREFERENCE-RESET",
+      "domain": "personal_vehicle",
+      "mission_class": "owner_personalization",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "owner_consent_and_profile_opt_in",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "owner_control",
+        "privacy",
+        "ride_comfort",
+        "noise_vibration"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "passenger",
+        "consent_required": true,
+        "owner_selected_profile": true,
+        "outcomes": [
+          "profile_restore",
+          "owner_control",
+          "privacy"
+        ]
+      },
+      "rationale": "Tests opt-out, manual defaults, data export/reset and safe behavior when personalization is disabled."
+    },
+    {
+      "scenario_id": "UX-PROFILE-ACCESSIBILITY-CHOICE",
+      "domain": "personal_vehicle",
+      "mission_class": "accessible_entry",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": []
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "owner_consent_and_profile_opt_in",
+        "human_override"
+      ],
+      "metric_tracks": [
+        "accessibility",
+        "owner_control",
+        "privacy"
+      ],
+      "expected_behavior": "run_within_declared_envelope",
+      "negative_control": false,
+      "human_context": {
+        "context_type": "accessibility_task",
+        "consent_required": true,
+        "owner_selected_profile": true,
+        "outcomes": [
+          "accessible_entry_exit",
+          "owner_control",
+          "privacy"
+        ]
+      },
+      "rationale": "User-selected accessibility tasks are evaluated by task completion and access needs, not by inferred disability or identity."
+    },
+    {
+      "scenario_id": "OPS-ALTERNATIVE-UNAVAILABLE",
+      "domain": "personal_vehicle",
+      "mission_class": "essential_passenger_trip",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "low_energy_reserve",
+          "parts_availability_unknown"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "passenger_trip",
+        "useful_work_target": 1,
+        "payload_kg": 120,
+        "load_state": "nominal",
+        "distance_m": 12000,
+        "return_required": true,
+        "energy_budget_wh": 1000,
+        "return_margin_requirement_pct": 20,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "capability_declared",
+        "energy_or_retreat_feasible",
+        "owner_consent_and_profile_opt_in"
+      ],
+      "metric_tracks": [
+        "safety_disposition",
+        "essential_trip_continuity",
+        "availability",
+        "lifecycle_cost"
+      ],
+      "expected_behavior": "keep_unknown_unresolved",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "passenger",
+        "consent_required": true,
+        "owner_selected_profile": false,
+        "outcomes": [
+          "essential_trip_continuity"
+        ]
+      },
+      "rationale": "A fallback mode counts only when its access, legality, availability and capacity are evidenced; unknown alternatives remain unknown."
+    },
+    {
+      "scenario_id": "OPS-REPAIR-WAIT-AND-COST",
+      "domain": "personal_vehicle",
+      "mission_class": "repair_return",
+      "terrain": {
+        "surface": "paved_dry",
+        "longitudinal_slope_deg": 0,
+        "cross_slope_deg": 0,
+        "step_height_m": 0,
+        "rut_depth_m": 0,
+        "surface_uncertainty": "known",
+        "drop_or_void_hazard": false
+      },
+      "environment": {
+        "lighting": "daylight",
+        "weather": "dry",
+        "localization": "nominal",
+        "communications": "connected",
+        "surface_dynamics": "stable",
+        "faults": [
+          "parts_availability_unknown"
+        ]
+      },
+      "mission": {
+        "useful_work_unit": "service_task",
+        "useful_work_target": 1,
+        "payload_kg": null,
+        "load_state": "not_applicable",
+        "distance_m": null,
+        "return_required": false,
+        "energy_budget_wh": null,
+        "return_margin_requirement_pct": null,
+        "deadline_s": null
+      },
+      "platform_classes_in_scope": [
+        "personal_road_vehicle"
+      ],
+      "required_gates": [
+        "configuration_identity_matches",
+        "service_isolation_verified",
+        "repair_verification"
+      ],
+      "metric_tracks": [
+        "repairability",
+        "availability",
+        "lifecycle_cost",
+        "essential_trip_continuity"
+      ],
+      "expected_behavior": "keep_unknown_unresolved",
+      "negative_control": true,
+      "human_context": {
+        "context_type": "none",
+        "consent_required": false,
+        "owner_selected_profile": false,
+        "outcomes": []
+      },
+      "rationale": "Part arrival, workshop queue, hands-on labor and rework are separate durations; unavailable cost data is not imputed as zero."
+    }
+  ]
+}
