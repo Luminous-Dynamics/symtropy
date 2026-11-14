@@ -81,6 +81,33 @@
         "reason": "PIPE_LENGTH_NOT_POSITIVE",
         "solver_qualification_permitted": false
       }
+    },
+    {
+      "case_id": "WT-T0-009-wave-speed-uncertainty-envelope",
+      "expected": {
+        "disposition": "UNCERTAINTY_ENVELOPE_ONLY",
+        "pressure_change_min_pa": 450000,
+        "pressure_change_max_pa": 550000,
+        "head_change_min_m": 45.87155963302752,
+        "head_change_max_m": 56.065239551478086,
+        "one_way_time_min_s": 0.09090909090909091,
+        "one_way_time_max_s": 0.1111111111111111,
+        "round_trip_time_min_s": 0.18181818181818182,
+        "round_trip_time_max_s": 0.2222222222222222,
+        "closure_to_round_trip_ratio_min": 0.045000000000000005,
+        "closure_to_round_trip_ratio_max": 0.055,
+        "post_event_candidate_absolute_pressure_min_pa": 750000,
+        "post_event_candidate_absolute_pressure_max_pa": 850000,
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-010-reversed-wave-speed-interval",
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason": "WAVE_SPEED_INTERVAL_NOT_ORDERED",
+        "solver_qualification_permitted": false
+      }
     }
   ]
 }
