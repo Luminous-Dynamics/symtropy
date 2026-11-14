@@ -41,11 +41,17 @@ jobs:
           from jsonschema import Draft202012Validator
           root = Path("research/symmetry-physical-handoff-001")
           schema = json.loads((root / "symmetry-physical-handoff-v0.1.schema.json").read_text())
+          manifest_schema = json.loads((root / "symmetry-physical-artifact-manifest-v0.1.schema.json").read_text())
           fixture = json.loads((root / "fixtures/synthetic-handoff-v0.1.json").read_text())
+          manifest_fixture = json.loads((root / "fixtures/synthetic-artifact-manifest-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(manifest_schema)
           validator = Draft202012Validator(schema)
+          manifest_validator = Draft202012Validator(manifest_schema)
           errors = list(validator.iter_errors(fixture))
           assert not errors, errors
+          manifest_errors = list(manifest_validator.iter_errors(manifest_fixture))
+          assert not manifest_errors, manifest_errors
           assert fixture["source_math_receipt"]["qualification_status"] == "PASS"
           assert fixture["receiver_verification"]["status"] == "INCONCLUSIVE"
           assert fixture["claims"]["physical_step_equivariance_status"] == "INCONCLUSIVE"
