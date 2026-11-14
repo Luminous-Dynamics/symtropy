@@ -60,20 +60,30 @@ jobs:
           max_u64 = 18446744073709551615
           assert config_schema["properties"]["seed_u64"]["maximum"] == max_u64
           assert result_schema["properties"]["seed_u64"]["maximum"] == max_u64
-          Draft202012Validator(config_schema).validate({"seed_u64": max_u64, "draw_count": 2_000_000})
+          Draft202012Validator(config_schema).validate({
+              "seed_u64": max_u64,
+              "draw_count": 2_000_000,
+              "analysis_plan_sha256": "a" * 64,
+              "preregistration_record_ref": "workflow-synthetic-preregistration",
+              "seed_commitment_sha256": "b" * 64,
+          })
           assert protocol["schema_version"] == "symtropy-marine-monte-carlo-randomization-v0.1"
           assert protocol["status"] == "protocol_only_not_executed"
           assert protocol["algorithm"]["id"] == "splitmix64_v1"
           assert protocol["algorithm"]["max_units"] == 10000
           assert protocol["algorithm"]["max_draws"] == 2000000
           assert protocol["algorithm"]["max_total_unit_draws"] == 100000000
-          assert len(protocol["hard_gates"]) >= 36
-          assert len(corpus["cases"]) == 17
-          assert len({case["case_id"] for case in corpus["cases"]}) == 17
+          assert len(protocol["hard_gates"]) >= 39
+          assert len(corpus["cases"]) == 20
+          assert len({case["case_id"] for case in corpus["cases"]}) == 20
           assert config_schema["additionalProperties"] is False
           assert result_schema["additionalProperties"] is False
           assert "randomization_frame_sha256" in result_schema["required"]
           assert "sampled_assignments_sha256" in result_schema["required"]
+          assert "analysis_plan_sha256" in config_schema["required"]
+          assert "preregistration_record_ref" in config_schema["required"]
+          assert "seed_commitment_sha256" in config_schema["required"]
+          assert "configuration_sha256" in result_schema["required"]
           assert result_schema["properties"]["exact_enumeration_used"]["const"] is False
           assert result_example["allocation_constraint_violations"] == 0
           assert result_example["p_value_plus_one"] > 0
@@ -126,6 +136,10 @@ jobs:
               assert row["seed_u64"] >= 0
               assert len(row["randomization_frame_sha256"]) == 64
               assert len(row["sampled_assignments_sha256"]) == 64
+              assert len(row["analysis_plan_sha256"]) == 64
+              assert len(row["seed_commitment_sha256"]) == 64
+              assert len(row["configuration_sha256"]) == 64
+              assert row["preregistration_record_ref"]
           print(f"Validated {len(rows)} replay-complete throughput JSONL rows")
           PY
           cat benchmark-artifacts/monte-carlo-throughput.jsonl
