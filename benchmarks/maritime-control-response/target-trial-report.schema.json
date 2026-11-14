@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-observational-target-trial-report-v0.1.json",
+  "title": "Observational target-trial qualification report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "disposition",
+    "qualified_emulation_entry_count",
+    "blockers",
+    "assumptions_supported",
+    "assumptions_unknown_or_violated",
+    "causal_effect_estimated",
+    "maintenance_authorized",
+    "physical_restoration_authorized",
+    "operating_restriction_clearance_authorized"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-observational-target-trial-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disposition": {
+      "enum": [
+        "protocol_incomplete",
+        "not_identified",
+        "design_qualified_for_estimator"
+      ]
+    },
+    "qualified_emulation_entry_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assumptions_supported": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "assumptions_unknown_or_violated": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "causal_effect_estimated": {
+      "const": false
+    },
+    "maintenance_authorized": {
+      "const": false
+    },
+    "physical_restoration_authorized": {
+      "const": false
+    },
+    "operating_restriction_clearance_authorized": {
+      "const": false
+    }
+  }
+}
