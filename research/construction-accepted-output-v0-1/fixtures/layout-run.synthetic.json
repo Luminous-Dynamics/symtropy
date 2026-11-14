@@ -1,0 +1,185 @@
+{
+  "schema_version": "construction-accepted-output-ledger-v0.1",
+  "profile_id": "layout-accepted-output-v0.1",
+  "record_id": "synthetic-layout-run-0001",
+  "provenance": "synthetic",
+  "scope": {
+    "project_id": "synthetic-project",
+    "site_id": "synthetic-site",
+    "work_package_id": "synthetic-wp",
+    "activity_id": "synthetic-layout",
+    "task_id": "synthetic-task",
+    "design_revision": "r1",
+    "design_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "site_epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "odd_profile_id": "synthetic-layout-odd"
+  },
+  "functional_unit": {
+    "unit_class": "layout_point",
+    "unit_label": "accepted layout point",
+    "unit_definition": "One required point feature accepted against a frozen synthetic design and independent synthetic referee evidence.",
+    "unit_symbol": "point",
+    "acceptance_profile_id": "layout-accepted-output-v0.1",
+    "acceptance_profile_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "downstream_use": "locate a declared fixture or wall reference in the downstream trade workflow"
+  },
+  "work_package": {
+    "started_at_unix_ms": 900000,
+    "ended_at_unix_ms": 4600000,
+    "clock_domain_id": "synthetic-clock",
+    "completion_state": "unresolved"
+  },
+  "work_units": [
+    {
+      "unit_id": "p1",
+      "feature_class": "critical_grid_point",
+      "criticality": "critical",
+      "attempts": [
+        {
+          "attempt_id": "p1-a1",
+          "attempt_number": 1,
+          "started_at_unix_ms": 1100000,
+          "ended_at_unix_ms": 1200000,
+          "output_artifact_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+          "inspection": {
+            "outcome": "accepted",
+            "acceptance_authority_ref": "synthetic-authority",
+            "method_ref": "synthetic-survey-method",
+            "evidence_refs": [
+              "synthetic-inspection-p1"
+            ],
+            "defects": []
+          }
+        }
+      ],
+      "terminal_disposition": "accepted"
+    },
+    {
+      "unit_id": "p2",
+      "feature_class": "critical_grid_point",
+      "criticality": "critical",
+      "attempts": [
+        {
+          "attempt_id": "p2-a1",
+          "attempt_number": 1,
+          "started_at_unix_ms": 1250000,
+          "ended_at_unix_ms": 1300000,
+          "output_artifact_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+          "inspection": {
+            "outcome": "rejected",
+            "acceptance_authority_ref": "synthetic-authority",
+            "method_ref": "synthetic-survey-method",
+            "evidence_refs": [
+              "synthetic-inspection-p2a"
+            ],
+            "defects": [
+              {
+                "defect_id": "d1",
+                "defect_code": "position_outside_profile",
+                "severity": "major",
+                "disposition": "corrected"
+              }
+            ]
+          }
+        },
+        {
+          "attempt_id": "p2-a2",
+          "attempt_number": 2,
+          "started_at_unix_ms": 1400000,
+          "ended_at_unix_ms": 1450000,
+          "output_artifact_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+          "inspection": {
+            "outcome": "accepted",
+            "acceptance_authority_ref": "synthetic-authority",
+            "method_ref": "synthetic-survey-method",
+            "evidence_refs": [
+              "synthetic-inspection-p2b"
+            ],
+            "defects": []
+          }
+        }
+      ],
+      "terminal_disposition": "accepted"
+    },
+    {
+      "unit_id": "p3",
+      "feature_class": "critical_grid_point",
+      "criticality": "critical",
+      "attempts": [
+        {
+          "attempt_id": "p3-a1",
+          "attempt_number": 1,
+          "started_at_unix_ms": 1500000,
+          "ended_at_unix_ms": 1550000,
+          "output_artifact_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+          "inspection": {
+            "outcome": "not_inspected",
+            "acceptance_authority_ref": null,
+            "method_ref": null,
+            "evidence_refs": [],
+            "defects": []
+          }
+        }
+      ],
+      "terminal_disposition": "unresolved"
+    }
+  ],
+  "time_entries": [
+    {
+      "entry_id": "t1",
+      "resource_id": "human-vdc-01",
+      "resource_type": "human",
+      "role": "VDC_coordinator",
+      "activity_category": "model_vdc_preparation",
+      "start_at_unix_ms": 900000,
+      "end_at_unix_ms": 1000000,
+      "clock_domain_id": "synthetic-clock",
+      "evidence_ref": "synthetic-timecard-1"
+    },
+    {
+      "entry_id": "t2",
+      "resource_id": "human-op-01",
+      "resource_type": "human",
+      "role": "operator",
+      "activity_category": "execution",
+      "start_at_unix_ms": 1000000,
+      "end_at_unix_ms": 4600000,
+      "clock_domain_id": "synthetic-clock",
+      "evidence_ref": "synthetic-timecard-2"
+    },
+    {
+      "entry_id": "t3",
+      "resource_id": "robot-01",
+      "resource_type": "robot",
+      "role": "layout_robot",
+      "activity_category": "execution",
+      "start_at_unix_ms": 1000000,
+      "end_at_unix_ms": 4600000,
+      "clock_domain_id": "synthetic-clock",
+      "evidence_ref": "synthetic-machine-log"
+    },
+    {
+      "entry_id": "t4",
+      "resource_id": "human-rework-01",
+      "resource_type": "human",
+      "role": "rework_operator",
+      "activity_category": "rework_reprint",
+      "start_at_unix_ms": 1400000,
+      "end_at_unix_ms": 1450000,
+      "clock_domain_id": "synthetic-clock",
+      "evidence_ref": "synthetic-timecard-rework"
+    }
+  ],
+  "interruptions": [
+    {
+      "interruption_id": "i1",
+      "category": "safety_hold",
+      "start_at_unix_ms": 2000000,
+      "end_at_unix_ms": 2100000,
+      "attribution_status": "supported",
+      "evidence_refs": [
+        "synthetic-hold-record"
+      ]
+    }
+  ]
+}
