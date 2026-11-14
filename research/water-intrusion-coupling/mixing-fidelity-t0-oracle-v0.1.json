@@ -1,0 +1,244 @@
+{
+  "schema_version": "water-mixing-fidelity-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "evidence_class": "separate_frozen_synthetic_oracle",
+  "oracle_semantics": "expected arithmetic and refusal outputs; not a physical reference dataset",
+  "cases": [
+    {
+      "case_id": "JMF-T0-001-complete-mixing-cross",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "ANALYTICAL_JUNCTION_OPERATOR_KNOWN_ANSWER",
+        "outlet_concentration_mg_l": [
+          5,
+          5
+        ],
+        "complete_mix_reference_concentration_mg_l": [
+          5,
+          5
+        ],
+        "outlet_deviation_from_complete_mix_mg_l": [
+          0,
+          0
+        ],
+        "input_tracer_mass_flux_mg_s": 10,
+        "output_tracer_mass_flux_mg_s": 10,
+        "mass_flux_residual_mg_s": 0
+      }
+    },
+    {
+      "case_id": "JMF-T0-002-segregated-inlet-origin-routing",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "ANALYTICAL_JUNCTION_OPERATOR_KNOWN_ANSWER",
+        "outlet_concentration_mg_l": [
+          10,
+          0
+        ],
+        "complete_mix_reference_concentration_mg_l": [
+          5,
+          5
+        ],
+        "outlet_deviation_from_complete_mix_mg_l": [
+          5,
+          -5
+        ],
+        "input_tracer_mass_flux_mg_s": 10,
+        "output_tracer_mass_flux_mg_s": 10,
+        "mass_flux_residual_mg_s": 0
+      }
+    },
+    {
+      "case_id": "JMF-T0-003-partial-mixing-cross",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "ANALYTICAL_JUNCTION_OPERATOR_KNOWN_ANSWER",
+        "outlet_concentration_mg_l": [
+          7.5,
+          2.5
+        ],
+        "complete_mix_reference_concentration_mg_l": [
+          5,
+          5
+        ],
+        "outlet_deviation_from_complete_mix_mg_l": [
+          2.5,
+          -2.5
+        ],
+        "input_tracer_mass_flux_mg_s": 10,
+        "output_tracer_mass_flux_mg_s": 10,
+        "mass_flux_residual_mg_s": 0
+      }
+    },
+    {
+      "case_id": "JMF-T0-004-asymmetric-flow-routing",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "ANALYTICAL_JUNCTION_OPERATOR_KNOWN_ANSWER",
+        "outlet_concentration_mg_l": [
+          11.25,
+          3.75
+        ],
+        "complete_mix_reference_concentration_mg_l": [
+          7.5,
+          7.5
+        ],
+        "outlet_deviation_from_complete_mix_mg_l": [
+          3.75,
+          -3.75
+        ],
+        "input_tracer_mass_flux_mg_s": 30,
+        "output_tracer_mass_flux_mg_s": 30,
+        "mass_flux_residual_mg_s": 0
+      }
+    },
+    {
+      "case_id": "JMF-T0-005-mass-fraction-columns-do-not-close",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "REJECTED_CONTRACT",
+        "reason": "MASS_FRACTION_COLUMN_NOT_NORMALIZED"
+      }
+    },
+    {
+      "case_id": "JMF-T0-006-negative-mass-fraction",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "INVALID_INPUT",
+        "reason": "NEGATIVE_MASS_FRACTION"
+      }
+    },
+    {
+      "case_id": "JMF-T0-007-inlet-outlet-volume-flow-mismatch",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "REJECTED_CONTRACT",
+        "reason": "TOTAL_INLET_OUTLET_FLOW_MISMATCH"
+      }
+    },
+    {
+      "case_id": "JMF-T0-008-unsupported-junction-topology",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "mixing_disposition": "OUT_OF_DOMAIN",
+        "reason": "JUNCTION_TOPOLOGY_NOT_IN_T0_DOMAIN"
+      }
+    },
+    {
+      "case_id": "RTD-T0-001-closed-pulse-tracer",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "RTD_ESTIMATED_SYNTHETIC_ONLY",
+        "mass_recovery_fraction": 1,
+        "unrecovered_tracer_mass_mg": 0,
+        "recovered_tracer_mass_mg": 100,
+        "mean_residence_time_s": 92,
+        "variance_residence_time_s2": 8836,
+        "early_fraction": 0.2,
+        "tail_fraction": 0.2
+      }
+    },
+    {
+      "case_id": "RTD-T0-002-short-circuit-and-long-tail",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "RTD_ESTIMATED_SYNTHETIC_ONLY",
+        "mass_recovery_fraction": 1,
+        "unrecovered_tracer_mass_mg": 0,
+        "recovered_tracer_mass_mg": 100,
+        "mean_residence_time_s": 150.5,
+        "variance_residence_time_s2": 50732.25,
+        "early_fraction": 0.1,
+        "tail_fraction": 0.2
+      }
+    },
+    {
+      "case_id": "RTD-T0-003-incomplete-tracer-recovery",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "INDETERMINATE",
+        "reason": "TRACER_MASS_RECOVERY_OUTSIDE_TOLERANCE",
+        "mass_recovery_fraction": 0.6,
+        "unrecovered_tracer_mass_mg": 40,
+        "recovered_tracer_mass_mg": 60
+      }
+    },
+    {
+      "case_id": "RTD-T0-004-negative-tracer-mass",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "INVALID_INPUT",
+        "reason": "NEGATIVE_TRACER_MASS"
+      }
+    },
+    {
+      "case_id": "RTD-T0-005-nonmonotonic-sample-times",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "INVALID_INPUT",
+        "reason": "SAMPLE_TIMES_NOT_STRICTLY_INCREASING"
+      }
+    },
+    {
+      "case_id": "RTD-T0-006-timebase-not-aligned",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "INDETERMINATE",
+        "reason": "TRACER_TIMEBASE_NOT_ALIGNED"
+      }
+    },
+    {
+      "case_id": "RTD-T0-007-calibration-not-current",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "rtd_disposition": "INDETERMINATE",
+        "reason": "TRACER_INSTRUMENT_CALIBRATION_NOT_CURRENT"
+      }
+    }
+  ]
+}
