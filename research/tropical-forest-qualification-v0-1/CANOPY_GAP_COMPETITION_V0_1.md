@@ -54,7 +54,13 @@ Expected values:
 
 This fixture is designed to falsify the assumption that equal aggregate LAI implies equal local gap structure. It does not prove which arrangement better predicts real seedling recruitment.
 
-## 5. Required process-level tests
+## 5. Public challenge-case manifest
+
+The companion JSON manifest now names ten public development case families: equal-aggregate/different-topology; single-cohort mortality; clustered versus dispersed mortality; local-light recruitment; causal gap closure; translation symmetry; rotation symmetry; disconnected control; renderer independence; and process-driven fidelity promotion.
+
+The Rust verifier checks that all ten case IDs and expected dispositions match the declared development contract. It does **not** execute the associated growth, mortality, light, recruitment or fidelity processes. These cases are specifications for later model runners, not completed model experiments and not a blind holdout.
+
+## 6. Required process-level tests
 
 1. **Gap creation:** remove one declared cohort / crown contribution; local gap light rises only in cells whose canopy support changed.
 2. **Clustered disturbance:** remove equal biomass in two different spatial patterns; compare gap geometry and understory light.
@@ -65,7 +71,7 @@ This fixture is designed to falsify the assumption that equal aggregate LAI impl
 7. **Fidelity promotion:** when recruitment depends on local light, a representation with only global LAI must be marked insufficient or refined before authoritative use.
 8. **Budget parity:** all representations receive identical initial state, forcing, candidate actions, duration, parameter-fitting data and compute budget declarations.
 
-## 6. Scorecard
+## 7. Scorecard
 
 - gap area distribution, component count and connectivity;
 - understory light mean, quantiles, variance and spatial autocorrelation;
@@ -77,12 +83,12 @@ This fixture is designed to falsify the assumption that equal aggregate LAI impl
 
 A spatially explicit model should only be selected when the process and task need its additional state. If only aggregate biomass is being predicted, simpler representations may be sufficient.
 
-## 7. Admissible SOTA comparison
+## 8. Admissible SOTA comparison
 
 Reproduce a pinned LPJ-GUESS baseline and the published SEC / PPA semantics on the same frozen cases. Report implementation differences and unavailable features. Do not claim to have reproduced SEC merely because a model places cohort centroids in a grid.
 
 Use LPJ-GUESS, FATES and an individual-tree reference only where their scientific target, parameters, forcing, and observed outputs can be made semantically comparable. The Luminous benchmark should report a multi-axis Pareto frontier rather than hide ecological error inside a runtime win.
 
-## 8. Claim ceiling
+## 9. Claim ceiling
 
 A pass on the analytical toy fixture proves only that the implementation distinguishes aggregate-equal but spatially different canopy arrangements and preserves declared invariants. It does not validate canopy radiation, tropical allometry, tree mortality, recruitment, species coexistence or forestry decisions.
