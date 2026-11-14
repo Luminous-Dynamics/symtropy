@@ -565,7 +565,7 @@ impl<From, To, const N: usize> CoordinateRebase<From, To, N> {
         &self,
         jacobian: &Jacobian<K, N>,
     ) -> Result<Jacobian<K, N>, RobustConstraintErrorV1> {
-        let transformed = std::array::from_fn(|row| {
+        let transformed: Jacobian<K, N> = std::array::from_fn(|row| {
             std::array::from_fn(|column| {
                 (0..N)
                     .map(|inner| jacobian[row][inner] * self.source_from_target[inner][column])
@@ -809,16 +809,16 @@ mod tests {
                 | RobustConstraintStatusV1::WeaklyAdmittedByNumericalEnvelope
         ));
 
-        let perturbed_mass = std::array::from_fn(|row| {
+        let perturbed_mass: Matrix<3> = std::array::from_fn(|row| {
             std::array::from_fn(|column| metric.matrix()[row][column] + delta_mass[row][column])
         });
         let perturbed_metric = Metric::new(perturbed_mass, profile()).unwrap();
-        let perturbed_jacobian = std::array::from_fn(|row| {
+        let perturbed_jacobian: Jacobian<2, 3> = std::array::from_fn(|row| {
             std::array::from_fn(|column| jacobian[row][column] + delta_jacobian[row][column])
         });
         let (perturbed_w, _) = build_delassus(&perturbed_metric, &perturbed_jacobian).unwrap();
 
-        let difference = std::array::from_fn(|row| {
+        let difference: Square<2> = std::array::from_fn(|row| {
             std::array::from_fn(|column| {
                 perturbed_w[row][column] - envelope.nominal_delassus[row][column]
             })
