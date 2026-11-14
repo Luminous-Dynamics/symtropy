@@ -82,6 +82,7 @@ Reference pages:
 - MapBiomas Collection 11 platform / accuracy information: https://plataforma.brasil.mapbiomas.org/
 - Papua New Guinea NFI publication notice / FAO FAM Catalogue: https://www.fao.org/in-action/boosting-transparency-forest-data/news-and-events/news/detail/papua-new-guinea-publishes-national-forest-inventory-in-fam-catalogue/en
 - Amazon RAINFOR EIDC 2017–2019 data record and OGL licence: https://catalogue.ceh.ac.uk/documents/63d4b774-4e03-4db2-95ad-dcca18f0d681
+- Brazil National Forest Inventory 2013 (FAO FAM reference BRA_2013_NFI_v01_EN_M_v01_A_OCS): https://microdata.fao.org/index.php/catalog/2074
 - NASA / ORNL DAAC Brazilian Amazon 2009–2018 inventory: https://doi.org/10.3334/ORNLDAAC/2007
 - DRC NFI 2017–2021 metadata and access conditions: https://microdata.fao.org/index.php/catalog/2732
 - PNG NFI 2016–2019 metadata and access conditions: https://microdata.fao.org/index.php/catalog/2943
@@ -109,6 +110,8 @@ The evaluator must apply the relevant observation operator to the model state be
 Data admission records the exact asset/version/digest, provider, access and derivative rights, purpose, temporal interval, spatial support, CRS/datum, units, quality flags, processing history, and evaluation split. A dataset can be referenced without copying its protected rows.
 
 ### Initial data-admission recommendation
+
+The machine-readable [Dataset Candidate Register v0.1](DATASET_CANDIDATE_REGISTER_V0_1.json) tracks exact source IDs, spatial/temporal support, rights state and next admission gates. It records metadata only; all sources remain marked not downloaded and not ingested.
 
 Start the first Amazon structural pilot with the EIDC 2017–2019 RAINFOR diameter dataset because its official catalogue record explicitly provides an Open Government Licence and clear population, region, sample count and measurement dates. Treat this as a **single-campaign plot/stem structure reference** until an earlier matched census is separately admitted. Use the NASA/ORNL DAAC 2009–2018 dataset as a second source, but form training/test splits at site and year level because temporal frequency varies by site. Do not combine both sources into a single apparent panel without verifying plot identity, overlap and census dates.
 
