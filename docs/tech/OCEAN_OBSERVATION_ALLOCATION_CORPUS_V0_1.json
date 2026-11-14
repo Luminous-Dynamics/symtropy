@@ -1,0 +1,728 @@
+{
+  "schema_id": "luminous.symtropy.ocean-observation-allocation",
+  "schema_version": "0.1.0",
+  "suite_id": "OCEAN-OBSERVATION-ALLOCATION-SYNTH-001",
+  "evidence_class": "SyntheticAdversarial",
+  "claim_ceiling": "Synthetic observation-allocation benchmark only. No species abundance, absence, ecological condition, environmental safety, contact authorization, navigation, or extraction conclusion is inferred.",
+  "seed": 741114,
+  "scenarios": [
+    {
+      "scenario_id": "access-biased-sampling",
+      "description": "Most historical records and effort cluster in an easy-access shelf; less-sampled slope and abyssal strata carry greater declared uncertainty and priority.",
+      "budget": {
+        "effort_units": 4,
+        "sound_units": 2,
+        "light_units": 2,
+        "sediment_units": 2
+      },
+      "strata": [
+        {
+          "stratum_id": "easy_shelf",
+          "priority_ppm": 200000,
+          "uncertainty_ppm": 250000,
+          "existing_record_count": 4000,
+          "historical_effort_units": 100
+        },
+        {
+          "stratum_id": "continental_slope",
+          "priority_ppm": 300000,
+          "uncertainty_ppm": 600000,
+          "existing_record_count": 80,
+          "historical_effort_units": 10
+        },
+        {
+          "stratum_id": "abyssal_plain",
+          "priority_ppm": 500000,
+          "uncertainty_ppm": 900000,
+          "existing_record_count": 8,
+          "historical_effort_units": 1
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "shelf-passive-01",
+          "stratum_id": "easy_shelf",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 80000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "shelf-passive-02",
+          "stratum_id": "easy_shelf",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 60000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "shelf-passive-03",
+          "stratum_id": "easy_shelf",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 50000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "shelf-passive-04",
+          "stratum_id": "easy_shelf",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 40000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "slope-passive-01",
+          "stratum_id": "continental_slope",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 250000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 1,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "slope-active-02",
+          "stratum_id": "continental_slope",
+          "observation_mode": "active_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 180000,
+          "exposure": {
+            "sound_units": 1,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 930000
+          }
+        },
+        {
+          "candidate_id": "abyssal-passive-01",
+          "stratum_id": "abyssal_plain",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 350000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "abyssal-passive-02",
+          "stratum_id": "abyssal_plain",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 220000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 1
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "abyssal-contact-sample",
+          "stratum_id": "abyssal_plain",
+          "observation_mode": "contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 500000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 1
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 980000
+          }
+        },
+        {
+          "candidate_id": "abyssal-rights-unreviewed",
+          "stratum_id": "abyssal_plain",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 450000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "review_required",
+          "use_permission": "unresolved",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "abyssal-detection-unknown",
+          "stratum_id": "abyssal_plain",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 450000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": null
+        },
+        {
+          "candidate_id": "abyssal-low-signal-under-sensitivity",
+          "stratum_id": "abyssal_plain",
+          "observation_mode": "passive_non_contact",
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 300000,
+            "expected_signal_ppm": 150000,
+            "detection_probability_ppm": 950000
+          },
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 700000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "depth-gap-and-detection-limit",
+      "description": "Sparse deep-stratum records do not justify a conclusion when candidate sensors have unknown limits or source terms remain unresolved.",
+      "budget": {
+        "effort_units": 3,
+        "sound_units": 1,
+        "light_units": 1,
+        "sediment_units": 1
+      },
+      "strata": [
+        {
+          "stratum_id": "deep_hadal",
+          "priority_ppm": 600000,
+          "uncertainty_ppm": 900000,
+          "existing_record_count": 2,
+          "historical_effort_units": 1
+        },
+        {
+          "stratum_id": "seamount_slope",
+          "priority_ppm": 400000,
+          "uncertainty_ppm": 700000,
+          "existing_record_count": 40,
+          "historical_effort_units": 8
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "hadal-passive-unknown-limit",
+          "stratum_id": "deep_hadal",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 500000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": null
+        },
+        {
+          "candidate_id": "hadal-rights-review-required",
+          "stratum_id": "deep_hadal",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 500000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "review_required",
+          "use_permission": "unresolved",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "hadal-active-costly",
+          "stratum_id": "deep_hadal",
+          "observation_mode": "active_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 300000,
+          "exposure": {
+            "sound_units": 2,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 930000
+          }
+        },
+        {
+          "candidate_id": "hadal-passive-valid",
+          "stratum_id": "deep_hadal",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 2,
+          "information_gain_ppm": 120000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 250000,
+            "detection_probability_ppm": 650000
+          }
+        },
+        {
+          "candidate_id": "slope-passive-valid",
+          "stratum_id": "seamount_slope",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 180000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "slope-contact",
+          "stratum_id": "seamount_slope",
+          "observation_mode": "contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 300000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 1
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 980000
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "independent-exposure-caps",
+      "description": "High expected information is not sufficient when a candidate exceeds one independent exposure-channel budget; unknown exposure stays ineligible rather than zero.",
+      "budget": {
+        "effort_units": 3,
+        "sound_units": 1,
+        "light_units": 1,
+        "sediment_units": 1
+      },
+      "strata": [
+        {
+          "stratum_id": "north_sector",
+          "priority_ppm": 500000,
+          "uncertainty_ppm": 800000,
+          "existing_record_count": 20,
+          "historical_effort_units": 5
+        },
+        {
+          "stratum_id": "south_sector",
+          "priority_ppm": 500000,
+          "uncertainty_ppm": 800000,
+          "existing_record_count": 10,
+          "historical_effort_units": 2
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "north-active-sound-over-cap",
+          "stratum_id": "north_sector",
+          "observation_mode": "active_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 500000,
+          "exposure": {
+            "sound_units": 2,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 930000
+          }
+        },
+        {
+          "candidate_id": "north-passive-low-impact",
+          "stratum_id": "north_sector",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 180000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "south-active-light-over-cap",
+          "stratum_id": "south_sector",
+          "observation_mode": "active_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 300000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 2,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 930000
+          }
+        },
+        {
+          "candidate_id": "south-passive-low-impact",
+          "stratum_id": "south_sector",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 150000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "south-sediment-over-cap",
+          "stratum_id": "south_sector",
+          "observation_mode": "active_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 280000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 2
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 930000
+          }
+        },
+        {
+          "candidate_id": "north-exposure-unknown",
+          "stratum_id": "north_sector",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "unknown",
+          "effort_units": 1,
+          "information_gain_ppm": 600000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        }
+      ]
+    },
+    {
+      "scenario_id": "repeat-versus-coverage",
+      "description": "Several tempting candidates repeat an already well-sampled stratum while depth and benthic strata remain under-observed.",
+      "budget": {
+        "effort_units": 3,
+        "sound_units": 1,
+        "light_units": 1,
+        "sediment_units": 1
+      },
+      "strata": [
+        {
+          "stratum_id": "accessible_ridge",
+          "priority_ppm": 200000,
+          "uncertainty_ppm": 500000,
+          "existing_record_count": 3000,
+          "historical_effort_units": 80
+        },
+        {
+          "stratum_id": "deep_basin",
+          "priority_ppm": 400000,
+          "uncertainty_ppm": 800000,
+          "existing_record_count": 5,
+          "historical_effort_units": 1
+        },
+        {
+          "stratum_id": "benthic_plain",
+          "priority_ppm": 400000,
+          "uncertainty_ppm": 900000,
+          "existing_record_count": 8,
+          "historical_effort_units": 2
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "ridge-repeat-01",
+          "stratum_id": "accessible_ridge",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 100000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "ridge-repeat-02",
+          "stratum_id": "accessible_ridge",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 90000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "ridge-repeat-03",
+          "stratum_id": "accessible_ridge",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 80000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "deep-basin-passive",
+          "stratum_id": "deep_basin",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 300000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "benthic-plain-passive",
+          "stratum_id": "benthic_plain",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 350000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "permitted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        },
+        {
+          "candidate_id": "benthic-terms-restricted",
+          "stratum_id": "benthic_plain",
+          "observation_mode": "passive_non_contact",
+          "exposure_knowledge": "known",
+          "effort_units": 1,
+          "information_gain_ppm": 400000,
+          "exposure": {
+            "sound_units": 0,
+            "light_units": 0,
+            "sediment_units": 0
+          },
+          "rights_review_status": "reviewed",
+          "use_permission": "restricted",
+          "detection_profile": {
+            "minimum_detectable_signal_ppm": 200000,
+            "expected_signal_ppm": 600000,
+            "detection_probability_ppm": 850000
+          }
+        }
+      ]
+    }
+  ]
+}
