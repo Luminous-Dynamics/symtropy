@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-maintenance-effect-oracle-v0.1.json",
+  "title": "Separate synthetic potential outcome scoring oracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "oracle_dataset_sha256",
+    "outcomes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-maintenance-effect-oracle-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oracle_dataset_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "potential_outcome_treatment",
+          "potential_outcome_control",
+          "oracle_record_sha256"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "potential_outcome_treatment": {
+            "type": "number"
+          },
+          "potential_outcome_control": {
+            "type": "number"
+          },
+          "oracle_record_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
