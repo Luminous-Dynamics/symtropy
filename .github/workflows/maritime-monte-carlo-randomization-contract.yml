@@ -85,9 +85,30 @@ jobs:
         working-directory: benchmarks/maritime-control-response
         run: cargo test --locked --lib
 
-      - name: Compile performance benchmark harness
+      - name: Execute fixed-budget throughput profile
         working-directory: benchmarks/maritime-control-response
-        run: cargo bench --locked --no-run --bench monte_carlo_randomization
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p benchmark-artifacts
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "runner_os=${RUNNER_OS}"
+            echo "runner_arch=${RUNNER_ARCH}"
+            echo "runner_name=${RUNNER_NAME}"
+            rustc -Vv
+            uname -a
+            lscpu | sed -n '1,24p'
+          } > benchmark-artifacts/environment.txt
+          cargo bench --locked --bench monte_carlo_randomization 2>&1 | tee benchmark-artifacts/monte-carlo-throughput.jsonl
+
+      - name: Upload throughput profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-monte-carlo-throughput-${{ github.sha }}
+          path: benchmarks/maritime-control-response/benchmark-artifacts/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Run strict library and benchmark Clippy
         working-directory: benchmarks/maritime-control-response
