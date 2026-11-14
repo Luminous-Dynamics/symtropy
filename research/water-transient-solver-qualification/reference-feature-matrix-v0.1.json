@@ -57,7 +57,7 @@
       "display_name": "EPANET-AWH",
       "method_family": "algebraic_water_hammer_with_quasi_adaptive_steady_transient_switch",
       "source_ref": "epanet_awh_paper",
-      "source_revision": "not_pinned_at_snapshot",
+      "source_revision": "1f009d84764f33775f6f0bf244d78fa439c30bb7",
       "licence_state": "MIT_confirmed_in_LICENSE_1-AWH_file; includes explicit 2016 OWA EPANET3 and 2025 AWH-extension copyrights",
       "published_comparison": {
         "networks": 2,
@@ -94,6 +94,31 @@
             "Nault pump shutdown, pump startup and sudden-demand results have per-node metric variation",
             "One sudden-demand NSE is marked not meaningful because event head change is smaller than systematic model offset",
             "HAMMER-imported models add short stub pipes at pump/valve ends, changing topology relative to AWH"
+          ],
+          "validation_time_window_s": 20
+        },
+        "validation_data": {
+          "onizuka_j1": {
+            "r2": 0.741,
+            "nse": 0.72,
+            "rmse_m": 14.18,
+            "mae_m": 5.91,
+            "peak_max_error_m": 10.34,
+            "peak_min_error_m": -4.4
+          },
+          "onizuka_j2": {
+            "r2": 0.939,
+            "nse": 0.936,
+            "rmse_m": 26.64,
+            "mae_m": 10.09,
+            "peak_max_error_m": -3.75,
+            "peak_min_error_m": -7.51
+          },
+          "notes": [
+            "README attributes large Onizuka RMSE values to timing offsets of a few hundredths of a second during very large head swings",
+            "Nault case metrics vary by scenario/node; one sudden-demand NSE is explicitly not meaningful",
+            "HAMMER import adds short stub pipes at pump/valve ends and changes topology relative to AWH",
+            "commercial .wtg and SQLite comparison artifacts require Bentley HAMMER or WaterGEMS licence"
           ]
         }
       },
@@ -142,9 +167,12 @@
         "declared_cmake_minimum": "2.8...3.13 (below actual feature requirement)",
         "primary_tested_platform": "Windows / Visual Studio",
         "linux_macos": "CMake non-MSVC branch exists; shipped fixed Windows output path loses time-series export",
-        "source_code_edits_required_for_case_switch": "wave speed, transient timestep and fixed result path/node list are compile-time source edits"
+        "source_code_edits_required_for_case_switch": "wave speed, transient timestep and fixed result path/node list are compile-time source edits",
+        "cmake_requirement_actual": "3.16+ due target_precompile_headers despite declared minimum 2.8...3.13"
       },
       "known_limitations": [
+        "README_identifies_repository_as_research_code_not_maintained_production_tool",
+        "no_test_suite_or_CI_in_upstream_repository; validation_is_by_HAMMER_example_comparisons",
         "wave_speed_hard_coded_from_pipe_diameter_not_material_wall_thickness_or_restraint",
         "full_elastic_wave_speed_formula_in_source_is_commented_out",
         "transient_timestep_Delta_WH_is_compile_time_constant_and_ignores_EPANET_TIMES_after_AWH_engages",
@@ -153,8 +181,11 @@
         "one_way_G_GGA_to_AWH_switch_after_setting_change_over_0_1_or_link_status_change",
         "gradual_setting_changes_below_0_1_without_status_change_may_not_trigger",
         "pressure_dependent_demand_and_leakage_under_transients_uncharacterized",
-        "repository_README_states_no_test_suite_or_CI; verification_by_HAMMER_example_comparisons"
-      ]
+        "CMake_declared_minimum_is_below_actual_3_16_target_precompile_headers_requirement",
+        "reproducing_Onizuka_and_Nault_case_studies_requires_compile_time_edits_for_wave_speed_timestep_and_output_path"
+      ],
+      "source_commit_url": "https://github.com/MehmetMelihKosucu/EPANET-AWH/commit/1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "licence_file_sha256": "not_computed_in_this_benchmark"
     },
     {
       "solver_id": "bentley_hammer",
