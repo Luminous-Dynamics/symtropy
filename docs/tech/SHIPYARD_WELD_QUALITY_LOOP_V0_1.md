@@ -67,7 +67,7 @@ No benchmark output itself moves a case up this ladder.
 
 ## Frozen v0.1 corpus
 
-The frozen executable corpus contains 42 unique synthetic cases: one valid inspection/repair chain and 41 adversarial controls. The Rust evaluator must independently reproduce every expected disposition. It covers method/technique applicability, project acceptance basis, ISO quality-level vs NDT-acceptance confusion, coverage and sampling denominator, calibration, examiner scope, artifact integrity, indication/joint/pass binding, ambiguous/rejected disposition, duplicate/out-of-order report delivery, repair authorization/scope, reinspection lineage, configuration release, coverage-shift confounding and leakage across welds/batches/campaigns/facilities.
+The frozen executable corpus contains 43 unique synthetic cases: one valid inspection/repair chain and 42 adversarial controls. The Rust evaluator must independently reproduce every expected disposition. It covers method/technique applicability, project acceptance basis, ISO quality-level vs NDT-acceptance confusion, coverage and sampling denominator, calibration, examiner scope, artifact integrity, indication/joint/pass binding, ambiguous/rejected disposition, duplicate/out-of-order report delivery, repair authorization/scope, reinspection lineage, configuration release, coverage-shift confounding and leakage across welds/batches/campaigns/facilities.
 
 The corpus is a fixture seed; it is not a NDT evaluator or defect classifier.
 
@@ -107,7 +107,7 @@ The reviewed branch adds a synthetic Rust evaluator and a mutation corpus. It re
 
 The valid chain begins with a rejected synthetic indication, records an authorized repair, reinspection of the same weld region after repair completion, and final synthetic release after the reinspection. Exact reinspection and release timestamps are required and point-in-time checked. The evaluator emits only `REVIEW_CANDIDATE` for engineering review. It does not infer root cause or authorize a WPS/PQR, process or release change.
 
-The 42-case corpus contains one positive chain and 41 negative controls for exact subject/pass identity; method/material/thickness/process scope; coverage/denominator; separate NDT acceptance basis; equipment calibration and examiner qualification; issuer authentication, artifact digest and rights; report supersession/revocation and point-in-time cutoff; qualified disposition and required repair; repair route/authority/source indication/region/execution evidence; reinspection of the same region and final release; train/test leakage and method/coverage-shift confounding; and root-cause/WPS-change promotion without independent adjudication and owner authorization.
+The 43-case corpus contains one positive chain and 42 negative controls for exact subject/pass/process-trace identity and digest; method/material/thickness/process scope; coverage/denominator; separate NDT acceptance basis; equipment calibration and examiner qualification; issuer authentication, artifact digest and rights; report supersession/revocation and point-in-time cutoff; qualified disposition and required repair; repair route/authority/source indication/region/execution evidence; reinspection of the same region and final release; train/test leakage and method/coverage-shift confounding; and root-cause/WPS-change promotion without independent adjudication and owner authorization.
 
 Owner interfaces remain:
 - #4433 exact weld/pass/process trace;
