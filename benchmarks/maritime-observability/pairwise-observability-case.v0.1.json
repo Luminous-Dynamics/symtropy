@@ -172,7 +172,58 @@
         }
       ],
       "measurement_window_id_a": "synthetic-window-fault-a",
-      "measurement_window_id_b": "synthetic-window-fault-b"
+      "measurement_window_id_b": "synthetic-window-fault-b",
+      "measurement_window_a": {
+        "window_id": "synthetic-window-fault-a",
+        "recording_id": "synthetic-recording-a",
+        "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "timebase_id": "synthetic-common-clock-v1",
+        "timebase_qualification_state": "qualified",
+        "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "start_timestamp_ms": 10000,
+        "start_timestamp_uncertainty_ms": 0.5,
+        "end_timestamp_ms": 20000,
+        "end_timestamp_uncertainty_ms": 0.5,
+        "regime_id": "steady-load-50",
+        "load_percent": 50,
+        "speed_rpm": 600,
+        "ambient_temperature_c": 25,
+        "transient_state": "steady",
+        "sample_count": 20000,
+        "independent_episode_count": 20,
+        "episode_definition_id": "synthetic-engine-cycle-v1",
+        "episode_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "measurement_window_b": {
+        "window_id": "synthetic-window-fault-b",
+        "recording_id": "synthetic-recording-b",
+        "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "timebase_id": "synthetic-common-clock-v1",
+        "timebase_qualification_state": "qualified",
+        "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "start_timestamp_ms": 30000,
+        "start_timestamp_uncertainty_ms": 0.5,
+        "end_timestamp_ms": 40000,
+        "end_timestamp_uncertainty_ms": 0.5,
+        "regime_id": "steady-load-50",
+        "load_percent": 50.4,
+        "speed_rpm": 602,
+        "ambient_temperature_c": 25.3,
+        "transient_state": "steady",
+        "sample_count": 18000,
+        "independent_episode_count": 18,
+        "episode_definition_id": "synthetic-engine-cycle-v1",
+        "episode_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "comparison_tolerances": {
+        "profile_id": "synthetic-preregistered-steady-load-match-v1",
+        "profile_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "profile_state": "PREREGISTERED",
+        "maximum_load_delta_percent": 1,
+        "maximum_speed_delta_rpm": 5,
+        "maximum_ambient_temperature_delta_c": 1,
+        "require_same_transient_state": true
+      }
     }
   ],
   "dependency_cut_scenarios": [
