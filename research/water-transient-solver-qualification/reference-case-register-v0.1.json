@@ -1,0 +1,255 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "snapshot_date": "2026-11-14",
+  "evidence_class": "reference_case_metadata_and_rights_status",
+  "evidence_ceiling": "source_fixture_identity_and_published_protocol_metadata_only_no_solver_or_physical_qualification",
+  "file_identity_note": "git_blob_sha values identify upstream Git blobs; they are not SHA-256 content hashes of downloaded artifacts.",
+  "cases": [
+    {
+      "case_id": "AWH-ONIZUKA-1986-VALVE-CLOSURE",
+      "class": "published_solver_reproduction_fixture",
+      "repository": "MehmetMelihKosucu/EPANET-AWH",
+      "source_commit": "1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "source_path": "Networks/Onizuka1986-EPA3.inp",
+      "git_blob_sha": "7d45c0fbf9b3876a856730699181518ead5c2198",
+      "repository_licence": "MIT at LICENSE_1-AWH; preserve OWA and AWH copyright notices",
+      "network": {
+        "junctions": 6,
+        "reservoirs": 3,
+        "tanks": 1,
+        "pipes": 9,
+        "valves": 2
+      },
+      "event": {
+        "type": "two_valve_closures",
+        "controls": [
+          "V1 CLOSED at 10 s",
+          "V2 CLOSED at 10 s"
+        ],
+        "simulation_horizon_s": 120,
+        "epanet_hydraulic_step_s": 1
+      },
+      "reproduction_configuration": {
+        "wave_speed_m_s": 1000,
+        "awh_transient_step_s": 0.05,
+        "configuration_source": "README says these values require compile-time source edits for the Onizuka reproduction"
+      },
+      "comparison_reference": "Onizuka.wtg plus SQLite outputs; opening the Bentley model requires a Bentley HAMMER/WaterGEMS licence",
+      "use": "small-network analytical/physical transient reference reproduction",
+      "caveats": [
+        "published model-to-model comparison is not independent physical validation",
+        "AWH source has no cavitation/column-separation model; negative computed pressures are not physically attainable",
+        "native input file has Hyd_Solver AWH and Darcy-Weisbach options; retain exact source file and patch digest"
+      ]
+    },
+    {
+      "case_id": "AWH-NAULT-2018-PUMP-SHUTDOWN",
+      "class": "published_solver_reproduction_fixture",
+      "repository": "MehmetMelihKosucu/EPANET-AWH",
+      "source_commit": "1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "source_path": "Networks/Nault2018-AWH_D-W.inp",
+      "git_blob_sha": "5f2d8765d6e8933b5d91b37e54edd5018337b9b0",
+      "repository_licence": "MIT at LICENSE_1-AWH",
+      "network": {
+        "junctions": 1306,
+        "reservoirs": 1,
+        "tanks": 3,
+        "pipes": 1489,
+        "pumps": 14,
+        "valves": 17
+      },
+      "event": {
+        "type": "pump_shutdown",
+        "control": "WTP_P4 CLOSED at 5 s",
+        "simulation_horizon_s": 40
+      },
+      "reproduction_configuration": {
+        "wave_speed_rule": "350 m/s for pipe diameter <= 0.4 m; 1050 m/s for larger pipes, as shipped",
+        "awh_transient_step_s": 0.002,
+        "configuration_source": "README and active source configuration"
+      },
+      "comparison_reference": "Nault2018_D-W-v6.wtg plus SQLite outputs; Bentley licence required",
+      "use": "large-network pump-trip reference",
+      "caveats": [
+        "fixed celerity is diameter-based, not computed from material/wall/restraint",
+        "fixed Windows results path and fixed node list may prevent portable timeseries export",
+        "solver-to-solver metrics vary by event and node; score timing and pressure extrema separately"
+      ]
+    },
+    {
+      "case_id": "AWH-NAULT-2018-PUMP-STARTUP",
+      "class": "published_solver_reproduction_fixture",
+      "repository": "MehmetMelihKosucu/EPANET-AWH",
+      "source_commit": "1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "source_path": "Networks/Nault2018-AWH_D-W-sce2.inp",
+      "git_blob_sha": "b69ff48488d6153adcb93098f9f1ee8c20c6675a",
+      "repository_licence": "MIT at LICENSE_1-AWH",
+      "network": {
+        "junctions": 1306,
+        "reservoirs": 1,
+        "tanks": 3,
+        "pipes": 1489,
+        "pumps": 14,
+        "valves": 17
+      },
+      "event": {
+        "type": "pump_startup",
+        "control": "WTP_P5 OPEN at 5 s",
+        "simulation_horizon_s": 40
+      },
+      "reproduction_configuration": {
+        "wave_speed_rule": "350 m/s for pipe diameter <= 0.4 m; 1050 m/s for larger pipes, as shipped",
+        "awh_transient_step_s": 0.002
+      },
+      "comparison_reference": "Nault2018_D-W-v6-sce2.wtg plus SQLite outputs; Bentley licence required",
+      "use": "large-network pump-startup reference",
+      "caveats": [
+        "event controls contain commented-out alternative pump/valve events; only active control lines may be used",
+        "retain exact fixture and patch identity"
+      ]
+    },
+    {
+      "case_id": "AWH-NAULT-2018-SUDDEN-WITHDRAWAL",
+      "class": "published_solver_reproduction_fixture",
+      "repository": "MehmetMelihKosucu/EPANET-AWH",
+      "source_commit": "1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "source_path": "Networks/Nault2018-AWH_D-W-sce3-TCV.inp",
+      "git_blob_sha": "564bb7aca31049a6369d59207f5b83cf00ef40c3",
+      "repository_licence": "MIT at LICENSE_1-AWH",
+      "network": {
+        "junctions": 1308,
+        "reservoirs": 2,
+        "tanks": 3,
+        "pipes": 1491,
+        "pumps": 14,
+        "valves": 18
+      },
+      "event": {
+        "type": "sudden_withdrawal",
+        "control": "TCV-1 setting 100 at 5 s; README describes a 50 L/s withdrawal at J874",
+        "simulation_horizon_s": 40
+      },
+      "reproduction_configuration": {
+        "wave_speed_rule": "350 m/s for pipe diameter <= 0.4 m; 1050 m/s for larger pipes, as shipped",
+        "awh_transient_step_s": 0.002
+      },
+      "comparison_reference": "Nault2018_D-W-v6-sce3.wtg plus SQLite outputs; Bentley licence required",
+      "use": "large-network sudden demand/withdrawal reference",
+      "caveats": [
+        "the network topology differs from base Nault case (additional junction/reservoir/pipe/valve)",
+        "do not treat scenario 3 as the identical 1489-pipe topology"
+      ]
+    },
+    {
+      "case_id": "TSNET-TNET1-EPANET-FIXTURE",
+      "class": "open_moc_example_network",
+      "repository": "glorialulu/TSNet",
+      "source_commit": "27e616a8e2048a431eed27b00a08322d49035a52",
+      "source_path": "examples/networks/Tnet1.inp",
+      "git_blob_sha": "b9978b79c60ed218f8007ee56b9487c6e49847ed",
+      "repository_licence": "MIT in repository LICENSE",
+      "network": {
+        "junctions": 7,
+        "reservoirs": 1,
+        "pipes": 9,
+        "valves": 1
+      },
+      "event": {
+        "type": "fixture_only_event_must_be_registered_separately",
+        "note": "example INP contains an open valve but no active timed transient control in the inspected file"
+      },
+      "solver_context": "TSNet steady initialization through WNTR followed by MOC; package README documents pump/valve events, bursts, leaks, surge tanks and friction modes",
+      "use": "small open-source MOC adapter and input-parsing baseline",
+      "caveats": [
+        "setup.py says version 0.3.1 while README says 0.2.2 and HISTORY lists 0.3.0",
+        "negative-pressure PDD initialization sets demand to zero assuming backflow preventer at each node; this is not reverse-flow intrusion physics",
+        "must pin Python/WNTR dependencies and run independent physical validation"
+      ]
+    },
+    {
+      "case_id": "PTSNET-TNET3-VALVE-DEMO",
+      "class": "open_distributed_moc_example",
+      "repository": "gandresr/PTSNET",
+      "source_commit": "0b5c562518372f45aa3248c58544da0cd23d3368",
+      "source_path": "package get_example_path('TNET3') fixture; exact packaged input path/blob not yet pinned",
+      "git_blob_sha": null,
+      "repository_licence": "Unlicense classifier in setup.py/PyPI; repository root Unlicense text not found in inspected paths; confirm rights before reuse",
+      "network": {
+        "topology": "TNET3 example; exact network asset metadata not yet pinned"
+      },
+      "event": {
+        "type": "valve_closure",
+        "control": "VALVE-179 setting 1 to 0 from 1 s to 2 s"
+      },
+      "execution": {
+        "parallel_example": "mpiexec -n 4 python simulation.py",
+        "parallel_platform": "Linux/macOS according to README",
+        "package_version": "0.1.7",
+        "environment": "Python 3.9; WNTR 0.5.0; NumPy 1.23.0; MPI/OpenMPI; mpi4py; numba; MPI-enabled h5py"
+      },
+      "solver_context": "vectorized distributed-memory MOC; paper reports large-grid scalability and thousands-order speedup versus sequential MOC for sufficiently dense grids",
+      "use": "scaling, memory and MPI throughput comparator",
+      "caveats": [
+        "exact packaged TNET3 bytes must be located and pinned before reproducing",
+        "speedup is not comparable with AWH without matched physical grid/error, hardware, memory and solver output fidelity",
+        "MOC reach count, common timestep, Courant condition and refinement must be recorded",
+        "license text/rights require confirmation before copying or adapting source"
+      ]
+    },
+    {
+      "case_id": "SHEFFIELD-PHYSICAL-INTRUSION-LOOP",
+      "class": "published_physical_reference",
+      "sources": [
+        "https://doi.org/10.1016/j.proeng.2014.02.073",
+        "https://doi.org/10.1016/j.proeng.2014.11.444",
+        "https://doi.org/10.1061/(ASCE)HY.1943-7900.0001040"
+      ],
+      "network": {
+        "pipe_material": "MDPE",
+        "loop_length_m": 141,
+        "nominal_pipe_size_mm": 63,
+        "nominal_internal_diameter_mm": 50,
+        "loop_count": 7,
+        "defect": "engineered leak surrounded by porous media"
+      },
+      "event_classes": [
+        "rapid_valve_closure_pressure_transient",
+        "negative_pressure_duration_and_magnitude_variation"
+      ],
+      "observed_outputs": [
+        "internal_pressure_trace",
+        "intruded_tracer_volume_or_mass",
+        "downstream_tracer_transport"
+      ],
+      "raw_data_status": "published papers describe experiments; open raw high-frequency traces and complete calibration metadata have not been admitted to this programme; request data and usage rights from authors",
+      "use": "physical pressure waveform and intrusion/transport validation; highest-priority physical baseline",
+      "caveats": [
+        "published experiment conditions are bounded and do not define a universal ingress law",
+        "no raw data should be reconstructed from plots or narrative without a declared digitization/uncertainty protocol",
+        "T1 reproduction requires new controlled rig data if source data cannot be obtained"
+      ]
+    }
+  ],
+  "required_admission_fields": [
+    "source_repository_and_exact_commit_or_publication_revision",
+    "fixture_path_and_git_blob_identity_or_raw_file_SHA256",
+    "licence_and_reuse_rights",
+    "network_topology_and_pipe_geometry_revision",
+    "initial_conditions_and_wave_speed_source",
+    "event_definition_and_timing",
+    "solver_version_and_configuration",
+    "physical_sensor_metadata_and_uncertainty_when_applicable",
+    "raw_time_series_rights_and_chain_of_custody",
+    "split_group_identity_to_prevent_same_fixture_event_leakage"
+  ],
+  "invariants": [
+    "git_blob_sha_is_not_a_SHA256_digest_of_downloaded_bytes",
+    "published_reference_networks_are_not_physical_ground_truth",
+    "physical_reference_raw_data_missing_or_unlicensed_must_be_marked_not_acquired",
+    "model_to_model_scores_never_replace_physical_validation",
+    "AWH_out_of_vapour_pressure_domain_is_not_a_physical_pressure_reference",
+    "MOC_runtime_requires_mesh_and_time_refinement_with_error_reporting",
+    "fixture_topology_changes_between_Nault_scenario_files_must_remain_explicit"
+  ]
+}

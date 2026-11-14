@@ -1,0 +1,89 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5170",
+  "evidence_class": "design_and_synthetic_only",
+  "evidence_ceiling": "analytical_arithmetic_only_no_transient_solver_physical_surge_or_intrusion_qualification",
+  "input_file": "water-transient-t0-cases-v0.1.json",
+  "oracle_file": "water-transient-t0-oracle-v0.1.json",
+  "scenario_count": 10,
+  "scenario_ids": [
+    "WT-T0-001-rapid-closure-joukowsky-known-answer",
+    "WT-T0-002-one-way-and-round-trip-wave-time",
+    "WT-T0-003-negative-velocity-change-sign",
+    "WT-T0-004-slow-closure-outside-instantaneous-assumption",
+    "WT-T0-005-wave-speed-missing",
+    "WT-T0-006-single-phase-formula-crosses-vapour-pressure",
+    "WT-T0-007-closure-time-at-round-trip-boundary",
+    "WT-T0-008-invalid-negative-pipe-length",
+    "WT-T0-009-wave-speed-uncertainty-envelope",
+    "WT-T0-010-reversed-wave-speed-interval"
+  ],
+  "non_compensable_invariants": [
+    "steady_state_EPANET_is_not_transient_qualification",
+    "solver_to_solver_agreement_is_not_physical_validation",
+    "Joukowsky_instantaneous_equation_requires_declared_assumptions",
+    "missing_wave_speed_never_becomes_zero_or_default",
+    "slow_or_boundary_closure_never_uses_rapid_closure_shortcut",
+    "absolute_pressure_and_vapour_boundary_must_be_checked",
+    "unsupported_cavitation_or_column_separation_is_out_of_domain",
+    "T0_never_authorizes_surge_design_or_operational_action",
+    "vendor_documented_scope_is_not_independent_solver_qualification",
+    "exact_build_modules_options_and_licence_state_are_required_for_each_trial",
+    "paired_results_require_feature_activation_and_physical_boundary_parity",
+    "MOC_performance_requires_space_time_convergence_and_memory_reporting",
+    "negative_pressure_PDD_demand_zero_assumption_is_not_reverse_flow_intrusion",
+    "Unlicense_classifier_without_text_does_not_authorize_unverified_code_reuse",
+    "reference_case_git_blob_identity_is_not_downloaded_file_SHA256",
+    "published_pressure_intrusion_reference_raw_data_is_not_claimed_acquired",
+    "packaged_PTSNET_TNET3_input_bytes_must_be_pinned_before_reproduction",
+    "different_Nault_scenario_topologies_must_not_be_pooled_as_identical_networks",
+    "wave_speed_interval_must_propagate_into_pressure_and_wave_time_bounds",
+    "wave_speed_lower_bound_greater_than_upper_bound_is_invalid",
+    "single_nominal_celerity_never_replaces_missing_material_wall_and_restraint_uncertainty"
+  ],
+  "comparators": {
+    "published_open_source_candidate": "EPANET-AWH DOI 10.1016/j.jwpe.2026.110770",
+    "commercial_comparator": "Bentley HAMMER exact build and settings required",
+    "physical_reference": "Sheffield intrusion and pressure-transient publications, rights-aware raw data acquisition required"
+  },
+  "reference_feature_matrix_file": "reference-feature-matrix-v0.1.json",
+  "comparator_count": 7,
+  "required_feature_activation_record": true,
+  "open_source_moc_comparators": [
+    {
+      "id": "tsnet_0_3_1",
+      "source_revision": "27e616a8e2048a431eed27b00a08322d49035a52",
+      "licence": "MIT confirmed in repository LICENSE; setup.py says 0.3.1 while README says 0.2.2 and HISTORY lists 0.3.0"
+    },
+    {
+      "id": "ptsnet_0_1_7",
+      "source_revision": "0b5c562518372f45aa3248c58544da0cd23d3368",
+      "licence": "Unlicense classifier in setup.py/PyPI; root licence text not found in inspected paths, confirm before reuse"
+    }
+  ],
+  "performance_comparison_rule": "MOC versus algebraic AWH comparisons require matched physical boundary physics and held-out pressure-error coverage; report reach count, common timestep, Courant condition, grid refinement, hardware, memory and scaling efficiency. Raw wall-clock speed alone is not comparable.",
+  "reference_case_register_file": "reference-case-register-v0.1.json",
+  "reference_case_count": 7,
+  "reference_case_ids": [
+    "AWH-ONIZUKA-1986-VALVE-CLOSURE",
+    "AWH-NAULT-2018-PUMP-SHUTDOWN",
+    "AWH-NAULT-2018-PUMP-STARTUP",
+    "AWH-NAULT-2018-SUDDEN-WITHDRAWAL",
+    "TSNET-TNET1-EPANET-FIXTURE",
+    "PTSNET-TNET3-VALVE-DEMO",
+    "SHEFFIELD-PHYSICAL-INTRUSION-LOOP"
+  ],
+  "evidence_status_snapshot": {
+    "snapshot_date": "2026-11-14",
+    "transient_t0_case_count": 10,
+    "transient_t0_source_level_oracle_replay": "10_of_10_matched",
+    "native_rust_build_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "physical_t1_pressure_trace_validation": "not_performed",
+    "physical_t1_intrusion_tracer_validation": "not_performed",
+    "sheffield_raw_pressure_and_tracer_records": "not_acquired_pending_rights_aware_data_request",
+    "commercial_solver_runs": "not_performed",
+    "transient_solver_qualification": "not_qualified",
+    "ingress_model_qualification": "not_qualified"
+  }
+}

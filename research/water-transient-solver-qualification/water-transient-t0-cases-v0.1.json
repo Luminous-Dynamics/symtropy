@@ -1,0 +1,137 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "evidence_class": "synthetic_only",
+  "evidence_ceiling": "analytical_arithmetic_and_applicability_only_no_solver_or_physical_qualification",
+  "profile": {
+    "profile_id": "LUMINOUS-WATER-TRANSIENT-T0-SYNTHETIC",
+    "revision": "0.1",
+    "all_values_are_fictional": true,
+    "units": {
+      "length": "m",
+      "wave_speed": "m/s",
+      "velocity_change": "m/s",
+      "density": "kg/m3",
+      "pressure": "Pa_absolute",
+      "pressure_change": "Pa",
+      "head": "m_water",
+      "time": "s",
+      "gravity": "m/s2"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "WT-T0-001-rapid-closure-joukowsky-known-answer",
+      "description": "Rapid closure within the declared round-trip wave time; evaluate the instantaneous Joukowsky identity only.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_m_s": 1000,
+        "closure_duration_s": 0.01,
+        "density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": 0.5,
+        "initial_absolute_pressure_pa": 300000
+      }
+    },
+    {
+      "case_id": "WT-T0-002-one-way-and-round-trip-wave-time",
+      "description": "Known one-way and round-trip wave travel times.",
+      "inputs": {
+        "pipe_length_m": 300,
+        "wave_speed_m_s": 1000
+      }
+    },
+    {
+      "case_id": "WT-T0-003-negative-velocity-change-sign",
+      "description": "Signed velocity change must preserve the sign of the Joukowsky pressure increment.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_m_s": 900,
+        "closure_duration_s": 0.01,
+        "density_kg_m3": 998,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": -0.2,
+        "initial_absolute_pressure_pa": 300000
+      }
+    },
+    {
+      "case_id": "WT-T0-004-slow-closure-outside-instantaneous-assumption",
+      "description": "Closure takes longer than the round-trip wave time; the instantaneous Joukowsky formula is not accepted as the closure solution.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_m_s": 1000,
+        "closure_duration_s": 0.4,
+        "velocity_change_m_s": 0.5
+      }
+    },
+    {
+      "case_id": "WT-T0-005-wave-speed-missing",
+      "description": "Wave speed is unavailable; travel time and pressure increment cannot be computed.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_m_s": null,
+        "closure_duration_s": 0.01,
+        "velocity_change_m_s": 0.5
+      }
+    },
+    {
+      "case_id": "WT-T0-006-single-phase-formula-crosses-vapour-pressure",
+      "description": "The single-phase candidate pressure crosses the declared vapour-pressure boundary; a simple Joukowsky result is outside its model domain.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_m_s": 1000,
+        "closure_duration_s": 0.01,
+        "density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": -0.2,
+        "initial_absolute_pressure_pa": 100000,
+        "vapour_pressure_pa": 2300
+      }
+    },
+    {
+      "case_id": "WT-T0-007-closure-time-at-round-trip-boundary",
+      "description": "Closure duration exactly equals the round-trip wave time; boundary treatment requires the transient reference method, not an assumed rapid-closure simplification.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_m_s": 1000,
+        "closure_duration_s": 0.2,
+        "velocity_change_m_s": 0.5
+      }
+    },
+    {
+      "case_id": "WT-T0-008-invalid-negative-pipe-length",
+      "description": "Negative physical pipe length must be rejected as invalid input.",
+      "inputs": {
+        "pipe_length_m": -10,
+        "wave_speed_m_s": 1000
+      }
+    },
+    {
+      "case_id": "WT-T0-009-wave-speed-uncertainty-envelope",
+      "description": "Propagate a bounded wave-speed interval into Joukowsky pressure amplitude and wave travel-time intervals; do not collapse the interval to a single nominal celerity.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_min_m_s": 900,
+        "wave_speed_max_m_s": 1100,
+        "density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": 0.5,
+        "closure_duration_s": 0.01,
+        "initial_absolute_pressure_pa": 300000
+      }
+    },
+    {
+      "case_id": "WT-T0-010-reversed-wave-speed-interval",
+      "description": "A wave-speed interval with lower bound greater than upper bound is invalid and cannot be silently sorted or replaced by a nominal speed.",
+      "inputs": {
+        "pipe_length_m": 100,
+        "wave_speed_min_m_s": 1100,
+        "wave_speed_max_m_s": 900,
+        "density_kg_m3": 1000,
+        "gravity_m_s2": 9.81,
+        "velocity_change_m_s": 0.5,
+        "closure_duration_s": 0.01
+      }
+    }
+  ]
+}

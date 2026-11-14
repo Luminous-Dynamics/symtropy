@@ -1,0 +1,584 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "snapshot_date": "2026-11-14",
+  "evidence_class": "vendor_documentation_and_published_paper_scope",
+  "evidence_ceiling": "vendor_stated_or_paper_reported_capabilities_only_not_independent_solver_verification",
+  "interpretation_rules": [
+    "vendor_stated_support_is_not_independent_qualification",
+    "unlisted_or_undocumented_feature_is_unknown_not_unsupported",
+    "exact_product_build_and_enabled_modules_must_be_recorded_per_trial",
+    "feature_parity_is_required_for_paired_results",
+    "runtime_without_accuracy_and_feature_parity_is_not_a_win",
+    "physical_pressure_records_are_the_experimental_reference_not_a_solver"
+  ],
+  "references": [
+    {
+      "id": "epanet_awh_paper",
+      "url": "https://doi.org/10.1016/j.jwpe.2026.110770",
+      "source_class": "peer_reviewed_paper",
+      "date": "2026-10",
+      "verification_status": "published_claim_requires_reproduction"
+    },
+    {
+      "id": "hammer_transient_docs",
+      "url": "https://docs.bentley.com/LiveContent/web/OpenFlows%20Water%20-%20WaterCAD-v2026/Help/en/topics/1481500/GUID-C77555E732074D47B2A30C4E38067B79.html",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "wanda_product",
+      "url": "https://www.deltares.nl/en/software-and-data/products/wanda-software",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "wanda_docs",
+      "url": "https://deltares-wanda-core.readthedocs-hosted.com/en/latest/",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "aft_product",
+      "url": "https://www.datacor.com/products/impulse",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "aft_verification",
+      "url": "https://docs.aft.com/impulse10/Verification/Verification_Methodology.html",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_described_verification_method"
+    },
+    {
+      "id": "tsnet_paper",
+      "url": "https://doi.org/10.1016/j.advengsoft.2020.102884",
+      "source_class": "peer_reviewed_paper",
+      "date": "2020-11",
+      "verification_status": "published_method_and_scope_comparator"
+    },
+    {
+      "id": "tsnet_docs",
+      "url": "https://tsnet.readthedocs.io/en/latest/",
+      "source_class": "project_documentation",
+      "verification_status": "version_and_boundary_conditions_must_be_pinned"
+    },
+    {
+      "id": "tsnet_pypi",
+      "url": "https://pypi.org/project/tsnet/0.3.1/",
+      "source_class": "package_registry_metadata",
+      "verification_status": "package_metadata_not_source_build_validation"
+    },
+    {
+      "id": "ptsnet_paper",
+      "url": "https://doi.org/10.1016/j.envsoft.2022.105554",
+      "source_class": "peer_reviewed_paper",
+      "date": "2022-12",
+      "verification_status": "published_method_and_scalability_comparator"
+    },
+    {
+      "id": "dv_moc_paper",
+      "url": "https://doi.org/10.1111/mice.12709",
+      "source_class": "peer_reviewed_paper",
+      "date": "2022-02",
+      "verification_status": "distributed_vectorized_moc_method_comparator"
+    },
+    {
+      "id": "ptsnet_pypi",
+      "url": "https://pypi.org/project/ptsnet/0.1.7/",
+      "source_class": "package_registry_metadata",
+      "verification_status": "unlicense_classifier_metadata_not_repository_licence_text"
+    }
+  ],
+  "references_by_solver": [
+    {
+      "solver_id": "epanet_awh",
+      "display_name": "EPANET-AWH",
+      "method_family": "algebraic_water_hammer_with_quasi_adaptive_steady_transient_switch",
+      "source_ref": "epanet_awh_paper",
+      "source_revision": "1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "licence_state": "MIT_confirmed_in_LICENSE_1-AWH_file; includes explicit 2016 OWA EPANET3 and 2025 AWH-extension copyrights",
+      "published_comparison": {
+        "networks": 2,
+        "event_classes": [
+          "valve_closure",
+          "pump_shutdown",
+          "pump_startup",
+          "sudden_50_L_s_withdrawal"
+        ],
+        "comparator": "Bentley HAMMER",
+        "reported_nse_max": 0.9,
+        "large_network_pipes": 1489,
+        "event_horizon_s": 40,
+        "runtime_s": 1490,
+        "hammer_runtime_s": 2013,
+        "runtime_reduction_fraction": 0.26,
+        "physical_validation": "not_established_by_solver_to_solver_comparison",
+        "validation_scope": {
+          "compared_time_window_s": 20,
+          "networks": [
+            "Onizuka 1986",
+            "Nault et al. 2018 (1489 pipes)"
+          ],
+          "event_classes": [
+            "valve_closure",
+            "pump_shutdown",
+            "pump_startup",
+            "sudden_50_L_s_withdrawal"
+          ],
+          "reference_files": "Bentley HAMMER/WaterGEMS .wtg and SQLite files shipped; Bentley licence required",
+          "validation_method": "comparison against Bentley HAMMER; not independent physical validation",
+          "validation_table_caveats": [
+            "Onizuka wave head swings reported around 300 m at J1 and 490 m at J2; large RMSE rows are attributed in README to timing offsets of a few hundredths of a second",
+            "Nault pump shutdown, pump startup and sudden-demand results have per-node metric variation",
+            "One sudden-demand NSE is marked not meaningful because event head change is smaller than systematic model offset",
+            "HAMMER-imported models add short stub pipes at pump/valve ends, changing topology relative to AWH"
+          ],
+          "validation_time_window_s": 20
+        },
+        "validation_data": {
+          "onizuka_j1": {
+            "r2": 0.741,
+            "nse": 0.72,
+            "rmse_m": 14.18,
+            "mae_m": 5.91,
+            "peak_max_error_m": 10.34,
+            "peak_min_error_m": -4.4
+          },
+          "onizuka_j2": {
+            "r2": 0.939,
+            "nse": 0.936,
+            "rmse_m": 26.64,
+            "mae_m": 10.09,
+            "peak_max_error_m": -3.75,
+            "peak_min_error_m": -7.51
+          },
+          "notes": [
+            "README attributes large Onizuka RMSE values to timing offsets of a few hundredths of a second during very large head swings",
+            "Nault case metrics vary by scenario/node; one sudden-demand NSE is explicitly not meaningful",
+            "HAMMER import adds short stub pipes at pump/valve ends and changes topology relative to AWH",
+            "commercial .wtg and SQLite comparison artifacts require Bentley HAMMER or WaterGEMS licence"
+          ]
+        }
+      },
+      "feature_claims": [
+        {
+          "feature": "algebraic_water_hammer",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "steady_state_g_gg_a",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "quasi_adaptive_mode_switch",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "single_computational_element_per_pipe",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "unsteady_friction",
+          "status": "paper_reported_instantaneous_acceleration_based"
+        },
+        {
+          "feature": "moc_spatial_discretization",
+          "status": "not_used_in_described_awh_method"
+        }
+      ],
+      "verification_required": [
+        "pin_exact_source_commit_and_reproduce_the_build",
+        "confirm_MIT_LICENSE_1_AWH_and_preserve_both_upstream_and_extension_attribution",
+        "replace_or_calibrate_diameter_only_wave_speed_using_material_wall_and_restraint_data",
+        "make_transient_timestep_configurable_and_publish_mesh_or_timestep_sensitivity",
+        "repair_output_path_and_node_selection_for_portable_raw_time_series_export",
+        "test_event_detection_on_gradual_setting_changes_and_switch_reversal_behavior",
+        "exclude_pressure_below_vapour_pressure_from_AWH_use_or_use_a_solver_with_qualified_column_separation",
+        "add_unit_and_regression_tests_before_independent_use",
+        "qualify_pressure_dependent_demand_and_leakage_if_these_features_are_in_benchmark_scope",
+        "independent_physical_pressure_trace_validation"
+      ],
+      "licence_file": "https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/LICENSE_1-AWH",
+      "repository_readme": "https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/README.md",
+      "build_notes": {
+        "minimum_cmake": "3.16 or newer according to README because target_precompile_headers is used",
+        "declared_cmake_minimum": "2.8...3.13 (below actual feature requirement)",
+        "primary_tested_platform": "Windows / Visual Studio",
+        "linux_macos": "CMake non-MSVC branch exists; shipped fixed Windows output path loses time-series export",
+        "source_code_edits_required_for_case_switch": "wave speed, transient timestep and fixed result path/node list are compile-time source edits",
+        "cmake_requirement_actual": "3.16+ due target_precompile_headers despite declared minimum 2.8...3.13"
+      },
+      "known_limitations": [
+        "README_identifies_repository_as_research_code_not_maintained_production_tool",
+        "no_test_suite_or_CI_in_upstream_repository; validation_is_by_HAMMER_example_comparisons",
+        "wave_speed_hard_coded_from_pipe_diameter_not_material_wall_thickness_or_restraint",
+        "full_elastic_wave_speed_formula_in_source_is_commented_out",
+        "transient_timestep_Delta_WH_is_compile_time_constant_and_ignores_EPANET_TIMES_after_AWH_engages",
+        "fixed_Windows_output_path_and_fixed_node_list_can_drop_timeseries_on_non_Windows",
+        "no_cavitation_or_column_separation_model; below_vapour_pressure_heads_are_nonphysical",
+        "one_way_G_GGA_to_AWH_switch_after_setting_change_over_0_1_or_link_status_change",
+        "gradual_setting_changes_below_0_1_without_status_change_may_not_trigger",
+        "pressure_dependent_demand_and_leakage_under_transients_uncharacterized",
+        "CMake_declared_minimum_is_below_actual_3_16_target_precompile_headers_requirement",
+        "reproducing_Onizuka_and_Nault_case_studies_requires_compile_time_edits_for_wave_speed_timestep_and_output_path"
+      ],
+      "source_commit_url": "https://github.com/MehmetMelihKosucu/EPANET-AWH/commit/1f009d84764f33775f6f0bf244d78fa439c30bb7",
+      "licence_file_sha256": "not_computed_in_this_benchmark",
+      "source_code_loci": {
+        "wave_speed": "src/Elements/pipe.cpp::Pipe::getWaveSpeed (diameter-based branch active; elastic formula commented out)",
+        "transient_step": "src/Core/constants.h::Delta_WH = 0.002",
+        "event_detection": "src/Core/hydengine.cpp::HydEngine::detectSignificantHydraulicEvent (fabs(setting_delta) > 0.1 or link status differs from previousStatus)",
+        "output_path": "src/Core/epanet3.cpp::EN_runEpanet (fixed C:\\\\EPANET-AWH\\\\Networks\\\\Results-Nault2018-AWH.txt and fixed J71/J70/J874 output list)",
+        "build": "CMakeLists.txt declares 2.8...3.13; README says target_precompile_headers requires CMake 3.16+"
+      }
+    },
+    {
+      "solver_id": "bentley_hammer",
+      "display_name": "Bentley OpenFlows HAMMER",
+      "method_family": "method_of_characteristics_default_with_selected_rigid_column_options",
+      "source_ref": "hammer_transient_docs",
+      "exact_build": "must_pin_per_trial",
+      "licence_state": "commercial_access_and_export_rights_must_be_recorded",
+      "feature_claims": [
+        {
+          "feature": "system_wide_moc",
+          "status": "vendor_documented_default"
+        },
+        {
+          "feature": "rigid_column_method",
+          "status": "vendor_documented_selected_applications"
+        },
+        {
+          "feature": "analytical_and_physical_calibration_workflow",
+          "status": "vendor_documented"
+        }
+      ],
+      "verification_required": [
+        "exact_release_and_hotfix",
+        "moc_time_step_and_wave_speed_settings",
+        "device_models_and_boundary_assumptions",
+        "exportable_raw_time_histories",
+        "licence_and_reproducibility_conditions"
+      ]
+    },
+    {
+      "solver_id": "deltares_wanda_4",
+      "display_name": "Deltares WANDA 4",
+      "method_family": "dynamic_pipeline_network_simulation",
+      "source_refs": [
+        "wanda_product",
+        "wanda_docs"
+      ],
+      "exact_build": "must_pin_per_trial",
+      "licence_state": "commercial_trial_or_access_terms_must_be_recorded",
+      "feature_claims": [
+        {
+          "feature": "dynamic_liquid_networks",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "heat_and_slurry_flows",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "cavitation",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "variable_fluid_properties",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "operational_controls",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "measurement_validation",
+          "status": "vendor_claimed"
+        }
+      ],
+      "verification_required": [
+        "exact_module_and_build",
+        "moc_or_other_transient_numerical_method",
+        "cavitation_and_air_pocket_formulation",
+        "friction_and_viscoelastic_models",
+        "exportable_raw_time_histories",
+        "licence_and_reproducibility_conditions"
+      ]
+    },
+    {
+      "solver_id": "aft_impulse",
+      "display_name": "AFT Impulse / Datacor Impulse",
+      "method_family": "method_of_characteristics_transient_solver",
+      "source_refs": [
+        "aft_product",
+        "aft_verification"
+      ],
+      "exact_build": "must_pin_per_trial",
+      "licence_state": "commercial_access_and_export_rights_must_be_recorded",
+      "feature_claims": [
+        {
+          "feature": "method_of_characteristics",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "transient_cavitation_and_column_separation",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "wave_speed_and_system_elasticity",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "pump_inertia_and_four_quadrant_curves",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "time_dependent_valve_characteristics",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "check_valve_dynamics",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "relief_valves_and_surge_devices",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "open_literature_verification",
+          "status": "vendor_described_method"
+        }
+      ],
+      "verification_required": [
+        "exact_build_and_enabled_addons",
+        "physical_validation_dataset_and_results",
+        "time_step_and_wave_speed_settings",
+        "cavitation_and_column_separation_settings",
+        "input_output_export_rights"
+      ]
+    },
+    {
+      "solver_id": "physical_reference",
+      "display_name": "Calibrated physical pressure trace",
+      "method_family": "experimental_measurement",
+      "source_refs": [
+        "https://doi.org/10.1016/j.proeng.2014.02.073",
+        "https://doi.org/10.1061/(ASCE)HY.1943-7900.0001040"
+      ],
+      "exact_build": "rig_and_instrument_configuration_revision_required",
+      "licence_state": "raw_data_rights_and_publication_terms_must_be_confirmed",
+      "feature_claims": [
+        {
+          "feature": "measured_pressure_waveform",
+          "status": "physical_reference"
+        },
+        {
+          "feature": "measured_event_timing",
+          "status": "physical_reference"
+        },
+        {
+          "feature": "calibrated_flow_observation",
+          "status": "physical_reference_when_recorded"
+        },
+        {
+          "feature": "intrusion_tracer_measurement",
+          "status": "separate_physical_measurement_when_recorded"
+        }
+      ],
+      "verification_required": [
+        "instrument_bandwidth_and_calibration",
+        "clock_synchronization",
+        "fixture_and_material_revision",
+        "repeat_runs_and_uncertainty",
+        "raw_data_rights_and_chain_of_custody"
+      ]
+    },
+    {
+      "solver_id": "tsnet_0_3_1",
+      "display_name": "TSNet",
+      "method_family": "EPANET_INP_initial_conditions_plus_method_of_characteristics_transient_solver",
+      "source_refs": [
+        "tsnet_paper",
+        "tsnet_docs",
+        "tsnet_pypi"
+      ],
+      "source_revision": "27e616a8e2048a431eed27b00a08322d49035a52",
+      "source_commit_url": "https://github.com/glorialulu/TSNet/commit/27e616a8e2048a431eed27b00a08322d49035a52",
+      "package_version": "0.3.1 (setup.py and PyPI); repository README still says 0.2.2; HISTORY changelog lists 0.3.0",
+      "licence_state": "MIT_confirmed_in_repository_LICENSE_and_setup_classifier",
+      "licence_file": "https://github.com/glorialulu/TSNet/blob/27e616a8e2048a431eed27b00a08322d49035a52/LICENSE",
+      "language": "Python research comparator only; not a production dependency for the Rust-first stack",
+      "dependencies": [
+        "NumPy",
+        "SciPy",
+        "pandas",
+        "WNTR",
+        "NetworkX",
+        "Matplotlib",
+        "Plotly"
+      ],
+      "feature_claims": [
+        {
+          "feature": "EPANET_INP_network_import",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "steady_initial_conditions_via_WNTR",
+          "status": "documentation_described"
+        },
+        {
+          "feature": "method_of_characteristics_transients",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "valve_and_pump_operations",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "pipe_bursts_and_background_leaks",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "open_and_closed_surge_tanks",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "steady_quasi_steady_and_unsteady_friction",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "pressure_dependent_demand_initialization",
+          "status": "documentation_described"
+        },
+        {
+          "feature": "bidirectional_reverse_flow_through_leak_boundary_at_negative_pressure",
+          "status": "not_supported_by_documented_backflow_preventer_assumption"
+        }
+      ],
+      "known_limitations": [
+        "package_setup_version_0_3_1_disagrees_with_embedded_README_version_0_2_2_and_HISTORY_latest_0_3_0",
+        "MOC_requires_spatial_reaches_and_a_Courant_consistent_common_time_step; compare only after time_step_and_reach_convergence",
+        "TSNet_PDD_negative_pressure_behavior_sets_demand_to_zero_under_an_assumption_of_backflow_prevention_at_each_node; not a bidirectional intrusion boundary model",
+        "steady_initialization_and_transient_solver_are_distinct_model_stages; bind both engines_and_initial_state",
+        "Python_dependency_stack_is_for_research_comparison_only_not_adopted_as_Luminous_production_runtime",
+        "TSNet_transient_leak_emitter_discharge_is_set_to_zero_at_negative_pressure_under_an_assumption_of_a_backflow_preventer_at_the_leaking_node; this does_not_model_contaminant_ingress_through_that_defect"
+      ],
+      "verification_required": [
+        "pin_Python_WNTR_and_dependency_lock",
+        "reconcile_repository_setup_README_and_changelog_versions",
+        "reproduce_analytical_wave_and_reflection_cases",
+        "record_pipe_reach_counts_common_time_step_and_Courant_condition",
+        "verify_negative_pressure_PDD_and_reverse_flow_semantics",
+        "compare_device_boundary_models_and_friction_modes",
+        "measure_memory_runtime_and_error_vs_mesh_refinement",
+        "independently_validate_against_physical_pressure_records",
+        "distinguish_customer_PDD_zero_demand_from_actual_signed_pipe_flow",
+        "verify_negative_pressure_leak_emitter_does_not_suppress_ingress_in_the_target_geometry_or_use_a_separately_validated_bidirectional_defect_boundary"
+      ]
+    },
+    {
+      "solver_id": "ptsnet_0_1_7",
+      "display_name": "PTSNet",
+      "method_family": "vectorized_distributed_memory_parallel_method_of_characteristics",
+      "source_refs": [
+        "ptsnet_paper",
+        "dv_moc_paper",
+        "ptsnet_pypi"
+      ],
+      "source_revision": "0b5c562518372f45aa3248c58544da0cd23d3368",
+      "source_commit_url": "https://github.com/gandresr/PTSNET/commit/0b5c562518372f45aa3248c58544da0cd23d3368",
+      "package_version": "0.1.7 (setup.py and PyPI metadata)",
+      "licence_state": "Unlicense_classifier_on_setup_and_PyPI_but_no_root_UNLICENSE_text_found_in_inspected_paths; confirm licence text and rights before copying, modifying or redistributing",
+      "language": "Python/HPC research comparator only; not a production dependency",
+      "dependencies": [
+        "Python 3.9 environment file",
+        "NumPy",
+        "SciPy",
+        "Numba",
+        "mpi4py",
+        "OpenMPI",
+        "h5py MPI",
+        "WNTR 0.5.0",
+        "pandas"
+      ],
+      "feature_claims": [
+        {
+          "feature": "EPANET_INP_network_workflow",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "method_of_characteristics",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "vectorized_spatial_computation",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "distributed_memory_parallel_computation",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "MPI_HPC_scaling",
+          "status": "paper_and_environment_documented"
+        },
+        {
+          "feature": "large_network_transient_experiments",
+          "status": "paper_reported"
+        }
+      ],
+      "published_scalability": {
+        "paper": "PTSNet 2022 Environmental Modelling & Software 158 105554",
+        "method_paper": "DV-MOC 2022 Computer-Aided Civil and Infrastructure Engineering 37(2)",
+        "network_pipes": 14824,
+        "approximate_solution_points": 600000000000,
+        "reported_speedup": "in the thousands for sufficiently dense grids versus sequential MOC",
+        "comparison_scope": "paper-reported MOC implementation scalability; not a matched benchmark against algebraic AWH or commercial network solvers"
+      },
+      "known_limitations": [
+        "performance_claims_are_bound_to_paper_hardware_grid_and_software_configuration",
+        "dense_MOC_grids_have_high_memory_and_MPI_communication_costs; report scaling efficiency and memory",
+        "MOC_mesh_and_time_step_convergence_must_be_demonstrated_before runtime comparison",
+        "package_environment_uses_legacy_dependency_versions_and_an_MPI_stack",
+        "repository_root_licence_text_not_found_in_inspected_paths; PyPI and setup.py classifiers alone do not settle reuse rights",
+        "DV_MOC_paper_identifies_additional_physics_such_as_air_chambers_surge_tanks_advanced_friction_and_two_phase_cavitation_as_future_development_topics"
+      ],
+      "verification_required": [
+        "pin_exact_package_artifacts_and_source_revision",
+        "obtain_and_verify_actual_Unlicense_text_and_reuse_rights",
+        "recreate_paper_network_grid_hardware_and_MPI_configuration",
+        "measure_weak_and_strong_scaling_memory_and_parallel_efficiency",
+        "verify_MOC_time_and_space_convergence",
+        "reproduce_analytical_and_physical_pressure_waveforms",
+        "record_device_boundary_models_and_cavitation_air_physics"
+      ]
+    }
+  ],
+  "required_feature_activation_record": [
+    "trial_id_and_pair_id",
+    "solver_id_exact_build_and_source_revision",
+    "enabled_modules_and_model_options",
+    "network_and_pipe_configuration_digest",
+    "required_physical_phenomena_per_scenario",
+    "feature_support_state_supported_not_supported_unknown",
+    "feature_activation_state_enabled_disabled_not_applicable",
+    "parameter_values_and_boundary_conditions",
+    "solver_timestep_mesh_or_algebraic_discretization",
+    "simplifications_and_unsupported_physics",
+    "raw_output_digest_and_execution_receipt",
+    "spatial_reach_count_and_common_time_step_for_MOC_methods",
+    "Courant_condition_and_mesh_refinement_level",
+    "MPI_process_count_vectorization_and_memory_budget",
+    "negative_pressure_reverse_flow_and_backflow_prevention_assumptions",
+    "initial_steady_state_engine_and_pressure_dependent_demand_configuration"
+  ],
+  "hard_gates": [
+    "no_solver_to_solver_agreement_called_physical_validation",
+    "no_feature_count_or_runtime_only_leaderboard",
+    "no_unknown_feature_silently_treated_as_supported",
+    "no_paired_score_when_feature_activation_or_system_boundary_is_non_equivalent",
+    "physical_reference_keeps_measurement_uncertainty_and_raw_data_provenance"
+  ]
+}
