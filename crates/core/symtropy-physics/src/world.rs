@@ -90,6 +90,17 @@ pub trait PhysicsCallback<const D: usize> {
     fn apply_trauma(&mut self, event: &CollisionEvent<D>);
 }
 
+/// Diagnostic emitted when a checked CCD query cannot establish a valid result.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CcdDiagnostic {
+    /// Dynamic body whose swept path was queried.
+    pub moving_body: BodyHandle,
+    /// Other body participating in the candidate pair.
+    pub other_body: BodyHandle,
+    /// Typed reason the query was invalid or inconclusive.
+    pub error: ccd::CcdError,
+}
+
 /// No-op callback for physics-only usage (no consciousness coupling).
 pub struct NoOpCallback;
 
@@ -136,6 +147,8 @@ pub struct PhysicsWorld<const D: usize> {
     pub collision_events: Vec<CollisionEvent<D>>,
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
+    /// Invalid or inconclusive checked CCD queries from the last step.
+    ccd_diagnostics: Vec<CcdDiagnostic>,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
     /// Warm-starting from the previous frame (swapped at frame boundaries).
@@ -209,6 +222,7 @@ impl<const D: usize> PhysicsWorld<D> {
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
+            ccd_diagnostics: Vec::new(),
             contact_cache: ContactCache::new(),
             prev_cache: ContactCache::new(),
             solver_iterations: 4,
@@ -402,6 +416,15 @@ impl<const D: usize> PhysicsWorld<D> {
         self.bodies.get_mut(idx)
     }
 
+    /// CCD query errors observed during the most recent step.
+    ///
+    /// A missing collision hit is normally represented by no diagnostic. This
+    /// slice reports invalid/inconclusive checked queries separately so they
+    /// cannot silently masquerade as a valid physical miss.
+    pub fn ccd_diagnostics(&self) -> &[CcdDiagnostic] {
+        &self.ccd_diagnostics
+    }
+
     /// Step with consciousness-physics callback.
     ///
     /// The callback modulates forces, impulses, and friction based on
@@ -420,6 +443,7 @@ impl<const D: usize> PhysicsWorld<D> {
         // 0. Clear events from previous step
         self.collision_events.clear();
         self.sensor_events.clear();
+        self.ccd_diagnostics.clear();
         // Warm-starting: swap caches so prev_cache has last frame's impulses
         std::mem::swap(&mut self.contact_cache, &mut self.prev_cache);
         self.contact_cache.begin_frame();
@@ -816,16 +840,25 @@ impl<const D: usize> PhysicsWorld<D> {
                     .as_any()
                     .downcast_ref::<HalfSpace<D>>()
                 {
-                    if let Some(hit) = ccd::sphere_halfspace(
+                    match ccd::sphere_halfspace_checked(
                         &pos_i0,
                         &vel_i,
                         radius_i,
                         &halfspace.normal,
                         halfspace.offset,
                         dt,
-                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
-                    {
-                        earliest = Some(hit);
+                    ) {
+                        Ok(Some(hit)) => {
+                            if earliest.as_ref().is_none_or(|current| hit.toi < current.toi) {
+                                earliest = Some(hit);
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(error) => self.ccd_diagnostics.push(CcdDiagnostic {
+                            moving_body: self.bodies[i].handle,
+                            other_body: self.bodies[j].handle,
+                            error,
+                        }),
                     }
                     continue;
                 }
@@ -838,7 +871,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     } else {
                         SVector::zeros()
                     };
-                    if let Some(hit) = ccd::sphere_sphere(
+                    match ccd::sphere_sphere_checked(
                         &pos_i0,
                         &vel_i,
                         radius_i,
@@ -846,9 +879,18 @@ impl<const D: usize> PhysicsWorld<D> {
                         &vel_j,
                         sphere_j.radius,
                         dt,
-                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
-                    {
-                        earliest = Some(hit);
+                    ) {
+                        Ok(Some(hit)) => {
+                            if earliest.as_ref().is_none_or(|current| hit.toi < current.toi) {
+                                earliest = Some(hit);
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(error) => self.ccd_diagnostics.push(CcdDiagnostic {
+                            moving_body: self.bodies[i].handle,
+                            other_body: self.bodies[j].handle,
+                            error,
+                        }),
                     }
                 }
             }
@@ -2559,5 +2601,77 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod checked_ccd_diagnostic_tests {
+    use super::*;
+    use crate::body::{BodyHandle, BodyType, RigidBody};
+    use symtropy_math::Point;
+
+    #[test]
+    fn world_retains_checked_ccd_errors_instead_of_treating_them_as_misses() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut moving = RigidBody::dynamic_sphere(
+            BodyHandle(100),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        moving.linear_velocity = SVector::from([f64::NAN, 0.0, 0.0]);
+        let moving_handle = world.add_body(moving);
+
+        let mut obstacle = RigidBody::dynamic_sphere(
+            BodyHandle(101),
+            Point::new([10.0, 0.0, 0.0]),
+            0.5,
+            1.0,
+        );
+        obstacle.body_type = BodyType::Static;
+        let obstacle_handle = world.add_body(obstacle);
+
+        let pre_integration_positions: Vec<_> =
+            world.bodies.iter().map(|body| body.position()).collect();
+        world.run_ccd_pass(&pre_integration_positions, 0.016);
+
+        assert!(world.ccd_diagnostics().iter().any(|diagnostic| {
+            diagnostic.moving_body == moving_handle
+                && diagnostic.other_body == obstacle_handle
+                && diagnostic.error == ccd::CcdError::NonFiniteInput
+        }));
+    }
+
+    #[test]
+    fn step_clears_ccd_diagnostics_between_frames() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut moving = RigidBody::dynamic_sphere(
+            BodyHandle(100),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        moving.linear_velocity = SVector::from([f64::NAN, 0.0, 0.0]);
+        let moving_handle = world.add_body(moving);
+
+        let mut obstacle = RigidBody::dynamic_sphere(
+            BodyHandle(101),
+            Point::new([10.0, 0.0, 0.0]),
+            0.5,
+            1.0,
+        );
+        obstacle.body_type = BodyType::Static;
+        world.add_body(obstacle);
+
+        let positions: Vec<_> = world.bodies.iter().map(|body| body.position()).collect();
+        world.run_ccd_pass(&positions, 0.016);
+        assert!(!world.ccd_diagnostics().is_empty());
+
+        world
+            .body_mut(moving_handle)
+            .expect("moving body remains in world")
+            .linear_velocity = SVector::zeros();
+        world.step(0.016);
+        assert!(world.ccd_diagnostics().is_empty());
     }
 }
