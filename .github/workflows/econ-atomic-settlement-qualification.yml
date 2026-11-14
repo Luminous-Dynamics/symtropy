@@ -1,0 +1,205 @@
+name: ECON-02B Atomic Settlement Qualification
+
+on:
+  push:
+    branches:
+      - "ci/econ-atomic-settlement-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: econ-atomic-settlement-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 0482070d98c963d33246714b39572eaab7fe624d
+  ECON02_PARENT: 456d2578d298b2d5e3af5233f856e3c7ec940c6d
+
+jobs:
+  qualify:
+    name: Frozen ECON-02B / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 32
+
+      - name: Assert subject and exact ECON-02 ancestry
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${ECON02_PARENT}" "${PRODUCT_HEAD}"
+          test "$(git rev-list --count "${ECON02_PARENT}..${PRODUCT_HEAD}")" -eq 4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-core/src/economic.rs \
+            crates/core/symtropy-core/src/financial.rs \
+            crates/core/symtropy-core/src/settlement.rs \
+            crates/core/symtropy-core/src/lib.rs \
+            crates/core/symtropy-core/ECONOMIC_STOCK_LEDGER_V01.md \
+            crates/core/symtropy-core/ECONOMIC_FINANCIAL_LEDGER_V01.md \
+            crates/core/symtropy-core/ECONOMIC_MONETARY_SETTLEMENT_V01.md \
+            > "${RUNNER_TEMP}/econ02b-source-sha256.txt"
+          cat "${RUNNER_TEMP}/econ02b-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check symtropy-core all targets
+        id: check
+        run: cargo check -p symtropy-core --locked --all-targets
+
+      - name: Run ECON-02B settlement theorem corpus
+        id: settlement_tests
+        run: cargo test -p symtropy-core --locked --lib settlement::tests
+
+      - name: Run ECON-02 financial regression corpus
+        id: financial_tests
+        run: cargo test -p symtropy-core --locked --lib financial::tests
+
+      - name: Run ECON-00/01 stock regression corpus
+        id: stock_tests
+        run: cargo test -p symtropy-core --locked --lib economic::tests
+
+      - name: Run complete symtropy-core library regression
+        id: core_tests
+        run: cargo test -p symtropy-core --locked --lib
+
+      - name: Run strict symtropy-core Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-core --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit settlement authority surface
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-core/src/settlement.rs
+          contract=crates/core/symtropy-core/ECONOMIC_MONETARY_SETTLEMENT_V01.md
+
+          grep -Fq 'let mut candidate_book = self.current_book.clone();' "${source}"
+          grep -Fq 'apply_settlement_to_book(&mut candidate_book' "${source}"
+          grep -Fq 'self.current_book = candidate_book;' "${source}"
+          grep -Fq 'InsufficientSettlementAccountClaim' "${source}"
+          grep -Fq 'RetirementExceedsSupply' "${source}"
+          grep -Fq 'This crate does not cryptographically verify signatures or capabilities' "${source}"
+          grep -Fq 'both histories commit together or neither history commits' "${contract}"
+
+          if grep -Eq 'pub[[:space:]]+fn[[:space:]]+(financial_book_mut|set_balance|set_supply|set_current_book)' "${source}"; then
+            echo 'forbidden settlement authority escape hatch found' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          SETTLEMENT_TESTS_OUTCOME: ${{ steps.settlement_tests.outcome }}
+          FINANCIAL_TESTS_OUTCOME: ${{ steps.financial_tests.outcome }}
+          STOCK_TESTS_OUTCOME: ${{ steps.stock_tests.outcome }}
+          CORE_TESTS_OUTCOME: ${{ steps.core_tests.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+          AUTHORITY_AUDIT_OUTCOME: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT_OUTCOME: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/econ02b-settlement-v01-receipt.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          outcomes = {
+              "subject": os.environ.get("SUBJECT_OUTCOME", "unknown"),
+              "source_identity": os.environ.get("SOURCE_OUTCOME", "unknown"),
+              "fmt": os.environ.get("FMT_OUTCOME", "unknown"),
+              "check": os.environ.get("CHECK_OUTCOME", "unknown"),
+              "settlement_tests": os.environ.get("SETTLEMENT_TESTS_OUTCOME", "unknown"),
+              "financial_tests": os.environ.get("FINANCIAL_TESTS_OUTCOME", "unknown"),
+              "stock_tests": os.environ.get("STOCK_TESTS_OUTCOME", "unknown"),
+              "core_tests": os.environ.get("CORE_TESTS_OUTCOME", "unknown"),
+              "clippy": os.environ.get("CLIPPY_OUTCOME", "unknown"),
+              "authority_audit": os.environ.get("AUTHORITY_AUDIT_OUTCOME", "unknown"),
+              "postflight": os.environ.get("POSTFLIGHT_OUTCOME", "unknown"),
+          }
+
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "ECON-02B-atomic-monetary-settlement-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "econ02_parent": os.environ["ECON02_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "symtropy-core atomic issue/retire settlement plus ECON-00/01 and ECON-02 regressions",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "atomic coupling of one balanced single-currency journal transaction to one registered-authority issue/retire supply event with exact currency/cause/amount/account binding; external authorization evidence remains non-cryptographic; no banking, contracts, FX, legal finality, or universal supply/account reconciliation",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/econ02b-source-sha256.txt" "${RUNNER_TEMP}/econ02b-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: econ02b-settlement-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/econ02b-settlement-v01-receipt.json
+            ${{ runner.temp }}/econ02b-settlement-v01-receipt.json.sha256
+            ${{ runner.temp }}/econ02b-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
