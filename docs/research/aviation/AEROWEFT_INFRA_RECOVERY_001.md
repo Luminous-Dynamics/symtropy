@@ -39,11 +39,20 @@ A 2026 open-access Dubai UAM study jointly optimizes vertiport locations, fleet 
 
 A 2026 scoping review of 81 UAM vertiport-planning publications finds that network-level siting, facility design, ground access, noise, weather, equity and governance remain fragmented. It identifies limited transferable design parameters for rooftop operations, charging layouts, passenger transfer and multi-scale governance.
 
-AeroWeft's differentiator should therefore not be another integrated siting-and-routing model. It should test whether nominally attractive infrastructure portfolios remain recoverable when asset dependencies and common-cause disruptions are represented explicitly.
+Two further 2026 studies mean that the benchmark must be more demanding than a deterministic siting baseline:
+
+- **Demand-uncertain site planning:** the May 2026 *Vertiport location planning for urban air mobility airport shuttle services under Demand uncertainty* describes a risk-based two-stage site-selection and eVTOL-fleet model, with a real-world case study, route-extension sensitivity under airspace restrictions, and use of existing heliports as a potential cost lever. This is a required published algorithm-class baseline for demand uncertainty; we must inspect the complete paper and implementation assumptions before claiming exact reproduction. DOI: https://doi.org/10.1016/j.tra.2026.104957
+- **Strategic/tactical/operational co-optimization:** the 2026 TU Delft / Journal of Transport Geography framework for Île-de-France combines land-use, aeronautical feasibility and community-acceptance filters with bidirectional demand-supply interaction, vertiport distribution, fleet size, dispatch and repositioning. It is an important large-scale baseline for integrated planning. Its repository record explicitly restricts reuse of the text absent an open content licence or permission; cite the published work, do not redistribute its full text. DOI: https://doi.org/10.1016/j.jtrangeo.2026.104611
+- **Integrated siting, fleet, routing and charging:** the May 2026 Dubai study jointly optimizes sites, fleet, routing, schedules and partial recharging, reporting 4–30% over its studied heuristics. It is a valuable baseline, but its reported result is not transferable without the same data, costs, assumptions and implementation. Its raw-data DOI is a candidate dataset, not an admitted benchmark until artifact-level terms, schema, exact files and redistribution/model-use permissions are checked: https://doi.org/10.6084/m9.figshare.31919775
+- **Physical layout and ground integration:** the 2026 scoping review of 81 publications identifies continuing fragmentation across network siting, facility design and ground integration, including gaps around rooftop operations, charging layouts, transfers and governance.
+
+AeroWeft's differentiator should therefore not be another integrated siting-and-routing model. It should test whether nominally attractive portfolios remain **recoverable under explicit shared failure domains and compound outages**, and whether the resulting resilience evidence can be composed into an existing multimodal optimizer.
 
 References:
 
-- [An integrated optimization framework for UAM: vertiports, fleet size, routes and recharging (2026)](https://doi.org/10.1016/j.trip.2026.101945)
+- [Demand-uncertain vertiport location planning (2026)](https://doi.org/10.1016/j.tra.2026.104957)
+- [Integrated UAM design and operation in Île-de-France (2026)](https://doi.org/10.1016/j.jtrangeo.2026.104611)
+- [Dubai integrated siting/fleet/routing/recharging study (2026)](https://doi.org/10.1016/j.trip.2026.101945)
 - [Urban air mobility vertiports: scoping review of physical site selection and ground integration (2026)](https://www.sciencedirect.com/science/article/pii/S2667091726000828)
 - [Symtropy TRANSPORT-OPT-001 #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601)
 - [Sol-Atlas AIRSPACE-ATLAS-001 #189](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/189)
