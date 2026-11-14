@@ -101,31 +101,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -133,7 +132,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -221,31 +221,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "modelled",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -253,7 +252,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -341,31 +341,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-OTHER-002",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -373,7 +372,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -461,31 +461,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -493,7 +492,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -581,31 +581,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -613,7 +612,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -686,31 +686,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -718,7 +717,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -806,31 +806,30 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
             "kind": "signed_defect_flow",
-            "raw_data_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
           },
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -838,7 +837,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
@@ -926,14 +926,14 @@
           {
             "observation_id": "OBS-PRESSURE-001",
             "kind": "pressure_trace",
-            "raw_data_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
             "method_state": "valid",
             "event_time_s": 5,
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
           },
           {
             "observation_id": "OBS-FLOW-001",
@@ -949,7 +949,6 @@
           {
             "observation_id": "OBS-TRACER-001",
             "kind": "tracer_sample",
-            "raw_data_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
             "timebase_id": "TB-2026-COUPLING-001",
             "evidence_class": "synthetic_fixture",
             "calibration_state": "current",
@@ -957,7 +956,8 @@
             "sample_time_s": 45,
             "sample_result": "detected",
             "observation_origin": "measurement_channel",
-            "digest_origin": "synthetic_fixture_marker"
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
         ]
       }
