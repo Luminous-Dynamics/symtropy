@@ -1,0 +1,447 @@
+name: Careframe Medical Robot Tool Gate (Simulation Only)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/medical-robotics/**"
+      - "tools/medical-robot-tool-gate/**"
+      - "tools/careframe-observation-audit/**"
+      - ".github/workflows/medical-robot-tool-gate.yml"
+  push:
+    branches:
+      - "research/medical-humanoid-platform-v0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: careframe-tool-gate-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  manifest-gate:
+    name: Validate concept tool manifests (no hardware authority)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Format check
+        run: cargo fmt --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --check
+
+      - name: Focused tests
+        run: cargo test --locked --manifest-path tools/medical-robot-tool-gate/Cargo.toml
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/medical-robot-tool-gate/Cargo.toml --all-targets -- -D warnings
+
+      - name: Exercise corpus and single-candidate manifest gates
+        env:
+          CARE_FRAME_TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          corpus=docs/medical-robotics/medical-robot-tool-corpus-v0.1.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- "$corpus" > /tmp/careframe-tool-receipt.json
+          grep -q '"clinical_use_authorized": false' /tmp/careframe-tool-receipt.json
+          grep -q '"physical_actuation_authorized": false' /tmp/careframe-tool-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-tool-receipt.json
+
+          # A proposal copied from a frozen positive fixture must be simulation-only.
+          jq '.cases[0].manifest' "$corpus" > /tmp/careframe-proposal-valid.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest /tmp/careframe-proposal-valid.json > /tmp/careframe-proposal-valid-receipt.json
+          grep -q '"disposition": "SIMULATION_ONLY"' /tmp/careframe-proposal-valid-receipt.json
+          grep -Eq '"tool_manifest_sha256": "[0-9a-f]{64}"' /tmp/careframe-proposal-valid-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-proposal-valid-receipt.json
+
+          # Every built-in proposal template must be emitted and re-qualified as simulation-only.
+          for kind in sealed_supply_gripper tray_carrier telepresence_head trainer_probe; do
+            template="/tmp/careframe-template-${kind}.json"
+            receipt="/tmp/careframe-template-${kind}-receipt.json"
+            cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --template "$kind" "$template"
+            cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest "$template" > "$receipt"
+            grep -q '"disposition": "SIMULATION_ONLY"' "$receipt"
+            grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" "$receipt"
+            grep -q '"physical_actuation_authorized": false' "$receipt"
+          done
+
+          # The same proposal with clinical authority escalated must be denied.
+          jq '.cases[0].manifest | .authority.clinical_use_authorized = true' "$corpus" > /tmp/careframe-proposal-forbidden.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-manifest /tmp/careframe-proposal-forbidden.json > /tmp/careframe-proposal-forbidden-receipt.json
+          forbidden_status=$?
+          set -e
+          if [[ "$forbidden_status" -ne 1 ]]; then
+            echo "Expected forbidden manifest to exit 1, got $forbidden_status" >&2
+            cat /tmp/careframe-proposal-forbidden-receipt.json >&2
+            exit 1
+          fi
+          grep -q '"disposition": "BLOCKED"' /tmp/careframe-proposal-forbidden-receipt.json
+          grep -q 'CLINICAL_USE_AUTHORITY_FORBIDDEN' /tmp/careframe-proposal-forbidden-receipt.json
+          grep -q '"clinical_use_authorized": false' /tmp/careframe-proposal-forbidden-receipt.json
+          grep -q '"physical_actuation_authorized": false' /tmp/careframe-proposal-forbidden-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-proposal-forbidden-receipt.json
+
+          {
+            echo "Tested revision: ${CARE_FRAME_TESTED_SHA}"
+            echo "Rust: $(rustc --version)"
+            echo "Manifest SHA-256: $(sha256sum tools/medical-robot-tool-gate/Cargo.toml | cut -d' ' -f1)"
+            echo "Corpus SHA-256: $(sha256sum "$corpus" | cut -d' ' -f1)"
+            echo "Lockfile SHA-256: $(sha256sum tools/medical-robot-tool-gate/Cargo.lock | cut -d' ' -f1)"
+            echo ""
+            echo "Candidate validator: positive simulation proposal accepted; unauthorized clinical claim rejected."
+            echo "This is concept-manifest qualification for simulation only. No physical/clinical authority is granted."
+            echo ""
+            cat /tmp/careframe-tool-receipt.json
+            cat /tmp/careframe-proposal-valid-receipt.json
+            cat /tmp/careframe-proposal-forbidden-receipt.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate articulated morphology contract
+        env:
+          CARE_FRAME_TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          model=docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-morphology "$model" > /tmp/careframe-morphology-receipt.json
+          jq -e '.disposition == "SIMULATION_ONLY" and
+                 .physical_actuation_authorized == false and
+                 .patient_contact_authorized == false and
+                 .clinical_use_authorized == false' /tmp/careframe-morphology-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-morphology-receipt.json
+          grep -Eq '"morphology_sha256": "[0-9a-f]{64}"' /tmp/careframe-morphology-receipt.json
+
+          # The same nominal topology must be blocked if a joint command is enabled.
+          jq '.joints[0].command_enabled = true' "$model" > /tmp/careframe-morphology-command-enabled.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-morphology /tmp/careframe-morphology-command-enabled.json > /tmp/careframe-morphology-command-receipt.json
+          command_status=$?
+          set -e
+          if [[ "$command_status" -ne 1 ]]; then
+            echo "Expected a commanded joint to be blocked; got exit status $command_status" >&2
+            cat /tmp/careframe-morphology-command-receipt.json >&2
+            exit 1
+          fi
+          grep -q '"disposition": "BLOCKED"' /tmp/careframe-morphology-command-receipt.json
+          grep -q 'MORPHOLOGY_JOINT_COMMAND_FORBIDDEN' /tmp/careframe-morphology-command-receipt.json
+          grep -q '"physical_actuation_authorized": false' /tmp/careframe-morphology-command-receipt.json
+
+          # A graph that is disconnected/cyclic cannot be admitted even for simulation.
+          jq '.joints[0].parent_link = "right_drive_wheel" |
+              .joints[1].parent_link = "left_drive_wheel"' "$model" > /tmp/careframe-morphology-cycle.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --validate-morphology /tmp/careframe-morphology-cycle.json > /tmp/careframe-morphology-cycle-receipt.json
+          graph_status=$?
+          set -e
+          if [[ "$graph_status" -ne 1 ]]; then
+            echo "Expected cyclic/disconnected morphology to be blocked; got exit status $graph_status" >&2
+            cat /tmp/careframe-morphology-cycle-receipt.json >&2
+            exit 1
+          fi
+          grep -q 'MORPHOLOGY_GRAPH_DISCONNECTED_OR_CYCLIC' /tmp/careframe-morphology-cycle-receipt.json
+
+          # Forward kinematics is geometry-only: it computes link transforms and emits no controls.
+          state=docs/medical-robotics/careframe-nominal-joint-state-v0.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --evaluate-kinematics "$model" "$state" > /tmp/careframe-fk-receipt.json
+          jq -e '
+            .disposition == "KINEMATICS_ONLY" and
+            .physical_actuation_authorized == false and
+            .patient_contact_authorized == false and
+            .clinical_use_authorized == false and
+            (((.link_poses.torso_shell.translation_m[2] - 0.32) | fabs) < 0.000000001) and
+            (((.link_poses.left_tool_mount.translation_m[1] - 0.19) | fabs) < 0.000000001) and
+            (((.link_poses.left_tool_mount.translation_m[2] - 0.28) | fabs) < 0.000000001)
+          ' /tmp/careframe-fk-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-fk-receipt.json
+          grep -Eq '"joint_state_sha256": "[0-9a-f]{64}"' /tmp/careframe-fk-receipt.json
+
+          jq '.torso_yaw = 1.21' "$state" > /tmp/careframe-fk-out-of-range.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --evaluate-kinematics "$model" /tmp/careframe-fk-out-of-range.json > /tmp/careframe-fk-blocked-receipt.json
+          fk_blocked_status=$?
+          set -e
+          if [[ "$fk_blocked_status" -ne 1 ]]; then
+            echo "Expected out-of-range joint state to be blocked; got $fk_blocked_status" >&2
+            cat /tmp/careframe-fk-blocked-receipt.json >&2
+            exit 1
+          fi
+          grep -q 'JOINT_STATE_OUT_OF_LIMITS' /tmp/careframe-fk-blocked-receipt.json
+          grep -q '"physical_actuation_authorized": false' /tmp/careframe-fk-blocked-receipt.json
+
+          {
+            echo ""
+            echo "Careframe articulated morphology exact revision: ${CARE_FRAME_TESTED_SHA}"
+            echo "Model SHA-256: $(sha256sum "$model" | cut -d' ' -f1)"
+            echo "Nominal 16-link / 15-joint synthetic graph admitted for simulation only."
+            echo "Nominal forward-kinematics reference points matched; out-of-range joint state rejected."
+            echo "Joint-command and graph-cycle negative controls were rejected."
+            echo "No physical or clinical validity is implied."
+            echo ""
+            cat /tmp/careframe-morphology-receipt.json
+            cat /tmp/careframe-fk-receipt.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Export and independently parse kinematic-only URDF
+        env:
+          CARE_FRAME_TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          model=docs/medical-robotics/careframe-wheeled-upper-body-morphology-v0.json
+          output=/tmp/careframe-synthetic-kinematics-v0.urdf
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --export-urdf "$model" "$output" > /tmp/careframe-urdf-receipt.json
+          jq -e '
+            .disposition == "KINEMATIC_INTERCHANGE_ONLY" and
+            .link_count == 16 and
+            .joint_count == 15 and
+            .inertial_data_exported == false and
+            .dynamics_ready == false and
+            .physical_actuation_authorized == false and
+            .patient_contact_authorized == false and
+            .clinical_use_authorized == false
+          ' /tmp/careframe-urdf-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-urdf-receipt.json
+          grep -Eq '"urdf_sha256": "[0-9a-f]{64}"' /tmp/careframe-urdf-receipt.json
+
+          # Use Python's standard-library XML parser only as test tooling, not product code.
+          python3 - "$output" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          root = ET.parse(sys.argv[1]).getroot()
+          assert root.tag == "robot"
+          assert root.attrib.get("version") == "1.0"
+          links = root.findall("link")
+          joints = root.findall("joint")
+          assert len(links) == 16, len(links)
+          assert len(joints) == 15, len(joints)
+          assert all(link.find("visual/geometry/box") is not None for link in links)
+          assert all(link.find("collision/geometry/box") is not None for link in links)
+          assert all(link.find("inertial") is None for link in links)
+          assert sum(joint.attrib["type"] == "revolute" for joint in joints) == 7
+          assert sum(joint.attrib["type"] == "continuous" for joint in joints) == 2
+          assert sum(joint.attrib["type"] == "fixed" for joint in joints) == 6
+          assert all(joint.find("parent") is not None and joint.find("child") is not None for joint in joints)
+          assert all(joint.find("limit") is not None for joint in joints if joint.attrib["type"] in ("revolute", "continuous"))
+          assert all(joint.find("limit") is None for joint in joints if joint.attrib["type"] == "fixed")
+          for joint in joints:
+              if joint.attrib["type"] == "continuous":
+                  limit = joint.find("limit")
+                  assert limit is not None and "effort" in limit.attrib and "velocity" in limit.attrib
+                  assert "lower" not in limit.attrib and "upper" not in limit.attrib
+          PY
+
+          # Cross-check Rust forward kinematics against an independent FK evaluator
+          # operating only on the exported URDF and a nonzero joint-state fixture.
+          state=docs/medical-robotics/careframe-nonzero-joint-state-v0.json
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --evaluate-kinematics "$model" "$state" > /tmp/careframe-fk-nonzero-receipt.json
+          grep -q "\"tested_revision\": \"$CARE_FRAME_TESTED_SHA\"" /tmp/careframe-fk-nonzero-receipt.json
+          python3 - "$output" "$model" "$state" /tmp/careframe-fk-nonzero-receipt.json <<'PY'
+          import json
+          import math
+          import sys
+          import xml.etree.ElementTree as ET
+
+          urdf_path, model_path, state_path, receipt_path = sys.argv[1:]
+          urdf = ET.parse(urdf_path).getroot()
+          with open(model_path, encoding="utf-8") as stream:
+              model = json.load(stream)
+          with open(state_path, encoding="utf-8") as stream:
+              joint_state = json.load(stream)
+          with open(receipt_path, encoding="utf-8") as stream:
+              rust_receipt = json.load(stream)
+
+          assert rust_receipt["disposition"] == "KINEMATICS_ONLY"
+          assert rust_receipt["physical_actuation_authorized"] is False
+          assert rust_receipt["patient_contact_authorized"] is False
+          assert rust_receipt["clinical_use_authorized"] is False
+
+          def mul(a, b):
+              return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+          def matvec(r, v):
+              return [sum(r[i][j] * v[j] for j in range(3)) for i in range(3)]
+
+          def rx(angle):
+              c, s = math.cos(angle), math.sin(angle)
+              return [[1, 0, 0], [0, c, -s], [0, s, c]]
+
+          def ry(angle):
+              c, s = math.cos(angle), math.sin(angle)
+              return [[c, 0, s], [0, 1, 0], [-s, 0, c]]
+
+          def rz(angle):
+              c, s = math.cos(angle), math.sin(angle)
+              return [[c, -s, 0], [s, c, 0], [0, 0, 1]]
+
+          def from_rpy(rpy):
+              roll, pitch, yaw = rpy
+              return mul(mul(rz(yaw), ry(pitch)), rx(roll))
+
+          def axis_rotation(axis, angle):
+              norm = math.sqrt(sum(x * x for x in axis))
+              assert abs(norm - 1.0) < 1e-8, axis
+              x, y, z = axis
+              c, s, t = math.cos(angle), math.sin(angle), 1.0 - math.cos(angle)
+              return [
+                  [c + x*x*t, x*y*t - z*s, x*z*t + y*s],
+                  [y*x*t + z*s, c + y*y*t, y*z*t - x*s],
+                  [z*x*t - y*s, z*y*t + x*s, c + z*z*t],
+              ]
+
+          def floats(text, default):
+              return [float(x) for x in text.split()] if text else list(default)
+
+          links = {link.attrib["name"] for link in urdf.findall("link")}
+          joints = urdf.findall("joint")
+          movable = {
+              joint.attrib["name"]
+              for joint in joints
+              if joint.attrib["type"] in ("revolute", "continuous")
+          }
+          assert len(links) == 16 and len(joints) == 15
+          assert set(joint_state) == movable, (set(joint_state), movable)
+          assert set(rust_receipt["link_poses"]) == links
+
+          root_link = model["root_link"]
+          identity = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+          poses = {root_link: (identity, [0.0, 0.0, 0.0])}
+          pending = list(joints)
+          while pending:
+              remaining = []
+              progress = False
+              for joint in pending:
+                  parent = joint.find("parent").attrib["link"]
+                  child = joint.find("child").attrib["link"]
+                  if parent not in poses:
+                      remaining.append(joint)
+                      continue
+                  origin = joint.find("origin")
+                  xyz = floats(origin.attrib.get("xyz") if origin is not None else None, [0, 0, 0])
+                  rpy = floats(origin.attrib.get("rpy") if origin is not None else None, [0, 0, 0])
+                  parent_rotation, parent_translation = poses[parent]
+                  world_offset = matvec(parent_rotation, xyz)
+                  translation = [parent_translation[i] + world_offset[i] for i in range(3)]
+                  rotation = mul(parent_rotation, from_rpy(rpy))
+                  if joint.attrib["type"] in ("revolute", "continuous"):
+                      axis = floats(joint.find("axis").attrib.get("xyz"), [1, 0, 0])
+                      rotation = mul(rotation, axis_rotation(axis, joint_state[joint.attrib["name"]]))
+                  elif joint.attrib["type"] != "fixed":
+                      raise AssertionError(f"unsupported joint type {joint.attrib['type']}")
+                  poses[child] = (rotation, translation)
+                  progress = True
+              if not progress:
+                  raise AssertionError("URDF graph is disconnected or cyclic")
+              pending = remaining
+
+          max_position_error = 0.0
+          max_rotation_error = 0.0
+          for link_id, (rotation, translation) in poses.items():
+              reference = rust_receipt["link_poses"][link_id]
+              max_position_error = max(
+                  max_position_error,
+                  max(abs(a - b) for a, b in zip(translation, reference["translation_m"])),
+              )
+              actual_rotation = reference["rotation_matrix_row_major"]
+              max_rotation_error = max(
+                  max_rotation_error,
+                  max(abs(rotation[i][j] - actual_rotation[i][j]) for i in range(3) for j in range(3)),
+              )
+          assert max_position_error < 1e-9, max_position_error
+          assert max_rotation_error < 1e-9, max_rotation_error
+          print(json.dumps({
+              "independent_urdf_fk_crosscheck": "PASS",
+              "compared_link_count": len(poses),
+              "nonzero_joint_count": len(joint_state),
+              "max_position_error_m": max_position_error,
+              "max_rotation_matrix_error": max_rotation_error,
+              "engine_adapter_verified": False,
+              "physical_actuation_authorized": False,
+          }, sort_keys=True))
+          PY
+
+          # Non-box geometry is not silently translated into a supposedly compatible URDF 1.0.
+          jq '.links[0].collision.shape = "capsule"' "$model" > /tmp/careframe-unsupported-urdf-shape.json
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --export-urdf /tmp/careframe-unsupported-urdf-shape.json /tmp/should-not-exist.urdf > /tmp/careframe-unsupported-urdf-shape-receipt.json
+          export_status=$?
+          set -e
+          if [[ "$export_status" -ne 1 ]]; then
+            echo "Expected URDF exporter to reject unsupported capsule shape; got $export_status" >&2
+            cat /tmp/careframe-unsupported-urdf-shape-receipt.json >&2
+            exit 1
+          fi
+          grep -q 'URDF_COLLISION_SHAPE_UNSUPPORTED' /tmp/careframe-unsupported-urdf-shape-receipt.json
+          grep -q '"dynamics_ready": false' /tmp/careframe-unsupported-urdf-shape-receipt.json
+
+          # A requested output path that aliases the source model must never overwrite it.
+          source_before="$(sha256sum "$model" | cut -d' ' -f1)"
+          set +e
+          cargo run --locked --quiet --manifest-path tools/medical-robot-tool-gate/Cargo.toml -- --export-urdf "$model" "$model" > /tmp/careframe-overwrite-guard.stdout 2> /tmp/careframe-overwrite-guard.stderr
+          overwrite_status=$?
+          set -e
+          test "$overwrite_status" -eq 2
+          grep -q 'must not resolve to the same file' /tmp/careframe-overwrite-guard.stderr
+          source_after="$(sha256sum "$model" | cut -d' ' -f1)"
+          test "$source_before" = "$source_after"
+
+          {
+            echo ""
+            echo "URDF 1.0 kinematic/collision interchange parsed successfully."
+            echo "Export digest: $(sha256sum "$output" | cut -d' ' -f1)"
+            echo "No inertial data, dynamics readiness or physical authority is included."
+            echo "Source-overwrite negative control preserved the morphology file."
+            echo ""
+            cat /tmp/careframe-urdf-receipt.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Format check for observation-contract auditor
+        run: cargo fmt --manifest-path tools/careframe-observation-audit/Cargo.toml -- --check
+
+      - name: Test observation-contract equivalence and counterfactuals
+        run: cargo test --locked --manifest-path tools/careframe-observation-audit/Cargo.toml
+
+      - name: Clippy observation-contract auditor with warnings denied
+        run: cargo clippy --locked --manifest-path tools/careframe-observation-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Audit matched observation contracts
+        env:
+          CAREFRAME_TESTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          contract=docs/medical-robotics/careframe-observation-contract-v0.json
+          suite=docs/medical-robotics/careframe-observation-adapters-v0.1.json
+          cargo run --locked --quiet --manifest-path tools/careframe-observation-audit/Cargo.toml -- "$contract" "$suite" > /tmp/careframe-observation-audit-receipt.json
+          jq -e '
+            .disposition == "MATCHED_CONTRACTS" and
+            .adapter_count == 3 and
+            .matched_profiles == 1 and
+            .policy_field_count == 18 and
+            .oracle_field_count == 2 and
+            .oracle_only_fields_exposed_to_policy == false and
+            (.findings | length) == 0
+          ' /tmp/careframe-observation-audit-receipt.json
+          grep -q "\"tested_revision\": \"$CAREFRAME_TESTED_SHA\"" /tmp/careframe-observation-audit-receipt.json
+          grep -Eq '"contract_sha256": "[0-9a-f]{64}"' /tmp/careframe-observation-audit-receipt.json
+          grep -Eq '"adapter_suite_sha256": "[0-9a-f]{64}"' /tmp/careframe-observation-audit-receipt.json
+
+          {
+            echo ""
+            echo "Observation contract audit tested revision: $CAREFRAME_TESTED_SHA"
+            echo "Declared adapters: state-vector estimate, RGB-derived estimate, point-cloud-derived estimate."
+            echo "All three match 18 ordered semantic policy fields; 2 oracle fields are scoring-only."
+            echo "This audit verifies declarations, not live adapter accuracy or sim-to-real transfer."
+            echo ""
+            cat /tmp/careframe-observation-audit-receipt.json
+          } >> "$GITHUB_STEP_SUMMARY"

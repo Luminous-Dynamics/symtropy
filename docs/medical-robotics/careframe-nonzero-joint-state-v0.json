@@ -1,0 +1,11 @@
+{
+  "left_drive": 0.25,
+  "right_drive": -0.2,
+  "torso_yaw": 0.55,
+  "head_yaw": -0.2,
+  "head_pitch": 0.15,
+  "left_shoulder_pitch": 0.4,
+  "left_elbow": -1,
+  "right_shoulder_pitch": -0.3,
+  "right_elbow": -1.2
+}
