@@ -166,9 +166,8 @@ pub fn evaluate_known_truth_scenario(
             maximum_validation_residual.max(validation_residual);
     }
 
-    for left_index in 0..scenario.candidates.len() {
+    for (left_index, left) in scenario.candidates.iter().enumerate() {
         for right in scenario.candidates.iter().skip(left_index + 1) {
-            let left = &scenario.candidates[left_index];
             maximum_pairwise_cohort_span = maximum_pairwise_cohort_span.max(
                 left.predicted_validation_state
                     .cohort_distance(right.predicted_validation_state),
