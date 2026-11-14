@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Beverage Process Twin Scenario Corpus V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "beverage-process-scenarios-v1"
+    },
+    "status": {
+      "const": "synthetic_engineering_contract_not_process_measurements"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "product",
+          "module",
+          "scenario",
+          "evidence_class",
+          "expected_disposition",
+          "initial_state",
+          "constraints",
+          "metrics",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^BT-[0-9]{3}$"
+          },
+          "product": {
+            "enum": [
+              "beer",
+              "wine",
+              "spirits_wash",
+              "cross_beverage",
+              "spirits"
+            ]
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_disposition": {
+            "enum": [
+              "FEASIBLE_IF_BALANCES_CLOSE",
+              "FEASIBLE_ONLY_WITH_EXPLICIT_LOSS_TERMS",
+              "INFEASIBLE_NOT_SILENTLY_RELAXED",
+              "UNCERTAIN_OR_FAULT",
+              "INDETERMINATE_OR_INCOMPLETE",
+              "SHIFT_REPORT_REQUIRED",
+              "REJECT_UNVERSIONED_OBJECTIVE",
+              "NO_FEASIBLE_CANDIDATE",
+              "NOT_COMPARABLE",
+              "MODULE_NOT_QUALIFIED"
+            ]
+          },
+          "initial_state": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "volume_l",
+              "temperature_c"
+            ],
+            "properties": {
+              "volume_l": {
+                "type": "string"
+              },
+              "temperature_c": {
+                "type": "string"
+              }
+            }
+          },
+          "constraints": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

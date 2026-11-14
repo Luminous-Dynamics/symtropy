@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/beverage-experiment-selection-scenarios-v1.schema.json",
+  "title": "Beverage Experiment Selection Scenario Corpus V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "description",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "beverage-experiment-selection-scenarios-v1"
+    },
+    "status": {
+      "const": "synthetic_experiment_selection_contract_fixtures_not_physical_trials"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "budget_units",
+          "budget_definition",
+          "evidence_class",
+          "primary_metric",
+          "methods",
+          "expected_disposition",
+          "guards",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^EXPSEL-[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "budget_units": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "budget_definition": {
+            "enum": [
+              "new_independent_experiments"
+            ]
+          },
+          "evidence_class": {
+            "const": "SYNTHETIC"
+          },
+          "primary_metric": {
+            "enum": [
+              "FEASIBLE_SIMPLE_REGRET",
+              "NORMALIZED_HYPERVOLUME_REGRET",
+              "TIME_TO_FEASIBLE",
+              "HARD_CONSTRAINT_VIOLATIONS"
+            ]
+          },
+          "methods": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "FACTORIAL_DOE",
+                "SPACE_FILLING",
+                "RANDOM",
+                "GREEDY_MEAN",
+                "UNCERTAINTY_ONLY",
+                "CONSTRAINED_BATCH_BO",
+                "MECHANISTIC_BO_HYBRID"
+              ]
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "ACCEPT_FOR_SYNTHETIC_BENCHMARK",
+              "REJECT",
+              "INDETERMINATE",
+              "ACCEPT_FOR_INDEPENDENT_REVIEW",
+              "INFEASIBLE_WITHOUT_RELAXATION"
+            ]
+          },
+          "guards": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
