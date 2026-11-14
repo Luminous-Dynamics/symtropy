@@ -17,6 +17,7 @@ on:
       - "Cargo.lock"
       - "research/water-service-engineering/**"
       - "research/distribution-intrusion-transient/**"
+      - "research/water-intrusion-coupling/**"
       - ".github/workflows/water-service-t0.yml"
   workflow_dispatch:
 
