@@ -8,6 +8,7 @@
 pub mod canopy_kernel;
 pub mod support_kernel;
 pub mod aggregation_kernel;
+pub mod model_set_kernel;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -881,6 +882,221 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
         "expected_net_value_after_cost_example": net_value,
         "decision_policy_performance": "NOT_ESTABLISHED",
         "existing_evsi_kernel_execution": "NOT_RUN"
+    }))
+}
+
+
+fn validate_executable_model_set_corpus(
+    raw: &[u8],
+    manifest: &Value,
+) -> Result<Value, String> {
+    let expected_ids: BTreeSet<&'static str> = [
+        "MODELSET-KNOWN-GROWTH-MORTALITY-001",
+        "MODELSET-KNOWN-RECRUITMENT-GROWTH-001",
+        "MODELSET-KNOWN-DELAYED-RESPONSE-001",
+        "MODELSET-KNOWN-MATCHED-CONTROL-001",
+        "MODELSET-KNOWN-HISTORY-FIT-FAILURE-001",
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let claim_ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let hidden_truth_published = at(manifest, &["hidden_truth_published"])?
+        .as_bool()
+        .ok_or_else(|| "hidden_truth_published must be boolean".to_string())?;
+    let blind_status = string_at(manifest, &["blind_test_status"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "MODELSET-DIAGNOSTIC-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-MODEL-SET-KNOWN-TRUTH-DIAGNOSTICS-001"
+            && status == "PUBLIC_SYNTHETIC_KNOWN_TRUTH_NOT_BLIND"
+            && hidden_truth_published
+            && blind_status == "NOT_BLIND_PUBLIC_KNOWN_TRUTH"
+            && claim_ceiling.contains("Five public analytic known-truth scenarios")
+            && claim_ceiling.contains("not a blind benchmark"),
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; blind_status={blind_status}"),
+    );
+
+    let mut result_rows = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let case_id = string_at(case, &["case_id"])?;
+        let unique = seen.insert(case_id.clone());
+        let observed_history = number_at(case, &["observed_historical_total_biomass"])?;
+        let observed_validation = model_set_kernel::CohortState {
+            small_live_biomass: number_at(
+                case,
+                &["observed_validation_state", "small_live_biomass"],
+            )?,
+            large_live_biomass: number_at(
+                case,
+                &["observed_validation_state", "large_live_biomass"],
+            )?,
+        };
+        let historical_fit_tolerance = number_at(
+            case,
+            &["thresholds", "historical_fit_tolerance"],
+        )?;
+        let structural_disagreement_threshold = number_at(
+            case,
+            &["thresholds", "structural_disagreement_threshold"],
+        )?;
+        let common_omission_residual_threshold = number_at(
+            case,
+            &["thresholds", "common_omission_residual_threshold"],
+        )?;
+        let candidate_values = at(case, &["candidates"])?
+            .as_array()
+            .ok_or_else(|| format!("cases[{index}].candidates must be an array"))?;
+        let mut candidates = Vec::with_capacity(candidate_values.len());
+        for (candidate_index, candidate) in candidate_values.iter().enumerate() {
+            candidates.push(model_set_kernel::CandidateForecast {
+                model_id: string_at(candidate, &["model_id"])?,
+                historical_total_biomass: number_at(
+                    candidate,
+                    &["historical_total_biomass"],
+                )?,
+                predicted_validation_state: model_set_kernel::CohortState {
+                    small_live_biomass: number_at(
+                        candidate,
+                        &["predicted_validation_state", "small_live_biomass"],
+                    )?,
+                    large_live_biomass: number_at(
+                        candidate,
+                        &["predicted_validation_state", "large_live_biomass"],
+                    )?,
+                },
+            });
+            if candidate_index >= candidate_values.len() {
+                return Err("candidate index exceeded declared candidate count".to_string());
+            }
+        }
+
+        let scenario = model_set_kernel::KnownTruthScenario {
+            observed_historical_total_biomass: observed_history,
+            observed_validation_state: observed_validation,
+            historical_fit_tolerance,
+            structural_disagreement_threshold,
+            common_omission_residual_threshold,
+            candidates,
+        };
+        let result = model_set_kernel::evaluate_known_truth_scenario(&scenario)
+            .map_err(|error| format!("case={case_id}; model-set diagnostic error={error}"))?;
+        let expected = at(case, &["expected"])?;
+        let expected_disposition = string_at(expected, &["disposition"])?;
+        let disposition_matches = result.disposition.as_str() == expected_disposition;
+        let metric_matches = result.candidate_count
+            == usize_at(expected, &["candidate_count"])?
+            && result.all_candidates_fit_history
+                == at(expected, &["all_candidates_fit_history"])?
+                    .as_bool()
+                    .ok_or_else(|| "expected.all_candidates_fit_history must be boolean".to_string())?
+            && close_enough(
+                result.maximum_pairwise_cohort_span,
+                number_at(expected, &["maximum_pairwise_cohort_span"])?,
+                1e-9,
+            )
+            && close_enough(
+                result.minimum_validation_residual,
+                number_at(expected, &["minimum_validation_residual"])?,
+                1e-9,
+            )
+            && close_enough(
+                result.maximum_validation_residual,
+                number_at(expected, &["maximum_validation_residual"])?,
+                1e-9,
+            );
+        let known = expected_ids.contains(case_id.as_str());
+        let passed = unique && known && disposition_matches && metric_matches;
+        push_check(
+            &mut checks,
+            "MODELSET-DIAGNOSTIC-KNOWN-TRUTH-001",
+            passed,
+            format!(
+                "case={case_id}; derived={}; expected={expected_disposition}; history_fit={}; span={}; residual_min={}; residual_max={}; metric_match={metric_matches}; unique={unique}",
+                result.disposition.as_str(),
+                result.all_candidates_fit_history,
+                result.maximum_pairwise_cohort_span,
+                result.minimum_validation_residual,
+                result.maximum_validation_residual
+            ),
+        );
+        result_rows.push(json!({
+            "case_id": case_id,
+            "disposition": result.disposition.as_str(),
+            "candidate_count": result.candidate_count,
+            "all_candidates_fit_history": result.all_candidates_fit_history,
+            "maximum_pairwise_cohort_span": result.maximum_pairwise_cohort_span,
+            "minimum_validation_residual": result.minimum_validation_residual,
+            "maximum_validation_residual": result.maximum_validation_residual
+        }));
+    }
+
+    push_check(
+        &mut checks,
+        "MODELSET-DIAGNOSTIC-CASE-COVERAGE-001",
+        seen.len() == expected_ids.len()
+            && cases.len() == expected_ids.len()
+            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let detector = string_at(execution, &["candidate_detector"])?;
+    let custodian = string_at(execution, &["independent_custodian"])?;
+    let forecast = string_at(execution, &["probabilistic_forecast"])?;
+    push_check(
+        &mut checks,
+        "MODELSET-DIAGNOSTIC-CLAIM-BOUNDARY-001",
+        runner == "SYNTHETIC_KNOWN_TRUTH_COHORT_MODEL_SET_KERNEL"
+            && !external
+            && detector == "TOY_DIAGNOSTIC_ONLY"
+            && custodian == "NOT_APPOINTED"
+            && forecast == "NOT_IMPLEMENTED",
+        "toy deterministic cohort diagnostic only; no external data, independent blind custodian, calibrated ecology or probabilistic forecast",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "case_count": seen.len(),
+        "scenario_results": result_rows,
+        "blind_test_created": false,
+        "empirical_model_set_adequacy": "NOT_ESTABLISHED",
+        "ecological_calibration": "NOT_ESTABLISHED"
     }))
 }
 
@@ -2232,6 +2448,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return validate_consilience_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-MODEL-SET-KNOWN-TRUTH-DIAGNOSTICS-001")
+    {
+        return validate_executable_model_set_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
     {
         return validate_model_set_corpus(raw, &manifest);
@@ -2568,6 +2789,8 @@ mod tests {
         include_str!("../../cases/canopy-gap-representation-synthetic-v0.1.json");
     const MODEL_SET_FIXTURE: &str =
         include_str!("../../cases/forest-model-set-adequacy-development-v0.1.json");
+    const EXECUTABLE_MODEL_SET_FIXTURE: &str =
+        include_str!("../../cases/forest-model-set-known-truth-diagnostics-synthetic-v0.1.json");
     const DECISION_VALUE_FIXTURE: &str =
         include_str!("../../cases/forest-decision-value-development-v0.1.json");
     const OBSERVATION_ADMISSION_FIXTURE: &str =
@@ -2821,6 +3044,29 @@ mod tests {
     }
 
 
+
+
+    #[test]
+    fn executable_model_set_corpus_runs_five_known_truth_counterexamples() {
+        let receipt = evaluate(EXECUTABLE_MODEL_SET_FIXTURE.as_bytes())
+            .expect("known-truth model-set corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS");
+        assert_eq!(receipt["case_count"], 5);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["blind_test_created"], false);
+        assert_eq!(receipt["empirical_model_set_adequacy"], "NOT_ESTABLISHED");
+    }
+
+    #[test]
+    fn executable_model_set_corpus_rejects_mutated_delayed_response_truth() {
+        let mut manifest: Value = serde_json::from_str(EXECUTABLE_MODEL_SET_FIXTURE)
+            .expect("valid executable model-set corpus");
+        manifest["cases"][2]["observed_validation_state"]["small_live_biomass"] = json!(80.0);
+        manifest["cases"][2]["observed_validation_state"]["large_live_biomass"] = json!(20.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated known-truth corpus");
+        let receipt = evaluate(&bytes).expect("well-formed known-truth corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn model_set_public_manifest_has_thirty_cases_and_no_blind_claim() {
