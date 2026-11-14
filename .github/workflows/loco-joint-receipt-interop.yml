@@ -290,6 +290,11 @@ jobs:
           if not all(exact_bindings):
               raise SystemExit("UQ sidecar mission/robot/actuator/configuration/clock/state scope differs from parent")
 
+          evaluation_tick = int(uq_sidecar["evaluation_tick"])
+          requirements = uq_sidecar["measurement_requirements"]
+          requirement_by_id = {item["measurement_id"]: item for item in requirements}
+          if len(requirement_by_id) != len(requirements):
+              raise SystemExit("duplicate predeclared measurement requirement identity")
           measurements = uq_sidecar["measurements"]
           measurement_by_id = {item["measurement_id"]: item for item in measurements}
           if len(measurement_by_id) != len(measurements):
@@ -298,6 +303,42 @@ jobs:
           uncertainty_by_id = {item["receipt_id"]: item for item in uncertainty_receipts}
           if len(uncertainty_by_id) != len(uncertainty_receipts):
               raise SystemExit("duplicate UQ uncertainty receipt identity")
+
+          parent_thermal_nodes = set(packet["thermal"]["required_node_ids"])
+          sidecar_thermal_requirements = {
+              item["node_id"]
+              for item in requirements
+              if item["kind"] == "thermal_node"
+              and item["applicability"]["kind"] == "required"
+          }
+          if parent_thermal_nodes != sidecar_thermal_requirements:
+              raise SystemExit("UQ required thermal-node set differs from parent joint receipt")
+
+          required_measurement_ids = set()
+          not_applicable_ids = set()
+          for requirement in requirements:
+              measurement_id = requirement["measurement_id"]
+              applicability = requirement["applicability"]
+              if applicability["kind"] == "required":
+                  required_measurement_ids.add(measurement_id)
+                  if measurement_id not in measurement_by_id:
+                      raise SystemExit(f"required measurement missing: {measurement_id}")
+              else:
+                  if not applicability.get("reason", "").strip():
+                      raise SystemExit(f"NotApplicable channel requires rationale: {measurement_id}")
+                  not_applicable_ids.add(measurement_id)
+                  if measurement_id in measurement_by_id:
+                      raise SystemExit(f"NotApplicable measurement supplied: {measurement_id}")
+
+          if set(measurement_by_id) != required_measurement_ids:
+              raise SystemExit("measurement list is not exactly the predeclared Required channel set")
+
+          for measurement_id, measurement in measurement_by_id.items():
+              requirement = requirement_by_id.get(measurement_id)
+              if requirement is None or requirement["applicability"]["kind"] != "required":
+                  raise SystemExit(f"measurement lacks a Required predeclaration: {measurement_id}")
+              if requirement["kind"] != measurement["kind"] or requirement.get("node_id") != measurement.get("node_id"):
+                  raise SystemExit(f"measurement kind/node binding mismatch: {measurement_id}")
 
           shared_sources = {}
           for measurement in measurements:
@@ -322,10 +363,18 @@ jobs:
               end = int(measurement["end_tick"])
               if start > end:
                   raise SystemExit(f"measurement interval inverted: {measurement['measurement_id']}")
-              if int(measurement["calibration_valid_from_tick"]) > start or int(measurement["calibration_valid_through_tick"]) < end:
+              calibration_from = int(measurement["calibration_valid_from_tick"])
+              calibration_through = int(measurement["calibration_valid_through_tick"])
+              if calibration_from > start or calibration_through < end:
                   raise SystemExit(f"calibration does not cover full measurement window: {measurement['measurement_id']}")
-              if int(receipt["valid_from_tick"]) > start or int(receipt["valid_through_tick"]) < end:
+              if evaluation_tick < calibration_from or evaluation_tick > calibration_through:
+                  raise SystemExit(f"calibration is not valid at UQ evaluation tick: {measurement['measurement_id']}")
+              uq_from = int(receipt["valid_from_tick"])
+              uq_through = int(receipt["valid_through_tick"])
+              if uq_from > start or uq_through < end:
                   raise SystemExit(f"UQ receipt does not cover full measurement window: {receipt_id}")
+              if evaluation_tick < uq_from or evaluation_tick > uq_through:
+                  raise SystemExit(f"UQ receipt is not valid at evaluation tick: {receipt_id}")
 
               required_group_members = {}
               for component in receipt["components"]:
@@ -408,7 +457,7 @@ jobs:
           uq_ids = [item["case_id"] for item in uq_cases]
           if len(uq_cases) != 10 or len(set(uq_ids)) != 10:
               raise SystemExit("expected ten unique UQ sidecar mutation oracles")
-          print(f"UQ sidecar schema/integrity/scope/derived/dependence preflight: PASS ({uq_digest})")
+          print(f"UQ sidecar schema/integrity/requirements/scope/derived/dependence preflight: PASS ({uq_digest})")
           print("UQ sidecar mutation oracle inventory: PASS (10 cases; oracle inventory is not a claim that every Rust mutation is executed)")
           print("golden packet causal/physical-semantic preflight: PASS")
           print(f"mutation oracle inventory: PASS ({len(cases)} cases; not executed against Rust adapters)")
