@@ -341,8 +341,7 @@ fn derive_y<const N: usize, const K: usize>(
 ) -> Result<IntervalMatrix<K, N>, VerifiedDelassusErrorV1> {
     let mut y = [[Interval::zero(); N]; K];
     for constraint in 0..K {
-        let rhs: [Interval; N] =
-            std::array::from_fn(|coordinate| jacobian[constraint][coordinate]);
+        let rhs: [Interval; N] = std::array::from_fn(|coordinate| jacobian[constraint][coordinate]);
         y[constraint] = solve_lower(lower, &rhs)?;
     }
     Ok(y)
