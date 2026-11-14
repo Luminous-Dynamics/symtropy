@@ -13,6 +13,9 @@ The randomized P0 estimator in #5111 accepts only blocked randomized assignment.
 
 The target-trial framework requires the causal question to be defined as a hypothetical experiment before the observational analysis is interpreted. Its core protocol includes eligibility, strategies, assignment, follow-up, outcomes, causal contrast and analysis plan. This explicit design prevents many avoidable time-related and treatment-definition errors, but it does not magically establish exchangeability or remove unmeasured confounding:
 - Hernán & Robins (2016), [Using Big Data to Emulate a Target Trial When a Randomized Trial Is Not Available](https://doi.org/10.1093/aje/kwv254).
+- Han et al. (2026), [Predictive maintenance decision-making framework under stochastic imperfect maintenance effects](https://doi.org/10.1016/j.ymssp.2026.114567), decouples imperfect-maintenance effects from baseline degradation/RUL and uses deep reinforcement learning for maintenance decisions on a turbofan-engine case. It motivates a repair-effect decomposition and dynamic-policy comparison, not a direct marine benchmark.
+- Najafi & Taghipour (2026), [Joint optimization of inspection scheduling and imperfect maintenance under stochastic repair effects and regime-dependent feasibility](https://doi.org/10.1016/j.cie.2026.112109), uses an SMDP to jointly model aperiodic inspection timing, stochastic pre/post repair effects and regime-/action-dependent executability on a belt-conveyor head-pulley case.
+
 - Syed & Doi (2026), [Target trial emulation: a primer for clinical research](https://doi.org/10.1097/pxh.0000000000000079), emphasizes aligning time zero, eligibility and treatment assignment at the design stage.
 - [2026 review: Target Trial Emulation in Observational Research—Strengths, Limitations, and Methodological Considerations](https://doi.org/10.1111/jre.70095) discusses confounding and time-related biases.
 
@@ -139,6 +142,13 @@ This work sits beside—not in place of—industrial monitoring and classificati
 - **ABB Ability Digital Powertrain** offers expert-led predictive intelligence and self-service asset-health analytics. It is a relevant fleet monitoring and predictive-maintenance comparator:
   - [Digital Powertrain portfolio](https://library.e.abb.com/public/ad6138cb14d5433d85a2e4fe43932009/4MWA000447_ABB_Ability_Digital_Powertrain_Drives_Enabling%20Hardware_RevA_Nov2026.pdf)
   - [Digital Powertrain Insights](https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain-insights)
+- **MAN PrimeServ Assist / MAN CEON** is a strong OEM comparator for real-time sensor collection, AI/analytics, fleet dashboards and continuous expert-led service. MAN says PrimeServ Assist is a proactive 24/7 service powered by CEON and experts, with remote recommendations, anomaly investigation and maintenance support. This is an integrated operating service, not just a model:
+  - [PrimeServ Assist](https://www.man-es.com/services/strategic-expertise/digitalization/primeserv-assist/1)
+  - [MAN CEON](https://www.man-es.com/marine/strategic-expertise/digitization/man-ceon)
+- **Caterpillar Condition Monitoring / Fleet Monitoring Center** combines asset-health and transaction history, telematics, fluids, inspections and service history with dealer/fleet-center recommendations and workflow feedback. It is a useful mixed-fleet comparator for closed-loop condition monitoring:
+  - [Caterpillar Condition Monitoring](https://www.cat.com/en_US/support/maintenance/fleet-management/condition-monitoring.html)
+  - [Caterpillar Condition Monitoring Guidelines](https://digital.cat.com/node/810)
+
 
 These providers' public descriptions do not publish the matched de-identified repair histories, assignment propensities, censoring mechanisms or known counterfactuals required to score target-trial ATE bias. That absence of public benchmark data is **not** evidence that their internal systems lack causal methods.
 
