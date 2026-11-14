@@ -23,7 +23,3 @@ path = "examples/newton_kantorovich_ladder.rs"
 [[example]]
 name = "scalar_krawczyk_quadratic"
 path = "examples/scalar_krawczyk_quadratic.rs"
-
-[[example]]
-name = "scalar_krawczyk_quadratic"
-path = "examples/scalar_krawczyk_quadratic.rs"
