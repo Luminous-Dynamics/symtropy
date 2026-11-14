@@ -1,0 +1,677 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+
+//! Dense-coordinate covariance reference for an implicit effective-metric step.
+//!
+//! The method is intentionally a small linear analogue, not an implementation
+//! of MuJoCo's full contact solver:
+//!
+//!   M_hat = M + h D + h^2 K
+//!   M_hat v_next = M v - h K q + h f
+//!   q_next = q + h v_next
+//!
+//! Tangent states push forward by S, force covectors pull back by S^T, and
+//! M/D/K transform by congruence. The dense-coordinate step is solved directly.
+
+#![forbid(unsafe_code)]
+
+use core::fmt;
+
+pub type Vector2 = [f64; 2];
+pub type Matrix2 = [[f64; 2]; 2];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EffectiveMetricErrorV1 {
+    InvalidIdentifier,
+    InvalidTimeStep,
+    NonFiniteInput,
+    MatrixNotSymmetric,
+    MassNotPositiveDefinite,
+    DampingNotPositiveSemidefinite,
+    StiffnessNotPositiveSemidefinite,
+    EffectiveMetricNotPositiveDefinite,
+    SingularBasis,
+    BasisNotUnimodular,
+    IntegerArithmeticOverflow,
+    SingularSolve,
+    ArithmeticOverflow,
+}
+
+impl fmt::Display for EffectiveMetricErrorV1 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl std::error::Error for EffectiveMetricErrorV1 {}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EffectiveMetricProfileV1 {
+    pub maximum_basis_entry: i64,
+    pub minimum_pivot: f64,
+    pub maximum_effective_condition_inf: f64,
+    pub maximum_residual: f64,
+}
+
+impl Default for EffectiveMetricProfileV1 {
+    fn default() -> Self {
+        Self {
+            maximum_basis_entry: 64,
+            minimum_pivot: 1.0e-13,
+            maximum_effective_condition_inf: 1.0e10,
+            maximum_residual: 1.0e-11,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LinearDiscreteProblem2V1 {
+    pub case_id: String,
+    pub time_step: f64,
+    pub mass: Matrix2,
+    pub damping: Matrix2,
+    pub stiffness: Matrix2,
+    pub position: Vector2,
+    pub velocity: Vector2,
+    /// Generalized force covector in the current coordinate frame.
+    pub force_covector: Vector2,
+}
+
+impl LinearDiscreteProblem2V1 {
+    pub fn validate(
+        &self,
+        profile: EffectiveMetricProfileV1,
+    ) -> Result<(), EffectiveMetricErrorV1> {
+        if self.case_id.trim().is_empty() {
+            return Err(EffectiveMetricErrorV1::InvalidIdentifier);
+        }
+        if !self.time_step.is_finite() || self.time_step <= 0.0 {
+            return Err(EffectiveMetricErrorV1::InvalidTimeStep);
+        }
+        if !profile.minimum_pivot.is_finite()
+            || profile.minimum_pivot <= 0.0
+            || !profile.maximum_effective_condition_inf.is_finite()
+            || profile.maximum_effective_condition_inf < 1.0
+            || !profile.maximum_residual.is_finite()
+            || profile.maximum_residual <= 0.0
+            || profile.maximum_basis_entry <= 0
+        {
+            return Err(EffectiveMetricErrorV1::InvalidIdentifier);
+        }
+        if self
+            .mass
+            .iter()
+            .chain(self.damping.iter())
+            .chain(self.stiffness.iter())
+            .flatten()
+            .chain(self.position.iter())
+            .chain(self.velocity.iter())
+            .chain(self.force_covector.iter())
+            .any(|value| !value.is_finite())
+        {
+            return Err(EffectiveMetricErrorV1::NonFiniteInput);
+        }
+
+        if !is_exactly_symmetric(&self.mass)
+            || !is_exactly_symmetric(&self.damping)
+            || !is_exactly_symmetric(&self.stiffness)
+        {
+            return Err(EffectiveMetricErrorV1::MatrixNotSymmetric);
+        }
+        if !is_positive_definite(&self.mass, profile.minimum_pivot) {
+            return Err(EffectiveMetricErrorV1::MassNotPositiveDefinite);
+        }
+        if !is_positive_semidefinite(&self.damping, profile.minimum_pivot) {
+            return Err(EffectiveMetricErrorV1::DampingNotPositiveSemidefinite);
+        }
+        if !is_positive_semidefinite(&self.stiffness, profile.minimum_pivot) {
+            return Err(EffectiveMetricErrorV1::StiffnessNotPositiveSemidefinite);
+        }
+        let effective = self.effective_metric()?;
+        if !is_positive_definite(&effective, profile.minimum_pivot) {
+            return Err(EffectiveMetricErrorV1::EffectiveMetricNotPositiveDefinite);
+        }
+        Ok(())
+    }
+
+    pub fn effective_metric(&self) -> Result<Matrix2, EffectiveMetricErrorV1> {
+        let h = self.time_step;
+        let h_squared = h * h;
+        if !h_squared.is_finite() {
+            return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+        }
+        let mut result = [[0.0; 2]; 2];
+        for row in 0..2 {
+            for column in 0..2 {
+                result[row][column] = self.mass[row][column]
+                    + h * self.damping[row][column]
+                    + h_squared * self.stiffness[row][column];
+                if !result[row][column].is_finite() {
+                    return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+                }
+            }
+        }
+        Ok(result)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IntegerFrame2V1 {
+    pub frame_id: String,
+    /// Maps coordinates in this frame to the physical frame: q = S y.
+    pub basis_to_physical: [[i64; 2]; 2],
+}
+
+impl IntegerFrame2V1 {
+    pub fn identity() -> Self {
+        Self {
+            frame_id: "physical-q".to_owned(),
+            basis_to_physical: [[1, 0], [0, 1]],
+        }
+    }
+
+    pub fn upper_shear(shear: i64) -> Self {
+        Self {
+            frame_id: format!("upper-shear-{shear}"),
+            basis_to_physical: [[1, shear], [0, 1]],
+        }
+    }
+
+    pub fn validate(
+        &self,
+        profile: EffectiveMetricProfileV1,
+    ) -> Result<(), EffectiveMetricErrorV1> {
+        if self.frame_id.trim().is_empty() {
+            return Err(EffectiveMetricErrorV1::InvalidIdentifier);
+        }
+        if self
+            .basis_to_physical
+            .iter()
+            .flatten()
+            .any(|value| value.unsigned_abs() > profile.maximum_basis_entry as u64)
+        {
+            return Err(EffectiveMetricErrorV1::BasisNotUnimodular);
+        }
+        let determinant = i128::from(self.basis_to_physical[0][0])
+            .checked_mul(i128::from(self.basis_to_physical[1][1]))
+            .and_then(|value| {
+                value.checked_sub(
+                    i128::from(self.basis_to_physical[0][1])
+                        .checked_mul(i128::from(self.basis_to_physical[1][0]))?,
+                )
+            })
+            .ok_or(EffectiveMetricErrorV1::IntegerArithmeticOverflow)?;
+        if determinant == 0 {
+            return Err(EffectiveMetricErrorV1::SingularBasis);
+        }
+        if determinant != 1 && determinant != -1 {
+            return Err(EffectiveMetricErrorV1::BasisNotUnimodular);
+        }
+        Ok(())
+    }
+
+    pub fn basis(&self) -> Matrix2 {
+        [
+            [
+                self.basis_to_physical[0][0] as f64,
+                self.basis_to_physical[0][1] as f64,
+            ],
+            [
+                self.basis_to_physical[1][0] as f64,
+                self.basis_to_physical[1][1] as f64,
+            ],
+        ]
+    }
+
+    pub fn inverse_basis(&self) -> Matrix2 {
+        let [[a, b], [c, d]] = self.basis_to_physical;
+        let determinant = a * d - b * c;
+        [
+            [d as f64 / determinant as f64, -b as f64 / determinant as f64],
+            [-c as f64 / determinant as f64, a as f64 / determinant as f64],
+        ]
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DiscreteStepResultV1 {
+    pub effective_metric: Matrix2,
+    pub right_hand_side: Vector2,
+    pub next_position: Vector2,
+    pub next_velocity: Vector2,
+    pub step_acceleration: Vector2,
+    pub effective_metric_condition_inf: f64,
+    pub backward_residual_inf: f64,
+    pub discrete_work: f64,
+    pub quadratic_potential_before: f64,
+    pub quadratic_potential_after: f64,
+}
+
+fn is_exactly_symmetric(matrix: &Matrix2) -> bool {
+    matrix[0][1] == matrix[1][0]
+}
+
+fn is_positive_definite(matrix: &Matrix2, minimum_pivot: f64) -> bool {
+    let a = matrix[0][0];
+    let b = matrix[0][1];
+    let c = matrix[1][0];
+    let d = matrix[1][1];
+    a.is_finite()
+        && b.is_finite()
+        && c.is_finite()
+        && d.is_finite()
+        && a > minimum_pivot
+        && (d - c * b / a).is_finite()
+        && d - c * b / a > minimum_pivot
+}
+
+fn is_positive_semidefinite(matrix: &Matrix2, minimum_pivot: f64) -> bool {
+    let a = matrix[0][0];
+    let b = matrix[0][1];
+    let c = matrix[1][0];
+    let d = matrix[1][1];
+    if [a, b, c, d].iter().any(|value| !value.is_finite()) {
+        return false;
+    }
+    if a < -minimum_pivot || d < -minimum_pivot {
+        return false;
+    }
+    let determinant = a * d - b * c;
+    determinant.is_finite() && determinant >= -minimum_pivot
+}
+
+fn transpose(matrix: Matrix2) -> Matrix2 {
+    [[matrix[0][0], matrix[1][0]], [matrix[0][1], matrix[1][1]]]
+}
+
+fn multiply(left: Matrix2, right: Matrix2) -> Matrix2 {
+    let mut result = [[0.0; 2]; 2];
+    for row in 0..2 {
+        for column in 0..2 {
+            for inner in 0..2 {
+                result[row][column] += left[row][inner] * right[inner][column];
+            }
+        }
+    }
+    result
+}
+
+fn apply(matrix: Matrix2, vector: Vector2) -> Vector2 {
+    [
+        matrix[0][0] * vector[0] + matrix[0][1] * vector[1],
+        matrix[1][0] * vector[0] + matrix[1][1] * vector[1],
+    ]
+}
+
+fn vector_inf(vector: Vector2) -> f64 {
+    vector[0].abs().max(vector[1].abs())
+}
+
+fn matrix_inf(matrix: Matrix2) -> f64 {
+    (matrix[0][0].abs() + matrix[0][1].abs())
+        .max(matrix[1][0].abs() + matrix[1][1].abs())
+}
+
+fn solve(matrix: Matrix2, rhs: Vector2, profile: EffectiveMetricProfileV1) -> Result<Vector2, EffectiveMetricErrorV1> {
+    let mut augmented = [
+        [matrix[0][0], matrix[0][1], rhs[0]],
+        [matrix[1][0], matrix[1][1], rhs[1]],
+    ];
+    if matrix[0][0].abs() >= matrix[1][0].abs() {
+        if matrix[0][0].abs() <= profile.minimum_pivot {
+            return Err(EffectiveMetricErrorV1::SingularSolve);
+        }
+    } else {
+        augmented.swap(0, 1);
+        if augmented[0][0].abs() <= profile.minimum_pivot {
+            return Err(EffectiveMetricErrorV1::SingularSolve);
+        }
+    }
+    let factor = augmented[1][0] / augmented[0][0];
+    augmented[1][1] -= factor * augmented[0][1];
+    augmented[1][2] -= factor * augmented[0][2];
+    if augmented[1][1].abs() <= profile.minimum_pivot
+        || !augmented[1][1].is_finite()
+    {
+        return Err(EffectiveMetricErrorV1::SingularSolve);
+    }
+    let second = augmented[1][2] / augmented[1][1];
+    let first = (augmented[0][2] - augmented[0][1] * second) / augmented[0][0];
+    if !first.is_finite() || !second.is_finite() {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
+    Ok([first, second])
+}
+
+fn inverse(matrix: Matrix2, profile: EffectiveMetricProfileV1) -> Result<Matrix2, EffectiveMetricErrorV1> {
+    let first = solve(matrix, [1.0, 0.0], profile)?;
+    let second = solve(matrix, [0.0, 1.0], profile)?;
+    Ok([[first[0], second[0]], [first[1], second[1]]])
+}
+
+fn condition_inf(matrix: Matrix2, profile: EffectiveMetricProfileV1) -> Result<f64, EffectiveMetricErrorV1> {
+    let result = matrix_inf(matrix) * matrix_inf(inverse(matrix, profile)?);
+    if !result.is_finite() {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
+    Ok(result)
+}
+
+fn quadratic(matrix: Matrix2, vector: Vector2) -> f64 {
+    let mapped = apply(matrix, vector);
+    vector[0] * mapped[0] + vector[1] * mapped[1]
+}
+
+fn congruence(matrix: Matrix2, basis: Matrix2) -> Matrix2 {
+    multiply(multiply(transpose(basis), matrix), basis)
+}
+
+fn transform_vector(inverse_basis: Matrix2, vector: Vector2) -> Vector2 {
+    apply(inverse_basis, vector)
+}
+
+fn transform_covector(basis: Matrix2, covector: Vector2) -> Vector2 {
+    apply(transpose(basis), covector)
+}
+
+pub fn rebase_problem(
+    physical: &LinearDiscreteProblem2V1,
+    frame: &IntegerFrame2V1,
+    profile: EffectiveMetricProfileV1,
+) -> Result<LinearDiscreteProblem2V1, EffectiveMetricErrorV1> {
+    physical.validate(profile)?;
+    frame.validate(profile)?;
+    let basis = frame.basis();
+    let inverse_basis = frame.inverse_basis();
+    let rebased = LinearDiscreteProblem2V1 {
+        case_id: format!("{}@{}", physical.case_id, frame.frame_id),
+        time_step: physical.time_step,
+        mass: congruence(physical.mass, basis),
+        damping: congruence(physical.damping, basis),
+        stiffness: congruence(physical.stiffness, basis),
+        position: transform_vector(inverse_basis, physical.position),
+        velocity: transform_vector(inverse_basis, physical.velocity),
+        force_covector: transform_covector(basis, physical.force_covector),
+    };
+    rebased.validate(profile)?;
+    Ok(rebased)
+}
+
+pub fn solve_discrete_step(
+    problem: &LinearDiscreteProblem2V1,
+    profile: EffectiveMetricProfileV1,
+) -> Result<DiscreteStepResultV1, EffectiveMetricErrorV1> {
+    problem.validate(profile)?;
+    let h = problem.time_step;
+    let h_squared = h * h;
+    let effective_metric = problem.effective_metric()?;
+
+    let mass_velocity = apply(problem.mass, problem.velocity);
+    let stiffness_position = apply(problem.stiffness, problem.position);
+    let right_hand_side = [
+        mass_velocity[0] - h * stiffness_position[0] + h * problem.force_covector[0],
+        mass_velocity[1] - h * stiffness_position[1] + h * problem.force_covector[1],
+    ];
+
+    let next_velocity = solve(effective_metric, right_hand_side, profile)?;
+    let next_position = [
+        problem.position[0] + h * next_velocity[0],
+        problem.position[1] + h * next_velocity[1],
+    ];
+    let step_acceleration = [
+        (next_velocity[0] - problem.velocity[0]) / h,
+        (next_velocity[1] - problem.velocity[1]) / h,
+    ];
+
+    let effective_metric_condition_inf = condition_inf(effective_metric, profile)?;
+    if effective_metric_condition_inf > profile.maximum_effective_condition_inf {
+        return Err(EffectiveMetricErrorV1::EffectiveMetricNotPositiveDefinite);
+    }
+
+    let reconstructed = apply(effective_metric, next_velocity);
+    let residual = [
+        reconstructed[0] - right_hand_side[0],
+        reconstructed[1] - right_hand_side[1],
+    ];
+    let backward_scale = matrix_inf(effective_metric) * vector_inf(next_velocity)
+        + vector_inf(right_hand_side);
+    let backward_residual_inf = vector_inf(residual) / backward_scale.max(f64::MIN_POSITIVE);
+    let discrete_work = h * (
+        problem.force_covector[0] * next_velocity[0]
+            + problem.force_covector[1] * next_velocity[1]
+    );
+
+    Ok(DiscreteStepResultV1 {
+        effective_metric,
+        right_hand_side,
+        next_position,
+        next_velocity,
+        step_acceleration,
+        effective_metric_condition_inf,
+        backward_residual_inf,
+        discrete_work,
+        quadratic_potential_before: 0.5 * quadratic(problem.stiffness, problem.position),
+        quadratic_potential_after: 0.5 * quadratic(problem.stiffness, next_position),
+    })
+}
+
+fn metric_norm(metric: Matrix2, vector: Vector2) -> Result<f64, EffectiveMetricErrorV1> {
+    let value = quadratic(metric, vector);
+    if !value.is_finite() || value < -1.0e-12 {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
+    Ok(value.max(0.0).sqrt())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CovarianceComparisonV1 {
+    pub lifted_position_error_inf: f64,
+    pub lifted_velocity_error_inf: f64,
+    pub lifted_acceleration_error_inf: f64,
+    pub position_mass_metric_error: f64,
+    pub velocity_mass_metric_error: f64,
+    pub canonical_effective_condition_inf: f64,
+    pub rebased_effective_condition_inf: f64,
+    pub canonical_backward_residual_inf: f64,
+    pub rebased_backward_residual_inf: f64,
+}
+
+pub fn compare_dense_rebasis(
+    physical: &LinearDiscreteProblem2V1,
+    frame: &IntegerFrame2V1,
+    profile: EffectiveMetricProfileV1,
+) -> Result<CovarianceComparisonV1, EffectiveMetricErrorV1> {
+    let canonical = solve_discrete_step(physical, profile)?;
+    let rebased_problem = rebase_problem(physical, frame, profile)?;
+    let rebased = solve_discrete_step(&rebased_problem, profile)?;
+    let basis = frame.basis();
+
+    let lifted_position = apply(basis, rebased.next_position);
+    let lifted_velocity = apply(basis, rebased.next_velocity);
+    let lifted_acceleration = apply(basis, rebased.step_acceleration);
+
+    let position_difference = [
+        canonical.next_position[0] - lifted_position[0],
+        canonical.next_position[1] - lifted_position[1],
+    ];
+    let velocity_difference = [
+        canonical.next_velocity[0] - lifted_velocity[0],
+        canonical.next_velocity[1] - lifted_velocity[1],
+    ];
+    let acceleration_difference = [
+        canonical.step_acceleration[0] - lifted_acceleration[0],
+        canonical.step_acceleration[1] - lifted_acceleration[1],
+    ];
+
+    let position_mass_metric_error = metric_norm(physical.mass, position_difference)?;
+    let velocity_mass_metric_error = metric_norm(physical.mass, velocity_difference)?;
+
+    Ok(CovarianceComparisonV1 {
+        lifted_position_error_inf: vector_inf(position_difference),
+        lifted_velocity_error_inf: vector_inf(velocity_difference),
+        lifted_acceleration_error_inf: vector_inf(acceleration_difference),
+        position_mass_metric_error,
+        velocity_mass_metric_error,
+        canonical_effective_condition_inf: canonical.effective_metric_condition_inf,
+        rebased_effective_condition_inf: rebased.effective_metric_condition_inf,
+        canonical_backward_residual_inf: canonical.backward_residual_inf,
+        rebased_backward_residual_inf: rebased.backward_residual_inf,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixture(time_step: f64) -> LinearDiscreteProblem2V1 {
+        LinearDiscreteProblem2V1 {
+            case_id: format!("linear-mass-damping-stiffness-h-{time_step}"),
+            time_step,
+            mass: [[2.0, 0.2], [0.2, 1.5]],
+            damping: [[0.4, 0.1], [0.1, 0.3]],
+            stiffness: [[4.0, -1.0], [-1.0, 2.0]],
+            position: [0.3, -0.2],
+            velocity: [0.5, 0.1],
+            force_covector: [1.0, -0.3],
+        }
+    }
+
+    #[test]
+    fn effective_metric_is_exact_declared_m_plus_h_d_plus_h_squared_k() {
+        let problem = fixture(0.5);
+        let expected = [
+            [
+                2.0 + 0.5 * 0.4 + 0.25 * 4.0,
+                0.2 + 0.5 * 0.1 - 0.25,
+            ],
+            [
+                0.2 + 0.5 * 0.1 - 0.25,
+                1.5 + 0.5 * 0.3 + 0.25 * 2.0,
+            ],
+        ];
+        let actual = problem.effective_metric().unwrap();
+        for row in 0..2 {
+            for column in 0..2 {
+                assert!((actual[row][column] - expected[row][column]).abs() < 1.0e-14);
+            }
+        }
+    }
+
+    #[test]
+    fn exact_dyadic_diagonal_fixture_has_closed_form_step() {
+        let problem = LinearDiscreteProblem2V1 {
+            case_id: "exact-dyadic-effective-metric".to_owned(),
+            time_step: 0.5,
+            mass: [[2.0, 0.0], [0.0, 2.0]],
+            damping: [[0.0, 0.0], [0.0, 0.0]],
+            stiffness: [[8.0, 0.0], [0.0, 0.0]],
+            position: [0.0, 0.0],
+            velocity: [0.0, 0.0],
+            force_covector: [1.0, 0.0],
+        };
+        let result = solve_discrete_step(&problem, EffectiveMetricProfileV1::default()).unwrap();
+        assert_eq!(result.effective_metric[0][0], 4.0);
+        assert_eq!(result.next_velocity[0], 0.125);
+        assert_eq!(result.next_position[0], 0.0625);
+        assert_eq!(result.step_acceleration[0], 0.25);
+    }
+
+    #[test]
+    fn 17_value_dense_shear_ladder_preserves_the_complete_discrete_map() {
+        let profile = EffectiveMetricProfileV1::default();
+        for time_step in [0.01, 0.05, 0.2, 0.5, 1.0] {
+            let problem = fixture(time_step);
+            for shear in -8_i64..=8 {
+                let frame = IntegerFrame2V1::upper_shear(shear);
+                let comparison = compare_dense_rebasis(&problem, &frame, profile).unwrap();
+                assert!(comparison.lifted_position_error_inf < 2.0e-12);
+                assert!(comparison.lifted_velocity_error_inf < 2.0e-12);
+                assert!(comparison.lifted_acceleration_error_inf < 2.0e-12);
+                assert!(comparison.position_mass_metric_error < 2.0e-12);
+                assert!(comparison.velocity_mass_metric_error < 2.0e-12);
+                assert!(comparison.canonical_backward_residual_inf < 1.0e-13);
+                assert!(comparison.rebased_backward_residual_inf < 1.0e-11);
+            }
+        }
+    }
+
+    #[test]
+    fn wrong_force_variance_is_detected_by_dense_rebasis_ladder() {
+        let profile = EffectiveMetricProfileV1::default();
+        let physical = fixture(0.2);
+        let frame = IntegerFrame2V1::upper_shear(4);
+        let mut wrong = rebase_problem(&physical, &frame, profile).unwrap();
+        wrong.force_covector = transform_vector(frame.inverse_basis(), physical.force_covector);
+        let canonical = solve_discrete_step(&physical, profile).unwrap();
+        let wrong_result = solve_discrete_step(&wrong, profile).unwrap();
+        let lifted = apply(frame.basis(), wrong_result.next_velocity);
+        assert!(vector_inf([
+            canonical.next_velocity[0] - lifted[0],
+            canonical.next_velocity[1] - lifted[1]
+        ]) > 1.0e-5);
+    }
+
+    #[test]
+    fn wrong_effective_metric_exponent_is_detected() {
+        let problem = fixture(0.5);
+        let correct = problem.effective_metric().unwrap();
+        let mut wrong = problem.mass;
+        for row in 0..2 {
+            for column in 0..2 {
+                wrong[row][column] += 0.5 * problem.damping[row][column]
+                    + 0.5 * problem.stiffness[row][column];
+            }
+        }
+        assert!(matrix_inf([
+            [correct[0][0] - wrong[0][0], correct[0][1] - wrong[0][1]],
+            [correct[1][0] - wrong[1][0], correct[1][1] - wrong[1][1]]
+        ]) > 0.1);
+    }
+
+    #[test]
+    fn non_spd_effective_metric_and_singular_basis_fail_closed() {
+        let mut problem = fixture(1.0);
+        problem.stiffness = [[-100.0, 0.0], [0.0, -100.0]];
+        assert_eq!(
+            problem.validate(EffectiveMetricProfileV1::default()),
+            Err(EffectiveMetricErrorV1::StiffnessNotPositiveSemidefinite)
+        );
+        let frame = IntegerFrame2V1 {
+            frame_id: "non-unimodular".to_owned(),
+            basis_to_physical: [[2, 0], [0, 1]],
+        };
+        assert_eq!(
+            frame.validate(EffectiveMetricProfileV1::default()),
+            Err(EffectiveMetricErrorV1::BasisNotUnimodular)
+        );
+    }
+
+    #[test]
+    fn ill_conditioned_effective_metric_is_reported_separately() {
+        let mut problem = fixture(1.0);
+        problem.stiffness = [[1.0e6, 0.0], [0.0, 1.0]];
+        let result = solve_discrete_step(&problem, EffectiveMetricProfileV1::default()).unwrap();
+        assert!(result.effective_metric_condition_inf > 1.0e5);
+    }
+
+    #[test]
+    fn mass_damping_stiffness_strata_are_distinguishable() {
+        let mut mass_only = fixture(0.25);
+        mass_only.damping = [[0.0; 2]; 2];
+        mass_only.stiffness = [[0.0; 2]; 2];
+
+        let mut damping_only = fixture(0.25);
+        damping_only.stiffness = [[0.0; 2]; 2];
+
+        let mut stiffness_only = fixture(0.25);
+        stiffness_only.damping = [[0.0; 2]; 2];
+
+        let mass = mass_only.effective_metric().unwrap();
+        let damping = damping_only.effective_metric().unwrap();
+        let stiffness = stiffness_only.effective_metric().unwrap();
+        assert_ne!(mass, damping);
+        assert_ne!(mass, stiffness);
+        assert_ne!(damping, stiffness);
+    }
+}
