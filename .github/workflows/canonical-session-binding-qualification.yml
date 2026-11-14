@@ -1,0 +1,318 @@
+name: PHYS-EVID-02B Canonical Session Binding Qualification
+
+on:
+  push:
+    branches:
+      - "ci/canonical-session-binding-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: canonical-session-binding-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 7f28d09d09a8654f113cd5e2b8cd6f495e5c0a75
+  CONVERGENCE_HEAD: 217643f02a64d31b57504db94cfe250779f20ae5
+  SESSION_HEAD: 120932a027bb4b0dc638515a9618bd283be2a6fa
+  FRAME_HEAD: 4c464ac0fdb794a8d1c055f8da23135727332bf3
+
+jobs:
+  qualify:
+    name: Frozen PHYS-EVID-02B session binding / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact semantic child and two-parent convergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          test "$(git rev-parse "${PRODUCT_HEAD}^")" = "${CONVERGENCE_HEAD}"
+          test "$(git rev-list --count "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}")" = "1"
+
+          test "$(git rev-parse "${CONVERGENCE_HEAD}^1")" = "${SESSION_HEAD}"
+          test "$(git rev-parse "${CONVERGENCE_HEAD}^2")" = "${FRAME_HEAD}"
+          test "$(git rev-list --parents -n 1 "${CONVERGENCE_HEAD}" | wc -w)" = "3"
+          git merge-base --is-ancestor "${SESSION_HEAD}" "${CONVERGENCE_HEAD}"
+          git merge-base --is-ancestor "${FRAME_HEAD}" "${CONVERGENCE_HEAD}"
+
+          mapfile -t changed < <(git diff --name-only "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}" | sort)
+          mapfile -t expected < <(printf '%s\n' \
+            docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md \
+            src/evidence_session_binding_codec.rs \
+            src/lib.rs \
+            tests/fixtures/evidence_session_binding_v1_vector.json \
+            tests/verify_evidence_session_binding_v1.py | sort)
+          test "${#changed[@]}" = "5"
+          test "${changed[*]}" = "${expected[*]}"
+
+          # Frozen PHYS-EVID-05 session lineage blobs.
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:src/evidence_session.rs")" = \
+            68f54475fe4c19908f42e6b18866fdd0e60b5fcb
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md")" = \
+            e69c8f7aec479e396831be674045360c65e36bdb
+
+          # Frozen PHYS-EVID-02A framing lineage blobs.
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md")" = \
+            e54611d29efe0fa21ceaa55a491c53c5c0ede832
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/src/evidence_frame.rs")" = \
+            2be4a389d3a511852fd5b456f51485a46e657deb
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs")" = \
+            567ed822293ec23e1865593aa81ee0a59091410e
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json")" = \
+            0f7d749d2256939e089d39bf899ab24a2226e4d5
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py")" = \
+            2feebfb11ee64e2508b5817d24f86075c441197c
+          test "$(git rev-parse "${CONVERGENCE_HEAD}:crates/core/symtropy-physics/src/lib.rs")" = \
+            8d46df05042b242a2aea653533081cdd999c6348
+
+          # Exact PHYS-EVID-02B product blobs.
+          test "$(git rev-parse "${PRODUCT_HEAD}:docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md")" = \
+            c6c2a7a339c0f0413a5b790c552aebae08ff4732
+          test "$(git rev-parse "${PRODUCT_HEAD}:src/evidence_session_binding_codec.rs")" = \
+            f46f0fd1bb27a6a9d5b916e43329453b604c8229
+          test "$(git rev-parse "${PRODUCT_HEAD}:src/lib.rs")" = \
+            fc0293034e23b4df6eb4784d47311e4770c9a66e
+          test "$(git rev-parse "${PRODUCT_HEAD}:tests/fixtures/evidence_session_binding_v1_vector.json")" = \
+            f5f60cda3906a3932422b456bc398a42ffc153c2
+          test "$(git rev-parse "${PRODUCT_HEAD}:tests/verify_evidence_session_binding_v1.py")" = \
+            a90cb59c0e442fce125dcf7cd1157f5697e5a80f
+
+          # Semantic child must not rewrite predecessor-owned files.
+          git diff --quiet "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}" -- \
+            src/evidence_session.rs \
+            docs/release/evidence/PERSISTENCE_SAFE_EVIDENCE_SESSION_V01.md \
+            crates/core/symtropy-physics/CANONICAL_PHYSICS_EVIDENCE_FRAME_V01.md \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            crates/core/symtropy-physics/tests/physics_evidence_frame_v1.rs \
+            crates/core/symtropy-physics/tests/fixtures/physics_evidence_frame_v1_vectors.json \
+            crates/core/symtropy-physics/tests/verify_physics_evidence_frame_v1.py
+
+      - name: Run independent Python session-binding oracle
+        run: python3 tests/verify_evidence_session_binding_v1.py
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md \
+            src/evidence_session_binding_codec.rs \
+            src/lib.rs \
+            tests/fixtures/evidence_session_binding_v1_vector.json \
+            tests/verify_evidence_session_binding_v1.py \
+            src/evidence_session.rs \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            > "${RUNNER_TEMP}/canonical-session-binding-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check integration library
+        run: cargo check -p symtropy-launcher --locked --lib
+
+      - name: Run PHYS-EVID-02B semantic corpus
+        run: cargo test -p symtropy-launcher --locked --lib evidence_session_binding_codec::tests
+
+      - name: Run PHYS-EVID-05 session regression
+        run: cargo test -p symtropy-launcher --locked --lib evidence_session::tests
+
+      - name: Run PHYS-EVID-02A framing regression
+        run: cargo test -p symtropy-physics --locked --test physics_evidence_frame_v1
+
+      - name: Run sealed live-evidence regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run strict integration Clippy
+        run: cargo clippy -p symtropy-launcher --locked --lib -- -D warnings
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit one-way canonical authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          module = Path('src/evidence_session_binding_codec.rs').read_text()
+          contract = Path('docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md').read_text()
+          fixture = json.loads(Path('tests/fixtures/evidence_session_binding_v1_vector.json').read_text())
+          oracle = Path('tests/verify_evidence_session_binding_v1.py').read_text()
+
+          assert 'EVIDENCE_SESSION_BINDING_PAYLOAD_V1_VERSION: u32 = 1' in module
+          assert 'EVIDENCE_SESSION_BINDING_PAYLOAD_V1_LEN: usize = 80' in module
+          assert 'PhysicsEvidenceFrameKindV1::EvidenceSessionBinding' in module
+
+          public_encoder = re.search(
+              r'pub fn encode_qualified_evidence_session_binding_v1\(\s*binding: &QualifiedEvidenceSessionBinding,?\s*\)',
+              module,
+              re.S,
+          )
+          assert public_encoder
+          assert 'pub fn encode_binding_payload_fields_v1' not in module
+          assert re.search(r'\nfn encode_binding_payload_fields_v1\(', module)
+
+          decoded_start = module.index('pub struct DecodedEvidenceSessionBindingV1')
+          decoded_end = module.index('\n}\n', decoded_start) + 2
+          decoded_block = module[decoded_start:decoded_end]
+          expected_private_fields = [
+              'session_id_bytes: [u8; EVIDENCE_SESSION_ID_LEN]',
+              'physical_authority_raw: u128',
+              'world_generation_raw: u128',
+              'temporal_incarnation_raw: u64',
+              'session_profile_code: u32',
+          ]
+          for field in expected_private_fields:
+              assert field in decoded_block
+          for line in decoded_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+
+          forbidden_promotions = [
+              'impl From<DecodedEvidenceSessionBindingV1',
+              'impl TryFrom<DecodedEvidenceSessionBindingV1',
+              '-> QualifiedEvidenceSessionBinding',
+              '-> PersistentEvidenceSession',
+              'EvidenceSessionId(',
+              'LocalTemporalIncarnationId(',
+          ]
+          for pattern in forbidden_promotions:
+              assert pattern not in module
+          assert 'Serialize' not in module
+          assert 'Deserialize' not in module
+
+          # Semantic admission must match the qualified producer image.
+          for error in [
+              'WrongPayloadLength',
+              'UnsupportedPayloadVersion',
+              'ZeroSessionId',
+              'ZeroPhysicalAuthorityId',
+              'ZeroWorldGenerationId',
+              'ZeroTemporalIncarnationId',
+              'UnknownSessionProfile',
+          ]:
+              assert error in module
+          assert 'if temporal_incarnation_raw == 0' in module
+
+          # Exact fixed-width field layout.
+          for marker in [
+              'const SESSION_ID_START: usize = 4;',
+              'const AUTHORITY_START: usize = 36;',
+              'const GENERATION_START: usize = 52;',
+              'const INCARNATION_START: usize = 68;',
+              'const PROFILE_START: usize = 76;',
+          ]:
+              assert marker in module
+
+          assert fixture['binding_payload_len'] == 80
+          assert fixture['binding_payload_version'] == 1
+          assert fixture['frame_version'] == 1
+          assert fixture['frame_domain'] == 'evidence-session-binding'
+          assert len(bytes.fromhex(fixture['session_id_hex'])) == 32
+          assert len(bytes.fromhex(fixture['expected_payload_hex'])) == 80
+          assert fixture['expected_payload_hex'] in module
+          assert fixture['expected_frame_hex'] in module
+
+          assert 'json.loads' in oracle
+          assert 'to_bytes(4, "big"' in oracle
+          assert 'to_bytes(8, "big"' in oracle
+          assert 'subprocess' not in oracle
+          assert 'rust' not in oracle.lower()
+
+          for phrase in [
+              'Canonical decoding therefore never recreates bootstrap authority.',
+              'zero temporal incarnation ID',
+              'No attacker-sized semantic allocation',
+              'Composition does not upgrade either predecessor',
+          ]:
+              assert phrase in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            docs/release/evidence/CANONICAL_EVIDENCE_SESSION_BINDING_V01.md \
+            src/evidence_session_binding_codec.rs \
+            src/lib.rs \
+            tests/fixtures/evidence_session_binding_v1_vector.json \
+            tests/verify_evidence_session_binding_v1.py \
+            src/evidence_session.rs \
+            crates/core/symtropy-physics/src/evidence_frame.rs \
+            > "${RUNNER_TEMP}/canonical-session-binding-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/canonical-session-binding-source-sha256.txt" \
+            "${RUNNER_TEMP}/canonical-session-binding-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-EVID-02B canonical evidence session binding v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'convergence_head': os.environ['CONVERGENCE_HEAD'],
+              'convergence_first_parent': os.environ['SESSION_HEAD'],
+              'convergence_second_parent': os.environ['FRAME_HEAD'],
+              'semantic_child_commits': 1,
+              'binding_payload_version': 1,
+              'binding_payload_len': 80,
+              'outer_frame_version': 1,
+              'outer_frame_kind': 'evidence-session-binding',
+              'public_encoder_requires_qualified_binding': True,
+              'decoded_record_is_untrusted_plain_semantics': True,
+              'decoded_record_recreates_live_authority': False,
+              'raw_field_encoder_public': False,
+              'zero_session_id_admitted': False,
+              'zero_authority_admitted': False,
+              'zero_generation_admitted': False,
+              'zero_temporal_incarnation_admitted': False,
+              'unknown_session_profile_admitted': False,
+              'independent_python_golden_oracle': True,
+              'attacker_sized_semantic_allocation': False,
+              'predecessor_1107_qualification_pass_claimed_here': False,
+              'predecessor_1109_qualification_pass_claimed_here': False,
+              'cryptographic_authentication_authority': False,
+              'live_authority_reconstruction': False,
+              'endpoint_timing_dwell_arrival_delivery_settlement_authority': False,
+          }
+          Path('canonical-session-binding-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-session-binding-${{ env.PRODUCT_HEAD }}
+          path: |
+            canonical-session-binding-qualification-receipt.json
+            ${{ runner.temp }}/canonical-session-binding-source-sha256.txt
+            ${{ runner.temp }}/canonical-session-binding-source-sha256-post.txt
+          if-no-files-found: error
