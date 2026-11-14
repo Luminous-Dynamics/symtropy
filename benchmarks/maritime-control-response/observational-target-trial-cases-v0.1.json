@@ -61,6 +61,11 @@
       "case_id": "OT12",
       "scenario": "The intervention version recorded for an asset differs from the preregistered treatment strategy.",
       "expected": "rejected_treatment_version_mismatch"
+    },
+    {
+      "case_id": "OT13",
+      "scenario": "The propensity estimate is produced or becomes available after an asset's time zero.",
+      "expected": "not_identified_propensity_temporal_leakage"
     }
   ]
 }
