@@ -83,9 +83,9 @@ These are experimental dimensions, not final numeric operating limits. The rig d
 
 ### 4.3 Negative-pressure demand is not reverse-flow evidence
 
-Some pressure-dependent-demand (PDD) formulations clamp customer demand to zero when node pressure becomes negative, under an assumption of a backflow preventer at each node. That may be a declared demand-side boundary, but it does not represent bidirectional intrusion through a pipe defect unless the physical backflow device and the reverse-flow boundary are actually represented and independently verified.
+Some pressure-dependent-demand (PDD) formulations clamp customer demand to zero when node pressure becomes negative, under an assumption of a backflow preventer at each node. Some leak-emitter formulations also clamp leak discharge to zero at negative pressure under an assumed backflow preventer at the leaking node. Those may be declared demand/leak boundary abstractions, but they do not represent bidirectional intrusion through a pipe defect unless the physical backflow device and reverse-flow boundary are actually represented and independently verified.
 
-The benchmark must bind customer demand, signed physical pipe flow, defect flow direction, physical backflow-prevention device presence/state, external head, and direct tracer evidence separately. **Zero customer demand is not evidence of zero reverse flow or zero ingress.** A solver without bidirectional flow through the relevant defect boundary is unsupported for a no-ingress conclusion in that scenario.
+The benchmark must bind customer demand, signed physical pipe flow, leak-emitter discharge sign, defect flow direction, physical backflow-prevention device presence/state, external head, and direct tracer evidence separately. **Zero customer demand is not evidence of zero reverse flow or zero ingress.** A solver without bidirectional flow through the relevant defect boundary is unsupported for a no-ingress conclusion in that scenario.
 
 Add this as a dedicated negative-control vector and T1 bidirectional-flow case before accepting model-derived no-ingress claims. It is not yet one of the original 12 intrusion T0 vectors.
 
