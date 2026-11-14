@@ -266,7 +266,7 @@ impl fmt::Display for RepairVerificationError {
         match self {
             Self::InvalidSchemaVersion => {
                 write!(formatter, "unexpected repair-restoration schema version")
-            },
+            }
             Self::EmptyIdentity => write!(formatter, "repair-restoration identity is empty"),
             Self::InvalidDigest => write!(
                 formatter,
@@ -749,11 +749,11 @@ pub fn evaluate_repair_restoration(
             .find(|measurement| measurement.metric_id == envelope.metric_id)
         else {
             return Ok(not_evaluable_report(
-            case,
-            NotEvaluableReason::MissingOrAmbiguousMeasurement,
-            matched_condition_ids,
-            case_sha256.clone(),
-        ));
+                case,
+                NotEvaluableReason::MissingOrAmbiguousMeasurement,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         };
         let Some(post_measurement) = post
             .measurements
@@ -761,11 +761,11 @@ pub fn evaluate_repair_restoration(
             .find(|measurement| measurement.metric_id == envelope.metric_id)
         else {
             return Ok(not_evaluable_report(
-            case,
-            NotEvaluableReason::MissingOrAmbiguousMeasurement,
-            matched_condition_ids,
-            case_sha256.clone(),
-        ));
+                case,
+                NotEvaluableReason::MissingOrAmbiguousMeasurement,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         };
 
         if let Err(reason) = valid_measurement(pre_measurement, envelope) {
@@ -792,11 +792,11 @@ pub fn evaluate_repair_restoration(
             || !same_reference_measurement_path
         {
             return Ok(not_evaluable_report(
-            case,
-            NotEvaluableReason::NoIndependentVerificationPath,
-            matched_condition_ids,
-            case_sha256.clone(),
-        ));
+                case,
+                NotEvaluableReason::NoIndependentVerificationPath,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         }
 
         let pre_state = envelope_state(pre_measurement, envelope);
@@ -805,19 +805,19 @@ pub fn evaluate_repair_restoration(
             || post_state == EnvelopeState::BoundaryUncertain
         {
             return Ok(not_evaluable_report(
-            case,
-            NotEvaluableReason::UncertaintyOverlapsAcceptanceBoundary,
-            matched_condition_ids,
-            case_sha256.clone(),
-        ));
+                case,
+                NotEvaluableReason::UncertaintyOverlapsAcceptanceBoundary,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         }
         if envelope.targeted_by_intervention && pre_state != EnvelopeState::Outside {
             return Ok(not_evaluable_report(
-            case,
-            NotEvaluableReason::NoPreRepairDeficitObserved,
-            matched_condition_ids,
-            case_sha256.clone(),
-        ));
+                case,
+                NotEvaluableReason::NoPreRepairDeficitObserved,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         }
 
         let status = match (envelope.targeted_by_intervention, pre_state, post_state) {
@@ -841,11 +841,11 @@ pub fn evaluate_repair_restoration(
             }
             _ => {
                 return Ok(not_evaluable_report(
-            case,
-            NotEvaluableReason::NoPreRepairDeficitObserved,
-            matched_condition_ids,
-            case_sha256.clone(),
-        ));
+                case,
+                NotEvaluableReason::NoPreRepairDeficitObserved,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
             }
         };
 
