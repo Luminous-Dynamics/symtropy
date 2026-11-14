@@ -342,7 +342,7 @@ impl MetricFrame2V1 {
             .chain(self.residual_metric_lower.iter().flatten());
         if all_entries
             .clone()
-            .any(|value| value.abs() > profile.maximum_basis_entry)
+            .any(|value| value.unsigned_abs() > profile.maximum_basis_entry as u64)
         {
             return Err(CertificateInputErrorV1::InvalidFrame);
         }
