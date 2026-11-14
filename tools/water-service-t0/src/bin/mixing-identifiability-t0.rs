@@ -157,7 +157,7 @@ fn compute_junction(inputs: &Value) -> Result<Value, String> {
     }
 
     let tolerance = number(inputs, "rank_relative_tolerance")?;
-    if !(0.0..1.0).contains(&tolerance) {
+    if tolerance <= 0.0 || tolerance >= 1.0 {
         return Ok(disposition("INVALID_INPUT", Some("RANK_TOLERANCE_OUT_OF_RANGE")));
     }
 
