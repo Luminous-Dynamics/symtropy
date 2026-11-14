@@ -1,0 +1,42 @@
+name: Manufacturing joint-conformity Frechet reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/joint_bounds.rs"
+      - "tools/manufacturing-conformity/joint-bounds-README.md"
+      - ".github/workflows/manufacturing-joint-conformity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/joint_bounds.rs"
+      - "tools/manufacturing-conformity/joint-bounds-README.md"
+      - ".github/workflows/manufacturing-joint-conformity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frechet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run exhaustive small-n tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-conformity/joint_bounds.rs -o "$RUNNER_TEMP/joint-bounds-tests"
+          "$RUNNER_TEMP/joint-bounds-tests"
+      - name: Build and verify Frechet known-answer campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-conformity/joint_bounds.rs -o "$RUNNER_TEMP/joint-bounds"
+          "$RUNNER_TEMP/joint-bounds" --verify
+      - name: Check deterministic output and emit evidence digests
+        run: |
+          "$RUNNER_TEMP/joint-bounds" --csv > "$RUNNER_TEMP/joint-a.csv"
+          "$RUNNER_TEMP/joint-bounds" --csv > "$RUNNER_TEMP/joint-b.csv"
+          diff -u "$RUNNER_TEMP/joint-a.csv" "$RUNNER_TEMP/joint-b.csv"
+          sha256sum tools/manufacturing-conformity/joint_bounds.rs "$RUNNER_TEMP/joint-a.csv"
+          cat "$RUNNER_TEMP/joint-a.csv"
