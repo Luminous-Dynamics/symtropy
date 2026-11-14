@@ -53,6 +53,6 @@ The binary checks only fixture-corpus structure and required case identities. It
 
 ## Claim ceiling
 
-A passing unit test or corpus audit establishes only the software behavior covered by that test and exact source revision. It does not establish that source bytes were fetched or hashed by this crate, that FreeGSNKE is numerically accurate, that EFIT is physical truth, or that any equilibrium is experimentally validated.
+A passing unit test or corpus audit establishes only the software behavior covered by that test and exact source revision. The receipt's machine-readable source_artifact_payload_verified field is always false in v0.1 because this crate does not fetch or hash the source bytes. It does not establish that FreeGSNKE is numerically accurate, that EFIT is physical truth, or that any equilibrium is experimentally validated.
 
 No solver is launched. No model is trained. No physical measurement is created. No plasma control, hardware authorization or reactor qualification is possible from this crate.
