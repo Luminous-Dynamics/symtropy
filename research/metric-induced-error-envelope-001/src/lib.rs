@@ -703,6 +703,27 @@ mod tests {
     }
 
     #[test]
+    fn tangent_whitening_roundtrips_and_matches_metric_norm() {
+        let metric = cartesian_metric();
+        let vector = Tangent::<CartesianQ, 3>::new([0.5, -1.25, 2.0]).unwrap();
+        let whitened = metric.whiten_tangent(&vector).unwrap();
+        let recovered = metric.unwhiten_tangent(&whitened).unwrap();
+
+        for index in 0..3 {
+            close(
+                recovered.components[index],
+                vector.components[index],
+                2.0e-13,
+            );
+        }
+        close(
+            vector_euclidean(&whitened),
+            metric.tangent_norm(&vector).unwrap(),
+            2.0e-13,
+        );
+    }
+
+    #[test]
     fn coordinate_condition_estimate_is_finite_and_exceeds_one_for_a_shear() {
         let rebasis = dense_rebasis();
         let estimate = rebasis.condition_inf_estimate().unwrap();
