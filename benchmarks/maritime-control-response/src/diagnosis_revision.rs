@@ -465,7 +465,7 @@ impl DiagnosticRevisionSession {
         match (input.revision_kind, previous) {
             (DiagnosticRevisionKind::InitialAssessment, None) => {
                 if !input.invalidations.is_empty()
-                    || matches!(input.disposition, DiagnosticDisposition::Withdrawn)
+                    || matches!(&input.disposition, DiagnosticDisposition::Withdrawn)
                     || input
                         .new_evidence
                         .iter()
@@ -501,7 +501,7 @@ impl DiagnosticRevisionSession {
                 if input.invalidations.is_empty() || &input.disposition == previous {
                     return Err(DiagnosticRevisionError::InconsistentRevisionKind);
                 }
-                if !matches!(input.disposition, DiagnosticDisposition::Withdrawn)
+                if !matches!(&input.disposition, DiagnosticDisposition::Withdrawn)
                     && !transition_is_justified(previous, &input.disposition, &input.new_evidence)
                 {
                     return Err(DiagnosticRevisionError::TransitionNotEvidenceJustified);
@@ -542,7 +542,7 @@ impl DiagnosticRevisionSession {
         self.previous_issued_at_seconds = Some(input.issued_at_seconds);
         self.previous_receipt_sha256 = Some(receipt.receipt_sha256.clone());
         self.current_disposition = Some(input.disposition.clone());
-        self.closed = matches!(input.disposition, DiagnosticDisposition::Withdrawn);
+        self.closed = matches!(&input.disposition, DiagnosticDisposition::Withdrawn);
         self.receipts.push(receipt.clone());
         Ok(receipt)
     }
