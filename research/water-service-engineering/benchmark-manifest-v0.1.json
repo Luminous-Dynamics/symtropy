@@ -160,5 +160,23 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "water_barrier_assurance": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5136",
+    "design": "research/water-service-engineering/WATER_BARRIER_ASSURANCE_F0_DESIGN_V0_1.md",
+    "input_corpus": "research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json",
+    "oracle": "research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/water-barrier-assurance-f0.schema.json",
+    "manifest": "research/water-service-engineering/water-barrier-assurance-f0-manifest-v0.1.json",
+    "evaluator": "tools/water-service-t0/src/lib.rs::evaluate_water_barrier_f0",
+    "cli": "tools/water-service-t0/src/bin/water-barrier-f0.rs",
+    "status": "synthetic_claim_compatibility_contract_only",
+    "case_count": 19,
+    "hard_nonclaims": [
+      "no_product_certification",
+      "no_potability_or_release_authorization",
+      "no_pathogen_or_chemical_removal_claim",
+      "no_sensor_proxy_as_lab_evidence"
+    ]
   }
 }
