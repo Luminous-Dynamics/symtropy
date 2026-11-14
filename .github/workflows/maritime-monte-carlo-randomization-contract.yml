@@ -1,0 +1,88 @@
+name: Maritime Monte Carlo Randomization Contract
+
+on:
+  pull_request:
+    branches: [research/maritime-maintenance-effect-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/monte_carlo_randomization.rs"
+      - "benchmarks/maritime-control-response/src/lib.rs"
+      - "benchmarks/maritime-control-response/monte-carlo-randomization-*"
+      - "docs/tech/MARITIME_MONTE_CARLO_RANDOMIZATION_V0_1.md"
+      - ".github/workflows/maritime-monte-carlo-randomization-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-monte-carlo-randomization-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  monte-carlo-randomization-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned JSON Schema validator
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Validate Monte Carlo protocol, schemas and cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/maritime-control-response")
+          protocol = json.loads((root / "monte-carlo-randomization-v0.1.json").read_text())
+          config_schema = json.loads((root / "monte-carlo-randomization-config.schema.json").read_text())
+          result_schema = json.loads((root / "monte-carlo-randomization-result.schema.json").read_text())
+          corpus = json.loads((root / "monte-carlo-randomization-cases-v0.1.json").read_text())
+          Draft202012Validator.check_schema(config_schema)
+          Draft202012Validator.check_schema(result_schema)
+          assert protocol["schema_version"] == "symtropy-marine-monte-carlo-randomization-v0.1"
+          assert protocol["status"] == "protocol_only_not_executed"
+          assert protocol["algorithm"]["id"] == "splitmix64_v1"
+          assert protocol["algorithm"]["max_units"] == 10000
+          assert protocol["algorithm"]["max_draws"] == 2000000
+          assert protocol["algorithm"]["max_total_unit_draws"] == 100000000
+          assert len(protocol["hard_gates"]) >= 25
+          assert len(corpus["cases"]) == 12
+          assert len({case["case_id"] for case in corpus["cases"]}) == 12
+          assert config_schema["additionalProperties"] is False
+          assert result_schema["additionalProperties"] is False
+          assert "randomization_frame_sha256" in result_schema["required"]
+          assert "sampled_assignments_sha256" in result_schema["required"]
+          assert result_schema["properties"]["exact_enumeration_used"]["const"] is False
+          print("Monte Carlo randomization protocol/schema/case checks: PASS")
+          PY
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify full crate formatting
+        working-directory: benchmarks/maritime-control-response
+        run: cargo fmt -- --check
+
+      - name: Run complete library regression suite
+        working-directory: benchmarks/maritime-control-response
+        run: cargo test --locked --lib
+
+      - name: Run strict library Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib -- -D warnings
