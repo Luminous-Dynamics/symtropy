@@ -1,0 +1,207 @@
+name: PHYS-ID-01B1 NetId Field Seal Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-net-identity-field-seal-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-net-identity-field-seal-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: f53c9ff9cc2d7fbc3724b43b92dc7dae005c19f9
+  PHYS_ID01A_PARENT: 45f13cbac714ffff974d7e06b7fedb88241a35e1
+
+jobs:
+  qualify:
+    name: Frozen PHYS-ID-01B1 / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact subject ancestry and delta
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${PHYS_ID01A_PARENT}" "${PRODUCT_HEAD}"
+          count="$(git rev-list --count "${PHYS_ID01A_PARENT}..${PRODUCT_HEAD}")"
+          echo "phys_id01b1_commits_above_parent=${count}"
+          test "${count}" = "7"
+          mapfile -t changed < <(git diff --name-only "${PHYS_ID01A_PARENT}..${PRODUCT_HEAD}" | sort)
+          expected=(
+            "crates/core/symtropy-core/src/carrier_physics.rs"
+            "crates/core/symtropy-physics/PHYSICAL_NET_IDENTITY_FIELD_SEAL_V01.md"
+            "crates/core/symtropy-physics/src/body.rs"
+            "crates/core/symtropy-physics/src/identity_authority.rs"
+            "crates/core/symtropy-physics/src/identity_mutation.rs"
+            "crates/core/symtropy-physics/tests/net_identity_mutation_v01.rs"
+            "crates/core/symtropy-physics/tests/world_identity_authority_v01.rs"
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          for i in "${!changed[@]}"; do test "${changed[$i]}" = "${expected_sorted[$i]}"; done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/body.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/identity_mutation.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            crates/core/symtropy-physics/tests/net_identity_mutation_v01.rs \
+            crates/core/symtropy-physics/PHYSICAL_NET_IDENTITY_FIELD_SEAL_V01.md \
+            crates/core/symtropy-core/src/carrier_physics.rs \
+            > "${RUNNER_TEMP}/phys-id01b1-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Compile entire workspace after visibility change
+        id: workspace_check
+        run: cargo check --workspace --locked --all-targets
+
+      - name: Run PHYS-ID-00 public authority corpus
+        id: identity
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run PHYS-ID-01A public mutation corpus
+        id: mutation
+        run: cargo test -p symtropy-physics --locked --test net_identity_mutation_v01
+
+      - name: Run complete symtropy-physics library regression
+        id: physics_tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run existing replay harness
+        id: replay
+        run: cargo test -p symtropy-physics --locked --test replay_harness
+
+      - name: Run ECON-05C compatibility corpus
+        id: econ05c
+        run: cargo test -p symtropy-core --locked --test econ_live_carrier_identity
+
+      - name: Run strict relevant Clippy
+        id: clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-physics --locked --all-targets --all-features -- -D warnings
+          cargo clippy -p symtropy-core --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit direct-field authority seal
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=crates/core/symtropy-physics/src/body.rs
+          authority=crates/core/symtropy-physics/src/identity_authority.rs
+          mutation=crates/core/symtropy-physics/src/identity_mutation.rs
+          carrier=crates/core/symtropy-core/src/carrier_physics.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_NET_IDENTITY_FIELD_SEAL_V01.md
+
+          grep -Fq 'pub(crate) net_id: Option<NetId>' "${body}"
+          grep -Fq 'pub const fn net_id(&self) -> Option<NetId>' "${body}"
+          if grep -Eq '^[[:space:]]*pub[[:space:]]+net_id:' "${body}"; then
+            echo 'RigidBody still exposes public writable net_id field' >&2
+            exit 1
+          fi
+          grep -Fq 'body.net_id()' "${carrier}"
+          if grep -Eq '\.net_id[[:space:]]*=' crates/core/symtropy-physics/tests/*.rs; then
+            echo 'public integration tests still require direct net_id write access' >&2
+            exit 1
+          fi
+          grep -Eq '\.net_id[[:space:]]*=' "${authority}"
+          grep -Eq '\.net_id[[:space:]]*=' "${mutation}"
+          grep -Fq 'PhysicsWorld::set_net_id` remains public' "${contract}"
+          grep -Fq 'PhysicsWorld::bodies` remains publicly structurally accessible' "${contract}"
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          WORKSPACE_CHECK: ${{ steps.workspace_check.outcome }}
+          IDENTITY: ${{ steps.identity.outcome }}
+          MUTATION: ${{ steps.mutation.outcome }}
+          PHYSICS_TESTS: ${{ steps.physics_tests.outcome }}
+          REPLAY: ${{ steps.replay.outcome }}
+          ECON05C: ${{ steps.econ05c.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-id01b1-net-id-field-seal-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os
+          keys = ["SUBJECT","SOURCE","FMT","WORKSPACE_CHECK","IDENTITY","MUTATION","PHYSICS_TESTS","REPLAY","ECON05C","CLIPPY","AUDIT","POSTFLIGHT"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "PHYS-ID-01B1-net-id-field-seal-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "phys_id01a_parent": os.environ["PHYS_ID01A_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "downstream safe Rust can observe RigidBody NetId through a getter but cannot directly assign the backing field; legacy PhysicsWorld identity mutators and structural bodies access remain outside the claim",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          PY
+          cp "${RUNNER_TEMP}/phys-id01b1-source-sha256.txt" "${RUNNER_TEMP}/phys-id01b1-source-sha256-evidence.txt"
+          sha256sum "${receipt}" > "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-id01b1-net-id-field-seal-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-id01b1-net-id-field-seal-v01.json
+            ${{ runner.temp }}/phys-id01b1-net-id-field-seal-v01.json.sha256
+            ${{ runner.temp }}/phys-id01b1-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
