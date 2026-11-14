@@ -137,6 +137,8 @@ For a pipe length `L` and wave speed `a`:
 
 The Joukowsky instantaneous-change result is not a general valve-closure solution. The closure time must be compared with the wave travel time. Slow closure, changing boundary conditions, air admission, cavitation/column separation, non-Newtonian flow, viscoelastic wall response, complex device dynamics or out-of-domain material properties require a separately qualified method and cannot be silently handled by the simple formula.
 
+The ten-case T0 corpus also includes a bounded wave-speed uncertainty envelope. For (a \in [a_{min},a_{max}]), with positive `delta_v), the evaluator propagates the interval through `delta_p = rho * a * delta_v` and `t = L/a`, reporting pressure/head and one-way/round-trip timing bounds. A reversed or non-positive wave-speed interval is invalid. This is uncertainty arithmetic only: the interval still needs a physically justified source (material, wall thickness, restraint, temperature, and measurement evidence) and does not qualify a solver.
+
 T0-A outputs are arithmetic and applicability states only. They do not certify peak pressure, pipe class, surge protection or cavitation safety.
 
 ## 5. Solver-input contract
