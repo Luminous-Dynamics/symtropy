@@ -42,6 +42,7 @@ impl Plugin for SymtropyPlugin {
             .init_resource::<PlayerInput>()
             .init_resource::<crate::resources::TutorialScenarioRes>()
             .init_resource::<systems::thermodynamic::ThermodynamicHudState>()
+            .init_resource::<systems::thermodynamic::ThermodynamicTickGuard>()
             .init_resource::<systems::dimension_transition::DimensionTransition>()
             .init_resource::<systems::four_d_rendering::FourDProjector>()
             .init_resource::<systems::living_dungeon::DungeonBreathTimer>()
