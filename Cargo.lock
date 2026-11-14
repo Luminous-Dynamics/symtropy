@@ -11424,6 +11424,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "wpt-inductance-matrix-validator"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+[[package]]
 name = "writeable"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

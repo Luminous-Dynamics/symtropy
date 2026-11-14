@@ -86,3 +86,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT inductance-matrix passivity validator
+      run: cargo test --locked -p wpt-inductance-matrix-validator
+
+    - name: Validate WPT inductance-matrix known-truth corpus
+      run: cargo run --locked -p wpt-inductance-matrix-validator -- benchmarks/wpt-inductance-matrix/v1/known-truth.jsonl

@@ -1,0 +1,376 @@
+{
+  "schema_version": "wpt-normalized-coupling-source-audit-v1",
+  "source": {
+    "title": "Impact of Vertical Receiver Coil Count on Energy Transfer Efficiency in Dynamic Wireless Electric Vehicle Charging",
+    "authors": "Itay Garrofy, Yasha Nikulshin, Shuki Wolfus",
+    "journal": "Energies 19(16), 3832",
+    "published": "2026-08-15",
+    "doi": "10.3390/en19163832",
+    "url": "https://www.mdpi.com/1996-1073/19/16/3832",
+    "location": "Appendix A, Tables A1-A5",
+    "method": "3D FEM extraction using a nonlinear ferrite B-H curve and linear current-ramp inductance extraction; reported normalized coupling coefficients K_ij = M_ij / sqrt(L_i L_j)",
+    "operating_point": {
+      "frequency_hz": 85000,
+      "air_gap_m": 0.3,
+      "aligned_position_x_m": 0,
+      "pass_length_m": 3,
+      "position_samples": 61
+    },
+    "reported_fem_runtime_seconds_per_position_average": 90
+  },
+  "semantics": {
+    "quantity": "dimensionless normalized coupling matrix K, not an H-valued inductance matrix",
+    "diagonal": "unit diagonal by definition",
+    "reported_precision": "off-diagonal values displayed to 3 or 4 decimal places",
+    "rounding_bound_assumption": "half the last displayed decimal place, assuming round-to-nearest; diagonal entries treated as exact unit normalization",
+    "limitations": [
+      "The source does not explicitly type the reported matrices as SMALL_SIGNAL or DIFFERENTIAL.",
+      "The data are extracted from a nonlinear FEM model and are source-reported aligned-position simulations, not raw laboratory metrology.",
+      "No measurement covariance or model-extraction uncertainty is provided.",
+      "The source reports position-dependent K(x), but the Appendix A tables here are aligned-position matrices only."
+    ],
+    "use": "Independent dimensionless symmetry/PSD residual test only; do not submit these records to the production H-valued physical passivity validator or claim physical certification."
+  },
+  "matrices": [
+    {
+      "appendix_table": "A1",
+      "receiver_count": 3,
+      "coil_order": [
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "TX"
+      ],
+      "matrix_dimension": 4,
+      "off_diagonal_displayed_decimal_places": 4,
+      "off_diagonal_absolute_rounding_bound": 0.00005,
+      "expected_minimum_eigenvalue_reference": 0.677313150197955,
+      "values": [
+        [
+          1,
+          0.2546,
+          0.0983,
+          0.0298
+        ],
+        [
+          0.2546,
+          1,
+          0.2544,
+          0.1051
+        ],
+        [
+          0.0983,
+          0.2544,
+          1,
+          0.0298
+        ],
+        [
+          0.0298,
+          0.1051,
+          0.0298,
+          1
+        ]
+      ]
+    },
+    {
+      "appendix_table": "A2",
+      "receiver_count": 4,
+      "coil_order": [
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "RX-4",
+        "TX"
+      ],
+      "matrix_dimension": 5,
+      "off_diagonal_displayed_decimal_places": 4,
+      "off_diagonal_absolute_rounding_bound": 0.00005,
+      "expected_minimum_eigenvalue_reference": 0.4485811802801355,
+      "values": [
+        [
+          1,
+          0.4544,
+          0.3034,
+          0.197,
+          0.0595
+        ],
+        [
+          0.4544,
+          1,
+          0.487,
+          0.3034,
+          0.0998
+        ],
+        [
+          0.3034,
+          0.487,
+          1,
+          0.4546,
+          0.0998
+        ],
+        [
+          0.197,
+          0.3034,
+          0.4546,
+          1,
+          0.0595
+        ],
+        [
+          0.0595,
+          0.0998,
+          0.0998,
+          0.0595,
+          1
+        ]
+      ]
+    },
+    {
+      "appendix_table": "A3",
+      "receiver_count": 5,
+      "coil_order": [
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "RX-4",
+        "RX-5",
+        "TX"
+      ],
+      "matrix_dimension": 6,
+      "off_diagonal_displayed_decimal_places": 3,
+      "off_diagonal_absolute_rounding_bound": 0.0005,
+      "expected_minimum_eigenvalue_reference": 0.4485556537181647,
+      "values": [
+        [
+          1,
+          0.393,
+          0.258,
+          0.174,
+          0.1,
+          0.03
+        ],
+        [
+          0.393,
+          1,
+          0.477,
+          0.309,
+          0.174,
+          0.083
+        ],
+        [
+          0.258,
+          0.477,
+          1,
+          0.477,
+          0.258,
+          0.105
+        ],
+        [
+          0.174,
+          0.309,
+          0.477,
+          1,
+          0.392,
+          0.083
+        ],
+        [
+          0.1,
+          0.174,
+          0.258,
+          0.392,
+          1,
+          0.03
+        ],
+        [
+          0.03,
+          0.083,
+          0.105,
+          0.083,
+          0.03,
+          1
+        ]
+      ]
+    },
+    {
+      "appendix_table": "A4",
+      "receiver_count": 6,
+      "coil_order": [
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "RX-4",
+        "RX-5",
+        "RX-6",
+        "TX"
+      ],
+      "matrix_dimension": 7,
+      "off_diagonal_displayed_decimal_places": 4,
+      "off_diagonal_absolute_rounding_bound": 0.00005,
+      "expected_minimum_eigenvalue_reference": 0.3655512235394602,
+      "values": [
+        [
+          1,
+          0.5007,
+          0.3632,
+          0.2771,
+          0.2099,
+          0.1487,
+          0.0457
+        ],
+        [
+          0.5007,
+          1,
+          0.5492,
+          0.4017,
+          0.2992,
+          0.2099,
+          0.0814
+        ],
+        [
+          0.3632,
+          0.5492,
+          1,
+          0.5621,
+          0.4019,
+          0.2772,
+          0.1025
+        ],
+        [
+          0.2771,
+          0.4017,
+          0.5621,
+          1,
+          0.5493,
+          0.3634,
+          0.1025
+        ],
+        [
+          0.2099,
+          0.2992,
+          0.4019,
+          0.5493,
+          1,
+          0.501,
+          0.0814
+        ],
+        [
+          0.1487,
+          0.2099,
+          0.2772,
+          0.3634,
+          0.501,
+          1,
+          0.0457
+        ],
+        [
+          0.0457,
+          0.0814,
+          0.1025,
+          0.1025,
+          0.0814,
+          0.0457,
+          1
+        ]
+      ]
+    },
+    {
+      "appendix_table": "A5",
+      "receiver_count": 7,
+      "coil_order": [
+        "RX-1",
+        "RX-2",
+        "RX-3",
+        "RX-4",
+        "RX-5",
+        "RX-6",
+        "RX-7",
+        "TX"
+      ],
+      "matrix_dimension": 8,
+      "off_diagonal_displayed_decimal_places": 4,
+      "off_diagonal_absolute_rounding_bound": 0.00005,
+      "expected_minimum_eigenvalue_reference": 0.36102491424761224,
+      "values": [
+        [
+          1,
+          0.4613,
+          0.3308,
+          0.2539,
+          0.1965,
+          0.1472,
+          0.0978,
+          0.03
+        ],
+        [
+          0.4613,
+          1,
+          0.5368,
+          0.3944,
+          0.3,
+          0.2226,
+          0.147,
+          0.0665
+        ],
+        [
+          0.3308,
+          0.5368,
+          1,
+          0.5634,
+          0.4113,
+          0.3,
+          0.1962,
+          0.0959
+        ],
+        [
+          0.2539,
+          0.3944,
+          0.5634,
+          1,
+          0.5635,
+          0.3946,
+          0.2537,
+          0.1062
+        ],
+        [
+          0.1965,
+          0.3,
+          0.4113,
+          0.5635,
+          1,
+          0.5371,
+          0.3308,
+          0.0959
+        ],
+        [
+          0.1472,
+          0.2226,
+          0.3,
+          0.3946,
+          0.5371,
+          1,
+          0.4613,
+          0.0665
+        ],
+        [
+          0.0978,
+          0.147,
+          0.1962,
+          0.2537,
+          0.3308,
+          0.4613,
+          1,
+          0.03
+        ],
+        [
+          0.03,
+          0.0665,
+          0.0959,
+          0.1062,
+          0.0959,
+          0.0665,
+          0.03,
+          1
+        ]
+      ]
+    }
+  ]
+}
