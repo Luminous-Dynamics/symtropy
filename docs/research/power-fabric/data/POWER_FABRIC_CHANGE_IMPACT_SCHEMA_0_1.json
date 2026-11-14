@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-change-impact-0.1.schema.json",
+  "title": "Power Fabric Change Impact Fixture v0.1",
+  "type": "object", "additionalProperties": false,
+  "required": ["inputs", "artifacts", "expected_catalog_change", "expected_unknown_topology_change"],
+  "properties": {
+    "inputs": { "type": "array", "items": { "$ref": "#/$defs/input" } },
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
+    "expected_catalog_change": { "$ref": "#/$defs/expected_change" },
+    "expected_unknown_topology_change": {
+      "allOf": [
+        { "$ref": "#/$defs/expected_change" },
+        { "type": "object", "required": ["reconciliation_required"], "properties": { "reconciliation_required": { "const": true } } }
+      ]
+    }
+  },
+  "$defs": {
+    "input": {
+      "type": "object", "additionalProperties": false, "required": ["input_id", "digest"],
+      "properties": { "input_id": { "type": "string", "minLength": 1 }, "digest": { "type": "string", "minLength": 1 } }
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifact_id", "output_digest", "compiler_version", "profile_version", "dependency_ids", "dependency_inventory_complete"],
+      "properties": {
+        "artifact_id": { "type": "string", "minLength": 1 }, "output_digest": { "type": "string", "minLength": 1 },
+        "compiler_version": { "type": "string", "minLength": 1 }, "profile_version": { "type": "string", "minLength": 1 },
+        "dependency_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "dependency_inventory_complete": { "type": "boolean" }
+      }
+    },
+    "expected_change": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input_id", "expected_old_digest", "new_digest", "invalidated"],
+      "properties": {
+        "input_id": { "type": "string", "minLength": 1 },
+        "expected_old_digest": { "type": "string", "minLength": 1 },
+        "new_digest": { "type": ["string", "null"] },
+        "reconciliation_required": { "type": "boolean" },
+        "invalidated": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "retained": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

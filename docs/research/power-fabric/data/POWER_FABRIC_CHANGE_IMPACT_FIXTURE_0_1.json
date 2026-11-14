@@ -1,0 +1,25 @@
+{
+  "inputs": [
+    { "input_id": "input:topology", "digest": "sha256:old:topology" },
+    { "input_id": "input:catalog", "digest": "sha256:old:catalog" },
+    { "input_id": "input:requirements", "digest": "sha256:old:requirements" },
+    { "input_id": "input:carbon", "digest": "sha256:old:carbon" }
+  ],
+  "artifacts": [
+    { "artifact_id": "artifact:compatibility", "output_digest": "sha256:out:compatibility", "compiler_version": "compiler:1", "profile_version": "profile:1", "dependency_ids": ["input:catalog", "input:topology"], "dependency_inventory_complete": true },
+    { "artifact_id": "artifact:source-map", "output_digest": "sha256:out:source-map", "compiler_version": "compiler:1", "profile_version": "profile:1", "dependency_ids": ["artifact:compatibility"], "dependency_inventory_complete": true },
+    { "artifact_id": "artifact:resident-view", "output_digest": "sha256:out:resident", "compiler_version": "compiler:1", "profile_version": "profile:1", "dependency_ids": ["artifact:source-map", "input:requirements"], "dependency_inventory_complete": true },
+    { "artifact_id": "artifact:emergency-view", "output_digest": "sha256:out:emergency", "compiler_version": "compiler:1", "profile_version": "profile:1", "dependency_ids": ["artifact:source-map"], "dependency_inventory_complete": false },
+    { "artifact_id": "artifact:carbon-report", "output_digest": "sha256:out:carbon", "compiler_version": "compiler:1", "profile_version": "profile:1", "dependency_ids": ["input:carbon"], "dependency_inventory_complete": true }
+  ],
+  "expected_catalog_change": {
+    "input_id": "input:catalog", "expected_old_digest": "sha256:old:catalog", "new_digest": "sha256:new:catalog",
+    "invalidated": ["artifact:compatibility", "artifact:emergency-view", "artifact:resident-view", "artifact:source-map"],
+    "retained": ["artifact:carbon-report"]
+  },
+  "expected_unknown_topology_change": {
+    "input_id": "input:topology", "expected_old_digest": "sha256:old:topology", "new_digest": null,
+    "reconciliation_required": true,
+    "invalidated": ["artifact:compatibility", "artifact:emergency-view", "artifact:resident-view", "artifact:source-map"]
+  }
+}
