@@ -1,0 +1,88 @@
+name: Maritime Maintenance Effect Contract
+
+on:
+  pull_request:
+    branches: [research/maritime-repair-verification-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/maintenance_effect.rs"
+      - "benchmarks/maritime-control-response/src/lib.rs"
+      - "benchmarks/maritime-control-response/maintenance-effect-*"
+      - "docs/tech/MARITIME_MAINTENANCE_EFFECT_V0_1.md"
+      - ".github/workflows/maritime-maintenance-effect-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-maintenance-effect-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  randomized-maintenance-effect-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned JSON Schema validator
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Validate protocol, trial schema, oracle schema and cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/maritime-control-response")
+          protocol = json.loads((root / "maintenance-effect-v0.1.json").read_text())
+          trial_schema = json.loads((root / "maintenance-effect-trial.schema.json").read_text())
+          oracle_schema = json.loads((root / "maintenance-effect-oracle.schema.json").read_text())
+          corpus = json.loads((root / "maintenance-effect-cases-v0.1.json").read_text())
+          Draft202012Validator.check_schema(trial_schema)
+          Draft202012Validator.check_schema(oracle_schema)
+          assert protocol["schema_version"] == "symtropy-marine-maintenance-effect-v0.1"
+          assert protocol["status"] == "protocol_only_not_executed"
+          assert len(protocol["hard_gates"]) >= 31
+          assert protocol["estimator"]["exact_test_limit_units"] == 16
+          assert len(corpus["cases"]) == 16
+          assert len({case["case_id"] for case in corpus["cases"]}) == 16
+          assert trial_schema["additionalProperties"] is False
+          assert oracle_schema["additionalProperties"] is False
+          required_measurements = trial_schema["properties"]["observations"]["items"]["required"]
+          assert "outcome_calibration_record_sha256" in required_measurements
+          assert "outcome_calibration_valid_until_seconds" in required_measurements
+          assert "outcome_calibration_valid_from_seconds" in required_measurements
+          assert "outcome_uncertainty_abs" in required_measurements
+          assert "outcome_measurement_principle_id" in trial_schema["required"]
+          print("Maintenance-effect protocol/schema/oracle/case checks: PASS")
+          PY
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify full crate formatting
+        working-directory: benchmarks/maritime-control-response
+        run: cargo fmt -- --check
+
+      - name: Run complete library regression suite
+        working-directory: benchmarks/maritime-control-response
+        run: cargo test --locked --lib
+
+      - name: Run strict library Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib -- -D warnings

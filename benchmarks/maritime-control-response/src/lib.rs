@@ -16,6 +16,7 @@ pub mod diagnosis_revision;
 pub mod event_metrics;
 pub mod external_dataset;
 pub mod joint_scenario_posterior;
+pub mod maintenance_effect;
 pub mod published_baseline_audit;
 pub mod repair_restoration;
 pub mod sequential_evidence;

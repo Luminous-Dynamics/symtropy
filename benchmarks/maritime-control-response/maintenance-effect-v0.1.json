@@ -1,0 +1,178 @@
+{
+  "schema_version": "symtropy-marine-maintenance-effect-v0.1",
+  "status": "protocol_only_not_executed",
+  "title": "Known-truth blocked-randomized causal repair-effect estimation",
+  "parent_issue": 5108,
+  "composition": {
+    "restoration_outcome_issue": 5094,
+    "repair_restoration_pr": 5105,
+    "engineering_health_parent": 4444,
+    "prognostics_policy_issue": 4545,
+    "causal_risk_issue": 4548,
+    "data_trust_issue": 4535,
+    "engine_transfer_issue": 4510,
+    "diagnosis_revision_issue": 5085
+  },
+  "scope": {
+    "owns": [
+      "randomized trial eligibility and assignment contract",
+      "blocked-stratum allocation validation",
+      "finite-population ATE under randomized assignment",
+      "Neyman conservative variance estimate",
+      "bounded exact Fisher randomization test",
+      "separate known-truth oracle scoring",
+      "baseline/outcome source and measurement-principle provenance",
+      "calibration record and validity-through-availability checks",
+      "deterministic measurement-error bound and robust effect interval"
+    ],
+    "does_not_own": [
+      "observational causal identification",
+      "target-trial emulation",
+      "time-varying confounding",
+      "RUL forecasting",
+      "maintenance policy optimization",
+      "repair authorization",
+      "physical restoration acceptance",
+      "equipment control"
+    ]
+  },
+  "paradigm": {
+    "restoration_vs_effect": "A matched pre/post result in #5094 establishes observed restoration within a declared envelope. It does not estimate what would have happened under a different intervention.",
+    "randomized_reference": "P0 uses known-truth blocked randomized synthetic or controlled test-bench cases so assignment is independent of potential outcomes by design.",
+    "observational_boundary": "This v0.1 estimator rejects observational assignment. Target-trial emulation, longitudinal g-methods and sensitivity bounds require separate assumptions and benchmark versions.",
+    "oracle_separation": "Potential outcomes live in a separate scoring object. The estimator function receives only the randomized trial and observed outcomes; it cannot use the oracle to estimate the treatment effect.",
+    "measurement_uncertainty": "The sampling standard error describes randomization/sampling uncertainty. A separately declared deterministic absolute measurement-error bound is computed from calibrated per-unit bounds and expands a robust effect interval; it is not mislabelled as a standard error or assumed independent."
+  },
+  "estimand": {
+    "name": "finite_population_average_treatment_effect",
+    "formula": "mean_i(Y_i(treatment) - Y_i(control)) over the eligible randomized units",
+    "unit": "declared outcome unit and metric; never a blended health score",
+    "allocation": "blocked randomization with frozen treatment/control counts within each predeclared stratum",
+    "weighting": "stratum difference in means weighted by the stratum share of randomized units"
+  },
+  "estimator": {
+    "point": "stratum-weighted difference in means",
+    "variance": "Neyman conservative variance from within-arm sample variances; unidentifiable finite-population treatment-effect variance is not subtracted Deterministic measurement-error bounds are not inserted into the Neyman sampling variance; they are reported separately and expand a robust interval.",
+    "interval": "normal-approximation interval at predeclared 90%, 95% or 99% confidence level; coverage requires adequate sample size and randomization assumptions",
+    "test": "two-sided exact Fisher randomization test under the sharp null, conditional on fixed treatment counts per stratum",
+    "exact_test_limit_units": 16,
+    "baseline": "pre-assignment baselines are checked for time availability but are not adjusted in v0.1",
+    "reporting": "raw treatment-minus-control effect plus a sign-reoriented value whose positive direction means benefit under the declared outcome direction",
+    "measurement_provenance": {
+      "baseline": "Baseline and outcome records carry evidence digest, source ID, measurement principle, dependency domain, quality state, calibration record digest and calibration validity-until time.",
+      "outcome_method": "The measurement principle is frozen at trial level and every outcome record must match it.",
+      "quality": "Only valid measurement quality and verified calibration that remains valid through evidence availability are accepted.",
+      "uncertainty": "Each outcome measurement carries a deterministic absolute-error bound. The contrast bound is the stratum-weighted sum of treatment-arm and control-arm mean absolute-error bounds.",
+      "reporting": "The reported Neyman standard error and normal-approximation sampling interval remain sampling-only. A second robust interval expands the sampling interval by the deterministic measurement-error bound.",
+      "baseline_use": "Baseline provenance is validated, but baseline covariates remain unused by the P0 estimator.",
+      "calibration": "Calibration status must be verified and bind a calibration-record digest. Its validity interval must begin no later than the observation and remain in force through evidence availability."
+    }
+  },
+  "hard_gates": [
+    "Only blocked randomized assignment is accepted by this P0 estimator.",
+    "Assignment plan digest and assignment audit reference must be present and frozen before assignment.",
+    "Every independent randomization unit appears exactly once; rows/windows are not independent units.",
+    "Every unit belongs to one declared stratum.",
+    "Each stratum has at least two planned treatment and two planned control units.",
+    "Observed treatment/control counts must exactly match the frozen stratum allocation.",
+    "No stratum may omit a randomized arm; no extrapolation across positivity failure.",
+    "Assignment evidence must be available no later than assignment time.",
+    "Baseline evidence must be observed and available before assignment.",
+    "Post-intervention outcome must be observed no earlier than the preregistered follow-up horizon.",
+    "Outcome evidence must be available by the analysis as-of time.",
+    "Outcome metric and units must match the preregistered trial contract.",
+    "Every assignment, baseline and outcome record must carry a valid evidence digest.",
+    "No post-assignment or future maintenance record may enter baseline eligibility.",
+    "Potential-outcome oracle is not accepted by the estimator and is used only by the synthetic scoring function.",
+    "The oracle must bind the exact unit set and agree with each unit's observed assigned potential outcome.",
+    "Exact randomization enumeration is bounded to 16 independent units; larger experiments fail closed in v0.1.",
+    "Confidence intervals state their Neyman variance and normal-approximation method.",
+    "Outcome direction is explicit; raw effect and benefit-oriented effect are both reported.",
+    "The report always denies maintenance authorization, physical restoration authority and operating-restriction clearance.",
+    "Baseline and outcome measurement records bind a non-empty source identifier, measurement principle and dependency domain.",
+    "Baseline and outcome measurement quality must be valid; missing, stale, rejected or conflicted records are not accepted.",
+    "Baseline and outcome records bind a calibration-record SHA-256 and verified calibration status.",
+    "Calibration validity must extend through the time the corresponding measurement became available.",
+    "The outcome measurement principle is frozen in the trial and every unit outcome must use that declared principle.",
+    "Each baseline and outcome measurement carries a finite non-negative deterministic absolute-error bound.",
+    "The estimator reports the Neyman sampling standard error separately from the measurement-error bound.",
+    "The effect uncertainty report includes a robust interval formed by expanding the sampling interval by the deterministic weighted measurement-error bound.",
+    "The synthetic oracle consistency check also binds the measurement-error bound and robust interval.",
+    "Calibration validity must start no later than measurement observation and end no earlier than measurement evidence availability.",
+    "Calibration valid-from and valid-until timestamps must both be finite and non-negative in the Rust validator, not only in the JSON Schema."
+  ],
+  "nonclaims": [
+    "Randomization metadata and hashes do not authenticate the allocation issuer.",
+    "Passing synthetic known-truth tests does not identify effects in observational maintenance records.",
+    "No RUL, recurrence hazard or long-term durability effect is estimated.",
+    "No causal effect is inferred from a before/after difference alone.",
+    "No maintenance policy or work authorization is produced."
+  ],
+  "comparators": [
+    {
+      "id": "unadjusted_pre_post",
+      "status": "negative_control",
+      "description": "Before/after mean difference without a counterfactual assignment design."
+    },
+    {
+      "id": "observational_difference_in_means",
+      "status": "negative_control",
+      "description": "Treatment/control comparison with nonrandomized assignment."
+    },
+    {
+      "id": "blocked_randomized_difference_in_means",
+      "status": "p0_reference",
+      "description": "Stratified difference in means with known blocked allocation."
+    },
+    {
+      "id": "oracle_effect",
+      "status": "synthetic_scoring_only",
+      "description": "Finite-population effect calculated from hidden paired potential outcomes; never an estimator input."
+    }
+  ],
+  "metrics": [
+    "finite_population_ate_bias",
+    "absolute_ate_error",
+    "confidence_interval_coverage",
+    "confidence_interval_width",
+    "exact_randomization_p_value",
+    "false_positive_rate_under_zero_effect",
+    "type_two_error_under_declared_alternatives",
+    "allocation_positivity_rejection_rate",
+    "future_or_post_assignment_leakage_rejection_rate",
+    "oracle_separation_integrity",
+    "measurement_quality_rejection_rate",
+    "calibration_expiry_rejection_rate",
+    "measurement_provenance_completeness",
+    "deterministic_measurement_error_bound",
+    "sampling_interval_vs_measurement_robust_interval_width"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "synthetic_bias",
+      "target": "Absolute ATE bias below 5% of declared outcome scale on adequately sampled known-truth blocked trials",
+      "status": "aspirational"
+    },
+    {
+      "id": "interval_coverage",
+      "target": "85–95% empirical coverage for nominal 90% intervals on adequately sampled held-out randomized cases",
+      "status": "aspirational"
+    },
+    {
+      "id": "false_causal_effect",
+      "target": "Zero accepted causal effect for nonrandomized or positivity-failing P0 inputs",
+      "status": "aspirational"
+    },
+    {
+      "id": "oracle_separation",
+      "target": "100% of estimates unchanged when only the separate potential-outcome oracle changes",
+      "status": "aspirational"
+    },
+    {
+      "id": "authority",
+      "target": "Zero maintenance, physical-restoration or operating-clearance side effects",
+      "status": "aspirational"
+    }
+  ],
+  "claim_ceiling": "This P0 module estimates a finite-population average effect only for the declared blocked randomized experiment and observed follow-up outcome. It does not establish observational identification, marine-engine repair effectiveness, durability, RUL, vessel safety, maintenance authority or permission to operate. Calibration/source digests and the declared absolute-error bounds are structurally checked metadata; this module does not authenticate issuers, prove calibration traceability or establish that the stated deterministic error bounds are physically valid."
+}
