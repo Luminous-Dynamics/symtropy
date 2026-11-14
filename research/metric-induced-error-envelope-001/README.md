@@ -105,3 +105,21 @@ Run it with:
 The JSON records the fixture ID, crate version, target architecture/OS, available parallelism, iteration count, sample count and raw timing summary. Record the CPU model, OS image, compiler commit and machine configuration alongside each retained report; the program intentionally does not guess those facts from portable runtime APIs.
 
 These timings are **only the reference-layer microbenchmark**. They are not comparable to Drake, MuJoCo or Pinocchio solver timings, do not establish a general overhead bound, and do not measure physical integration. Matched solver comparisons are tracked separately in Symtropy #4805.
+
+## Rank-deficient constraint quotient
+
+The companion module `src/rank_deficient_constraint.rs` covers redundant linear holonomic rows without adding an arbitrary diagonal regularizer.
+
+For a positive-definite mass metric and possibly rank-deficient Jacobian, the Delassus map `W = J M^-1 J^T` is positive semidefinite. Multipliers are equivalent modulo `ker(J^T)`; the induced generalized force and minimum-kinetic correction remain unique. The quotient multiplier norm is `sqrt(lambda^T W lambda)`.
+
+A compatible residual lies in `range(J)=range(W)). The solver returns a quotient representative satisfying `W lambda = r`, and its dual norm is `sqrt(lambda^T r)`. Residuals outside the range are explicitly returned as INCOMPATIBLE or INCONCLUSIVE; they are never silently projected and treated as solved.
+
+**Compatibility tolerances are not measured in raw Euclidean coordinates.** The caller supplies an SPD residual-space metric H. When rows are re-described by `r_new = T r_old`, that metric must be re-described as `H_new = T^-T H_old T^-1`. The same H metric drives rank revelation and residual compatibility. This is what makes the floating-point acceptance rule meaningful under arbitrary nonsingular row scaling/shearing.
+
+The rank is still numerical and profile-bound. Near-threshold cases are not promoted to PASS. The hard-constraint quotient is a different semantic model from `W + epsilon I`; regularization must be declared as a soft-constraint problem with a separate identity.
+
+Run the synthetic fixture:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example redundant_constraint_quotient
+
+The unit tests cover duplicate rows, multiplier null shifts, unique physical correction, incompatible residual rejection, a non-orthogonal constraint-equation re-description with the matching H metric, and rank-zero constraints. This does not yet qualify nonlinear constraints, unilateral/frictional contact, active-set changes, or sparse articulated solvers.
