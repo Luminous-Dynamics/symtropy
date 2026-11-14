@@ -85,6 +85,8 @@ pub struct CoverageClaim {
     pub coverage_qualified: bool,
     /// Whether current weather, lighting, clutter and obstruction fit the claim profile.
     pub environment_qualified: bool,
+    /// Whether the upstream sensor/service is explicitly in a degraded state.
+    pub upstream_degraded: bool,
     /// Whether PNT and time dependencies are qualified for this claim.
     pub pnt_time_qualified: bool,
     /// Whether the relevant source dependency inventory is complete.
@@ -176,8 +178,13 @@ pub fn evaluate(
 
     let mut independent_families = BTreeSet::new();
     let mut unknown_dependency = false;
+    let mut upstream_degraded = false;
 
     for claim in &relevant {
+        if claim.upstream_degraded {
+            upstream_degraded = true;
+            continue;
+        }
         if !claim.coverage_qualified || !claim.environment_qualified {
             continue;
         }
@@ -202,6 +209,8 @@ pub fn evaluate(
         CoverageStatus::QualifiedCoverage
     } else if unknown_dependency {
         CoverageStatus::Indeterminate
+    } else if upstream_degraded {
+        CoverageStatus::Degraded
     } else if independent_family_count > 0 {
         CoverageStatus::PartialCoverage
     } else {
