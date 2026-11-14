@@ -1877,6 +1877,243 @@ fn validate_variable_aggregation_corpus(
     }))
 }
 
+
+fn string_set_at(root: &Value, path: &[&str]) -> Result<BTreeSet<String>, String> {
+    let values = at(root, path)?
+        .as_array()
+        .ok_or_else(|| format!("expected array at {}", path.join(".")))?;
+    let mut result = BTreeSet::new();
+    for (index, value) in values.iter().enumerate() {
+        let item = value
+            .as_str()
+            .ok_or_else(|| format!("expected string at {}[{index}]", path.join(".")))?;
+        if item.trim().is_empty() {
+            return Err(format!("empty string at {}[{index}]", path.join(".")));
+        }
+        if !result.insert(item.to_string()) {
+            return Err(format!("duplicate value at {}[{index}]", path.join(".")));
+        }
+    }
+    Ok(result)
+}
+
+fn adjudicate_evidence_dependence(
+    left: &Value,
+    right: &Value,
+    required_dimensions: &BTreeSet<String>,
+) -> Result<&'static str, String> {
+    let left_complete = at(left, &["lineage_complete"])?
+        .as_bool()
+        .ok_or_else(|| "left.lineage_complete must be boolean".to_string())?;
+    let right_complete = at(right, &["lineage_complete"])?
+        .as_bool()
+        .ok_or_else(|| "right.lineage_complete must be boolean".to_string())?;
+    let left_assessed = string_set_at(left, &["dependency_dimensions_assessed"])?;
+    let right_assessed = string_set_at(right, &["dependency_dimensions_assessed"])?;
+
+    let required_identity = [
+        ["product_id", "site_id", "campaign_id", "sensor_id"].as_slice(),
+    ];
+    for field in required_identity.iter().flatten() {
+        let left_value = left.get(*field).and_then(Value::as_str).unwrap_or_default();
+        let right_value = right.get(*field).and_then(Value::as_str).unwrap_or_default();
+        if left_value.trim().is_empty() || right_value.trim().is_empty() {
+            return Ok("DEPENDENCE_UNKNOWN");
+        }
+    }
+
+    if !left_complete
+        || !right_complete
+        || !required_dimensions.is_subset(&left_assessed)
+        || !required_dimensions.is_subset(&right_assessed)
+    {
+        return Ok("DEPENDENCE_UNKNOWN");
+    }
+
+    let left_upstream = string_set_at(left, &["upstream_asset_ids"])?;
+    let right_upstream = string_set_at(right, &["upstream_asset_ids"])?;
+    if !left_upstream.is_disjoint(&right_upstream) {
+        return Ok("SHARED_UPSTREAM_EVIDENCE");
+    }
+
+    let left_campaign = string_at(left, &["campaign_id"])?;
+    let right_campaign = string_at(right, &["campaign_id"])?;
+    if left_campaign == right_campaign {
+        return Ok("SHARED_CAMPAIGN");
+    }
+
+    let shared_dependencies = [
+        ("calibration_dataset_ids", "calibration"),
+        ("training_dataset_ids", "training"),
+        ("common_cause_ids", "common cause"),
+        ("processing_pipeline_ids", "processing pipeline"),
+    ];
+    for (field, _) in shared_dependencies {
+        let left_values = string_set_at(left, &[field])?;
+        let right_values = string_set_at(right, &[field])?;
+        if !left_values.is_disjoint(&right_values) {
+            return Ok("DEPENDENCE_MODEL_REQUIRED");
+        }
+    }
+
+    let left_site = string_at(left, &["site_id"])?;
+    let right_site = string_at(right, &["site_id"])?;
+    let left_sensor = string_at(left, &["sensor_id"])?;
+    let right_sensor = string_at(right, &["sensor_id"])?;
+    if left_site == right_site || left_sensor == right_sensor {
+        return Ok("DEPENDENCE_MODEL_REQUIRED");
+    }
+
+    let left_pipelines = string_set_at(left, &["processing_pipeline_ids"])?;
+    let right_pipelines = string_set_at(right, &["processing_pipeline_ids"])?;
+    if !left_pipelines.is_disjoint(&right_pipelines) {
+        return Ok("DEPENDENCE_MODEL_REQUIRED");
+    }
+
+    Ok("DECLARED_INDEPENDENT_GIVEN_CONDITIONS")
+}
+
+fn validate_consilliance_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let expected_ids: BTreeSet<&'static str> = [
+        "CONSILIENCE-SHARED-UPSTREAM-001",
+        "CONSILIENCE-SHARED-CAMPAIGN-001",
+        "CONSILIENCE-SHARED-CALIBRATION-001",
+        "CONSILIENCE-SHARED-TRAINING-001",
+        "CONSILIENCE-SHARED-COMMON-CAUSE-001",
+        "CONSILIENCE-SHARED-SITE-001",
+        "CONSILIENCE-SHARED-SENSOR-001",
+        "CONSILIENCE-SHARED-PIPELINE-001",
+        "CONSILIENCE-INDEPENDENT-CONDITIONS-001",
+        "CONSILIENCE-LINEAGE-UNKNOWN-001",
+        "CONSILIENCE-DIMENSION-UNASSESSED-001",
+        "CONSILIENCE-DIFFERENT-PRODUCT-SAME-RAW-001",
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let required_dimensions = string_set_at(manifest, &["required_dependency_dimensions"])?;
+    let expected_dimensions: BTreeSet<String> = [
+        "upstream_assets",
+        "campaign",
+        "site",
+        "sensor",
+        "calibration_data",
+        "training_data",
+        "common_causes",
+        "processing_pipeline",
+    ]
+    .into_iter()
+    .map(ToOwned::to_owned)
+    .collect();
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "CONSILIENCE-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-CONSILIENCE-DEPENDENCE-001"
+            && status == "PUBLIC_SYNTHETIC_DEPENDENCE_CASES_NOT_PRODUCTION"
+            && ceiling.contains("Twelve synthetic lineage pairs")
+            && ceiling.contains("No real source data"),
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "CONSILIENCE-DEPENDENCY-DIMENSIONS-001",
+        required_dimensions == expected_dimensions,
+        format!("{} required dependency dimensions declared", required_dimensions.len()),
+    );
+
+    for (index, case) in cases.iter().enumerate() {
+        let case_id = string_at(case, &["case_id"])?;
+        let declared = string_at(case, &["expected_disposition"])?;
+        let left = at(case, &["left"])?;
+        let right = at(case, &["right"])?;
+        let derived = adjudicate_evidence_dependence(left, right, &required_dimensions)?;
+        let known = expected_ids.contains(case_id.as_str());
+        let unique = seen.insert(case_id.clone());
+        let matches = known && derived == declared;
+        push_check(
+            &mut checks,
+            "CONSILIENCE-DEPENDENCE-CASE-001",
+            unique && matches,
+            format!("case={case_id}; derived={derived}; declared={declared}; unique={unique}"),
+        );
+        if !unique {
+            push_check(
+                &mut checks,
+                "CONSILIENCE-DEPENDENCE-UNIQUE-001",
+                false,
+                format!("duplicate case identity at cases[{index}]"),
+            );
+        }
+    }
+
+    push_check(
+        &mut checks,
+        "CONSILIENCE-DEPENDENCE-COVERAGE-001",
+        seen.len() == expected_ids.len()
+            && cases.len() == expected_ids.len()
+            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let registry = string_at(execution, &["lineage_registry_authentication"])?;
+    let model = string_at(execution, &["probabilistic_dependence_model"])?;
+    let fusion = string_at(execution, &["evidence_fusion"])?;
+    push_check(
+        &mut checks,
+        "CONSILIENCE-EXECUTION-BOUNDARY-001",
+        runner == "SYNTHETIC_EVIDENCE_DEPENDENCE_RULES"
+            && !external
+            && registry == "NOT_IMPLEMENTED"
+            && model == "NOT_IMPLEMENTED"
+            && fusion == "NOT_IMPLEMENTED",
+        "deterministic synthetic lineage screening only; no authenticated registry, probability model or fusion is implemented",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| json!({
+            "id": check.id,
+            "passed": check.passed,
+            "detail": check.detail
+        }))
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_CONSILIENCE" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "case_count": seen.len(),
+        "lineage_registry_authentication": "NOT_IMPLEMENTED",
+        "probabilistic_dependence_model": "NOT_IMPLEMENTED",
+        "evidence_fusion": "NOT_IMPLEMENTED",
+        "external_data_ingested": false
+    }))
+}
+
 /// Dispatch a JSON fixture to its domain-specific verifier and return a deterministic receipt.
 ///
 /// This command verifies manifests and analytical/synthetic invariants only. It does not
@@ -1903,6 +2140,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-VARIABLE-AWARE-AGGREGATION-001")
     {
         return validate_variable_aggregation_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-CONSILIENCE-DEPENDENCE-001")
+    {
+        return validate_consilliance_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
@@ -2249,9 +2491,45 @@ mod tests {
         include_str!("../../cases/forest-support-intersection-synthetic-v0.1.json");
     const VARIABLE_AGGREGATION_FIXTURE: &str =
         include_str!("../../cases/forest-variable-aware-aggregation-synthetic-v0.1.json");
+    const CONSILIENCE_FIXTURE: &str =
+        include_str!("../../cases/forest-consilience-dependence-synthetic-v0.1.json");
 
 
 
+
+
+    #[test]
+    fn consilience_corpus_matches_twelve_synthetic_dependency_pairs() {
+        let receipt = evaluate(CONSILIENCE_FIXTURE.as_bytes())
+            .expect("consilience corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_CONSILIENCE");
+        assert_eq!(receipt["case_count"], 12);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["lineage_registry_authentication"], "NOT_IMPLEMENTED");
+        assert_eq!(receipt["probabilistic_dependence_model"], "NOT_IMPLEMENTED");
+        assert_eq!(receipt["evidence_fusion"], "NOT_IMPLEMENTED");
+    }
+
+    #[test]
+    fn consilience_corpus_rejects_false_independence_after_upstream_mutation() {
+        let mut manifest: Value = serde_json::from_str(CONSILIENCE_FIXTURE)
+            .expect("valid consilience corpus");
+        manifest["cases"][8]["left"]["upstream_asset_ids"] = json!(["shared-raw-scene"]);
+        manifest["cases"][8]["right"]["upstream_asset_ids"] = json!(["shared-raw-scene"]);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn consilience_corpus_rejects_unassessed_dependency_dimension_as_independent() {
+        let mut manifest: Value = serde_json::from_str(CONSILIENCE_FIXTURE)
+            .expect("valid consilience corpus");
+        manifest["cases"][8]["left"]["dependency_dimensions_assessed"] = json!(["upstream_assets"]);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn variable_aggregation_corpus_matches_twelve_synthetic_cases() {
