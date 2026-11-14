@@ -1,0 +1,9 @@
+[package]
+name = "locomotion-run-evidence"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Engine-neutral provenance manifest and paired-run compatibility gates for locomotion benchmarks"
+
+[workspace]
