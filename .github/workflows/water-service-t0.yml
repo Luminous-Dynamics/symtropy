@@ -114,6 +114,7 @@ jobs:
             research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
+            artifacts/water-chemical-fate-t0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
