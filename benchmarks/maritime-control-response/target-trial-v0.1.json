@@ -76,7 +76,9 @@
     "The report must distinguish protocol_incomplete, not_identified and design_qualified_for_estimator.",
     "The validator never estimates a causal effect and all maintenance/restoration/operating authorizations remain false.",
     "The declared cluster key must resolve to the physical asset identity represented in each timeline row.",
-    "Sensitivity-analysis status must be supported before the design can qualify for an estimator."
+    "Sensitivity-analysis status must be supported before the design can qualify for an estimator.",
+    "Negative-control disposition must bind an evidence digest and reviewer reference.",
+    "Sensitivity-analysis disposition must bind an evidence digest and reviewer reference."
   ],
   "diagnostics": {
     "minimum_common_support_fraction_default": 0.8,
@@ -201,6 +203,11 @@
       "case_id": "TT18",
       "scenario": "No reviewed sensitivity analysis is attached to the emulation diagnostic snapshot.",
       "expected": "not_identified_sensitivity"
+    },
+    {
+      "case_id": "TT19",
+      "scenario": "Negative-control and sensitivity statuses are marked supported but their evidence digests/reviewer receipts are absent or invalid.",
+      "expected": "not_identified_missing_review_receipts"
     }
   ],
   "claim_ceiling": "A design_qualified_for_estimator result means only that the declared protocol and available diagnostics passed this structural gate. It is not a causal effect estimate, proof of unmeasured-confounding absence, a marine-engine validation or permission to operate."
