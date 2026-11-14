@@ -1,0 +1,66 @@
+{
+  "schema_version": "symtropy-marine-observational-target-trial-cases-v0.1",
+  "status": "synthetic_design_falsification_cases_not_field_data",
+  "cases": [
+    {
+      "case_id": "OT01",
+      "scenario": "Complete synthetic cohort with asset-specific aligned time zero, two strategy arms per stratum and valid outcome evidence.",
+      "expected": "structurally_eligible_under_declared_assumptions"
+    },
+    {
+      "case_id": "OT02",
+      "scenario": "Unadjusted observational difference reverses the sign of the true positive repair effect due to residual confounding by indication.",
+      "expected": "association_negative_control_sign_reversal"
+    },
+    {
+      "case_id": "OT03",
+      "scenario": "Treatment assignment time differs from per-unit eligibility time beyond tolerance.",
+      "expected": "not_identified_time_zero_misaligned"
+    },
+    {
+      "case_id": "OT04",
+      "scenario": "A post-treatment covariate is used as a baseline variable.",
+      "expected": "not_identified_post_treatment_leakage"
+    },
+    {
+      "case_id": "OT05",
+      "scenario": "One stratum contains no comparator strategy units.",
+      "expected": "not_identified_positivity_failure"
+    },
+    {
+      "case_id": "OT06",
+      "scenario": "Preventive replacement censors follow-up before the declared horizon.",
+      "expected": "not_identified_censoring"
+    },
+    {
+      "case_id": "OT07",
+      "scenario": "A controller tune occurs concurrently with the physical repair.",
+      "expected": "not_identified_concurrent_intervention"
+    },
+    {
+      "case_id": "OT08",
+      "scenario": "Outcome calibration expires before the outcome evidence becomes available.",
+      "expected": "not_identified_outcome_evidence"
+    },
+    {
+      "case_id": "OT09",
+      "scenario": "All baseline covariates are present and pre-treatment, but asset-specific time zeros differ.",
+      "expected": "valid_per_unit_time_zero"
+    },
+    {
+      "case_id": "OT10",
+      "scenario": "A propensity score lies outside the preregistered support floor/ceiling.",
+      "expected": "not_identified_propensity_support"
+    },
+    {
+      "case_id": "OT11",
+      "scenario": "One baseline covariate is missing for an eligible asset.",
+      "expected": "not_identified_missing_baseline"
+    },
+    {
+      "case_id": "OT12",
+      "scenario": "The intervention version recorded for an asset differs from the preregistered treatment strategy.",
+      "expected": "rejected_treatment_version_mismatch"
+    }
+  ]
+}
