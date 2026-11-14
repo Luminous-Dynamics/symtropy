@@ -1,0 +1,764 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "luminous-dynamics.symtropy.regional-destination-adaptation",
+  "status": "research_hypotheses_not_site_validated",
+  "governing_rule": "Reuse shared software and evidence contracts; localize experience, architecture, operations, ecology, culture, economics and regulations through site-specific profiles.",
+  "non_claims": [
+    "A profile label does not establish site suitability.",
+    "All climate, demand, cost and ecological values remain unknown unless bound to a cited dataset, local survey or qualified measurement.",
+    "A synthetic model is not a coastal-engineering, aquatic-safety, maritime-emissions, avalanche-safety, accessibility or ecological certification.",
+    "Cultural experiences require local rights-holders and communities to direct, consent to and benefit from their representation."
+  ],
+  "shared_contract": {
+    "site_identity": [
+      "site_id",
+      "site_boundary_ref",
+      "jurisdiction_refs",
+      "profile_version",
+      "profile_authority"
+    ],
+    "climate_and_hazards": [
+      "observation_source",
+      "time_period",
+      "scenario_family",
+      "uncertainty",
+      "extreme_event_profiles",
+      "threshold_owner"
+    ],
+    "resource_systems": [
+      "water_boundary",
+      "energy_boundary",
+      "materials_and_waste_boundary",
+      "transport_boundary",
+      "emissions_boundary"
+    ],
+    "place_and_people": [
+      "local_ecology_evidence",
+      "cultural_rights_and_consent",
+      "customary_access",
+      "community_review",
+      "accessibility_review",
+      "local_workforce_and_supplier_profile"
+    ],
+    "operations": [
+      "seasonality",
+      "capacity_and_staffing",
+      "closure_modes",
+      "degraded_modes",
+      "recovery_plan",
+      "emergency_authority"
+    ],
+    "assessment": [
+      "hard_constraints",
+      "soft_tradeoffs",
+      "unknowns",
+      "model_identity",
+      "baseline_and_counterfactual",
+      "independent_oracle_refs",
+      "field_validation_plan",
+      "reversibility_and_stranded_asset_exposure"
+    ]
+  },
+  "reusable_rules": [
+    {
+      "id": "R1",
+      "name": "No label-based siting",
+      "rule": "Country, climate-zone or biome labels can suggest questions but cannot infer project suitability, carrying capacity, cultural permission, legal status or numeric model parameters."
+    },
+    {
+      "id": "R2",
+      "name": "Separate observation, model and authority",
+      "rule": "A measured condition, a forecast, an adopted policy, an operating command, a permit and a verified outcome are separate typed records."
+    },
+    {
+      "id": "R3",
+      "name": "Hard limits stay hard",
+      "rule": "Law, public safety, water quality, rights, accessibility obligations, protected habitat and local no-go decisions cannot be traded for higher revenue or attendance."
+    },
+    {
+      "id": "R4",
+      "name": "No universal green score",
+      "rule": "Keep energy, water, emissions, waste, habitat, local value and worker/community outcomes separate with units, boundaries, sources and uncertainty."
+    },
+    {
+      "id": "R5",
+      "name": "Graceful closure is designed",
+      "rule": "Each venue needs explicit closure and recovery states, non-harmful alternatives, visitor communication and accountable human decision authority."
+    },
+    {
+      "id": "R6",
+      "name": "No cultural copy-paste",
+      "rule": "Living culture, Indigenous knowledge, language, traditional access and cultural IP are locally governed; generic regional stereotypes are prohibited."
+    },
+    {
+      "id": "R7",
+      "name": "Preserve future options",
+      "rule": "Compare phased, reversible, repurposable and exit pathways; evaluate irreversible commitments against multiple plausible futures and distributional downside. Do not optimize only for one forecast."
+    }
+  ],
+  "profiles": [
+    {
+      "id": "COAST-TROPICAL",
+      "name": "Tropical island and coral-coast destination",
+      "applies_to": [
+        "beach resorts",
+        "reef discovery",
+        "island retreats",
+        "paddling and water recreation"
+      ],
+      "design_hypotheses": [
+        "low-impact water and shore experiences",
+        "shaded outdoor routes with indoor storm alternatives",
+        "locally led maritime, food and craft experiences",
+        "reef interpretation without guaranteed wildlife encounters",
+        "island-wide transit and supplier networks"
+      ],
+      "key_drivers_to_measure": [
+        "cyclone and storm-surge exposure",
+        "coastal erosion and sediment movement",
+        "sea-level scenarios",
+        "reef and seagrass condition",
+        "freshwater availability and salinity intrusion",
+        "wastewater and solid-waste capacity",
+        "peak seasonal visitor loads"
+      ],
+      "hard_constraints": [
+        "site-specific coastal hazard and evacuation approval",
+        "water and wastewater capacity",
+        "reef and nesting-species rules where applicable",
+        "customary beach access and local rights",
+        "local consent and cultural IP",
+        "boating/swimming safety"
+      ],
+      "closure_and_degraded_modes": [
+        "storm shutdown with sheltered cultural/food/indoor program",
+        "reef-sensitive zones closed when required",
+        "freshwater-scarcity operating profile",
+        "port/road interruption plan"
+      ],
+      "unknowns": [
+        "site-specific reef sensitivity",
+        "locally safe coastal setbacks",
+        "freshwater carrying constraints",
+        "insurance and recovery assumptions"
+      ],
+      "non_assumptions": [
+        "mangroves or reefs do not provide a universal substitute for engineered coastal protection",
+        "tourism revenue does not automatically accrue locally",
+        "tropical climate does not mean year-round safe sea conditions"
+      ]
+    },
+    {
+      "id": "COAST-MEDITERRANEAN",
+      "name": "Mediterranean and hot-summer coastal destination",
+      "applies_to": [
+        "beach resorts",
+        "heritage towns",
+        "marinas",
+        "food and festival districts"
+      ],
+      "design_hypotheses": [
+        "shade-first outdoor circulation",
+        "early/late-day experience scheduling",
+        "water-sensitive gardens and reuse where safe and lawful",
+        "heritage and food-led shoulder-season stays",
+        "coastal retreat alternatives during extreme heat or fire risk"
+      ],
+      "key_drivers_to_measure": [
+        "heatwave duration and night-time heat",
+        "drought and water allocation",
+        "wildfire and smoke exposure",
+        "coastal erosion and surge",
+        "heritage-site visitor capacity",
+        "seasonal transport and housing pressure"
+      ],
+      "hard_constraints": [
+        "drinking-water security",
+        "fire and evacuation requirements",
+        "heritage protection",
+        "beach/public access law",
+        "heat-health policy",
+        "local resource and visitor-capacity constraints"
+      ],
+      "closure_and_degraded_modes": [
+        "heat-adjusted schedules and activity closures",
+        "fire/smoke closure and evacuation",
+        "drought water-priority mode",
+        "shoulder-season programming"
+      ],
+      "unknowns": [
+        "local aquifer and watershed balance",
+        "microclimate and heat exposure",
+        "heritage capacity limits",
+        "resident tolerance for night noise"
+      ],
+      "non_assumptions": [
+        "beautiful weather is not a dependable year-round operating assumption",
+        "water recirculation does not erase freshwater consumption",
+        "heritage streets are not automatically suitable for higher visitor throughput"
+      ]
+    },
+    {
+      "id": "COAST-TEMPERATE",
+      "name": "Temperate oceanic and mixed-weather beach destination",
+      "applies_to": [
+        "beach resorts",
+        "surf coast",
+        "seaside amusement parks",
+        "maritime towns"
+      ],
+      "design_hypotheses": [
+        "wind and rain tolerant promenade experiences",
+        "indoor surf, art or maker alternatives where justified",
+        "seasonal shore and food programming",
+        "public-transport-first arrival planning",
+        "dune or wetland protection where ecologically appropriate"
+      ],
+      "key_drivers_to_measure": [
+        "coastal flooding and erosion",
+        "storm/wind windows",
+        "water temperature and quality",
+        "seasonal demand variation",
+        "port/road disruptions",
+        "shoreline morphology"
+      ],
+      "hard_constraints": [
+        "coastal planning and erosion risk",
+        "water-quality advisories",
+        "public shore access",
+        "protected dunes and shorebirds",
+        "local building/code and evacuation requirements"
+      ],
+      "closure_and_degraded_modes": [
+        "wind/surf closure",
+        "storm tide closure",
+        "indoor/dry substitute program",
+        "coastal habitat seasonal exclusion"
+      ],
+      "unknowns": [
+        "shoreline sediment balance",
+        "local surf/hazard operating envelope",
+        "future seasonal demand",
+        "maintenance costs under salt exposure"
+      ],
+      "non_assumptions": [
+        "coastal engineering solution transfers between beaches without analysis",
+        "a single seasonal peak can be supported without local transport capacity"
+      ]
+    },
+    {
+      "id": "WATER-STRESSED-ARID",
+      "name": "Arid, semi-arid and water-stressed destination",
+      "applies_to": [
+        "desert resorts",
+        "inland water parks",
+        "oasis retreats",
+        "shade-based adventure parks"
+      ],
+      "design_hypotheses": [
+        "low-water experience portfolio",
+        "night and dawn programming during hot periods",
+        "architecture based on shade, thermal mass and passive comfort where climate analysis supports it",
+        "dry adventure and immersive cooling effects rather than default large water bodies",
+        "explicit demand-response modes"
+      ],
+      "key_drivers_to_measure": [
+        "water rights and source sustainability",
+        "aquifer recharge and drawdown",
+        "extreme heat and wet-bulb conditions",
+        "energy and cooling load",
+        "dust, wind and flash flood exposure",
+        "competing community/ecological demand"
+      ],
+      "hard_constraints": [
+        "local drinking-water and ecological priorities",
+        "water allocation law",
+        "heat-health work/guest limits",
+        "flash-flood and evacuation design",
+        "refrigerant and energy requirements"
+      ],
+      "closure_and_degraded_modes": [
+        "heat-triggered outdoor closure",
+        "drought demand reduction",
+        "power/cooling outage mode",
+        "dust or flash-flood closure"
+      ],
+      "unknowns": [
+        "water source lifecycle and marginal impacts",
+        "cooling system efficiency",
+        "visitor safety thresholds",
+        "local grid capacity"
+      ],
+      "non_assumptions": [
+        "desalination or reclaimed water is impact-free",
+        "large aquatic attractions are feasible because they can recirculate water",
+        "night events eliminate all heat, energy or neighbour impacts"
+      ]
+    },
+    {
+      "id": "TROPICAL-MONSOON",
+      "name": "Monsoon, wet-season and tropical-rain destination",
+      "applies_to": [
+        "tropical resorts",
+        "wetland tourism",
+        "rainforest retreats",
+        "seasonal river experiences"
+      ],
+      "design_hypotheses": [
+        "covered connections and rapid drainage",
+        "wet-season ecology/learning programming",
+        "route redundancy and flood-safe refuge",
+        "locally led food/craft indoor program",
+        "reversible seasonal operating plans"
+      ],
+      "key_drivers_to_measure": [
+        "rainfall intensity and duration",
+        "river/flash flood and landslide risk",
+        "humidity and mould/corrosion",
+        "vector and public-health risk where relevant",
+        "road/bridge reliability",
+        "soil saturation and slope stability"
+      ],
+      "hard_constraints": [
+        "flood/landslide safety plans",
+        "drinking and recreation water quality",
+        "slope/site drainage engineering",
+        "habitat seasonal protection",
+        "worker heat and humidity exposure"
+      ],
+      "closure_and_degraded_modes": [
+        "flood/landslide closure",
+        "reduced trail access",
+        "indoor alternative",
+        "mould/moisture remediation and restart clearance"
+      ],
+      "unknowns": [
+        "catchment response",
+        "microclimate and moisture load",
+        "transport outage duration",
+        "sensitive species and breeding seasons"
+      ],
+      "non_assumptions": [
+        "rainforest vegetation automatically stabilizes every slope",
+        "drainage alone makes development flood-safe",
+        "wet season can be treated as simply bad weather"
+      ]
+    },
+    {
+      "id": "MOUNTAIN-ALPINE-SKI",
+      "name": "Alpine ski and mountain resort",
+      "applies_to": [
+        "ski resorts",
+        "snow parks",
+        "mountain villages",
+        "multi-season alpine destinations"
+      ],
+      "design_hypotheses": [
+        "scenario-based ski operations",
+        "measured snowmaking and snow-storage feasibility",
+        "year-round hiking/culture/wellness/adventure portfolio",
+        "public transit and village-centered planning",
+        "mountain ecosystem and watershed stewardship"
+      ],
+      "key_drivers_to_measure": [
+        "temperature and wet-bulb windows",
+        "natural snow reliability and snowpack duration",
+        "water availability and downstream users",
+        "snowmaking energy and lifecycle impacts",
+        "avalanche, landslide, wildfire and heat exposure",
+        "slope ecology and trail erosion",
+        "housing and seasonal workforce"
+      ],
+      "hard_constraints": [
+        "avalanche and mountain rescue authority",
+        "water rights and ecological flows",
+        "ski lift and slope safety requirements",
+        "protected areas and habitat",
+        "local hazard and weather closure rules"
+      ],
+      "closure_and_degraded_modes": [
+        "low-snow or high-risk closure",
+        "non-snow season program",
+        "lift/power failure mode",
+        "wildfire/heat/avalanche closure",
+        "mobility and rescue constraints"
+      ],
+      "unknowns": [
+        "seasonal viability under local climate projections",
+        "snowmaking viable hours",
+        "water/energy trade-off",
+        "economic viability of summer operations"
+      ],
+      "non_assumptions": [
+        "snowmaking guarantees long-term ski viability",
+        "summer activities can fully replace winter revenue",
+        "climate resilience means only increasing snow production"
+      ]
+    },
+    {
+      "id": "MOUNTAIN-FOUR-SEASON",
+      "name": "Mountain destination designed for multiple seasons",
+      "applies_to": [
+        "alpine villages",
+        "mountain lodges",
+        "trail networks",
+        "wellness and cultural routes"
+      ],
+      "design_hypotheses": [
+        "shoulder-season culture and gastronomy",
+        "carefully managed trail/cycling networks",
+        "observatory/dark sky and restorative stays",
+        "local craft/food partnerships",
+        "distributed activity mix rather than one anchor season"
+      ],
+      "key_drivers_to_measure": [
+        "snow/rain/heat transition",
+        "fire/avalanche/landslide hazards",
+        "trail and vegetation recovery",
+        "seasonal transport and service access",
+        "workforce housing and employment conditions"
+      ],
+      "hard_constraints": [
+        "trail and activity operator safety",
+        "habitat and erosion thresholds",
+        "local community capacity",
+        "fire and mountain hazard plans"
+      ],
+      "closure_and_degraded_modes": [
+        "weather-specific trail closure",
+        "trail recovery/rest periods",
+        "fire/heat mode",
+        "off-season maintenance and local-use priorities"
+      ],
+      "unknowns": [
+        "visitor demand outside ski season",
+        "trail carrying limits",
+        "economic distribution of benefits",
+        "habitat sensitivity"
+      ],
+      "non_assumptions": [
+        "every mountain region should become a mass cycling destination",
+        "more visitors necessarily improve year-round local prosperity"
+      ]
+    },
+    {
+      "id": "CRUISE-SHIP-PORT-ITINERARY",
+      "name": "Cruise ship, port, itinerary and host-community system",
+      "applies_to": [
+        "cruise ships",
+        "home ports",
+        "transit ports",
+        "shore excursions",
+        "island/heritage cruise destinations"
+      ],
+      "design_hypotheses": [
+        "itinerary and arrival scheduling coordinated with destination capacity",
+        "lower-emission operations evaluated by full lifecycle boundary",
+        "port-to-ship shore-power compatibility checks",
+        "local-led shore experiences with transparent value flow",
+        "accessible excursion variety and bad-weather alternatives",
+        "onboard and ashore crowd load treated together"
+      ],
+      "key_drivers_to_measure": [
+        "ship hotel/propulsion energy and fuel pathway",
+        "actual shore-power availability and grid mix",
+        "berth, terminal and shore transport capacity",
+        "wastewater, solid waste and air pollution handling",
+        "underwater noise and sensitive marine areas",
+        "visitor arrival pulses and heritage-site capacity",
+        "local spending retained and resident impact"
+      ],
+      "hard_constraints": [
+        "flag/state/port-state and maritime requirements",
+        "safe berth and navigation envelope",
+        "port infrastructure readiness",
+        "local site and community capacity",
+        "wastewater/waste discharge rules",
+        "cultural-site and ecological protections"
+      ],
+      "closure_and_degraded_modes": [
+        "port diversion",
+        "weather/berth schedule change",
+        "excursion closure with transparent alternative",
+        "shore-power unavailable disclosure",
+        "overcapacity itinerary modification by accountable operator"
+      ],
+      "unknowns": [
+        "future fuel regulatory status and availability",
+        "route-level lifecycle emissions",
+        "port-specific electrical capability",
+        "local spending distribution",
+        "downstream crowd impacts"
+      ],
+      "non_assumptions": [
+        "shore-power-ready ship means every port can supply it",
+        "a port call's spending all remains local",
+        "one vessel efficiency metric proves whole-voyage sustainability",
+        "a regulatory draft or approval is the same as entry into force"
+      ],
+      "current_regulatory_note": "IMO MEPC 84 in May 2026 recorded continued work after October 2025 adoption discussions were adjourned; verify live legal status before regulatory or investment decisions. EU FuelEU Maritime has specific scope and timing for qualifying passenger ships and covered ports."
+    },
+    {
+      "id": "INLAND-FRESHWATER",
+      "name": "Lake, river and wetland destination",
+      "applies_to": [
+        "lake resorts",
+        "river retreats",
+        "wetland trails",
+        "freshwater recreation parks"
+      ],
+      "design_hypotheses": [
+        "shoreline recreation zones separate from sensitive habitat",
+        "water literacy and locally guided activities",
+        "seasonal access and flooding modes",
+        "water-saving lodging and food operations",
+        "community-led fishing/cultural interpretation where permitted"
+      ],
+      "key_drivers_to_measure": [
+        "basin water balance",
+        "flood/drought history",
+        "water quality and harmful bloom risk",
+        "wetland habitat and breeding periods",
+        "upstream/downstream abstractions and wastewater"
+      ],
+      "hard_constraints": [
+        "water quality",
+        "water rights and environmental flows",
+        "flood/electrical storm closure rules",
+        "wildlife protection",
+        "navigation and bathing safety"
+      ],
+      "closure_and_degraded_modes": [
+        "contamination closure",
+        "low-water access adjustment",
+        "flood closure",
+        "seasonal habitat restrictions"
+      ],
+      "unknowns": [
+        "basin carrying constraints",
+        "upstream externalities",
+        "seasonal bloom risk",
+        "site-specific recreation safety"
+      ],
+      "non_assumptions": [
+        "freshwater availability is abundant because a lake is visible",
+        "a natural water body is safe for recreation without monitoring"
+      ]
+    },
+    {
+      "id": "TEMPERATE-URBAN",
+      "name": "Temperate urban and peri-urban destination",
+      "applies_to": [
+        "indoor/outdoor hybrid parks",
+        "rooftop gardens",
+        "museums and arts districts",
+        "regional day attractions"
+      ],
+      "design_hypotheses": [
+        "public-transit-first arrivals",
+        "compact mixed-use experiences",
+        "rain/heat resilient routes and shelters",
+        "evening programming coordinated with neighbours",
+        "reuse of existing buildings/land where life-cycle assessment supports it"
+      ],
+      "key_drivers_to_measure": [
+        "urban heat island",
+        "public transport and active travel capacity",
+        "grid and district heat/cooling",
+        "noise and resident impacts",
+        "land use and housing pressure",
+        "stormwater drainage"
+      ],
+      "hard_constraints": [
+        "zoning and building codes",
+        "fire/egress/accessibility",
+        "public transport and pedestrian safety",
+        "residential noise limits",
+        "stormwater and tree protections"
+      ],
+      "closure_and_degraded_modes": [
+        "heat warning operation",
+        "transit disruption plan",
+        "severe weather mode",
+        "event/noise curtailment"
+      ],
+      "unknowns": [
+        "local demand profile",
+        "neighbour tolerance",
+        "reuse carbon impact",
+        "public realm carrying limits"
+      ],
+      "non_assumptions": [
+        "reusing a building is always lower-impact without assessment",
+        "more events are always compatible with urban life"
+      ]
+    },
+    {
+      "id": "BOREAL-SUBARCTIC",
+      "name": "Boreal, subarctic and northern destination",
+      "applies_to": [
+        "northern wilderness resorts",
+        "aurora/sky experiences",
+        "cold-climate retreats",
+        "seasonal expeditions"
+      ],
+      "design_hypotheses": [
+        "small-group low-impact guiding",
+        "thermal comfort and rescue capability as core design",
+        "dark-sky and seasonal natural phenomena with honest viewing uncertainty",
+        "local/Indigenous partnerships under community governance",
+        "modular facilities and resilient supply/logistics"
+      ],
+      "key_drivers_to_measure": [
+        "cold exposure and daylight variation",
+        "permafrost/ground stability where relevant",
+        "wildfire and remote emergency access",
+        "habitat and migration seasons",
+        "energy/fuel delivery and waste removal"
+      ],
+      "hard_constraints": [
+        "remote rescue capability",
+        "weather cutoff and exposure limits",
+        "land rights and Indigenous/local consent",
+        "waste removal and ecological protection",
+        "transport contingency"
+      ],
+      "closure_and_degraded_modes": [
+        "weather lock-in / safe shelter",
+        "expedition cancellation or reroute",
+        "fuel/energy shortage plan",
+        "seasonal wildlife exclusion"
+      ],
+      "unknowns": [
+        "local ecology and land rights",
+        "emergency response time",
+        "fuel/logistics lifecycle",
+        "natural-phenomenon visibility"
+      ],
+      "non_assumptions": [
+        "aurora or wildlife sightings can be guaranteed",
+        "remote destinations can externalize waste and rescue costs"
+      ]
+    },
+    {
+      "id": "SAVANNA-SEMIARID",
+      "name": "Savanna and semi-arid nature/cultural destination",
+      "applies_to": [
+        "safari gateways",
+        "community-led conservation tourism",
+        "desert-edge retreats",
+        "stargazing and cultural landscapes"
+      ],
+      "design_hypotheses": [
+        "low-impact wildlife observation",
+        "community-governed guiding and conservation value sharing",
+        "shade and heat-safe schedules",
+        "local food/craft/heritage pathways",
+        "water and wildlife coexistence planning"
+      ],
+      "key_drivers_to_measure": [
+        "drought and water access",
+        "wildlife movement and seasonal ranges",
+        "fire, heat and flood risk",
+        "transport and emergency access",
+        "community land and customary use",
+        "visitor vehicle density and noise"
+      ],
+      "hard_constraints": [
+        "wildlife and habitat protections",
+        "community/land rights and consent",
+        "water allocation",
+        "qualified wildlife viewing and emergency procedures",
+        "biosecurity and vehicle access rules"
+      ],
+      "closure_and_degraded_modes": [
+        "wildlife-zone closure",
+        "drought water priority",
+        "fire/heat shutdown",
+        "remote emergency and route closure"
+      ],
+      "unknowns": [
+        "local carrying constraints",
+        "wildlife disturbance thresholds",
+        "value retained by communities",
+        "water source sustainability"
+      ],
+      "non_assumptions": [
+        "wildlife is a guaranteed attraction",
+        "private conservation branding demonstrates ecological success",
+        "one safari model fits different communities or ecosystems"
+      ]
+    }
+  ],
+  "comparative_protocol": {
+    "initial_profiles": [
+      "COAST-TROPICAL",
+      "WATER-STRESSED-ARID",
+      "MOUNTAIN-ALPINE-SKI",
+      "CRUISE-SHIP-PORT-ITINERARY"
+    ],
+    "shared_scenarios": [
+      "baseline_season",
+      "peak_demand",
+      "resource_scarcity",
+      "severe_weather_or_hazard",
+      "critical_infrastructure_outage"
+    ],
+    "paired_comparison_rule": "Same initial state, guest-demand assumptions, accounting boundaries and declared model versions; vary only the named intervention.",
+    "required_negative_controls": [
+      "unaffected_site_or_region",
+      "missing_observation",
+      "stale_projection",
+      "resource_boundary_violation",
+      "local_capacity_exceeded",
+      "invalid_regulatory_currentness"
+    ],
+    "outcome_dimensions": [
+      "experience_and_accessibility",
+      "safety_constraints",
+      "water_energy_material_flows",
+      "emissions_scope",
+      "ecosystem_effects",
+      "community_and_cultural_outcomes",
+      "workforce_effects",
+      "lifecycle_economics",
+      "uncertainty_and_unknowns",
+      "option_value_and_stranded_asset_exposure"
+    ],
+    "promotion_rule": "Profiles remain hypotheses until site observations, local review, jurisdictional review, independent tests and fit-for-purpose field validation are complete."
+  },
+  "sources": [
+    {
+      "topic": "destination governance, culture, climate, water, access and ecosystems",
+      "url": "https://www.gstc.org/gstc-criteria/gstc-destination-criteria/"
+    },
+    {
+      "topic": "coastal ecosystems and adaptation",
+      "url": "https://www.ipcc.ch/report/ar6/wg2/chapter/chapter-3/"
+    },
+    {
+      "topic": "coastal nature-based solutions and performance evaluation",
+      "url": "https://coastalscience.noaa.gov/science-areas/climate-change/restoration-and-nature-based-solutions/"
+    },
+    {
+      "topic": "2026 ski tourism climate adaptation review",
+      "url": "https://doi.org/10.1016/j.accre.2026.09.013"
+    },
+    {
+      "topic": "UNEP Mountains ADAPT",
+      "url": "https://www.unep.org/en/what-we-do/climate-action/adaptation/ecosystem-based-adaptation/mountains-adapt"
+    },
+    {
+      "topic": "IMO MEPC 84, May 2026",
+      "url": "https://www.imo.org/en/mediacentre/meetingsummaries/pages/temporary-mepc-84th-session.aspx"
+    },
+    {
+      "topic": "EU FuelEU Maritime shore-power provisions",
+      "url": "https://transport.ec.europa.eu/transport-modes/maritime/decarbonising-maritime-transport-fueleu-maritime/questions-and-answers-regulation-eu-20231805-use-renewable-and-low-carbon-fuels-maritime-transport_en"
+    },
+    {
+      "topic": "CLIA cruise-industry environmental technologies report, 2026 (industry association source)",
+      "url": "https://www.cruising.org/news/cruise-industry-report-shows-measurable-progress-environmental-technologies-and-practices"
+    }
+  ]
+}

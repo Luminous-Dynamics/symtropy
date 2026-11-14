@@ -57,7 +57,9 @@
     "observation_window",
     "outcome_vector_with_uncertainty",
     "infeasibility_and_unknowns",
-    "independent_oracle_refs"
+    "independent_oracle_refs",
+    "site_specific_provenance_refs",
+    "capital_commitments_and_reversibility"
   ],
   "water_facility_boundary": {
     "required_domains": [
@@ -341,7 +343,8 @@
         "local_transport_and_demand_model",
         "event_noise_policy",
         "water_budget_if_applicable",
-        "capacity_and_egress_review"
+        "capacity_and_egress_review",
+        "aquatic_safety_review_if_water_is_present"
       ],
       "key_unknowns": [
         "local_market_fit",
