@@ -501,6 +501,10 @@ mod tests {
 
 
     fn build_metadata(include_amd1: bool) -> BuildMetadata {
+        build_metadata_with_lock(include_amd1, b"synthetic Cargo.lock")
+    }
+
+    fn build_metadata_with_lock(include_amd1: bool, lock_contents: &[u8]) -> BuildMetadata {
         let standard = StandardReference::new(
             "IEC 60364-8-82", Some("8-82".into()), "2022",
             if include_amd1 { vec!["AMD1:2026".into()] } else { Vec::new() },
@@ -518,7 +522,7 @@ mod tests {
         BuildMetadata::new(
             "symtropy-energy-systems", "0.1.0",
             "rustc:1.96.0;target:x86_64-unknown-linux-gnu",
-            Sha256Digest::from_bytes(b"synthetic Cargo.lock"),
+            Sha256Digest::from_bytes(lock_contents),
             vec![standard_pin], vec![upstream],
         ).unwrap()
     }
@@ -577,6 +581,24 @@ mod tests {
             build_metadata(false),
         ).unwrap();
         assert_ne!(a.receipt().build_lock_digest(), b.receipt().build_lock_digest());
+    }
+
+
+    #[test]
+    fn changed_dependency_lock_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_lock(true, b"Cargo.lock revision A"),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_lock(true, b"Cargo.lock revision B"),
+        ).unwrap();
+        assert_ne!(first.receipt().build_lock_digest(), second.receipt().build_lock_digest());
     }
 
     #[test]
