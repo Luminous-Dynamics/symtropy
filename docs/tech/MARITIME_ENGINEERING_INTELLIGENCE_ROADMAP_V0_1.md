@@ -470,3 +470,12 @@ A task-specific weighted F1 of 0.9965 on a marine centrifugal fan is a strong ad
 4. **Engineering diagnosability:** fault-pair isolation, ambiguity-set correctness, common-cause cuts, sensor-layout burden, and qualification withdrawal after physical/configuration change.
 
 This is the more credible way to outperform the field: match each adjacent system on its own task first, then show which conclusions remain valid under independent evidence, unknown conditions, changing configurations and failure of the measurement architecture. No cross-domain performance superiority is claimed here.
+
+
+### 2026 validation-evidence research: two additional baselines
+
+**Horvath (24 September 2026), Industrial Evidence Matrix.** The registered systematic map and nested experiment-level audit proposes separate axes for physical independence (A0–A4), domain shift (B0–B4), target-domain access, leakage risk and deployment evidence. In its access-influenced audit cohort of 157 validation experiments, 130 (82.8%) were A0–A1, 27 (17.2%) reached A2–A4, 41 (26.1%) tested B2–B4 shifts, and only one experiment combined A4/B4. High leakage evidence was present in 12.1%; 59.2% were UNCLEAR because reporting was insufficient. These are descriptive of the nested cohort, not whole-literature prevalence. We should adopt the evidence vector, especially the UNCLEAR state, rather than inventing a scalar readiness score.
+
+**Mahazani et al. (12 November 2026), nested replication rotating-machinery monitoring.** A laboratory study on one unloaded rig used three assembly replications, 30 complete recordings and 3,570 overlapping windows; it used nested leave-one-replication-out validation with recording-level partitioning. Gradient-boosted trees reported 98.9% window accuracy, macro-F1 0.988 and MCC 0.985. A one-dimensional CNN reported 99.1% mean accuracy but was not statistically compared with the tree model. The paper reports an uncalibrated MEMS measurement channel and a top-ranked feature beyond the sensor's rated bandwidth; it also does not exclude campaign-specific contribution to fault-family discrimination. This is a useful matched evaluation design and sensor-evidence falsification baseline—not marine, variable-load, cross-machine or RUL evidence.
+
+The new registry entries preserve the exact data scope, split unit, reported result, limitation and non-comparability to Aalto. No score is represented as reproduced.

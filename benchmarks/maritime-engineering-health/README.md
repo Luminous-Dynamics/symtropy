@@ -93,3 +93,13 @@ engineer has accepted the interpretation.
 - Data trust and evidence-preserving reconstruction: Symtropy issue #4535.
 - RUL and maintenance decision utility: `docs/tech/MARITIME_PROGNOSTICS_BENCHMARK_V0_1.md`, forecast contract schema `docs/tech/MARITIME_RUL_FORECAST_V0_1.schema.json`, issue #4545.
 - Narrative causal risk from incident/maintenance records: issue #4548.
+
+
+### Additional 2026 validation-evidence baselines
+
+The registry includes two further comparators:
+
+- **Industrial Evidence Matrix (Horvath, 24 September 2026):** evidence profile separates A0–A4 physical independence, B0–B4 domain shift, target-domain access and leakage risk. Its reported proportions describe a nested access-influenced cohort only; no scalar ranking or whole-literature prevalence is inferred.
+- **Nested replication condition monitoring (Mahazani et al., 12 November 2026):** 30 recordings across three assembly replications (3,570 overlapping windows), nested leave-one-replication-out with recording-level partitioning, 98.9% GBT accuracy, 0.988 macro-F1 and 0.985 MCC. It is a single unloaded rig at one speed; MEMS calibration and passband limitations are explicit. Not a marine engine or RUL comparator.
+
+See the registry entries for exact metrics, split scope, limitations and non-comparison claims.

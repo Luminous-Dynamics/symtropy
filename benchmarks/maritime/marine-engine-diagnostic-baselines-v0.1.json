@@ -1335,6 +1335,155 @@
         "A disjointness certificate between conservative outer bounds can prove separation; overlap of outer bounds alone does not prove a true intersection.",
         "Use as a theory/method comparator, not as a marine-engine SOTA result."
       ]
+    },
+    {
+      "id": "industrial-evidence-matrix-rotating-machinery-2026",
+      "title": "From Benchmark Accuracy to Industrial Evidence: A Registered Systematic Map and Nested Experiment-Level Audit of Validation Credibility in AI-Based Rotating-Machinery Fault Diagnosis",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-09-24",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.3390/vibration9040062",
+      "data_domain": "Registered systematic map and experiment-level audit of rotating-machinery vibration/acoustic diagnosis research; nested, source-structured review subset of 97 studies and 157 validation experiments, not a new physical engine dataset.",
+      "task": "Audit the credibility and industrial scope of diagnostic validation designs, separating physical independence, domain shift, target-domain access, leakage risk and deployment evidence.",
+      "reported_metrics": [
+        {
+          "metric": "audited_validation_experiments",
+          "value": 157,
+          "unit": "experiments",
+          "context": "Experiments extracted from 97 included studies in an access-influenced nested review cohort.",
+          "source_location": "Abstract; Sections 2–3"
+        },
+        {
+          "metric": "A0_A1_physical_independence",
+          "value": 82.8,
+          "unit": "percent",
+          "context": "130 of 157 experiments remained at sample/window-level or separate runs/time blocks on the same physical component/apparatus.",
+          "source_location": "Abstract; Table 7"
+        },
+        {
+          "metric": "A2_A4_physical_independence",
+          "value": 17.2,
+          "unit": "percent",
+          "context": "27 of 157 experiments reached independent physical components/specimens, machines/test systems or sites/fleets.",
+          "source_location": "Abstract; Table 7"
+        },
+        {
+          "metric": "B2_B4_domain_shift",
+          "value": 26.1,
+          "unit": "percent",
+          "context": "41 of 157 experiments evaluated sensor/test-rig, machine-population or site/fleet-level domain shifts.",
+          "source_location": "Abstract; Table 7"
+        },
+        {
+          "metric": "A4_B4_highest_evidence_level",
+          "value": 1,
+          "unit": "experiment",
+          "context": "Only one experiment in the 157-experiment nested cohort combined the highest physical-independence and domain-shift levels.",
+          "source_location": "Table 7; Section 4.3"
+        },
+        {
+          "metric": "leakage_risk_high_or_unclear",
+          "value": "12.1% high; 59.2% unclear",
+          "unit": "percent of experiments",
+          "context": "High requires positive evidence of contamination or test-set model selection; Unclear means reporting does not permit a reliable judgment.",
+          "source_location": "Abstract; Table 8"
+        }
+      ],
+      "split_protocol": "PRISMA-aligned registered systematic map plus nested experiment-level audit. The final audited cohort was source-structured and access-influenced, not a probability sample of the complete literature. Metric types were stratified rather than pooled.",
+      "reported_limitations": [
+        "The 97-study/157-experiment synthesis is a non-probability, source-structured, access-influenced nested cohort; its percentages are not prevalence estimates for the full literature.",
+        "241 of 351 reports in the operational full-text queue remained unresolved at evidence lock.",
+        "The review does not introduce or benchmark a diagnostic classifier; its contribution is an evidence-audit vocabulary, not predictive performance.",
+        "Physical independence, domain shift, target-domain access and leakage risk are separate dimensions and must not be collapsed into one scalar readiness score."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Use the A0–A4 physical-independence and B0–B4 domain-shift axes as a reporting vocabulary alongside target access and leakage risk.",
+        "The paper's IEM can be applied during protocol design, internal release review and external generalization-claim audit.",
+        "Adopt the explicit UNCLEAR leakage state when split/preprocessing/model-selection reporting is insufficient; absence of evidence is not proof of low leakage risk.",
+        "Do not transplant the paper's cohort proportions as universal field prevalence or use them to rank model architectures."
+      ]
+    },
+    {
+      "id": "nested-replication-rotating-machinery-condition-monitoring-2026",
+      "title": "Machine learning condition monitoring systems for rotating machinery fault detection",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-11-12",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.3389/fmech.2026.1979480",
+      "data_domain": "Unloaded 0.37 kW induction-motor/shaft/bearing laboratory rig at one speed, instrumented with a motor-housing piezoelectric accelerometer and bearing-housing tri-axial MEMS accelerometer; ten machine states recorded on three assembly replications, yielding 30 recordings and 3,570 overlapping one-second windows.",
+      "task": "Four-class fault-type identification (healthy, bearing contamination, mass unbalance, shaft misalignment), imposed severity-level estimation and edge/IoT deployment under nested leave-one-replication-out validation.",
+      "reported_metrics": [
+        {
+          "metric": "gradient_boosted_tree_window_accuracy",
+          "value": 98.9,
+          "unit": "percent",
+          "context": "Window-level accuracy under nested leave-one-replication-out validation; indicative fold-level 95% confidence interval 97.9–99.9%.",
+          "source_location": "Abstract; Table 6"
+        },
+        {
+          "metric": "gradient_boosted_tree_macro_f1",
+          "value": 0.988,
+          "unit": "score",
+          "context": "Four-class macro-averaged F1 under the same recording-level outer partitioning.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "gradient_boosted_tree_matthews_correlation",
+          "value": 0.985,
+          "unit": "score",
+          "context": "Matthews correlation coefficient under the same four-class validation protocol.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "one_dimensional_cnn_mean_accuracy",
+          "value": 99.1,
+          "unit": "percent",
+          "context": "Mean accuracy reported for the CNN; the paper states the two models were not statistically compared.",
+          "source_location": "Abstract; Section 3"
+        },
+        {
+          "metric": "per_window_pipeline_execution_time",
+          "value": 11.3,
+          "unit": "milliseconds",
+          "context": "Feature extraction plus inference on a laptop-class processor against a 500 ms window advance.",
+          "source_location": "Abstract; Section 3.7"
+        },
+        {
+          "metric": "scheduled_live_record_delivery",
+          "value": 99.4,
+          "unit": "percent",
+          "context": "5,725 of 5,760 scheduled records arrived within the scheduled interval during an eight-hour workstation trial; buffered records were not counted as on-time.",
+          "source_location": "Section 3.7"
+        },
+        {
+          "metric": "approximate_dashboard_median_latency",
+          "value": 1.4,
+          "unit": "seconds",
+          "context": "Approximate median end-to-end latency; workstation and server clocks were not offset-calibrated, so the absolute latency contains an unknown approximately constant clock offset.",
+          "source_location": "Abstract; Section 3.7"
+        }
+      ],
+      "split_protocol": "Nested leave-one-assembly-replication-out outer validation with recording-level partitioning: each fold excludes one complete assembly replication from model development. The 3,570 overlapping one-second windows are not independent units; 30 recordings across three replications are the independent observations.",
+      "reported_limitations": [
+        "Single unloaded laboratory rig at one speed; no variable load or cross-machine validation.",
+        "The bearing-housing MEMS channel was not calibrated against a reference transducer; its nominal sensitivity was inconsistent with the datasheet, so absolute channel amplitude has a scale limitation.",
+        "The highest-ranked feature lies beyond the rated bandwidth of the bearing sensor.",
+        "Campaign-specific characteristics may still contribute to fault-family discrimination; this contribution was not excluded.",
+        "Fault severity had only three discrete seeded levels per family; the regressors do not validate continuous degradation or RUL.",
+        "The reported CNN and gradient-boosted-tree accuracy values were not statistically compared.",
+        "Absolute end-to-end latency is approximate because the workstation and server clocks were not offset-calibrated."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "A useful validation-method comparator: recording-level, nested leave-one-replication-out partitioning across three assembly replications.",
+        "Do not compare 98.9% window accuracy directly with recording-level or event-level scores; report both window and recording-level outcomes.",
+        "Treat 30 recordings/3 replications—not 3,570 overlapping windows—as the physical evidence count.",
+        "The sensor-calibration and passband limitations are useful negative controls for Symtropy's sensor-evidence admission and signal-feature qualification.",
+        "Not a marine-engine result, not variable-load validation and not prognostic evidence."
+      ]
     }
   ]
 }
