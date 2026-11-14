@@ -402,8 +402,13 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         self.receipt
     }
 
-    /// ||v||_M = sqrt(v^T M v), evaluated as ||L^T v||_2 for M = L L^T.
-    pub fn tangent_norm(&self, vector: &Tangent<F, N>) -> Result<f64, MetricErrorV1> {
+    /// Whiten tangent coordinates with the metric Cholesky factor:
+    /// z = L^T v, so ||z||_2 = ||v||_M for M = L L^T.
+    ///
+    /// The explicit whitened representation lets rank revelation and
+    /// orthogonal projection run in Euclidean coordinates, avoiding direct
+    /// H-inner-product accumulation in badly scaled row coordinates.
+    pub fn whiten_tangent(&self, vector: &Tangent<F, N>) -> Result<Vector<N>, MetricErrorV1> {
         let mut transformed = [0.0; N];
         for (column, output) in transformed.iter_mut().enumerate() {
             let mut value = 0.0;
@@ -415,6 +420,29 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
             }
             *output = value;
         }
+        Ok(transformed)
+    }
+
+    /// Undo tangent whitening by solving L^T v = z.
+    pub fn unwhiten_tangent(&self, whitened: &Vector<N>) -> Result<Tangent<F, N>, MetricErrorV1> {
+        validate_vector(whitened)?;
+        let mut components = [0.0; N];
+        for row in (0..N).rev() {
+            let mut value = whitened[row];
+            for (column, component) in components.iter().enumerate().skip(row + 1) {
+                value -= self.cholesky[column][row] * component;
+            }
+            components[row] = value / self.cholesky[row][row];
+            if !components[row].is_finite() {
+                return Err(MetricErrorV1::NonFiniteIntermediate);
+            }
+        }
+        Tangent::new(components)
+    }
+
+    /// ||v||_M = sqrt(v^T M v), evaluated as ||L^T v||_2 for M = L L^T.
+    pub fn tangent_norm(&self, vector: &Tangent<F, N>) -> Result<f64, MetricErrorV1> {
+        let transformed = self.whiten_tangent(vector)?;
         let norm = vector_euclidean(&transformed);
         if norm.is_finite() {
             Ok(norm)
@@ -653,6 +681,25 @@ mod tests {
             (left - right).abs() <= tolerance * scale,
             "{left} != {right}"
         );
+    }
+
+    #[test]
+    fn tangent_whitening_roundtrips_and_matches_metric_norm() {
+        let metric = cartesian_metric();
+        let vector = Tangent::<CartesianQ, 3>::new([0.5, -1.25, 2.0]).unwrap();
+        let whitened = metric.whiten_tangent(&vector).unwrap();
+        let recovered = metric.unwhiten_tangent(&whitened).unwrap();
+        let norm_from_whitened = vector_euclidean(&whitened);
+        let norm_from_metric = metric.tangent_norm(&vector).unwrap();
+
+        for index in 0..3 {
+            close(
+                recovered.components[index],
+                vector.components[index],
+                2.0e-13,
+            );
+        }
+        close(norm_from_whitened, norm_from_metric, 2.0e-13);
     }
 
     #[test]
