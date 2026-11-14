@@ -1,0 +1,1 @@
+Temporary diagnostic trigger for pinned Rust formatter capture; delete after the formatter-only commit is transferred.
