@@ -1,0 +1,256 @@
+name: Living World LW55-LW62 Exact-Head Qualification
+
+on:
+  push:
+    branches:
+      - 'ci/living-world-lw55-lw57-exact-head-qualification-v0.1'
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: living-world-lw55-lw62-exact-head-qualification-v0.1
+  cancel-in-progress: true
+
+env:
+  LW55_SHA: 51f0a62f768ca3aa02edd367abf9265e5b13d9dc
+  LW56_SHA: 743656343acedbf6a2c101eea6204ccc10c5dd15
+  LW57_SHA: c1555fac8458eafb458e8469ff84e246067790b3
+  LW58_SHA: 5351c2ba922d2858d708402d02492b67f446ac39
+  LW59_SHA: 3d83df424b5caea9804f69723d8b60dc9ecbe5a6
+  LW60_SHA: caec2fcd5c29c4fe44ebc55d468584961e24732e
+  LW61_SHA: 097f56bca1069783b3bb3c7489892748037c7176
+  LW62_SHA: 7b1d15c75196bfa9f3d879eb0b76e73ea5959a9e
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    name: Exact LW55 -> LW62 authority stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 135
+
+    steps:
+      - name: Check out exact LW55 product subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.LW55_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch and authenticate all immutable product subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            "living-world/lw55-shadow-continuity-sampling-invariant" \
+            "living-world/lw56-executable-runner-qualification" \
+            "living-world/lw57-verifier-bound-runner-semantics" \
+            "living-world/lw58-current-executable-continuity" \
+            "living-world/lw59-subject-bound-runner-qualification" \
+            "living-world/lw60-cross-layer-hostile-fixtures" \
+            "living-world/lw61-subject-descriptor-authority" \
+            "living-world/lw62-q2-authority-hostile-fixture"
+          for sha in "$LW55_SHA" "$LW56_SHA" "$LW57_SHA" "$LW58_SHA" "$LW59_SHA" "$LW60_SHA" "$LW61_SHA" "$LW62_SHA"; do
+            git cat-file -e "${sha}^{commit}"
+          done
+          test "$LW55_SHA" = "$(git rev-parse origin/living-world/lw55-shadow-continuity-sampling-invariant)"
+          test "$LW56_SHA" = "$(git rev-parse origin/living-world/lw56-executable-runner-qualification)"
+          test "$LW57_SHA" = "$(git rev-parse origin/living-world/lw57-verifier-bound-runner-semantics)"
+          test "$LW58_SHA" = "$(git rev-parse origin/living-world/lw58-current-executable-continuity)"
+          test "$LW59_SHA" = "$(git rev-parse origin/living-world/lw59-subject-bound-runner-qualification)"
+          test "$LW60_SHA" = "$(git rev-parse origin/living-world/lw60-cross-layer-hostile-fixtures)"
+          test "$LW61_SHA" = "$(git rev-parse origin/living-world/lw61-subject-descriptor-authority)"
+          test "$LW62_SHA" = "$(git rev-parse origin/living-world/lw62-q2-authority-hostile-fixture)"
+          test -z "$(git status --porcelain)"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Record qualification environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version --verbose
+          cargo --version
+          mkdir -p "$RUNNER_TEMP/living-world-qualification"
+          echo "CARGO_TARGET_DIR=$RUNNER_TEMP/living-world-target" >> "$GITHUB_ENV"
+
+      - name: Qualify exact LW55 sampling-invariant continuity head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW55_SHA"
+          test "$(git rev-parse HEAD)" = "$LW55_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_execution_continuity::tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw55.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW55","product_sha":"$LW55_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","targeted-hostile-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"structural_continuity_contract_executed":true,"production_runner_emission_qualified":false,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW56 executable-qualification authority head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW56_SHA"
+          test "$(git rev-parse HEAD)" = "$LW56_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_runner_qualification::tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw56.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW56","product_sha":"$LW56_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","targeted-hostile-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"reviewed_receipt_resolver_executed":true,"external_provider_adapter_qualified":false,"production_runner_emission_qualified":false,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW57 verifier-bound semantic authority head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW57_SHA"
+          test "$(git rev-parse HEAD)" = "$LW57_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_runner_semantic_provenance::tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw57.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW57","product_sha":"$LW57_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","targeted-hostile-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"verifier_bound_semantic_resolver_executed":true,"external_semantic_evidence_verified":false,"production_runner_emission_qualified":false,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW58 current executable-continuity head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW58_SHA"
+          test "$(git rev-parse HEAD)" = "$LW58_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw58.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW58","product_sha":"$LW58_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","full-lib-tests","strict-clippy-all-targets-all-features"],"current_executable_continuity_composition_compiled":true,"dedicated_lw58_hostile_fixture_executed":false,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW59 reviewed subject-binding head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW59_SHA"
+          test "$(git rev-parse HEAD)" = "$LW59_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw59.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW59","product_sha":"$LW59_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","full-lib-tests","strict-clippy-all-targets-all-features"],"subject_binding_authority_compiled":true,"dedicated_lw59_hostile_fixture_executed":false,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW60 hostile subject-binding fixture head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW60_SHA"
+          test "$(git rev-parse HEAD)" = "$LW60_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_runner_subject_binding_hostile_tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw60.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW60","product_sha":"$LW60_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","targeted-hostile-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"subject_binding_hostile_fixture_executed":true,"dedicated_lw58_structural_fixture_executed":false,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW61 domain-separated subject-descriptor head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$LW61_SHA"
+          test "$(git rev-parse HEAD)" = "$LW61_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_runner_subject_descriptor_tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_runner_subject_binding_hostile_tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw61.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW61","product_sha":"$LW61_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","subject-descriptor-hostile-tests","subject-binding-regression-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"domain_separated_subject_descriptor_fixture_executed":true,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Qualify exact LW62 reusable Q2 hostile-fixture head
+        shell: bash
+        run: |
+          set -euo pipefail
+          LW58_SOURCE='crates/domains/symtropy-lifesim-core/src/living_world_authority/shadow_current_executable_continuity.rs'
+          LW58_BLOB="$(git rev-parse "${LW58_SHA}:${LW58_SOURCE}")"
+          LW62_BLOB="$(git rev-parse "${LW62_SHA}:${LW58_SOURCE}")"
+          test "$LW58_BLOB" = "$LW62_BLOB"
+          git checkout --detach "$LW62_SHA"
+          test "$(git rev-parse HEAD)" = "$LW62_SHA"
+          test -z "$(git status --porcelain)"
+          HEAD_TREE="$(git rev-parse HEAD^{tree})"
+          LOCK_SHA256="$(sha256sum Cargo.lock | awk '{print $1}')"
+          cargo fmt --all -- --check
+          cargo check --locked -p symtropy-lifesim-core --all-targets
+          cargo test --locked -p symtropy-lifesim-core --lib shadow_current_executable_continuity_hostile_tests -- --nocapture
+          cargo test --locked -p symtropy-lifesim-core --lib
+          cargo clippy --locked -p symtropy-lifesim-core --all-targets --all-features -- -D warnings
+          test -z "$(git status --porcelain)"
+          cat > "$RUNNER_TEMP/living-world-qualification/lw62.json" <<EOF
+          {"schema":"living-world-exact-head-qualification-v1","layer":"LW62","product_sha":"$LW62_SHA","product_tree":"$HEAD_TREE","cargo_lock_sha256":"$LOCK_SHA256","rust":"1.96.0","crate":"symtropy-lifesim-core","gates":["rustfmt-check","cargo-check-locked-all-targets","q2-currentness-hostile-tests","full-lib-tests","strict-clippy-all-targets-all-features"],"lw58_product_sha":"$LW58_SHA","lw58_source_blob":"$LW58_BLOB","lw62_source_blob":"$LW62_BLOB","lw58_source_blob_unchanged_in_lw62":true,"lw58_theorem_hostile_fixture_executed":true,"reusable_q2_authority_fixture_executed":true,"anchor_renewal_authorized":false}
+          EOF
+
+      - name: Freeze manifest digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/living-world-qualification"
+          sha256sum lw55.json lw56.json lw57.json lw58.json lw59.json lw60.json lw61.json lw62.json | tee SHA256SUMS
+
+      - name: Attest exact qualification manifests
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: ${{ runner.temp }}/living-world-qualification/*.json
+
+      - name: Verify qualification manifest attestations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in "$RUNNER_TEMP"/living-world-qualification/lw{55,56,57,58,59,60,61,62}.json; do
+            gh attestation verify "$manifest" --repo "$GITHUB_REPOSITORY"
+          done
