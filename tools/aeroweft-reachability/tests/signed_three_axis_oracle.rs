@@ -13,11 +13,11 @@ fn axis(
     disturbance: Interval,
 ) -> AxisVelocityEnvelope {
     AxisVelocityEnvelope {
-        nominal_mps: nominal,
-        state_uncertainty_mps: state,
-        model_uncertainty_mps: interval(0.0, 0.0),
-        control_mps: interval(0.0, 0.0),
-        disturbance_mps: disturbance,
+        nominal_velocity_mps: nominal,
+        velocity_estimation_uncertainty_mps: state,
+        model_parameter_uncertainty_mps: interval(0.0, 0.0),
+        control_velocity_mps: interval(0.0, 0.0),
+        environmental_disturbance_mps: disturbance,
     }
 }
 
