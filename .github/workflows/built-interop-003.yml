@@ -1,0 +1,36 @@
+name: BUILT-INTEROP-003 External Corpus Inventory
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-003/**"
+      - ".github/workflows/built-interop-003.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-003/**"
+      - ".github/workflows/built-interop-003.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pinned-external-inventory:
+    name: Verify immutable external IDS corpus inventory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout exact upstream revision without bundling fixtures in this repo
+        uses: actions/checkout@v4
+        with:
+          repository: buildingSMART/IDS
+          ref: 870f9c4e6e8f414e737b4d84ca1aa9b46fc6c8f3
+          path: external/IDS
+          sparse-checkout: |
+            LICENSE
+            Documentation/ImplementersDocumentation/TestCases
+          sparse-checkout-cone-mode: true
+      - name: Verify inventory, blob IDs and byte sizes
+        run: bash tools/built-interop-003/verify-corpus.sh tools/built-interop-003/corpus-manifest-v1.json external/IDS
