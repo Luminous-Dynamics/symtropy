@@ -1,0 +1,14 @@
+[package]
+name = "pirb-outcome-governance-audit"
+version = "0.2.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Draft 2020-12 schema conformance tests for PIRB v0.2 outcome governance"
+
+[dependencies]
+serde_json = "1"
+jsonschema = { version = "0.59", default-features = false }
+chrono = { version = "0.4", default-features = false, features = ["std"] }
+
+[workspace]
