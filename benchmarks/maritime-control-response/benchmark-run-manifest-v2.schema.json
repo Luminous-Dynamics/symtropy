@@ -3175,9 +3175,13 @@
             "required": [
               "score_claim_allowed"
             ]
+          },
+          "run_status": {
+            "const": "qualified"
           }
         },
         "required": [
+          "run_status",
           "claims"
         ]
       },
@@ -3217,6 +3221,14 @@
               },
               "reviewer_scope": {
                 "const": "INDEPENDENT_PHYSICAL_AUDIT"
+              },
+              "target_domain_access": {
+                "enum": [
+                  "NONE",
+                  "UNLABELED_ADAPTATION",
+                  "LABELED_ADAPTATION",
+                  "SELF_SUPERVISED_PRETRAINING"
+                ]
               }
             }
           }
