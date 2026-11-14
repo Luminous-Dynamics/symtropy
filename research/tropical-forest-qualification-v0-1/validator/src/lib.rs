@@ -1593,11 +1593,7 @@ fn validate_variable_aggregation_corpus(
                         unit: string_at(sample, &["unit"])?,
                     });
                 }
-                let expected_unit = case
-                    .get("expected")
-                    .and_then(|expected| expected.get("unit"))
-                    .and_then(Value::as_str)
-                    .unwrap_or("Mg/ha");
+                let expected_unit = string_at(case, &["target_unit"])?;
                 aggregation_kernel::aggregate_intensive_mean(
                     &target_crs,
                     target,
@@ -1652,7 +1648,9 @@ fn validate_variable_aggregation_corpus(
                         sampling_frame_id: string_at(sample, &["sampling_frame_id"])?,
                         sampling_design_id: string_at(sample, &["sampling_design_id"])?,
                         design_kind: string_at(sample, &["design_kind"])?,
-                        observed_count: usize_at(sample, &["observed_count"])? as u64,
+                        observed_count: at(sample, &["observed_count"])?
+                            .as_u64()
+                            .ok_or_else(|| "observed_count must be a non-negative integer".to_string())?,
                         inclusion_probability: number_at(sample, &["inclusion_probability"])?,
                     });
                 }
