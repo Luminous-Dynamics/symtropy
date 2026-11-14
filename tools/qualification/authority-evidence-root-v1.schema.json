@@ -1,0 +1,1400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Luminous Authority Evidence Root v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "manifest_sha256",
+    "manifest_root_sha256",
+    "member_sha256",
+    "semantic_bindings",
+    "semantic_binding_policy",
+    "provenance_graph",
+    "semantic_security_surface",
+    "root_sha256"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "luminous.authority-evidence-root.v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "manifest_root_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "member_sha256": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_payload",
+        "dispatch_evidence",
+        "verifier_release",
+        "qualification_contract",
+        "qualification_contract_checkout_identity",
+        "execution_evidence"
+      ],
+      "properties": {
+        "dispatch_payload": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dispatch_evidence": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "verifier_release": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "qualification_contract": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "qualification_contract_checkout_identity": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "execution_evidence": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "semantic_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_commit_sha",
+        "verifier_release_sha256",
+        "contract_tree_sha",
+        "contract_blob_sha",
+        "subject_head_sha",
+        "contract_subject_head_sha",
+        "subject_tree_sha",
+        "final_result"
+      ],
+      "properties": {
+        "contract_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "verifier_release_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contract_tree_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "contract_blob_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "subject_head_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "contract_subject_head_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "subject_tree_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "final_result": {
+          "enum": [
+            "TheoremExecutedPass",
+            "TheoremExecutedFail",
+            "InfrastructureFailure"
+          ]
+        }
+      }
+    },
+    "semantic_binding_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_commit_sha",
+        "verifier_release_sha256",
+        "contract_tree_sha",
+        "contract_blob_sha",
+        "subject_head_sha",
+        "contract_subject_head_sha",
+        "subject_tree_sha",
+        "final_result"
+      ],
+      "properties": {
+        "contract_commit_sha": {
+          "const": "enforced"
+        },
+        "verifier_release_sha256": {
+          "const": "enforced"
+        },
+        "contract_tree_sha": {
+          "const": "retained"
+        },
+        "contract_blob_sha": {
+          "const": "enforced"
+        },
+        "subject_head_sha": {
+          "const": "enforced"
+        },
+        "contract_subject_head_sha": {
+          "const": "enforced"
+        },
+        "subject_tree_sha": {
+          "const": "retained"
+        },
+        "final_result": {
+          "const": "enforced"
+        }
+      }
+    },
+    "root_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "provenance_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "dispatch_payload"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "dispatch_evidence"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "verifier_release"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "qualification_contract"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "sha256"
+              ],
+              "properties": {
+                "id": {
+                  "const": "execution_evidence"
+                },
+                "kind": {
+                  "const": "evidence"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "commit_sha",
+                "tree_sha",
+                "blob_sha"
+              ],
+              "properties": {
+                "id": {
+                  "const": "contract_identity"
+                },
+                "kind": {
+                  "const": "identity"
+                },
+                "commit_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "tree_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "blob_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "tree_sha",
+                "head_sha"
+              ],
+              "properties": {
+                "id": {
+                  "const": "subject_identity"
+                },
+                "kind": {
+                  "const": "identity"
+                },
+                "tree_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "head_sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "id": {
+                  "const": "final_result"
+                },
+                "kind": {
+                  "const": "observation"
+                },
+                "value": {
+                  "enum": [
+                    "TheoremExecutedPass",
+                    "TheoremExecutedFail",
+                    "InfrastructureFailure"
+                  ]
+                }
+              }
+            }
+          ],
+          "items": false
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "prefixItems": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "dispatch_payload"
+                },
+                "type": {
+                  "const": "binds"
+                },
+                "to": {
+                  "const": "qualification_contract"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "dispatch_payload"
+                },
+                "type": {
+                  "const": "selects"
+                },
+                "to": {
+                  "const": "verifier_release"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "type": {
+                  "const": "materializes"
+                },
+                "to": {
+                  "const": "qualification_contract"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "execution_evidence"
+                },
+                "type": {
+                  "const": "uses"
+                },
+                "to": {
+                  "const": "qualification_contract"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "execution_evidence"
+                },
+                "type": {
+                  "const": "targets"
+                },
+                "to": {
+                  "const": "subject_identity"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "type",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "const": "execution_evidence"
+                },
+                "type": {
+                  "const": "produces"
+                },
+                "to": {
+                  "const": "final_result"
+                }
+              }
+            }
+          ],
+          "items": false
+        }
+      }
+    },
+    "semantic_security_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_commit_sha",
+        "verifier_release_sha256",
+        "contract_tree_sha",
+        "contract_blob_sha",
+        "subject_head_sha",
+        "contract_subject_head_sha",
+        "subject_tree_sha",
+        "final_result"
+      ],
+      "properties": {
+        "contract_commit_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "field": {
+                  "const": "contract_commit_sha"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 1
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 1
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "contract_identity"
+                },
+                "field": {
+                  "const": "commit_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind qualification dispatch and execution to one frozen contract commit"
+            }
+          }
+        },
+        "verifier_release_sha256": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "dispatch_evidence"
+                },
+                "field": {
+                  "const": "release_sha256"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 1
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 1
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "verifier_release"
+                },
+                "field": {
+                  "const": "sha256"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind dispatch selection to the exact retained verifier release member"
+            }
+          }
+        },
+        "contract_tree_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "field": {
+                  "const": "contract_tree_sha"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "retained"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 0
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 0
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "contract_identity"
+                },
+                "field": {
+                  "const": "tree_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "retain the exact checkout tree identity of the frozen contract"
+            }
+          }
+        },
+        "contract_blob_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "qualification_contract_checkout_identity"
+                },
+                "field": {
+                  "const": "contract_blob_sha"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 1
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 1
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "contract_identity"
+                },
+                "field": {
+                  "const": "blob_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind the checkout identity to the exact retained contract bytes"
+            }
+          }
+        },
+        "subject_head_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "execution_evidence"
+                },
+                "field": {
+                  "const": "subject_head_sha"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 1
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 1
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "subject_identity"
+                },
+                "field": {
+                  "const": "head_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind execution evidence to one immutable subject revision"
+            }
+          }
+        },
+        "contract_subject_head_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "qualification_contract"
+                },
+                "field": {
+                  "const": "subject_head_sha"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 1
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 1
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "subject_identity"
+                },
+                "field": {
+                  "const": "head_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind the qualification contract to the dispatched subject revision"
+            }
+          }
+        },
+        "subject_tree_sha": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "execution_evidence"
+                },
+                "field": {
+                  "const": "subject_tree_sha"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "retained"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 0
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 0
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "subject_identity"
+                },
+                "field": {
+                  "const": "tree_sha"
+                }
+              }
+            },
+            "purpose": {
+              "const": "retain the subject checkout tree identity"
+            }
+          }
+        },
+        "final_result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "graph",
+            "coverage_class",
+            "enforcement",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "field"
+              ],
+              "properties": {
+                "role": {
+                  "const": "execution_evidence"
+                },
+                "field": {
+                  "const": "final_result"
+                }
+              }
+            },
+            "coverage_class": {
+              "const": "enforced"
+            },
+            "enforcement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enforced_by",
+                "checks"
+              ],
+              "properties": {
+                "enforced_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 1
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "edge",
+                      "operands"
+                    ],
+                    "properties": {
+                      "edge": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "operands": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "minItems": 1
+                }
+              }
+            },
+            "graph": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node",
+                "field"
+              ],
+              "properties": {
+                "node": {
+                  "const": "final_result"
+                },
+                "field": {
+                  "const": "value"
+                }
+              }
+            },
+            "purpose": {
+              "const": "bind the observed qualification result to retained execution evidence"
+            }
+          }
+        }
+      }
+    }
+  }
+}

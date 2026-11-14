@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.org/schemas/authority-evidence-manifest-v1.json",
+  "title": "QUAL-001B Authority Evidence Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "schema_version", "members", "root_sha256"],
+  "properties": {
+    "schema_id": {"const": "luminous.authority-evidence-manifest.v1"},
+    "schema_version": {"const": 1},
+    "members": {
+      "type": "array",
+      "prefixItems": [
+        {"$ref": "#/$defs/member"},
+        {"$ref": "#/$defs/member"},
+        {"$ref": "#/$defs/member"},
+        {"$ref": "#/$defs/member"},
+        {"$ref": "#/$defs/member"},
+        {"$ref": "#/$defs/member"}
+      ],
+      "items": false,
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "root_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "role", "byte_len", "sha256"],
+      "properties": {
+        "name": {"type": "string"},
+        "role": {"type": "string"},
+        "byte_len": {"type": "integer", "minimum": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}
