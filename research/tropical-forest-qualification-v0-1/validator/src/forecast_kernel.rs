@@ -643,7 +643,7 @@ mod tests {
 
     #[test]
     fn brier_score_matches_known_binary_probabilities() {
-        assert_eq!(brier_score(0.8, true), Ok(0.04));
+        assert!((brier_score(0.8, true).unwrap() - 0.04).abs() < 1e-12);
         assert!((brier_score(0.1, false).unwrap() - 0.01).abs() < 1e-12);
     }
 
