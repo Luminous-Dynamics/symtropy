@@ -1,0 +1,240 @@
+{
+  "schema_version": "mixing-identifiability-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "evidence_class": "synthetic_fixture",
+  "evidence_ceiling": "linear_excitation_rank_and_measurement_observability_checks_only_no_physical_mixing_qualification",
+  "case_count": 10,
+  "cases": [
+    {
+      "case_id": "MID-T0-001-two-inlet-orthogonal-excitation-full-rank",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-002-equal-simultaneous-excitation-rank-deficient",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-003-near-collinear-excitation-below-rank-threshold",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1.000000001
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-004-missing-outlet-observation",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-005-inlet-tracer-mass-flux-not-measured",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "unmeasured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-006-tank-input-waveform-not-measured",
+      "design_kind": "tank_rtd",
+      "inputs": {
+        "input_waveform_state": "unmeasured",
+        "outlet_tracer_series_state": "measured",
+        "timebase_state": "aligned"
+      }
+    },
+    {
+      "case_id": "MID-T0-007-duplicate-outlet-sensor-index",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          0
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-008-negative-inlet-excitation",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            0
+          ],
+          [
+            -1,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-009-three-inlet-orthogonal-excitation",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 3,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    },
+    {
+      "case_id": "MID-T0-010-rank-deficient-excitation-with-more-repeats",
+      "design_kind": "junction_operator",
+      "inputs": {
+        "inlet_count": 2,
+        "outlet_count": 2,
+        "inlet_excitation_matrix_mg_s": [
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ]
+        ],
+        "outlet_sensor_indices": [
+          0,
+          1
+        ],
+        "inlet_measurement_state": "measured",
+        "rank_relative_tolerance": 1e-8
+      }
+    }
+  ]
+}
