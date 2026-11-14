@@ -19,6 +19,7 @@ use core::marker::PhantomData;
 use std::fmt;
 
 pub mod constraint_metric;
+pub mod rank_deficient_constraint;
 
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
@@ -924,3 +925,9 @@ mod tests {
         assert_eq!(admitted.matrix()[0][1], admitted.matrix()[1][0]);
     }
 }
+
+pub use rank_deficient_constraint::{
+    ConstraintQuotientAdmissionReceiptV1, ConstraintQuotientErrorV1,
+    ConstraintQuotientProfileV1, ConstraintQuotientSolveReceiptV1,
+    ConstraintResidualStatusV1, RankDeficientDelassusQuotientV1,
+};
