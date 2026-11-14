@@ -129,10 +129,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reduced_condition = eigenvalues[2] / eigenvalues[1];
 
     println!(
-        "method,epsilon,rank,full_matrix_condition,physical_residual_norm,relative_kinetic_correction_error"
+        "method,epsilon,rank,condition_scope,condition_estimate,physical_residual_norm,relative_kinetic_correction_error"
     );
     println!(
-        "rank_quotient,0,{},{:.8e},{:.8e},{:.8e}",
+        "rank_quotient,0,{},quotient_restriction,{:.8e},{:.8e},{:.8e}",
         quotient.rank(),
         reduced_condition,
         0.0,
@@ -168,7 +168,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let relative_kinetic_error =
             mass.tangent_norm(&correction_error)? / hard_norm.max(1.0e-300);
         println!(
-            "diagonal_regularization,{epsilon:.1e},{},{condition:.8e},{residual_norm:.8e},{relative_kinetic_error:.8e}",
+            "diagonal_regularization,{epsilon:.1e},{},full_regularized_matrix,{condition:.8e},{residual_norm:.8e},{relative_kinetic_error:.8e}",
             quotient.rank()
         );
     }
