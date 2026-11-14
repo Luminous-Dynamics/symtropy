@@ -920,6 +920,17 @@ mod tests {
     }
 
     #[test]
+    fn full_unsigned_seed_range_survives_json_round_trip() {
+        let encoded = r#"{"seed_u64":18446744073709551615,"draw_count":100}"#;
+        let config: MonteCarloRandomizationConfig = serde_json::from_str(encoded).unwrap();
+        assert_eq!(config.seed_u64, u64::MAX);
+        assert_eq!(
+            serde_json::to_string(&config).unwrap(),
+            encoded
+        );
+    }
+
+    #[test]
     fn protocol_and_corpus_bind_deterministic_sampling_contract() {
         let protocol: serde_json::Value =
             serde_json::from_str(include_str!("../monte-carlo-randomization-v0.1.json")).unwrap();
@@ -932,7 +943,8 @@ mod tests {
             MONTE_CARLO_RANDOMIZATION_ALGORITHM
         );
         assert_eq!(protocol["algorithm"]["max_units"], MAX_MONTE_CARLO_UNITS);
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 35);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 16);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 36);
+        assert_eq!(protocol["cases"].as_array().unwrap().len(), 17);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 17);
     }
 }
