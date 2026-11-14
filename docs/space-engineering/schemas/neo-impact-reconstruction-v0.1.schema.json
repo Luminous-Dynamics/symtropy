@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/space-engineering/schemas/neo-impact-reconstruction-v0.1.schema.json",
+  "title": "Historical NEO Impact Reconstruction Case v0.1",
+  "description": "A source-bound summary of a known pre-impact asteroid prediction and observed terminal event. It is not, by itself, a time-sliced orbit-determination dataset.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "case_type",
+    "object",
+    "timeline",
+    "observation_snapshot",
+    "preimpact_forecast_summary",
+    "terminal_event_reconstructions",
+    "recovery",
+    "sources",
+    "claim_ceiling",
+    "data_gaps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "const": "2008-tc3-sudan-impact"
+    },
+    "case_type": {
+      "const": "historical_impact_reconstruction_summary"
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "designation",
+        "object_class"
+      ],
+      "properties": {
+        "designation": {
+          "const": "2008 TC3"
+        },
+        "object_class": {
+          "const": "near_earth_asteroid"
+        }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovery_epoch_utc",
+        "first_impact_assessment"
+      ],
+      "properties": {
+        "discovery_epoch_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "first_impact_assessment": {
+          "type": "string",
+          "minLength": 16
+        }
+      }
+    },
+    "observation_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cutoff_epoch_utc",
+        "astrometric_observation_count",
+        "observatory_count",
+        "interpretation",
+        "source_id"
+      ],
+      "properties": {
+        "cutoff_epoch_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "astrometric_observation_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observatory_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 16
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "preimpact_forecast_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicted_region",
+        "predicted_entry_epoch_approx_utc",
+        "warning_interval_hours_approx",
+        "publication_snapshot",
+        "source_id"
+      ],
+      "properties": {
+        "predicted_region": {
+          "type": "string",
+          "minLength": 3
+        },
+        "predicted_entry_epoch_approx_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "warning_interval_hours_approx": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "publication_snapshot": {
+          "type": "string",
+          "minLength": 16
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "terminal_event_reconstructions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_kind",
+          "altitude_km",
+          "final_reconstructed_prediction",
+          "observed_event",
+          "interpretation"
+        ],
+        "properties": {
+          "event_kind": {
+            "enum": [
+              "atmospheric_entry",
+              "airburst"
+            ]
+          },
+          "altitude_km": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "final_reconstructed_prediction": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "epoch_utc",
+              "latitude_deg",
+              "longitude_east_deg",
+              "solution_role"
+            ],
+            "properties": {
+              "epoch_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "latitude_deg": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "longitude_east_deg": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "solution_role": {
+                "const": "final_reconstructed_solution_not_preimpact_as_of_snapshot"
+              }
+            }
+          },
+          "observed_event": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "epoch_utc",
+              "latitude_deg",
+              "longitude_east_deg",
+              "coordinate_precision_note"
+            ],
+            "properties": {
+              "epoch_utc": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "latitude_deg": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "longitude_east_deg": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "coordinate_precision_note": {
+                "type": "string",
+                "minLength": 12
+              }
+            }
+          },
+          "interpretation": {
+            "type": "string",
+            "minLength": 16
+          }
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reported_fragment_count",
+        "reported_total_mass_kg",
+        "scope_note",
+        "source_id"
+      ],
+      "properties": {
+        "reported_fragment_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reported_total_mass_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "scope_note": {
+          "type": "string",
+          "minLength": 16
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "title",
+          "published_date",
+          "url",
+          "role"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 8
+          },
+          "published_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "role": {
+            "enum": [
+              "prediction_and_terminal_comparison",
+              "independent_historical_summary",
+              "meteorite_recovery"
+            ]
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "summary_reference_only_not_time_sliced_replay_ready"
+    },
+    "data_gaps": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 16
+      }
+    }
+  }
+}

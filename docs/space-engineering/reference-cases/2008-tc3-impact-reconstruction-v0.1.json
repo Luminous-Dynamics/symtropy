@@ -1,0 +1,99 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "2008-tc3-sudan-impact",
+  "case_type": "historical_impact_reconstruction_summary",
+  "object": {
+    "designation": "2008 TC3",
+    "object_class": "near_earth_asteroid"
+  },
+  "timeline": {
+    "discovery_epoch_utc": "2008-10-06T06:39:00Z",
+    "first_impact_assessment": "The preliminary orbit computation indicated a possible Earth impact within approximately 21 hours of discovery."
+  },
+  "observation_snapshot": {
+    "cutoff_epoch_utc": "2008-10-07T01:49:00Z",
+    "astrometric_observation_count": 570,
+    "observatory_count": 26,
+    "interpretation": "CNEOS reports approximately 570 positional measurements from 26 observatories by the time the object entered Earth's shadow. This is a snapshot count, not the final all-observations total.",
+    "source_id": "cneos-2008tc3"
+  },
+  "preimpact_forecast_summary": {
+    "predicted_region": "Northern Sudan",
+    "predicted_entry_epoch_approx_utc": "2008-10-07T02:46:00Z",
+    "warning_interval_hours_approx": 20.5,
+    "publication_snapshot": "JPL described publishing an impact announcement at approximately 21:30 UTC on 2008-10-06; this summary time is approximate and must not be used as a precision forecast epoch.",
+    "source_id": "cneos-2008tc3"
+  },
+  "terminal_event_reconstructions": [
+    {
+      "event_kind": "atmospheric_entry",
+      "altitude_km": 65.4,
+      "final_reconstructed_prediction": {
+        "epoch_utc": "2008-10-07T02:45:38.45Z",
+        "latitude_deg": 20.933,
+        "longitude_east_deg": 31.412,
+        "solution_role": "final_reconstructed_solution_not_preimpact_as_of_snapshot"
+      },
+      "observed_event": {
+        "epoch_utc": "2008-10-07T02:45:40Z",
+        "latitude_deg": 20.9,
+        "longitude_east_deg": 31.4,
+        "coordinate_precision_note": "Observed coordinates are rounded to one decimal degree in the CNEOS comparison table."
+      },
+      "interpretation": "CNEOS Table 1 compares the final trajectory estimate with observed atmospheric entry; the final estimate incorporates data not necessarily available before impact."
+    },
+    {
+      "event_kind": "airburst",
+      "altitude_km": 37,
+      "final_reconstructed_prediction": {
+        "epoch_utc": "2008-10-07T02:45:45.13Z",
+        "latitude_deg": 20.793,
+        "longitude_east_deg": 32.14,
+        "solution_role": "final_reconstructed_solution_not_preimpact_as_of_snapshot"
+      },
+      "observed_event": {
+        "epoch_utc": "2008-10-07T02:45:45Z",
+        "latitude_deg": 20.8,
+        "longitude_east_deg": 32.2,
+        "coordinate_precision_note": "Observed coordinates are rounded to one decimal degree in the CNEOS comparison table."
+      },
+      "interpretation": "The airburst was observed near 37 km altitude; the table values are a terminal reconstruction rather than a clean pre-impact forecast snapshot."
+    }
+  ],
+  "recovery": {
+    "reported_fragment_count": 47,
+    "reported_total_mass_kg": 3.95,
+    "scope_note": "Nature's 2009 report describes 47 recovered meteorites with a combined mass of 3.95 kg; this is the scope of that published campaign, not necessarily every later recovered fragment.",
+    "source_id": "nature-2008tc3-recovery"
+  },
+  "sources": [
+    {
+      "source_id": "cneos-2008tc3",
+      "title": "Asteroid 2008 TC3 Strikes Earth: Predictions and Observations Agree",
+      "published_date": "2008-11-04",
+      "url": "https://cneos.jpl.nasa.gov/news/2008tc3.html",
+      "role": "prediction_and_terminal_comparison"
+    },
+    {
+      "source_id": "esa-neo-2008tc3",
+      "title": "2008 TC3 — ESA Near-Earth Object Coordination Centre",
+      "published_date": null,
+      "url": "https://neo.ssa.esa.int/past-impactors/2008tc3",
+      "role": "independent_historical_summary"
+    },
+    {
+      "source_id": "nature-2008tc3-recovery",
+      "title": "The impact and recovery of asteroid 2008 TC3",
+      "published_date": "2009-03-26",
+      "url": "https://www.nature.com/articles/nature07920",
+      "role": "meteorite_recovery"
+    }
+  ],
+  "claim_ceiling": "summary_reference_only_not_time_sliced_replay_ready",
+  "data_gaps": [
+    "Raw MPC astrometry records, with exact observation times and source metadata, must be frozen before time-sliced orbit-determination replay.",
+    "The numerical terminal predictions in the CNEOS comparison table are final reconstructed values and must not be mislabeled as the pre-impact as-of forecast.",
+    "The rounded observed geographic coordinates do not support sub-kilometre residual scoring without original event-location uncertainty and coordinate provenance.",
+    "Atmospheric entry and fragmentation models are outside this orbit-prediction reference case."
+  ]
+}
