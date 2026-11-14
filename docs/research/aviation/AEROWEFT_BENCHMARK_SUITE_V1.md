@@ -286,6 +286,41 @@ This track is owned by [AEROWEFT-AIRSIDE-BLOCKING-001 #5261](https://github.com/
 
 This is event/fixture semantics, not a real vertiport capacity estimate or aircraft energy claim.
 
+
+### Track L — PNT / clock evidence to hard aircraft occupancy bounds
+
+Question: when position/navigation/time evidence becomes stale, integrity-uncertain, contradictory, correlated or recovering, does the aircraft occupancy set widen conservatively—or does the system incorrectly preserve a precise nominal point?
+
+This track is owned by [AEROWEFT-PNT-REACHABILITY-001 #5270](https://github.com/Luminous-Dynamics/symtropy/issues/5270) and [draft adapter PR #5272](https://github.com/Luminous-Dynamics/symtropy/pull/5272). It consumes:
+- PNT/communications service states from Symtropy #3909 and timing consequence states from #4079;
+- clock-correlation/time-scale intervals from Mycelix #435;
+- profile-specific navigation-health/failover from Mycelix #458;
+- exact observation-set common-mode assessment from Mycelix #5904;
+- receive-side hypothesis and oracle provenance from Symthaea #10775/#10826;
+- bounded aircraft reachability from #5163 and aircraft-model applicability from Symthaea #6249.
+
+It owns only an aviation-specific adapter and measurement protocol. It does not create a GNSS detector, clock conversion engine, sensor-fusion engine, common-mode graph, aircraft model or second reachability integrator.
+
+**Metrics**
+- Primary/fallback admissibility and typed NOT_ASSESSABLE reasons.
+- Position-enclosure growth from sample-time and evaluation-time uncertainty.
+- Maximum admissible observation age and profile-specific freshness margin.
+- Hard-bound versus statistical-only rejection; no 95%/99% prediction is a deterministic enclosure.
+- Independent evidence-family count and shared/unknown dependency cases.
+- Time from upstream degradation receipt to removal of an invalid primary claim from the hard-reachability input.
+- False continuity in the synthetic consequence adapter, stale/unknown acceptance and premature recovery admission.
+- Exact receipt lineage: source claim, clock-correlation identities, profile/frame/datum, service-state receipt, dependency snapshot, and both time intervals.
+
+**Initial targets**
+- 100% exact agreement with a separate rational/integer interval oracle on the frozen adapter fixture.
+- Zero statistical-only, stale, future-time, unknown-clock, correlated-only, contradictory or recovering inputs admitted as hard bounds.
+- Widening either sample-time or evaluation-time uncertainty, or the supplied velocity set, never shrinks the resulting occupancy enclosure.
+- Zero stale primary claims retained after a qualifying upstream degradation event in the deterministic suite.
+- Every accepted envelope retains exact source/time/profile/dependency lineage; every rejected input has a typed reason.
+- A NOT_ASSESSABLE result never becomes an empty aircraft state or a clear corridor.
+
+The adapter's accepted inputs are mathematical claims under synthetic profiles, not certified navigation integrity, detector accuracy, aircraft physical truth or operational separation assurance.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -300,6 +335,10 @@ This is event/fixture semantics, not a real vertiport capacity estimate or aircr
 | [2026 Dubai integrated UAM MIP](https://doi.org/10.1016/j.trip.2026.101945) | Joint site, fleet, route, schedule and partial-recharge decisions; multi-trip and speed-dependent battery discharge | Paper reports 4–30% improvement over its studied heuristics; vertiport simultaneous landing/parking capacity is omitted and charging-plug availability is simplified; data/implementation/assumptions must be pinned before reproduction |
 | [2026 joint backup-site planning](https://doi.org/10.1016/j.tre.2026.105075) | Joint vertiport and backup-landing-site selection, flight routes and contingency assignments; diversion-time, low-altitude conflict and passenger-disruption safety costs | Direct baseline for backup-site planning; AeroWeft must demonstrate additional value from source-qualified common-cause dependencies, complete recovery chains and fleet-level non-anticipative recoverability |
 
+
+| [2026 measurement-limited GNSS spoofing benchmark](https://doi.org/10.1016/j.nexres.2026.102604) | 22 real Baghdad FIR flight geometries with **synthetic** spoofing injection and modelled signal-power features; derives a model-specific detectability bound and compares D3QN with threshold/residual/supervised methods | Important measurement-limited comparator; 99.74% bound is specific to the injected 4,000 m / 12 dB reference attack and link-budget model; power-matched attack evades all tested methods; not field spoofing evidence or a universal detector ceiling |
+| [2025 ADS-B spoofing TDoA multilateration study](https://doi.org/10.1016/j.trpro.2025.10.010) | ADS-B TDoA multilateration and global receiver-network redundancy analysis using OpenSky | Surveillance cross-check comparator; its own paper identifies receiver-network redundancy as a prerequisite; independent clock/site/power/network domains still require separate evidence |
+| [EUROCONTROL GUID-203 (2026)](https://www.eurocontrol.int/publication/eurocontrol-guidelines-guid-203-operational-response-gnss-degradations) | Operational process reference for preparedness, detection, coordination, response and recovery, including AIS/ATS/ATFCM procedures | Operational guidance, not a detector score or a matched executable benchmark |
 | [2026 vertiport airside DES](https://doi.org/10.1016/j.jatrs.2026.100109) | Practical versus throughput capacity; topology, stand/TLOF ratios, taxi operations and queueing policies beyond FIFO | Required finite-buffer DES baseline class; exact topology, service distributions, code and operating assumptions must be pinned before faithful reproduction |
 | [2026 taxi/parking-level vertiport throughput](https://doi.org/10.3390/aerospace13010109) | Separate taxi and parking resources, charging duration, hourly demand and scheduling | Layout/capacity model-class comparison; the two-level architecture and synthetic case assumptions must be matched |
 | [2026 Lyu & Feng vertiport/vertipad capacity](https://doi.org/10.1016/j.tra.2026.105027) | Joint location + pad-capacity planning with MNL demand, multi-server queueing and Lagrangian relaxation/Benders decomposition | Required service-quality baseline; Shanghai case and on-request data are not a direct reproducer; match wait definition, choice coefficients and server assumptions |
@@ -339,6 +378,12 @@ Current 2026 UAM research that should remain in the comparison matrix:
 - [Dubai integrated site/fleet/routing/recharging optimization](https://doi.org/10.1016/j.trip.2026.101945): mixed-integer planning for sites, fleet, multi-trip routes and partial charging; the published 4–30% gain is relative to the study's own heuristics and scenario assumptions.
 - [Lyu & Feng vertiport and vertipad capacity planning](https://doi.org/10.1016/j.tra.2026.105027): choice-based demand and multi-server queue waiting feed strategic site and pad-capacity decisions; this is the reference for Track J.
 - [Wille et al. (2026), vertiport airside capacity by discrete-event simulation](https://doi.org/10.1016/j.jatrs.2026.100109): distinguishes throughput from practical capacity and includes taxi effects plus priority/non-FIFO queuing; this is the primary Track K model-class baseline.
+- [EUROCONTROL GUID-203 (5 November 2026)](https://www.eurocontrol.int/publication/eurocontrol-guidelines-guid-203-operational-response-gnss-degradations): harmonized ATM/ANS approach covering preparedness, detection, coordination, response and recovery, with AIS/ATS/ATFCM procedures. This informs Track L service-state and consequence replay, not algorithmic detector scoring.
+- [EASA SIB 2022-02 Revision 4](https://www.easa.europa.eu/en/newsroom-and-events/news/easa-updates-safety-information-bulletin-gnss-interference): current operational safety guidance on GNSS outage/alteration and navigation/surveillance degradation. Revision 4 was announced on 3 July 2026 and republished with editorial corrections on 22 July 2026.
+- [EUROCONTROL Performance Review Report 2025](https://www.eurocontrol.int/sites/default/files/2026-03/eurocontrol-performance-review-report-2025.pdf): reports an 80% rise in reported GNSS interference cases in 2025 versus 2024 and describes impacts extending to terrain awareness, altimetry, ADS-B, CPDLC, clocks and display systems. This is occurrence reporting, not a universal risk rate.
+- [Albaidhani (2026), measurement-limited civil-aviation spoofing benchmark](https://doi.org/10.1016/j.nexres.2026.102604): synthetic spoofing was injected into 22 real-flight geometries, while received-power features came from a link-budget measurement model. The paper derives a scenario-specific detectability bound; simpler residual/supervised approaches reached it, D3QN did not, and power-matched attacks defeated the tested detectors. Use as a measurement-limit and honest-abstention lesson, not a transferable accuracy target.
+- [2025 ADS-B TDoA multilateration spoofing countermeasure](https://doi.org/10.1016/j.trpro.2025.10.010): studies receiver-network coverage/redundancy as a condition for multilateration-based spoofing detection. Receiver count alone does not establish independent clocks, sites, power, networks or data pipelines.
+
 - [Nagrare & Lieb (2026), vertiport throughput with taxiing and parking levels](https://doi.org/10.3390/aerospace13010109): charging duration and parking capacity affect turnaround, schedule flexibility and throughput.
 - [Sengupta et al. (2025), UAM research challenges and opportunities](https://doi.org/10.1146/annurev-control-022823-031353): identifies finite parking/blocking and the interaction of airborne holding, battery state, charging and parking occupancy as cross-layer capacity issues.
 
