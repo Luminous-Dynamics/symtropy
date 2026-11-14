@@ -483,7 +483,6 @@ mod tests {
     }
     #[test]
     fn unknown_claim_state_remains_unknown() {
-        let mut d=doc(RelationshipDirection::Directed);
         let source=IrObject::new(ObjectIdentity::new("source:grid",BTreeMap::new()).unwrap(),ns("utility_source"),
             vec![PropertyClaim::new("claim:source","label",ClaimDomain::Declared,ClaimState::Unknown,
                 ClaimProvenance::new("fixture",None,None).unwrap()).unwrap()]).unwrap();
