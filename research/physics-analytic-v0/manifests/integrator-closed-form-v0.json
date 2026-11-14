@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-integrator-closed-form-v0",
+  "status": "verification_only_no_performance_claim",
+  "source_target": "crates/core/symtropy-physics/src/integrator.rs",
+  "numerical_method": {
+    "integrator": "semi_implicit_euler",
+    "update_order": [
+      "velocity",
+      "position"
+    ],
+    "damping": "zero",
+    "floating_point": "IEEE754_f64",
+    "gravity": "constant_vector",
+    "forces": "piecewise_constant_per_step"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "free-inertial-motion-3d-v0",
+      "dimension": 3,
+      "mass_kg": 2,
+      "initial_position_m": [
+        1.25,
+        -2.5,
+        4
+      ],
+      "initial_velocity_m_per_s": [
+        3,
+        -0.75,
+        1.5
+      ],
+      "acceleration_m_per_s2": [
+        0,
+        0,
+        0
+      ],
+      "total_time_s": 3,
+      "timestep_s": 0.004166666666666667,
+      "steps": 720,
+      "analytic_solution": {
+        "position": "x0 + v0*T",
+        "velocity": "v0"
+      },
+      "acceptance": {
+        "position_error_norm_m_max": 1e-10,
+        "velocity_error_norm_m_per_s_max": 1e-12
+      },
+      "evidence_class": "analytic_verification"
+    },
+    {
+      "scenario_id": "constant-acceleration-3d-v0",
+      "dimension": 3,
+      "mass_kg": 2,
+      "acceleration_x_m_per_s2": 3.7,
+      "initial_velocity_x_m_per_s": 1.25,
+      "total_time_s": 1,
+      "timestep_s": [
+        0.03333333333333333,
+        0.016666666666666666,
+        0.008333333333333333
+      ],
+      "steps": [
+        30,
+        60,
+        120
+      ],
+      "analytic_solution": {
+        "velocity_x": "v0 + a*T",
+        "position_x": "x0 + v0*T + 0.5*a*T*T",
+        "semi_implicit_euler_position_error_x": "0.5*a*T*h"
+      },
+      "acceptance": {
+        "velocity_absolute_error_max": 1e-10,
+        "position_error_prediction_absolute_error_max": 1e-10,
+        "coarse_to_medium_position_error_ratio": 2,
+        "medium_to_fine_position_error_ratio": 2,
+        "ratio_absolute_tolerance": 1e-9
+      },
+      "evidence_class": "analytic_verification"
+    },
+    {
+      "scenario_id": "uniform-gravity-energy-drift-3d-v0",
+      "dimension": 3,
+      "mass_kg": 2,
+      "gravity_m_per_s2": [
+        0,
+        -9.81,
+        0
+      ],
+      "initial_height_m": 100,
+      "initial_velocity_m_per_s": [
+        0,
+        0,
+        0
+      ],
+      "total_time_s": 1,
+      "timestep_s": [
+        0.03333333333333333,
+        0.016666666666666666,
+        0.008333333333333333
+      ],
+      "steps": [
+        30,
+        60,
+        120
+      ],
+      "analytic_solution": {
+        "signed_mechanical_energy_drift_j": "-0.5*m*g*g*T*h"
+      },
+      "acceptance": {
+        "signed_energy_drift_prediction_absolute_error_j_max": 1e-8
+      },
+      "evidence_class": "analytic_verification"
+    }
+  ],
+  "claim_limits": {
+    "physical_experiment_validation": false,
+    "contact_solver_validation": false,
+    "ccd_validation": false,
+    "constraint_validation": false,
+    "external_engine_performance_claim": false,
+    "sota_superiority_claim": false
+  }
+}
