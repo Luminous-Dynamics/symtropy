@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: aeroweft-reachability-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   isolated-rust:
