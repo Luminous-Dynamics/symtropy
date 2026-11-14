@@ -1,12 +1,12 @@
 use metric_induced_error_envelope_reference::{
     ConstraintMultiplierV1, ConstraintQuotientProfileV1, ConstraintResidualStatusV1,
-    ConstraintResidualV1, CartesianQ, Metric, MetricProfileV1,
-    OldConstraintSpace, RankDeficientDelassusQuotientV1,
+    ConstraintResidualV1, CartesianQ, CoordinateFrame, Metric, MetricProfileV1,
+    RankDeficientDelassusQuotientV1,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ConstraintRows;
-impl metric_induced_error_envelope_reference::CoordinateFrame for ConstraintRows {}
+impl CoordinateFrame for ConstraintRows {}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let metric_profile = MetricProfileV1::default();
@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         metric_profile,
     )?;
     let residual_metric =
-        Metric::<OldConstraintSpace, 3>::admit(
+        Metric::<ConstraintRows, 3>::admit(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             metric_profile,
         )?;
@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         3,
     >::new(&mass, jacobian, &residual_metric, quotient_profile)?;
 
-    let compatible = ConstraintResidualV1::<OldConstraintSpace, 3>::new([0.4, -0.7, 0.4])?;
+    let compatible = ConstraintResidualV1::<ConstraintRows, 3>::new([0.4, -0.7, 0.4])?;
     let incompatible =
         ConstraintResidualV1::<OldConstraintSpace, 3>::new([0.4, -0.7, 0.41])?;
     let accepted = quotient.solve_residual(&compatible)?;
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         rejected.minimum_kinetic_correction().is_some()
     );
 
-    let lambda = ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([0.5, -0.75, 1.25])?;
+    let lambda = ConstraintMultiplierV1::<ConstraintRows, 3>::new([0.5, -0.75, 1.25])?;
     let shifted =
         ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([3.5, -0.75, -1.75])?;
     println!(
@@ -67,6 +67,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("rank-deficient constraint quotient acceptance contract failed".into());
     }
 
-    let _ = ConstraintRows;
     Ok(())
 }
