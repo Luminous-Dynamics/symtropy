@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "case_id": "SOURCE-REICHE-ZECHE-MTES-2026-001",
+  "evidence_class": "PUBLISHED_FIELD_DEMONSTRATION_SUMMARY",
+  "source": {
+    "title": "Underground thermal energy storage in mines: Field scale heating-cooling cycles and performance at the Reiche Zeche underground mine",
+    "doi": "10.1016/j.est.2026.122087",
+    "url": "https://doi.org/10.1016/j.est.2026.122087",
+    "publication_year": 2026,
+    "journal": "Journal of Energy Storage"
+  },
+  "system_context": {
+    "site": "Reiche Zeche underground mine, Freiberg, Germany",
+    "storage_type": "Mine thermal energy storage (MTES), instrumented test bed",
+    "rock_type": "Gneiss",
+    "cycle_count": 3,
+    "campaign_duration_days": 504
+  },
+  "reported_observations": [
+    {
+      "quantity_id": "heat_supplied_total",
+      "value": 38,
+      "unit": "MWh_th",
+      "basis": "Total heat supplied to test bed over the 504-day campaign",
+      "status": "SOURCE_REPORTED_FIELD_OBSERVATION",
+      "limitations": [
+        "Heat supplied is not the same as heat recovered or net delivered useful service."
+      ]
+    },
+    {
+      "quantity_id": "stored_energy_fraction_in_rock",
+      "value": "approximately 90%",
+      "unit": "fraction of stored energy",
+      "basis": "Source-reported distribution of stored energy in surrounding gneiss",
+      "status": "SOURCE_REPORTED_ESTIMATE",
+      "limitations": [
+        "This is a storage-location fraction, not round-trip efficiency or recoverable-energy fraction.",
+        "The remaining stored-energy partition is not separately resolved in this fixture."
+      ]
+    },
+    {
+      "quantity_id": "rock_temperature_rise",
+      "value": 10.1,
+      "unit": "K",
+      "basis": "Rock temperature rise at 1.8 m depth after the hottest cycle",
+      "status": "SOURCE_REPORTED_FIELD_OBSERVATION"
+    },
+    {
+      "quantity_id": "tracer_throughflow",
+      "value": 79,
+      "unit": "L/h",
+      "basis": "Tracer-derived throughflow reported for the tested system",
+      "status": "SOURCE_REPORTED_FIELD_OBSERVATION",
+      "uncertainty": "Published summary value; source rounding and detailed trace uncertainty not available here."
+    },
+    {
+      "quantity_id": "tracer_residence_time",
+      "value": 10.5,
+      "unit": "days",
+      "basis": "Tracer-derived residence time reported for the tested system",
+      "status": "SOURCE_REPORTED_FIELD_OBSERVATION",
+      "uncertainty": "Published summary value; detailed residence-time distribution not available here."
+    },
+    {
+      "quantity_id": "advective_heat_loss_coefficient",
+      "value": 0.092,
+      "unit": "kW/K",
+      "basis": "Source-reported advective heat-loss coefficient",
+      "status": "SOURCE_REPORTED_ESTIMATE",
+      "uncertainty": "Published summary value; detailed fitted-model uncertainty not available here."
+    },
+    {
+      "quantity_id": "iron_oxidation_fouling",
+      "value": "Fe(II) oxidation and Fe-oxyhydroxide precipitation dominated exchanger fouling",
+      "unit": "qualitative observation",
+      "basis": "Source-reported hydrochemical/materials analysis",
+      "status": "SOURCE_REPORTED_QUALITATIVE"
+    },
+    {
+      "quantity_id": "surface_treatment_conductance_loss",
+      "value": "approximately 18%",
+      "unit": "conductance loss",
+      "basis": "Source-reported result for hydrophobic coating in the tested context",
+      "status": "SOURCE_REPORTED_ESTIMATE",
+      "limitations": [
+        "Do not generalize to other coating materials, water chemistries or exchangers."
+      ]
+    }
+  ],
+  "derived_checks": [
+    {
+      "check_id": "advective-flow-heat-capacity-rate-cross-check",
+      "formula": "C_dot = (Q_L_per_h / 1000) * rho_kg_per_m3 * cp_kJ_per_kgK / 3600",
+      "inputs": [
+        "tracer_throughflow",
+        "water_density_assumption_1000_kg_m3",
+        "water_heat_capacity_assumption_4.18_kJ_kgK"
+      ],
+      "result": {
+        "quantity_id": "computed_advective_heat_capacity_rate",
+        "value": 0.0917278,
+        "unit": "kW/K",
+        "basis": "Independent unit conversion using nominal liquid-water density and heat capacity",
+        "status": "DERIVED_ARITHMETIC_CHECK",
+        "limitations": [
+          "This is a dimensional/physical consistency check, not an independent reconstruction of the study's fitted advective heat-loss coefficient."
+        ]
+      },
+      "interpretation": "The computed 0.0917278 kW/K is within approximately 0.30% of the reported 0.092 kW/K; rounding of flow and water properties can explain the small difference.",
+      "status": "CONSISTENT_WITH_REPORTED_SUMMARY"
+    },
+    {
+      "check_id": "single-well-mixed-volume-conditional-check",
+      "formula": "V_implied_m3 = (Q_L_per_h * residence_time_days * 24) / 1000",
+      "inputs": [
+        "tracer_throughflow",
+        "tracer_residence_time"
+      ],
+      "result": {
+        "quantity_id": "conditional_implied_mobile_water_volume",
+        "value": 19.908,
+        "unit": "m3",
+        "basis": "Q times mean residence time under a single-compartment well-mixed interpretation",
+        "status": "DERIVED_ARITHMETIC_CHECK",
+        "limitations": [
+          "Not the total mine void, total water inventory, or fracture-matrix storage volume.",
+          "Invalid if the tracer residence-time distribution is strongly multi-path, recirculating or non-well-mixed."
+        ]
+      },
+      "interpretation": "A conditional mobile-water volume scale only; it must not be treated as measured cavern or reservoir volume.",
+      "status": "CONDITIONAL_ONLY"
+    },
+    {
+      "check_id": "campaign-average-heat-input",
+      "formula": "P_average_kW = (heat_supplied_MWh * 1000) / (campaign_duration_days * 24)",
+      "inputs": [
+        "heat_supplied_total",
+        "system_context.campaign_duration_days"
+      ],
+      "result": {
+        "quantity_id": "campaign_average_heat_input_power",
+        "value": 3.1415,
+        "unit": "kW_th",
+        "basis": "38 MWh divided by the full 504-day elapsed campaign",
+        "status": "DERIVED_ARITHMETIC_CHECK",
+        "limitations": [
+          "An elapsed-campaign average only; not installed capacity, peak power, operating power during active charging, stored energy, recovered power or delivered service."
+        ]
+      },
+      "interpretation": "This checks only the scale of total supplied heat divided by elapsed campaign duration; operating cycles and idle periods are not resolved.",
+      "status": "CONSISTENT_WITH_REPORTED_SUMMARY"
+    }
+  ],
+  "data_access": {
+    "raw_time_series_status": "AVAILABLE_ON_REQUEST",
+    "independent_reproduction_status": "BLOCKED_BY_DATA_ACCESS",
+    "notes": "The journal abstract/source summary exposes the stated aggregate values but the underlying dense thermometry, tracer, hydrochemical and materials time series are available on request. This fixture is not a reproduction of the 504-day trajectories or complete thermal/energy balance."
+  },
+  "claim_ceiling": "Published field-demonstration summary plus independent unit/arithmetic consistency checks only; no raw-data reproduction, universal MTES performance, site eligibility, environmental safety or CEA heat-service claim."
+}
