@@ -31,7 +31,11 @@
     "paired_results_require_feature_activation_and_physical_boundary_parity",
     "MOC_performance_requires_space_time_convergence_and_memory_reporting",
     "negative_pressure_PDD_demand_zero_assumption_is_not_reverse_flow_intrusion",
-    "Unlicense_classifier_without_text_does_not_authorize_unverified_code_reuse"
+    "Unlicense_classifier_without_text_does_not_authorize_unverified_code_reuse",
+    "reference_case_git_blob_identity_is_not_downloaded_file_SHA256",
+    "published_pressure_intrusion_reference_raw_data_is_not_claimed_acquired",
+    "packaged_PTSNET_TNET3_input_bytes_must_be_pinned_before_reproduction",
+    "different_Nault_scenario_topologies_must_not_be_pooled_as_identical_networks"
   ],
   "comparators": {
     "published_open_source_candidate": "EPANET-AWH DOI 10.1016/j.jwpe.2026.110770",
@@ -53,5 +57,16 @@
       "licence": "Unlicense classifier in setup.py/PyPI; root licence text not found in inspected paths, confirm before reuse"
     }
   ],
-  "performance_comparison_rule": "MOC versus algebraic AWH comparisons require matched physical boundary physics and held-out pressure-error coverage; report reach count, common timestep, Courant condition, grid refinement, hardware, memory and scaling efficiency. Raw wall-clock speed alone is not comparable."
+  "performance_comparison_rule": "MOC versus algebraic AWH comparisons require matched physical boundary physics and held-out pressure-error coverage; report reach count, common timestep, Courant condition, grid refinement, hardware, memory and scaling efficiency. Raw wall-clock speed alone is not comparable.",
+  "reference_case_register_file": "reference-case-register-v0.1.json",
+  "reference_case_count": 7,
+  "reference_case_ids": [
+    "AWH-ONIZUKA-1986-VALVE-CLOSURE",
+    "AWH-NAULT-2018-PUMP-SHUTDOWN",
+    "AWH-NAULT-2018-PUMP-STARTUP",
+    "AWH-NAULT-2018-SUDDEN-WITHDRAWAL",
+    "TSNET-TNET1-EPANET-FIXTURE",
+    "PTSNET-TNET3-VALVE-DEMO",
+    "SHEFFIELD-PHYSICAL-INTRUSION-LOOP"
+  ]
 }
