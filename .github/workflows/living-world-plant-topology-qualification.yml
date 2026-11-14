@@ -1,0 +1,65 @@
+name: Living World plant topology qualification
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: living-world-plant-topology-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 0364c428ba74e1a1f4d1aa5fdb289e91f174d4d9
+  CARGO_TARGET_DIR: /tmp/living-world-plant-topology-target
+
+jobs:
+  qualify:
+    name: Qualify exact plant structural topology oracle
+    if: >-
+      github.event.pull_request.head.ref == 'ci/living-world-plant-topology-qualification' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out exact product head
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ env.PRODUCT_HEAD }}
+        fetch-depth: 1
+        persist-credentials: false
+
+    - name: Set up pinned Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Qualify exact oracle
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$(git rev-parse HEAD)" = "$PRODUCT_HEAD"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        initial_lock="$(git hash-object Cargo.lock)"
+        cargo fmt --package symtropy-lifesim-core -- --check
+        cargo test --locked -p symtropy-lifesim-core --test plant_structural_topology_contract
+        cargo clippy --locked -p symtropy-lifesim-core --test plant_structural_topology_contract -- -D warnings
+        cargo check --locked -p symtropy-lifesim-core --test plant_structural_topology_contract
+        test "$(git rev-parse HEAD)" = "$PRODUCT_HEAD"
+        test "$(git hash-object Cargo.lock)" = "$initial_lock"
+        test -z "$(git status --porcelain=v1 --untracked-files=all)"
+        echo 'PASS: exact plant structural topology oracle'
+
+    - name: Diagnose checkout
+      if: always()
+      shell: bash
+      run: |
+        set -u
+        git rev-parse HEAD || true
+        git status --porcelain=v1 --untracked-files=all || true
+        git diff -- || true
+        git ls-files --others --exclude-standard || true
