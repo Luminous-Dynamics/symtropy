@@ -184,6 +184,19 @@ pub enum SpatialError {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+struct PreparedOccupancy {
+    occupancy: SpatialOccupancy,
+    expanded_bounds: Bounds3Mm,
+    expanded_interval: (u64, u64),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum PreparedInsertion {
+    Duplicate,
+    New(Box<PreparedOccupancy>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpatialOccupancyBook {
     binding: SiteBinding,
     clock_domain_id: String,
@@ -226,26 +239,27 @@ impl SpatialOccupancyBook {
     /// been admitted by the existing reservation owner. This method checks the exact
     /// declared reservation fields for task, site epoch, clock domain and interval.
     /// It cannot prove that a caller actually obtained a grant from ReservationBook.
-    /// Atomically admit the time/resource reservation and its spatial occupancy
-    /// against cloned in-memory owners. No partial mutation is committed when either
-    /// owner rejects the candidate. This is a single-process composition primitive,
-    /// not a distributed transaction, durable commit or safety authorization.
+    /// Admit the time/resource reservation and spatial occupancy as one logical
+    /// single-process operation. Spatial validation/conflict checks run first; the
+    /// reservation owner is then asked to admit the request; the prepared spatial
+    /// record is committed with no further fallible validation. Thus any typed
+    /// rejection leaves the candidate absent from both owners without cloning either
+    /// full book. This is not a distributed transaction, crash-atomic durable commit,
+    /// multi-controller serialization protocol or safety authorization.
+    ///
+    /// The resource owner may lazily expire old reservations during `reserve`; that
+    /// time-based housekeeping is independent of the candidate admission.
     pub fn reserve_and_insert(
         &mut self,
         reservation_book: &mut ReservationBook,
         occupancy: SpatialOccupancy,
         now_ms: u64,
     ) -> Result<CombinedAdmission, SpatialError> {
-        let mut candidate_reservations = reservation_book.clone();
-        let mut candidate_occupancies = self.clone();
-
-        let reservation_outcome = candidate_reservations
-            .reserve(occupancy.reservation.clone(), now_ms)
+        let prepared = self.prepare_insert(occupancy.clone())?;
+        let reservation_outcome = reservation_book
+            .reserve(occupancy.reservation, now_ms)
             .map_err(SpatialError::Reservation)?;
-        let occupancy_outcome = candidate_occupancies.insert(occupancy)?;
-
-        *reservation_book = candidate_reservations;
-        *self = candidate_occupancies;
+        let occupancy_outcome = self.commit_prepared(prepared);
 
         Ok(CombinedAdmission {
             reservation_outcome,
@@ -421,38 +435,61 @@ impl SpatialOccupancyBook {
         Ok(self.spatial_candidate_ids(&expanded_candidate).len())
     }
 
-    /// Insert a planned occupancy after its corresponding time/resource request has
-    /// been admitted by the existing reservation owner. This method checks the exact
-    /// declared reservation fields for task, site epoch, clock domain and interval.
-    /// It cannot prove that a caller actually obtained a grant from ReservationBook.
-    pub fn insert(&mut self, occupancy: SpatialOccupancy) -> Result<InsertOutcome, SpatialError> {
-        let expanded_candidate = self.validate_occupancy(&occupancy)?;
+    fn prepare_insert(
+        &self,
+        occupancy: SpatialOccupancy,
+    ) -> Result<PreparedInsertion, SpatialError> {
+        let expanded_bounds = self.validate_occupancy(&occupancy)?;
 
         if let Some(previous) = self.occupancies.get(&occupancy.occupancy_id) {
             return if previous == &occupancy {
-                Ok(InsertOutcome::Duplicate)
+                Ok(PreparedInsertion::Duplicate)
             } else {
                 Err(SpatialError::OccupancyIdConflict(occupancy.occupancy_id))
             };
         }
 
-        let candidate_interval = expanded_time_interval(&occupancy.reservation)?;
+        let expanded_interval = expanded_time_interval(&occupancy.reservation)?;
         if let Some(conflict) = self
-            .find_conflicts_validated(&occupancy, expanded_candidate, candidate_interval)?
+            .find_conflicts_validated(&occupancy, expanded_bounds, expanded_interval)?
             .into_iter()
             .next()
         {
             return Err(SpatialError::PotentialConflict(Box::new(conflict)));
         }
 
-        let occupancy_id = occupancy.occupancy_id.clone();
+        Ok(PreparedInsertion::New(Box::new(PreparedOccupancy {
+            occupancy,
+            expanded_bounds,
+            expanded_interval,
+        })))
+    }
+
+    /// Commit a previously validated candidate. No typed validation or conflict
+    /// failure can occur after the corresponding resource reservation has succeeded.
+    fn commit_prepared(&mut self, prepared: PreparedInsertion) -> InsertOutcome {
+        let PreparedInsertion::New(prepared) = prepared else {
+            return InsertOutcome::Duplicate;
+        };
+        let prepared = *prepared;
+
+        let occupancy_id = prepared.occupancy.occupancy_id.clone();
         self.expanded_bounds
-            .insert(occupancy_id.clone(), expanded_candidate);
+            .insert(occupancy_id.clone(), prepared.expanded_bounds);
         self.expanded_intervals
-            .insert(occupancy_id.clone(), candidate_interval);
-        self.index_occupancy(&occupancy_id, &expanded_candidate);
-        self.occupancies.insert(occupancy_id, occupancy);
-        Ok(InsertOutcome::AdmittedToSpatialIndex)
+            .insert(occupancy_id.clone(), prepared.expanded_interval);
+        self.index_occupancy(&occupancy_id, &prepared.expanded_bounds);
+        self.occupancies.insert(occupancy_id, prepared.occupancy);
+        InsertOutcome::AdmittedToSpatialIndex
+    }
+
+    /// Insert a planned occupancy after its corresponding time/resource request has
+    /// been admitted by the existing reservation owner. This method validates context,
+    /// uncertainty-expanded geometry/time and conflicts, but cannot prove that a caller
+    /// actually obtained a grant from ReservationBook.
+    pub fn insert(&mut self, occupancy: SpatialOccupancy) -> Result<InsertOutcome, SpatialError> {
+        let prepared = self.prepare_insert(occupancy)?;
+        Ok(self.commit_prepared(prepared))
     }
 }
 
@@ -762,15 +799,12 @@ mod tests {
         for (index, x) in coordinates.iter().enumerate() {
             for y in coordinates {
                 for z in coordinates {
-                    let width = if (index + (y as usize & 1)) % 2 == 0 {
+                    let width = if (index + (y as usize & 1)).is_multiple_of(2) {
                         1_000
                     } else {
                         10_001
                     };
-                    boxes.push(bounds(
-                        [*x, y, z],
-                        [*x + width, y + width, z + width],
-                    ));
+                    boxes.push(bounds([*x, y, z], [*x + width, y + width, z + width]));
                 }
             }
         }
@@ -786,16 +820,15 @@ mod tests {
                     continue;
                 }
 
-                match (&indexed_cells[left_index], &indexed_cells[right_index]) {
-                    (Some(left_cells), Some(right_cells)) => {
-                        assert!(
-                            left_cells.iter().any(|cell| right_cells.contains(cell)),
-                            "grid false negative for left={left:?}, right={right:?}"
-                        );
-                    }
-                    // An oversized box uses the global fallback and is compared
-                    // against every candidate; it cannot be pruned by the grid.
-                    _ => {}
+                // Oversized boxes use the global fallback and are compared
+                // against every candidate; they cannot be pruned by the grid.
+                if let (Some(left_cells), Some(right_cells)) =
+                    (&indexed_cells[left_index], &indexed_cells[right_index])
+                {
+                    assert!(
+                        left_cells.iter().any(|cell| right_cells.contains(cell)),
+                        "grid false negative for left={left:?}, right={right:?}"
+                    );
                 }
             }
         }
@@ -803,7 +836,10 @@ mod tests {
 
     #[test]
     fn extreme_coordinate_span_uses_global_fallback() {
-        let giant = bounds([i64::MIN, i64::MIN, i64::MIN], [i64::MAX, i64::MAX, i64::MAX]);
+        let giant = bounds(
+            [i64::MIN, i64::MIN, i64::MIN],
+            [i64::MAX, i64::MAX, i64::MAX],
+        );
         assert!(grid_cells(&giant).is_none());
     }
 
@@ -1350,7 +1386,7 @@ mod tests {
                 receipt: AcceptanceReceipt {
                     receipt_ref: "inspection-receipt:rebar-001".to_owned(),
                     task_id: "task-1".to_owned(),
-                    binding: context,
+                    binding: context.clone(),
                     output_evidence_ref: "output-evidence:rebar-001".to_owned(),
                 },
             },
