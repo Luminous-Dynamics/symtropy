@@ -22,6 +22,7 @@ pub const MONTE_CARLO_RANDOMIZATION_ALGORITHM: &str = "splitmix64_v1";
 pub const MIN_MONTE_CARLO_DRAWS: usize = 100;
 pub const MAX_MONTE_CARLO_DRAWS: usize = 2_000_000;
 pub const MAX_MONTE_CARLO_UNITS: usize = 10_000;
+pub const MAX_TOTAL_UNIT_DRAWS: usize = 100_000_000;
 const VARIANCE_TOLERANCE: f64 = 1e-12;
 const WILSON_95_Z: f64 = 1.959_963_984_540_054;
 
@@ -37,6 +38,7 @@ pub struct MonteCarloRandomizationResult {
     pub schema_version: String,
     pub trial_id: String,
     pub assignment_plan_sha256: String,
+    pub randomization_frame_sha256: String,
     pub algorithm: String,
     pub seed_u64: u64,
     pub draw_count: usize,
@@ -61,6 +63,11 @@ pub struct MonteCarloRandomizationResult {
 pub enum MonteCarloRandomizationError {
     InvalidDrawCount(usize),
     TooManyUnits(usize),
+    WorkBudgetExceeded {
+        draw_count: usize,
+        unit_count: usize,
+        maximum_unit_draws: usize,
+    },
     InvalidTrial(MaintenanceEffectError),
     MissingStratum(String),
     InvalidAssignmentSpace,
@@ -77,6 +84,14 @@ impl fmt::Display for MonteCarloRandomizationError {
             Self::TooManyUnits(count) => write!(
                 formatter,
                 "Monte Carlo blocked sampler is bounded to {MAX_MONTE_CARLO_UNITS} units; got {count}"
+            ),
+            Self::WorkBudgetExceeded {
+                draw_count,
+                unit_count,
+                maximum_unit_draws,
+            } => write!(
+                formatter,
+                "Monte Carlo work budget exceeded: {draw_count} draws × {unit_count} units > {maximum_unit_draws}"
             ),
             Self::InvalidTrial(error) => write!(formatter, "blocked trial is invalid: {error}"),
             Self::MissingStratum(id) => write!(formatter, "randomization stratum is missing: {id}"),
@@ -141,7 +156,93 @@ fn stratum_indices(
             .or_default()
             .push(index);
     }
+    for indices in result.values_mut() {
+        indices.sort_by(|left, right| {
+            trial.observations[*left]
+                .unit_id
+                .cmp(&trial.observations[*right].unit_id)
+        });
+    }
     result
+}
+
+fn allocation_map(
+    trial: &BlockedRandomizedMaintenanceTrial,
+) -> BTreeMap<&str, (usize, usize)> {
+    trial
+        .stratum_allocations
+        .iter()
+        .map(|allocation| {
+            (
+                allocation.stratum_id.as_str(),
+                (
+                    allocation.planned_treatment_count,
+                    allocation.planned_control_count,
+                ),
+            )
+        })
+        .collect()
+}
+
+fn update_len_prefixed(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_le_bytes());
+    hasher.update(value.as_bytes());
+}
+
+/// Hash the randomization frame in canonical ID order, independent of JSON row order.
+fn randomization_frame_sha256(
+    trial: &BlockedRandomizedMaintenanceTrial,
+    groups: &BTreeMap<String, Vec<usize>>,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"symtropy-marine-randomization-frame-v1\\0");
+    update_len_prefixed(&mut hasher, &trial.trial_id);
+    hasher.update(trial.assignment_plan_sha256.as_bytes());
+
+    let allocations = allocation_map(trial);
+    for (stratum_id, indices) in groups {
+        update_len_prefixed(&mut hasher, stratum_id);
+        let (treatment_count, control_count) = allocations[stratum_id.as_str()];
+        hasher.update((treatment_count as u64).to_le_bytes());
+        hasher.update((control_count as u64).to_le_bytes());
+        for index in indices {
+            let observation = &trial.observations[*index];
+            update_len_prefixed(&mut hasher, &observation.unit_id);
+            hasher.update(observation.observed_outcome_value.to_bits().to_le_bytes());
+            update_len_prefixed(&mut hasher, &observation.outcome_unit);
+        }
+    }
+    format!("{:x}", hasher.finalize())
+}
+
+fn update_sampled_assignment_digest(
+    hasher: &mut Sha256,
+    trial: &BlockedRandomizedMaintenanceTrial,
+    groups: &BTreeMap<String, Vec<usize>>,
+    assignment: &[bool],
+) {
+    for indices in groups.values() {
+        for index in indices {
+            let observation = &trial.observations[*index];
+            update_len_prefixed(hasher, &observation.unit_id);
+            hasher.update([u8::from(assignment[*index])]);
+        }
+    }
+}
+
+fn validate_work_budget(
+    unit_count: usize,
+    draw_count: usize,
+) -> Result<(), MonteCarloRandomizationError> {
+    let total = draw_count.checked_mul(unit_count).unwrap_or(usize::MAX);
+    if total > MAX_TOTAL_UNIT_DRAWS {
+        return Err(MonteCarloRandomizationError::WorkBudgetExceeded {
+            draw_count,
+            unit_count,
+            maximum_unit_draws: MAX_TOTAL_UNIT_DRAWS,
+        });
+    }
+    Ok(())
 }
 
 fn sample_blocked_assignment(
@@ -150,17 +251,18 @@ fn sample_blocked_assignment(
     rng: &mut SplitMix64,
 ) -> Result<Vec<bool>, MonteCarloRandomizationError> {
     let mut treatment_mask = vec![false; trial.observations.len()];
-    for allocation in &trial.stratum_allocations {
-        let Some(indices) = groups.get(&allocation.stratum_id) else {
+    let allocations = allocation_map(trial);
+    for (stratum_id, indices) in groups {
+        let Some((planned_treatment_count, _)) = allocations.get(stratum_id.as_str()) else {
             return Err(MonteCarloRandomizationError::MissingStratum(
-                allocation.stratum_id.clone(),
+                stratum_id.clone(),
             ));
         };
-        if allocation.planned_treatment_count > indices.len() {
+        if *planned_treatment_count > indices.len() {
             return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
         }
         let mut shuffled = indices.clone();
-        let treatment_count = allocation.planned_treatment_count;
+        let treatment_count = *planned_treatment_count;
         for position in 0..treatment_count {
             let remaining = shuffled.len() - position;
             let offset = rng
@@ -177,23 +279,30 @@ fn sample_blocked_assignment(
 
 fn stratified_difference_in_means(
     trial: &BlockedRandomizedMaintenanceTrial,
+    groups: &BTreeMap<String, Vec<usize>>,
     treatment_mask: &[bool],
 ) -> Result<f64, MonteCarloRandomizationError> {
     if treatment_mask.len() != trial.observations.len() {
         return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
     }
+    let allocations = allocation_map(trial);
     let total_count = trial.observations.len() as f64;
     let mut weighted_effect = 0.0;
-    for allocation in &trial.stratum_allocations {
+    for (stratum_id, indices) in groups {
+        let Some((planned_treatment_count, planned_control_count)) =
+            allocations.get(stratum_id.as_str())
+        else {
+            return Err(MonteCarloRandomizationError::MissingStratum(
+                stratum_id.clone(),
+            ));
+        };
         let mut treatment_sum = 0.0;
         let mut control_sum = 0.0;
         let mut treatment_count = 0usize;
         let mut control_count = 0usize;
-        for (index, observation) in trial.observations.iter().enumerate() {
-            if observation.stratum_id != allocation.stratum_id {
-                continue;
-            }
-            if treatment_mask[index] {
+        for index in indices {
+            let observation = &trial.observations[*index];
+            if treatment_mask[*index] {
                 treatment_sum += observation.observed_outcome_value;
                 treatment_count += 1;
             } else {
@@ -201,8 +310,8 @@ fn stratified_difference_in_means(
                 control_count += 1;
             }
         }
-        if treatment_count != allocation.planned_treatment_count
-            || control_count != allocation.planned_control_count
+        if treatment_count != *planned_treatment_count
+            || control_count != *planned_control_count
             || treatment_count == 0
             || control_count == 0
         {
@@ -248,13 +357,16 @@ pub fn estimate_monte_carlo_randomization_p_value(
         ));
     }
 
+    validate_work_budget(trial.observations.len(), config.draw_count)?;
     let groups = stratum_indices(trial);
+    let frame_sha256 = randomization_frame_sha256(trial, &groups);
     let observed_mask = trial
         .observations
         .iter()
         .map(|observation| observation.assigned_arm == AssignedArm::Treatment)
         .collect::<Vec<_>>();
-    let observed_statistic = stratified_difference_in_means(trial, &observed_mask)?;
+    let observed_statistic =
+        stratified_difference_in_means(trial, &groups, &observed_mask)?;
     let mut rng = SplitMix64::new(config.seed_u64);
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-monte-carlo-assignment-stream-v1\0");
@@ -266,15 +378,9 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let mut allocation_constraint_violations = 0usize;
     for _ in 0..config.draw_count {
         let assignment = sample_blocked_assignment(trial, &groups, &mut rng)?;
-        let mut packed = vec![0u8; assignment.len().div_ceil(8)];
-        for (index, is_treatment) in assignment.iter().enumerate() {
-            if *is_treatment {
-                packed[index / 8] |= 1 << (index % 8);
-            }
-        }
-        hasher.update(packed);
+        update_sampled_assignment_digest(&mut hasher, trial, &groups, &assignment);
 
-        let statistic = stratified_difference_in_means(trial, &assignment)?;
+        let statistic = stratified_difference_in_means(trial, &groups, &assignment)?;
         if statistic.abs() + 1e-12 >= observed_statistic.abs() {
             exceedances += 1;
         }
@@ -292,6 +398,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
         schema_version: MONTE_CARLO_RANDOMIZATION_SCHEMA.to_owned(),
         trial_id: trial.trial_id.clone(),
         assignment_plan_sha256: trial.assignment_plan_sha256.clone(),
+        randomization_frame_sha256: frame_sha256,
         algorithm: MONTE_CARLO_RANDOMIZATION_ALGORITHM.to_owned(),
         seed_u64: config.seed_u64,
         draw_count: config.draw_count,
