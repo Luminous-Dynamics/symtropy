@@ -1,0 +1,41 @@
+name: Casting phase Stefan reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/**"
+      - ".github/workflows/casting-phase-stefan-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/**"
+      - ".github/workflows/casting-phase-stefan-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run unit tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/main.rs -o "$RUNNER_TEMP/casting-stefan-tests"
+          "$RUNNER_TEMP/casting-stefan-tests"
+      - name: Build and verify analytical reference
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/main.rs -o "$RUNNER_TEMP/casting-stefan-reference"
+          "$RUNNER_TEMP/casting-stefan-reference" --verify
+      - name: Check deterministic golden CSV
+        run: |
+          "$RUNNER_TEMP/casting-stefan-reference" --csv > "$RUNNER_TEMP/casting-stefan.csv"
+          diff -u tools/casting-phase-reference/expected.csv "$RUNNER_TEMP/casting-stefan.csv"
+      - name: Emit reference artifact digest
+        run: |
+          sha256sum tools/casting-phase-reference/main.rs tools/casting-phase-reference/expected.csv
+          sha256sum "$RUNNER_TEMP/casting-stefan.csv"
