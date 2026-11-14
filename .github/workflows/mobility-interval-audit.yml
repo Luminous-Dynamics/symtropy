@@ -1,0 +1,66 @@
+name: Mobility Interval Robustness Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mobility_interval_robustness_v0_1.schema.json"
+      - "fixtures/mobility_robustness/**"
+      - "docs/tech/MOBILITY_INTERVAL_ROBUSTNESS_V0_1.md"
+      - "tools/mobility-interval-audit/**"
+      - ".github/workflows/mobility-interval-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/mobility_interval_robustness_v0_1.schema.json"
+      - "fixtures/mobility_robustness/**"
+      - "docs/tech/MOBILITY_INTERVAL_ROBUSTNESS_V0_1.md"
+      - "tools/mobility-interval-audit/**"
+      - ".github/workflows/mobility-interval-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobility-interval-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatter
+        run: cargo fmt --manifest-path tools/mobility-interval-audit/Cargo.toml -- --check
+      - name: Run interval and independent Pareto-oracle tests
+        run: cargo test --manifest-path tools/mobility-interval-audit/Cargo.toml --all-targets
+      - name: Emit deterministic synthetic report
+        run: |
+          cargo run --manifest-path tools/mobility-interval-audit/Cargo.toml -- fixtures/mobility_robustness/mobility_interval_scenarios_v0_1.json > "$RUNNER_TEMP/mobility-interval-report.json"
+          jq -e '
+            .benchmark_id == "mobility-interval-robustness-v0.1"
+            and .weighted_utility_score_produced == false
+            and .probability_model_used == false
+            and .evpi_calculated == false
+            and .candidate_count == 8
+            and .comparable_candidate_count == 5
+            and (.robust_frontier_candidate_ids | length == 5)
+            and (.stable_frontier_candidate_ids | length == 0)
+            and (.measurement_priorities[0].metric_id == "essential_trip_coverage")
+            and (.measurement_priorities[0].overlapping_interval_pair_count == 10)
+            and (.measurement_priorities[1].metric_id == "p90_access_time_minutes")
+            and (.measurement_priorities[1].overlapping_interval_pair_count == 10)
+            and (.robust_frontier_candidate_ids | index("06-uncertified-low-price-import") == null)
+            and (.stable_frontier_candidate_ids | index("06-uncertified-low-price-import") == null)
+            and ([.candidate_reports[] | select(.candidate_id == "06-uncertified-low-price-import") | .ranking_status] == ["blocked_hard_gate"])
+            and ([.candidate_reports[] | select(.candidate_id == "07-unconfirmed-energy-and-repair") | .ranking_status] == ["needs_gate_evidence"])
+            and ([.candidate_reports[] | select(.candidate_id == "08-incomplete-budget-evidence") | .ranking_status] == ["not_rankable_incomplete_intervals"])
+            and (.measurement_priorities | length == 5)
+          ' "$RUNNER_TEMP/mobility-interval-report.json"
+          sha256sum "$RUNNER_TEMP/mobility-interval-report.json"
