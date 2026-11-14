@@ -21,26 +21,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -142,26 +146,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -253,26 +261,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -354,26 +366,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -465,26 +481,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -586,33 +606,38 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             },
             {
               "hazard_id": "nitrate",
               "status": "UNKNOWN",
               "minimum_required_reduction_percent": 80,
               "required_protocol_id": "UNSPECIFIED",
-              "required_protocol_version": "UNKNOWN"
+              "required_protocol_version": "UNKNOWN",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             }
           ]
         },
@@ -714,26 +739,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -835,26 +864,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -956,26 +989,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1077,26 +1114,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1198,26 +1239,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1314,26 +1359,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1435,26 +1484,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1556,26 +1609,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1677,26 +1734,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1798,26 +1859,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -1920,26 +1985,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -2042,26 +2111,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
@@ -2163,26 +2236,30 @@
               "hazard_id": "bacteria",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "viruses",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_FILTRATION",
-              "required_protocol_version": "4.0"
+              "required_protocol_version": "4.0",
+              "required_claim_basis": "DIRECT_CHALLENGE_TEST"
             },
             {
               "hazard_id": "protozoa",
               "status": "DETECTED",
               "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
-              "required_protocol_version": "ROUND_IV"
+              "required_protocol_version": "ROUND_IV",
+              "required_claim_basis": "WHO_SCHEME_DECISION"
             },
             {
               "hazard_id": "arsenic",
               "status": "DETECTED",
               "minimum_required_reduction_percent": 90,
               "required_protocol_id": "NSF_ANSI_53",
-              "required_protocol_version": "2025"
+              "required_protocol_version": "2025",
+              "required_claim_basis": "CERTIFICATE_CLAIM"
             }
           ]
         },
