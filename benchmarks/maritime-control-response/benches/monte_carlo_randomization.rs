@@ -125,6 +125,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "elapsed_micros": elapsed.as_micros(),
                 "draws_per_second": DRAW_COUNT as f64 / seconds,
                 "unit_draws_per_second": unit_draws as f64 / seconds,
+                "allocation_constraint_violations": result.allocation_constraint_violations,
+                "exact_enumeration_used": result.exact_enumeration_used,
                 "observed_treatment_minus_control": result.observed_treatment_minus_control,
                 "exceedance_count": result.exceedance_count,
                 "monte_carlo_p_value_plus_one": result.p_value_plus_one,
