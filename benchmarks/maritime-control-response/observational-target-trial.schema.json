@@ -168,7 +168,7 @@
               },
               "minimum_effective_sample_size_per_arm": {
                 "type": "number",
-                "minimum": 2
+                "minimum": 1
               }
             }
           }
