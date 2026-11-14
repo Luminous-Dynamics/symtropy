@@ -877,7 +877,11 @@ mod tests {
             .find(|row| row["case_id"] == "FBA-002-open-bypass")
             .unwrap();
         assert_eq!(row["computed"]["qualification_disposition"], "BYPASSED");
-        assert_eq!(row["computed"]["potability_or_compliance_claim_allowed"], false);
+        assert!(
+            !row["computed"]["potability_or_compliance_claim_allowed"]
+                .as_bool()
+                .unwrap()
+        );
     }
 
     #[test]
@@ -922,8 +926,16 @@ mod tests {
         let result = evaluate_filter_barrier_assurance(
             &inputs,
             &load("filter_barrier_oracle"),
-        );
-        assert!(result.is_err() || result.unwrap()["results"][0]["computed"]["qualification_disposition"] == "UNKNOWN");
+        )
+        .expect("unknown envelope should produce an inspectable disposition");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FBA-001-qualified-in-profile")
+            .unwrap();
+        assert_eq!(row["computed"]["qualification_disposition"], "UNKNOWN");
+        assert_eq!(row["computed"]["current_operating_disposition"], "UNKNOWN");
     }
 
     #[test]
