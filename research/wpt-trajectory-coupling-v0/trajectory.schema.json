@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wpt-trajectory-coupling-v0.schema.json",
+  "title": "Synchronized dynamic-WPT trajectory coupling episode",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "episode_id", "evidence_kind", "coordinate_frame",
+    "vehicle", "coil", "wheels", "declared_lateral_alignment_limit_mm",
+    "max_sample_gap_ms", "samples", "quality_flags"
+  ],
+  "properties": {
+    "schema_version": { "const": "wpt-trajectory-coupling-v0" },
+    "episode_id": { "type": "string", "minLength": 1 },
+    "evidence_kind": { "const": "SYNTHETIC_KNOWN_TRUTH" },
+    "coordinate_frame": {
+      "type": "object", "additionalProperties": false,
+      "required": ["frame_id", "longitudinal_positive", "lateral_positive"],
+      "properties": {
+        "frame_id": { "type": "string", "minLength": 1 },
+        "longitudinal_positive": { "const": "FORWARD" },
+        "lateral_positive": { "const": "LEFT" }
+      }
+    },
+    "vehicle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["vehicle_id", "receiver_offset_longitudinal_mm", "receiver_offset_lateral_mm"],
+      "properties": {
+        "vehicle_id": { "type": "string", "minLength": 1 },
+        "receiver_offset_longitudinal_mm": { "type": "integer" },
+        "receiver_offset_lateral_mm": { "type": "integer" }
+      }
+    },
+    "coil": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "asset_id", "segment_id", "coil_id", "center_s_mm", "center_y_mm",
+        "active_zone_start_s_mm", "active_zone_end_s_mm"
+      ],
+      "properties": {
+        "asset_id": { "type": "string", "minLength": 1 },
+        "segment_id": { "type": "string", "minLength": 1 },
+        "coil_id": { "type": "string", "minLength": 1 },
+        "center_s_mm": { "type": "integer" },
+        "center_y_mm": { "type": "integer" },
+        "active_zone_start_s_mm": { "type": "integer" },
+        "active_zone_end_s_mm": { "type": "integer" }
+      }
+    },
+    "wheels": {
+      "type": "array", "minItems": 2, "maxItems": 16,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["wheel_id", "lateral_offset_from_vehicle_center_mm"],
+        "properties": {
+          "wheel_id": { "type": "string", "minLength": 1 },
+          "lateral_offset_from_vehicle_center_mm": { "type": "integer" }
+        }
+      }
+    },
+    "declared_lateral_alignment_limit_mm": { "type": "integer", "minimum": 0 },
+    "max_sample_gap_ms": { "type": "integer", "minimum": 1, "maximum": 60000 },
+    "max_kinematic_mismatch_ppm": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+    "samples": {
+      "type": "array", "minItems": 2, "maxItems": 1024,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": [
+          "sample_index", "time_ms", "vehicle_s_mm", "vehicle_center_y_mm",
+          "speed_mm_per_s", "roadway_dc_input_power_w",
+          "vehicle_receiver_dc_output_power_w", "coil_temperature_c",
+          "pavement_interface_temperature_c", "ambient_temperature_c", "wheel_loads"
+        ],
+        "properties": {
+          "sample_index": { "type": "integer", "minimum": 0 },
+          "time_ms": { "type": "integer", "minimum": 0 },
+          "vehicle_s_mm": { "type": "integer" },
+          "vehicle_center_y_mm": { "type": "integer" },
+          "speed_mm_per_s": { "type": "integer", "minimum": 1 },
+          "roadway_dc_input_power_w": { "type": "integer", "minimum": 0 },
+          "vehicle_receiver_dc_output_power_w": { "type": "integer", "minimum": 0 },
+          "coil_temperature_c": { "type": ["number", "null"] },
+          "pavement_interface_temperature_c": { "type": ["number", "null"] },
+          "ambient_temperature_c": { "type": ["number", "null"] },
+          "wheel_loads": {
+            "type": "array", "minItems": 2, "maxItems": 16,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["wheel_id", "vertical_load_kn"],
+              "properties": {
+                "wheel_id": { "type": "string", "minLength": 1 },
+                "vertical_load_kn": { "type": "number", "exclusiveMinimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "quality_flags": { "const": ["SYNTHETIC_ONLY"] }
+  }
+}
