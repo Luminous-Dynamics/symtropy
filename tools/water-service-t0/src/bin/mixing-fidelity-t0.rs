@@ -41,7 +41,7 @@ fn number_array(value: &Value, key: &str) -> Result<Vec<f64>, String> {
         .collect()
 }
 
-fn close(left: f64, right: f64) -> bool {
+fn require(condition: bool, message: &str) -> Result<(), String> {\n    if condition { Ok(()) } else { Err(message.to_owned()) }\n}\n\nfn close(left: f64, right: f64) -> bool {
     (left - right).abs() <= 1.0e-9 * left.abs().max(right.abs()).max(1.0)
 }
 
@@ -371,7 +371,7 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
         )?;
     }
     require(input_ids == manifest_ids, "input cases differ from manifest case identity")?;
-    require(input_ids == oracle_map.keys().cloned().collect(), "input/oracle case identity mismatch")?;
+    require(input_ids == oracle_map.keys().cloned().collect::<BTreeSet<_>>(), "input/oracle case identity mismatch")?;
     Ok(())
 }
 
