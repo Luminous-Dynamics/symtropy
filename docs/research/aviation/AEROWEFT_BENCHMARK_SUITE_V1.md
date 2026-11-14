@@ -209,6 +209,32 @@ This track is owned by [AEROWEFT-INFRA-RECOVERY-001 #5224](https://github.com/Lu
 
 All numeric failure sets in this track are conditional on the fixture's declared dependency inventory. No empirical failure probability or real-world reliability rate is inferred.
 
+
+### Track I — reciprocal recoverability and option externalities
+
+Question: does an allocation preserve each aircraft's non-anticipative future options, and does one aircraft's reservation remove robust continuations from another aircraft under the same delivered observations and declared shared-resource branches?
+
+This track is aviation-specific measurement over candidate schedules from #5186. It composes Symtropy #5163/#5207 and Symthaea #11291/#11349/#11394; it does not create a second generic scheduler, viability solver or policy-tree engine.
+
+**Metrics**
+- Per-aircraft robust lower option set and possible upper option set, with raw set identities.
+- Joint continuation-policy existence under coupled shared resources.
+- Reciprocal option-externality matrix using within-aircraft frozen option domains.
+- Worst affected aircraft, minimum per-aircraft retention and distribution of option loss.
+- Observation-equivalence / non-anticipativity failures.
+- Emergency insertion and recovery-option loss.
+- Unknown/incomplete branch coverage and exact rejected-successor witnesses.
+
+**Initial targets**
+- 100% agreement with an independently authored exhaustive oracle on the frozen tiny corpus.
+- Zero clairvoyant policy choices when hidden branches share the same delivered observation history.
+- Zero incomplete, stale or unsupported branches promoted into robust option sets.
+- Exact deterministic results under input-order and identifier relabelling.
+- No comparison of raw option counts across heterogeneous aircraft action domains.
+- No joint recoverability claim solely because each aircraft has a non-empty individual option set.
+
+These targets apply only to finite synthetic option/action domains. They do not establish continuous-time aircraft viability, real separation or an operational safety margin.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -221,6 +247,7 @@ All numeric failure sets in this track are conditional on the fixture's declared
 | FIFO, shortest-feasible, greedy and rolling-horizon planners | Traffic scheduling quality | Must use the same hard constraints and compute budget |
 | EUROCONTROL trajectory-prediction requirements and NASA formal-methods / ATM research | Scope, modelling, verification and operational-system expectations | Reference specifications / research, not directly comparable executable products |
 | [2026 Dubai integrated UAM MIP](https://doi.org/10.1016/j.trip.2026.101945) | Joint site, fleet, route, schedule and partial-recharge decisions; multi-trip and speed-dependent battery discharge | Paper reports 4–30% improvement over its studied heuristics; vertiport simultaneous landing/parking capacity is omitted and charging-plug availability is simplified; data/implementation/assumptions must be pinned before reproduction |
+| [2026 joint backup-site planning](https://doi.org/10.1016/j.tre.2026.105075) | Joint vertiport and backup-landing-site selection, flight routes and contingency assignments; diversion-time, low-altitude conflict and passenger-disruption safety costs | Direct baseline for backup-site planning; AeroWeft must demonstrate additional value from source-qualified common-cause dependencies, complete recovery chains and fleet-level non-anticipative recoverability |
 | [2026 demand-uncertain vertiport planning](https://doi.org/10.1016/j.tra.2026.104957) | Risk-based two-stage site selection and fleet optimization; route-extension sensitivity under airspace restrictions; existing heliport use | Paper-level comparator until exact formulation, uncertainty set, data and code are reviewed |
 | [2026 TU Delft / Île-de-France integrated planning](https://doi.org/10.1016/j.jtrangeo.2026.104611) | Land-use, aeronautical feasibility and community-acceptance screening plus bidirectional demand-supply, infrastructure, fleet, dispatch and repositioning | Large-scale integrated reference; do not claim reproduction without matched source, data, assumptions and solver setup |
 | [2026 data-driven vertiport siting (Shenzhen)](https://doi.org/10.1007/s42524-026-5302-4) | K-means candidate generation, revealed/stated preference surveys, binomial-logit adoption model and three-phase multi-objective integer programming; reports 88.21% demand coverage in its case study | Match the demand-coverage definition and data, not just the percentage; do not transfer its reported uptake/coverage to another city |
