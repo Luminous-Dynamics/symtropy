@@ -806,7 +806,7 @@ mod tests {
         assert_eq!(protocol["schema_version"], MONTE_CARLO_RANDOMIZATION_SCHEMA);
         assert_eq!(protocol["algorithm"]["id"], MONTE_CARLO_RANDOMIZATION_ALGORITHM);
         assert_eq!(protocol["algorithm"]["max_units"], MAX_MONTE_CARLO_UNITS);
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 27);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 13);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 29);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
     }
 }
