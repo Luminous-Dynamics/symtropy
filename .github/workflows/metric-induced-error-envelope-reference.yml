@@ -53,6 +53,8 @@ jobs:
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example redundant_constraint_quotient
       - name: Run quotient-versus-regularization bias ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_regularization_bias_ladder
+      - name: Run rank and compatibility basis-invariance ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example rank_compatibility_basis_ladder
       - name: Run deterministic metric-layer microbenchmark
         run: |
           set -euo pipefail
