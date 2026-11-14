@@ -235,8 +235,8 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
         if let (Some(timebase_id), Some(qualification_sha256)) =
             (&self.timebase_id, &self.timebase_qualification_sha256)
         {
-            if sample.timebase_id != *timebase_id
-                || sample.timebase_qualification_sha256 != *qualification_sha256
+            if sample.timebase_id.as_str() != timebase_id.as_str()
+                || sample.timebase_qualification_sha256.as_str() != qualification_sha256.as_str()
             {
                 return Err(StreamingError::TimebaseChanged);
             }
@@ -364,8 +364,8 @@ pub fn validate_receipt_chain(
         {
             return Err(StreamingError::ReceiptChainBreak);
         }
-        if receipt.timebase_id != timebase_id
-            || receipt.timebase_qualification_sha256 != timebase_qualification_sha256
+        if receipt.timebase_id.as_str() != timebase_id
+            || receipt.timebase_qualification_sha256.as_str() != timebase_qualification_sha256
         {
             return Err(StreamingError::TimebaseChanged);
         }
