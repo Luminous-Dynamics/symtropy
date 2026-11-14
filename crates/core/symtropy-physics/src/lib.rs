@@ -27,6 +27,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod mass_properties;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
@@ -41,5 +42,8 @@ pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
+pub use mass_properties::{
+    MassProperties, MassPropertiesError, RotationalInertiaOperator, rotational_dof_count,
+};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
