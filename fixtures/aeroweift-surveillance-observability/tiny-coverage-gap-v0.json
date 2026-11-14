@@ -496,6 +496,55 @@
       "expected": {
         "meaning": "The same cell may have separate class-specific qualified claims; no single pooled coverage score is emitted."
       }
+    },
+    {
+      "id": "qualified-cooperative-coverage-with-no-reported-aircraft",
+      "cell_id": "cell-coop-no-report",
+      "tick": 5,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 2,
+      "claims": [
+        {
+          "id": "adsb-no-report-a",
+          "source_id": "receiver-no-report-a",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-coop-no-report",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-nr-east",
+          "profile_id": "synthetic-adsb-profile-v0"
+        },
+        {
+          "id": "adsb-no-report-b",
+          "source_id": "receiver-no-report-b",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-coop-no-report",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-nr-west",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "QUALIFIED_COVERAGE",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 2,
+        "unresolved_possible_occupancy": true,
+        "meaning": "Even qualified class-specific coverage does not turn an individual missing report into an assertion of zero physical traffic."
+      }
     }
   ],
   "invariants": [
@@ -510,7 +559,8 @@
     "A sensor outside its environment envelope cannot qualify coverage for that cell.",
     "Qualified coverage is not proof of zero traffic or a clearance to treat all untracked space as free.",
     "Unresolved or not-qualified surveillance returns possible occupancy or not-assessable, never an empty occupancy set.",
-    "The adapter performs no DAA avoidance, tactical instruction, flight control or operational authorization."
+    "The adapter performs no DAA avoidance, tactical instruction, flight control or operational authorization.",
+    "A no-report observation remains unresolved even when the cell has a qualified coverage claim; coverage is not proof of zero traffic."
   ],
   "required_mutations": [
     "Remove one cooperative ADS-B report while preserving the cell; no empty-space claim may be created.",
@@ -520,6 +570,7 @@
     "Split three receiver source IDs into one shared family; the family count remains one.",
     "Change PNT/time qualification from true to false; the affected track cannot remain qualified.",
     "Change EO/IR environment qualification from true to false; that cell becomes not-qualified.",
-    "Permute claims and observations while preserving IDs and meanings; semantic results must remain identical."
+    "Permute claims and observations while preserving IDs and meanings; semantic results must remain identical.",
+    "Remove all cooperative observations while preserving qualified coverage; the outcome remains NO_OBSERVATION with unresolved possible occupancy."
   ]
 }
