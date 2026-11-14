@@ -21,7 +21,7 @@ The profile requires:
 - explicit ClaimDomain → GraphEvidenceState policy;
 - optional exact selected evidence claim ID per object.
 
-Every IR object and relationship must map. An unknown mapping blocks compilation. Original IR stable object IDs and relationship IDs become graph node/edge IDs unchanged and are recorded in a receipt.
+Every IR object and relationship must map. An unknown mapping blocks compilation. Original IR stable object IDs and relationship IDs become graph node/edge IDs unchanged and are recorded in a receipt. Exact module identities are also bound to graph nodes; stale configuration flags survive compilation and appear in the existing source-map assessment.
 
 ServiceGraph stores directed relationships. An IR undirected relationship is rejected rather than silently converted into a directed edge. Supporting undirected source semantics requires an explicit future representation or reviewed normalization.
 

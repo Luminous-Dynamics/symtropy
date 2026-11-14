@@ -5,26 +5,52 @@
     "objects": [
       {
         "stable_id": "source:grid",
-        "kind": { "namespace": "urn:pf:test", "local_name": "utility_source" },
+        "kind": {
+          "namespace": "urn:pf:test",
+          "local_name": "utility_source"
+        },
         "evidence_claim_id": "claim:source",
         "claim": {
           "claim_id": "claim:source",
           "property_id": "label",
           "domain": "declared",
-          "state": { "state": "value", "value": { "type": "text", "value": "Grid" } },
-          "provenance": { "source_id": "fixture", "evidence_id": "evidence:grid", "recorded_at": null }
+          "state": {
+            "state": "value",
+            "value": {
+              "type": "text",
+              "value": "Grid"
+            }
+          },
+          "provenance": {
+            "source_id": "fixture",
+            "evidence_id": "evidence:grid",
+            "recorded_at": null
+          }
         }
       },
       {
         "stable_id": "load:lighting",
-        "kind": { "namespace": "urn:pf:test", "local_name": "load" },
+        "kind": {
+          "namespace": "urn:pf:test",
+          "local_name": "load"
+        },
         "evidence_claim_id": "claim:load",
         "claim": {
           "claim_id": "claim:load",
           "property_id": "label",
           "domain": "declared",
-          "state": { "state": "value", "value": { "type": "text", "value": "Lighting" } },
-          "provenance": { "source_id": "fixture", "evidence_id": "evidence:lighting", "recorded_at": null }
+          "state": {
+            "state": "value",
+            "value": {
+              "type": "text",
+              "value": "Lighting"
+            }
+          },
+          "provenance": {
+            "source_id": "fixture",
+            "evidence_id": "evidence:lighting",
+            "recorded_at": null
+          }
         }
       }
     ],
@@ -33,10 +59,17 @@
         "relationship_id": "edge:grid-lighting",
         "from_object_id": "source:grid",
         "to_object_id": "load:lighting",
-        "kind": { "namespace": "urn:pf:test", "local_name": "power_path" },
+        "kind": {
+          "namespace": "urn:pf:test",
+          "local_name": "power_path"
+        },
         "direction": "directed",
         "domain": "declared",
-        "provenance": { "source_id": "fixture", "evidence_id": "evidence:path", "recorded_at": null }
+        "provenance": {
+          "source_id": "fixture",
+          "evidence_id": "evidence:path",
+          "recorded_at": null
+        }
       }
     ]
   },
@@ -44,18 +77,47 @@
     "profile_id": "profile:residential-service-graph",
     "profile_version": "0.1",
     "object_kind_map": [
-      { "source": { "namespace": "urn:pf:test", "local_name": "utility_source" }, "target": "UtilitySource" },
-      { "source": { "namespace": "urn:pf:test", "local_name": "load" }, "target": "Load" }
+      {
+        "source": {
+          "namespace": "urn:pf:test",
+          "local_name": "utility_source"
+        },
+        "target": "UtilitySource"
+      },
+      {
+        "source": {
+          "namespace": "urn:pf:test",
+          "local_name": "load"
+        },
+        "target": "Load"
+      }
     ],
     "relationship_kind_map": [
-      { "source": { "namespace": "urn:pf:test", "local_name": "power_path" }, "target": "PowerPath" }
+      {
+        "source": {
+          "namespace": "urn:pf:test",
+          "local_name": "power_path"
+        },
+        "target": "PowerPath"
+      }
     ],
     "domain_evidence_map": [
-      { "source": "declared", "target": "DesignDeclared" }
+      {
+        "source": "declared",
+        "target": "DesignDeclared"
+      }
     ],
     "object_evidence_claim_ids": {
       "source:grid": "claim:source",
       "load:lighting": "claim:load"
+    },
+    "object_module_identities": {
+      "source:grid": {
+        "module_id": "module:utility-incomer",
+        "hardware_revision": "hardware:R2",
+        "configuration_digest": "sha256:stale-config",
+        "configuration_current": false
+      }
     }
   },
   "graph_context": {
@@ -69,20 +131,54 @@
     "current": true
   },
   "expected": {
-    "graph_nodes": ["load:lighting", "source:grid"],
-    "graph_edges": ["edge:grid-lighting"],
+    "graph_nodes": [
+      "load:lighting",
+      "source:grid"
+    ],
+    "graph_edges": [
+      "edge:grid-lighting"
+    ],
     "object_mapping_count": 2,
     "relationship_mapping_count": 1,
     "evidence_gap_count": 0,
     "topology_status": "declared_source_path_found",
-    "claim_ceiling": "design_only"
+    "claim_ceiling": "design_only",
+    "stale_module_ids": [
+      "module:utility-incomer"
+    ]
   },
   "negative_controls": [
-    { "id": "unmapped-object-kind", "expected": "block_compilation" },
-    { "id": "unmapped-relationship-kind", "expected": "block_compilation" },
-    { "id": "undirected-relationship", "expected": "block_compilation" },
-    { "id": "verified-domain-not-mapped", "expected": "unknown_evidence_gap_not_independent_review" },
-    { "id": "field-reconciled-with-design-declared-node-evidence", "expected": "block_compilation" },
-    { "id": "missing-evidence-selection-in-design-only-graph", "expected": "compile_with_explicit_gap" }
+    {
+      "id": "unmapped-object-kind",
+      "expected": "block_compilation"
+    },
+    {
+      "id": "unmapped-relationship-kind",
+      "expected": "block_compilation"
+    },
+    {
+      "id": "undirected-relationship",
+      "expected": "block_compilation"
+    },
+    {
+      "id": "verified-domain-not-mapped",
+      "expected": "unknown_evidence_gap_not_independent_review"
+    },
+    {
+      "id": "field-reconciled-with-design-declared-node-evidence",
+      "expected": "block_compilation"
+    },
+    {
+      "id": "missing-evidence-selection-in-design-only-graph",
+      "expected": "compile_with_explicit_gap"
+    },
+    {
+      "id": "stale-module-identity-preserved",
+      "expected": "compilation_retains_stale_identity_and_source_map_reports_it"
+    },
+    {
+      "id": "module-binding-to-unknown-object",
+      "expected": "block_compilation"
+    }
   ]
 }
