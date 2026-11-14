@@ -708,6 +708,43 @@ mod tests {
     }
 
     #[test]
+    fn randomization_frame_digest_binds_observed_outcomes() {
+        let original = trial();
+        let mut changed = original.clone();
+        changed.observations[0].observed_outcome_value += 0.5;
+        let config = MonteCarloRandomizationConfig {
+            seed_u64: 77,
+            draw_count: 2_000,
+        };
+        let first = estimate_monte_carlo_randomization_p_value(&original, config).unwrap();
+        let second = estimate_monte_carlo_randomization_p_value(&changed, config).unwrap();
+        assert_ne!(
+            first.randomization_frame_sha256,
+            second.randomization_frame_sha256
+        );
+        assert_ne!(
+            first.sampled_assignments_sha256,
+            second.sampled_assignments_sha256
+        );
+    }
+
+    #[test]
+    fn monte_carlo_report_never_grants_maintenance_or_operating_authority() {
+        let result = estimate_monte_carlo_randomization_p_value(
+            &trial(),
+            MonteCarloRandomizationConfig {
+                seed_u64: 88,
+                draw_count: 100,
+            },
+        )
+        .unwrap();
+        assert!(!result.maintenance_authorized);
+        assert!(!result.physical_restoration_authorized);
+        assert!(!result.operating_restriction_clearance_authorized);
+        assert_eq!(result.allocation_constraint_violations, 0);
+    }
+
+    #[test]
     fn invalid_draw_counts_fail_closed() {
         let trial = trial();
         for draw_count in [0, MIN_MONTE_CARLO_DRAWS - 1, MAX_MONTE_CARLO_DRAWS + 1] {
@@ -734,6 +771,6 @@ mod tests {
         assert_eq!(protocol["schema_version"], MONTE_CARLO_RANDOMIZATION_SCHEMA);
         assert_eq!(protocol["algorithm"]["id"], MONTE_CARLO_RANDOMIZATION_ALGORITHM);
         assert_eq!(protocol["algorithm"]["max_units"], MAX_MONTE_CARLO_UNITS);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 8);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 12);
     }
 }
