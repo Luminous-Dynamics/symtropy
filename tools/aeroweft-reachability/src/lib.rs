@@ -99,24 +99,24 @@ impl Interval {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AxisVelocityEnvelope {
     /// Nominal velocity contribution.
-    pub nominal_mps: Interval,
+    pub nominal_velocity_mps: Interval,
     /// Contribution from uncertainty in the estimated velocity state.
-    pub state_uncertainty_mps: Interval,
+    pub velocity_estimation_uncertainty_mps: Interval,
     /// Contribution from aircraft-model and parameter uncertainty.
-    pub model_uncertainty_mps: Interval,
+    pub model_parameter_uncertainty_mps: Interval,
     /// Contribution from the declared control envelope.
-    pub control_mps: Interval,
+    pub control_velocity_mps: Interval,
     /// Contribution from environmental disturbances such as wind.
-    pub disturbance_mps: Interval,
+    pub environmental_disturbance_mps: Interval,
 }
 
 impl AxisVelocityEnvelope {
     fn total(self) -> Result<Interval, ReachabilityError> {
-        self.nominal_mps
-            .checked_add(self.state_uncertainty_mps)?
-            .checked_add(self.model_uncertainty_mps)?
-            .checked_add(self.control_mps)?
-            .checked_add(self.disturbance_mps)
+        self.nominal_velocity_mps
+            .checked_add(self.velocity_estimation_uncertainty_mps)?
+            .checked_add(self.model_parameter_uncertainty_mps)?
+            .checked_add(self.control_velocity_mps)?
+            .checked_add(self.environmental_disturbance_mps)
     }
 }
 
@@ -393,11 +393,11 @@ mod tests {
 
     fn axis(nominal: Interval, state: Interval, disturbance: Interval) -> AxisVelocityEnvelope {
         AxisVelocityEnvelope {
-            nominal_mps: nominal,
-            state_uncertainty_mps: state,
-            model_uncertainty_mps: interval(0.0, 0.0),
-            control_mps: interval(0.0, 0.0),
-            disturbance_mps: disturbance,
+            nominal_velocity_mps: nominal,
+            velocity_estimation_uncertainty_mps: state,
+            model_parameter_uncertainty_mps: interval(0.0, 0.0),
+            control_velocity_mps: interval(0.0, 0.0),
+            environmental_disturbance_mps: disturbance,
         }
     }
 
@@ -606,8 +606,8 @@ mod tests {
     fn widening_model_and_control_contributions_cannot_shrink_tube() {
         let narrow = axis(interval(10.0, 10.0), interval(0.0, 0.0), interval(0.0, 0.0));
         let mut wide = narrow;
-        wide.model_uncertainty_mps = interval(-1.0, 1.0);
-        wide.control_mps = interval(-2.0, 2.0);
+        wide.model_parameter_uncertainty_mps = interval(-1.0, 1.0);
+        wide.control_velocity_mps = interval(-2.0, 2.0);
         let mut narrow_request = request(0, 1_000, narrow);
         let mut wide_request = request(0, 1_000, wide);
         narrow_request.initial_position.east_m = interval(0.0, 0.0);
