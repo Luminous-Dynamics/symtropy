@@ -666,7 +666,7 @@ pub fn evaluate(
 }
 
 pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value, String> {
-    const EXPECTED_CASES: usize = 18;
+    const EXPECTED_CASES: usize = 19;
     const INPUT_CEILING: &str =
         "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim";
 
@@ -766,7 +766,7 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
         let hazards = at(source, &["hazards"])?
             .as_array()
             .ok_or_else(|| format!("{id}: source hazards must be an array"))?;
-        let mut required = BTreeMap::<String, (f64, String)>::new();
+        let mut required = BTreeMap::<String, (f64, String, String, String, String)>::new();
         for hazard in hazards {
             let hazard_id = string(hazard, &["hazard_id"])?;
             match string(hazard, &["status"])?.as_str() {
@@ -792,12 +792,25 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
                             "{id}: detected chemical hazard {hazard_id} lacks a declared reduction target"
                         ));
                     };
-                    let unit = if ["bacteria", "viruses", "protozoa"].contains(&hazard_id.as_str()) {
+                    let unit = if ["bacteria", "viruses", "protozoa"]
+                        .contains(&hazard_id.as_str())
+                    {
                         "log10".to_owned()
                     } else {
                         "percent_reduction".to_owned()
                     };
-                    required.insert(hazard_id, (minimum, unit));
+                    let protocol_id = string(hazard, &["required_protocol_id"])?;
+                    let protocol_version = string(hazard, &["required_protocol_version"])?;
+                    let claim_basis = string(hazard, &["required_claim_basis"])?;
+                    if protocol_id.is_empty() || protocol_version.is_empty() {
+                        return Err(format!(
+                            "{id}: hazard {hazard_id} lacks required protocol provenance"
+                        ));
+                    }
+                    required.insert(
+                        hazard_id,
+                        (minimum, unit, protocol_id, protocol_version, claim_basis),
+                    );
                 }
                 _ => return Err(format!("{id}: invalid source hazard status")),
             }
@@ -809,10 +822,6 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
             .map(str::to_owned)
             .unwrap_or_else(|| default_requirement.clone());
         let thresholds = microbial_thresholds(&requirement)?;
-        for (hazard_id, minimum) in &thresholds {
-            required.insert(hazard_id.clone(), (*minimum, "log10".to_owned()));
-        }
-
         let modules = at(input, &["modules"])?
             .as_array()
             .ok_or_else(|| format!("{id}: modules must be an array"))?;
@@ -862,7 +871,7 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
         }
 
         let mut coverage = Vec::with_capacity(required.len());
-        for (hazard_id, (minimum, unit)) in &required {
+        for (hazard_id, (minimum, unit, protocol_id, protocol_version, claim_basis)) in &required {
             let mut evidence = Vec::new();
             for module in &usable_modules {
                 let module_id = string(module, &["module_id"])?;
@@ -872,6 +881,9 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
                 for claim in claims {
                     if string(claim, &["hazard_id"])? != *hazard_id
                         || string(claim, &["claim_unit"])? != *unit
+                        || string(claim, &["protocol_id"])? != *protocol_id
+                        || string(claim, &["protocol_version"])? != *protocol_version
+                        || string(claim, &["claim_basis"])? != *claim_basis
                         || !boolean(claim, &["independently_verified"])?
                         || string(claim, &["evidence_id"])?.is_empty()
                         || number(claim, &["claim_value"])? < *minimum
@@ -1060,14 +1072,14 @@ mod tests {
     }
 
     #[test]
-    fn all_18_water_barrier_f0_cases_match_separate_oracle() {
+    fn all_19_water_barrier_f0_cases_match_separate_oracle() {
         let result = evaluate_water_barrier_f0(
             &load("barrier_inputs"),
             &load("barrier_oracle"),
         )
         .expect("water barrier F0 must evaluate");
-        assert_eq!(result["result_count"], 18);
-        assert_eq!(result["matched_case_count"], 18);
+        assert_eq!(result["result_count"], 19);
+        assert_eq!(result["matched_case_count"], 19);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
         assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
     }
@@ -1148,6 +1160,31 @@ mod tests {
                 .unwrap();
             assert_eq!(row["computed"]["status"], "INDETERMINATE");
         }
+    }
+
+    #[test]
+    fn water_barrier_f0_requires_exact_protocol_and_basis_per_hazard() {
+        let result = evaluate_water_barrier_f0(
+            &load("barrier_inputs"),
+            &load("barrier_oracle"),
+        )
+        .expect("water barrier F0 must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| {
+                row["case_id"] == "WBA-F0-019-filter-v4-claim-misapplied-to-protozoa"
+            })
+            .unwrap();
+        assert_eq!(row["computed"]["status"], "GAP");
+        assert!(
+            row["computed"]["reasons"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|reason| reason == "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa")
+        );
     }
 
     #[test]
