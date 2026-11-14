@@ -89,6 +89,30 @@ jobs:
             research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json \
             research/water-intrusion-coupling/manifest-v0.1.json \
             artifacts/water-chemical-fate-t0/receipt.json
+            artifacts/water-mixing-fidelity-t0/receipt.json
+            artifacts/water-mixing-identifiability-t0/receipt.json
+      - name: Evaluate non-ideal mixing fidelity T0 exact checked-out revision
+        id: mixing_fidelity
+        env:
+          WATER_MIXING_FIDELITY_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin mixing-fidelity-t0 -- \
+            research/water-intrusion-coupling/mixing-fidelity-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/mixing-fidelity-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/mixing-fidelity-manifest-v0.1.json \
+            artifacts/water-mixing-fidelity-t0/receipt.json
+      - name: Evaluate mixing identifiability preflight T0 exact checked-out revision
+        id: mixing_identifiability
+        env:
+          WATER_MIXING_IDENTIFIABILITY_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin mixing-identifiability-t0 -- \
+            research/water-intrusion-coupling/mixing-identifiability-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/mixing-identifiability-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/mixing-identifiability-manifest-v0.1.json \
+            artifacts/water-mixing-identifiability-t0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipts
         if: always()
         uses: actions/upload-artifact@v4
@@ -112,6 +136,15 @@ jobs:
             research/water-intrusion-coupling/chemical-fate-comparator-register-v0.1.json
             research/water-intrusion-coupling/chemical-fate-t0-cases-v0.1.json
             research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json
+                        research/water-intrusion-coupling/MIXING_FIDELITY_BENCHMARK_PROTOCOL_V0_1.md
+                        research/water-intrusion-coupling/mixing-fidelity-comparator-register-v0.1.json
+                        research/water-intrusion-coupling/mixing-fidelity-manifest-v0.1.json
+                        research/water-intrusion-coupling/mixing-fidelity-t0-cases-v0.1.json
+                        research/water-intrusion-coupling/mixing-fidelity-t0-oracle-v0.1.json
+                        research/water-intrusion-coupling/MIXING_EXPERIMENT_DESIGN_V0_1.md
+                        research/water-intrusion-coupling/mixing-identifiability-manifest-v0.1.json
+                        research/water-intrusion-coupling/mixing-identifiability-t0-cases-v0.1.json
+                        research/water-intrusion-coupling/mixing-identifiability-t0-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
             artifacts/water-chemical-fate-t0/receipt.json
@@ -123,8 +156,12 @@ jobs:
           INTRUSION_OUTCOME: ${{ steps.intrusion.outcome }}
           COUPLING_OUTCOME: ${{ steps.coupling.outcome }}
           CHEMICAL_FATE_OUTCOME: ${{ steps.chemical_fate.outcome }}
+          MIXING_FIDELITY_OUTCOME: ${{ steps.mixing_fidelity.outcome }}
+          MIXING_IDENTIFIABILITY_OUTCOME: ${{ steps.mixing_identifiability.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$INTRUSION_OUTCOME" = "success"
           test "$COUPLING_OUTCOME" = "success"
           test "$CHEMICAL_FATE_OUTCOME" = "success"
+          test "$MIXING_FIDELITY_OUTCOME" = "success"
+          test "$MIXING_IDENTIFIABILITY_OUTCOME" = "success"

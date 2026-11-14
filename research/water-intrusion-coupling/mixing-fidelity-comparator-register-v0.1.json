@@ -1,0 +1,150 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "evidence_class": "public_documentation_and_published_studies",
+  "evidence_ceiling": "documented_scope_and_published_method_findings_only_not_reproduced_or_physically_qualified_by_this_project",
+  "references": [
+    {
+      "id": "epanet22_algorithms",
+      "url": "https://usepa.github.io/EPANET2.2/12_analysis_algorithms.html",
+      "source_class": "official_epanet_2_2_documentation"
+    },
+    {
+      "id": "epanet22_tank_models",
+      "url": "https://usepa.github.io/EPANET2.2/3_network_model.html",
+      "source_class": "official_epanet_2_2_documentation"
+    },
+    {
+      "id": "ho_2008",
+      "url": "https://doi.org/10.1061/(ASCE)0733-9429(2008)134:9(1236)",
+      "source_class": "peer_reviewed_journal_article"
+    },
+    {
+      "id": "romero_gomez_2008",
+      "url": "https://doi.org/10.1061/(ASCE)0733-9496(2008)134:3(285)",
+      "source_class": "peer_reviewed_journal_article"
+    },
+    {
+      "id": "austin_2008",
+      "url": "https://doi.org/10.1061/(ASCE)0733-9496(2008)134:3(295)",
+      "source_class": "peer_reviewed_experimental_study"
+    },
+    {
+      "id": "ho_et_al_2014",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24675269/",
+      "source_class": "peer_reviewed_experimental_and_cfd_study"
+    },
+    {
+      "id": "crowther_dandy_2012",
+      "url": "https://doi.org/10.7158/W10-835.2012.15.2",
+      "source_class": "peer_reviewed_tracer_model_comparison"
+    }
+  ],
+  "comparators": [
+    {
+      "id": "epanet_2_2_complete_junction_mix",
+      "role": "network_scale_baseline",
+      "features": [
+        "complete_instantaneous_mixing_at_junctions",
+        "tank_options_complete_mixing_two_compartment_FIFO_LIFO"
+      ],
+      "limits": [
+        "junction concentration is flow-weighted complete mix by construction",
+        "tank options remain reduced-order abstractions rather than geometry-resolved hydrodynamics"
+      ],
+      "qualification": "mandatory transparent baseline; do not portray as universally physically accurate"
+    },
+    {
+      "id": "ho_2008_bulk_mixing",
+      "role": "analytical_junction_bound_and_reduced_order_comparator",
+      "features": [
+        "bulk-mixing model",
+        "complete-mixing and bulk-mixing bounds",
+        "intermediate behaviour estimated with a scaling parameter"
+      ],
+      "limits": [
+        "junction geometry and flow regime are part of validity domain",
+        "paper findings must be independently reproduced before deployment"
+      ],
+      "qualification": "include lower/upper bounds and independently calibrate any intermediate parameter"
+    },
+    {
+      "id": "romero_gomez_austin_2008_cross_junction_cfd_and_experiment",
+      "role": "geometry_resolved_and_physical_junction_reference",
+      "features": [
+        "CFD concentration and velocity fields",
+        "cross-junction turbulent mixing",
+        "experimental concentration measurements"
+      ],
+      "limits": [
+        "study configurations do not cover every real geometry or Reynolds regime",
+        "CFD turbulence/diffusivity settings require mesh and model sensitivity"
+      ],
+      "qualification": "reproduce at least one source case and hold out geometry/flow splits"
+    },
+    {
+      "id": "ho_et_al_2014_multi_geometry_junctions",
+      "role": "geometry_and_flow_distribution_reference",
+      "features": [
+        "five hydraulic junction types",
+        "flow momentum ratio controls degree of mixing departure at studied crosses",
+        "double-tee mixing depends on layout and connection pipe length",
+        "stagnation zone possible between double-tee arrangements"
+      ],
+      "limits": [
+        "published relation is scoped to tested topologies and parameter space"
+      ],
+      "qualification": "hold out complete junction families; do not collapse double tee into cross without evidence"
+    },
+    {
+      "id": "crowther_dandy_2012_clear_water_tank_tracer",
+      "role": "tank_RTD_tracer_reference",
+      "features": [
+        "fluoride pulse tracer experiment at clear-water tank",
+        "CFD, one CSTR, two CSTRs in series and series/parallel compartment models compared",
+        "CFD and series/parallel network model fit measured fluoride concentrations closely; single CSTR was poorest"
+      ],
+      "limits": [
+        "one facility and test condition; not universally transferable"
+      ],
+      "qualification": "reproduce RTD from raw tracer series if rights/data are available; report model complexity and parameter fit"
+    },
+    {
+      "id": "CFD_LES",
+      "role": "high_fidelity_reference",
+      "features": [
+        "3D velocity and species field",
+        "geometry-resolved flow and scalar transport"
+      ],
+      "limits": [
+        "computationally expensive",
+        "mesh, turbulence closure, wall boundary and scalar diffusivity sensitivity",
+        "simulation is not measurement"
+      ],
+      "qualification": "verify mesh/time-step convergence and validate against blinded tracer data"
+    }
+  ],
+  "fair_comparison_fields": [
+    "exact_geometry_and_topology_revision",
+    "inlet_outlet_flow_series_and_flow_split",
+    "inlet_momentum_ratio_and_reynolds_regime",
+    "junction_orientation_and_connection_lengths",
+    "tracer_species_diffusivity_and_temperature",
+    "tank_geometry_inlet_outlet_elevation_and_operating_schedule",
+    "tracer_injection_waveform_and_input_mass",
+    "sensor_locations_response_time_sampling_rate_and_clock_uncertainty",
+    "raw_tracer_mass_recovery_and_detection_limits",
+    "mesh_timestep_turbulence_and_scalar_diffusivity_for_CFD",
+    "compartment_count_and_parameter_count_for_reduced_order_models",
+    "runtime_memory_calibration_effort_and_sensor_cost"
+  ],
+  "benchmark_gates": [
+    "conservative_tracer_mass_balance",
+    "strict blind holdout by complete geometry or operating regime",
+    "no transfer of calibrated mixing coefficients across unsupported geometry",
+    "no RTD normalization that hides unrecovered tracer mass",
+    "publish concentration error and RTD tail/short_circuit diagnostics",
+    "separate modelled concentration from measured tracer observations",
+    "no synthetic pass promoted to physical qualification"
+  ]
+}
