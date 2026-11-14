@@ -387,8 +387,8 @@ fn validate_assumptions(
     let mut unknown_or_violated = 0;
     for domain in required {
         match by_domain.get(&domain) {
-            Some(AssessmentStatus::Supported) => supported += 1,
-            Some(AssessmentStatus::Unknown | AssessmentStatus::Violated) | None => {
+            Some(&AssessmentStatus::Supported) => supported += 1,
+            Some(&AssessmentStatus::Unknown) | Some(&AssessmentStatus::Violated) | None => {
                 unknown_or_violated += 1;
                 blockers.push(format!(
                     "identifying assumption is unknown, violated or missing: {domain:?}"
