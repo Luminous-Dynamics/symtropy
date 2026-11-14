@@ -1,0 +1,39 @@
+name: Maritime benchmark formatting preview
+
+on:
+  push:
+    branches: ["research/maritime-dx2026-clean-integration-v0-1"]
+    paths:
+      - ".github/workflows/maritime-format-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust formatter
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Apply canonical Rust formatting in isolated runner workspace
+        run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all
+      - name: Archive formatted Rust sources
+        run: |
+          set -euo pipefail
+          tar -czf "$RUNNER_TEMP/maritime-formatted-src.tar.gz" benchmarks/maritime-control-response/src
+      - name: Upload formatter output (source-only artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-format-preview-${{ github.sha }}
+          path: ${{ runner.temp }}/maritime-formatted-src.tar.gz
+          if-no-files-found: error
+          retention-days: 1
