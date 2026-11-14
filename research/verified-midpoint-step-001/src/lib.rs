@@ -666,7 +666,6 @@ fn interval_step(
             correction = correction
                 .checked_add(IntervalV1::point(*b_component)?.checked_mul(*relative_component)?)?;
         }
-        }
         let midpoint = IntervalV1::point(problem.free_midpoint_velocity[row])?
             .checked_add(lambda_half_h.checked_mul(correction)?)?;
         position[row] = IntervalV1::point(problem.initial_position[row])?
