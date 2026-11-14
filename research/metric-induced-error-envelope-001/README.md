@@ -112,7 +112,7 @@ The companion module `src/rank_deficient_constraint.rs` covers redundant linear 
 
 For a positive-definite mass metric and possibly rank-deficient Jacobian, the Delassus map `W = J M^-1 J^T` is positive semidefinite. Multipliers are equivalent modulo `ker(J^T)`; the induced generalized force and minimum-kinetic correction remain unique. The quotient multiplier norm is `sqrt(lambda^T W lambda)`.
 
-A compatible residual lies in `range(J)=range(W)). The solver returns a quotient representative satisfying `W lambda = r`, and its dual norm is `sqrt(lambda^T r)`. Residuals outside the range are explicitly returned as INCOMPATIBLE or INCONCLUSIVE; they are never silently projected and treated as solved.
+A compatible residual lies in `range(J) = range(W). The solver returns a quotient representative satisfying `W lambda = r`, and its dual norm is `sqrt(lambda^T r)`. Residuals outside the range are explicitly returned as INCOMPATIBLE or INCONCLUSIVE; they are never silently projected and treated as solved.
 
 **Compatibility tolerances are not measured in raw Euclidean coordinates.** The caller supplies an SPD residual-space metric H. When rows are re-described by `r_new = T r_old`, that metric must be re-described as `H_new = T^-T H_old T^-1`. The same H metric drives rank revelation and residual compatibility. This is what makes the floating-point acceptance rule meaningful under arbitrary nonsingular row scaling/shearing.
 
@@ -122,4 +122,4 @@ Run the synthetic fixture:
 
     cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example redundant_constraint_quotient
 
-The unit tests cover duplicate rows, multiplier null shifts, unique physical correction, incompatible residual rejection, a non-orthogonal constraint-equation re-description with the matching H metric, and rank-zero constraints. This does not yet qualify nonlinear constraints, unilateral/frictional contact, active-set changes, or sparse articulated solvers.
+The unit tests cover duplicate rows, multiplier null shifts, unique physical correction, incompatible residual rejection, an exact-rational Delassus oracle, multiplier-norm invariance under row re-description, a combined generalized-coordinate and constraint-equation rebase, and rank-zero constraints. This does not yet qualify nonlinear constraints, unilateral/frictional contact, active-set changes, or sparse articulated solvers.
