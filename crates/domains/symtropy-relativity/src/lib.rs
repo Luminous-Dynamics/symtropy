@@ -44,6 +44,8 @@ pub mod geodesic;
 pub mod kerr_geodesic;
 /// Adaptive canonical Hamiltonian integration of Kerr null trajectories.
 pub mod kerr_integrator;
+/// Turning-point-regular near-extremal equatorial Kerr strong-deflection quadrature.
+pub mod near_extremal_deflection;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
 pub mod light_ring;
 /// Validated stationary black-hole metric components in a declared chart.

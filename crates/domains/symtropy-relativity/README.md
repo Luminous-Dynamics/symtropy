@@ -63,6 +63,21 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 - Machine-readable horizon semantics / provenance contract: `benchmarks/horizon_object_contract_v1.json`. It defines distinct stationary, event, apparent/MOTS, marginally trapped tube, dynamical and isolated horizon types; it does not implement horizon finders.
 
+## Near-extremal Kerr equatorial strong deflection
+
+\`near_extremal_deflection.rs\` adds a finite-spin quadrature for prograde equatorial null scattering at \(b=b_c+\kappa\chi\), with \(\kappa=\sqrt{1-a^2}\) and \(\chi>0\).
+
+The implementation is deliberately separate from the analytic leading-uniform helper in \`kerr_geodesic.rs\`:
+
+- It evaluates the radial potential in \(y=(r/M-1)/\kappa\), using \(R/\kappa^2\) so the near-horizon \(O(\kappa^2)\) quantity is not formed by subtracting two \(O(1)\) terms.
+- It factors the equatorial radial potential into its cubic factor and brackets the **outer** scattering root from the cubic's positive local minimum. This avoids mistaking the inner root or a sign at the photon-orbit radius for the outer turning point.
+- It removes the square-root turning-point singularity with \(y=y_t+Sx^2/(1-x^2)\) on \(x\in[0,1]\), evaluating both endpoint limits analytically.
+- It returns the turning radius and scaled-potential residual, derivative at the turn, azimuthal change, deflection angle, leading-uniform phase residual, adaptive quadrature error and evaluation/root counts.
+
+A 20-case equation-level reference grid spans \(\kappa\in\{0.1,0.03,0.01,0.003,0.001\}\) and \(\chi\in\{0.1,0.5,1,2\}\). The frozen comparison values were independently generated with SciPy quadrature; they are not Rust outputs and are not the paper's 55-trajectory dataset. The exact-head Rust 1.96 workflow remains the implementation gate.
+
+The leading expression \(\Phi_\mathrm{LO}=\kappa^{-1}\ln(1+2\sqrt{3}/\chi)\) is used only as an asymptotic comparison. The finite-spin numerical deflection is not forced to equal it. The cited October 2026 paper's matched-NLO formula and exact 55 initial conditions still need to be pinned before claiming that reproduction.
+
 ## Deliberate limits
 
 The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior and horizon-regular charts. The current Kerr path includes Carter-separated null potentials, an adaptive second-order Mino integrator, an independent canonical Hamiltonian trajectory integrator, a finite-radius ZAMO tetrad, second-order-AD local Hamiltonian-flow linearization, a propagated canonical fundamental matrix, observer-seeded angular tangent columns, and a finite source-ZAMO 2x2 optical screen map. The canonical trajectory and variational integrators use step-doubled classical RK4; they are not symplectic, their local controller estimates are not rigorous global error bounds, and the propagated symplectic defect must remain a separately reported diagnostic. The optical screen map is not yet a qualified caustic catalogue: adaptive caustic-root localization, fold/cusp classification, image-branch identity tracking, and finite-frequency diffraction remain future work. There is no GRHD/GRMHD solver, full numerical-relativity spacetime evolution, or production gravitational-waveform generator.
