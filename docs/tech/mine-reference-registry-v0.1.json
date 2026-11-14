@@ -1,0 +1,90 @@
+{
+  "schema_id": "MINE-REFERENCE-001",
+  "schema_version": "0.1.0",
+  "registry_date": "2026-10-18",
+  "evidence_class": "source_metadata_only",
+  "claim_ceiling": "This registry identifies source references and license-review state. It contains no MineLib data, block models, scheduling results, or copied third-party datasets.",
+  "entries": [
+    {
+      "source_id": "minelib-dataset-catalogue",
+      "record_kind": "dataset_catalogue",
+      "title": "MineLib open-pit mining optimization benchmark instances",
+      "canonical_url": "https://minelib.org/v1/Datasets.xhtml",
+      "citation": "MineLib dataset catalogue; accessed as a reference record for MINE-REFERENCE-001.",
+      "upstream_version": "catalogue version not recorded",
+      "license_state": "verified_open",
+      "redistribution_allowed": true,
+      "access_state": "metadata_only",
+      "source_sha256": null,
+      "review_note": "The official MineLib v1 landing page states that MineLib is licensed under CC BY-SA 3.0 Unported. Preserve attribution and ShareAlike obligations. This catalogue metadata does not rule out instance-specific third-party exceptions; review the exact instance record before downloading, adapting, or redistributing any data.",
+      "license_name": "CC BY-SA 3.0 Unported"
+    },
+    {
+      "source_id": "minelib-format-spec-v1",
+      "record_kind": "format_specification",
+      "title": "MineLib file format specification v1.0",
+      "canonical_url": "https://minelib.org/v1/minelib_format.pdf",
+      "citation": "Espinoza, Goycoolea, Moreno and Newman, MineLib file format specification v1.0, 2012-07-23.",
+      "upstream_version": "1.0",
+      "license_state": "verified_open",
+      "redistribution_allowed": true,
+      "access_state": "metadata_only",
+      "source_sha256": null,
+      "review_note": "The official MineLib v1 site links this format document and states that MineLib is licensed under CC BY-SA 3.0 Unported. Preserve attribution and ShareAlike obligations when adapting the document. This entry is a metadata record; no PDF is copied into this repository.",
+      "license_name": "CC BY-SA 3.0 Unported"
+    },
+    {
+      "source_id": "lotsu-2026-production-scheduling-article",
+      "record_kind": "research_article",
+      "title": "An open-source optimization model for sustainable open-pit mine production scheduling",
+      "canonical_url": "https://doi.org/10.3389/frai.2026.1759758",
+      "citation": "Lotsu, Bimpong and Boakye, Frontiers in Artificial Intelligence 9 (2026), 1759758.",
+      "upstream_version": "version of record published 2026-05-21",
+      "license_state": "verified_open",
+      "license_name": "Creative Commons Attribution License (CC BY; version not specified on article page)",
+      "redistribution_allowed": true,
+      "access_state": "metadata_only",
+      "source_sha256": null,
+      "review_note": "The article's own statements section declares a Creative Commons Attribution License (CC BY). Its separate Zenodo artifact is tracked separately and remains unverified for redistribution. The paper's published case is synthetic; no paper outputs are treated as measured mine performance."
+    },
+    {
+      "source_id": "lotsu-2026-zenodo-artifacts",
+      "record_kind": "dataset",
+      "title": "Artifacts for the open-source sustainable open-pit production-scheduling study",
+      "canonical_url": "https://doi.org/10.5281/zenodo.19869809",
+      "citation": "Data and code artifact record cited by Lotsu, Bimpong and Boakye (2026).",
+      "upstream_version": "record version not verified in this registry",
+      "license_state": "unverified",
+      "redistribution_allowed": false,
+      "access_state": "metadata_only",
+      "source_sha256": null,
+      "review_note": "The article says the artifact contains a synthetic block model, notebooks, outputs, and MineLib-format loaders. The license of this separate artifact record has not been independently verified here. Do not cache or redistribute until reviewed."
+    },
+    {
+      "source_id": "jeuken-forbes-value-of-drilling-2024",
+      "record_kind": "research_article",
+      "title": "The Value of Drilling—A Chance-Constrained Optimization Approach",
+      "canonical_url": "https://doi.org/10.1007/s42461-024-01061-8",
+      "citation": "Jeuken and Forbes, Mining, Metallurgy & Exploration 41 (2024), 2279–2289.",
+      "upstream_version": "version of record published 2024-08-22",
+      "license_state": "unverified",
+      "redistribution_allowed": false,
+      "access_state": "metadata_only",
+      "source_sha256": null,
+      "review_note": "Research motivation for chance-constrained blending and value of additional information. The paper is not itself a license for any underlying mine dataset; no study data is bundled. The license was not independently verified in this registry; link only, no copied text or data."
+    },
+    {
+      "source_id": "andrade-dimitrakopoulos-underground-stockpiling-2024",
+      "record_kind": "research_article",
+      "title": "Integrated Stochastic Underground Mine Planning with Long-Term Stockpiling",
+      "canonical_url": "https://doi.org/10.3390/min14020123",
+      "citation": "Andrade and Dimitrakopoulos, Minerals 14(2), 123 (2024).",
+      "upstream_version": "version of record published 2024-01-24",
+      "license_state": "unverified",
+      "redistribution_allowed": false,
+      "access_state": "metadata_only",
+      "source_sha256": null,
+      "review_note": "Research reference for stochastic underground planning with stockpiles. This registry entry adds no data or copied article text. The license was not independently verified in this registry; link only, no copied text or data."
+    }
+  ]
+}
