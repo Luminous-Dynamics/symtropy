@@ -55,7 +55,7 @@ impl EvidenceClaim {
     ) -> Result<Self, PortContractError> {
         match class {
             ModuleEvidenceClass::Unknown => {
-                if evidence_id.as_deref().is_some_and(|id| !id.trim().is_empty()) {
+                if evidence_id.is_some() {
                     return Err(PortContractError::UnexpectedEvidenceForUnknownClaim);
                 }
                 Ok(Self {
@@ -1004,6 +1004,14 @@ mod tests {
 
     fn module(id: &str, current: bool, ports: Vec<ModulePort>) -> PowerModule {
         PowerModule::new(identity(id, current), ModuleClass::Conversion, ports).unwrap()
+    }
+
+    #[test]
+    fn unknown_evidence_rejects_even_an_empty_supplied_identifier() {
+        assert!(matches!(
+            EvidenceClaim::new(ModuleEvidenceClass::Unknown, Some(String::new())),
+            Err(PortContractError::UnexpectedEvidenceForUnknownClaim)
+        ));
     }
 
     #[test]
