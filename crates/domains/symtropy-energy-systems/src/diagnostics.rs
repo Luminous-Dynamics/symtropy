@@ -347,10 +347,7 @@ impl std::error::Error for DiagnosticError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        ClaimDomain, ClaimProvenance, IrObject, IrSchemaVersion, NamespacedType,
-        ObjectIdentity, PowerFabricDocument,
-    };
+    use crate::{IrObject, IrSchemaVersion, NamespacedType, ObjectIdentity, PowerFabricDocument};
     use std::collections::BTreeMap;
 
     fn document() -> PowerFabricDocument {
