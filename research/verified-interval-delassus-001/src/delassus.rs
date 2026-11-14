@@ -197,9 +197,7 @@ fn finite_bound(value: f64) -> Result<f64, VerifiedDelassusErrorV1> {
 /// summing use the interval crate's outward-rounded arithmetic. The known
 /// non-negativity of a sum of squares lets us reset only the unused lower
 /// endpoint to zero before taking the final square root.
-fn upper_l2_norm<const K: usize>(
-    values: &[Interval; K],
-) -> Result<f64, VerifiedDelassusErrorV1> {
+fn upper_l2_norm<const K: usize>(values: &[Interval; K]) -> Result<f64, VerifiedDelassusErrorV1> {
     if K == 0 {
         return Err(VerifiedDelassusErrorV1::ZeroDimension);
     }
