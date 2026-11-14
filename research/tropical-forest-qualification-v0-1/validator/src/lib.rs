@@ -2741,6 +2741,16 @@ mod tests {
     }
 
     #[test]
+    fn model_set_duplicate_variant_identity_is_rejected() {
+        let mut manifest: Value =
+            serde_json::from_str(MODEL_SET_FIXTURE).expect("valid model-set manifest");
+        manifest["cases"][1]["variant_id"] = manifest["cases"][0]["variant_id"].clone();
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated model-set manifest");
+        let receipt = evaluate(&bytes).expect("well-formed manifest returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
     fn model_set_unknown_family_mutation_is_rejected() {
         let mut manifest: Value =
             serde_json::from_str(MODEL_SET_FIXTURE).expect("valid model-set manifest");
