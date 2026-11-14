@@ -33,6 +33,8 @@
     "native_constraint_force",
     "constraint_position_residual",
     "direct_whitened_relative_defect",
+    "mass_1_site_world_position",
+    "mass_2_site_world_position",
     "model_state_qpos",
     "model_state_qvel"
   ],
@@ -181,6 +183,22 @@
       "type": "array",
       "minItems": 6,
       "maxItems": 6,
+      "items": {
+        "type": "number"
+      }
+    },
+    "mass_1_site_world_position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "mass_2_site_world_position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
       "items": {
         "type": "number"
       }
