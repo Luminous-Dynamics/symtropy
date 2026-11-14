@@ -107,3 +107,8 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Filter condition and end-of-life observability
+
+The child workstream [#5084 FILTER-ELI-OBSERVABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5084) now has a [protocol](./FILTER_ELI_OBSERVABILITY_PROTOCOL_V0_1.md), 13 synthetic [service-state cases](./filter-eli-f0-cases-v0.1.json), a separate [oracle](./filter-eli-f0-oracle-v0.1.json), Draft 2020-12 [schema](./filter-eli-f0.schema.json), and [manifest](./filter-eli-f0-manifest-v0.1.json). Rust evaluator and digest-bound CLI are in `tools/water-service-t0`. It separates declared service life from sampled claim breakthrough and never emits water-safety, potability, certification or release claims.
