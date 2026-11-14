@@ -12,7 +12,10 @@
       "plus-one finite-sample correction",
       "Wilson interval and Monte Carlo standard error for the tail probability",
       "canonical frame and sampled-assignment replay digests",
-      "differential comparison against exact Fisher enumeration on small trials"
+      "differential comparison against exact Fisher enumeration on small trials",
+      "frozen analysis-plan digest and preregistration receipt reference",
+      "seed commitment digest bound to the frozen analysis plan and draw budget",
+      "canonical configuration digest bound into sampled-assignment replay evidence"
     ],
     "does_not_own": [
       "ATE estimation",
@@ -49,7 +52,8 @@
     "sampled_assignments_digest": "SHA-256 over domain-separated randomization-frame digest, algorithm ID, seed, draw count and each sampled allocation encoded in canonical unit-ID order",
     "row_order": "Unit and stratum input row order must not change the frame digest, sampled-assignment digest or p-value.",
     "prng": "SplitMix64 constants and wrapping semantics are frozen by a Rust golden-vector test. It is a reproducible simulation PRNG, not a cryptographic generator.",
-    "seed_nonclaim": "A seed digest or reproducible stream does not prove the seed was generated without bias or that the real-world trial was randomized correctly."
+    "seed_nonclaim": "A seed digest or reproducible stream does not prove the seed was generated without bias or that the real-world trial was randomized correctly.",
+    "analysis_configuration": "The config binds a lowercase SHA-256 analysis-plan digest, preregistration-record reference, unsigned 64-bit seed, fixed draw count and a seed-commitment digest computed over (analysis-plan digest, seed, draw count). The result publishes the config digest and both commitment references. Upstream receipt authentication remains outside this module."
   },
   "hard_gates": [
     "The input trial must pass the blocked-randomized trial contract from #5111.",
@@ -87,7 +91,10 @@
     "The v0.1 benchmark harness reports elapsed time and draw throughput with runner/CPU metadata; it does not claim peak-memory measurements.",
     "The result JSON Schema is validated against a checked-in synthetic example result payload.",
     "Both config and result schemas admit the exact full unsigned-64-bit maximum seed and reject values outside the u64 range.",
-    "A frozen 200-seed regression panel compares each Monte Carlo Wilson interval against the exact Fisher tail probability; its 90% minimum coverage assertion is a deterministic regression guard, not a claim of global nominal coverage."
+    "A frozen 200-seed regression panel compares each Monte Carlo Wilson interval against the exact Fisher tail probability; its 90% minimum coverage assertion is a deterministic regression guard, not a claim of global nominal coverage.",
+    "Every Monte Carlo configuration must include a valid analysis-plan SHA-256 and non-empty preregistration-record reference.",
+    "The seed commitment SHA-256 must match the analysis-plan digest, unsigned seed and fixed draw count; a mismatch fails before sampling.",
+    "The result and sampled-assignment digest bind the canonical config digest, preventing silent config/seed/draw-budget substitution within one run."
   ],
   "comparators": [
     {
@@ -197,6 +204,21 @@
       "case_id": "MC17",
       "scenario": "A frozen panel of 200 independent SplitMix64 seed streams checks Wilson interval coverage against the exact Fisher tail probability.",
       "expected": "multi_seed_monte_carlo_interval_coverage"
+    },
+    {
+      "case_id": "MC18",
+      "scenario": "The preregistration record reference is missing or empty.",
+      "expected": "rejected_missing_preregistration"
+    },
+    {
+      "case_id": "MC19",
+      "scenario": "The seed-commitment digest does not match analysis-plan digest, seed and draw count.",
+      "expected": "rejected_seed_commitment_mismatch"
+    },
+    {
+      "case_id": "MC20",
+      "scenario": "Output binds the analysis-plan digest, preregistration reference, seed commitment and canonical configuration digest.",
+      "expected": "analysis_config_provenance_bound"
     }
   ],
   "metrics": [
