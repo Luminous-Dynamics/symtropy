@@ -798,29 +798,33 @@ mod tests {
                     AssignedArm::Treatment => treatment_outcome,
                     AssignedArm::Control => *control_outcome,
                 };
-                let suffix = (b'a' + ((stratum_index * 4 + unit_index) as u8)) as char;
+                let digest_base = (stratum_index * 4 + unit_index) * 4 + 1;
+                let assignment_digest = format!("{digest_base:064x}");
+                let baseline_digest = format!("{:064x}", digest_base + 1);
+                let outcome_digest = format!("{:064x}", digest_base + 2);
+                let oracle_digest = format!("{:064x}", digest_base + 3);
                 observations.push(RandomizedUnitObservation {
                     unit_id: unit_id.clone(),
                     stratum_id: stratum_id.clone(),
                     assigned_arm,
-                    assignment_evidence_sha256: digest(suffix),
+                    assignment_evidence_sha256: assignment_digest,
                     assignment_available_at_seconds: 100.0,
                     baseline_value: 5.0 + unit_index as f64,
                     baseline_unit: "normalized_capability".into(),
                     baseline_observed_at_seconds: 80.0,
                     baseline_available_at_seconds: 90.0,
-                    baseline_evidence_sha256: digest('b'),
+                    baseline_evidence_sha256: baseline_digest,
                     observed_outcome_value: observed,
                     outcome_unit: "normalized_capability".into(),
                     outcome_observed_at_seconds: 210.0,
                     outcome_available_at_seconds: 220.0,
-                    outcome_evidence_sha256: digest(suffix),
+                    outcome_evidence_sha256: outcome_digest,
                 });
                 oracle.push(UnitPotentialOutcomes {
                     unit_id,
                     potential_outcome_treatment: treatment_outcome,
                     potential_outcome_control: *control_outcome,
-                    oracle_record_sha256: digest(suffix),
+                    oracle_record_sha256: oracle_digest,
                 });
             }
         }
