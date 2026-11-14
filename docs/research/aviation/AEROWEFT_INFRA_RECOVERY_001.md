@@ -35,19 +35,16 @@ The new issue owns only the aviation-specific recovery-network composition, fail
 
 ## 3. Why this is a real research gap
 
-A 2026 open-access Dubai UAM study jointly optimizes vertiport locations, fleet size, vehicle assignments, routes, multi-trip schedules and partial recharging. It reports a 4–30% profit improvement over the study's selected heuristic strategies. Its authors also identify important simplifications: deterministic demand, omission of simultaneous landing/parking capacity, and assumed adequate simultaneous charging plugs. The reported profit lift is not a transferable AeroWeft target and is not a directly matched executable baseline until the data, exact implementation and assumptions are pinned.
+The existing SOTA is stronger than a simple siting baseline, and the scope must acknowledge it.
 
-A 2026 scoping review of 81 UAM vertiport-planning publications finds that network-level siting, facility design, ground access, noise, weather, equity and governance remain fragmented. It identifies limited transferable design parameters for rooftop operations, charging layouts, passenger transfer and multi-scale governance.
+- **Joint backup landing-site planning already exists.** Zhao et al. (Transportation Research Part E, October 2026) jointly optimize vertiport locations, backup landing-site locations, flight routes and contingency assignments. Their generalized safety-cost framework includes contingency diversion time, low-altitude conflicts and passenger disruption, with a Beijing case study. AeroWeft must not claim novelty for jointly planning backup landing sites or assigning contingency routes. DOI: https://doi.org/10.1016/j.tre.2026.105075
+- **Integrated network / fleet / charging optimization already exists.** A 2026 open-access Dubai UAM study jointly optimizes vertiport locations, fleet size, vehicle assignments, routes, multi-trip schedules and partial recharging. It reports a 10–30% profit improvement over its studied heuristic/peak-demand strategies. Its authors identify simplifications including omitted simultaneous landing/parking capacity and simplified charging-plug availability. The reported profit lift is not a transferable AeroWeft target and not a directly matched executable baseline until data, exact implementation and assumptions are pinned. DOI: https://doi.org/10.1016/j.trip.2026.101945
+- **Risk-based siting and fleet sizing under uncertain demand already exists.** The 2026 two-stage vertiport location study explicitly addresses demand uncertainty, route extension under airspace restrictions and reuse of existing heliports. DOI: https://doi.org/10.1016/j.tra.2026.104957
+- **Revealed-demand, multi-airport intermodal siting already exists.** The September 2026 Chicago study uses anonymized mobile-location traces, a behavioral MNL adoption model and a capacity/budget-constrained MILP; it reports probabilistic siting heatmaps and identifies intermodal interceptor sites near surface bottlenecks. It finds price and ground-side frictions more influential for network geometry than plausible cruise-speed changes. It uses precomputed, exogenous adoption probabilities and a partial-equilibrium formulation, so this is a matched demand/economic baseline rather than evidence about airspace safety. DOI: https://doi.org/10.1016/j.jairtraman.2026.103064
+- **Multi-objective site design and cross-city representation transfer are emerging.** The 2026 Shenzhen literature includes service coverage, network connectivity, noise and siting cost; the September 2026 DRAG-Net paper proposes transferable candidate-site representations trained on Beijing and evaluated on Shanghai, followed by NSGA-II. Its dataset is available from its corresponding author on request, not an automatically admitted public dataset. DOI: https://doi.org/10.1007/s44212-026-00104-3 and https://doi.org/10.1111/exsy.70423
+- **The planning field remains fragmented.** A 2026 scoping review of 81 publications finds that network siting, physical design and ground access are not yet consistently integrated, with limited transferable design parameters for rooftop operations, charging layouts, passenger transfer and governance. DOI: https://doi.org/10.1016/j.urbmob.2026.100265
 
-Two further 2026 studies mean that the benchmark must be more demanding than a deterministic siting baseline:
-
-- **Demand-uncertain site planning:** the May 2026 *Vertiport location planning for urban air mobility airport shuttle services under Demand uncertainty* describes a risk-based two-stage site-selection and eVTOL-fleet model, with a real-world case study, route-extension sensitivity under airspace restrictions, and use of existing heliports as a potential cost lever. This is a required published algorithm-class baseline for demand uncertainty; we must inspect the complete paper and implementation assumptions before claiming exact reproduction. DOI: https://doi.org/10.1016/j.tra.2026.104957
-- **Strategic/tactical/operational co-optimization:** the 2026 TU Delft / Journal of Transport Geography framework for Île-de-France combines land-use, aeronautical feasibility and community-acceptance filters with bidirectional demand-supply interaction, vertiport distribution, fleet size, dispatch and repositioning. It is an important large-scale baseline for integrated planning. Its repository record explicitly restricts reuse of the text absent an open content licence or permission; cite the published work, do not redistribute its full text. DOI: https://doi.org/10.1016/j.jtrangeo.2026.104611
-- **Integrated siting, fleet, routing and charging:** the May 2026 Dubai study jointly optimizes sites, fleet, routing, schedules and partial recharging, reporting 4–30% over its studied heuristics. It is a valuable baseline, but its reported result is not transferable without the same data, costs, assumptions and implementation. Its raw-data DOI is a candidate dataset, not an admitted benchmark until artifact-level terms, schema, exact files and redistribution/model-use permissions are checked: https://doi.org/10.6084/m9.figshare.31919775
-- **Physical layout and ground integration:** the 2026 scoping review of 81 publications identifies continuing fragmentation across network siting, facility design and ground integration, including gaps around rooftop operations, charging layouts, transfers and governance.
-
-AeroWeft's differentiator should therefore not be another integrated siting-and-routing model. It should test whether nominally attractive portfolios remain **recoverable under explicit shared failure domains and compound outages**, and whether the resulting resilience evidence can be composed into an existing multimodal optimizer.
-
+Therefore AeroWeft's differentiator cannot be "backup-site-aware planning" or "common-cause-aware site selection" in isolation. The research hypothesis must be more precise: **an evidence-qualified, aircraft-applicable, multi-layer recovery-chain assurance contract** that composes landing/approach, energy, ground transfer, source rights/freshness, failure-domain lineage and non-anticipative fleet recoverability, with independent witnesses and an auditable unknown-state census. The existing #1601 optimizer should select portfolios; this work should qualify aviation-specific inputs and independently evaluate resulting resilience claims.
 References:
 
 - [Demand-uncertain vertiport location planning (2026)](https://doi.org/10.1016/j.tra.2026.104957)
@@ -168,9 +165,12 @@ Use identical demand, aircraft profiles, site facts, source snapshots, cost assu
 1. nearest-site / demand-only coverage;
 2. deterministic capacity-aware site selection;
 3. site-count or nominal-coverage maximization;
-4. published integrated siting/fleet/routing/recharging algorithm class;
-5. scenario-robust portfolio selection through the existing #1601 optimizer;
-6. recovery-diverse AeroWeft aviation constraints evaluated by the same optimizer.
+4. joint vertiport/backup-site/route/contingency assignment (Zhao et al., 2026);
+5. joint fleet/siting/routing/recharging optimization (Dubai, 2026);
+6. risk-based two-stage siting/fleet and demand-uncertain planning;
+7. revealed-demand intermodal site selection with probabilistic corridor sensitivity (Chicago, 2026);
+8. scenario-robust portfolio selection through the existing #1601 optimizer;
+9. recovery-diverse AeroWeft aviation constraints evaluated by the same optimizer.
 
 Report separately:
 
