@@ -3,8 +3,9 @@
 //!
 //! Coordinates must already be expressed in one declared planar coordinate system.
 //! This module does not transform CRS, repair geometry, authenticate assets, or
-//! estimate positional uncertainty. It keeps geometric coverage separate from
-//! valid-data coverage and rejects overlapping source supports to avoid double counting.
+//! model positional-error probability distributions. It keeps geometric coverage separate
+//! from valid-data coverage, rejects overlapping source supports, and provides deterministic
+//! overlap bounds for declared axis-aligned registration-shift intervals.
 
 use std::fmt;
 
