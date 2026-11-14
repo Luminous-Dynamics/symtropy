@@ -8,7 +8,7 @@ on:
       - "schemas/physical-transformation/**"
       - ".github/workflows/physical-solver-contract-rust.yml"
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - "research/physical-solver-contract/**"
       - "schemas/physical-transformation/**"
@@ -24,6 +24,7 @@ concurrency:
 
 jobs:
   request-contract:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -42,6 +43,19 @@ jobs:
         run: cargo test --locked --manifest-path research/physical-solver-contract/Cargo.toml
       - name: Clippy with warnings denied
         run: cargo clippy --locked --manifest-path research/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
+      - name: Smoke-test symmetry handoff verifier CLI
+        run: |
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml --bin symmetry-handoff-verify -- --help
+      - name: Validate symmetry handoff artifact manifest schema
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          schema = json.loads(Path("research/physical-solver-contract/symmetry-physical-artifact-manifest-v0.1.schema.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          PY
       - name: Validate fixtures at exact head and assert unresolved claim ceiling
         shell: bash
         run: |
