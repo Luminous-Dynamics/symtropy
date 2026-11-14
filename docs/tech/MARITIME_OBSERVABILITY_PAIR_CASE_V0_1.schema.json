@@ -373,7 +373,8 @@
               "sample_count",
               "independent_episode_count",
               "episode_definition_id",
-              "episode_definition_sha256"
+              "episode_definition_sha256",
+              "configuration_sha256"
             ],
             "properties": {
               "window_id": {
@@ -456,6 +457,10 @@
                 "minLength": 1
               },
               "episode_definition_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "configuration_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
               }
@@ -483,7 +488,8 @@
               "sample_count",
               "independent_episode_count",
               "episode_definition_id",
-              "episode_definition_sha256"
+              "episode_definition_sha256",
+              "configuration_sha256"
             ],
             "properties": {
               "window_id": {
@@ -566,6 +572,10 @@
                 "minLength": 1
               },
               "episode_definition_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "configuration_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
               }
