@@ -20,3 +20,7 @@ sha2 = "0.10"
 
 [lints.rust]
 unsafe_code = "forbid"
+
+[[bench]]
+name = "monte_carlo_randomization"
+harness = false
