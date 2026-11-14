@@ -946,7 +946,9 @@ mod tests {
     fn coverage_below_minimum_is_rejected_without_gap_bridging() {
         let mut request = base_request(&[Some(0), Some(0), Some(0)], &[Some(0), Some(0), Some(0)]);
         request.reference.points[1].z_um = None;
+        request.reference.points[1].uncertainty_um = None;
         request.observed.points[1].z_um = None;
+        request.observed.points[1].uncertainty_um = None;
         request.limits.maximum_unsupported_gap_um = 2_000;
         request.limits.minimum_coverage_permille = 750;
         abstains(&request, AbstainReason::CoverageBelowMinimum);
