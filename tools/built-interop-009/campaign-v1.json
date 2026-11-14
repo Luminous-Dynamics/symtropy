@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0.0",
+  "benchmark_id": "BUILT-INTEROP-009",
+  "oracle_class": "synthetic-metamorphic-v1",
+  "base_fixture": {
+    "path": "fixtures/two-walls.ifc",
+    "sha256": "5196f603e6f091a402dc67c1e2729a0f3b37da12a505f7c6f96696509187899a",
+    "byte_length": 424
+  },
+  "cases": [
+    {
+      "case_id": "METAMORPHIC-001",
+      "mutation": "identical",
+      "expected_status": "EQUAL",
+      "oracle_basis": "Same exact model bytes must compare semantically equal."
+    },
+    {
+      "case_id": "METAMORPHIC-002",
+      "mutation": "header_timestamp",
+      "expected_status": "EQUAL",
+      "oracle_basis": "Changing only FILE_NAME timestamp must not change the modeled IFC entity semantics in this profile."
+    },
+    {
+      "case_id": "METAMORPHIC-003",
+      "mutation": "root_step_renumber",
+      "expected_status": "EQUAL",
+      "oracle_basis": "Changing local STEP entity numbers for uniquely GlobalId-identified roots must not change their semantic identity."
+    },
+    {
+      "case_id": "METAMORPHIC-004",
+      "mutation": "root_record_reorder",
+      "expected_status": "EQUAL",
+      "oracle_basis": "Reordering independent DATA records must not alter a uniquely GlobalId-keyed model."
+    },
+    {
+      "case_id": "MUTATION-001",
+      "mutation": "wall_name_change",
+      "expected_status": "DIFFERENT",
+      "oracle_basis": "A concrete IFCWALL.Name change is a semantic attribute difference."
+    },
+    {
+      "case_id": "MUTATION-002",
+      "mutation": "root_removed",
+      "expected_status": "DIFFERENT",
+      "oracle_basis": "Removing a uniquely identified source IfcRoot object is a semantic loss."
+    },
+    {
+      "case_id": "MUTATION-003",
+      "mutation": "root_guid_changed",
+      "expected_status": "DIFFERENT",
+      "oracle_basis": "Changing a valid unique IfcRoot GlobalId removes one source identity and adds another."
+    },
+    {
+      "case_id": "AMBIGUITY-001",
+      "mutation": "invalid_guid",
+      "expected_status": "UNRESOLVED",
+      "oracle_basis": "An invalid root GlobalId makes identity uncertain; the tool must not guess a match."
+    },
+    {
+      "case_id": "AMBIGUITY-002",
+      "mutation": "duplicate_guid",
+      "expected_status": "UNRESOLVED",
+      "oracle_basis": "Duplicate root GlobalIds make object identity ambiguous."
+    },
+    {
+      "case_id": "AMBIGUITY-003",
+      "mutation": "unknown_schema",
+      "expected_status": "UNRESOLVED",
+      "oracle_basis": "The bounded IFC4 profile must refuse an unknown declared schema rather than guess."
+    },
+    {
+      "case_id": "AMBIGUITY-004",
+      "mutation": "malformed_step",
+      "expected_status": "UNRESOLVED",
+      "oracle_basis": "Malformed STEP syntax cannot yield a confident semantic equality/difference result."
+    }
+  ]
+}

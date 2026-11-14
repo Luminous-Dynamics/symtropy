@@ -1,0 +1,70 @@
+name: BUILT-INTEROP-009 Scored IFC Mutation Campaign
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-009/**"
+      - ".github/workflows/built-interop-009.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/built-interop-009/**"
+      - ".github/workflows/built-interop-009.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: built-interop-009-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scored-campaign:
+    name: Build, score, test and lint oracle-bound mutation campaign
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check out immutable structural diff producer
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symtropy
+          ref: 2700ec3ed321ef6d1389441222c5adc12d6a42a9
+          path: interop-008-source
+      - name: Build pinned structural diff producer
+        run: cargo build --locked --manifest-path interop-008-source/tools/built-interop-008/Cargo.toml
+      - name: Verify committed campaign lockfile
+        run: echo "2a144f4153adf92860cd4d2fd0f141577d12c76e56b7ccc9384c24e7fca73ac5  tools/built-interop-009/Cargo.lock" | sha256sum -c -
+      # Temporary formatter capture: remove the write step after applying the
+      # exact rustfmt suggestions; keep the strict check for subsequent runs.
+      - name: Capture rustfmt edits
+        run: |
+          cargo fmt --manifest-path tools/built-interop-009/Cargo.toml
+          git diff -- tools/built-interop-009/src/main.rs
+          cargo fmt --manifest-path tools/built-interop-009/Cargo.toml -- --check
+      - name: Run campaign runner's mutation/score contract tests
+        run: cargo test --locked --manifest-path tools/built-interop-009/Cargo.toml
+      - name: Execute 11-case campaign against the pinned binary
+        env:
+          DIFF_TOOL_SOURCE_COMMIT: 2700ec3ed321ef6d1389441222c5adc12d6a42a9
+          EVALUATOR_SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          diff_bin="$GITHUB_WORKSPACE/interop-008-source/tools/built-interop-008/target/debug/built-interop-semantic-diff"
+          diff_bin_sha256="$(sha256sum "$diff_bin" | awk '{print $1}')"
+          cargo run --locked --manifest-path tools/built-interop-009/Cargo.toml -- \
+            --diff-bin "$diff_bin" \
+            --diff-bin-sha256 "$diff_bin_sha256" \
+            --manifest tools/built-interop-009/campaign-v1.json \
+            --run-id "ci-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --reported-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --diff-tool-source-commit-sha "$DIFF_TOOL_SOURCE_COMMIT" \
+            --evaluator-source-commit-sha "$EVALUATOR_SOURCE_COMMIT" \
+            --output "$RUNNER_TEMP/built-interop-009-report.json"
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/built-interop-009/Cargo.toml --all-targets -- -D warnings
