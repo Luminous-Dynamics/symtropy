@@ -23,7 +23,11 @@
     "exact_enumeration_used",
     "maintenance_authorized",
     "physical_restoration_authorized",
-    "operating_restriction_clearance_authorized"
+    "operating_restriction_clearance_authorized",
+    "analysis_plan_sha256",
+    "preregistration_record_ref",
+    "seed_commitment_sha256",
+    "configuration_sha256"
   ],
   "properties": {
     "schema_version": {
@@ -105,6 +109,22 @@
     },
     "operating_restriction_clearance_authorized": {
       "const": false
+    },
+    "analysis_plan_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "preregistration_record_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seed_commitment_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   }
 }
