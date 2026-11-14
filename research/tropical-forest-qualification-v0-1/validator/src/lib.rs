@@ -54,6 +54,14 @@ fn number_at(root: &Value, path: &[&str]) -> Result<f64, String> {
     Ok(value)
 }
 
+fn usize_at(root: &Value, path: &[&str]) -> Result<usize, String> {
+    let value = at(root, path)?
+        .as_u64()
+        .ok_or_else(|| format!("expected a non-negative integer at {}", path.join(".")))?;
+    usize::try_from(value)
+        .map_err(|_| format!("integer at {} exceeds platform usize", path.join(".")))
+}
+
 fn object_at<'a>(
     root: &'a Value,
     path: &[&str],
@@ -209,14 +217,16 @@ fn parse_coordinates(
         if pair.len() != 2 {
             return Err(format!("{label}[{index}] must contain exactly two coordinates"));
         }
-        let x = pair[0]
+        let x_raw = pair[0]
             .as_u64()
-            .ok_or_else(|| format!("{label}[{index}][0] must be a non-negative integer"))?
-            as usize;
-        let y = pair[1]
+            .ok_or_else(|| format!("{label}[{index}][0] must be a non-negative integer"))?;
+        let y_raw = pair[1]
             .as_u64()
-            .ok_or_else(|| format!("{label}[{index}][1] must be a non-negative integer"))?
-            as usize;
+            .ok_or_else(|| format!("{label}[{index}][1] must be a non-negative integer"))?;
+        let x = usize::try_from(x_raw)
+            .map_err(|_| format!("{label}[{index}][0] exceeds platform usize"))?;
+        let y = usize::try_from(y_raw)
+            .map_err(|_| format!("{label}[{index}][1] exceeds platform usize"))?;
         if x >= width || y >= height {
             return Err(format!("{label}[{index}] lies outside the declared grid"));
         }
@@ -344,10 +354,8 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
     let corpus_id = string_at(manifest, &["case_corpus_id"])?;
     let status = string_at(manifest, &["status"])?;
     let ceiling = string_at(manifest, &["claim_ceiling"])?;
-    let width = at(manifest, &["grid", "width"])?
-        .as_u64().ok_or_else(|| "grid.width must be a positive integer".to_string())? as usize;
-    let height = at(manifest, &["grid", "height"])?
-        .as_u64().ok_or_else(|| "grid.height must be a positive integer".to_string())? as usize;
+    let width = usize_at(manifest, &["grid", "width"])?;
+    let height = usize_at(manifest, &["grid", "height"])?;
     if width == 0 || height == 0 || width.checked_mul(height).is_none() {
         return Err("grid dimensions must be non-zero and fit addressable memory".to_string());
     }
@@ -383,13 +391,13 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
     let mut component_counts = Vec::new();
     for (index, arrangement) in arrangements.iter().enumerate() {
         let id = string_at(arrangement, &["arrangement_id"])?;
-        let occupied_expected = number_at(arrangement, &["occupied_cell_count"])? as usize;
-        let open_expected = number_at(arrangement, &["open_cell_count"])? as usize;
+        let occupied_expected = usize_at(arrangement, &["occupied_cell_count"])?;
+        let open_expected = usize_at(arrangement, &["open_cell_count"])?;
         let occupied_lai = number_at(arrangement, &["occupied_lai"])?;
         let open_lai = number_at(arrangement, &["open_lai"])?;
         let declared_total_lai = number_at(arrangement, &["total_lai"])?;
         let declared_mean_lai = number_at(arrangement, &["mean_lai"])?;
-        let declared_components = number_at(arrangement, &["open_component_count_four_neighbour"])? as usize;
+        let declared_components = usize_at(arrangement, &["open_component_count_four_neighbour"])?;
 
         let (occupied, occupied_duplicates) = parse_coordinates(
             at(arrangement, &["occupied_coordinates"])?,
@@ -432,6 +440,8 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
         let valid = disjoint
             && full_coverage
             && counts_match
+            && occupied_lai >= 0.0
+            && open_lai >= 0.0
             && close_enough(total_lai, declared_total_lai, 1e-9)
             && close_enough(mean_lai, declared_mean_lai, 1e-9)
             && components == declared_components
