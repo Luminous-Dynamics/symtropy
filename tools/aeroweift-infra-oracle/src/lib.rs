@@ -198,7 +198,8 @@ pub fn minimal_failure_sets(
         }
     }
 
-    if universe.len() >= usize::BITS as usize {
+    // Keep the exhaustive reference bounded to at most 2^16 assignments.
+    if universe.len() > 16 {
         return Err(OracleError::TooManyFailureDomains);
     }
 
