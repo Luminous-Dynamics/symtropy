@@ -15,7 +15,7 @@
 //! singular values are the invariant rank coordinates.
 
 use super::{ConstraintMultiplierV1, ConstraintResidualV1};
-use crate::{CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Tangent};
+use crate::{CoordinateFrame, Cotangent, Metric, MetricErrorV1, Tangent};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstraintQuotientProfileV1 {
