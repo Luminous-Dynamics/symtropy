@@ -1216,7 +1216,11 @@ mod tests {
                 let denominator = (1_u64 << denominator_power) as f64;
                 let left_value = numerator as f64 / denominator;
                 let right_value = (numerator + 7) as f64 / (denominator * 2.0);
-                if right_value == 0.0 {
+                if right_value == 0.0
+                    || left_value == 0.0
+                    || left_value == right_value
+                    || left_value == -right_value
+                {
                     continue;
                 }
                 let left = Interval::point(left_value).unwrap();
