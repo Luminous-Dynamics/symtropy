@@ -1,0 +1,40 @@
+name: AeroWeft Infrastructure Recovery Oracle
+
+on:
+  pull_request:
+    paths:
+      - "tools/aeroweift-infra-oracle/**"
+      - "fixtures/aeroweift-infrastructure-resilience/**"
+      - ".github/workflows/aeroweift-infra-oracle.yml"
+  push:
+    branches:
+      - "research/aeroweFt-infra-oracle-001"
+    paths:
+      - "tools/aeroweift-infra-oracle/**"
+      - "fixtures/aeroweift-infrastructure-resilience/**"
+      - ".github/workflows/aeroweift-infra-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aeroweift-infra-oracle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/aeroweift-infra-oracle/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/aeroweift-infra-oracle/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked --manifest-path tools/aeroweift-infra-oracle/Cargo.toml
