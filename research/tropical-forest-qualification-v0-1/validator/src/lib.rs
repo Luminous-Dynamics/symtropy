@@ -692,6 +692,198 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
 }
 
 
+fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let expected: BTreeMap<&'static str, &'static str> = [
+        ("FOREST-DECISION-VALUE-001", "HIGH_INFORMATION_ZERO_DECISION_VALUE"),
+    ]
+    .into_iter()
+    .collect();
+    let expected_cases: BTreeMap<&'static str, &'static str> = [
+        ("FOREST-DECISION-VALUE-001", "HIGH_INFORMATION_ZERO_DECISION_VALUE"),
+        ("FOREST-DECISION-VALUE-002", "POSITIVE_NET_DECISION_VALUE"),
+        ("FOREST-DECISION-VALUE-003", "RANK_BY_EXPECTED_REGRET_REDUCTION"),
+        ("FOREST-DECISION-VALUE-004", "SAMPLE_PROPAGULE_LIMITATION_IF_DECISION_RELEVANT"),
+        ("FOREST-DECISION-VALUE-005", "ZERO_DECISION_VALUE_DESPITE_VARIANCE"),
+        ("FOREST-DECISION-VALUE-006", "SELECT_FEASIBLE_LOWER_TOTAL_COST"),
+        ("FOREST-DECISION-VALUE-007", "DECISION_FOCUSED_VERIFICATION"),
+        ("FOREST-DECISION-VALUE-008", "NO_EXTRA_SURVEY_FOR_ZERO_ACTION_VALUE"),
+        ("FOREST-DECISION-VALUE-009", "MISSINGNESS_IS_NOT_NEGATIVE_EVIDENCE"),
+        ("FOREST-DECISION-VALUE-010", "PRIORITIZE_DECISION_IMPACT_NOT_VARIANCE"),
+        ("FOREST-DECISION-VALUE-011", "ZERO_MARGINAL_DECISION_VALUE"),
+        ("FOREST-DECISION-VALUE-012", "FEASIBILITY_GATE_BEFORE_RANKING"),
+        ("FOREST-DECISION-VALUE-013", "SELECT_IF_EXPECTED_DECISION_REGRET_FALLS"),
+        ("FOREST-DECISION-VALUE-014", "DO_NOT_RANK_UNAUTHORIZED_OBSERVATION"),
+        ("FOREST-DECISION-VALUE-015", "PRESERVE_MODEL_IDENTITY_AND_DISCRIMINATION_VALUE"),
+        ("FOREST-DECISION-VALUE-016", "DECISION_VALUE_WITH_MODEL_SET_ADEQUACY"),
+        ("FOREST-DECISION-VALUE-017", "DO_NOT_OVER-SAMPLE_LOW_DECISION_VALUE"),
+        ("FOREST-DECISION-VALUE-018", "SAMPLE_TO_RESOLVE_OBSERVATION_PROCESS"),
+        ("FOREST-DECISION-VALUE-019", "EXCLUDE_UNAUTHORIZED_CANDIDATE"),
+        ("FOREST-DECISION-VALUE-020", "ACCOUNT_FOR_DEPENDENT_OBSERVATIONS"),
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let hidden_outcomes = at(manifest, &["hidden_outcomes_published"])?
+        .as_bool().ok_or_else(|| "hidden_outcomes_published must be boolean".to_string())?;
+    let blind_status = string_at(manifest, &["independent_blind_corpus"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array().ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut checks = Vec::new();
+    push_check(&mut checks, "DECISION-VALUE-CORPUS-VERSION-001",
+        version == "0.1.0", format!("schema_version={version}"));
+    push_check(&mut checks, "DECISION-VALUE-CORPUS-IDENTITY-001",
+        benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-DECISION-VALUE-001",
+        format!("benchmark={benchmark}; corpus={corpus_id}"));
+    push_check(&mut checks, "DECISION-VALUE-PUBLIC-NOT-BLIND-001",
+        status == "PUBLIC_SYNTHETIC_DEVELOPMENT_CASES_NOT_BLIND"
+            && !hidden_outcomes
+            && blind_status == "NOT_CREATED_REQUIRES_INDEPENDENT_CUSTODY"
+            && ceiling.contains("No real site"),
+        "public decision-value fixtures must not claim a blind or field evaluation");
+
+    let mut seen = BTreeSet::new();
+    for (index, case) in cases.iter().enumerate() {
+        let id = case.get("case_id").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
+        let family = case.get("family").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].family must be a string"))?;
+        let scenario = case.get("scenario_id").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].scenario_id must be a string"))?;
+        let condition = case.get("condition").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].condition must be a string"))?;
+        let disposition = case.get("expected_disposition").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
+        let unique = seen.insert(id.to_string());
+        let expected_disposition = expected_cases.iter()
+            .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
+        push_check(&mut checks, "DECISION-VALUE-CASE-SEMANTICS-001",
+            unique && expected_disposition == Some(disposition)
+                && !family.trim().is_empty() && !scenario.trim().is_empty()
+                && !condition.trim().is_empty(),
+            format!("case={id}; expected={}; declared={disposition}; unique={unique}",
+                expected_disposition.unwrap_or("UNKNOWN_CASE")));
+    }
+    push_check(&mut checks, "DECISION-VALUE-CASE-COVERAGE-001",
+        seen.len() == expected_cases.len() && cases.len() == expected_cases.len(),
+        format!("{} unique cases; {} required", seen.len(), expected_cases.len()));
+
+    let zero = at(manifest, &["worked_examples", "high_information_zero_decision_value"])?;
+    let zero_prior = number_at(zero, &["prior_probability_high_turnover"])?;
+    let zero_protect_high = number_at(zero, &["loss_matrix", "protect", "high_turnover"])?;
+    let zero_protect_low = number_at(zero, &["loss_matrix", "protect", "low_turnover"])?;
+    let zero_none_high = number_at(zero, &["loss_matrix", "do_not_protect", "high_turnover"])?;
+    let zero_none_low = number_at(zero, &["loss_matrix", "do_not_protect", "low_turnover"])?;
+    let zero_evsi = number_at(zero, &["expected_gross_evsi"])?;
+    let zero_entropy_claim = string_at(zero, &["ideal_measurement_information_gain"])?;
+    let zero_disposition = string_at(zero, &["expected_disposition"])?;
+    let action_losses_are_state_invariant = close_enough(zero_protect_high, zero_protect_low, 1e-12)
+        && close_enough(zero_none_high, zero_none_low, 1e-12);
+    push_check(&mut checks, "DECISION-VALUE-HIGH-UNCERTAINTY-ZERO-EVSI-001",
+        (0.0..=1.0).contains(&zero_prior)
+            && action_losses_are_state_invariant
+            && close_enough(zero_evsi, 0.0, 1e-12)
+            && zero_entropy_claim == "positive"
+            && zero_disposition == "HIGH_INFORMATION_ZERO_DECISION_VALUE",
+        "state information cannot improve an action when the declared loss is invariant across states");
+
+    let positive = at(manifest, &["worked_examples", "moderate_uncertainty_positive_decision_value"])?;
+    let prior = number_at(positive, &["prior_probability_degraded"])?;
+    let protect_stable = number_at(positive, &["loss_matrix", "protect", "stable"])?;
+    let protect_degraded = number_at(positive, &["loss_matrix", "protect", "degraded"])?;
+    let no_action_stable = number_at(positive, &["loss_matrix", "do_not_protect", "stable"])?;
+    let no_action_degraded = number_at(positive, &["loss_matrix", "do_not_protect", "degraded"])?;
+    let sensitivity = number_at(positive, &["measurement", "sensitivity"])?;
+    let specificity = number_at(positive, &["measurement", "specificity"])?;
+    let cost = number_at(positive, &["measurement", "cost"])?;
+    let declared_without = number_at(positive, &["expected_loss_without_observation"])?;
+    let declared_p_positive = number_at(positive, &["probability_positive"])?;
+    let declared_post_positive = number_at(positive, &["posterior_degraded_given_positive"])?;
+    let declared_p_negative = number_at(positive, &["probability_negative"])?;
+    let declared_post_negative = number_at(positive, &["posterior_degraded_given_negative"])?;
+    let declared_after = number_at(positive, &["expected_loss_after_observation"])?;
+    let declared_gross = number_at(positive, &["gross_evsi"])?;
+    let declared_net = number_at(positive, &["net_expected_value_after_cost"])?;
+    let declared_positive_disposition = string_at(positive, &["expected_disposition"])?;
+
+    let p_positive = prior * sensitivity + (1.0 - prior) * (1.0 - specificity);
+    let p_negative = 1.0 - p_positive;
+    let posterior_positive = if p_positive > 0.0 { prior * sensitivity / p_positive } else { f64::NAN };
+    let posterior_negative = if p_negative > 0.0 { prior * (1.0 - sensitivity) / p_negative } else { f64::NAN };
+    let baseline_loss = (protect_stable * (1.0 - prior) + protect_degraded * prior)
+        .min(no_action_stable * (1.0 - prior) + no_action_degraded * prior);
+    let post_positive_loss = (protect_stable * (1.0 - posterior_positive)
+        + protect_degraded * posterior_positive)
+        .min(no_action_stable * (1.0 - posterior_positive)
+            + no_action_degraded * posterior_positive);
+    let post_negative_loss = (protect_stable * (1.0 - posterior_negative)
+        + protect_degraded * posterior_negative)
+        .min(no_action_stable * (1.0 - posterior_negative)
+            + no_action_degraded * posterior_negative);
+    let expected_after = p_positive * post_positive_loss + p_negative * post_negative_loss;
+    let gross_evsi = baseline_loss - expected_after;
+    let net_value = gross_evsi - cost;
+    let valid_probabilities = (0.0..=1.0).contains(&prior)
+        && (0.0..=1.0).contains(&sensitivity)
+        && (0.0..=1.0).contains(&specificity)
+        && cost >= 0.0;
+    let worked_example_matches = valid_probabilities
+        && close_enough(baseline_loss, declared_without, 1e-9)
+        && close_enough(p_positive, declared_p_positive, 1e-9)
+        && close_enough(p_negative, declared_p_negative, 1e-9)
+        && close_enough(posterior_positive, declared_post_positive, 1e-9)
+        && close_enough(posterior_negative, declared_post_negative, 1e-9)
+        && close_enough(expected_after, declared_after, 1e-9)
+        && close_enough(gross_evsi, declared_gross, 1e-9)
+        && close_enough(net_value, declared_net, 1e-9)
+        && declared_positive_disposition == "POSITIVE_NET_DECISION_VALUE";
+    push_check(&mut checks, "DECISION-VALUE-EVSI-ARITHMETIC-001",
+        worked_example_matches,
+        format!("baseline={baseline_loss}; p+={p_positive}; p-={p_negative}; post+={posterior_positive}; post-={posterior_negative}; after={expected_after}; gross={gross_evsi}; net={net_value}"));
+
+    let execution = at(manifest, &["execution"])?;
+    let evaluator = string_at(execution, &["evaluator"])?;
+    let uses_existing = at(execution, &["uses_existing_evsi_kernel"])?
+        .as_bool().ok_or_else(|| "uses_existing_evsi_kernel must be boolean".to_string())?;
+    let duplicate = at(execution, &["duplicate_evsi_kernel_created"])?
+        .as_bool().ok_or_else(|| "duplicate_evsi_kernel_created must be boolean".to_string())?;
+    let real_data = at(execution, &["real_field_data_ingested"])?
+        .as_bool().ok_or_else(|| "real_field_data_ingested must be boolean".to_string())?;
+    let action_authorized = at(execution, &["real_management_action_authorized"])?
+        .as_bool().ok_or_else(|| "real_management_action_authorized must be boolean".to_string())?;
+    push_check(&mut checks, "DECISION-VALUE-NO-DUPLICATE-KERNEL-001",
+        evaluator == "NOT_IMPLEMENTED" && uses_existing && !duplicate
+            && !real_data && !action_authorized,
+        "public fixture must not claim a second EVSI engine, field data, or decision authority");
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks.iter().map(|check| json!({
+        "id": check.id, "passed": check.passed, "detail": check.detail
+    })).collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "MANIFEST_VALID" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "public_case_count": seen.len(),
+        "expected_gross_evsi_example": gross_evsi,
+        "expected_net_value_after_cost_example": net_value,
+        "decision_policy_performance": "NOT_ESTABLISHED",
+        "existing_evsi_kernel_execution": "NOT_RUN"
+    }))
+}
+
 fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected: BTreeMap<&'static str, &'static str> = [
         ("FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-001", "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"),
@@ -846,6 +1038,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
     {
         return validate_model_set_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-DECISION-VALUE-001")
+    {
+        return validate_decision_value_corpus(raw, &manifest);
     }
     if manifest.get("case_corpus_id").is_some() {
         return validate_canopy_fixture(raw, &manifest);
