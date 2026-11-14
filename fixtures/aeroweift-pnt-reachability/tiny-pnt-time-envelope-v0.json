@@ -1,0 +1,512 @@
+{
+  "schema_id": "aeroweift.pnt-reachability.synthetic-time-envelope.v0",
+  "fixture_id": "AW-PNT-REACH-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Exact adapter arithmetic and evidence-gate behavior for fictional bounded position/time inputs only; not a PNT detector, receiver test, aircraft model, navigation integrity guarantee, route clearance, or flight-safety result.",
+  "time": {
+    "comparison_scale": "SYNTHETIC-UTC-LIKE",
+    "unit": "milliseconds",
+    "evaluation_time_ms": 3000,
+    "sample_time_is_interval": true,
+    "time_conversion_owner": "Mycelix #435",
+    "adapter_performs_clock_conversion": false
+  },
+  "policy": {
+    "reachability_profile_id": "synthetic-fixed-wing-profile-v0",
+    "horizontal_frame_id": "SYNTHETIC-ENU-01",
+    "vertical_datum_id": "SYNTHETIC-UP-01",
+    "maximum_sample_age_ms": 2500,
+    "minimum_independent_evidence_families": 2,
+    "accepted_bound_kind": "deterministic-hard-bound",
+    "fallback_allowed_in_states": [
+      "DEGRADED",
+      "INTEGRITY_UNCERTAIN",
+      "UNAVAILABLE"
+    ],
+    "recovering_state_requires_upstream_requalification": true
+  },
+  "cases": [
+    {
+      "id": "normal-fresh-clock-interval",
+      "service_state": "NORMAL",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-nav-primary",
+      "source_claim_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-a",
+        "correlation_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-a"
+      },
+      "position_bounds_m": {
+        "east": [
+          100,
+          101
+        ],
+        "north": [
+          -20,
+          -19
+        ],
+        "up": [
+          5,
+          6
+        ]
+      },
+      "velocity_bounds_mps": {
+        "east": [
+          4,
+          5
+        ],
+        "north": [
+          -2,
+          -1
+        ],
+        "up": [
+          0.5,
+          1
+        ]
+      },
+      "expected": {
+        "disposition": "ACCEPTED_PRIMARY_BOUND",
+        "elapsed_seconds": [
+          1.9,
+          2.1
+        ],
+        "position_bounds_m": {
+          "east": [
+            107.6,
+            111.5
+          ],
+          "north": [
+            -24.2,
+            -20.9
+          ],
+          "up": [
+            5.95,
+            8.1
+          ]
+        }
+      }
+    },
+    {
+      "id": "normal-exact-time-positive-control",
+      "service_state": "NORMAL",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-nav-primary",
+      "source_claim_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        1000,
+        1000
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-b",
+        "correlation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-b"
+      },
+      "position_bounds_m": {
+        "east": [
+          100,
+          101
+        ],
+        "north": [
+          -20,
+          -19
+        ],
+        "up": [
+          5,
+          6
+        ]
+      },
+      "velocity_bounds_mps": {
+        "east": [
+          4,
+          5
+        ],
+        "north": [
+          -2,
+          -1
+        ],
+        "up": [
+          0.5,
+          1
+        ]
+      },
+      "expected": {
+        "disposition": "ACCEPTED_PRIMARY_BOUND",
+        "elapsed_seconds": [
+          2,
+          2
+        ],
+        "position_bounds_m": {
+          "east": [
+            108,
+            111
+          ],
+          "north": [
+            -24,
+            -21
+          ],
+          "up": [
+            6,
+            8
+          ]
+        },
+        "relation_to_case_1": "no_wider_than_case_1"
+      }
+    },
+    {
+      "id": "degraded-qualified-independent-fallback",
+      "service_state": "DEGRADED",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "fallback",
+      "source_id": "synthetic-ground-independent-fallback",
+      "source_claim_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-c",
+        "correlation_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-c"
+      },
+      "position_bounds_m": {
+        "east": [
+          200,
+          201
+        ],
+        "north": [
+          -20,
+          -19
+        ],
+        "up": [
+          5,
+          6
+        ]
+      },
+      "velocity_bounds_mps": {
+        "east": [
+          -2,
+          3
+        ],
+        "north": [
+          -1,
+          1
+        ],
+        "up": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "disposition": "ACCEPTED_FALLBACK_BOUND",
+        "elapsed_seconds": [
+          1.9,
+          2.1
+        ],
+        "position_bounds_m": {
+          "east": [
+            195.8,
+            207.3
+          ],
+          "north": [
+            -22.1,
+            -16.9
+          ],
+          "up": [
+            5,
+            8.1
+          ]
+        }
+      }
+    },
+    {
+      "id": "integrity-uncertain-correlated-primary-only",
+      "service_state": "INTEGRITY_UNCERTAIN",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-gnss-derived-primary",
+      "source_claim_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "related_channels": [
+        {
+          "id": "synthetic-adsb-channel",
+          "common_failure_domain": "synthetic-gnss-receiver-domain"
+        },
+        {
+          "id": "synthetic-nav-channel",
+          "common_failure_domain": "synthetic-gnss-receiver-domain"
+        }
+      ],
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-d",
+        "correlation_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "independence": {
+        "assessment": "shared-or-correlated",
+        "independent_family_count": 1,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-d"
+      },
+      "fallback": null,
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "NO_QUALIFIED_INDEPENDENT_FALLBACK"
+      }
+    },
+    {
+      "id": "statistical-95-percent-envelope-only",
+      "service_state": "NORMAL",
+      "bound_kind": "statistical-prediction",
+      "confidence_level": 0.95,
+      "claim_role": "primary",
+      "source_id": "synthetic-statistical-predictor",
+      "source_claim_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-e",
+        "correlation_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-e"
+      },
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "STATISTICAL_ENVELOPE_NOT_HARD_BOUND"
+      }
+    },
+    {
+      "id": "stale-primary-sample",
+      "service_state": "NORMAL",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-stale-nav",
+      "source_claim_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        300,
+        500
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-f",
+        "correlation_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-f"
+      },
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "SAMPLE_AGE_EXCEEDS_PROFILE_LIMIT"
+      }
+    },
+    {
+      "id": "sample-time-overlaps-evaluation-time",
+      "service_state": "NORMAL",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-clock-ambiguous-nav",
+      "source_claim_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        2900,
+        3100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-g",
+        "correlation_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-g"
+      },
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "SAMPLE_TIME_INTERVAL_OVERLAPS_EVALUATION_EPOCH"
+      }
+    },
+    {
+      "id": "recovering-without-requalification",
+      "service_state": "RECOVERING",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-recovering-nav",
+      "source_claim_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-h",
+        "correlation_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "independence": {
+        "assessment": "qualified-within-profile",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-h"
+      },
+      "requalification_receipt": null,
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "UPSTREAM_SERVICE_STILL_RECOVERING"
+      }
+    },
+    {
+      "id": "unknown-clock-or-dependency-state",
+      "service_state": "NORMAL",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-unknown-provenance-nav",
+      "source_claim_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "unknown",
+        "correlation_id": null,
+        "correlation_sha256": null
+      },
+      "independence": {
+        "assessment": "unknown",
+        "independent_family_count": null,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": false,
+        "snapshot_id": null
+      },
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "CLOCK_OR_DEPENDENCY_QUALIFICATION_UNKNOWN"
+      }
+    },
+    {
+      "id": "contradictory-independent-witnesses",
+      "service_state": "INTEGRITY_UNCERTAIN",
+      "bound_kind": "deterministic-hard-bound",
+      "claim_role": "primary",
+      "source_id": "synthetic-contradictory-primary",
+      "source_claim_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "frame_id": "SYNTHETIC-ENU-01",
+      "vertical_datum_id": "SYNTHETIC-UP-01",
+      "sample_time_interval_ms": [
+        900,
+        1100
+      ],
+      "assessment_time_ms": 3000,
+      "clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-clock-correlation-i",
+        "correlation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "independence": {
+        "assessment": "contradictory",
+        "independent_family_count": 2,
+        "required_family_count": 2,
+        "dependency_snapshot_complete": true,
+        "snapshot_id": "synthetic-dependency-snapshot-i"
+      },
+      "fallback": null,
+      "expected": {
+        "disposition": "NOT_ASSESSABLE",
+        "reason": "CONTRADICTORY_INDEPENDENT_EVIDENCE"
+      }
+    }
+  ],
+  "invariants": [
+    "The adapter consumes, but does not recreate, PNT state, clock correlation, navigation health, or common-mode dependency assessment.",
+    "A statistical confidence region is never accepted as a deterministic hard-bound occupancy input.",
+    "Clock-correlation uncertainty remains an interval and is propagated into the position enclosure.",
+    "Sample age uses the oldest possible sample time, not receipt time.",
+    "A shared failure-domain duplicate does not count as an independent evidence family.",
+    "Unknown or contradictory source dependencies never imply independence.",
+    "DEGRADED, INTEGRITY_UNCERTAIN, and UNAVAILABLE primary inputs require a separately qualified fallback under the declared profile.",
+    "RECOVERING and INDETERMINATE states are not accepted as NORMAL.",
+    "A NOT_ASSESSABLE result is not an empty occupancy set and cannot clear a conflict.",
+    "No output constitutes a flight authorization, navigation certification, or aircraft safety claim."
+  ],
+  "required_mutations": [
+    "Widen the sample-time interval while keeping all other inputs fixed; the resulting reachable enclosure must not shrink.",
+    "Widen velocity bounds; the resulting reachable enclosure must not shrink.",
+    "Change only the receipt time while preserving an old observed-at interval; the sample must remain stale.",
+    "Change a shared GNSS/ADS-B failure-domain relation from shared to unknown; independence must not increase.",
+    "Change a deterministic hard-bound label to statistical-prediction without changing numeric values; the adapter must reject hard-bound admission.",
+    "Remove the qualified clock-correlation reference; the adapter must reject the source.",
+    "Change the frame or vertical datum; the adapter must reject the source.",
+    "Change RECOVERING to NORMAL without a new upstream service-state receipt; the adapter must not infer requalification."
+  ]
+}
