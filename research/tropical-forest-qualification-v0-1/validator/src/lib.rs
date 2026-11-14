@@ -234,7 +234,8 @@ fn open_component_count(
     let mut components = 0;
     while let Some(start) = remaining.pop_first() {
         components += 1;
-        let mut queue = VecDeque::from([start]);
+        let mut queue = VecDeque::new();
+        queue.push_back(start);
         while let Some((x, y)) = queue.pop_front() {
             let neighbors = [
                 (x.wrapping_sub(1), y),
