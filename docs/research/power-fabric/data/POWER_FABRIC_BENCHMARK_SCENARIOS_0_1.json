@@ -1,0 +1,193 @@
+{
+  "corpus_id": "power-fabric-benchmark-corpus",
+  "corpus_version": "0.1.0",
+  "snapshot_date": "2026-11-14",
+  "source_policy": "Synthetic contract fixtures only in this initial registry. Concrete standards source artifacts must be rights-cleared and independently hashed before adapter scoring.",
+  "cases": [
+    {
+      "id": "IR-001",
+      "family": "ir_contract",
+      "input": "duplicate stable object ID",
+      "expected": "reject",
+      "oracle": "DuplicateObjectId"
+    },
+    {
+      "id": "IR-002",
+      "family": "ir_contract",
+      "input": "dangling relationship endpoint",
+      "expected": "reject",
+      "oracle": "DanglingRelationshipEndpoint"
+    },
+    {
+      "id": "IR-003",
+      "family": "ir_contract",
+      "input": "unknown claim includes evidence identifier",
+      "expected": "reject",
+      "oracle": "UnexpectedEvidenceForUnknownClaim"
+    },
+    {
+      "id": "IR-004",
+      "family": "ir_contract",
+      "input": "observed claim lacks evidence reference",
+      "expected": "reject",
+      "oracle": "EvidenceRequiredForDomain"
+    },
+    {
+      "id": "IR-005",
+      "family": "ir_contract",
+      "input": "contradiction references missing or wrong-property claim IDs",
+      "expected": "reject",
+      "oracle": "InvalidContradictionReference"
+    },
+    {
+      "id": "ADAPT-001",
+      "family": "adapter",
+      "input": "unsupported source semantic marked unsupported with no target",
+      "expected": "incomplete",
+      "oracle": "IncompleteUnsupportedOrAmbiguous"
+    },
+    {
+      "id": "ADAPT-002",
+      "family": "adapter",
+      "input": "unknown standard publication status",
+      "expected": "incomplete",
+      "oracle": "IncompleteUnknownStandardStatus"
+    },
+    {
+      "id": "ADAPT-003",
+      "family": "adapter",
+      "input": "complete inventory declared with missing mapping record",
+      "expected": "reject",
+      "oracle": "SourceInventoryCountMismatch"
+    },
+    {
+      "id": "ADAPT-004",
+      "family": "adapter",
+      "input": "round trip changes a unit-bearing voltage lexical value",
+      "expected": "not_equivalent",
+      "oracle": "OneMissingOneUnexpectedSemanticAtom"
+    },
+    {
+      "id": "ADAPT-005",
+      "family": "adapter",
+      "input": "opaque extension source/target digests differ",
+      "expected": "reject",
+      "oracle": "ExtensionDispositionShapeMismatch"
+    },
+    {
+      "id": "CHANGE-001",
+      "family": "change_impact",
+      "input": "expected old digest does not match dependency snapshot",
+      "expected": "reject",
+      "oracle": "StaleExpectedInputDigest"
+    },
+    {
+      "id": "CHANGE-002",
+      "family": "change_impact",
+      "input": "unknown new digest after topology change",
+      "expected": "invalidate_and_reconcile",
+      "oracle": "DependentsInvalidatedAndReconciliationRequired"
+    },
+    {
+      "id": "CHANGE-003",
+      "family": "change_impact",
+      "input": "dependency inventory incomplete",
+      "expected": "invalidate",
+      "oracle": "DependencyInventoryIncomplete"
+    },
+    {
+      "id": "CHANGE-004",
+      "family": "change_impact",
+      "input": "compiler version changes",
+      "expected": "invalidate",
+      "oracle": "CompilerVersionChanged"
+    },
+    {
+      "id": "CHANGE-005",
+      "family": "change_impact",
+      "input": "unrelated carbon input changes",
+      "expected": "retain_unrelated_artifact",
+      "oracle": "UnrelatedArtifactRetained"
+    },
+    {
+      "id": "RES-001",
+      "family": "resilience",
+      "input": "diamond topology with distinct edge routes and one shared source",
+      "expected": "two_edge_disjoint_paths_with_shared_source",
+      "oracle": "IndependentEnumeratedDiamond"
+    },
+    {
+      "id": "RES-002",
+      "family": "resilience",
+      "input": "parallel distinct edges share an intermediate bus",
+      "expected": "shared_intermediate_node_reported",
+      "oracle": "SharedIntermediateBus"
+    },
+    {
+      "id": "RES-003",
+      "family": "resilience",
+      "input": "unknown failure-domain evidence",
+      "expected": "inventory_incomplete",
+      "oracle": "FailureDomainInventoryIncomplete"
+    },
+    {
+      "id": "RES-004",
+      "family": "resilience",
+      "input": "only measurement/control associations connect source to load",
+      "expected": "zero_power_paths",
+      "oracle": "TypedEdgeIsolation"
+    },
+    {
+      "id": "RES-005",
+      "family": "resilience",
+      "input": "single source route chain",
+      "expected": "one_path_and_structural_bridges",
+      "oracle": "SingleRouteCutTopology"
+    },
+    {
+      "id": "VIEW-001",
+      "family": "human_projection",
+      "input": "no declared source path for a load",
+      "expected": "not_isolation_notice",
+      "oracle": "NoDeclaredPathIsNotIsolation"
+    },
+    {
+      "id": "VIEW-002",
+      "family": "human_projection",
+      "input": "graph revision is stale",
+      "expected": "all_roles_mark_stale",
+      "oracle": "ProjectionRevisionStatusStale"
+    },
+    {
+      "id": "VIEW-003",
+      "family": "human_projection",
+      "input": "resident projection with declared supply path",
+      "expected": "no_internal_path_or_source_ids",
+      "oracle": "ResidentDetailPolicy"
+    },
+    {
+      "id": "VIEW-004",
+      "family": "human_projection",
+      "input": "all role projections",
+      "expected": "no_safe_to_touch_and_not_approval_notices",
+      "oracle": "RoleSafetyNoticeCoverage"
+    }
+  ],
+  "performance_sizes": [
+    100,
+    1000,
+    10000,
+    100000
+  ],
+  "target_metrics": {
+    "frozen_contract_acceptance_rate": 1,
+    "silent_in_scope_semantic_loss_rate": 0,
+    "change_invalidation_recall": 1,
+    "false_positive_invalidation_rate": 0,
+    "incremental_vs_full_semantic_equivalence_rate": 1,
+    "human_non_hazardous_task_accuracy_target": 0.95,
+    "critical_false_safe_interpretations_target": 0,
+    "comparative_integration_effort_reduction_hypothesis": 0.3
+  },
+  "measurement_status": "scenario_registry_authored_not_executed"
+}
