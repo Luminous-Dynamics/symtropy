@@ -180,7 +180,7 @@ fn compute(case: &Value) -> Result<Value, String> {
         "DI-T0-009-ingress-known-but-mass-balance-incomplete" => {
             require(text(inputs, "tracer_source_attribution")? == "unique", "case requires unique tracer attribution")?;
             require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "direct tracer evidence must be valid")?;
-            let mass = direct_tracer_mass(inputs)?;
+            let _mass = direct_tracer_mass(inputs)?;
             require(!bool_field(inputs, "all_declared_streams_measured")?, "case requires an unmeasured declared stream")?;
             require(field(inputs, "captured_residual_mass_mg")?.is_null(), "case requires missing captured residual mass")?;
             Ok(json!({
