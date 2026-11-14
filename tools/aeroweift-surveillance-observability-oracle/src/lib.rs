@@ -216,6 +216,13 @@ pub fn evaluate(
         if !claim.coverage_qualified || !claim.environment_qualified {
             continue;
         }
+        if claim.evidence_class == CoverageEvidenceClass::Unknown
+            || claim.profile_id.trim().is_empty()
+            || claim.environment_profile.trim().is_empty()
+        {
+            unknown_dependency = true;
+            continue;
+        }
         if !claim.pnt_time_qualified || !claim.dependency_inventory_complete {
             unknown_dependency = true;
             continue;
@@ -256,6 +263,10 @@ pub fn evaluate(
                 claim.source_id == report.source_id
                     && claim.coverage_qualified
                     && claim.environment_qualified
+                    && !claim.upstream_degraded
+                    && claim.evidence_class != CoverageEvidenceClass::Unknown
+                    && !claim.profile_id.trim().is_empty()
+                    && !claim.environment_profile.trim().is_empty()
                     && claim.pnt_time_qualified
                     && claim.dependency_inventory_complete
                     && claim
