@@ -14,6 +14,7 @@ use core::fmt;
 use serde::Serialize;
 
 mod batch_evaluation;
+mod change_impact;
 mod duty_cycle;
 mod diagnostics;
 mod fuel;
@@ -21,6 +22,10 @@ mod infrastructure_ir;
 mod module_contract;
 mod service_graph;
 
+pub use change_impact::{
+    ChangeImpactError, DependencyGraph, DerivedArtifact, InputChange, InputChangeReceipt,
+    InputFingerprint, InvalidationReason, InvalidationReport,
+};
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use diagnostics::{
     CompilationEffect, CompilationStatus, Diagnostic, DiagnosticCode, DiagnosticError,
