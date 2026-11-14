@@ -61,7 +61,7 @@ The diagnostic snapshot binds:
 - maximum stabilized weight;
 - follow-up completeness;
 - evidence-bound assessments of consistency, conditional exchangeability, positivity, no interference, censoring exchangeability and measurement validity;
-- a negative-control disposition and an explicit sensitivity-analysis status;
+- a negative-control disposition and an explicit sensitivity-analysis status, each with an evidence digest and reviewer reference;
 - unit-level eligibility, assignment, follow-up, treatment-start and follow-up-end timelines;
 - source digests and availability timestamps for every declared baseline covariate.
 
@@ -87,7 +87,7 @@ Threshold defaults in the synthetic fixture are not fleet-wide safety limits. Ev
 
 ## Falsification corpus
 
-The machine-readable manifest has eighteen cases:
+The machine-readable manifest has nineteen cases:
 1. complete protocol and supported diagnostics;
 2. time-zero misalignment;
 3. post-time-zero baseline covariate;
@@ -105,7 +105,7 @@ The machine-readable manifest has eighteen cases:
 15. duplicate strategy-arm count metadata;
 16. missing, duplicate or invalid baseline evidence.
 
-The 18-test Rust suite is synthetic software validation. It does not validate a real propensity model or causal estimate.
+The 19-test Rust suite is synthetic software validation. It does not validate a real propensity model or causal estimate.
 
 ## Next estimators — explicitly not implemented
 
