@@ -148,6 +148,7 @@ pub fn apply_change(
 pub fn requalify_claim(
     claim: &mut Claim,
     current_configuration_revision: &str,
+    evidence_configuration_revision: &str,
     evidence_id: &str,
     independent_review_complete: bool,
 ) -> Result<(), StateError> {
@@ -155,7 +156,7 @@ pub fn requalify_claim(
         return Err(StateError::ClaimAlreadyQualified);
     }
     if current_configuration_revision.trim().is_empty()
-        || current_configuration_revision != claim.qualified_configuration_revision
+        || evidence_configuration_revision != current_configuration_revision
     {
         return Err(StateError::RequalificationRevisionMismatch);
     }
@@ -167,6 +168,7 @@ pub fn requalify_claim(
     }
 
     claim.status = ClaimStatus::Qualified;
+    claim.qualified_configuration_revision = current_configuration_revision.to_owned();
     claim.requalification_evidence_id = Some(evidence_id.to_owned());
     Ok(())
 }
@@ -253,16 +255,17 @@ mod tests {
         claim.status = ClaimStatus::Invalidated;
 
         assert_eq!(
-            requalify_claim(&mut claim, "R1", "TEST-REPORT-NEW", false),
+            requalify_claim(&mut claim, "R2", "R2", "TEST-REPORT-NEW", false),
             Err(StateError::IndependentReviewRequired)
         );
         assert_eq!(
-            requalify_claim(&mut claim, "OLD-R0", "TEST-REPORT-NEW", true),
+            requalify_claim(&mut claim, "R2", "R1", "STALE-REPORT", true),
             Err(StateError::RequalificationRevisionMismatch)
         );
-        requalify_claim(&mut claim, "R1", "TEST-REPORT-NEW", true)
+        requalify_claim(&mut claim, "R2", "R2", "TEST-REPORT-NEW", true)
             .expect("correctly scoped requalification");
         assert_eq!(claim.status, ClaimStatus::Qualified);
+        assert_eq!(claim.qualified_configuration_revision, "R2");
         assert_eq!(claim.requalification_evidence_id.as_deref(), Some("TEST-REPORT-NEW"));
     }
 
