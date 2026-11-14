@@ -1,0 +1,88 @@
+{
+  "schema_version": "construction-robot-endurance-study-v0.1",
+  "profile_id": "construction-robot-endurance-v0.1",
+  "version": "0.1.0",
+  "status": "proposed",
+  "source_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3628",
+  "subject": {
+    "manufacturer": "to_be_specified",
+    "model": "to_be_specified",
+    "serial_unit_ids": [
+      "to_be_specified_before_campaign"
+    ],
+    "software_identity_required": true,
+    "configuration_identity_required": true,
+    "payload_tool_identity_required": true
+  },
+  "duty_cycle": {
+    "schedule_profile_id": "to_be_pre_registered",
+    "planned_shift_hours": 8,
+    "planned_campaign_exposure": {
+      "exposure_unit": "powered_hours",
+      "target_value": null
+    },
+    "break_in_separate": true,
+    "planned_maintenance_predeclared": true,
+    "stopping_rules_predeclared": true
+  },
+  "state_model": {
+    "mutually_exclusive_intervals": true,
+    "scheduled_time_reconciled": true,
+    "unknown_state_required": true,
+    "states": [
+      "not_scheduled",
+      "scheduled_no_eligible_work",
+      "ready_available",
+      "working_executing",
+      "idle_waiting",
+      "charging_refuelling_changeover",
+      "blocked_site_material_external",
+      "planned_maintenance",
+      "unplanned_maintenance",
+      "fault",
+      "recovery",
+      "safety_hold",
+      "unknown"
+    ]
+  },
+  "event_policy": {
+    "event_identity_and_clock_required": true,
+    "cumulative_exposure_at_onset_required": true,
+    "attribution_states": [
+      "confirmed",
+      "suspected",
+      "contested",
+      "unknown"
+    ],
+    "censoring_policy_required": true,
+    "missing_log_policy_required": true,
+    "post_service_verification_required": true
+  },
+  "exposure": {
+    "denominators_reported_separately": true,
+    "failure_mode_specific_denominator": true,
+    "cluster_factors": [
+      "serial_unit",
+      "crew",
+      "shift",
+      "site",
+      "environment",
+      "task_stratum"
+    ]
+  },
+  "analysis": {
+    "accepted_output_source_profile": "task_specific_profile_bound_per_run",
+    "reliability_models_predeclared": true,
+    "censoring_reported": true,
+    "uncertainty_reported": true,
+    "zero_failure_is_not_mtbF_claim": true,
+    "per_shift_and_stratum_reporting": true
+  },
+  "safety_separation": {
+    "external_safety_qualification": true,
+    "holds_not_assumed_waste": true,
+    "return_to_service_external": true,
+    "composite_safety_productivity_score_prohibited": true
+  },
+  "execution_status": "not_executed"
+}
