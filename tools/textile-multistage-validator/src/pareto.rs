@@ -409,7 +409,7 @@ fn validate_objectives(
         }
     }
     for metric in required_metrics {
-        let Some(observation) = observations.get(&metric) else {
+        let Some(observation) = observations.get(metric) else {
             add(
                 findings,
                 "OBJECTIVE_MISSING",
@@ -432,6 +432,10 @@ fn validate_objectives(
         if !nonempty(&observation.evidence.evidence_id)
             || !valid_sha256(&observation.evidence.sha256)
             || !nonempty(&observation.evidence.method_ref)
+            || !nonempty(&observation.evidence.lot_id)
+            || observation.evidence.process_trial_evidence_id
+                != candidate.process_trial_evidence_id
+            || observation.evidence.scenario_id != candidate.scenario_id
         {
             add(
                 findings,
