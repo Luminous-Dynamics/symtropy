@@ -1,0 +1,218 @@
+name: PHYS-ID-00 World Identity Authority Qualification
+
+on:
+  push:
+    branches:
+      - "ci/physics-world-identity-authority-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-world-identity-authority-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRODUCT_HEAD: 53af0682fb2d768bc8ca18d78d41b92704c4d567
+  ECON05C_PARENT: ecedeede2e09b5ffa701bdad33bdf2e5ca2c830e
+
+jobs:
+  qualify:
+    name: Frozen PHYS-ID-00 / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact subject ancestry and delta
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${ECON05C_PARENT}" "${PRODUCT_HEAD}"
+          count="$(git rev-list --count "${ECON05C_PARENT}..${PRODUCT_HEAD}")"
+          echo "phys_id_commits_above_parent=${count}"
+          test "${count}" = "5"
+          mapfile -t changed < <(git diff --name-only "${ECON05C_PARENT}..${PRODUCT_HEAD}" | sort)
+          printf '%s\n' "${changed[@]}"
+          expected=(
+            "crates/core/symtropy-physics/PHYSICAL_WORLD_IDENTITY_V01.md"
+            "crates/core/symtropy-physics/src/identity_authority.rs"
+            "crates/core/symtropy-physics/src/lib.rs"
+            "crates/core/symtropy-physics/tests/world_identity_authority_v01.rs"
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#changed[@]}" = "${#expected_sorted[@]}"
+          for i in "${!changed[@]}"; do
+            test "${changed[$i]}" = "${expected_sorted[$i]}"
+          done
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/body.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/replay.rs \
+            crates/core/symtropy-physics/tests/world_identity_authority_v01.rs \
+            crates/core/symtropy-physics/PHYSICAL_WORLD_IDENTITY_V01.md \
+            > "${RUNNER_TEMP}/phys-id00-source-sha256.txt"
+          cat "${RUNNER_TEMP}/phys-id00-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check symtropy-physics all targets
+        id: check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run PHYS-ID-00 public authority corpus
+        id: identity
+        run: cargo test -p symtropy-physics --locked --test world_identity_authority_v01
+
+      - name: Run complete symtropy-physics library regression
+        id: physics_tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict symtropy-physics Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit PHYS-ID-00 authority boundary
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-physics/src/identity_authority.rs
+          contract=crates/core/symtropy-physics/PHYSICAL_WORLD_IDENTITY_V01.md
+
+          grep -Fq 'pub struct PhysicsAuthorityWorld' "${source}"
+          grep -Fq 'pub struct PhysicsBodySubject' "${source}"
+          grep -Fq 'pub struct ValidatedNetBody' "${source}"
+          grep -Fq 'pub fn validate_subject' "${source}"
+          grep -Fq 'exactly one live body' "${contract}"
+          grep -Fq 'It deliberately does not claim' "${source}"
+
+          python3 - <<'PY'
+          import pathlib, re, sys
+          text = pathlib.Path('crates/core/symtropy-physics/src/identity_authority.rs').read_text()
+
+          subject = re.search(r'pub struct PhysicsBodySubject\s*\{(?P<body>.*?)\n\}', text, re.S)
+          if not subject:
+              sys.exit('PhysicsBodySubject block not found')
+          body = subject.group('body')
+          for required in ('PhysicalAuthorityId', 'WorldGenerationId', 'NetId'):
+              if required not in body:
+                  sys.exit(f'PhysicsBodySubject missing {required}')
+          if 'BodyHandle' in body:
+              sys.exit('PhysicsBodySubject stores runtime BodyHandle')
+
+          token_pos = text.find('pub struct ValidatedNetBody')
+          if token_pos < 0:
+              sys.exit('ValidatedNetBody not found')
+          prefix = text[max(0, token_pos-300):token_pos]
+          if 'Serialize' in prefix or 'Deserialize' in prefix:
+              sys.exit('ValidatedNetBody acquired Serde authority surface')
+
+          wrapper = re.search(r'pub struct PhysicsAuthorityWorld[^\{]*\{(?P<body>.*?)\n\}', text, re.S)
+          if not wrapper or 'PhysicsWorld' not in wrapper.group('body'):
+              sys.exit('PhysicsAuthorityWorld does not own PhysicsWorld')
+
+          if re.search(r'\b(route|arrival|eta|distance|speed|travel)_?[A-Za-z0-9_]*\s*:', text, re.I):
+              sys.exit('PHYS-ID-00 introduced route/motion state')
+          PY
+
+          if git diff --name-only "${ECON05C_PARENT}..${PRODUCT_HEAD}" | grep -q '^crates/core/symtropy-core/'; then
+            echo 'PHYS-ID-00 unexpectedly edits ECON product code' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT: ${{ steps.subject.outcome }}
+          SOURCE: ${{ steps.source.outcome }}
+          FMT: ${{ steps.fmt.outcome }}
+          CHECK: ${{ steps.check.outcome }}
+          IDENTITY: ${{ steps.identity.outcome }}
+          PHYSICS_TESTS: ${{ steps.physics_tests.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          AUDIT: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/phys-id00-world-identity-v01.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+          keys = ["SUBJECT","SOURCE","FMT","CHECK","IDENTITY","PHYSICS_TESTS","CLIPPY","AUDIT","POSTFLIGHT"]
+          outcomes = {k.lower(): os.environ.get(k, "unknown") for k in keys}
+          def version(cmd):
+              try: return subprocess.check_output(cmd, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception: return "unavailable"
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "PHYS-ID-00-world-identity-authority-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "econ05c_parent": os.environ["ECON05C_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "physics-owned authority/generation-bound live body subject validation with exactly-one NetId and bidirectional runtime-index consistency; no persistence, cross-generation continuity, pose history, movement, route, arrival, delivery, cryptographic authenticity, or distributed consensus",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/phys-id00-source-sha256.txt" "${RUNNER_TEMP}/phys-id00-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phys-id00-world-identity-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/phys-id00-world-identity-v01.json
+            ${{ runner.temp }}/phys-id00-world-identity-v01.json.sha256
+            ${{ runner.temp }}/phys-id00-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
