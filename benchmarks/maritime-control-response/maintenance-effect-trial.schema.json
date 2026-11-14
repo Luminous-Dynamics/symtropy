@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-maintenance-effect-trial-v0.1.json",
+  "title": "Blocked randomized maintenance effect trial",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "assignment_method",
+    "treatment_label",
+    "control_label",
+    "outcome_metric_id",
+    "outcome_unit",
+    "outcome_direction",
+    "assignment_at_seconds",
+    "followup_horizon_seconds",
+    "analysis_as_of_seconds",
+    "confidence_level",
+    "assignment_plan_sha256",
+    "assignment_audit_ref",
+    "stratum_allocations",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-maintenance-effect-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assignment_method": {
+      "enum": [
+        "block_randomized",
+        "observational",
+        "deterministic_non_randomized"
+      ]
+    },
+    "treatment_label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "control_label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome_metric_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome_direction": {
+      "enum": [
+        "higher_is_better",
+        "lower_is_better"
+      ]
+    },
+    "assignment_at_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "followup_horizon_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "analysis_as_of_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "confidence_level": {
+      "enum": [
+        0.9,
+        0.95,
+        0.99
+      ]
+    },
+    "assignment_plan_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "assignment_audit_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stratum_allocations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stratum_id",
+          "planned_treatment_count",
+          "planned_control_count"
+        ],
+        "properties": {
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "planned_treatment_count": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "planned_control_count": {
+            "type": "integer",
+            "minimum": 2
+          }
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "stratum_id",
+          "assigned_arm",
+          "assignment_evidence_sha256",
+          "assignment_available_at_seconds",
+          "baseline_value",
+          "baseline_unit",
+          "baseline_observed_at_seconds",
+          "baseline_available_at_seconds",
+          "baseline_evidence_sha256",
+          "observed_outcome_value",
+          "outcome_unit",
+          "outcome_observed_at_seconds",
+          "outcome_available_at_seconds",
+          "outcome_evidence_sha256"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assigned_arm": {
+            "enum": [
+              "treatment",
+              "control"
+            ]
+          },
+          "assignment_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "assignment_available_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "baseline_value": {
+            "type": "number"
+          },
+          "baseline_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseline_observed_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "baseline_available_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "baseline_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "observed_outcome_value": {
+            "type": "number"
+          },
+          "outcome_unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_observed_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "outcome_available_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "outcome_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
