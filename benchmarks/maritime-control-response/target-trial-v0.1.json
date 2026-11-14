@@ -74,7 +74,9 @@
     "Negative-control status must be supported; unknown or violated controls force NOT_IDENTIFIED.",
     "The diagnostic snapshot digest and its emulation-entry/cluster counts must match the declared data snapshot.",
     "The report must distinguish protocol_incomplete, not_identified and design_qualified_for_estimator.",
-    "The validator never estimates a causal effect and all maintenance/restoration/operating authorizations remain false."
+    "The validator never estimates a causal effect and all maintenance/restoration/operating authorizations remain false.",
+    "The declared cluster key must resolve to the physical asset identity represented in each timeline row.",
+    "Sensitivity-analysis status must be supported before the design can qualify for an estimator."
   ],
   "diagnostics": {
     "minimum_common_support_fraction_default": 0.8,
@@ -189,6 +191,16 @@
       "case_id": "TT16",
       "scenario": "Missing or duplicated baseline covariate evidence or invalid evidence digest.",
       "expected": "not_identified_baseline_evidence"
+    },
+    {
+      "case_id": "TT17",
+      "scenario": "The declared cluster key is a telemetry row identity rather than the physical asset key.",
+      "expected": "protocol_incomplete_cluster_key"
+    },
+    {
+      "case_id": "TT18",
+      "scenario": "No reviewed sensitivity analysis is attached to the emulation diagnostic snapshot.",
+      "expected": "not_identified_sensitivity"
     }
   ],
   "claim_ceiling": "A design_qualified_for_estimator result means only that the declared protocol and available diagnostics passed this structural gate. It is not a causal effect estimate, proof of unmeasured-confounding absence, a marine-engine validation or permission to operate."
