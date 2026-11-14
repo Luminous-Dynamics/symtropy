@@ -167,7 +167,7 @@ fn evidence_role(raw:Option<&str>,channel:&Channel,context:EvaluationContext<'_>
 
 fn validate_window(window:&Value,path:&str,expected_id:&str,max_uncertainty:f64,errors:&mut Errors){
     exact_keys(window,&[
-        "window_id","recording_id","artifact_sha256","timebase_id","timebase_qualification_state",
+        "window_id","recording_id","artifact_sha256","configuration_sha256","timebase_id","timebase_qualification_state",
         "timebase_qualification_sha256","start_timestamp_ms","start_timestamp_uncertainty_ms",
         "end_timestamp_ms","end_timestamp_uncertainty_ms","regime_id","load_percent","speed_rpm",
         "ambient_temperature_c","transient_state","sample_count","independent_episode_count",
@@ -177,7 +177,7 @@ fn validate_window(window:&Value,path:&str,expected_id:&str,max_uncertainty:f64,
     for key in ["recording_id","timebase_id","regime_id","episode_definition_id"]{
         if text(window,key).is_none(){push(errors,"WINDOW_IDENTITY_REQUIRED",&format!("{path}.{key}"),"non-empty identity required");}
     }
-    for key in ["artifact_sha256","timebase_qualification_sha256","episode_definition_sha256"]{
+    for key in ["artifact_sha256","configuration_sha256","timebase_qualification_sha256","episode_definition_sha256"]{
         if !window.get(key).and_then(Value::as_str).is_some_and(sha256){push(errors,"WINDOW_DIGEST_INVALID",&format!("{path}.{key}"),"expected lowercase SHA-256");}
     }
     if !matches!(text(window,"timebase_qualification_state"),Some("qualified"|"unqualified"|"unknown")){
@@ -205,12 +205,19 @@ fn validate_window(window:&Value,path:&str,expected_id:&str,max_uncertainty:f64,
     }
 }
 
-fn compare_windows(pair:&Value,regime:&str,max_uncertainty:f64,common_tb:Option<&str>,common_digest:Option<&str>)->Value{
+fn compare_windows(pair:&Value,regime:&str,asset_sha256:&str,max_uncertainty:f64,common_tb:Option<&str>,common_digest:Option<&str>)->Value{
     let a=&pair["measurement_window_a"];let b=&pair["measurement_window_b"];let p=&pair["comparison_tolerances"];
     let unavailable=|reason:&str|json!({"state":"NOT_EVALUATED","admissible":false,"reason_code":reason});
     let mismatch=|reason:&str,load:Option<f64>,speed:Option<f64>,ambient:Option<f64>|json!({"state":"CONTEXT_MISMATCH","admissible":false,"reason_code":reason,"load_delta_percent":load,"speed_delta_rpm":speed,"ambient_delta_c":ambient});
     if text(p,"profile_state")!=Some("PREREGISTERED"){return unavailable("COMPARISON_PROFILE_NOT_PREREGISTERED");}
     if common_tb.is_none()||common_digest.is_none(){return unavailable("CHANNEL_TIMEBASE_NOT_COMMON");}
+    if text(a,"configuration_sha256")!=Some(asset_sha256)||text(b,"configuration_sha256")!=Some(asset_sha256){
+        return unavailable("WINDOW_CONFIGURATION_MISMATCH");
+    }
+    if text(a,"episode_definition_id")!=text(b,"episode_definition_id")
+        ||text(a,"episode_definition_sha256")!=text(b,"episode_definition_sha256"){
+        return unavailable("EPISODE_DEFINITION_MISMATCH");
+    }
     if !matches!(text(a,"transient_state"),Some("steady"|"transient"|"mixed"))
         ||!matches!(text(b,"transient_state"),Some("steady"|"transient"|"mixed")){
         return unavailable("TRANSIENT_STATE_NOT_QUALIFIED");
@@ -240,18 +247,22 @@ fn compare_windows(pair:&Value,regime:&str,max_uncertainty:f64,common_tb:Option<
         ||(p["require_same_transient_state"].as_bool()==Some(true)&&text(a,"transient_state")!=text(b,"transient_state")){
         return mismatch("OPERATING_CONTEXT_OUTSIDE_PREREGISTERED_TOLERANCES",Some(ld),Some(sd),Some(ad));
     }
-    if text(a,"artifact_sha256")==text(b,"artifact_sha256")&&text(a,"recording_id")!=text(b,"recording_id"){
+    if (text(a,"recording_id")==text(b,"recording_id")&&text(a,"artifact_sha256")!=text(b,"artifact_sha256"))
+        ||(text(a,"artifact_sha256")==text(b,"artifact_sha256")&&text(a,"recording_id")!=text(b,"recording_id")){
         return unavailable("RECORDING_IDENTITY_CONFLICT");
     }
     json!({
         "state":"MATCHED","admissible":true,"reason_code":"PREREGISTERED_CONTEXT_MATCH",
         "profile_id":text(p,"profile_id").unwrap_or(""),"profile_sha256":text(p,"profile_sha256").unwrap_or(""),
+        "asset_configuration_sha256":asset_sha256,
+        "episode_definition_id":text(a,"episode_definition_id").unwrap_or(""),
+        "episode_definition_sha256":text(a,"episode_definition_sha256").unwrap_or(""),
         "window_a":{"window_id":text(a,"window_id").unwrap_or(""),"recording_id":text(a,"recording_id").unwrap_or(""),
-            "artifact_sha256":text(a,"artifact_sha256").unwrap_or(""),"sample_count":a["sample_count"],
+            "artifact_sha256":text(a,"artifact_sha256").unwrap_or(""),"configuration_sha256":text(a,"configuration_sha256").unwrap_or(""),"sample_count":a["sample_count"],
             "independent_episode_count":a["independent_episode_count"],
             "duration_lower_bound_ms":(ae-aeu)-(as_+asu)},
         "window_b":{"window_id":text(b,"window_id").unwrap_or(""),"recording_id":text(b,"recording_id").unwrap_or(""),
-            "artifact_sha256":text(b,"artifact_sha256").unwrap_or(""),"sample_count":b["sample_count"],
+            "artifact_sha256":text(b,"artifact_sha256").unwrap_or(""),"configuration_sha256":text(b,"configuration_sha256").unwrap_or(""),"sample_count":b["sample_count"],
             "independent_episode_count":b["independent_episode_count"],
             "duration_lower_bound_ms":(be-beu)-(bs+bsu)},
         "load_delta_percent":ld,"speed_delta_rpm":sd,"ambient_temperature_delta_c":ad,
@@ -495,7 +506,7 @@ fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,context:Evaluatio
     }
     let common_timebase=(pair_timebases.len()==1).then(||pair_timebases.iter().next().cloned()).flatten();
     let common_clock_digest=(pair_clock_digests.len()==1).then(||pair_clock_digests.iter().next().cloned()).flatten();
-    let window_comparison=compare_windows(pair,context.regime_id,context.max_timestamp_uncertainty_ms,common_timebase.as_deref(),common_clock_digest.as_deref());
+    let window_comparison=compare_windows(pair,context.regime_id,context.asset_sha256,context.max_timestamp_uncertainty_ms,common_timebase.as_deref(),common_clock_digest.as_deref());
     let mut shared:BTreeMap<String,usize>=BTreeMap::new();
     for response in pair["responses"].as_array().expect("validated"){
         let channel=&channels[text(response,"channel_id").expect("validated")];
@@ -879,6 +890,29 @@ mod tests{
         let r=run(&v);
         assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
         assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"COMPARISON_PROFILE_NOT_PREREGISTERED");
+    }
+    #[test]
+    fn window_configuration_must_match_asset_configuration(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_b"]["configuration_sha256"]=json!("c".repeat(64));
+        let r=run(&v);
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"WINDOW_CONFIGURATION_MISMATCH");
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn fault_windows_must_use_same_episode_definition(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_b"]["episode_definition_id"]=json!("other-cycle-definition");
+        let r=run(&v);
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"EPISODE_DEFINITION_MISMATCH");
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn recording_id_and_artifact_digest_must_agree(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_b"]["recording_id"]=v["pairs"][0]["measurement_window_a"]["recording_id"].clone();
+        let r=run(&v);
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"RECORDING_IDENTITY_CONFLICT");
     }
     #[test]
     fn authority_boundary_is_non_authoritative(){
