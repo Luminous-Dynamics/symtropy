@@ -144,6 +144,12 @@ pub struct MetricEvidence {
     pub sha256: String,
     pub method_ref: String,
     pub basis: MetricEvidenceBasis,
+    /// Exact physical lot to which this observation refers, when applicable.
+    pub lot_id: String,
+    /// Exact physical process trial to which this observation refers, when applicable.
+    pub process_trial_evidence_id: String,
+    /// Exact baseline/disruption scenario for schedule, utility and labour observations.
+    pub scenario_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -393,6 +399,34 @@ fn validate_objectives(
                 format!("objective {:?} lacks a valid evidence reference/method", metric),
             );
         }
+        let lot_bound_metric = matches!(
+            metric,
+            ObjectiveMetric::AcceptedOutputMassMg
+                | ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm
+                | ObjectiveMetric::ResidualTrimMassMg
+                | ObjectiveMetric::DamageAreaMm2
+        );
+        if lot_bound_metric
+            && (observation.evidence.lot_id != candidate.output_lot_id
+                || observation.evidence.process_trial_evidence_id
+                    != candidate.process_trial_evidence_id)
+        {
+            add(
+                findings,
+                "OBJECTIVE_LOT_TRIAL_BINDING_MISMATCH",
+                format!(
+                    "objective {:?} must bind the exact candidate output lot and producing trial",
+                    metric
+                ),
+            );
+        }
+        if observation.evidence.scenario_id != candidate.scenario_id {
+            add(
+                findings,
+                "OBJECTIVE_SCENARIO_BINDING_MISMATCH",
+                format!("objective {:?} must bind the exact candidate scenario", metric),
+            );
+        }
         if !metric.required_basis().contains(&observation.evidence.basis) {
             add(
                 findings,
@@ -544,10 +578,16 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
     }
 
     let objective_values = validate_objectives(candidate, &mut findings);
-    if findings
-        .iter()
-        .any(|finding| matches!(finding.code, "OBJECTIVE_DUPLICATE" | "OBJECTIVE_UNIT_MISMATCH" | "OBJECTIVE_EVIDENCE_INVALID" | "OBJECTIVE_EVIDENCE_BASIS_MISMATCH" | "OBJECTIVE_VALUE_OUT_OF_RANGE"))
-    {
+    if findings.iter().any(|finding| matches!(
+        finding.code,
+        "OBJECTIVE_DUPLICATE"
+            | "OBJECTIVE_UNIT_MISMATCH"
+            | "OBJECTIVE_EVIDENCE_INVALID"
+            | "OBJECTIVE_EVIDENCE_BASIS_MISMATCH"
+            | "OBJECTIVE_VALUE_OUT_OF_RANGE"
+            | "OBJECTIVE_LOT_TRIAL_BINDING_MISMATCH"
+            | "OBJECTIVE_SCENARIO_BINDING_MISMATCH"
+    )) {
         hard_reject = true;
     }
     if findings.iter().any(|finding| finding.code == "OBJECTIVE_MISSING") {
@@ -555,11 +595,19 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
     }
 
     if let Some(value) = objective_values.get(&ObjectiveMetric::AcceptedOutputMassMg) {
-        if *value != candidate.receiver_acceptance.accepted_mass_mg {
+        let evidence_matches = candidate
+            .objectives
+            .iter()
+            .find(|item| item.metric == ObjectiveMetric::AcceptedOutputMassMg)
+            .is_some_and(|item| {
+                item.evidence.evidence_id == candidate.receiver_acceptance.evidence_id
+                    && item.evidence.sha256 == candidate.receiver_acceptance.evidence_sha256
+            });
+        if *value != candidate.receiver_acceptance.accepted_mass_mg || !evidence_matches {
             add(
                 &mut findings,
                 "ACCEPTED_MASS_METRIC_MISMATCH",
-                "accepted-output objective must equal the exact receiver-accepted mass",
+                "accepted-output objective must equal and reference the exact independent receiver-accepted mass evidence",
             );
             hard_reject = true;
         }
@@ -827,48 +875,78 @@ pub fn evaluate_tournament(candidates: &[Candidate]) -> TournamentReport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utilities::{UtilityEvidenceBasis, UtilityEvidenceKind};
     use crate::resilience::{PlanChurn, ResilienceReport};
     use crate::utilities::{UtilityFinding, UtilityReport};
     use crate::Finding;
 
-    fn evidence(id: &str, ch: char, basis: MetricEvidenceBasis) -> MetricEvidence {
+    fn evidence(
+        id: &str,
+        ch: char,
+        basis: MetricEvidenceBasis,
+        lot_id: &str,
+        process_trial_evidence_id: &str,
+        scenario_id: &str,
+    ) -> MetricEvidence {
         MetricEvidence {
             evidence_id: id.to_owned(),
             sha256: ch.to_string().repeat(64),
             method_ref: "method-v1".to_owned(),
             basis,
+            lot_id: lot_id.to_owned(),
+            process_trial_evidence_id: process_trial_evidence_id.to_owned(),
+            scenario_id: scenario_id.to_owned(),
         }
     }
 
-    fn objective(metric: ObjectiveMetric, value: u64) -> ObjectiveObservation {
-        let basis = match metric.required_basis()[0] {
-            MetricEvidenceBasis::CalibratedMeterObservation => MetricEvidenceBasis::CalibratedMeterObservation,
-            other => other,
+    fn objective(
+        metric: ObjectiveMetric,
+        value: u64,
+        candidate_id: &str,
+        scenario_id: &str,
+    ) -> ObjectiveObservation {
+        let basis = metric.required_basis()[0];
+        let lot_id = format!("output-{candidate_id}");
+        let trial_id = format!("trial-{candidate_id}");
+        let evidence_id = if metric == ObjectiveMetric::AcceptedOutputMassMg {
+            format!("receiver-{candidate_id}")
+        } else {
+            format!("evidence-{metric:?}-{candidate_id}")
+        };
+        let evidence_digest = if metric == ObjectiveMetric::AcceptedOutputMassMg {
+            'b'
+        } else {
+            'a'
         };
         ObjectiveObservation {
             metric,
             value,
             unit: metric.unit().to_owned(),
-            evidence: evidence(&format!("evidence-{metric:?}"), 'a', basis),
+            evidence: evidence(
+                &evidence_id,
+                evidence_digest,
+                basis,
+                &lot_id,
+                &trial_id,
+                scenario_id,
+            ),
         }
     }
 
     fn candidate(id: &str, output_mass: u64, energy: u64, makespan: u64) -> Candidate {
         let mut objectives = vec![
-            objective(ObjectiveMetric::AcceptedOutputMassMg, output_mass),
-            objective(ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm, 700_000),
-            objective(ObjectiveMetric::ResidualTrimMassMg, 500),
-            objective(ObjectiveMetric::DamageAreaMm2, 10),
-            objective(ObjectiveMetric::ElectricityWhPerAcceptedKg, energy),
-            objective(ObjectiveMetric::SteamGramsPerAcceptedKg, 12),
-            objective(ObjectiveMetric::WaterMlPerAcceptedKg, 100),
-            objective(ObjectiveMetric::WastewaterMlPerAcceptedKg, 80),
-            objective(ObjectiveMetric::OperatorMinutesPerAcceptedKg, 30),
-            objective(ObjectiveMetric::MakespanTicks, makespan),
-            objective(ObjectiveMetric::TotalTardinessTicks, 0),
-            objective(ObjectiveMetric::PlanChurnOperationCount, 0),
-            objective(ObjectiveMetric::RecoveryHorizonTicks, makespan),
+            objective(ObjectiveMetric::AcceptedOutputMassMg, output_mass, id, "baseline"),
+            objective(ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm, 700_000, id, "baseline"),
+            objective(ObjectiveMetric::ResidualTrimMassMg, 500, id, "baseline"),
+            objective(ObjectiveMetric::DamageAreaMm2, 10, id, "baseline"),
+            objective(ObjectiveMetric::ElectricityWhPerAcceptedKg, energy, id, "baseline"),
+            objective(ObjectiveMetric::SteamGramsPerAcceptedKg, 12, id, "baseline"),
+            objective(ObjectiveMetric::WaterMlPerAcceptedKg, 100, id, "baseline"),
+            objective(ObjectiveMetric::WastewaterMlPerAcceptedKg, 80, id, "baseline"),
+            objective(ObjectiveMetric::OperatorMinutesPerAcceptedKg, 30, id, "baseline"),
+            objective(ObjectiveMetric::MakespanTicks, makespan, id, "baseline"),
+            objective(ObjectiveMetric::TotalTardinessTicks, 0, id, "baseline"),
+            objective(ObjectiveMetric::PlanChurnOperationCount, 0, id, "baseline"),
+            objective(ObjectiveMetric::RecoveryHorizonTicks, makespan, id, "baseline"),
         ];
 
         Candidate {
@@ -939,14 +1017,14 @@ mod tests {
     #[test]
     fn candidate_dominated_on_every_objective_is_ranked_on_later_front() {
         let mut dominant = candidate("dominant", 9_000_000, 80, 12);
-        let mut dominated = candidate("dominated", 8_000_000, 120, 15);
+        let dominated = candidate("dominated", 8_000_000, 120, 15);
         for objective in &mut dominant.objectives {
             match objective.metric {
                 ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm => objective.value = 800_000,
                 _ => {}
             }
         }
-        let report = evaluate_tournament(&[dominated.clone(), dominant.clone()]);
+        let report = evaluate_tournament(&[dominated, dominant]);
         assert!(report.valid, "{:?}", report.findings);
         assert_eq!(report.pareto_fronts[0], vec!["dominant".to_owned()]);
         assert_eq!(report.pareto_fronts[1], vec!["dominated".to_owned()]);
@@ -956,10 +1034,10 @@ mod tests {
 
     #[test]
     fn infeasible_schedule_is_excluded_before_pareto_ranking() {
-        let mut candidate = candidate("invalid-schedule", 9_900_000, 1, 1);
-        candidate.schedule_validation.valid = false;
+        let mut invalid_candidate = candidate("invalid-schedule", 9_900_000, 1, 1);
+        invalid_candidate.schedule_validation.valid = false;
         let valid = candidate("valid", 8_000_000, 100, 15);
-        let report = evaluate_tournament(&[candidate, valid]);
+        let report = evaluate_tournament(&[invalid_candidate, valid]);
         assert!(report.valid);
         assert_eq!(report.pareto_fronts, vec![vec!["valid".to_owned()]]);
         assert_eq!(
