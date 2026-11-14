@@ -159,3 +159,8 @@ The 10-case mutation inventory includes parent digest drift, actuator scope drif
 ### Claim boundary
 
 This is synthetic sidecar interoperability and evidence-lineage qualification. It does not authenticate instruments, calculate covariance or nonlinear uncertainty, validate calibration truth, prove the physical state, or demonstrate a hardware result. The UQ auditor (#5062 / PR #5067) remains the owner of receipt-completeness semantics; this sidecar transports those receipts and binds them to the parent causal trace.
+
+
+### Predeclared channel completeness
+
+The UQ sidecar carries the full predeclared `measurement_requirements` set and the explicit `evaluation_tick`, not only the channels that happened to arrive. The synthetic fixture requires shaft torque, bus voltage, both parent-required thermal nodes (motor and drive), and derived electrical energy. A separate gearbox-temperature channel is explicitly NotApplicable with a reason. The parent and sidecar required thermal-node sets must match exactly. The consumer rejects a packet that omits a Required measurement, supplies a NotApplicable channel, or changes the measurand/node identity. Calibration and UQ validity must cover both the entire acquired window and the evaluation tick; a stale evaluation tick returns an incomplete-evidence result rather than being upgraded.
