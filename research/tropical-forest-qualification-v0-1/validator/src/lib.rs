@@ -6,6 +6,7 @@
 //! turn a synthetic pass into field evidence.
 
 pub mod canopy_kernel;
+pub mod support_kernel;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
