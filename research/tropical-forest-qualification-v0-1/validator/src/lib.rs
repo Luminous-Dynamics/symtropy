@@ -1113,7 +1113,7 @@ fn validate_probabilistic_forecast_corpus(
             expected_summary.get("mean_interval_width_95").unwrap_or(&Value::Null),
             1e-9,
         )
-        && summary.disposition == string_at(expected_summary, &["disposition"])?;
+        && summary.disposition == string_at(expected_summary, &["disposition"])?.as_str();
 
     push_check(
         &mut checks,
@@ -3357,6 +3357,16 @@ mod tests {
         assert_eq!(receipt["summary"]["disposition"], "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE");
         assert_eq!(receipt["probabilistic_calibration"], "NOT_ESTABLISHED");
         assert_eq!(receipt["ecological_forecast_skill"], "NOT_ESTABLISHED");
+    }
+
+    #[test]
+    fn forecast_scoring_corpus_rejects_case_level_crps_oracle_mutation() {
+        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
+            .expect("valid forecast scoring corpus");
+        manifest["cases"][0]["expected"]["model_crps"] = json!(0.99);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated forecast case");
+        let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
     }
 
     #[test]
