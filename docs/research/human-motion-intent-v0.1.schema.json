@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:symtropy:human-motion-intent:0.1",
+  "title": "Symtropy Semantic Human Motion Intent v0.1",
+  "description": "Renderer-independent intent from cognition/planning to embodiment. Confidence is not a calibrated probability unless a calibration profile is declared.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "intent_id",
+    "actor_ref",
+    "intent_kind",
+    "coordinate_frame",
+    "issued_at_sec",
+    "urgency",
+    "confidence",
+    "confidence_semantics",
+    "uncertainty",
+    "interruption_policy",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "intent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Opaque, non-identifying in-simulation actor reference."
+    },
+    "intent_kind": {
+      "enum": [
+        "idle",
+        "locomote",
+        "speak",
+        "gesture",
+        "reach",
+        "grasp",
+        "sit",
+        "stand",
+        "yield",
+        "turn",
+        "carry"
+      ]
+    },
+    "issued_at_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "valid_until_sec": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "urgency": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "confidence_semantics": {
+      "enum": [
+        "calibrated_probability",
+        "uncalibrated_score"
+      ]
+    },
+    "uncertainty": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Normalized uncertainty proxy. Calibration is evaluated separately."
+    },
+    "desired_planar_velocity_mps": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number"
+      },
+      "description": "World X/Z velocity vector [vx, vz] in metres per second."
+    },
+    "target": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "entity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_world_m": {
+          "$ref": "#/$defs/position",
+          "description": "Target point in world coordinates in metres."
+        },
+        "orientation_xyzw": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number"
+          },
+          "description": "Near-unit quaternion in x,y,z,w order."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "entity_ref"
+          ]
+        },
+        {
+          "required": [
+            "position_world_m"
+          ]
+        },
+        {
+          "required": [
+            "orientation_xyzw"
+          ]
+        }
+      ]
+    },
+    "interruption_policy": {
+      "enum": [
+        "preemptible",
+        "finish_current_action",
+        "safety_interrupt_only"
+      ]
+    },
+    "calibration_profile_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "policy_id",
+        "policy_version"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "symthaea",
+            "rule_based",
+            "scripted_baseline",
+            "human_operator",
+            "external_model",
+            "synthetic_test_fixture"
+          ]
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_digest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "model_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "length_unit",
+        "up_axis",
+        "forward_axis",
+        "position_space"
+      ],
+      "properties": {
+        "length_unit": {
+          "const": "metre"
+        },
+        "up_axis": {
+          "const": "+Y"
+        },
+        "forward_axis": {
+          "enum": [
+            "+Z",
+            "-Z"
+          ]
+        },
+        "position_space": {
+          "const": "world"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "intent_kind": {
+            "const": "locomote"
+          }
+        },
+        "required": [
+          "intent_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "desired_planar_velocity_mps"
+        ],
+        "properties": {
+          "desired_planar_velocity_mps": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "intent_kind": {
+            "enum": [
+              "reach",
+              "grasp"
+            ]
+          }
+        },
+        "required": [
+          "intent_kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "required": [
+                  "entity_ref"
+                ]
+              },
+              {
+                "required": [
+                  "position_world_m"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "confidence_semantics": {
+            "const": "calibrated_probability"
+          }
+        },
+        "required": [
+          "confidence_semantics"
+        ]
+      },
+      "then": {
+        "required": [
+          "calibration_profile_id"
+        ],
+        "properties": {
+          "calibration_profile_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "source": {
+                "const": "external_model"
+              }
+            },
+            "required": [
+              "source"
+            ]
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "properties": {
+              "model_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    }
+  }
+}

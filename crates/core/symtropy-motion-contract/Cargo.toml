@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-motion-contract"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Renderer-independent, versioned semantic motion intent contracts for embodied agents."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
