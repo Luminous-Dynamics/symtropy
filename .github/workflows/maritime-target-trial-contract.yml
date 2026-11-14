@@ -60,6 +60,7 @@ jobs:
           assert len(corpus["cases"]) == 18
           assert len({case["case_id"] for case in corpus["cases"]}) == 18
           assert protocol_schema["properties"]["align_eligibility_assignment_followup_at_time_zero"]["const"] is True
+          assert protocol_schema["properties"]["cluster_group_key"]["const"] == "asset_id"
           assert report_schema["properties"]["causal_effect_estimated"]["const"] is False
           diagnostic_required = diagnostics_schema["required"]
           assert "sensitivity_analysis_status" in diagnostic_required
