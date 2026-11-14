@@ -173,7 +173,7 @@ The `pareto` module evaluates a tournament of caller-supplied candidate schedule
 
 A hard gate is never an objective. An infeasible schedule, failed route/utility check or rejected receiver is excluded before Pareto sorting. Missing utility or conditional/unknown receiver acceptance is insufficient evidence and is not treated as a zero-cost or accepted result.
 
-The objective schema preserves 13 separate directions:
+The baseline objective schema contains ten measures. Disruption tournaments add three further measures (tardiness, plan churn and post-event recovery horizon), and require a feasible exact-scenario replay. Static candidates cannot fabricate zero values for disruption-only objectives. Across the applicable scenario schema, the evaluator preserves up to 13 separate directions:
 
 | Direction | Objective | Unit |
 |---|---|---|
