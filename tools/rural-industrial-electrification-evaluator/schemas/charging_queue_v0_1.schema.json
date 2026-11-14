@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/charging_queue_v0_1.schema.json",
+  "title": "Fleet charging queue corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "suite_id", "claim_ceiling", "scenarios"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "suite_id": { "const": "EV-CHARGE-QUEUE-001" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "positive": { "type": "number", "exclusiveMinimum": 0 },
+    "nonnegative": { "type": "number", "minimum": 0 },
+    "efficiency": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_id", "label", "evidence_class", "evidence_reference", "evidence_note", "charger_port_count", "port_power_kw", "site_power_budget_kw", "jobs"],
+      "properties": {
+        "scenario_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "evidence_class": { "enum": ["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"] },
+        "evidence_reference": { "type": "string" },
+        "evidence_note": { "type": "string", "minLength": 1 },
+        "charger_port_count": { "type": "integer", "minimum": 1 },
+        "port_power_kw": { "$ref": "#/$defs/positive" },
+        "site_power_budget_kw": { "$ref": "#/$defs/positive" },
+        "jobs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/job" }
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["job_id", "arrival_minute", "departure_deadline_minute", "battery_energy_required_kwh", "charging_efficiency_fraction", "vehicle_max_acceptance_kw"],
+      "properties": {
+        "job_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "arrival_minute": { "$ref": "#/$defs/nonnegative" },
+        "departure_deadline_minute": { "$ref": "#/$defs/positive" },
+        "battery_energy_required_kwh": { "$ref": "#/$defs/positive" },
+        "charging_efficiency_fraction": { "$ref": "#/$defs/efficiency" },
+        "vehicle_max_acceptance_kw": { "$ref": "#/$defs/positive" }
+      }
+    }
+  }
+}

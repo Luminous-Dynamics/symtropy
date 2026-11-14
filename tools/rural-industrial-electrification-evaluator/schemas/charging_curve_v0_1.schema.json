@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/charging_curve_v0_1.schema.json",
+  "title": "SOC-dependent charging curve corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "suite_id", "claim_ceiling", "scenarios"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "suite_id": { "const": "EV-CHARGE-CURVE-001" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "$defs": {
+    "fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+    "positiveFraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "positive": { "type": "number", "exclusiveMinimum": 0 },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario_id", "label", "evidence_class", "evidence_reference", "evidence_note", "nominal_pack_capacity_kwh", "state_of_health_fraction", "temperature_capacity_fraction", "temperature_acceptance_fraction", "initial_soc_fraction", "target_soc_fraction", "charging_efficiency_fraction", "port_input_power_kw", "site_input_power_budget_kw", "acceptance_curve"],
+      "properties": {
+        "scenario_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "evidence_class": { "enum": ["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"] },
+        "evidence_reference": { "type": "string" },
+        "evidence_note": { "type": "string", "minLength": 1 },
+        "nominal_pack_capacity_kwh": { "$ref": "#/$defs/positive" },
+        "state_of_health_fraction": { "$ref": "#/$defs/positiveFraction" },
+        "temperature_capacity_fraction": { "$ref": "#/$defs/positiveFraction" },
+        "temperature_acceptance_fraction": { "$ref": "#/$defs/positiveFraction" },
+        "initial_soc_fraction": { "$ref": "#/$defs/fraction" },
+        "target_soc_fraction": { "$ref": "#/$defs/positiveFraction" },
+        "charging_efficiency_fraction": { "$ref": "#/$defs/positiveFraction" },
+        "port_input_power_kw": { "$ref": "#/$defs/positive" },
+        "site_input_power_budget_kw": { "$ref": "#/$defs/positive" },
+        "acceptance_curve": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/curveBand" }
+        }
+      }
+    },
+    "curveBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["soc_lower_fraction", "soc_upper_fraction", "max_battery_acceptance_kw"],
+      "properties": {
+        "soc_lower_fraction": { "$ref": "#/$defs/fraction" },
+        "soc_upper_fraction": { "$ref": "#/$defs/positiveFraction" },
+        "max_battery_acceptance_kw": { "$ref": "#/$defs/positive" }
+      }
+    }
+  }
+}

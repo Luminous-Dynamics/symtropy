@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1.0",
+  "scenarios": [
+    {
+      "scenario_id": "orchard-compact-tractor",
+      "label": "Compact orchard tractor with overnight depot charging",
+      "evidence_class": "synthetic",
+      "demand_kwh_per_shift": 18.0,
+      "pack_nominal_kwh": 80.0,
+      "state_of_health_fraction": 0.85,
+      "temperature_capacity_fraction": 0.9,
+      "reserve_fraction": 0.15,
+      "charger_power_kw": 11.0,
+      "charger_efficiency_fraction": 0.92,
+      "charge_window_hours": 10.0,
+      "site_charge_power_budget_kw": 30.0,
+      "simultaneous_chargers": 2
+    },
+    {
+      "scenario_id": "broad-acre-long-shift",
+      "label": "Long high-draw broad-acre duty with a pack sized for a shorter shift",
+      "evidence_class": "synthetic",
+      "demand_kwh_per_shift": 240.0,
+      "pack_nominal_kwh": 300.0,
+      "state_of_health_fraction": 0.85,
+      "temperature_capacity_fraction": 0.8,
+      "reserve_fraction": 0.2,
+      "charger_power_kw": 60.0,
+      "charger_efficiency_fraction": 0.94,
+      "charge_window_hours": 4.0,
+      "site_charge_power_budget_kw": 100.0,
+      "simultaneous_chargers": 2
+    },
+    {
+      "scenario_id": "remote-livestock-unknown-grid",
+      "label": "Remote livestock and field utility vehicle with no measured site charging capacity",
+      "evidence_class": "synthetic",
+      "demand_kwh_per_shift": 24.0,
+      "pack_nominal_kwh": 100.0,
+      "state_of_health_fraction": 0.9,
+      "temperature_capacity_fraction": 0.85,
+      "reserve_fraction": 0.2,
+      "charger_power_kw": 7.0,
+      "charger_efficiency_fraction": 0.9,
+      "charge_window_hours": 12.0,
+      "simultaneous_chargers": 1
+    },
+    {
+      "scenario_id": "construction-opportunity-charge",
+      "label": "Construction support plant with a constrained shared charge window",
+      "evidence_class": "synthetic",
+      "demand_kwh_per_shift": 95.0,
+      "pack_nominal_kwh": 160.0,
+      "state_of_health_fraction": 0.9,
+      "temperature_capacity_fraction": 0.85,
+      "reserve_fraction": 0.15,
+      "charger_power_kw": 60.0,
+      "charger_efficiency_fraction": 0.94,
+      "charge_window_hours": 2.0,
+      "site_charge_power_budget_kw": 100.0,
+      "simultaneous_chargers": 2
+    },
+    {
+      "scenario_id": "industrial-yard-zero-charge-budget",
+      "label": "Industrial yard machine where declared site power has zero headroom",
+      "evidence_class": "synthetic",
+      "demand_kwh_per_shift": 40.0,
+      "pack_nominal_kwh": 120.0,
+      "state_of_health_fraction": 0.95,
+      "temperature_capacity_fraction": 0.95,
+      "reserve_fraction": 0.15,
+      "charger_power_kw": 22.0,
+      "charger_efficiency_fraction": 0.93,
+      "charge_window_hours": 8.0,
+      "site_charge_power_budget_kw": 0.0,
+      "simultaneous_chargers": 1
+    }
+  ]
+}

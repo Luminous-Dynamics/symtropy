@@ -1,0 +1,2287 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "EV-VALIDATION-001",
+  "claim_ceiling": "Verification requirements and proposed test plans only; no tests on physical vehicles or production components are implied by this matrix.",
+  "evidence_classes": [
+    "synthetic",
+    "estimate",
+    "literature",
+    "manufacturer",
+    "measured",
+    "independent_review"
+  ],
+  "release_rule": "Every release-blocking gate must be backed by configuration-bound evidence and a recorded pass; unknown or missing evidence remains indeterminate and blocks release.",
+  "design_count": 19,
+  "gates_per_design": 5,
+  "designs": [
+    {
+      "design_id": "cargo-micro-mobility",
+      "label": "Cargo micro-mobility assist",
+      "platform_family_id": "micro-mobility",
+      "functional_unit": "deliveries per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "cargo-micro-mobility-mass-envelope",
+          "mission_specific_scope": "maximum declared cargo payload with representative cargo position",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "cargo-micro-mobility-mission-duty",
+          "mission_specific_scope": "loaded last-mile delivery route with start/stop, curb transitions and weather derating",
+          "functional_unit": "deliveries per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "cargo-micro-mobility-energy-window",
+          "mission_specific_scope": "recharge with the actual small-pack interface and depot circuit limit",
+          "functional_unit": "deliveries per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "cargo-micro-mobility-fault-safe-state",
+          "mission_specific_scope": "assist controller loss, sensor/wiring fault and wet connector; manual braking/steering remain available",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "cargo-micro-mobility-serviceability",
+          "mission_specific_scope": "wheel/brake/controller/pack diagnosis and repair using declared local tools",
+          "functional_unit": "deliveries per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "compact-passenger-ev",
+      "label": "Compact urban passenger EV",
+      "platform_family_id": "passenger-road",
+      "functional_unit": "passenger-km on mixed urban/arterial cycle",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "compact-passenger-ev-mass-envelope",
+          "mission_specific_scope": "rated seating/cargo configuration with measured axle loads",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "compact-passenger-ev-mission-duty",
+          "mission_specific_scope": "matched urban/arterial route across declared speed and ambient profiles",
+          "functional_unit": "passenger-km on mixed urban/arterial cycle",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "compact-passenger-ev-energy-window",
+          "mission_specific_scope": "AC depot baseline and DC charge only where specified; record pack-side and site-side energy",
+          "functional_unit": "passenger-km on mixed urban/arterial cycle",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "compact-passenger-ev-fault-safe-state",
+          "mission_specific_scope": "loss of regenerative braking and a latched HV isolation fault",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "compact-passenger-ev-serviceability",
+          "mission_specific_scope": "diagnose traction, charging and thermal faults; prove safe HV isolation before access",
+          "functional_unit": "passenger-km on mixed urban/arterial cycle",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "family-passenger-ev",
+      "label": "Family passenger crossover",
+      "platform_family_id": "passenger-road",
+      "functional_unit": "passenger-km with representative occupants and luggage",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "family-passenger-ev-mass-envelope",
+          "mission_specific_scope": "full seating plus defined luggage/roof load without exceeding axle limits",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "family-passenger-ev-mission-duty",
+          "mission_specific_scope": "family trip with passenger climate control, defrost, grade and stop/restart segments",
+          "functional_unit": "passenger-km with representative occupants and luggage",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "family-passenger-ev-energy-window",
+          "mission_specific_scope": "hot/cold cabin thermal preconditioning and charge-window replay",
+          "functional_unit": "passenger-km with representative occupants and luggage",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "family-passenger-ev-fault-safe-state",
+          "mission_specific_scope": "HVAC derate, low-SOC reserve warning and loss of regen while braking remains independently adequate",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "family-passenger-ev-serviceability",
+          "mission_specific_scope": "field tire/recovery, diagnostics, pack safe-state and body/interior module repair",
+          "functional_unit": "passenger-km with representative occupants and luggage",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "accessible-shuttle",
+      "label": "Accessible passenger shuttle",
+      "platform_family_id": "accessible-transit",
+      "functional_unit": "completed accessible passenger trips per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "accessible-shuttle-mass-envelope",
+          "mission_specific_scope": "accessible boarding hardware, securement positions and full declared passenger load",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "accessible-shuttle-mission-duty",
+          "mission_specific_scope": "route with real boarding dwell distribution, ramp/lift cycles, doors and HVAC",
+          "functional_unit": "completed accessible passenger trips per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "accessible-shuttle-energy-window",
+          "mission_specific_scope": "depot/opportunity charge under timetable, queue and missed-dwell conditions",
+          "functional_unit": "completed accessible passenger trips per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "accessible-shuttle-fault-safe-state",
+          "mission_specific_scope": "ramp/lift fault, securement error and power/communications loss with safe passenger recovery",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "accessible-shuttle-serviceability",
+          "mission_specific_scope": "accessible recovery, boarding-equipment diagnosis and repair within declared service process",
+          "functional_unit": "completed accessible passenger trips per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "light-commercial-van",
+      "label": "Light commercial modular van",
+      "platform_family_id": "light-commercial-utility",
+      "functional_unit": "delivered kg-m³ per completed route",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "light-commercial-van-mass-envelope",
+          "mission_specific_scope": "fully installed cargo/upfit/refrigeration module plus payload and axle ledger",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "light-commercial-van-mission-duty",
+          "mission_specific_scope": "stop-start delivery route at representative payload with auxiliary/refrigeration loads",
+          "functional_unit": "delivered kg-m³ per completed route",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "light-commercial-van-energy-window",
+          "mission_specific_scope": "depot fleet charging under simultaneous vehicle arrivals and site import cap",
+          "functional_unit": "delivered kg-m³ per completed route",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "light-commercial-van-fault-safe-state",
+          "mission_specific_scope": "upfit electrical fault, cargo thermal failure where fitted, and HV isolation state",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "light-commercial-van-serviceability",
+          "mission_specific_scope": "body-module maintenance and parts/tool/skill availability across local service sites",
+          "functional_unit": "delivered kg-m³ per completed route",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "rural-all-terrain-utility",
+      "label": "Rural all-terrain service 4x4",
+      "platform_family_id": "light-commercial-utility",
+      "functional_unit": "completed field jobs and route-km per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "rural-all-terrain-utility-mass-envelope",
+          "mission_specific_scope": "declared payload, ground clearance, recovery equipment and axle loads",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "rural-all-terrain-utility-mission-duty",
+          "mission_specific_scope": "measured rough-road/grade/soft-ground mission including loaded climb, return and idle work",
+          "functional_unit": "completed field jobs and route-km per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "rural-all-terrain-utility-energy-window",
+          "mission_specific_scope": "weak-grid/depot charging or stationary-buffer scenario with reserve and outage margin",
+          "functional_unit": "completed field jobs and route-km per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "rural-all-terrain-utility-fault-safe-state",
+          "mission_specific_scope": "loss of one drive path, wet/dust ingress, and immobilized-vehicle recovery",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "rural-all-terrain-utility-serviceability",
+          "mission_specific_scope": "field diagnosis, towing/lifting recovery, connector replacement and regionally available consumables",
+          "functional_unit": "completed field jobs and route-km per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "emergency-resilience-vehicle",
+      "label": "Emergency and resilience response vehicle",
+      "platform_family_id": "light-commercial-utility",
+      "functional_unit": "response hours plus verified critical kWh delivered",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "emergency-resilience-vehicle-mass-envelope",
+          "mission_specific_scope": "emergency body and equipment installed within mass/axle and egress constraints",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "emergency-resilience-vehicle-mission-duty",
+          "mission_specific_scope": "response route plus stationary support, preserving declared return-drive reserve",
+          "functional_unit": "response hours plus verified critical kWh delivered",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "emergency-resilience-vehicle-energy-window",
+          "mission_specific_scope": "qualified isolated export interface; measure vehicle battery, converter and delivered-load energy separately",
+          "functional_unit": "response hours plus verified critical kWh delivered",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "emergency-resilience-vehicle-fault-safe-state",
+          "mission_specific_scope": "grid-loss/islanding boundary, protection trip, earth/ground fault and abrupt disconnect",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "emergency-resilience-vehicle-serviceability",
+          "mission_specific_scope": "safe isolation, emergency load reconnect, recovery readiness and export-mode log review",
+          "functional_unit": "response hours plus verified critical kWh delivered",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "municipal-work-truck",
+      "label": "Municipal sweeper and work truck",
+      "platform_family_id": "commercial-and-municipal-trucks",
+      "functional_unit": "accepted work jobs per shift plus route-km",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "municipal-work-truck-mass-envelope",
+          "mission_specific_scope": "installed work body, fluids/tools, payload and centre-of-gravity/axle ledger",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "municipal-work-truck-mission-duty",
+          "mission_specific_scope": "travel plus representative sweeper/hoist/pump/work cycles and coincident peak loads",
+          "functional_unit": "accepted work jobs per shift plus route-km",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "municipal-work-truck-energy-window",
+          "mission_specific_scope": "depot charging including overnight site cap and auxiliary/work-tool charging energy",
+          "functional_unit": "accepted work jobs per shift plus route-km",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "municipal-work-truck-fault-safe-state",
+          "mission_specific_scope": "work-tool interlock failure, electrical/hydraulic lockout and sensor/actuator fault",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "municipal-work-truck-serviceability",
+          "mission_specific_scope": "diagnosis and replacement of work module/pump/brush with safe lockout and measured repair time",
+          "functional_unit": "accepted work jobs per shift plus route-km",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "smallholder-tractor-carrier",
+      "label": "Smallholder tractor and implement carrier",
+      "platform_family_id": "agricultural-work",
+      "functional_unit": "hectare-tasks and implement work per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "smallholder-tractor-carrier-mass-envelope",
+          "mission_specific_scope": "declared ballast, fitted implement, operator protection and axle limits",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "smallholder-tractor-carrier-mission-duty",
+          "mission_specific_scope": "field cycle with measured soil/traction, drawbar/PTO or hydraulic task energy",
+          "functional_unit": "hectare-tasks and implement work per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "smallholder-tractor-carrier-energy-window",
+          "mission_specific_scope": "farm service connection or shared-buffer recharge under seasonal work-window constraints",
+          "functional_unit": "hectare-tasks and implement work per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "smallholder-tractor-carrier-fault-safe-state",
+          "mission_specific_scope": "implement disengagement, emergency stop and traction/control fault under low-speed high torque",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "smallholder-tractor-carrier-serviceability",
+          "mission_specific_scope": "local-tool repair, common wear-part availability, pack isolation and implement coupling service",
+          "functional_unit": "hectare-tasks and implement work per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "medium-row-crop-tractor",
+      "label": "Medium row-crop tractor",
+      "platform_family_id": "agricultural-work",
+      "functional_unit": "hectares completed within a declared seasonal work window",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "medium-row-crop-tractor-mass-envelope",
+          "mission_specific_scope": "tractor, ballast and implement combinations with front/rear axle limits",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "medium-row-crop-tractor-mission-duty",
+          "mission_specific_scope": "continuous drawbar/PTO work cycle with headlands, soil variation and sustained load",
+          "functional_unit": "hectares completed within a declared seasonal work window",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "medium-row-crop-tractor-energy-window",
+          "mission_specific_scope": "compare depot charging, opportunity supply and exchange alternatives against the same seasonal schedule",
+          "functional_unit": "hectares completed within a declared seasonal work window",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "medium-row-crop-tractor-fault-safe-state",
+          "mission_specific_scope": "continuous thermal derate, implement disconnect and safe emergency stop",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "medium-row-crop-tractor-serviceability",
+          "mission_specific_scope": "seasonal peak-period repair time, spares lead time and remanufactureability",
+          "functional_unit": "hectares completed within a declared seasonal work window",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "compact-electric-excavator",
+      "label": "Compact construction excavator",
+      "platform_family_id": "construction-equipment",
+      "functional_unit": "m³ moved and accepted work cycles per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "compact-electric-excavator-mass-envelope",
+          "mission_specific_scope": "lifting/working configuration and payload within machine load chart",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "compact-electric-excavator-mission-duty",
+          "mission_specific_scope": "repeated travel, digging, swing, lift, dump and idle cycles with measured hydraulic output",
+          "functional_unit": "m³ moved and accepted work cycles per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "compact-electric-excavator-energy-window",
+          "mission_specific_scope": "site charge and battery/wok-system thermal recovery between shifts",
+          "functional_unit": "m³ moved and accepted work cycles per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "compact-electric-excavator-fault-safe-state",
+          "mission_specific_scope": "emergency lowering, hydraulic pressure release, electrical isolation and actuator fault",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "compact-electric-excavator-serviceability",
+          "mission_specific_scope": "safe two-domain electrical/hydraulic lockout, pump/motor diagnosis and service access",
+          "functional_unit": "m³ moved and accepted work cycles per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "urban-distribution-truck",
+      "label": "Urban distribution rigid truck",
+      "platform_family_id": "commercial-and-municipal-trucks",
+      "functional_unit": "tonne-km and completed deliveries per route",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "urban-distribution-truck-mass-envelope",
+          "mission_specific_scope": "cargo body/load and axle limits over route loading states",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "urban-distribution-truck-mission-duty",
+          "mission_specific_scope": "stop-start delivery cycle with representative payload, stop frequency and auxiliary loads",
+          "functional_unit": "tonne-km and completed deliveries per route",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "urban-distribution-truck-energy-window",
+          "mission_specific_scope": "depot charging plus public high-power fallback and charger concurrency",
+          "functional_unit": "tonne-km and completed deliveries per route",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "urban-distribution-truck-fault-safe-state",
+          "mission_specific_scope": "regen unavailable, powertrain derate and pedestrian-warning/low-speed-system fault",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "urban-distribution-truck-serviceability",
+          "mission_specific_scope": "route-side recovery, payload upfit service and repair turnaround",
+          "functional_unit": "tonne-km and completed deliveries per route",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "city-bus",
+      "label": "City bus",
+      "platform_family_id": "accessible-transit",
+      "functional_unit": "passenger-km and scheduled trips completed",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "city-bus-mass-envelope",
+          "mission_specific_scope": "rated passenger load including standing load where relevant and installed access equipment",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "city-bus-mission-duty",
+          "mission_specific_scope": "timetable-matched routes with passenger turnover, doors, HVAC/defrost and accessibility duty",
+          "functional_unit": "passenger-km and scheduled trips completed",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "city-bus-energy-window",
+          "mission_specific_scope": "depot versus terminus opportunity charging with actual queue and missed-window risks",
+          "functional_unit": "passenger-km and scheduled trips completed",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "city-bus-fault-safe-state",
+          "mission_specific_scope": "accessibility equipment issue, safe passenger evacuation and thermal/drive derating",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "city-bus-serviceability",
+          "mission_specific_scope": "between-shift checks, accessible recovery, pack/thermal diagnosis and fleet spare availability",
+          "functional_unit": "passenger-km and scheduled trips completed",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "long-haul-heavy-truck",
+      "label": "Long-haul heavy truck",
+      "platform_family_id": "heavy-road-and-yard",
+      "functional_unit": "tonne-km with declared payload and rest/dwell constraints",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "long-haul-heavy-truck-mass-envelope",
+          "mission_specific_scope": "tractor/trailer combination with battery mass, fifth wheel, axle and tire limits",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "long-haul-heavy-truck-mission-duty",
+          "mission_specific_scope": "loaded highway route with grades, wind/speed envelope, descent and auxiliary loads",
+          "functional_unit": "tonne-km with declared payload and rest/dwell constraints",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "long-haul-heavy-truck-energy-window",
+          "mission_specific_scope": "qualified high-power charge sessions at multiple SOC/temperature points; record taper and site power",
+          "functional_unit": "tonne-km with declared payload and rest/dwell constraints",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "long-haul-heavy-truck-fault-safe-state",
+          "mission_specific_scope": "long descent with regen unavailable, charge connector thermal event and roadside immobilization",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "long-haul-heavy-truck-serviceability",
+          "mission_specific_scope": "heavy-vehicle recovery, high-voltage isolation, charge-port service and depot parts pipeline",
+          "functional_unit": "tonne-km with declared payload and rest/dwell constraints",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "port-yard-terminal-tractor",
+      "label": "Port and yard terminal tractor",
+      "platform_family_id": "heavy-road-and-yard",
+      "functional_unit": "accepted trailer/container moves per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "port-yard-terminal-tractor-mass-envelope",
+          "mission_specific_scope": "hitch and gross/axle load with declared trailer and yard configuration",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "port-yard-terminal-tractor-mission-duty",
+          "mission_specific_scope": "repeated start/stop, hitch, reposition and waiting cycles at the port route",
+          "functional_unit": "accepted trailer/container moves per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "port-yard-terminal-tractor-energy-window",
+          "mission_specific_scope": "opportunity charging windows under fleet queue and simultaneous power budget",
+          "functional_unit": "accepted trailer/container moves per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "port-yard-terminal-tractor-fault-safe-state",
+          "mission_specific_scope": "automatic coupling/docking failure, loss of traction path and hitch interlock fault",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "port-yard-terminal-tractor-serviceability",
+          "mission_specific_scope": "corrosion/washdown inspection, hitch/connector replacement and shift-turnaround repair",
+          "functional_unit": "accepted trailer/container moves per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "underground-mine-mobile-unit",
+      "label": "Underground mine mobile unit with opportunity supply",
+      "platform_family_id": "mine-mobile-equipment",
+      "functional_unit": "tonnes moved or accepted mine tasks per shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "underground-mine-mobile-unit-mass-envelope",
+          "mission_specific_scope": "machine profile against mine clearance, axle/load and route limits",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "underground-mine-mobile-unit-mission-duty",
+          "mission_specific_scope": "measured loaded grade, return, work and idle schedule under underground ambient/ventilation context",
+          "functional_unit": "tonnes moved or accepted mine tasks per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "underground-mine-mobile-unit-energy-window",
+          "mission_specific_scope": "charging/swap/opportunity strategy including charging zone, queues and ventilation/cooling energy",
+          "functional_unit": "tonnes moved or accepted mine tasks per shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "underground-mine-mobile-unit-fault-safe-state",
+          "mission_specific_scope": "battery thermal event response, communications loss, fire/egress scenario and controlled immobilization",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "underground-mine-mobile-unit-serviceability",
+          "mission_specific_scope": "mine-approved safe isolation, extraction/recovery plan, specialist repair and site-authorized parts",
+          "functional_unit": "tonnes moved or accepted mine tasks per shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "open-pit-haul-battery-only-control",
+      "label": "Open-pit haul truck battery-only negative control",
+      "platform_family_id": "mine-mobile-equipment",
+      "functional_unit": "net tonnes moved per haul cycle and shift",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "open-pit-haul-battery-only-control-mass-envelope",
+          "mission_specific_scope": "haul truck gross/axle/tire limits with battery pack mass and payload",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "open-pit-haul-battery-only-control-mission-duty",
+          "mission_specific_scope": "paired loaded uphill/downhill, loading, queue and dumping cycles at declared grades",
+          "functional_unit": "net tonnes moved per haul cycle and shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "open-pit-haul-battery-only-control-energy-window",
+          "mission_specific_scope": "verify the synthetic undersized-energy scenario is blocked; then size from measured route and reserve",
+          "functional_unit": "net tonnes moved per haul cycle and shift",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "open-pit-haul-battery-only-control-fault-safe-state",
+          "mission_specific_scope": "regen loss on descent, pack derating at high ambient and charge-site outage",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "open-pit-haul-battery-only-control-serviceability",
+          "mission_specific_scope": "haul-road recovery, tire/retarder service, pack containment and high-power repair process",
+          "functional_unit": "net tonnes moved per haul cycle and shift",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "open-pit-haul-trolley-battery",
+      "label": "Open-pit haul truck with trolley and battery reserve",
+      "platform_family_id": "mine-mobile-equipment",
+      "functional_unit": "net tonnes moved per haul cycle with explicit trolley corridor coverage",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "open-pit-haul-trolley-battery-mass-envelope",
+          "mission_specific_scope": "haul truck plus collector/pantograph/line clearance, battery reserve and payload",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "open-pit-haul-trolley-battery-mission-duty",
+          "mission_specific_scope": "paired trolley-covered climb and off-wire loaded/empty transitions with outages and reroutes",
+          "functional_unit": "net tonnes moved per haul cycle with explicit trolley corridor coverage",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "open-pit-haul-trolley-battery-energy-window",
+          "mission_specific_scope": "meter line-side electricity and battery-side residual separately; inject loss of trolley before a critical section",
+          "functional_unit": "net tonnes moved per haul cycle with explicit trolley corridor coverage",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "open-pit-haul-trolley-battery-fault-safe-state",
+          "mission_specific_scope": "collector dewire, line fault, transition failure and off-wire reserve shortfall",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "open-pit-haul-trolley-battery-serviceability",
+          "mission_specific_scope": "line isolation/recovery, collector repair, route-side recovery and mine electrical maintenance process",
+          "functional_unit": "net tonnes moved per haul cycle with explicit trolley corridor coverage",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    },
+    {
+      "design_id": "warehouse-autonomous-carrier",
+      "label": "Warehouse and yard autonomous carrier",
+      "platform_family_id": "autonomous-material-handling",
+      "functional_unit": "accepted material moves per operating hour",
+      "verification_gates": [
+        {
+          "gate_id": "mass_and_structural_envelope",
+          "stage": "bench_subsystem_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "Measured mass plus fitted modules and target payload is within signed-off gross and axle/tire/track load limits; all measured uncertainty is included.",
+          "measurement_set": [
+            "calibrated scales",
+            "axle/wheel load measurements",
+            "module configuration and mass ledger"
+          ],
+          "failure_injection": "add declared overload or incompatible upfit and verify the gate blocks",
+          "result_class": "hard_gate",
+          "test_id": "warehouse-autonomous-carrier-mass-envelope",
+          "mission_specific_scope": "payload and stability over all supported loads/centres of gravity",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "configuration-tagged measured weights, calibration certificate, declared axle/limit sources"
+        },
+        {
+          "gate_id": "mission_energy_and_service_output",
+          "stage": "simulation_instrumented_vehicle",
+          "release_blocking": true,
+          "acceptance_rule": "The vehicle completes the frozen mission and functional-unit target without breaking the declared battery reserve, continuous/peak power limits or service schedule; prediction error is reported with measurement uncertainty.",
+          "measurement_set": [
+            "timestamped speed/distance/grade",
+            "payload/passenger or task output",
+            "pack voltage/current/SOC/temperature",
+            "auxiliary and work-tool energy",
+            "ambient conditions"
+          ],
+          "failure_injection": "reduce initial usable SOC or increase declared load beyond the validated envelope and verify visible shortfall/block",
+          "result_class": "hard_gate",
+          "test_id": "warehouse-autonomous-carrier-mission-duty",
+          "mission_specific_scope": "repeated aisle/dock/obstacle routes with congestion, blocked paths and return reserve",
+          "functional_unit": "accepted material moves per operating hour",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "raw timestamped logs, calibration/configuration hashes, uncertainty and frozen mission protocol"
+        },
+        {
+          "gate_id": "charge_and_site_coavailability",
+          "stage": "subsystem_site_fleet",
+          "release_blocking": true,
+          "acceptance_rule": "Required recharge fits the real duty window using the measured charge curve, availability, concurrency, site import cap and queue; every missed window is recorded as a service failure.",
+          "measurement_set": [
+            "charger-side and vehicle-side power/energy",
+            "charge-session state and temperature",
+            "site meter",
+            "queue/dwell/departure timestamps"
+          ],
+          "failure_injection": "cap site power, queue vehicles together, fail a charger, or remove an opportunity dwell",
+          "result_class": "hard_gate",
+          "test_id": "warehouse-autonomous-carrier-energy-window",
+          "mission_specific_scope": "automatic docking, queued charging, missed docking and safe-return scheduling",
+          "functional_unit": "accepted material moves per operating hour",
+          "evidence_class_required": [
+            "measured",
+            "manufacturer"
+          ],
+          "evidence_required": "charger/site meters, charge curve, dwell/queue traces, actual grid import cap and configuration hash"
+        },
+        {
+          "gate_id": "safety_fault_response",
+          "stage": "fault_injection_independent_review",
+          "release_blocking": true,
+          "acceptance_rule": "Every vehicle-specific hazard has a reviewed safe state, observable fault, tested mitigation and recovery procedure; no energy/productivity metric can override a failed safety gate.",
+          "measurement_set": [
+            "hazard log",
+            "fault-injection trace",
+            "isolation/brake/safe-stop sensors",
+            "review sign-off",
+            "recovery record"
+          ],
+          "failure_injection": "inject the vehicle-specific fault list in the design card; test safe stop, isolation, warning and recovery",
+          "result_class": "safety_gate",
+          "test_id": "warehouse-autonomous-carrier-fault-safe-state",
+          "mission_specific_scope": "sensor/localization/network loss, emergency-stop demand and safe-stop independently verified",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "hazard ID, fault injection script, observed response trace, reviewer and recovery record"
+        },
+        {
+          "gate_id": "serviceability_and_lifecycle",
+          "stage": "maintenance_test_service_trial",
+          "release_blocking": true,
+          "acceptance_rule": "Critical maintenance tasks are repeatable with declared tools/skills, maintain traceable configuration/parts records, and meet a maintenance target frozen from a stated baseline; absent baseline remains indeterminate.",
+          "measurement_set": [
+            "diagnostic logs",
+            "technician/tool/parts inventory",
+            "time to diagnose/repair",
+            "module/pack serial and repair provenance",
+            "disposition/end-of-life record"
+          ],
+          "failure_injection": "remove a declared spare/tool, present a traceable fault or require field recovery and record service impact",
+          "result_class": "evidence_gate",
+          "test_id": "warehouse-autonomous-carrier-serviceability",
+          "mission_specific_scope": "diagnostic isolation, sensor calibration, manual recovery and repair time in the working facility",
+          "functional_unit": "accepted material moves per operating hour",
+          "evidence_class_required": [
+            "measured",
+            "independent_review"
+          ],
+          "evidence_required": "technician skill/tool/parts context, timed task log, service configuration and sign-off"
+        }
+      ]
+    }
+  ],
+  "cross_class_invariants": [
+    {
+      "invariant_id": "deterministic_report",
+      "target": "100/100 input permutations produce identical canonical report bytes",
+      "type": "software_invariant"
+    },
+    {
+      "invariant_id": "hard_gate_negative_controls",
+      "target": "100% of mass, SOC/energy, power, charge-window and safety blockers have negative controls that are observed as blocked",
+      "type": "software_invariant"
+    },
+    {
+      "invariant_id": "evidence_provenance",
+      "target": "100% of physical claims include configuration ID, source/raw data reference, timestamp, method, calibration/uncertainty and reviewer",
+      "type": "evidence_invariant"
+    },
+    {
+      "invariant_id": "boundary_consistency",
+      "target": "100% of comparisons declare wheel/battery/charger/site boundaries and avoid double-counting direct-supply or regenerative energy",
+      "type": "analysis_invariant"
+    },
+    {
+      "invariant_id": "mission_completion",
+      "target": "Report complete and failed missions, all missed service windows and unserved tasks; never exclude failures from denominators",
+      "type": "benchmark_invariant"
+    }
+  ]
+}
