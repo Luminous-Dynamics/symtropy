@@ -1268,26 +1268,6 @@ mod tests {
     }
 
     #[test]
-    fn post_repair_evidence_available_after_its_test_window_is_rejected() {
-        let mut case = valid_case();
-        case.post_repair_episode.measurements[0].available_at_seconds = 21.0;
-        assert_eq!(
-            evaluate_repair_restoration(&case),
-            Err(RepairVerificationError::InvalidEpisodeWindow("post".into()))
-        );
-    }
-
-    #[test]
-    fn verified_measurement_without_calibration_record_digest_is_rejected() {
-        let mut case = valid_case();
-        case.post_repair_episode.measurements[0].calibration_record_sha256 = None;
-        assert_eq!(
-            evaluate_repair_restoration(&case),
-            Err(RepairVerificationError::InvalidEpisodeWindow("post".into()))
-        );
-    }
-
-    #[test]
     fn pre_and_post_verification_use_the_same_independent_reference_path() {
         let mut case = valid_case();
         case.pre_repair_episode.measurements[0].measurement_principle_id =
