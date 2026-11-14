@@ -605,6 +605,69 @@
     "field_calibration": "NOT_RUN",
     "empirical_validation": "NOT_RUN",
     "published_lpJ_guess_sec_reproduction": "NOT_RUN",
-    "published_lpj_guess_sec_reproduction": "NOT_RUN"
-  }
+    "published_lpj_guess_sec_reproduction": "NOT_RUN",
+    "challenge_case_count": 10
+  },
+  "challenge_cases": [
+    {
+      "case_id": "CANOPY-AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001",
+      "family": "aggregate_vs_spatial_representation",
+      "condition": "Two canopy arrangements have identical total/mean LAI but different open-gap connected-component structure.",
+      "expected_disposition": "SAME_AGGREGATES_DIFFERENT_SPATIAL_GAP_TOPOLOGY"
+    },
+    {
+      "case_id": "CANOPY-MORTALITY-LOCAL-GAP-001",
+      "family": "single_cohort_mortality",
+      "condition": "A declared cohort dies and its crown contribution is removed from only the cells in its support.",
+      "expected_disposition": "LOCAL_CANOPY_SUPPORT_CHANGES_ONLY"
+    },
+    {
+      "case_id": "CANOPY-CLUSTERED-VS-DISPERSED-MORTALITY-001",
+      "family": "disturbance_geometry",
+      "condition": "Equal biomass mortality is applied in clustered and dispersed spatial patterns.",
+      "expected_disposition": "EQUAL_LOSS_DIFFERENT_GAP_GEOMETRY"
+    },
+    {
+      "case_id": "CANOPY-RECRUITMENT-LOCAL-LIGHT-001",
+      "family": "understory_recruitment",
+      "condition": "Recruitment opportunity depends on local understory light rather than only global mean LAI.",
+      "expected_disposition": "LOCAL_LIGHT_REQUIRED_FOR_RECRUITMENT_CLAIM"
+    },
+    {
+      "case_id": "CANOPY-GAP-CLOSURE-CAUSAL-001",
+      "family": "gap_recovery",
+      "condition": "An existing gap closes only after explicit canopy growth/crown expansion and canonical settlement.",
+      "expected_disposition": "GAP_CLOSURE_REQUIRES_EXPLICIT_GROWTH_SETTLEMENT"
+    },
+    {
+      "case_id": "CANOPY-TRANSLATION-SYMMETRY-001",
+      "family": "spatial_symmetry",
+      "condition": "A canopy arrangement is translated within symmetric boundaries with identical forcing.",
+      "expected_disposition": "TRANSLATED_CASE_OUTPUTS_EQUIVALENT"
+    },
+    {
+      "case_id": "CANOPY-ROTATION-SYMMETRY-001",
+      "family": "spatial_symmetry",
+      "condition": "A canopy arrangement is rotated by 90 degrees within symmetric boundaries with identical forcing.",
+      "expected_disposition": "ROTATED_CASE_OUTPUTS_EQUIVALENT"
+    },
+    {
+      "case_id": "CANOPY-DISCONNECTED-CONTROL-001",
+      "family": "causal_negative_control",
+      "condition": "A disconnected control patch has no declared causal path from the canopy intervention.",
+      "expected_disposition": "DISCONNECTED_PATCH_UNCHANGED"
+    },
+    {
+      "case_id": "CANOPY-RENDERER-INDEPENDENCE-001",
+      "family": "presentation_independence",
+      "condition": "Camera, renderer LOD, animation and frame rate are varied without changing canonical ecological state.",
+      "expected_disposition": "CANONICAL_ECOLOGY_IDENTICAL"
+    },
+    {
+      "case_id": "CANOPY-COARSE-FIDELITY-PROMOTION-001",
+      "family": "process_driven_fidelity",
+      "condition": "A recruitment process requires local gap/light information but the selected coarse representation carries only global mean LAI.",
+      "expected_disposition": "PROMOTE_SPATIAL_REPRESENTATION_OR_ABSTAIN"
+    }
+  ]
 }
