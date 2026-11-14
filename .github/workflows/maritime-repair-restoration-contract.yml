@@ -55,8 +55,8 @@ jobs:
           assert protocol["schema_version"] == "symtropy-marine-repair-restoration-v0.1"
           assert protocol["status"] == "protocol_only_not_executed"
           assert len(protocol["hard_gates"]) >= 30
-          assert len(corpus["cases"]) == 8
-          assert len({case["case_id"] for case in corpus["cases"]}) == 8
+          assert len(corpus["cases"]) == 12
+          assert len({case["case_id"] for case in corpus["cases"]}) == 12
           assert schema["additionalProperties"] is False
           assert "measurement_evidence_sha256" in schema["properties"]["pre_repair_episode"]["properties"]["measurements"]["items"]["required"]
           assert "diagnostic_revision_receipt_sha256" in schema["properties"]["binding"]["required"]
