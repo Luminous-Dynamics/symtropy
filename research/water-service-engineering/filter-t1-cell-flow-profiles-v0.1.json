@@ -1,0 +1,113 @@
+{
+  "schema_version": "filter-t1-cell-flow-profiles-v0.1",
+  "evidence_class": "synthetic_design_arithmetic",
+  "evidence_ceiling": "flow_range_compatibility_and_ideal_hydraulic_arithmetic_only_no_filter_or_pressure_system_qualification",
+  "water_density_kg_m3": 1000,
+  "gravity_m_s2": 9.81,
+  "reservoir_usable_volume_l": 250,
+  "community_pipe_candidate_actual_id_mm": 40,
+  "profiles": [
+    {
+      "profile_id": "FILTER-HOUSEHOLD-POU",
+      "scale": "household_POU",
+      "flow_l_min": [
+        0.1,
+        10
+      ],
+      "flow_m3_s": [
+        0.0000016666666667,
+        0.0001666666666667
+      ],
+      "pump_t1_compatible": false,
+      "separate_low_flow_pump_or_loop_required": true,
+      "measurement_requirements": [
+        "low_flow_reference_meter",
+        "inlet_pressure",
+        "outlet_pressure",
+        "differential_pressure",
+        "temperature",
+        "totalized_volume"
+      ]
+    },
+    {
+      "profile_id": "FILTER-COMMUNITY-MODULAR",
+      "scale": "community_modular",
+      "flow_l_min": [
+        12,
+        60
+      ],
+      "flow_m3_s": [
+        0.0002,
+        0.001
+      ],
+      "pump_t1_compatible": true,
+      "separate_low_flow_pump_or_loop_required": false,
+      "measurement_requirements": [
+        "reference_flow_meter",
+        "inlet_pressure",
+        "outlet_pressure",
+        "differential_pressure",
+        "temperature",
+        "totalized_volume",
+        "bypass_flow_or_validated_leakage_test"
+      ]
+    },
+    {
+      "profile_id": "FILTER-MUNICIPAL-PILOT",
+      "scale": "municipal_pilot",
+      "flow_l_min": null,
+      "flow_m3_s": null,
+      "pump_t1_compatible": null,
+      "separate_low_flow_pump_or_loop_required": null,
+      "measurement_requirements": [
+        "project_specific_flow_and_head_design",
+        "project_specific_pressure_class",
+        "project_specific_metering_and_sample_plan"
+      ],
+      "status": "separate_design_required_do_not_scale_from_household_or_community_fixture"
+    }
+  ],
+  "pump_t1_reference": {
+    "flow_l_min": [
+      12,
+      60
+    ],
+    "tdh_m": [
+      5,
+      25
+    ],
+    "reservoir_usable_l": 250,
+    "actual_id_candidate_mm": 40,
+    "source": "PUMP-T1-CW-01 #4994"
+  },
+  "cases": [
+    {
+      "case_id": "FILTER-T1-001-household-below-pump-min",
+      "inputs": {
+        "flow_l_min": 10,
+        "actual_id_mm": 10
+      }
+    },
+    {
+      "case_id": "FILTER-T1-002-community-at-pump-min",
+      "inputs": {
+        "flow_l_min": 12,
+        "actual_id_mm": 40
+      }
+    },
+    {
+      "case_id": "FILTER-T1-003-community-at-pump-max",
+      "inputs": {
+        "flow_l_min": 60,
+        "actual_id_mm": 40
+      }
+    },
+    {
+      "case_id": "FILTER-T1-004-household-low-flow",
+      "inputs": {
+        "flow_l_min": 0.1,
+        "actual_id_mm": 6
+      }
+    }
+  ]
+}
