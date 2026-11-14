@@ -227,14 +227,16 @@ pub fn choose_targeted_observation(
             .then_with(|| left.action_id.cmp(&right.action_id))
     });
 
-    let selected = candidates.first().map(|(action, covered)| ObservationChoice {
-        action_id: action.action_id.clone(),
-        covered_work_unit_ids: covered.clone(),
-        duration_minutes: action.duration_minutes,
-        crew_minutes: action.crew_minutes,
-        cost_minor_units: action.cost_minor_units,
-        energy_wh: action.energy_wh,
-    });
+    let selected = candidates
+        .first()
+        .map(|(action, covered)| ObservationChoice {
+            action_id: action.action_id.clone(),
+            covered_work_unit_ids: covered.clone(),
+            duration_minutes: action.duration_minutes,
+            crew_minutes: action.crew_minutes,
+            cost_minor_units: action.cost_minor_units,
+            energy_wh: action.energy_wh,
+        });
 
     rejected_conflicts.sort_by(|left, right| left.action_id.cmp(&right.action_id));
     irrelevant_action_ids.sort();
@@ -265,13 +267,9 @@ pub enum ObservationOutcome {
         reason: String,
     },
     /// The evidence lost validity (for example, site epoch / frame / calibration changed).
-    Invalidated {
-        reason: String,
-    },
+    Invalidated { reason: String },
     /// The action could not be performed or its result was not delivered.
-    Unavailable {
-        reason: String,
-    },
+    Unavailable { reason: String },
 }
 
 impl ObservationOutcome {
@@ -401,19 +399,15 @@ pub fn evaluate_observation(
     result.outcome.validate()?;
 
     let work_disposition = match &result.outcome {
-        ObservationOutcome::QualifiedClear { .. } => {
-            WorkDisposition::ReadyForIndependentAcceptance
-        }
-        ObservationOutcome::Finding { .. } => {
-            WorkDisposition::RequiresProfessionalDisposition
-        }
+        ObservationOutcome::QualifiedClear { .. } => WorkDisposition::ReadyForIndependentAcceptance,
+        ObservationOutcome::Finding { .. } => WorkDisposition::RequiresProfessionalDisposition,
         ObservationOutcome::Incomplete { .. }
         | ObservationOutcome::Invalidated { .. }
         | ObservationOutcome::Unavailable { .. } => WorkDisposition::HeldUnknown,
     };
 
-    let total_cost = i128::from(action.cost_minor_units)
-        + i128::from(result.residual_loss_minor_units);
+    let total_cost =
+        i128::from(action.cost_minor_units) + i128::from(result.residual_loss_minor_units);
     let net_voi_minor_units = i128::from(scenario.no_observation_loss_minor_units) - total_cost;
 
     Ok(ObservationEvaluation {
@@ -443,10 +437,7 @@ pub enum ObservationPlanError {
     Spatial(SpatialError),
 }
 
-fn require_non_empty(
-    name: &'static str,
-    value: &str,
-) -> Result<(), ObservationPlanError> {
+fn require_non_empty(name: &'static str, value: &str) -> Result<(), ObservationPlanError> {
     if value.trim().is_empty() {
         return Err(ObservationPlanError::EmptyField(name));
     }
@@ -456,11 +447,11 @@ fn require_non_empty(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use construction_robot_interop_core::resources::ReservationRequest;
+    use construction_spacetime_occupancy_core::SpatialOccupancy;
     use construction_spacetime_occupancy_core::{
         Bounds3Mm, OccupancyKind, SiteBinding, SpatialOccupancyBook,
     };
-    use construction_spacetime_occupancy_core::SpatialOccupancy;
-    use construction_robot_interop_core::resources::ReservationRequest;
 
     fn binding() -> SiteBinding {
         SiteBinding {
@@ -748,20 +739,12 @@ mod tests {
             },
         ];
 
-        let plan = choose_threshold_observation(
-            &actions,
-            &needs,
-            [100, 100, 100],
-            &book(),
-        )
-        .expect("threshold policy");
+        let plan = choose_threshold_observation(&actions, &needs, [100, 100, 100], &book())
+            .expect("threshold policy");
         let selected = plan.selected.expect("high uncertainty scan selected");
         assert_eq!(selected.action_id, "scan-high-uncertainty");
         assert_eq!(selected.covered_work_unit_ids, vec!["high-unit"]);
-        assert_eq!(
-            plan.irrelevant_action_ids,
-            vec!["scan-low-uncertainty"]
-        );
+        assert_eq!(plan.irrelevant_action_ids, vec!["scan-low-uncertainty"]);
     }
 
     #[test]
@@ -780,9 +763,8 @@ mod tests {
             region_id: "region-low".to_owned(),
             uncertainty_bound_mm: [10, 10, 10],
         }];
-        let plan =
-            choose_threshold_observation(&actions, &needs, [100, 100, 100], &book())
-                .expect("threshold plan");
+        let plan = choose_threshold_observation(&actions, &needs, [100, 100, 100], &book())
+            .expect("threshold plan");
         assert!(plan.selected.is_none());
         assert_eq!(plan.irrelevant_action_ids, vec!["scan-low"]);
     }
@@ -831,10 +813,7 @@ mod tests {
             "remote-survey"
         );
         assert_eq!(plan.rejected_conflicts.len(), 1);
-        assert_eq!(
-            plan.rejected_conflicts[0].action_id,
-            "blocked-survey"
-        );
+        assert_eq!(plan.rejected_conflicts[0].action_id, "blocked-survey");
         assert_eq!(plan.rejected_conflicts[0].conflicts.len(), 1);
     }
 
@@ -923,11 +902,9 @@ mod tests {
         ];
 
         for outcome in outcomes {
-            let result = evaluate_observation(
-                &scan,
-                &scenario("scan-unknown", outcome, 2_000, 2_000),
-            )
-            .expect("unknown outcome evaluation");
+            let result =
+                evaluate_observation(&scan, &scenario("scan-unknown", outcome, 2_000, 2_000))
+                    .expect("unknown outcome evaluation");
             assert_eq!(result.work_disposition, WorkDisposition::HeldUnknown);
             assert_eq!(result.net_voi_minor_units, -250);
         }
@@ -966,11 +943,9 @@ mod tests {
             250,
         );
 
-        let positive = evaluate_observation(
-            &scan,
-            &scenario("scan-voi", qualified_clear(), 2_000, 100),
-        )
-        .expect("positive scenario");
+        let positive =
+            evaluate_observation(&scan, &scenario("scan-voi", qualified_clear(), 2_000, 100))
+                .expect("positive scenario");
         let negative = evaluate_observation(
             &scan,
             &scenario(
@@ -1040,9 +1015,7 @@ mod tests {
         );
         assert_eq!(
             choose_targeted_observation(&[first], &[need.clone(), need], &book()),
-            Err(ObservationPlanError::DuplicateWorkUnit(
-                "unit-a".to_owned()
-            ))
+            Err(ObservationPlanError::DuplicateWorkUnit("unit-a".to_owned()))
         );
     }
 
