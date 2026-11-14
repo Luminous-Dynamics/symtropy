@@ -683,16 +683,14 @@ mod tests {
     #[test]
     fn condition_ladder_preserves_metric_norms_through_dense_shear() {
         let metric_q = cartesian_metric();
-        let tangent_y =
-            Tangent::<DenseGeneralizedFrame, 3>::new([0.5, -1.0, 2.0]).unwrap();
+        let tangent_y = Tangent::<DenseGeneralizedFrame, 3>::new([0.5, -1.0, 2.0]).unwrap();
         let force_q = Covector::<CartesianFrame, 3>::new([3.0, -2.0, 4.0]).unwrap();
         let tangent_norm_reference = {
-            let identity =
-                CoordinateRebasis::<CartesianFrame, DenseGeneralizedFrame, 3>::new(
-                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
-                    profile(),
-                )
-                .unwrap();
+            let identity = CoordinateRebasis::<CartesianFrame, DenseGeneralizedFrame, 3>::new(
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+                profile(),
+            )
+            .unwrap();
             let tangent_q = identity.push_tangent_to_from(&tangent_y).unwrap();
             metric_q.tangent_norm(&tangent_q, profile()).unwrap()
         };
