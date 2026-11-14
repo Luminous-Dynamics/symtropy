@@ -408,7 +408,7 @@
   "integrity": {
     "canonicalization": "RFC8785-JCS-UTF8",
     "digest_scope": "top_level_without_integrity",
-    "payload_sha256": "dcb4672f36b37d18e69c8cb5f1f750dfcf0b506cd1bd0831e21eb2f6c9dc5dd3"
+    "payload_sha256": "ec6a8e8fa9b0f709cd605bc3a9c2ee95222e0d6259d71d1291bb35aefe0b5045"
   },
   "profile_id": "single-joint-uq-golden-001",
   "profile_version": "0.1.0",
