@@ -38,7 +38,7 @@ The public forest model-set corpus is a case-family contract only. It deliberate
 | Fixture | Successful result | What that result means |
 |---|---|---|
 | Biomass accounting | `PASS` | The synthetic live/deadwood transitions, declared transfers, total stocks and disconnected-control invariants are internally consistent |
-| Canopy geometry | `PASS_SYNTHETIC_GEOMETRY` | The 8×8 analytical grid matches its declared LAI, four-neighbour gap topology and uncalibrated synthetic transmittance equations |
+| Canopy geometry | `PASS_SYNTHETIC_GEOMETRY` | The 8×8 analytical grid matches its declared LAI, four-neighbour gap topology and uncalibrated synthetic transmittance equations; ten public challenge-case IDs and expected dispositions are valid. The challenge processes are not executed |
 | Observation operators | `MANIFEST_VALID` | The nine expected dispositions, source-specific claim boundaries and non-execution metadata are well-formed; the negative controls themselves have **not** been run against a production observation adapter |
 | Model-set adequacy | `MANIFEST_VALID` | The ten public development case families and expected dispositions are well-formed; no blind generator or independent custodian is provided |
 
@@ -53,7 +53,7 @@ See [DATASET_CANDIDATE_REGISTER_V0_1.json](../DATASET_CANDIDATE_REGISTER_V0_1.js
 - Live biomass, deadwood, total biomass, mortality transfer and biomass budget.
 - Disconnected-control invariance using declared causal links, comparing canonical stocks separately from derived totals.
 - Observation corpus case uniqueness, complete expected disposition mapping and explicit `NOT_IMPLEMENTED` / `NOT_RUN` execution fields.
-- Canopy coordinate bounds, duplicate/overlap/coverage, total and mean LAI, connected gap components, synthetic transmission and uniform-baseline calculations.
+- Canopy coordinate bounds, duplicate/overlap/coverage, total and mean LAI, connected gap components, synthetic transmission, uniform-baseline calculations, and ten unique named challenge-family dispositions.
 - Deterministic receipt generation and adversarial mutation tests.
 
 ## Claim limits
@@ -61,7 +61,7 @@ See [DATASET_CANDIDATE_REGISTER_V0_1.json](../DATASET_CANDIDATE_REGISTER_V0_1.js
 These results are deliberately narrow:
 
 - Biomass fixture PASS does not validate ecological growth or mortality equations.
-- Canopy geometry PASS does not validate radiative transfer, crown allometry, tree physiology or recruitment.
+- Canopy geometry PASS does not validate radiative transfer, crown allometry, tree physiology or recruitment; the ten challenge-case dispositions are contract checks, not executed canopy processes.
 - Observation `MANIFEST_VALID` does not mean an observation adapter rejected the nine negative controls at runtime.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
