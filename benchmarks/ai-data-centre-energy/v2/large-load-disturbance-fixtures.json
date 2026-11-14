@@ -1,0 +1,267 @@
+{
+  "schema_version": "symtropy.large-load-disturbance-fixtures.v1",
+  "protocol": "GRID-DISTURBANCE-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "claim_boundary": "observable PCC RMS trace conformance to pinned operator-defined limits only; not converter internal stability, positive-sequence dynamic model validity, EMT/PDT, protection, harmonic compliance, grid-code certification or ELCC",
+  "base_requirement": {
+    "requirement_id": "operator-rule-1",
+    "version": "2026.1",
+    "jurisdiction": "operator-region-a",
+    "source_digest": "sha256:requirement",
+    "pcc_id": "pcc-1",
+    "nominal_frequency_hz": 50,
+    "horizon_ns": 4000000000,
+    "segments": [
+      {
+        "start_elapsed_ns": 0,
+        "end_elapsed_ns": 2000000000,
+        "min_voltage_pu": 0.1,
+        "max_voltage_pu": 1.2,
+        "min_frequency_hz": 47,
+        "max_frequency_hz": 52,
+        "max_abs_rocof_hz_s": 2,
+        "connection": "must_remain_connected"
+      },
+      {
+        "start_elapsed_ns": 2000000000,
+        "end_elapsed_ns": 4000000000,
+        "min_voltage_pu": 0.9,
+        "max_voltage_pu": 1.1,
+        "min_frequency_hz": 49,
+        "max_frequency_hz": 51,
+        "max_abs_rocof_hz_s": 1,
+        "connection": "must_remain_connected"
+      }
+    ],
+    "recovery": {
+      "min_recovered_voltage_pu": 0.9,
+      "recovered_frequency_hz": [
+        49,
+        51
+      ],
+      "stable_dwell_ns": 500000000,
+      "deadline_after_dwell_ns": 500000000,
+      "min_power_fraction": 0.9,
+      "max_overshoot_fraction": 0.1,
+      "max_abs_ramp_mw_s": 20
+    }
+  },
+  "cases": [
+    {
+      "case_id": "in-envelope-stay-connected-recovery-pass",
+      "expected": {
+        "ride_through": true,
+        "connection": true,
+        "recovery": true,
+        "qualified": true,
+        "dr_credit": false
+      }
+    },
+    {
+      "case_id": "must-stay-connected-zone-trips",
+      "expected": {
+        "ride_through": true,
+        "connection": false,
+        "unexpected_trip": true,
+        "qualified": false,
+        "dr_credit": false
+      }
+    },
+    {
+      "case_id": "operator-permitted-momentary-cessation-under-duration",
+      "expected": {
+        "connection": true,
+        "qualified": true
+      }
+    },
+    {
+      "case_id": "momentary-cessation-exceeds-duration",
+      "expected": {
+        "connection": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "voltage-outside-operator-boundary",
+      "expected": {
+        "ride_through": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "frequency-outside-operator-boundary",
+      "expected": {
+        "ride_through": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "rocof-over-operator-threshold",
+      "expected": {
+        "rocof_pass": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "recovery-ramp-boundary-crossing-spike",
+      "expected": {
+        "recovery": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "recovery-overshoot-over-limit",
+      "expected": {
+        "recovery": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "recovery-never-stabilizes",
+      "expected": {
+        "recovery_condition_observed": false,
+        "qualified": false
+      }
+    },
+    {
+      "case_id": "critical-sample-gap",
+      "expected": {
+        "accepted": false,
+        "reason": "sample_gap_exceeds_contract"
+      }
+    },
+    {
+      "case_id": "trace-shorter-than-pinned-horizon",
+      "expected": {
+        "accepted": false,
+        "reason": "observation_horizon_incomplete"
+      }
+    },
+    {
+      "case_id": "waveform-sample-at-exclusive-horizon-end",
+      "expected": {
+        "accepted": false,
+        "reason": "sample_outside_requirement_horizon"
+      }
+    },
+    {
+      "case_id": "stale-requirement-version",
+      "expected": {
+        "accepted": false,
+        "reason": "requirement_identity_mismatch"
+      }
+    },
+    {
+      "case_id": "wrong-pcc-reference-point",
+      "expected": {
+        "accepted": false,
+        "reason": "pcc_identity_mismatch"
+      }
+    },
+    {
+      "case_id": "clock-uncertainty-too-large",
+      "expected": {
+        "accepted": false,
+        "reason": "clock_uncertainty_exceeds_contract"
+      }
+    },
+    {
+      "case_id": "rms-window-too-long",
+      "expected": {
+        "accepted": false,
+        "reason": "rms_window_exceeds_contract"
+      }
+    },
+    {
+      "case_id": "insufficient-measurement-bandwidth",
+      "expected": {
+        "accepted": false,
+        "reason": "measurement_bandwidth_below_contract"
+      }
+    },
+    {
+      "case_id": "no-grid-recovery-before-deadline",
+      "expected": {
+        "accepted": false,
+        "reason": "recovery_condition_not_observed_or_failed"
+      }
+    },
+    {
+      "case_id": "load-trip-never-credited-as-dispatch",
+      "expected": {
+        "dr_credit": false
+      }
+    },
+    {
+      "case_id": "initial-waveform-coverage-gap",
+      "first_sample_offset_ns": 100000000,
+      "maximum_sample_gap_ns": 50000000,
+      "expected": {
+        "accepted": false,
+        "reason": "initial_sample_gap_exceeds_contract"
+      }
+    },
+    {
+      "case_id": "required-reactive-power-or-current-missing",
+      "missing_channel": "reactive_power_mvar",
+      "expected": {
+        "accepted": false,
+        "reason": "missing_required_channel"
+      }
+    },
+    {
+      "case_id": "reactive-power-outside-operator-envelope",
+      "reactive_power_mvar": 6,
+      "operator_range_mvar": [
+        -5,
+        5
+      ],
+      "expected": {
+        "qualified": false,
+        "reason": "reactive_current_envelope_violation"
+      }
+    },
+    {
+      "case_id": "pcc-current-over-operator-limit",
+      "current_pu": 1.3,
+      "operator_max_current_pu": 1.2,
+      "expected": {
+        "qualified": false,
+        "reason": "reactive_current_envelope_violation"
+      }
+    },
+    {
+      "case_id": "sparse-samples-claiming-high-bandwidth",
+      "sample_gap_ns": 1000000000,
+      "required_bandwidth_hz": 1,
+      "expected": {
+        "accepted": false,
+        "reason": "sampling_cadence_cannot_resolve_bandwidth"
+      }
+    }
+  ],
+  "negative_controls": [
+    "uncommanded_grid_trip_classified_as_demand_response",
+    "universal_ride_through_curve_hardcoded",
+    "stale_requirement_digest",
+    "wrong_pcc_point_of_applicability",
+    "rms_window_exceeds_requirement_bandwidth",
+    "clock_uncertainty_exceeds_contract",
+    "missing_samples_around_trip_instant",
+    "non_monotonic_timestamps",
+    "sample_gap_exceeds_contract",
+    "sample_outside_requirement_horizon",
+    "operator_requirement_segments_non_contiguous",
+    "rocof_exceeds_operator_limit",
+    "momentary_cessation_duration_exceeded",
+    "active_power_recovery_misses_deadline",
+    "recovery_ramp_limit_exceeded",
+    "post_fault_overshoot_exceeded",
+    "recovery_stability_condition_never_observed",
+    "waveform_initial_sample_missing_beyond_cadence",
+    "waveform_sample_rate_below_nyquist_for_declared_bandwidth",
+    "reactive_power_or_current_channel_missing_when_operator_requires_it",
+    "PCC_reactive_power_exceeds_operator_envelope",
+    "PCC_current_exceeds_operator_limit"
+  ]
+}
