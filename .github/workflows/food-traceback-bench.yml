@@ -1,0 +1,78 @@
+name: Food Traceback Benchmark
+
+on:
+  push:
+    branches: ["research/food-traceback-benchmark-v0-1"]
+    paths:
+      - "docs/tech/FOOD_TRACEBACK_BENCHMARK_V0_1.md"
+      - "benchmarks/fixtures/FOOD_TRACEBACK_V0_1.json"
+      - "tools/food-traceback-bench/**"
+      - ".github/workflows/food-traceback-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/FOOD_TRACEBACK_BENCHMARK_V0_1.md"
+      - "benchmarks/fixtures/FOOD_TRACEBACK_V0_1.json"
+      - "tools/food-traceback-bench/**"
+      - ".github/workflows/food-traceback-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: food-traceback-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Format validator
+        run: cargo fmt --manifest-path tools/food-traceback-bench/Cargo.toml --check
+
+      - name: Run validator and negative-control tests
+        run: cargo test --manifest-path tools/food-traceback-bench/Cargo.toml
+
+      - name: Validate frozen corpus and emit exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/food-traceback-bench/Cargo.toml -- \
+            benchmarks/fixtures/FOOD_TRACEBACK_V0_1.json \
+            --source-commit "$source_commit" > food-traceback-reference-receipt.json
+          export SOURCE_COMMIT="$source_commit"
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "FOOD-TRACEBACK-001"
+            and .scenario_count == 5
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.scenarios | length == 5)
+            and (.scenarios | all(.status == "pass"))
+            and (.scenarios | all(.reference_comparison.B1_naive_ungraded_graph_union != null))
+            and (.scenarios | all(.reference_comparison.B2_association_only != null))
+            and (.scenarios | all(.reference_comparison.B3_evidence_bounded_envelope != null))
+          ' food-traceback-reference-receipt.json
+
+      - name: Upload deterministic reference receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: food-traceback-reference-receipt
+          path: food-traceback-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90

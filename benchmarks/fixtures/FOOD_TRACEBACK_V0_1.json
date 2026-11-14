@@ -1,0 +1,767 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "FOOD-TRACEBACK-001",
+  "classification": "synthetic_only",
+  "created_at": "2026-10-19T00:00:00Z",
+  "units": {
+    "finished_lot_quantity": "synthetic_case_packs",
+    "note": "Synthetic unit counts support arithmetic only; they are not real production or health-risk estimates."
+  },
+  "evidence_status_vocabulary": [
+    "verified",
+    "reported",
+    "screening_only",
+    "unknown",
+    "conflicted",
+    "stale"
+  ],
+  "evidence_types": [
+    "custody_record",
+    "transformation_record",
+    "retail_receipt",
+    "outbreak_association",
+    "pathogen_profile_comparison",
+    "sample_origin_record"
+  ],
+  "evaluator_boundary": {
+    "input_projection": "Pass only case_id, entities, observed_records, and declared config to a candidate method.",
+    "oracle_truth_is_hidden": true,
+    "rationale": "Ground-truth labels must not leak into candidate methods or model prompts."
+  },
+  "cases": [
+    {
+      "case_id": "CLEAN-001",
+      "description": "Complete custody route and a separated unrelated finished lot.",
+      "entities": [
+        {
+          "id": "ING-A",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "ING-B",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "FG-A",
+          "type": "finished_lot",
+          "quantity": 120,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "FG-B",
+          "type": "finished_lot",
+          "quantity": 90,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "SHIP-A",
+          "type": "shipment"
+        },
+        {
+          "id": "SHIP-B",
+          "type": "shipment"
+        },
+        {
+          "id": "STORE-A",
+          "type": "retail_site"
+        },
+        {
+          "id": "STORE-B",
+          "type": "retail_site"
+        },
+        {
+          "id": "SAMPLE-OUTBREAK-A",
+          "type": "pathogen_sample"
+        },
+        {
+          "id": "SAMPLE-ING-A",
+          "type": "pathogen_sample"
+        }
+      ],
+      "observed_records": [
+        {
+          "id": "C1-R1",
+          "from": "ING-A",
+          "to": "FG-A",
+          "relation": "used_in",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-01T08:00:00Z",
+          "observed_at": "2026-09-01T08:05:00Z"
+        },
+        {
+          "id": "C1-R2",
+          "from": "FG-A",
+          "to": "SHIP-A",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-02T08:00:00Z",
+          "observed_at": "2026-09-02T08:01:00Z"
+        },
+        {
+          "id": "C1-R3",
+          "from": "SHIP-A",
+          "to": "STORE-A",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-03T08:00:00Z",
+          "observed_at": "2026-09-03T08:03:00Z"
+        },
+        {
+          "id": "C1-R4",
+          "from": "ING-B",
+          "to": "FG-B",
+          "relation": "used_in",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-01T09:00:00Z",
+          "observed_at": "2026-09-01T09:03:00Z"
+        },
+        {
+          "id": "C1-R5",
+          "from": "FG-B",
+          "to": "SHIP-B",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-02T09:00:00Z",
+          "observed_at": "2026-09-02T09:01:00Z"
+        },
+        {
+          "id": "C1-R6",
+          "from": "SHIP-B",
+          "to": "STORE-B",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-03T09:00:00Z",
+          "observed_at": "2026-09-03T09:03:00Z"
+        },
+        {
+          "id": "C1-R7",
+          "from": "STORE-A",
+          "to": "FG-A",
+          "relation": "outbreak_association",
+          "evidence_type": "outbreak_association",
+          "status": "reported",
+          "event_time": "2026-09-08T12:00:00Z",
+          "observed_at": "2026-09-08T12:00:00Z"
+        },
+        {
+          "id": "C1-R8",
+          "from": "SAMPLE-OUTBREAK-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "pathogen_profile_match",
+          "evidence_type": "pathogen_profile_comparison",
+          "status": "screening_only",
+          "event_time": "2026-09-09T12:00:00Z",
+          "observed_at": "2026-09-09T13:00:00Z",
+          "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C1-R9",
+          "from": "ING-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
+        }
+      ],
+      "oracle_truth": {
+        "source_lot_ids": [
+          "ING-A"
+        ],
+        "affected_finished_lot_ids": [
+          "FG-A"
+        ],
+        "unaffected_finished_lot_ids": [
+          "FG-B"
+        ],
+        "outbreak_associated_finished_lot_ids": [
+          "FG-A"
+        ]
+      },
+      "expected_behavior": {
+        "source_attribution": "candidate_supported_by_complete_custody_plus_independent_profile_evidence_not_final_causal_proof",
+        "containment_must_include": [
+          "FG-A"
+        ],
+        "containment_should_exclude_under_complete_coverage": [
+          "FG-B"
+        ],
+        "trace_completeness": "complete_for_fixture_scope"
+      }
+    },
+    {
+      "case_id": "MIX-SPLIT-002",
+      "description": "Two ingredient lots merge into one mix that feeds multiple finished lots.",
+      "entities": [
+        {
+          "id": "ING-A",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "ING-B",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "MIX-AB",
+          "type": "mixed_intermediate_lot"
+        },
+        {
+          "id": "FG-A",
+          "type": "finished_lot",
+          "quantity": 60,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "FG-C",
+          "type": "finished_lot",
+          "quantity": 70,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "FG-B",
+          "type": "finished_lot",
+          "quantity": 100,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "SHIP-A",
+          "type": "shipment"
+        },
+        {
+          "id": "SHIP-C",
+          "type": "shipment"
+        },
+        {
+          "id": "SHIP-B",
+          "type": "shipment"
+        },
+        {
+          "id": "STORE-A",
+          "type": "retail_site"
+        },
+        {
+          "id": "STORE-C",
+          "type": "retail_site"
+        },
+        {
+          "id": "STORE-B",
+          "type": "retail_site"
+        },
+        {
+          "id": "SAMPLE-OUTBREAK",
+          "type": "pathogen_sample"
+        },
+        {
+          "id": "SAMPLE-ING-A",
+          "type": "pathogen_sample"
+        }
+      ],
+      "observed_records": [
+        {
+          "id": "C2-R1",
+          "from": "ING-A",
+          "to": "MIX-AB",
+          "relation": "input_to_mix",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-01T08:00:00Z",
+          "observed_at": "2026-09-01T08:04:00Z"
+        },
+        {
+          "id": "C2-R2",
+          "from": "ING-B",
+          "to": "MIX-AB",
+          "relation": "input_to_mix",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-01T08:10:00Z",
+          "observed_at": "2026-09-01T08:12:00Z"
+        },
+        {
+          "id": "C2-R3",
+          "from": "MIX-AB",
+          "to": "FG-A",
+          "relation": "produced_finished_lot",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-02T08:00:00Z",
+          "observed_at": "2026-09-02T08:02:00Z"
+        },
+        {
+          "id": "C2-R4",
+          "from": "MIX-AB",
+          "to": "FG-C",
+          "relation": "produced_finished_lot",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-02T09:00:00Z",
+          "observed_at": "2026-09-02T09:02:00Z"
+        },
+        {
+          "id": "C2-R5",
+          "from": "ING-B",
+          "to": "FG-B",
+          "relation": "used_in",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-02T10:00:00Z",
+          "observed_at": "2026-09-02T10:01:00Z"
+        },
+        {
+          "id": "C2-R6",
+          "from": "FG-A",
+          "to": "SHIP-A",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-03T08:00:00Z",
+          "observed_at": "2026-09-03T08:01:00Z"
+        },
+        {
+          "id": "C2-R7",
+          "from": "FG-C",
+          "to": "SHIP-C",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-03T09:00:00Z",
+          "observed_at": "2026-09-03T09:01:00Z"
+        },
+        {
+          "id": "C2-R8",
+          "from": "FG-B",
+          "to": "SHIP-B",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-03T10:00:00Z",
+          "observed_at": "2026-09-03T10:01:00Z"
+        },
+        {
+          "id": "C2-R9",
+          "from": "SHIP-A",
+          "to": "STORE-A",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-04T08:00:00Z",
+          "observed_at": "2026-09-04T08:01:00Z"
+        },
+        {
+          "id": "C2-R10",
+          "from": "SHIP-C",
+          "to": "STORE-C",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-04T09:00:00Z",
+          "observed_at": "2026-09-04T09:01:00Z"
+        },
+        {
+          "id": "C2-R11",
+          "from": "SHIP-B",
+          "to": "STORE-B",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-04T10:00:00Z",
+          "observed_at": "2026-09-04T10:01:00Z"
+        },
+        {
+          "id": "C2-R12",
+          "from": "STORE-A",
+          "to": "FG-A",
+          "relation": "outbreak_association",
+          "evidence_type": "outbreak_association",
+          "status": "reported",
+          "event_time": "2026-09-08T12:00:00Z",
+          "observed_at": "2026-09-08T12:00:00Z"
+        },
+        {
+          "id": "C2-R13",
+          "from": "SAMPLE-OUTBREAK",
+          "to": "SAMPLE-ING-A",
+          "relation": "pathogen_profile_match",
+          "evidence_type": "pathogen_profile_comparison",
+          "status": "screening_only",
+          "event_time": "2026-09-09T12:00:00Z",
+          "observed_at": "2026-09-09T13:00:00Z",
+          "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C2-R14",
+          "from": "ING-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
+        }
+      ],
+      "oracle_truth": {
+        "source_lot_ids": [
+          "ING-A"
+        ],
+        "affected_finished_lot_ids": [
+          "FG-A",
+          "FG-C"
+        ],
+        "unaffected_finished_lot_ids": [
+          "FG-B"
+        ],
+        "outbreak_associated_finished_lot_ids": [
+          "FG-A"
+        ]
+      },
+      "expected_behavior": {
+        "source_attribution": "candidate_source_set_is_ambiguous_because_ING-A_and_ING-B_both_feed_MIX-AB; sample similarity is relatedness evidence only",
+        "containment_must_include": [
+          "FG-A",
+          "FG-C"
+        ],
+        "trace_completeness": "complete_for_fixture_scope",
+        "propagation_rule": "If ING-A contaminates MIX-AB, every output finished lot from MIX-AB is in the truth set.",
+        "uncertainty_rule": "Do not require the method to exclude FG-B from a conservative candidate containment set when evidence does not distinguish ING-A from ING-B as the affected mix input."
+      }
+    },
+    {
+      "case_id": "MISSING-HANDOFF-003",
+      "description": "Known affected finished lot, but source-to-mix custody record is unknown.",
+      "entities": [
+        {
+          "id": "ING-A",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "ING-B",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "MIX-AB",
+          "type": "mixed_intermediate_lot"
+        },
+        {
+          "id": "FG-A",
+          "type": "finished_lot",
+          "quantity": 80,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "SHIP-A",
+          "type": "shipment"
+        },
+        {
+          "id": "STORE-A",
+          "type": "retail_site"
+        },
+        {
+          "id": "SAMPLE-OUTBREAK",
+          "type": "pathogen_sample"
+        },
+        {
+          "id": "SAMPLE-ING-A",
+          "type": "pathogen_sample"
+        }
+      ],
+      "observed_records": [
+        {
+          "id": "C3-R1",
+          "from": "ING-A",
+          "to": "MIX-AB",
+          "relation": "input_to_mix",
+          "evidence_type": "transformation_record",
+          "status": "unknown",
+          "event_time": "2026-09-01T08:00:00Z",
+          "observed_at": "2026-09-01T08:00:00Z",
+          "note": "Required custody evidence unavailable; this record does not assert that transfer occurred."
+        },
+        {
+          "id": "C3-R2",
+          "from": "ING-B",
+          "to": "MIX-AB",
+          "relation": "input_to_mix",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-01T08:10:00Z",
+          "observed_at": "2026-09-01T08:12:00Z"
+        },
+        {
+          "id": "C3-R3",
+          "from": "MIX-AB",
+          "to": "FG-A",
+          "relation": "produced_finished_lot",
+          "evidence_type": "transformation_record",
+          "status": "verified",
+          "event_time": "2026-09-02T08:00:00Z",
+          "observed_at": "2026-09-02T08:02:00Z"
+        },
+        {
+          "id": "C3-R4",
+          "from": "FG-A",
+          "to": "SHIP-A",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-03T08:00:00Z",
+          "observed_at": "2026-09-03T08:01:00Z"
+        },
+        {
+          "id": "C3-R5",
+          "from": "SHIP-A",
+          "to": "STORE-A",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-04T08:00:00Z",
+          "observed_at": "2026-09-04T08:01:00Z"
+        },
+        {
+          "id": "C3-R6",
+          "from": "STORE-A",
+          "to": "FG-A",
+          "relation": "outbreak_association",
+          "evidence_type": "outbreak_association",
+          "status": "reported",
+          "event_time": "2026-09-08T12:00:00Z",
+          "observed_at": "2026-09-08T12:00:00Z"
+        },
+        {
+          "id": "C3-R7",
+          "from": "SAMPLE-OUTBREAK",
+          "to": "SAMPLE-ING-A",
+          "relation": "pathogen_profile_match",
+          "evidence_type": "pathogen_profile_comparison",
+          "status": "screening_only",
+          "event_time": "2026-09-09T12:00:00Z",
+          "observed_at": "2026-09-09T13:00:00Z",
+          "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C3-R8",
+          "from": "ING-A",
+          "to": "SAMPLE-ING-A",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
+        }
+      ],
+      "oracle_truth": {
+        "source_lot_ids": [
+          "ING-A"
+        ],
+        "affected_finished_lot_ids": [
+          "FG-A"
+        ],
+        "unaffected_finished_lot_ids": [],
+        "outbreak_associated_finished_lot_ids": [
+          "FG-A"
+        ]
+      },
+      "expected_behavior": {
+        "source_attribution": "must_abstain_or_return_unresolved_candidate_set",
+        "containment_must_include": [
+          "FG-A"
+        ],
+        "trace_completeness": "incomplete",
+        "safety_rule": "Do not turn the unknown ING-A to MIX-AB record into a verified edge."
+      }
+    },
+    {
+      "case_id": "CONFLICTED-CUSTODY-004",
+      "description": "Two incompatible upstream custody claims refer to the same finished lot.",
+      "entities": [
+        {
+          "id": "ING-A",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "ING-B",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "FG-A",
+          "type": "finished_lot",
+          "quantity": 50,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "STORE-A",
+          "type": "retail_site"
+        }
+      ],
+      "observed_records": [
+        {
+          "id": "C4-R1",
+          "from": "ING-A",
+          "to": "FG-A",
+          "relation": "used_in",
+          "evidence_type": "transformation_record",
+          "status": "conflicted",
+          "event_time": "2026-09-01T08:00:00Z",
+          "observed_at": "2026-09-02T08:00:00Z",
+          "conflict_group": "C4-CUSTODY-1"
+        },
+        {
+          "id": "C4-R2",
+          "from": "ING-B",
+          "to": "FG-A",
+          "relation": "used_in",
+          "evidence_type": "transformation_record",
+          "status": "conflicted",
+          "event_time": "2026-09-01T08:00:00Z",
+          "observed_at": "2026-09-02T08:05:00Z",
+          "conflict_group": "C4-CUSTODY-1"
+        },
+        {
+          "id": "C4-R3",
+          "from": "STORE-A",
+          "to": "FG-A",
+          "relation": "outbreak_association",
+          "evidence_type": "outbreak_association",
+          "status": "reported",
+          "event_time": "2026-09-08T12:00:00Z",
+          "observed_at": "2026-09-08T12:00:00Z"
+        }
+      ],
+      "oracle_truth": {
+        "source_lot_ids": [
+          "ING-A"
+        ],
+        "affected_finished_lot_ids": [
+          "FG-A"
+        ],
+        "unaffected_finished_lot_ids": [],
+        "outbreak_associated_finished_lot_ids": [
+          "FG-A"
+        ]
+      },
+      "expected_behavior": {
+        "source_attribution": "must_abstain_or_return_unresolved_candidate_set",
+        "containment_must_include": [
+          "FG-A"
+        ],
+        "trace_completeness": "incomplete_due_to_conflict",
+        "safety_rule": "Do not choose a source just because one conflicting record arrived first."
+      }
+    },
+    {
+      "case_id": "GENOMIC-NO-ROUTE-005",
+      "description": "A supplier sample shares a pathogen profile with a retail outbreak sample, but no observed material-flow route links the supplier to the affected lot.",
+      "entities": [
+        {
+          "id": "ING-A",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "ING-B",
+          "type": "ingredient_lot"
+        },
+        {
+          "id": "FG-A",
+          "type": "finished_lot",
+          "quantity": 40,
+          "quantity_unit": "synthetic_case_packs"
+        },
+        {
+          "id": "SHIP-A",
+          "type": "shipment"
+        },
+        {
+          "id": "STORE-A",
+          "type": "retail_site"
+        },
+        {
+          "id": "SAMPLE-RETAIL",
+          "type": "pathogen_sample"
+        },
+        {
+          "id": "SAMPLE-ING-B",
+          "type": "pathogen_sample"
+        }
+      ],
+      "observed_records": [
+        {
+          "id": "C5-R1",
+          "from": "FG-A",
+          "to": "SHIP-A",
+          "relation": "packed_for_shipment",
+          "evidence_type": "custody_record",
+          "status": "verified",
+          "event_time": "2026-09-03T08:00:00Z",
+          "observed_at": "2026-09-03T08:01:00Z"
+        },
+        {
+          "id": "C5-R2",
+          "from": "SHIP-A",
+          "to": "STORE-A",
+          "relation": "delivered_to",
+          "evidence_type": "retail_receipt",
+          "status": "verified",
+          "event_time": "2026-09-04T08:00:00Z",
+          "observed_at": "2026-09-04T08:01:00Z"
+        },
+        {
+          "id": "C5-R3",
+          "from": "STORE-A",
+          "to": "FG-A",
+          "relation": "outbreak_association",
+          "evidence_type": "outbreak_association",
+          "status": "reported",
+          "event_time": "2026-09-08T12:00:00Z",
+          "observed_at": "2026-09-08T12:00:00Z"
+        },
+        {
+          "id": "C5-R4",
+          "from": "SAMPLE-RETAIL",
+          "to": "SAMPLE-ING-B",
+          "relation": "pathogen_profile_match",
+          "evidence_type": "pathogen_profile_comparison",
+          "status": "screening_only",
+          "event_time": "2026-09-09T12:00:00Z",
+          "observed_at": "2026-09-09T13:00:00Z",
+          "scope": "relatedness_only_not_custody"
+        },
+        {
+          "id": "C5-R5",
+          "from": "ING-B",
+          "to": "SAMPLE-ING-B",
+          "relation": "sample_taken_from",
+          "evidence_type": "sample_origin_record",
+          "status": "verified",
+          "event_time": "2026-09-09T10:00:00Z",
+          "observed_at": "2026-09-09T10:01:00Z"
+        }
+      ],
+      "oracle_truth": {
+        "source_lot_ids": [
+          "ING-A"
+        ],
+        "affected_finished_lot_ids": [
+          "FG-A"
+        ],
+        "unaffected_finished_lot_ids": [],
+        "outbreak_associated_finished_lot_ids": [
+          "FG-A"
+        ]
+      },
+      "expected_behavior": {
+        "source_attribution": "must_not_attribute_to_ING-B_from_profile_match_alone; no source route is observed",
+        "containment_must_include": [
+          "FG-A"
+        ],
+        "trace_completeness": "upstream_incomplete",
+        "safety_rule": "Hold the affected lot as indicated by the outbreak association; do not infer ING-B supplied FG-A."
+      }
+    }
+  ]
+}
