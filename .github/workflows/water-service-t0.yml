@@ -51,7 +51,18 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
-      - name: Upload exact inputs, manifests, oracle and receipt
+      - name: Evaluate distribution intrusion T0 exact checked-out revision
+        id: intrusion
+        env:
+          DISTRIBUTION_INTRUSION_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin intrusion-t0 -- \\
+            research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json \\
+            research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json \\
+            research/distribution-intrusion-transient/manifest-v0.1.json \\
+            artifacts/distribution-intrusion-t0/receipt.json
+      - name: Upload exact inputs, manifests, oracle and receipts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -61,7 +72,11 @@ jobs:
             research/water-service-engineering/benchmark-manifest-v0.1.json
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
+            research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json
+            research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json
+            research/distribution-intrusion-transient/manifest-v0.1.json
             artifacts/water-service-t0/receipt.json
+            artifacts/distribution-intrusion-t0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
