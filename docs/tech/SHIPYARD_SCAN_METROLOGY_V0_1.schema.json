@@ -306,7 +306,8 @@
         "maximum_missing_run_samples",
         "profile_samples",
         "claim_ceiling",
-        "comparison_frame"
+        "comparison_frame",
+        "reference_health_receipt"
       ],
       "properties": {
         "schema_version": {
@@ -365,6 +366,9 @@
         "comparison_frame": {
           "type": "string",
           "minLength": 1
+        },
+        "reference_health_receipt": {
+          "$ref": "#/$defs/reference_health_receipt"
         }
       }
     },
@@ -389,7 +393,8 @@
         "percentile_95_absolute_displacement_um",
         "combined_uncertainty_um",
         "mean_displacement_interval_um",
-        "signed_area_interval_um2"
+        "signed_area_interval_um2",
+        "reference_health_receipt_sha256"
       ],
       "properties": {
         "pair_id": {
@@ -478,6 +483,10 @@
           ],
           "minItems": 2,
           "maxItems": 2
+        },
+        "reference_health_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -500,6 +509,79 @@
         "mutation": {
           "type": "string",
           "minLength": 20
+        }
+      }
+    },
+    "reference_health_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "producer",
+        "sequence_id",
+        "decision",
+        "instrument_id",
+        "calibration_revision",
+        "reference_artifact_id",
+        "characteristic_id",
+        "policy_sha256",
+        "certificate_sha256",
+        "first_observation_at_ms",
+        "last_observation_at_ms",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "producer": {
+          "const": "SHIPYARD-REFERENCE-DRIFT-001"
+        },
+        "sequence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "continue_within_declared_check_limits",
+            "hold_for_metrology_review"
+          ]
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "characteristic_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "certificate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "first_observation_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_observation_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claim_ceiling": {
+          "const": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
         }
       }
     }
