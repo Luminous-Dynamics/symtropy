@@ -2,8 +2,8 @@
   "schema_version": "0.1.0",
   "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
   "corpus_id": "FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001",
-  "status": "SPECIFICATION_FIXTURES_NOT_YET_EVALUATED",
-  "claim_ceiling": "Expected dispositions only. No real source data ingested and no observation operator implemented or validated.",
+  "status": "SYNTHETIC_RULE_FIXTURES_NOT_REAL_OBSERVATIONS",
+  "claim_ceiling": "Only the deterministic rules over these synthetic input descriptors are evaluated. No real source data ingested and no production observation adapter, biological model, field measurement, or rights decision executed.",
   "cases": [
     {
       "case_id": "PLOT-GEDI-SUPPORT-MISMATCH-001",
@@ -11,21 +11,37 @@
       "source_type_b": "gedi_l4a_v2_1",
       "condition": "Plot mean biomass is compared directly with a single approximately 25 m GEDI footprint without footprint/plot overlap aggregation or a declared support model.",
       "expected_disposition": "BLOCKED_SUPPORT_MISMATCH",
-      "invariant": "No direct comparison across incompatible spatial support."
+      "invariant": "No direct comparison across incompatible spatial support.",
+      "input": {
+        "left_support": "plot",
+        "right_support": "gedi_footprint",
+        "overlap_operator_applied": false,
+        "support_conversion_declared": false
+      }
     },
     {
       "case_id": "GEDI-ISS-STORAGE-GAP-001",
       "source_type": "gedi_l4a_v2_1",
       "condition": "No GEDI acquisitions exist during March 2023 to April 2024 while the instrument was stored on the ISS.",
       "expected_disposition": "UNOBSERVED_NO_ACQUISITION",
-      "invariant": "No acquisition cannot be converted to zero biomass, absence, or no change."
+      "invariant": "No acquisition cannot be converted to zero biomass, absence, or no change.",
+      "input": {
+        "acquisition_status": "no_acquisition",
+        "start": "2023-03",
+        "end": "2024-04",
+        "claimed_observation": "forest_loss"
+      }
     },
     {
       "case_id": "TMF-DEGRADATION-NOT-MORTALITY-001",
       "source_type": "jrc_tmf_v2025",
       "condition": "A TMF degraded-forest label is automatically copied into the tree-demography mortality target.",
       "expected_disposition": "REJECT_LABEL_SEMANTIC_MISMATCH",
-      "invariant": "Forest degradation while forest remains forested is not a stem mortality observation."
+      "invariant": "Forest degradation while forest remains forested is not a stem mortality observation.",
+      "input": {
+        "source_class": "degraded_forest",
+        "target_variable": "tree_mortality"
+      }
     },
     {
       "case_id": "MAPBIOMAS-BRAZIL-TRANSFER-001",
@@ -33,48 +49,77 @@
       "target_region": "Congo Basin",
       "condition": "A Brazil-only MapBiomas Collection 11 class layer is presented as a validated Congo observation.",
       "expected_disposition": "OUT_OF_DOMAIN",
-      "invariant": "Regional data coverage must be explicitly checked; product absence is not an observation."
+      "invariant": "Regional data coverage must be explicitly checked; product absence is not an observation.",
+      "input": {
+        "source_coverage_country": "Brazil",
+        "target_country": "Democratic Republic of the Congo"
+      }
     },
     {
       "case_id": "CLOUD-OR-NODATA-NO-CHANGE-001",
       "source_type": "satellite_optical_product",
       "condition": "A cloud-masked or missing tile is coded as stable forest / no change.",
       "expected_disposition": "UNOBSERVED_CLOUD_OR_QA_MASK",
-      "invariant": "Missing or invalid coverage cannot be promoted to a negative change label."
+      "invariant": "Missing or invalid coverage cannot be promoted to a negative change label.",
+      "input": {
+        "validity_state": "cloud_masked",
+        "claimed_state": "no_change"
+      }
     },
     {
       "case_id": "PLOT-CAMPAIGN-LEAKAGE-001",
       "source_type": "permanent_plot_census",
       "condition": "Stems from one plot or repeated campaigns from one site are randomly split between training and blind test.",
       "expected_disposition": "REJECT_LEAKAGE",
-      "invariant": "Splits must group by independent plot/site/campaign and respect temporal dependence."
+      "invariant": "Splits must group by independent plot/site/campaign and respect temporal dependence.",
+      "input": {
+        "split_group_unit": "stem",
+        "same_plot_across_splits": true
+      }
     },
     {
       "case_id": "DRC-INACCESSIBLE-SAMPLE-UNITS-001",
       "source_type": "drc_nfi_2017_2021",
       "condition": "The 21 of 321 planned DRC NFI sampling units not surveyed because of inaccessibility or conflict-affected conditions are encoded as forest absence or zero biomass.",
       "expected_disposition": "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED",
-      "invariant": "Unsurveyed sampling units are missing observations and must preserve missingness reason; they are not negative forest labels."
+      "invariant": "Unsurveyed sampling units are missing observations and must preserve missingness reason; they are not negative forest labels.",
+      "input": {
+        "survey_status": "not_surveyed",
+        "unsurveyed_reason": "inaccessible_conflict_affected",
+        "planned_sampling_units": 321,
+        "surveyed_sampling_units": 300
+      }
     },
     {
       "case_id": "PNG-SECURITY-LOGISTICS-OMISSIONS-001",
       "source_type": "png_multipurpose_nfi_2016_2019",
       "condition": "Clusters not surveyed due to security or logistical constraints are encoded as healthy forest, absent forest, or zero biomass.",
       "expected_disposition": "UNOBSERVED_SECURITY_OR_LOGISTICS",
-      "invariant": "Unsurveyed clusters cannot be used as either positive or negative forest-state observations."
+      "invariant": "Unsurveyed clusters cannot be used as either positive or negative forest-state observations.",
+      "input": {
+        "survey_status": "not_surveyed",
+        "unsurveyed_reason": "security_or_logistics"
+      }
     },
     {
       "case_id": "SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001",
       "source_type": "national_inventory_or_single_campaign_plot_census",
       "condition": "One admitted inventory/census record is used to claim plot-specific growth, mortality, recruitment rates or recovery trajectories without a matched earlier or later census of the same plot under a comparable protocol.",
       "expected_disposition": "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE",
-      "invariant": "A cross-sectional stock/state observation cannot establish a temporal transition rate without a compatible repeat measurement."
+      "invariant": "A cross-sectional stock/state observation cannot establish a temporal transition rate without a compatible repeat measurement.",
+      "input": {
+        "census_count": 1,
+        "matched_repeat_measurements": false,
+        "longitudinal_rate_claim": true
+      }
     }
   ],
   "execution": {
-    "runner": "NOT_IMPLEMENTED",
+    "runner": "SYNTHETIC_RULE_ENGINE",
     "external_data_ingested": false,
     "rights_adjudication": "NOT_RUN",
-    "expected_disposition_oracle": "declared in each case"
+    "expected_disposition_oracle": "declared in each case",
+    "production_observation_adapter": "NOT_IMPLEMENTED",
+    "synthetic_rule_cases_executed": true
   }
 }
