@@ -5,7 +5,6 @@ use serde_json::{json, Value};
 use std::{collections::BTreeSet, env, fs, process::ExitCode};
 
 const VERSION: &str = "0.1.0";
-const FIXTURE: &str = include_str!("../../../../benchmarks/maritime-observability/validation-evidence-profiles.v0.1.json");
 type Errors = Vec<Value>;
 
 fn text<'a>(v: &'a Value, k: &str) -> Option<&'a str> {
@@ -103,6 +102,9 @@ fn validate_profile(p: &Value, i: usize) -> Result<Value,Errors> {
             push(&mut e,"PARTITION_UNIT_IDENTITY_MISMATCH",&format!("{up}.unit_id"),"unit ID must equal partition identity");
         }
     }
+    if ids(units,"DEVELOPMENT","unit_id").is_empty() || ids(units,"EVALUATION","unit_id").is_empty() {
+        push(&mut e,"BOTH_PARTITIONS_REQUIRED",&format!("{path}.unit_records"),"at least one development and one evaluation unit are required");
+    }
     let audit=&p["leakage_audit"];
     exact(audit,&["grouping_before_segmentation","overlapping_samples_across_partitions","preprocessing_fit_scope","model_selection_data","evaluation_used_for_thresholds","documented_concerns","split_manifest_sha256"],&format!("{path}.leakage_audit"),&mut e);
     if !matches!(text(audit,"preprocessing_fit_scope"),Some("TRAIN_ONLY"|"TRAIN_PLUS_VALIDATION"|"ALL_DATA"|"UNKNOWN")) {
@@ -153,13 +155,14 @@ fn main()->ExitCode{
 #[cfg(test)]
 mod tests{
     use super::*;
-    fn fixture()->Value{serde_json::from_str(FIXTURE).expect("fixture")}
+    fn fixture()->Value{serde_json::from_str(include_str!("../../../../benchmarks/maritime-observability/validation-evidence-profiles.v0.1.json")).expect("fixture")}
     fn result()->Value{evaluate(&fixture()).expect("profiles evaluate")}
     fn item<'a>(r:&'a Value,id:&str)->&'a Value{r["profiles"].as_array().unwrap().iter().find(|p|p["profile_id"]==id).unwrap()}
     #[test]fn six_profiles_reconcile_a_b_and_leakage(){let r=result();assert_eq!(r["profile_count"],6);assert_eq!(item(&r,"A0-window-random-split")["computed_physical_independence_ceiling"],"A0");assert_eq!(item(&r,"A0-window-random-split")["computed_domain_shift_ceiling"],"B0");assert_eq!(item(&r,"A0-window-random-split")["leakage_risk"],"HIGH");assert_eq!(item(&r,"A1-recording-holdout-operating-shift")["computed_physical_independence_ceiling"],"A1");assert_eq!(item(&r,"A1-recording-holdout-operating-shift")["computed_domain_shift_ceiling"],"B1");assert_eq!(item(&r,"A2-component-holdout-sensor-shift-adapted")["computed_physical_independence_ceiling"],"A2");assert_eq!(item(&r,"A2-component-holdout-sensor-shift-adapted")["computed_domain_shift_ceiling"],"B2");assert_eq!(item(&r,"A3-machine-holdout-with-concern")["computed_physical_independence_ceiling"],"A3");assert_eq!(item(&r,"A3-machine-holdout-with-concern")["computed_domain_shift_ceiling"],"B3");assert_eq!(item(&r,"A4-site-holdout")["computed_physical_independence_ceiling"],"A4");assert_eq!(item(&r,"A4-site-holdout")["computed_domain_shift_ceiling"],"B4");assert_eq!(item(&r,"A1-incomplete-reporting")["leakage_risk"],"UNCLEAR");}
     #[test]fn unlabeled_adaptation_is_not_automatically_leakage(){let p=item(&result(),"A2-component-holdout-sensor-shift-adapted");assert_eq!(p["target_domain_access"],"UNLABELED_ADAPTATION");assert_eq!(p["leakage_risk"],"LOW");}
     #[test]fn documented_concern_is_some_concerns(){assert_eq!(item(&result(),"A3-machine-holdout-with-concern")["leakage_risk"],"SOME_CONCERNS");}
     #[test]fn recording_holdout_cannot_claim_site_independence(){let mut v=fixture();v["profiles"][1]["physical_independence"]["declared_level"]=json!("A4");let e=evaluate(&v).unwrap_err();assert!(e.iter().any(|x|x["code"]=="PHYSICAL_INDEPENDENCE_OVERCLAIM"));}
+    #[test]fn A0_window_profile_requires_both_development_and_evaluation_partitions(){let mut v=fixture();v["profiles"][0]["unit_records"][1]["partition"]=json!("DEVELOPMENT");let e=evaluate(&v).unwrap_err();assert!(e.iter().any(|x|x["code"]=="BOTH_PARTITIONS_REQUIRED"));}
     #[test]fn test_tuning_is_high_leakage(){let mut v=fixture();v["profiles"][3]["leakage_audit"]["model_selection_data"]=json!("TEST_USED");assert_eq!(item(&evaluate(&v).unwrap(),"A3-machine-holdout-with-concern")["leakage_risk"],"HIGH");}
     #[test]fn global_preprocessing_is_high_leakage(){let mut v=fixture();v["profiles"][1]["leakage_audit"]["preprocessing_fit_scope"]=json!("ALL_DATA");assert_eq!(item(&evaluate(&v).unwrap(),"A1-recording-holdout-operating-shift")["leakage_risk"],"HIGH");}
 }
