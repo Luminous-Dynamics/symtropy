@@ -196,6 +196,7 @@ impl MonteCarloRandomizationConfig {
 fn seed_commitment_sha256(analysis_plan_sha256: &str, seed_u64: u64, draw_count: usize) -> String {
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-monte-carlo-seed-commit-v1\\0");
+    hasher.update(MONTE_CARLO_RANDOMIZATION_ALGORITHM.as_bytes());
     hasher.update(analysis_plan_sha256.as_bytes());
     hasher.update(seed_u64.to_le_bytes());
     hasher.update((draw_count as u64).to_le_bytes());
@@ -1001,6 +1002,28 @@ mod tests {
     }
 
     #[test]
+    fn analysis_plan_digest_is_bound_to_configuration_and_assignment_replay() {
+        let trial = trial();
+        let first_config = test_config(42, 1_000);
+        let second_config = MonteCarloRandomizationConfig::new(
+            42,
+            1_000,
+            "e".repeat(64),
+            "test-preregistration://maintenance-effect-v0-1".into(),
+        );
+        let first =
+            estimate_monte_carlo_randomization_p_value(&trial, first_config).unwrap();
+        let second =
+            estimate_monte_carlo_randomization_p_value(&trial, second_config).unwrap();
+        assert_ne!(first.configuration_sha256, second.configuration_sha256);
+        assert_ne!(
+            first.sampled_assignments_sha256,
+            second.sampled_assignments_sha256
+        );
+        assert_ne!(first.seed_commitment_sha256, second.seed_commitment_sha256);
+    }
+
+    #[test]
     fn tampered_seed_commitment_is_rejected_before_sampling() {
         let mut config = test_config(42, 1_000);
         config.seed_commitment_sha256 = "0".repeat(64);
@@ -1033,8 +1056,8 @@ mod tests {
             MONTE_CARLO_RANDOMIZATION_ALGORITHM
         );
         assert_eq!(protocol["algorithm"]["max_units"], MAX_MONTE_CARLO_UNITS);
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 39);
-        assert_eq!(protocol["cases"].as_array().unwrap().len(), 20);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 20);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 40);
+        assert_eq!(protocol["cases"].as_array().unwrap().len(), 21);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 21);
     }
 }
