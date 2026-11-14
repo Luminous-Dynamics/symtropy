@@ -85,7 +85,7 @@ jobs:
               raise SystemExit("FILTRATION_COMPARATOR_SNAPSHOT_DATE_MISMATCH")
           if len(register["who_hwt"]["comparator_examples"]) < 6:
               raise SystemExit("FILTRATION_COMPARATOR_WHO_EXAMPLES_MISSING")
-          if "not for commercial or promotional purposes" not in register["use_restriction"]:
+          if "not to be used for commercial or promotional purposes" not in register["use_restriction"]:
               raise SystemExit("FILTRATION_COMPARATOR_WHO_USE_RESTRICTION_MISSING")
           editions = {row["standard"]: row["edition"] for row in register["nsf_standard_families"]["standards"]}
           expected = {
