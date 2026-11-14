@@ -10,3 +10,8 @@ construction-observation-portfolio-core = { path = "../construction-observation-
 construction-production-optioneering-core = { path = "../construction-production-optioneering-v0-1" }
 
 [workspace]
+
+[[bench]]
+name = "joint_scale"
+path = "benches/joint_scale.rs"
+harness = false
