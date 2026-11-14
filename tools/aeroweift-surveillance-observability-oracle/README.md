@@ -12,7 +12,7 @@ fixtures/aeroweift-surveillance-observability/tiny-coverage-gap-v0.json
 - Independent receiver/sensor families are counted by failure-domain family ID, not by receiver count.
 - A report becomes a qualified track only when it matches a qualified source claim for the same class/cell/tick and is current/integrity-qualified.
 - Cooperative coverage cannot be re-used as non-cooperative coverage.
-- A no-report result never becomes empty airspace.
+- A no-report result never becomes empty airspace, even when class-specific coverage is qualified.
 - An invalid, stale or unsupported report leaves possible occupancy unresolved.
 - The oracle can accept separately qualified cooperative and non-cooperative positive controls.
 
