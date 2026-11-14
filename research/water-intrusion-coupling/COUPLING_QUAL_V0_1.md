@@ -20,6 +20,7 @@ The 2026 review by Raphael, Akpan and Ilemobade (DOI [10.1007/s41101-026-00568-z
 4. **network_transport** — advection, dispersion, junction/tank mixing and downstream concentration/arrival-time envelopes.
 
 Mixing is a separately qualified sub-layer of `network_transport`, not a sixth causal stage. See the [non-ideal mixing fidelity benchmark protocol](MIXING_FIDELITY_BENCHMARK_PROTOCOL_V0_1.md), which defines outlet-wise junction mass routing and conservative-tracer tank RTDs. Unsupported geometry, unaligned timebase, expired calibration or incomplete tracer recovery must widen uncertainty or produce an indeterminate result rather than silently falling back to complete mixing.
+The associated [identifiability and experiment-design note](MIXING_EXPERIMENT_DESIGN_V0_1.md) adds a rank-based inlet-excitation preflight and information/cost-aware sensor design; the equal-excitation rank-deficient control is intentionally unidentifiable.
 5. **chemical_fate** — only where data support it: bulk/wall reaction, disinfectant residual, sorption, biofilm and transformation products.
 
 Every stage names its model and exact revision, consumed upstream output digests, output digest, timebase, validity domain, uncertainty state and coverage. The dependency graph is explicit: transport consumes both transient pressure and defect-ingress outputs; chemical fate consumes transport output.
