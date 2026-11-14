@@ -9081,6 +9081,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-fluid"
+version = "0.1.0"
+dependencies = [
+ "nalgebra 0.34.2",
+ "serde",
+ "symtropy-math",
+ "symtropy-physics",
+]
+
+[[package]]
 name = "symtropy-foundry"
 version = "0.1.0"
 dependencies = [
