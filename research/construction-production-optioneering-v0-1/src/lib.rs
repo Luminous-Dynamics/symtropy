@@ -206,9 +206,19 @@ impl ScenarioCase {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MeasurementBasis {
+    /// Every cost, time, labour, energy, carbon and material value is for the
+    /// complete required functional quantity declared by the contract.
+    FullRequiredQuantity,
+    /// Reserved for future profiles; v0.1 rejects this basis to prevent mixed totals.
+    PerFunctionalUnit,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScenarioResult {
     pub scenario_id: String,
+    pub measurement_basis: MeasurementBasis,
     pub option_design_digest: String,
     pub assessment_horizon_months: u64,
     /// Independent acceptance/inspection receipt; executor completion is not sufficient.
@@ -302,6 +312,12 @@ impl OptionCandidate {
             }
             if result.assessment_horizon_months != contract.assessment_horizon_months {
                 return Err(OptioneeringError::AssessmentHorizonMismatch(
+                    self.option_id.clone(),
+                    scenario_id.clone(),
+                ));
+            }
+            if result.measurement_basis != MeasurementBasis::FullRequiredQuantity {
+                return Err(OptioneeringError::MeasurementBasisMismatch(
                     self.option_id.clone(),
                     scenario_id.clone(),
                 ));
@@ -548,6 +564,7 @@ pub enum OptioneeringError {
     OptionDesignMismatch(String, String),
     AcceptanceContractMismatch(String, String),
     AssessmentHorizonMismatch(String, String),
+    MeasurementBasisMismatch(String, String),
     ArithmeticOverflow(String),
     MissingMatchedReference(String, String),
     MatchedReferenceTierMismatch(String, String),
@@ -1033,6 +1050,7 @@ mod tests {
     ) -> ScenarioResult {
         ScenarioResult {
             scenario_id: scenario_id.to_owned(),
+            measurement_basis: MeasurementBasis::FullRequiredQuantity,
             option_design_digest: design.to_owned(),
             assessment_horizon_months: 240,
             acceptance_contract_digest: contract().contract_digest,
@@ -1649,6 +1667,63 @@ mod tests {
             ),
             Err(OptioneeringError::OptionDesignMismatch(
                 "prefabricated".to_owned(),
+                "outage-rework".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn scenario_metrics_must_cover_the_full_required_functional_quantity() {
+        let mut candidate = option(
+            "per-unit-cost-confusion",
+            OptionTier::Avoid,
+            "design-reuse",
+            vec![
+                result(
+                    "nominal",
+                    "design-reuse",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 7_000,
+                        shared_cost_minor_units: 500,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 400,
+                        workflow_crew_minutes: 300,
+                        energy_wh: 1_000,
+                        carbon_gco2e: 600,
+                        rework_units: 0,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-reuse",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 8_000,
+                        shared_cost_minor_units: 500,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 450,
+                        workflow_crew_minutes: 320,
+                        energy_wh: 1_100,
+                        carbon_gco2e: 650,
+                        rework_units: 1,
+                    },
+                ),
+            ],
+        );
+        candidate
+            .scenario_results
+            .get_mut("outage-rework")
+            .expect("scenario exists")
+            .measurement_basis = MeasurementBasis::PerFunctionalUnit;
+
+        assert_eq!(
+            evaluate_option_set(
+                &contract(),
+                &[stage(OptionTier::Avoid, StageDisposition::OpenForEvaluation)],
+                &scenarios(),
+                &[candidate]
+            ),
+            Err(OptioneeringError::MeasurementBasisMismatch(
+                "per-unit-cost-confusion".to_owned(),
                 "outage-rework".to_owned()
             ))
         );
