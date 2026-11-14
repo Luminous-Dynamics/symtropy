@@ -1,0 +1,105 @@
+{
+  "scenario_id": "ordered-epoch-change-requires-requalification",
+  "task_scope": "floor-3-layout",
+  "initial_configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "expected_final_state": "active",
+  "events": [
+    {
+      "event": "accept_epoch",
+      "revision": 1,
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "predecessor_digest": null,
+      "task_scope": "floor-3-layout",
+      "authenticated": true,
+      "expected": "accepted"
+    },
+    {
+      "event": "requalify",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "evidence_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "record_reference": "qualification-r1",
+      "accepted_by_upstream": true,
+      "expected": "activated",
+      "revalidation_generation": 1,
+      "context_observation_reference": "fixture-context-observation",
+      "clock_assessment_reference": "fixture-clock-assessment",
+      "timebase_id": "boot-001",
+      "issued_at_monotonic_ns": 1000,
+      "valid_until_monotonic_ns": 2000
+    },
+    {
+      "event": "command",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "expected": "authorized",
+      "context_age_ns": 50,
+      "clock_uncertainty_ns": 5,
+      "timebase_id": "boot-001",
+      "now_monotonic_ns": 1500
+    },
+    {
+      "event": "accept_epoch",
+      "revision": 1,
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "predecessor_digest": null,
+      "task_scope": "floor-3-layout",
+      "authenticated": true,
+      "expected": "accepted"
+    },
+    {
+      "event": "accept_epoch",
+      "revision": 2,
+      "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "predecessor_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "task_scope": "floor-3-layout",
+      "authenticated": true,
+      "expected": "accepted"
+    },
+    {
+      "event": "command",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "expected": "denied",
+      "context_age_ns": 50,
+      "clock_uncertainty_ns": 5,
+      "timebase_id": "boot-001",
+      "now_monotonic_ns": 1500
+    },
+    {
+      "event": "requalify",
+      "epoch_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "evidence_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "record_reference": "qualification-r2",
+      "accepted_by_upstream": true,
+      "expected": "activated",
+      "revalidation_generation": 2,
+      "context_observation_reference": "fixture-context-observation",
+      "clock_assessment_reference": "fixture-clock-assessment",
+      "timebase_id": "boot-001",
+      "issued_at_monotonic_ns": 1000,
+      "valid_until_monotonic_ns": 2000
+    },
+    {
+      "event": "command",
+      "epoch_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "expected": "authorized",
+      "context_age_ns": 50,
+      "clock_uncertainty_ns": 5,
+      "timebase_id": "boot-001",
+      "now_monotonic_ns": 1500
+    }
+  ],
+  "timebase_id": "boot-001",
+  "max_context_age_ns": 100,
+  "max_clock_uncertainty_ns": 10,
+  "max_qualification_lease_ns": 1000,
+  "schema_version": "construction-worksite-epoch-scenario/0.1"
+}

@@ -1,0 +1,49 @@
+{
+  "scenario_id": "qualification-lease-expiry-latches-context-stale",
+  "task_scope": "floor-3-layout",
+  "initial_configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "timebase_id": "boot-001",
+  "max_context_age_ns": 100,
+  "max_clock_uncertainty_ns": 10,
+  "max_qualification_lease_ns": 1000,
+  "expected_final_state": "context_stale",
+  "events": [
+    {
+      "event": "accept_epoch",
+      "revision": 1,
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "predecessor_digest": null,
+      "task_scope": "floor-3-layout",
+      "authenticated": true,
+      "expected": "accepted"
+    },
+    {
+      "event": "requalify",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "evidence_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "record_reference": "qualification-r1",
+      "accepted_by_upstream": true,
+      "revalidation_generation": 1,
+      "context_observation_reference": "context-observation-1",
+      "clock_assessment_reference": "clock-assessment-1",
+      "timebase_id": "boot-001",
+      "issued_at_monotonic_ns": 1000,
+      "valid_until_monotonic_ns": 2000,
+      "expected": "activated"
+    },
+    {
+      "event": "command",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "context_age_ns": 20,
+      "clock_uncertainty_ns": 2,
+      "timebase_id": "boot-001",
+      "now_monotonic_ns": 2000,
+      "expected": "denied"
+    }
+  ],
+  "schema_version": "construction-worksite-epoch-scenario/0.1"
+}

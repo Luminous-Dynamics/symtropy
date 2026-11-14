@@ -1,0 +1,54 @@
+name: Construction Robot Research Crates
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/construction-robot-research.yml"
+      - "crates/apps/symtropy-construction-evidence-validator/**"
+      - "crates/apps/symtropy-construction-worksite-epoch/**"
+      - "research/construction-evidence-claim-admissibility-v0-2/**"
+      - "research/construction-worksite-epoch-transition-benchmark-v0-1/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-robot-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-validation:
+    name: Focused validation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy — claim admissibility validator
+        if: ${{ hashFiles('crates/apps/symtropy-construction-evidence-validator/Cargo.toml') != '' }}
+        run: cargo clippy -p symtropy-construction-evidence-validator --all-targets -- -D warnings
+
+      - name: Test — claim admissibility validator
+        if: ${{ hashFiles('crates/apps/symtropy-construction-evidence-validator/Cargo.toml') != '' }}
+        run: cargo test -p symtropy-construction-evidence-validator --all-targets
+
+      - name: Clippy — worksite epoch transition oracle
+        if: ${{ hashFiles('crates/apps/symtropy-construction-worksite-epoch/Cargo.toml') != '' }}
+        run: cargo clippy -p symtropy-construction-worksite-epoch --all-targets -- -D warnings
+
+      - name: Test — worksite epoch transition oracle
+        if: ${{ hashFiles('crates/apps/symtropy-construction-worksite-epoch/Cargo.toml') != '' }}
+        run: cargo test -p symtropy-construction-worksite-epoch --all-targets
