@@ -48,7 +48,7 @@
   "observation_contract_fields": [
     "observation_id",
     "kind",
-    "raw_data_digest",
+    "raw_data_digest_marker",
     "timebase_id",
     "evidence_class",
     "observation_origin",
@@ -56,7 +56,7 @@
     "calibration_state",
     "method_state"
   ],
-  "digest_contract": "T0 fixture values are deterministic lowercase-hex 64-character synthetic_fixture_marker values; they are not cryptographic hashes of raw data or true model outputs. Production interface v1 must use SHA-256 of exact serialized stage outputs and raw observation bytes.",
+  "digest_contract": "In T0, output_digest and raw_data_digest_marker are synthetic_fixture_marker values formatted as 64 lowercase hex characters; they are not hashes of raw data or actual model outputs. Production interfaces must use SHA-256 of exact serialized stage outputs and raw observation bytes.",
   "timebase_contract": "all time-dependent stages and measured observations share one declared timebase_id; clock_uncertainty_ms must be explicit",
   "evidence_contract": "all T0 observation rows carry evidence_class=synthetic_fixture. observation_origin=measurement_channel denotes the required future measured channel, not evidence that data were acquired. observation_origin=modelled is intentionally rejected as a substitute. No physical observations are claimed.",
   "uncertainty_contract": "each stage declares bounded or unbounded uncertainty; unbounded upstream uncertainty prevents a bounded chain acceptance",
