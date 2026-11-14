@@ -8,7 +8,8 @@
     "no_fault_output": "detection=false requires all five isolation values to be zero",
     "fault_output": "detection=true requires the five isolation probabilities to sum to one within 1e-6",
     "historical_output_mutation": false,
-    "missing_signal_policy": "missing channels stay absent; no nominal-value imputation is provided by the contract"
+    "missing_signal_policy": "missing channels stay absent; no nominal-value imputation is provided by the contract",
+    "timestamp_semantics": "Each sample carries a center timestamp and nonnegative uncertainty half-width; its possible event time is [time_seconds - uncertainty, time_seconds + uncertainty]. The interval must remain finite and nonnegative."
   },
   "stream_invariants": {
     "recording_identity": "one immutable recording identity per streaming session",
@@ -22,7 +23,9 @@
     "model_error": "poison session because hidden state may have changed before the error",
     "invalid_model_output": "poison session and reject subsequent samples until explicit reconciliation/reinitialization",
     "sample_validation_error": "reject before model invocation; session remains usable",
-    "recovery": "new session after a model-side error requires external reconciliation and an explicit new session identity"
+    "recovery": "new session after a model-side error requires external reconciliation and an explicit new session identity",
+    "timebase_identity": "One qualified timebase ID and qualification SHA-256 are bound to the entire session; a clock-domain or qualification change requires a new session.",
+    "temporal_order": "A sample is accepted only when its earliest possible event time is strictly later than the previous sample's latest possible event time. Overlapping or touching intervals are rejected before model invocation; definite reversal remains a non-monotonic error."
   },
   "receipt": {
     "schema_version": "liu-ice-streaming-diagnosis-receipt-v1",
@@ -35,14 +38,18 @@
       "output",
       "output_sha256",
       "previous_receipt_sha256",
-      "receipt_sha256"
+      "receipt_sha256",
+      "timestamp_uncertainty_seconds",
+      "timebase_id",
+      "timebase_qualified",
+      "timebase_qualification_sha256"
     ],
     "hash_domains": [
       "symtropy-liu-ice-streaming-input-v1",
       "symtropy-liu-ice-streaming-output-v1",
       "symtropy-liu-ice-streaming-receipt-v1"
     ],
-    "tamper_detection": "recompute output and receipt digests and verify previous-receipt linkage in strict sample order",
+    "tamper_detection": "Recompute output and receipt digests, verify previous-receipt linkage, and verify one qualified timebase plus strict non-overlapping event-time intervals in sample order.",
     "limitation": "hash chaining provides integrity and ordering, not signer authentication, trusted timestamps, secure process isolation or proof that sensor bytes are truthful"
   },
   "implementation": {
@@ -101,7 +108,11 @@
     "unknown-fault probability remains represented in slot five",
     "receipt chain binds model identity, input digest, output digest and prior receipt",
     "hash integrity is not presented as signer authentication or physical truth",
-    "Python/MATLAB adapter compliance is separate from Rust-core contract compliance"
+    "Python/MATLAB adapter compliance is separate from Rust-core contract compliance",
+    "timebase ID and qualification digest remain constant within a recording session",
+    "timestamp uncertainty is finite and nonnegative; underflow or overflow is rejected rather than clamped",
+    "overlapping or touching event-time intervals are not ordered by their midpoint and are rejected before model invocation",
+    "receipt replay verifies the timebase identity, qualification digest and uncertainty-bounded event-time order"
   ],
   "research_targets_not_achieved": [
     {
@@ -123,7 +134,15 @@
       "id": "adapter_parity",
       "target": "Exact output parity on all golden vectors between Rust core and Python/MATLAB competition adapter.",
       "status": "aspirational"
+    },
+    {
+      "id": "uncertainty_bounded_stream_order",
+      "target": "Zero accepted samples whose event-time intervals overlap or whose timebase identity/qualification differs from the session; every accepted receipt chain replays the same bounded-time order.",
+      "status": "aspirational"
     }
   ],
-  "claim_ceiling": "Rust source contract and synthetic tests only until exact-head compile/tests, public dataset audit, trained model run, and a compliant Python/MATLAB adapter are independently verified."
+  "claim_ceiling": "Rust source contract and synthetic tests only until exact-head compile/tests, public dataset audit, trained model run, and a compliant Python/MATLAB adapter are independently verified.",
+  "evidence_boundaries": {
+    "timestamp_uncertainty": "The software consumes a declared timebase qualification digest; it does not implement clock synchronization, authenticate the issuer, measure drift or prove a vessel's acquisition network."
+  }
 }
