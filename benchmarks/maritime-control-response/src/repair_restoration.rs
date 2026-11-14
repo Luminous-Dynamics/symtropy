@@ -303,7 +303,13 @@ fn capability_envelopes_sha256(
 ) -> Result<String, RepairVerificationError> {
     let mut canonical = envelopes.to_vec();
     canonical.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-    sha256_serializable(b"symtropy-marine-capability-envelope-set-v1\\0", &canonical)
+    sha256_serializable(b"symtropy-marine-capability-envelope-set-v1\0", &canonical)
+}
+
+fn repair_case_sha256(
+    case: &RepairVerificationCase,
+) -> Result<String, RepairVerificationError> {
+    sha256_serializable(b"symtropy-marine-repair-verification-case-v1\0", case)
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -338,11 +344,6 @@ impl RepairVerificationBinding {
             != self.acceptance_envelope_sha256
         {
             return Err(RepairVerificationError::InvalidBinding);
-        }
-        if !is_sha256_hex(&self.configuration_before_sha256)
-            || !is_sha256_hex(&self.configuration_after_sha256)
-        {
-            return Err(RepairVerificationError::InvalidDigest);
         }
         let mut conditions = BTreeSet::new();
         for item in &self.condition_tolerances {
@@ -480,6 +481,7 @@ fn not_evaluable_report(
     case: &RepairVerificationCase,
     reason: NotEvaluableReason,
     matched_condition_ids: Vec<String>,
+    case_sha256: String,
 ) -> RepairVerificationReport {
     RepairVerificationReport {
         schema_version: REPAIR_RESTORATION_SCHEMA.to_owned(),
@@ -497,6 +499,9 @@ fn not_evaluable_report(
         pre_repair_episode_id: case.pre_repair_episode.episode_id.clone(),
         post_repair_episode_id: case.post_repair_episode.episode_id.clone(),
         repair_record_sha256: case.repair.repair_record_sha256.clone(),
+        diagnostic_revision_receipt_sha256: case.binding.diagnostic_revision_receipt_sha256.clone(),
+        acceptance_envelope_sha256: case.binding.acceptance_envelope_sha256.clone(),
+        case_sha256,
         physical_restoration_authorized: false,
         maintenance_authorized: false,
         operating_restriction_clearance_authorized: false,
@@ -637,15 +642,26 @@ pub fn evaluate_repair_restoration(
     case: &RepairVerificationCase,
 ) -> Result<RepairVerificationReport, RepairVerificationError> {
     validate_repair(case)?;
+    let case_sha256 = repair_case_sha256(case)?;
     let binding = &case.binding;
     let pre = &case.pre_repair_episode;
     let post = &case.post_repair_episode;
+
+    if case.repair.intervention_kind != InterventionKind::PhysicalComponentRepair {
+        return Ok(not_evaluable_report(
+            case,
+            NotEvaluableReason::InterventionNotPhysicalComponentRepair,
+            Vec::new(),
+            case_sha256.clone(),
+        ));
+    }
 
     if !conditions_match(binding, pre, post) {
         return Ok(not_evaluable_report(
             case,
             NotEvaluableReason::OperatingConditionsNotMatched,
             Vec::new(),
+            case_sha256.clone(),
         ));
     }
 
@@ -664,10 +680,11 @@ pub fn evaluate_repair_restoration(
             .find(|measurement| measurement.metric_id == envelope.metric_id)
         else {
             return Ok(not_evaluable_report(
-                case,
-                NotEvaluableReason::MissingOrAmbiguousMeasurement,
-                matched_condition_ids,
-            ));
+            case,
+            NotEvaluableReason::MissingOrAmbiguousMeasurement,
+            matched_condition_ids,
+            case_sha256.clone(),
+        ));
         };
         let Some(post_measurement) = post
             .measurements
@@ -675,17 +692,28 @@ pub fn evaluate_repair_restoration(
             .find(|measurement| measurement.metric_id == envelope.metric_id)
         else {
             return Ok(not_evaluable_report(
-                case,
-                NotEvaluableReason::MissingOrAmbiguousMeasurement,
-                matched_condition_ids,
-            ));
+            case,
+            NotEvaluableReason::MissingOrAmbiguousMeasurement,
+            matched_condition_ids,
+            case_sha256.clone(),
+        ));
         };
 
         if let Err(reason) = valid_measurement(pre_measurement, envelope) {
-            return Ok(not_evaluable_report(case, reason, matched_condition_ids));
+            return Ok(not_evaluable_report(
+            case,
+            reason,
+            matched_condition_ids),
+            case_sha256.clone(),
+        );
         }
         if let Err(reason) = valid_measurement(post_measurement, envelope) {
-            return Ok(not_evaluable_report(case, reason, matched_condition_ids));
+            return Ok(not_evaluable_report(
+            case,
+            reason,
+            matched_condition_ids),
+            case_sha256.clone(),
+        );
         }
         let same_reference_measurement_path = pre_measurement.measurement_principle_id
             == post_measurement.measurement_principle_id
@@ -695,10 +723,11 @@ pub fn evaluate_repair_restoration(
             || !same_reference_measurement_path
         {
             return Ok(not_evaluable_report(
-                case,
-                NotEvaluableReason::NoIndependentVerificationPath,
-                matched_condition_ids,
-            ));
+            case,
+            NotEvaluableReason::NoIndependentVerificationPath,
+            matched_condition_ids,
+            case_sha256.clone(),
+        ));
         }
 
         let pre_state = envelope_state(pre_measurement, envelope);
@@ -707,17 +736,19 @@ pub fn evaluate_repair_restoration(
             || post_state == EnvelopeState::BoundaryUncertain
         {
             return Ok(not_evaluable_report(
-                case,
-                NotEvaluableReason::UncertaintyOverlapsAcceptanceBoundary,
-                matched_condition_ids,
-            ));
+            case,
+            NotEvaluableReason::UncertaintyOverlapsAcceptanceBoundary,
+            matched_condition_ids,
+            case_sha256.clone(),
+        ));
         }
         if envelope.targeted_by_intervention && pre_state != EnvelopeState::Outside {
             return Ok(not_evaluable_report(
-                case,
-                NotEvaluableReason::NoPreRepairDeficitObserved,
-                matched_condition_ids,
-            ));
+            case,
+            NotEvaluableReason::NoPreRepairDeficitObserved,
+            matched_condition_ids,
+            case_sha256.clone(),
+        ));
         }
 
         let status = match (envelope.targeted_by_intervention, pre_state, post_state) {
@@ -741,10 +772,11 @@ pub fn evaluate_repair_restoration(
             }
             _ => {
                 return Ok(not_evaluable_report(
-                    case,
-                    NotEvaluableReason::NoPreRepairDeficitObserved,
-                    matched_condition_ids,
-                ));
+            case,
+            NotEvaluableReason::NoPreRepairDeficitObserved,
+            matched_condition_ids,
+            case_sha256.clone(),
+        ));
             }
         };
 
@@ -814,6 +846,9 @@ pub fn evaluate_repair_restoration(
         pre_repair_episode_id: pre.episode_id.clone(),
         post_repair_episode_id: post.episode_id.clone(),
         repair_record_sha256: case.repair.repair_record_sha256.clone(),
+        diagnostic_revision_receipt_sha256: binding.diagnostic_revision_receipt_sha256.clone(),
+        acceptance_envelope_sha256: binding.acceptance_envelope_sha256.clone(),
+        case_sha256,
         physical_restoration_authorized: false,
         maintenance_authorized: false,
         operating_restriction_clearance_authorized: false,
@@ -838,6 +873,7 @@ mod tests {
         CapabilityMeasurement {
             measurement_id: measurement_id.into(),
             source_id: measurement_id.into(),
+            measurement_evidence_sha256: digest('e'),
             metric_id: metric_id.into(),
             measurement_principle_id: measurement_principle_id.into(),
             dependency_domain_id: dependency_domain_id.into(),
@@ -897,9 +933,34 @@ mod tests {
     }
 
     fn valid_case() -> RepairVerificationCase {
+        let capability_envelopes = vec![
+            CapabilityEnvelope {
+                capability_id: "propulsion-delivery".into(),
+                metric_id: "propulsion_delivery_pressure".into(),
+                unit: "kPa".into(),
+                lower_bound: 90.0,
+                upper_bound: 120.0,
+                maximum_measurement_uncertainty: 2.0,
+                targeted_by_intervention: true,
+            },
+            CapabilityEnvelope {
+                capability_id: "cooling-loop".into(),
+                metric_id: "cooling_pressure".into(),
+                unit: "kPa".into(),
+                lower_bound: 20.0,
+                upper_bound: 30.0,
+                maximum_measurement_uncertainty: 2.0,
+                targeted_by_intervention: false,
+            },
+        ];
+        let acceptance_envelope_sha256 =
+            capability_envelopes_sha256(&capability_envelopes).unwrap();
         let binding = RepairVerificationBinding {
             asset_id: "engine-001".into(),
             component_id: "fuel-injection-pump".into(),
+            diagnostic_revision_receipt_sha256: digest('f'),
+            acceptance_envelope_owner_ref: "OEM-envelope-rev-7".into(),
+            acceptance_envelope_sha256,
             configuration_before_sha256: digest('a'),
             configuration_after_sha256: digest('b'),
             diagnostic_measurement_principle_ids: vec!["engine-speed-sensor".into()],
@@ -916,26 +977,7 @@ mod tests {
                     maximum_absolute_difference: 10.0,
                 },
             ],
-            capability_envelopes: vec![
-                CapabilityEnvelope {
-                    capability_id: "propulsion-delivery".into(),
-                    metric_id: "propulsion_delivery_pressure".into(),
-                    unit: "kPa".into(),
-                    lower_bound: 90.0,
-                    upper_bound: 120.0,
-                    maximum_measurement_uncertainty: 2.0,
-                    targeted_by_intervention: true,
-                },
-                CapabilityEnvelope {
-                    capability_id: "cooling-loop".into(),
-                    metric_id: "cooling_pressure".into(),
-                    unit: "kPa".into(),
-                    lower_bound: 20.0,
-                    upper_bound: 30.0,
-                    maximum_measurement_uncertainty: 2.0,
-                    targeted_by_intervention: false,
-                },
-            ],
+            capability_envelopes,
         };
         RepairVerificationCase {
             schema_version: REPAIR_RESTORATION_SCHEMA.into(),
@@ -943,8 +985,10 @@ mod tests {
             repair: RepairRecord {
                 repair_id: "repair-001".into(),
                 component_id: "fuel-injection-pump".into(),
+                intervention_kind: InterventionKind::PhysicalComponentRepair,
                 action_description: "Replace worn metering assembly".into(),
                 authorization_record_ref: "work-order-ref-001".into(),
+                authorization_record_sha256: digest('a'),
                 repair_record_sha256: digest('c'),
                 started_at_seconds: 10.0,
                 completed_at_seconds: 11.0,
@@ -990,6 +1034,18 @@ mod tests {
         assert!(!report.physical_restoration_authorized);
         assert!(!report.maintenance_authorized);
         assert!(!report.operating_restriction_clearance_authorized);
+    }
+
+    #[test]
+    fn sensor_only_intervention_cannot_be_reported_as_physical_restoration() {
+        let mut case = valid_case();
+        case.repair.intervention_kind = InterventionKind::SensorReplacementOrCalibration;
+        let report = evaluate_repair_restoration(&case).unwrap();
+        assert_eq!(report.disposition, RestorationDisposition::NotEvaluable);
+        assert_eq!(
+            report.not_evaluable_reason,
+            Some(NotEvaluableReason::InterventionNotPhysicalComponentRepair)
+        );
     }
 
     #[test]
