@@ -543,7 +543,10 @@ pub fn evaluate_option_evidence_packages(
 
     let construction_frontier_resolved = matches!(
         option_report.disposition,
-        ReportDisposition::FrontierComputed | ReportDisposition::NoRobustFeasibleCandidates
+        ReportDisposition::FrontierComputed
+            | ReportDisposition::NoCandidatesAtOpenStage
+            | ReportDisposition::NoRobustFeasibleCandidates
+            | ReportDisposition::AllStagesClosed
     );
     let joint_frontier_proven = construction_frontier_resolved && !unresolved_campaign;
     Ok(JointOptioneeringReport {
@@ -1114,6 +1117,139 @@ mod tests {
                 "option-a".to_owned()
             ))
         );
+    }
+
+    #[test]
+    fn avoid_option_can_have_a_proven_zero_observation_campaign() {
+        let avoided = option(
+            "reuse-existing-asset",
+            "design-existing-compliant-asset",
+            0,
+            0,
+            0,
+            0,
+            0,
+            true,
+        );
+        let mut package = campaign(
+            &avoided,
+            0,
+            0,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        package.work_needs.clear();
+        package.actions.clear();
+
+        let report = evaluate(std::slice::from_ref(&avoided), &[package], 10)
+            .expect("avoid alternative with no new evidence demand");
+        assert!(report.joint_frontier_proven);
+        assert_eq!(
+            report.joint_evaluations[0].status,
+            JointPackageStatus::JointOptimalFeasible
+        );
+        let campaign_result = report.joint_evaluations[0]
+            .campaign_search
+            .as_ref()
+            .expect("empty but proven campaign");
+        assert!(campaign_result.search_complete);
+        assert!(campaign_result.optimality_proven);
+        assert!(campaign_result.best_campaign.complete);
+        assert!(campaign_result.best_campaign.selected_actions.is_empty());
+        assert!(campaign_result.best_campaign.uncovered_work_unit_ids.is_empty());
+        let objectives = report.joint_evaluations[0]
+            .objectives
+            .as_ref()
+            .expect("joint avoid objectives");
+        assert_eq!(objectives.observation_campaign_cost_minor_units, 0);
+        assert_eq!(objectives.observation_duration_minutes, 0);
+        assert_eq!(objectives.observation_scheduled_span_ms, 0);
+    }
+
+    #[test]
+    fn action_geometry_must_bind_the_exact_option_design_revision() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let mut package = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        package.actions[0].occupancy.binding.design_revision_digest =
+            "different-option-design".to_owned();
+
+        assert_eq!(
+            evaluate(&[candidate], &[package], 100),
+            Err(JointEvaluationError::ObservationContextMismatch {
+                option_id: "option-a".to_owned(),
+                action_id: "scan-option-a".to_owned(),
+            })
+        );
+    }
+
+    #[test]
+    fn no_candidates_at_open_stage_is_a_proven_empty_frontier() {
+        let report = evaluate_option_evidence_packages(
+            &contract(),
+            &stage_decisions(),
+            &[ScenarioCase {
+                scenario_id: "nominal".to_owned(),
+            }],
+            &[],
+            &[],
+            0,
+            10,
+        )
+        .expect("empty open-stage option set");
+        assert!(report.joint_frontier_proven);
+        assert!(report.joint_evaluations.is_empty());
+        assert!(report.proven_frontier_option_ids.is_empty());
+        assert!(report.provisional_feasible_option_ids.is_empty());
+    }
+
+    #[test]
+    fn exhaustive_campaign_infeasibility_is_resolved_not_search_uncertainty() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let mut package = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        package.actions.clear();
+
+        let report = evaluate(&[candidate], &[package], 10)
+            .expect("complete search proves no campaign can cover the required work");
+        assert!(report.joint_frontier_proven);
+        assert_eq!(
+            report.joint_evaluations[0].status,
+            JointPackageStatus::CampaignInfeasibleProven
+        );
+        assert!(
+            report.joint_evaluations[0]
+                .campaign_search
+                .as_ref()
+                .expect("campaign search")
+                .infeasibility_proven
+        );
+        assert!(report.proven_frontier_option_ids.is_empty());
     }
 
     #[test]
