@@ -5,8 +5,8 @@
 //! This is a contract exerciser, not a physical sensor qualification.
 
 use civdyn_observation_integrity::{
-    AdmissionPolicy, CandidateDisposition, EvidenceClass, EvidenceKind,
-    EvidenceRecord, EvidenceResult, IntegrityAuditError, triage_observation_integrity,
+    AdmissionPolicy, CandidateDisposition, EvidenceClass, EvidenceKind, EvidenceRecord,
+    EvidenceResult, IntegrityAuditError, triage_observation_integrity,
 };
 
 fn policy() -> AdmissionPolicy {
@@ -84,11 +84,7 @@ fn check_disposition(
     }
 }
 
-fn check_error(
-    label: &str,
-    evidence: &[EvidenceRecord],
-    expected: IntegrityAuditError,
-) -> bool {
+fn check_error(label: &str, evidence: &[EvidenceRecord], expected: IntegrityAuditError) -> bool {
     match triage_observation_integrity(&policy(), evidence) {
         Err(actual) => {
             let passed = actual == expected;
@@ -364,7 +360,11 @@ fn run_sweep() -> usize {
     println!(
         "{}\tevidence-order-invariance\t{}",
         if order_invariant { "PASS" } else { "FAIL" },
-        if order_invariant { "identical-decision" } else { "decision-differs" }
+        if order_invariant {
+            "identical-decision"
+        } else {
+            "decision-differs"
+        }
     );
     if !order_invariant {
         failures += 1;
@@ -412,10 +412,12 @@ mod tests {
             decision.disposition,
             CandidateDisposition::UseCorroboratedMeasurement
         );
-        assert!(decision
-            .unresolved_hypotheses
-            .iter()
-            .any(|value| value.contains("unattributed")));
+        assert!(
+            decision
+                .unresolved_hypotheses
+                .iter()
+                .any(|value| value.contains("unattributed"))
+        );
     }
 
     #[test]
