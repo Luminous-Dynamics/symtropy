@@ -5,7 +5,7 @@
 //! This is a contract exerciser, not a physical sensor qualification.
 
 use civdyn_observation_integrity::{
-    AdmissionPolicy, CandidateDecision, CandidateDisposition, EvidenceClass, EvidenceKind,
+    AdmissionPolicy, CandidateDisposition, EvidenceClass, EvidenceKind,
     EvidenceRecord, EvidenceResult, IntegrityAuditError, triage_observation_integrity,
 };
 
