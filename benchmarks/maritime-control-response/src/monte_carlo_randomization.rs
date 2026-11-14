@@ -192,29 +192,21 @@ fn update_len_prefixed(hasher: &mut Sha256, value: &str) {
 /// Hash the randomization frame in canonical ID order, independent of JSON row order.
 fn randomization_frame_sha256(
     trial: &BlockedRandomizedMaintenanceTrial,
-    groups: &BTreeMap<String, Vec<usize>>,
-) -> String {
+) -> Result<String, MonteCarloRandomizationError> {
+    let mut canonical = trial.clone();
+    canonical
+        .observations
+        .sort_by(|left, right| left.unit_id.cmp(&right.unit_id));
+    canonical
+        .stratum_allocations
+        .sort_by(|left, right| left.stratum_id.cmp(&right.stratum_id));
+
+    let bytes =
+        serde_json::to_vec(&canonical).map_err(|_| MonteCarloRandomizationError::Serialization)?;
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-randomization-frame-v1\\0");
-    update_len_prefixed(&mut hasher, &trial.trial_id);
-    hasher.update(trial.assignment_plan_sha256.as_bytes());
-
-    let allocations = allocation_map(trial);
-    for (stratum_id, indices) in groups {
-        update_len_prefixed(&mut hasher, stratum_id);
-        let (treatment_count, control_count) = allocations[stratum_id.as_str()];
-        hasher.update((treatment_count as u64).to_le_bytes());
-        hasher.update((control_count as u64).to_le_bytes());
-        for index in indices {
-            let observation = &trial.observations[*index];
-            update_len_prefixed(&mut hasher, &observation.unit_id);
-            update_len_prefixed(&mut hasher, &observation.stratum_id);
-            hasher.update([u8::from(observation.assigned_arm == AssignedArm::Treatment)]);
-            hasher.update(observation.observed_outcome_value.to_bits().to_le_bytes());
-            update_len_prefixed(&mut hasher, &observation.outcome_unit);
-        }
-    }
-    format!("{:x}", hasher.finalize())
+    hasher.update(bytes);
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 fn update_sampled_assignment_digest(
@@ -361,7 +353,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
 
     validate_work_budget(trial.observations.len(), config.draw_count)?;
     let groups = stratum_indices(trial);
-    let frame_sha256 = randomization_frame_sha256(trial, &groups);
+    let frame_sha256 = randomization_frame_sha256(trial)?;
     let observed_mask = trial
         .observations
         .iter()
