@@ -189,6 +189,7 @@ Every metric must be stratified by fault, fault pair, regime, configuration, ass
 | Layout | Pareto frontier for lifecycle cost, calibration burden, availability and worst-case diagnosability |
 | Active diagnosis | Information gain, expected value of sample information, observations/inspections to resolve ambiguity |
 | Runtime | Compute, memory, communication volume, edge latency and update/requalification cost |
+| Pair-comparison validity | Matched load/speed/ambient/transient windows; conservative duration bounds under clock uncertainty; unproven or mismatched windows withheld before pairwise scoring |
 
 For time-series data, calculate exposure denominators from valid observation time, not row count. Exclude gaps and unusable periods according to a predeclared policy. Group uncertainty by independent physical asset, campaign and run; windows and rows are not independent engines.
 
@@ -208,6 +209,9 @@ No weighted aggregate may compensate for a false-healthy, false-independent, fal
 10. A simulator-only signature is presented as a measured physical result.
 11. An LLM/classifier emits a fault without a source-bound measurement/signature path.
 12. A diagnostic recommendation silently becomes an inspection order, maintenance authorization, restriction release or ODD/mode transition.
+13. Two fault signatures are strongly separated but were measured at materially different load, speed, ambient or transient conditions; the adapter must withhold pairwise identifiability until matched windows or an independently qualified context-normalization model exist.
+14. A measurement-window timestamp uncertainty is as large as its duration, or two fault windows overlap on the common timebase; the evaluator must not treat the interval as a valid independent operating episode.
+15. The recording artifact, independent-episode definition or comparison-tolerance profile is absent or malformed; the evaluator must expose the missing provenance rather than silently assuming equivalence.
 
 Hard-gate failures are reported individually and are never averaged away.
 
@@ -429,3 +433,14 @@ Research references:
 - Go & Isaac, “Robust expected information gain for optimal Bayesian experimental design using ambiguity sets,” PMLR 180 (2022), formulates robust design over a KL-divergence prior ambiguity set: https://proceedings.mlr.press/v180/go22a.html.
 
 Our current implementation uses a preregistered finite prior set rather than an unrestricted continuous ambiguity set. Future work should compare finite sets against KL/Wasserstein ambiguity regions, with the radius and calibration procedure fixed before confirmatory evaluation.
+
+
+### Matched measurement-window admission — P0.2
+
+Pairwise fault-signature separation is meaningful only when the two measurement windows are comparable. The maritime adapter requires each fault state to bind a recording ID, source-artifact digest, common qualified timebase, start/end timestamps with uncertainty, operating regime, load, speed, ambient temperature, transient state, raw sample count, independent-episode count and versioned episode-definition digest.
+
+A preregistered comparison-tolerance profile declares maximum load, speed and ambient deltas and whether transient-state equality is required. The adapter evaluates both windows against that profile before calling the reusable generic sensor-observability kernel. If clock uncertainty cannot prove positive window duration, the timebase is unqualified, the two windows overlap on the common timebase, or operating contexts exceed tolerance, the pair is INSUFFICIENT_EVIDENCE and the generic kernel is not called for that pair. The receipt explains why the pair was withheld.
+
+This is an evidence-admission gate, not an engine-dynamics correction. A future context-normalization model needs independent training and qualification; it cannot be improvised by widening comparison tolerances. Raw sample counts and independent-episode counts are reported separately so correlated rows are not presented as independent experiments.
+
+Source-artifact SHA-256 values are provenance references. The executable validates the case-file digest but does not retrieve or independently hash external raw recording payloads; receipts explicitly state source_artifact_payloads_verified=false.
