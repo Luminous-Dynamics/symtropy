@@ -1,0 +1,50 @@
+name: Thermodynamic allocation certificate
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/thermo-allocation-certificate/**"
+      - ".github/workflows/thermo-allocation-certificate.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/thermo-allocation-certificate/**"
+      - ".github/workflows/thermo-allocation-certificate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  certificate-checker:
+    name: Independent allocation certificate checker (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format check
+        run: cargo fmt --manifest-path tools/thermo-allocation-certificate/Cargo.toml -- --check
+      - name: Unit tests
+        run: cargo test --manifest-path tools/thermo-allocation-certificate/Cargo.toml
+      - name: Verify exact overlap fixture
+        run: cargo run --manifest-path tools/thermo-allocation-certificate/Cargo.toml -- --verify tools/thermo-allocation-certificate/fixtures/overlapping-wells.tsv
+      - name: Reject deliberately cap-violating certificate
+        shell: bash
+        run: |
+          set +e
+          output="$(cargo run --quiet --manifest-path tools/thermo-allocation-certificate/Cargo.toml -- --verify tools/thermo-allocation-certificate/fixtures/invalid-shared-cap.tsv 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          if [ "$status" -ne 1 ]; then
+            echo "Expected infeasible-certificate exit code 1, got $status"
+            exit 1
+          fi
+          if ! grep -q "violation=recipient_cap_violation" <<< "$output"; then
+            echo "Expected the shared-cap negative control to trigger recipient_cap_violation"
+            exit 1
+          fi
