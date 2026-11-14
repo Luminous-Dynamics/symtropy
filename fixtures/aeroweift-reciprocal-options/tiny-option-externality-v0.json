@@ -155,7 +155,7 @@
         {
           "resource_id": "destination-pad",
           "start_tick": 24,
-          "end_tick": 25
+          "end_tick": 27
         }
       ],
       "arrival_tick_by_world_branch": {
@@ -247,19 +247,20 @@
       "policy_class": "invalid-hidden-state-conditioned-reference",
       "decisions_by_agent_by_world_branch": {
         "clear": {
-          "aircraft-a": "route-a-crossing",
-          "aircraft-b": "route-b-crossing"
+          "aircraft-a": "route-a-crossing"
         },
         "gust": {
-          "aircraft-a": "route-a-bypass",
-          "aircraft-b": "route-b-crossing"
+          "aircraft-a": "route-a-bypass"
         }
       },
       "expected": {
         "admissible": false,
         "rejection": "clairvoyant-policy",
         "explanation": "The two world branches share the same delivered observation history at the decision point; choosing different actions using hidden branch identity is forbidden."
-      }
+      },
+      "scope_aircraft_ids": [
+        "aircraft-a"
+      ]
     }
   ],
   "paired_counterfactual": {
