@@ -171,12 +171,9 @@ fn h_inner<Space: CoordinateFrame, const K: usize>(
     left: &[f64; K],
     right: &[f64; K],
 ) -> Result<f64, ConstraintQuotientErrorV1> {
-    let mut value = 0.0;
-    for row in 0..K {
-        for column in 0..K {
-            value += left[row] * metric.matrix()[row][column] * right[column];
-        }
-    }
+    let left_whitened = metric.whiten_tangent(&Tangent::<Space, K>::new(*left)?)?;
+    let right_whitened = metric.whiten_tangent(&Tangent::<Space, K>::new(*right)?)?;
+    let value = crate::dot(&left_whitened, &right_whitened);
     if value.is_finite() {
         Ok(value)
     } else {
@@ -188,11 +185,13 @@ fn h_norm<Space: CoordinateFrame, const K: usize>(
     metric: &Metric<Space, K>,
     vector: &[f64; K],
 ) -> Result<f64, ConstraintQuotientErrorV1> {
-    let squared = h_inner(metric, vector, vector)?;
-    if squared < 0.0 {
-        return Err(ConstraintQuotientErrorV1::NegativeQuotientQuadraticForm);
+    let whitened = metric.whiten_tangent(&Tangent::<Space, K>::new(*vector)?)?;
+    let norm = crate::vector_euclidean(&whitened);
+    if norm.is_finite() {
+        Ok(norm)
+    } else {
+        Err(ConstraintQuotientErrorV1::NonFiniteIntermediate)
     }
-    Ok(squared.sqrt())
 }
 
 fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const K: usize>(
@@ -201,16 +200,19 @@ fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const
     relative_rank_tolerance: f64,
     rank_uncertainty_factor: f64,
 ) -> Result<([[f64; K]; K], usize, f64, bool, Option<f64>), ConstraintQuotientErrorV1> {
-    // Columns of J span range(J)=range(W). Reveal that subspace using H,
-    // so the rank profile is meaningful under a matching residual-metric
-    // transformation H_new=T^-T H_old T^-1.
+    // First map the residual space into Euclidean coordinates z=L^T r,
+    // where H=L L^T. Then range revelation and orthogonal projection run
+    // entirely in whitened coordinates. Under r_new=T r_old and
+    // H_new=T^-T H_old T^-1, the two whitened Jacobians differ only by an
+    // orthogonal row transform; this avoids direct H-inner-product
+    // accumulation in a poorly scaled coordinate basis.
     let mut columns = [[0.0; K]; N];
     let mut scale = 0.0_f64;
     for dof in 0..N {
-        for row in 0..K {
-            columns[dof][row] = jacobian[row][dof];
-        }
-        scale = scale.max(h_norm(residual_metric, &columns[dof])?);
+        let source_column = std::array::from_fn(|row| jacobian[row][dof]);
+        let tangent = Tangent::<Space, K>::new(source_column)?;
+        columns[dof] = residual_metric.whiten_tangent(&tangent)?;
+        scale = scale.max(crate::vector_euclidean(&columns[dof]));
     }
     if !scale.is_finite() {
         return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
@@ -222,15 +224,15 @@ fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const
         return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
     }
 
-    let mut basis = [[0.0; K]; K]; // basis[coordinate][axis]
+    let mut whitened_basis = [[0.0; K]; K]; // basis[whitened-coordinate][axis]
     let mut rank = 0usize;
     let mut rank_resolved = true;
     let mut unresolved_relative_pivot = None;
     for pivot_index in 0..N.min(K) {
         let mut selected = pivot_index;
-        let mut selected_norm = h_norm(residual_metric, &columns[selected])?;
+        let mut selected_norm = crate::vector_euclidean(&columns[selected]);
         for (candidate, column) in columns.iter().enumerate().skip(pivot_index + 1) {
-            let candidate_norm = h_norm(residual_metric, column)?;
+            let candidate_norm = crate::vector_euclidean(column);
             if candidate_norm > selected_norm {
                 selected = candidate;
                 selected_norm = candidate_norm;
@@ -246,19 +248,20 @@ fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const
             break; // Ambiguous: do not promote either rank or incompatibility.
         }
 
-        let pivot = h_norm(residual_metric, &columns[pivot_index])?;
-        if !pivot.is_finite() {
+        let pivot = crate::vector_euclidean(&columns[pivot_index]);
+        if !pivot.is_finite() || pivot == 0.0 {
             return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
         }
+        let basis_column: [f64; K] =
+            std::array::from_fn(|coordinate| columns[pivot_index][coordinate] / pivot);
         for coordinate in 0..K {
-            basis[coordinate][rank] = columns[pivot_index][coordinate] / pivot;
+            whitened_basis[coordinate][rank] = basis_column[coordinate];
         }
 
-        let basis_column = std::array::from_fn(|coordinate| basis[coordinate][rank]);
+        // Two Euclidean reorthogonalization passes after whitening.
         for candidate in (pivot_index + 1)..N {
-            // Two reorthogonalization passes.
             for _ in 0..2 {
-                let projection = h_inner(residual_metric, &basis_column, &columns[candidate])?;
+                let projection = crate::dot(&basis_column, &columns[candidate]);
                 for coordinate in 0..K {
                     columns[candidate][coordinate] -= projection * basis_column[coordinate];
                 }
@@ -267,12 +270,26 @@ fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const
         rank += 1;
     }
 
+    // Map the Euclidean orthonormal basis back to residual coordinates:
+    // U=L^-T Q, so U^T H U=I.
+    let mut basis = [[0.0; K]; K]; // basis[residual-coordinate][axis]
+    for axis in 0..rank {
+        let whitened_column =
+            std::array::from_fn(|coordinate| whitened_basis[coordinate][axis]);
+        let residual_column = residual_metric.unwhiten_tangent(&whitened_column)?;
+        for coordinate in 0..K {
+            basis[coordinate][axis] = residual_column.components()[coordinate];
+        }
+    }
+
     let mut maximum_defect = 0.0_f64;
     for left_axis in 0..rank {
         for right_axis in 0..rank {
-            let left = std::array::from_fn(|coordinate| basis[coordinate][left_axis]);
-            let right = std::array::from_fn(|coordinate| basis[coordinate][right_axis]);
-            let actual = h_inner(residual_metric, &left, &right)?;
+            let left: [f64; K] =
+                std::array::from_fn(|coordinate| whitened_basis[coordinate][left_axis]);
+            let right: [f64; K] =
+                std::array::from_fn(|coordinate| whitened_basis[coordinate][right_axis]);
+            let actual = crate::dot(&left, &right);
             let expected = if left_axis == right_axis { 1.0 } else { 0.0 };
             maximum_defect = maximum_defect.max((actual - expected).abs());
         }
@@ -285,7 +302,6 @@ fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const
         unresolved_relative_pivot,
     ))
 }
-
 fn cholesky_reduced<const K: usize>(
     matrix: &[[f64; K]; K],
     rank: usize,
