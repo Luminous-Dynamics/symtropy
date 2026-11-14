@@ -152,6 +152,7 @@ fn run_experiment(curvature_scale: f64, seed: u64) -> CurvResult {
                 .cloned()
                 .collect();
 
+            #[allow(unused_mut)]
             let mut vel = fep_gradient::free_energy_gradient(
                 &pos,
                 e.energy.fraction_remaining(),

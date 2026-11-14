@@ -36,10 +36,24 @@ pub struct EnergyBudget {
     pub collapsed: bool,
 }
 
+/// Why an energy budget capacity could not be initialized.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EnergyBudgetConfigError {
+    NonFiniteMaxEnergy,
+    NegativeMaxEnergy,
+}
+
 impl EnergyBudget {
-    /// Create a new energy budget with starting energy.
-    pub fn new(max_energy: f64) -> Self {
-        Self {
+    /// Create a budget only when its capacity is finite and non-negative.
+    pub fn try_new(max_energy: f64) -> Result<Self, EnergyBudgetConfigError> {
+        if !max_energy.is_finite() {
+            return Err(EnergyBudgetConfigError::NonFiniteMaxEnergy);
+        }
+        if max_energy < 0.0 {
+            return Err(EnergyBudgetConfigError::NegativeMaxEnergy);
+        }
+
+        Ok(Self {
             max_energy,
             available: max_energy,
             temperature: 310.0,
@@ -49,7 +63,26 @@ impl EnergyBudget {
             regenerated_this_tick: 0.0,
             lifetime_consumed: 0.0,
             collapsed: false,
-        }
+        })
+    }
+
+    /// Create a new energy budget with starting energy.
+    ///
+    /// Compatibility wrapper for older callers. Invalid capacities fail closed
+    /// to an inert, zero-capacity, collapsed budget. New code that needs to
+    /// distinguish invalid configuration should use [`try_new`].
+    pub fn new(max_energy: f64) -> Self {
+        Self::try_new(max_energy).unwrap_or(Self {
+            max_energy: 0.0,
+            available: 0.0,
+            temperature: 310.0,
+            entropy: 0.0,
+            heat_capacity: 100.0,
+            consumed_this_tick: 0.0,
+            regenerated_this_tick: 0.0,
+            lifetime_consumed: 0.0,
+            collapsed: true,
+        })
     }
 
     /// Reset per-tick counters (call at start of each tick).
@@ -62,20 +95,53 @@ impl EnergyBudget {
     /// (may be less than requested if budget is exhausted).
     #[inline]
     pub fn consume(&mut self, amount: f64) -> f64 {
-        if self.collapsed {
+        // This public boundary must not let NaN bypass comparisons, or let a
+        // negative/non-finite request create energy or poison telemetry.
+        if self.collapsed
+            || !amount.is_finite()
+            || amount <= 0.0
+            || !self.available.is_finite()
+            || self.available <= 0.0
+            || !self.max_energy.is_finite()
+            || self.max_energy < self.available
+            || !self.temperature.is_finite()
+            || self.temperature <= 0.0
+            || !self.entropy.is_finite()
+            || self.entropy < 0.0
+            || !self.consumed_this_tick.is_finite()
+            || self.consumed_this_tick < 0.0
+            || !self.lifetime_consumed.is_finite()
+            || self.lifetime_consumed < 0.0
+        {
             return 0.0;
         }
-        let actual = amount.min(self.available);
-        self.available -= actual;
-        self.consumed_this_tick += actual;
-        self.lifetime_consumed += actual;
 
-        // 2nd Law: irreversible consumption increases entropy
-        if self.temperature > 0.0 && actual > 0.0 {
-            self.entropy += actual / self.temperature;
+        let actual = amount.min(self.available);
+        let next_available = (self.available - actual).max(0.0);
+        let next_consumed = self.consumed_this_tick + actual;
+        let next_lifetime = self.lifetime_consumed + actual;
+
+        // 2nd Law: irreversible consumption increases entropy. Calculate all
+        // outputs before mutation so overflow cannot partially poison state.
+        let next_entropy = if self.temperature > 0.0 {
+            self.entropy + actual / self.temperature
+        } else {
+            self.entropy
+        };
+
+        if !next_available.is_finite()
+            || !next_consumed.is_finite()
+            || !next_lifetime.is_finite()
+            || !next_entropy.is_finite()
+        {
+            return 0.0;
         }
 
-        // Check for collapse
+        self.available = next_available;
+        self.consumed_this_tick = next_consumed;
+        self.lifetime_consumed = next_lifetime;
+        self.entropy = next_entropy;
+
         if self.available <= 0.0 {
             self.available = 0.0;
             self.collapsed = true;
@@ -86,11 +152,31 @@ impl EnergyBudget {
     /// Absorb heat from dissipation (damping, friction, collision).
     /// Increases temperature and entropy per 2nd Law.
     pub fn dissipate_heat(&mut self, energy: f64) {
-        if energy <= 0.0 || self.heat_capacity <= 0.0 {
+        if !energy.is_finite()
+            || energy <= 0.0
+            || !self.heat_capacity.is_finite()
+            || self.heat_capacity <= 0.0
+            || !self.temperature.is_finite()
+            || self.temperature <= 0.0
+            || !self.entropy.is_finite()
+            || self.entropy < 0.0
+        {
             return;
         }
-        self.temperature += energy / self.heat_capacity;
-        self.entropy += energy / self.temperature;
+
+        let next_temperature = self.temperature + energy / self.heat_capacity;
+        if !next_temperature.is_finite() || next_temperature <= 0.0 {
+            return;
+        }
+        let next_entropy = self.entropy + energy / next_temperature;
+        if !next_entropy.is_finite() || next_entropy < self.entropy {
+            return;
+        }
+
+        // Commit only after the complete update is finite and physically
+        // admissible; an overflowing heat input must not corrupt the budget.
+        self.temperature = next_temperature;
+        self.entropy = next_entropy;
     }
 
     /// Helmholtz free energy: maximum extractable work at constant T.
@@ -102,8 +188,35 @@ impl EnergyBudget {
     /// Add energy (from regeneration sources). Capped at max_energy.
     #[inline]
     pub fn regenerate(&mut self, amount: f64) {
-        self.available = (self.available + amount).min(self.max_energy);
-        self.regenerated_this_tick += amount;
+        // Regeneration is an energy source, not a debit. Reject invalid public
+        // inputs and invalid reservoir state without changing any counters.
+        if !amount.is_finite()
+            || amount <= 0.0
+            || !self.max_energy.is_finite()
+            || self.max_energy < 0.0
+            || !self.available.is_finite()
+            || self.available < 0.0
+            || self.available > self.max_energy
+            || !self.regenerated_this_tick.is_finite()
+            || self.regenerated_this_tick < 0.0
+        {
+            return;
+        }
+
+        // Subtract available headroom first, avoiding overflow in the sum
+        // even when amount is a very large finite value.
+        let headroom = self.max_energy - self.available;
+        let added = amount.min(headroom);
+        let next_available = self.available + added;
+        let next_regenerated = self.regenerated_this_tick + added;
+        if !next_available.is_finite() || !next_regenerated.is_finite() {
+            return;
+        }
+
+        self.available = next_available;
+        // Telemetry reports actual energy accepted by the reservoir, not the
+        // requested amount that may have been truncated by max_energy.
+        self.regenerated_this_tick = next_regenerated;
 
         // Recover from collapse if energy is restored
         if self.collapsed && self.available > 0.0 {
@@ -147,6 +260,39 @@ mod tests {
         let budget = EnergyBudget::new(100.0);
         assert!((budget.available - 100.0).abs() < 1e-10);
         assert!(!budget.collapsed);
+    }
+
+    #[test]
+    fn checked_constructor_rejects_invalid_capacity() {
+        assert_eq!(
+            EnergyBudget::try_new(f64::NAN).unwrap_err(),
+            EnergyBudgetConfigError::NonFiniteMaxEnergy
+        );
+        assert_eq!(
+            EnergyBudget::try_new(f64::INFINITY).unwrap_err(),
+            EnergyBudgetConfigError::NonFiniteMaxEnergy
+        );
+        assert_eq!(
+            EnergyBudget::try_new(f64::NEG_INFINITY).unwrap_err(),
+            EnergyBudgetConfigError::NonFiniteMaxEnergy
+        );
+        assert_eq!(
+            EnergyBudget::try_new(-f64::EPSILON).unwrap_err(),
+            EnergyBudgetConfigError::NegativeMaxEnergy
+        );
+        assert_eq!(EnergyBudget::try_new(0.0).unwrap().available, 0.0);
+        assert_eq!(EnergyBudget::try_new(100.0).unwrap().available, 100.0);
+    }
+
+    #[test]
+    fn legacy_constructor_fails_closed_for_invalid_capacity() {
+        for capacity in [-1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let budget = EnergyBudget::new(capacity);
+            assert_eq!(budget.max_energy, 0.0, "capacity={capacity:?}");
+            assert_eq!(budget.available, 0.0, "capacity={capacity:?}");
+            assert!(budget.collapsed, "capacity={capacity:?}");
+            assert_eq!(budget.fraction_remaining(), 0.0, "capacity={capacity:?}");
+        }
     }
 
     #[test]
@@ -216,6 +362,8 @@ mod tests {
     #[test]
     fn net_flow_tracks_correctly() {
         let mut budget = EnergyBudget::new(100.0);
+        budget.consume(20.0);
+        budget.tick_reset();
         budget.consume(10.0);
         budget.regenerate(15.0);
         assert!((budget.net_flow_this_tick() - 5.0).abs() < 1e-10); // +5 net
@@ -231,6 +379,62 @@ mod tests {
         assert!((budget.regenerated_this_tick - 0.0).abs() < 1e-10);
         // But available is unchanged
         assert!((budget.available - 95.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn consume_rejects_negative_and_nonfinite_requests_without_mutation() {
+        for amount in [-1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut budget = EnergyBudget::new(100.0);
+            let consumed = budget.consume(amount);
+            assert_eq!(consumed, 0.0, "amount={amount:?}");
+            assert_eq!(budget.available, 100.0, "amount={amount:?}");
+            assert_eq!(budget.consumed_this_tick, 0.0, "amount={amount:?}");
+            assert_eq!(budget.lifetime_consumed, 0.0, "amount={amount:?}");
+            assert_eq!(budget.entropy, 0.0, "amount={amount:?}");
+            assert!(!budget.collapsed, "amount={amount:?}");
+        }
+    }
+
+    #[test]
+    fn regenerate_rejects_negative_and_nonfinite_requests_without_mutation() {
+        for amount in [-1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut budget = EnergyBudget::new(100.0);
+            budget.consume(25.0);
+            let before_available = budget.available;
+            let before_regenerated = budget.regenerated_this_tick;
+            budget.regenerate(amount);
+            assert_eq!(budget.available, before_available, "amount={amount:?}");
+            assert_eq!(
+                budget.regenerated_this_tick, before_regenerated,
+                "amount={amount:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn regeneration_counter_records_only_energy_accepted() {
+        let mut budget = EnergyBudget::new(100.0);
+        budget.consume(80.0);
+        budget.regenerate(200.0);
+        assert_eq!(budget.available, 100.0);
+        assert_eq!(budget.regenerated_this_tick, 80.0);
+        assert_eq!(budget.net_flow_this_tick(), 0.0);
+    }
+
+    #[test]
+    fn dissipate_heat_rejects_nonfinite_or_overflowing_input_atomically() {
+        for energy in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut budget = EnergyBudget::new(100.0);
+            budget.dissipate_heat(energy);
+            assert_eq!(budget.temperature, 310.0, "energy={energy:?}");
+            assert_eq!(budget.entropy, 0.0, "energy={energy:?}");
+        }
+
+        let mut budget = EnergyBudget::new(100.0);
+        budget.heat_capacity = f64::MIN_POSITIVE;
+        budget.dissipate_heat(f64::MAX);
+        assert_eq!(budget.temperature, 310.0);
+        assert_eq!(budget.entropy, 0.0);
     }
 
     #[test]
