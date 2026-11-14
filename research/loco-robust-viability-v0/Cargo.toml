@@ -1,0 +1,9 @@
+[package]
+name = "loco-robust-viability"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Exact finite-state robust viability and recoverability oracle for locomotor hybrid systems"
+
+[workspace]
