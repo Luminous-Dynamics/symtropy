@@ -39,6 +39,7 @@ impl CohortState {
             || !self.large_live_biomass.is_finite()
             || self.small_live_biomass < 0.0
             || self.large_live_biomass < 0.0
+            || !self.total_biomass().is_finite()
         {
             return Err(ModelSetError::InvalidCohortState);
         }
@@ -160,6 +161,9 @@ pub fn evaluate_known_truth_scenario(
         let validation_residual = candidate
             .predicted_validation_state
             .cohort_distance(scenario.observed_validation_state);
+        if !validation_residual.is_finite() {
+            return Err(ModelSetError::InvalidCohortState);
+        }
         minimum_validation_residual =
             minimum_validation_residual.min(validation_residual);
         maximum_validation_residual =
@@ -168,10 +172,13 @@ pub fn evaluate_known_truth_scenario(
 
     for (left_index, left) in scenario.candidates.iter().enumerate() {
         for right in scenario.candidates.iter().skip(left_index + 1) {
-            maximum_pairwise_cohort_span = maximum_pairwise_cohort_span.max(
-                left.predicted_validation_state
-                    .cohort_distance(right.predicted_validation_state),
-            );
+            let cohort_span = left
+                .predicted_validation_state
+                .cohort_distance(right.predicted_validation_state);
+            if !cohort_span.is_finite() {
+                return Err(ModelSetError::InvalidCohortState);
+            }
+            maximum_pairwise_cohort_span = maximum_pairwise_cohort_span.max(cohort_span);
         }
     }
 
