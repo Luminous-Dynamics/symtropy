@@ -178,3 +178,17 @@ At minimum, reject:
 8. model output retyped as an observation or measured equilibrium.
 
 An integrity PASS only proves the frozen artifact/run contract. It does not validate the inferred field, authorize control, or qualify a physical tokamak.
+
+
+### Physics-anchored Grad–Shafranov inference and external solvers
+
+Symthaea's follow-on research [GS-OPERATOR-TRANSFER-001 #12076](https://github.com/Luminous-Dynamics/symthaea/issues/12076) will compare the official challenge baselines with physics-anchored neural operators and multi-geometry pretraining.
+
+Relevant external references:
+- Ding et al., ICML/PMLR 2026, [Physics-informed Neural Operator Learning for Nonlinear Grad–Shafranov Equation](https://proceedings.mlr.press/v306/ding26w.html): fixed-boundary EXL-50U case; not a direct DIII-D→MAST score.
+- Yoo et al., 2026, [Cross-device generalization of Grad–Shafranov equilibria](https://arxiv.org/abs/2606.15512): Solov'ev analytical family over eight geometries; its labelled-target transfer is not zero-shot MAST.
+- [FreeGSNKE 3.1.1](https://docs.freegsnke.com/): external free-boundary equilibrium solver candidate for a pinned solver receipt and synthetic benchmark cases.
+
+Symtropy should remain the neutral scenario and evidence adapter. It records exact solver revision, inputs, machine geometry, boundary conditions, source-function assumptions, convergence, outputs, residuals, uncertainty, raw artifact hashes and applicability domain. It does not reinterpret a Symthaea prediction as a solver result or an external solver result as an EFIT measurement.
+
+Any generated MAST-like synthetic equilibrium may be conditioned on MAST geometry and input signals, but no MAST EFIT equilibrium target or target-derived archive may enter model training, calibration, validation or model selection. Preserve the distinction between **synthetic solver reference**, **inferred model output**, and **external EFIT target** in the run receipt and projection type.
