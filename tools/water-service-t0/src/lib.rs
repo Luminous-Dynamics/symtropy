@@ -665,6 +665,286 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_lead_lag_rssct_f0(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const SCALING_CASES: usize = 6;
+    const LEAD_LAG_CASES: usize = 5;
+    const CEILING: &str =
+        "synthetic_scaling_arithmetic_and_sample_state_only_no_adsorbent_or_water_quality_claim";
+
+    if string(inputs, &["schema_version"])? != "lead-lag-rssct-f0-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_adsorption_scaling_and_lead_lag_state"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "lead-lag-rssct-f0-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_adsorption_scaling_and_lead_lag_state"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("lead-lag RSSCT input/oracle identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let scaling_cases = at(inputs, &["scaling_cases"])?
+        .as_array()
+        .ok_or_else(|| "RSSCT scaling cases must be an array".to_owned())?;
+    let lead_lag_cases = at(inputs, &["lead_lag_cases"])?
+        .as_array()
+        .ok_or_else(|| "lead-lag cases must be an array".to_owned())?;
+    let oracle_scaling = at(oracle, &["scaling_cases"])?
+        .as_array()
+        .ok_or_else(|| "RSSCT scaling oracle must be an array".to_owned())?;
+    let oracle_lead_lag = at(oracle, &["lead_lag_cases"])?
+        .as_array()
+        .ok_or_else(|| "lead-lag oracle must be an array".to_owned())?;
+    if scaling_cases.len() != SCALING_CASES
+        || oracle_scaling.len() != SCALING_CASES
+        || lead_lag_cases.len() != LEAD_LAG_CASES
+        || oracle_lead_lag.len() != LEAD_LAG_CASES
+    {
+        return Err(format!(
+            "lead-lag RSSCT expected {SCALING_CASES} scaling and {LEAD_LAG_CASES} lead-lag cases"
+        ));
+    }
+
+    let mut scaling_oracle_by_id = BTreeMap::new();
+    for row in oracle_scaling {
+        let id = string(row, &["case_id"])?;
+        if scaling_oracle_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("duplicate RSSCT scaling oracle ID: {id}"));
+        }
+    }
+    let mut lead_oracle_by_id = BTreeMap::new();
+    for row in oracle_lead_lag {
+        let id = string(row, &["case_id"])?;
+        if lead_oracle_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("duplicate lead-lag oracle ID: {id}"));
+        }
+    }
+
+    let mut seen_scaling = BTreeSet::new();
+    let mut scaling_results = Vec::with_capacity(SCALING_CASES);
+    let mut mismatches = Vec::new();
+    for case in scaling_cases {
+        let id = case_id(case)?;
+        if !seen_scaling.insert(id.clone()) {
+            return Err(format!("duplicate RSSCT scaling input ID: {id}"));
+        }
+        let sf = number(case, &["particle_size_scale_factor"])?;
+        let exponent = number(case, &["diffusivity_exponent"])?;
+        let full_duration = number(case, &["full_scale_duration_days"])?;
+        if sf <= 1.0 || full_duration <= 0.0 || !(exponent == 0.0 || exponent == 1.0) {
+            return Err(format!("{id}: invalid RSSCT scaling domain"));
+        }
+        let ratio = sf.powf(exponent - 2.0);
+        let small_duration = full_duration * ratio;
+        if !ratio.is_finite() || !small_duration.is_finite() || ratio <= 0.0 {
+            return Err(format!("{id}: invalid RSSCT scale result"));
+        }
+        let actual = json!({
+            "ebct_and_time_ratio": ratio,
+            "small_scale_duration_days": small_duration,
+            "scaling_assumption": if exponent == 0.0 {
+                "CONSTANT_DIFFUSIVITY"
+            } else {
+                "PROPORTIONAL_DIFFUSIVITY"
+            }
+        });
+        let oracle_row = scaling_oracle_by_id
+            .get(&id)
+            .ok_or_else(|| format!("RSSCT scaling oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matched = compare_json(&actual, expected);
+        if !matched {
+            mismatches.push(json!({"case_id":id,"expected":expected,"actual":actual}));
+        }
+        scaling_results.push(json!({
+            "case_id":id,
+            "family":"RSSCT_SCALING_ARITHMETIC",
+            "matched":matched,
+            "computed":actual
+        }));
+    }
+    if seen_scaling.len() != scaling_oracle_by_id.len() {
+        return Err("RSSCT scaling input/oracle ID sets differ".to_owned());
+    }
+
+    let mut seen_lead = BTreeSet::new();
+    let mut lead_results = Vec::with_capacity(LEAD_LAG_CASES);
+    for case in lead_lag_cases {
+        let id = case_id(case)?;
+        if !seen_lead.insert(id.clone()) {
+            return Err(format!("duplicate lead-lag input ID: {id}"));
+        }
+        let input = at(case, &["inputs"])?;
+        let threshold = number(input, &["breakthrough_threshold_c_over_c0"])?;
+        if threshold <= 0.0 {
+            return Err(format!("{id}: breakthrough threshold must be positive"));
+        }
+
+        let interstage_state = string(input, &["lead_interstage_sample_state"])?;
+        let interstage_binding = boolean(input, &["lead_interstage_claim_binding_valid"])?;
+        let interstage_value = match at(input, &["lead_interstage_c_over_c0"])? {
+            Value::Null => None,
+            value => Some(
+                value.as_f64()
+                    .filter(|number| number.is_finite() && *number >= 0.0)
+                    .ok_or_else(|| format!("{id}: invalid interstage C/C0"))?,
+            ),
+        };
+        let interstage = match interstage_state.as_str() {
+            "no_sample" => {
+                if interstage_value.is_some() {
+                    return Err(format!("{id}: no interstage sample must have null C/C0"));
+                }
+                "NO_CURRENT_CLAIM_SAMPLE"
+            }
+            "rejected_qc" => {
+                if interstage_value.is_some() {
+                    return Err(format!("{id}: rejected interstage sample must have null C/C0"));
+                }
+                "REJECTED_LAB_SAMPLE_NOT_CLAIM_EVIDENCE"
+            }
+            "accepted_below_lod" | "accepted_below_loq" => {
+                if interstage_value.is_some() {
+                    return Err(format!("{id}: censored interstage result must be null"));
+                }
+                "CENSORED_RESULT_NO_NUMERIC_COMPARISON"
+            }
+            "accepted_quantified" => {
+                if !interstage_binding {
+                    "SAMPLE_CLAIM_BINDING_INVALID"
+                } else if let Some(value) = interstage_value {
+                    if value >= threshold {
+                        "BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+                    } else {
+                        "BELOW_REGISTERED_THRESHOLD_AT_SAMPLE"
+                    }
+                } else {
+                    "SAMPLE_VALUE_MISSING"
+                }
+            }
+            _ => return Err(format!("{id}: unknown interstage sample state {interstage_state}")),
+        };
+
+        let final_state = string(input, &["final_outlet_sample_state"])?;
+        let final_binding = boolean(input, &["final_outlet_claim_binding_valid"])?;
+        let final_value = match at(input, &["final_outlet_c_over_c0"])? {
+            Value::Null => None,
+            value => Some(
+                value.as_f64()
+                    .filter(|number| number.is_finite() && *number >= 0.0)
+                    .ok_or_else(|| format!("{id}: invalid final outlet C/C0"))?,
+            ),
+        };
+        let final_outlet = match final_state.as_str() {
+            "no_sample" => {
+                if final_value.is_some() {
+                    return Err(format!("{id}: no final sample must have null C/C0"));
+                }
+                "NO_CURRENT_CLAIM_SAMPLE"
+            }
+            "rejected_qc" => {
+                if final_value.is_some() {
+                    return Err(format!("{id}: rejected final sample must have null C/C0"));
+                }
+                "REJECTED_LAB_SAMPLE_NOT_CLAIM_EVIDENCE"
+            }
+            "accepted_below_lod" | "accepted_below_loq" => {
+                if final_value.is_some() {
+                    return Err(format!("{id}: censored final result must be null"));
+                }
+                "CENSORED_RESULT_NO_NUMERIC_COMPARISON"
+            }
+            "accepted_quantified" => {
+                if !final_binding {
+                    "SAMPLE_CLAIM_BINDING_INVALID"
+                } else if let Some(value) = final_value {
+                    if value >= threshold {
+                        "BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+                    } else {
+                        "BELOW_REGISTERED_THRESHOLD_AT_SAMPLE"
+                    }
+                } else {
+                    "SAMPLE_VALUE_MISSING"
+                }
+            }
+            _ => return Err(format!("{id}: unknown final sample state {final_state}")),
+        };
+
+        let guard_verified = boolean(input, &["guard_bed_identity_verified"])?;
+        let history_continuous = boolean(input, &["service_history_continuous"])?;
+        let interstage_breakthrough = interstage == "BREAKTHROUGH_OBSERVED_AT_SAMPLE";
+        let final_breakthrough = final_outlet == "BREAKTHROUGH_OBSERVED_AT_SAMPLE";
+        let guard = if !guard_verified || !history_continuous {
+            "GUARD_BED_IDENTITY_OR_HISTORY_UNTRUSTED"
+        } else if !interstage_breakthrough {
+            "GUARD_CAPACITY_NOT_INFERABLE_FROM_CURRENT_INTERSTAGE_EVIDENCE"
+        } else if final_outlet == "NO_CURRENT_CLAIM_SAMPLE"
+            || final_outlet == "REJECTED_LAB_SAMPLE_NOT_CLAIM_EVIDENCE"
+            || final_outlet == "CENSORED_RESULT_NO_NUMERIC_COMPARISON"
+            || final_outlet == "SAMPLE_CLAIM_BINDING_INVALID"
+        {
+            "GUARD_FINAL_OUTLET_EVIDENCE_INSUFFICIENT"
+        } else if final_breakthrough {
+            "FINAL_OUTLET_BREAKTHROUGH_OBSERVED_AT_SAMPLE"
+        } else {
+            "FINAL_OUTLET_BELOW_REGISTERED_THRESHOLD_AT_SAMPLE"
+        };
+        let advisory = if guard_verified && history_continuous && interstage_breakthrough {
+            "REVIEW_LEAD_BED_ROTATION_WITH_APPROVED_PROCEDURE"
+        } else {
+            "ABSTAIN_OR_HOLD"
+        };
+        let actual = json!({
+            "interstage_disposition":interstage,
+            "final_outlet_disposition":final_outlet,
+            "guard_bed_evidence_disposition":guard,
+            "maintenance_advisory":advisory,
+            "automatic_bed_switch_authorized":false,
+            "final_water_release_allowed":false,
+            "water_safety_claim_allowed":false
+        });
+        let oracle_row = lead_oracle_by_id
+            .get(&id)
+            .ok_or_else(|| format!("lead-lag oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matched = compare_json(&actual, expected);
+        if !matched {
+            mismatches.push(json!({"case_id":id,"expected":expected,"actual":actual}));
+        }
+        lead_results.push(json!({
+            "case_id":id,
+            "family":"LEAD_LAG_SAMPLE_STATE",
+            "matched":matched,
+            "computed":actual
+        }));
+    }
+    if seen_lead.len() != lead_oracle_by_id.len() {
+        return Err("lead-lag input/oracle ID sets differ".to_owned());
+    }
+
+    scaling_results.sort_by(|a,b| a["case_id"].as_str().cmp(&b["case_id"].as_str()));
+    lead_results.sort_by(|a,b| a["case_id"].as_str().cmp(&b["case_id"].as_str()));
+    let result_count = scaling_results.len() + lead_results.len();
+    let matched_count = result_count - mismatches.len();
+    Ok(json!({
+        "schema_version":"lead-lag-rssct-f0-evaluation-v0.1",
+        "verification_state":if mismatches.is_empty() {"MatchedFrozenOracle"} else {"OracleMismatch"},
+        "qualification_status":"NotRun",
+        "evidence_class":"synthetic_adsorption_scaling_and_lead_lag_state",
+        "evidence_ceiling":CEILING,
+        "result_count":result_count,
+        "matched_case_count":matched_count,
+        "mismatches":mismatches,
+        "scaling_results":scaling_results,
+        "lead_lag_results":lead_results,
+        "nonclaims":[
+            "RSSCT arithmetic does not qualify CD or PD similarity for any media or source-water matrix.",
+            "An interstage sample is not a final outlet sample.",
+            "No sample or censored result is not evidence of no breakthrough.",
+            "Lead-bed rotation is advisory only and requires an approved procedure.",
+            "No final water release, potable-water safety, contaminant reduction, media life or pilot performance is qualified."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -683,9 +963,108 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "lead_lag_rssct_inputs" => include_str!(
+                "../../../research/water-service-engineering/lead-lag-rssct-f0-cases-v0.1.json"
+            ),
+            "lead_lag_rssct_oracle" => include_str!(
+                "../../../research/water-service-engineering/lead-lag-rssct-f0-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_six_rssct_and_five_lead_lag_cases_match_oracle() {
+        let result = evaluate_lead_lag_rssct_f0(
+            &load("lead_lag_rssct_inputs"),
+            &load("lead_lag_rssct_oracle"),
+        )
+        .expect("lead-lag RSSCT F0 must evaluate");
+        assert_eq!(result["result_count"], 11);
+        assert_eq!(result["matched_case_count"], 11);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn rssct_cd_and_pd_are_not_collapsed_into_one_prediction() {
+        let result = evaluate_lead_lag_rssct_f0(
+            &load("lead_lag_rssct_inputs"),
+            &load("lead_lag_rssct_oracle"),
+        )
+        .expect("lead-lag RSSCT F0 must evaluate");
+        let rows = result["scaling_results"].as_array().unwrap();
+        let cd = rows.iter().find(|r| r["case_id"] == "RSSCT-F0-004-sf-5-CD").unwrap();
+        let pd = rows.iter().find(|r| r["case_id"] == "RSSCT-F0-005-sf-5-PD").unwrap();
+        assert!(
+            cd["computed"]["small_scale_duration_days"]
+                .as_f64()
+                .unwrap()
+                < pd["computed"]["small_scale_duration_days"]
+                    .as_f64()
+                    .unwrap()
+        );
+    }
+
+    #[test]
+    fn interstage_breakthrough_does_not_substitute_for_missing_final_sample() {
+        let result = evaluate_lead_lag_rssct_f0(
+            &load("lead_lag_rssct_inputs"),
+            &load("lead_lag_rssct_oracle"),
+        )
+        .expect("lead-lag RSSCT F0 must evaluate");
+        let row = result["lead_lag_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["case_id"] == "LEADLAG-F0-002-interstage-breakthrough-final-missing")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["guard_bed_evidence_disposition"],
+            "GUARD_FINAL_OUTLET_EVIDENCE_INSUFFICIENT"
+        );
+    }
+
+    #[test]
+    fn lead_lag_never_authorizes_switch_or_final_release() {
+        let result = evaluate_lead_lag_rssct_f0(
+            &load("lead_lag_rssct_inputs"),
+            &load("lead_lag_rssct_oracle"),
+        )
+        .expect("lead-lag RSSCT F0 must evaluate");
+        for row in result["lead_lag_results"].as_array().unwrap() {
+            assert_eq!(row["computed"]["automatic_bed_switch_authorized"], false);
+            assert_eq!(row["computed"]["final_water_release_allowed"], false);
+            assert_eq!(row["computed"]["water_safety_claim_allowed"], false);
+        }
+    }
+
+    #[test]
+    fn lost_guard_identity_forces_abstention() {
+        let result = evaluate_lead_lag_rssct_f0(
+            &load("lead_lag_rssct_inputs"),
+            &load("lead_lag_rssct_oracle"),
+        )
+        .expect("lead-lag RSSCT F0 must evaluate");
+        let row = result["lead_lag_results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["case_id"] == "LEADLAG-F0-005-interstage-breakthrough-guard-identity-lost")
+            .unwrap();
+        assert_eq!(row["computed"]["maintenance_advisory"], "ABSTAIN_OR_HOLD");
+    }
+
+    #[test]
+    fn lead_lag_oracle_mismatch_is_reported_not_hidden() {
+        let mut oracle = load("lead_lag_rssct_oracle");
+        oracle["lead_lag_cases"][0]["expected"]["maintenance_advisory"] = json!("SWITCH_NOW");
+        let result = evaluate_lead_lag_rssct_f0(&load("lead_lag_rssct_inputs"), &oracle)
+            .expect("oracle mismatch should produce a receipt");
+        assert_eq!(result["verification_state"], "OracleMismatch");
+        assert_eq!(result["matched_case_count"], 10);
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
     }
 
     #[test]
