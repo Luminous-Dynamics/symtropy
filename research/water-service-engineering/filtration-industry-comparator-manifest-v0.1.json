@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "FILTRATION-SOTA-CROSSWALK-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5090",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+  "snapshot_date": "2026-11-14",
+  "register": "research/water-service-engineering/filtration-industry-comparator-register-v0.1.json",
+  "crosswalk": "research/water-service-engineering/FILTRATION_INDUSTRY_COMPARATOR_CROSSWALK_V0_1.md",
+  "status": "public_source_crosswalk_only_no_product_testing",
+  "nonclaims": [
+    "no_product_recommendation",
+    "no_WHO_endorsement",
+    "no_NSF_certification_claim",
+    "no_SANS241_compliance_claim",
+    "no_Luminous_performance_claim"
+  ]
+}

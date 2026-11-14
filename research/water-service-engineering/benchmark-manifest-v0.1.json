@@ -160,5 +160,14 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "filtration_sota_crosswalk": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5090",
+    "crosswalk": "research/water-service-engineering/FILTRATION_INDUSTRY_COMPARATOR_CROSSWALK_V0_1.md",
+    "register": "research/water-service-engineering/filtration-industry-comparator-register-v0.1.json",
+    "schema": "research/water-service-engineering/filtration-industry-comparator.schema.json",
+    "manifest": "research/water-service-engineering/filtration-industry-comparator-manifest-v0.1.json",
+    "snapshot_date": "2026-11-14",
+    "status": "public_source_crosswalk_only_no_product_testing"
   }
 }

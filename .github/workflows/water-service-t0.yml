@@ -51,6 +51,67 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Set up pinned Python for filtration comparator validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+      - name: Validate dated WHO NSF and South African comparator register
+        id: filtration_comparators
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "filtration-industry-comparator.schema.json").read_text())
+          register = json.loads((root / "filtration-industry-comparator-register-v0.1.json").read_text())
+          manifest = json.loads((root / "filtration-industry-comparator-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(register),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"FILTRATION_COMPARATOR_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          if register["snapshot_date"] != "2026-11-14" or manifest["snapshot_date"] != "2026-11-14":
+              raise SystemExit("FILTRATION_COMPARATOR_SNAPSHOT_DATE_MISMATCH")
+          if len(register["who_hwt"]["comparator_examples"]) < 6:
+              raise SystemExit("FILTRATION_COMPARATOR_WHO_EXAMPLES_MISSING")
+          if "not to be used for commercial or promotional purposes" not in register["use_restriction"]:
+              raise SystemExit("FILTRATION_COMPARATOR_WHO_USE_RESTRICTION_MISSING")
+          editions = {row["standard"]: row["edition"] for row in register["nsf_standard_families"]["standards"]}
+          expected = {
+              "NSF/ANSI 42": "2025",
+              "NSF/ANSI 53": "2025",
+              "NSF/ANSI 55": "2026",
+              "NSF/ANSI 58": "2025",
+              "NSF/ANSI 244": "2026",
+              "NSF/ANSI 401": "2026",
+          }
+          if editions != expected:
+              raise SystemExit("FILTRATION_COMPARATOR_NSF_EDITION_SET_MISMATCH")
+          if register["nsf_p549"]["launch_date"] != "2026-10-14":
+              raise SystemExit("FILTRATION_COMPARATOR_P549_LAUNCH_DATE_MISMATCH")
+          if register["nsf_p549"]["stated_effluent_benchmark_mg_l"] != 0.28:
+              raise SystemExit("FILTRATION_COMPARATOR_P549_BENCHMARK_MISMATCH")
+          if not any("not a South African legal limit" in claim for claim in register["nsf_p549"]["nonclaims"]):
+              raise SystemExit("FILTRATION_COMPARATOR_P549_SCOPE_GUARD_FAIL")
+          if "SANS 241" not in register["south_africa"]["applicable_standard"]:
+              raise SystemExit("FILTRATION_COMPARATOR_SANS241_REFERENCE_MISSING")
+          if "not approval or endorsement" not in " ".join(register["who_hwt"]["caveats"]):
+              raise SystemExit("FILTRATION_COMPARATOR_WHO_NONENDORSEMENT_MISSING")
+          if "not to use it for commercial or promotional purposes" not in " ".join(register["who_hwt"]["caveats"]):
+              raise SystemExit("FILTRATION_COMPARATOR_WHO_PROMOTION_RESTRICTION_MISSING")
+          print("FILTRATION_COMPARATOR_PASS: WHO/NSF/P549/SANS source snapshot and restrictions validated")
+          PY
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +123,16 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/FILTRATION_INDUSTRY_COMPARATOR_CROSSWALK_V0_1.md
+            research/water-service-engineering/filtration-industry-comparator-register-v0.1.json
+            research/water-service-engineering/filtration-industry-comparator.schema.json
+            research/water-service-engineering/filtration-industry-comparator-manifest-v0.1.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          FILTRATION_COMPARATOR_OUTCOME: ${{ steps.filtration_comparators.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$FILTRATION_COMPARATOR_OUTCOME" = "success"
