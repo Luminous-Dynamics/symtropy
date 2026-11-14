@@ -23,7 +23,7 @@ The programme should publish task-specific scorecards and an evidence-class labe
 
 | Comparator | Task / established role | What to measure fairly | Evidence / limitation |
 |---|---|---|---|
-| EPANET 2.2 | Network hydraulics and water-quality reference; complete instantaneous junction mixing; tank MIXED, 2COMP, FIFO, LIFO | Network parity, outlet concentration error, mass-balance residual, tank RTD error | Open reference and reproducible, but the declared local mixing abstractions are not a physical junction/RTD measurement |
+| EPANET 2.2 | Network hydraulics and time-dependent Lagrangian parcel transport; pipe flow reversal reorders parcels; junction closure still computes one flow-weighted node concentration and applies it to outgoing links; tank MIXED, 2COMP, FIFO, LIFO | Network parity, outlet concentration error, mass-balance residual, tank RTD error | Open reference and reproducible, but the declared local mixing abstractions are not a physical junction/RTD measurement |
 | Ho (2008) bulk-mixing model | Reduced-order junction alternative / bounds | Prediction error and bound coverage on paired geometries and flow conditions | Published analytical comparator; applicability is geometry/regime dependent |
 | Shao et al. (2014) junction experiments | Physical evidence on mixing across junction types | Outlet concentration profiles, flow split/momentum-ratio effects and repeatability | Published experimental evidence; obtain raw data or digitize only with transparent uncertainty and rights review |
 | Wéber et al. (2026) CFD/regression | Geometry-aware incomplete cross-junction prediction | Regression vs EPANET/Ho/CFD on held-out angles, flow splits and geometry families | Online 19 September 2026; reported regression validated on literature experiments. Supporting data/models are available on reasonable request, so full reproduction requires access |
@@ -79,6 +79,15 @@ E-NET is a strong candidate host, but no source reviewed here confirms installed
 Sources:
 - https://www.fluidlab.polimi.it/exp/
 - https://doi.org/10.1007/s11269-026-04785-y
+
+
+### 3.6 Local transient mixing is distinct from network parcel transport
+
+EPANET already provides time-dependent network water-quality transport: it advances Lagrangian pipe segments at quality time steps and reorders segments when flow reverses. Its junction step blends inflowing parcel mass/volume and sets a single node concentration for outgoing links. The proposed transient mixing research therefore targets the **local junction closure**, not time dependence or flow reversal at the network level.
+
+Compare EPANET's local complete-mixing junction rule against a steady outlet-resolved transfer matrix and a transient outlet-resolved local kernel/state-space closure. Preserve the same upstream pipe-parcel transport in every comparator. A dynamic operator is only justified if it improves blinded transient outlet predictions and is identifiable under measured excitation; if local memory is negligible, the simpler steady operator remains preferable.
+
+Source: https://usepa.github.io/EPANET2.2/3_network_model.html
 
 ## 4. Fair benchmark protocol
 
