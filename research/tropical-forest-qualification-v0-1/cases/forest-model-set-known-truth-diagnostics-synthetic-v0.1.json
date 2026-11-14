@@ -1,0 +1,218 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-MODEL-SET-KNOWN-TRUTH-DIAGNOSTICS-001",
+  "status": "PUBLIC_SYNTHETIC_KNOWN_TRUTH_NOT_BLIND",
+  "claim_ceiling": "Five public analytic known-truth scenarios exercise cohort-space diagnostics for historical aggregate fit, structural disagreement and shared omitted mechanisms. This is not a blind benchmark, calibrated ecological model, forecast or empirical adequacy detector. A no-failure result is not a model-set adequacy certificate.",
+  "hidden_truth_published": true,
+  "blind_test_status": "NOT_BLIND_PUBLIC_KNOWN_TRUTH",
+  "cases": [
+    {
+      "case_id": "MODELSET-KNOWN-GROWTH-MORTALITY-001",
+      "family": "growth_mortality_compensation",
+      "observed_historical_total_biomass": 100,
+      "observed_validation_state": {
+        "small_live_biomass": 50,
+        "large_live_biomass": 50
+      },
+      "thresholds": {
+        "historical_fit_tolerance": 0.01,
+        "structural_disagreement_threshold": 5,
+        "common_omission_residual_threshold": 5
+      },
+      "candidates": [
+        {
+          "model_id": "growth-heavy",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 40,
+            "large_live_biomass": 60
+          }
+        },
+        {
+          "model_id": "mortality-heavy",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 60,
+            "large_live_biomass": 40
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "STRUCTURAL_DISAGREEMENT_REQUIRES_DISCRIMINATING_EVIDENCE",
+        "candidate_count": 2,
+        "all_candidates_fit_history": true,
+        "maximum_pairwise_cohort_span": 40,
+        "minimum_validation_residual": 20,
+        "maximum_validation_residual": 20
+      }
+    },
+    {
+      "case_id": "MODELSET-KNOWN-RECRUITMENT-GROWTH-001",
+      "family": "recruitment_growth_aliasing",
+      "observed_historical_total_biomass": 100,
+      "observed_validation_state": {
+        "small_live_biomass": 15,
+        "large_live_biomass": 95
+      },
+      "thresholds": {
+        "historical_fit_tolerance": 0.01,
+        "structural_disagreement_threshold": 5,
+        "common_omission_residual_threshold": 5
+      },
+      "candidates": [
+        {
+          "model_id": "recruitment-pulse",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 20,
+            "large_live_biomass": 90
+          }
+        },
+        {
+          "model_id": "large-tree-growth",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 10,
+            "large_live_biomass": 100
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "STRUCTURAL_DISAGREEMENT_REQUIRES_DISCRIMINATING_EVIDENCE",
+        "candidate_count": 2,
+        "all_candidates_fit_history": true,
+        "maximum_pairwise_cohort_span": 20,
+        "minimum_validation_residual": 10,
+        "maximum_validation_residual": 10
+      }
+    },
+    {
+      "case_id": "MODELSET-KNOWN-DELAYED-RESPONSE-001",
+      "family": "delayed_response",
+      "observed_historical_total_biomass": 100,
+      "observed_validation_state": {
+        "small_live_biomass": 100,
+        "large_live_biomass": 0
+      },
+      "thresholds": {
+        "historical_fit_tolerance": 0.01,
+        "structural_disagreement_threshold": 5,
+        "common_omission_residual_threshold": 5
+      },
+      "candidates": [
+        {
+          "model_id": "instant-response-a",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 80,
+            "large_live_biomass": 20
+          }
+        },
+        {
+          "model_id": "instant-response-b",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 80,
+            "large_live_biomass": 20
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "COMMON_STRUCTURAL_OMISSION_DETECTED_ON_VALIDATION",
+        "candidate_count": 2,
+        "all_candidates_fit_history": true,
+        "maximum_pairwise_cohort_span": 0,
+        "minimum_validation_residual": 40,
+        "maximum_validation_residual": 40
+      }
+    },
+    {
+      "case_id": "MODELSET-KNOWN-MATCHED-CONTROL-001",
+      "family": "matched_control",
+      "observed_historical_total_biomass": 100,
+      "observed_validation_state": {
+        "small_live_biomass": 45,
+        "large_live_biomass": 55
+      },
+      "thresholds": {
+        "historical_fit_tolerance": 0.01,
+        "structural_disagreement_threshold": 5,
+        "common_omission_residual_threshold": 5
+      },
+      "candidates": [
+        {
+          "model_id": "matched-a",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 45,
+            "large_live_biomass": 55
+          }
+        },
+        {
+          "model_id": "matched-b",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 45,
+            "large_live_biomass": 55
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "NO_FAILURE_DETECTED_ON_THIS_SYNTHETIC_CASE",
+        "candidate_count": 2,
+        "all_candidates_fit_history": true,
+        "maximum_pairwise_cohort_span": 0,
+        "minimum_validation_residual": 0,
+        "maximum_validation_residual": 0
+      }
+    },
+    {
+      "case_id": "MODELSET-KNOWN-HISTORY-FIT-FAILURE-001",
+      "family": "history_fit_control",
+      "observed_historical_total_biomass": 100,
+      "observed_validation_state": {
+        "small_live_biomass": 45,
+        "large_live_biomass": 55
+      },
+      "thresholds": {
+        "historical_fit_tolerance": 0.01,
+        "structural_disagreement_threshold": 5,
+        "common_omission_residual_threshold": 5
+      },
+      "candidates": [
+        {
+          "model_id": "bad-history",
+          "historical_total_biomass": 90,
+          "predicted_validation_state": {
+            "small_live_biomass": 45,
+            "large_live_biomass": 55
+          }
+        },
+        {
+          "model_id": "good-history",
+          "historical_total_biomass": 100,
+          "predicted_validation_state": {
+            "small_live_biomass": 45,
+            "large_live_biomass": 55
+          }
+        }
+      ],
+      "expected": {
+        "disposition": "CANDIDATE_HISTORY_FIT_INVALID",
+        "candidate_count": 2,
+        "all_candidates_fit_history": false,
+        "maximum_pairwise_cohort_span": 0,
+        "minimum_validation_residual": 0,
+        "maximum_validation_residual": 0
+      }
+    }
+  ],
+  "execution": {
+    "runner": "SYNTHETIC_KNOWN_TRUTH_COHORT_MODEL_SET_KERNEL",
+    "external_data_ingested": false,
+    "candidate_detector": "TOY_DIAGNOSTIC_ONLY",
+    "independent_custodian": "NOT_APPOINTED",
+    "probabilistic_forecast": "NOT_IMPLEMENTED"
+  }
+}
