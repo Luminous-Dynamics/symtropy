@@ -724,6 +724,63 @@ mod tests {
         book
     }
 
+    fn assert_all_indexes_match_full_history(book: &ReservationBook) {
+        let mut expected_active: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        let mut expected_buckets: BTreeMap<(String, usize, u64), BTreeSet<String>> =
+            BTreeMap::new();
+        let mut expected_global: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        let mut expected_expiry: BTreeMap<u64, BTreeSet<String>> = BTreeMap::new();
+
+        for (reservation_id, record) in &book.reservations {
+            if record.state != ReservationState::Active {
+                continue;
+            }
+
+            let request = &record.request;
+            let resource_id = request.resource_id.clone();
+            expected_active
+                .entry(resource_id.clone())
+                .or_default()
+                .insert(reservation_id.clone());
+
+            let earliest_expiry = request
+                .expires_at_ms
+                .saturating_sub(request.clock_uncertainty_ms);
+            expected_expiry
+                .entry(earliest_expiry)
+                .or_default()
+                .insert(reservation_id.clone());
+
+            let start = request
+                .interval_start_ms
+                .saturating_sub(request.clock_uncertainty_ms);
+            let end = request
+                .interval_end_ms
+                .saturating_add(request.clock_uncertainty_ms);
+            if let Some(level) = reservation_time_bucket_level(start, end) {
+                let width = RESERVATION_TIME_BUCKET_WIDTHS_MS[level];
+                let (first, last) =
+                    reservation_time_bucket_bounds(start, end, width).expect("selected level fits");
+                for bucket in first..=last {
+                    expected_buckets
+                        .entry((resource_id.clone(), level, bucket))
+                        .or_default()
+                        .insert(reservation_id.clone());
+                }
+            } else {
+                expected_global
+                    .entry(resource_id)
+                    .or_default()
+                    .insert(reservation_id.clone());
+            }
+        }
+
+        assert_eq!(book.active_by_resource, expected_active);
+        assert_eq!(book.time_buckets, expected_buckets);
+        assert_eq!(book.global_by_resource, expected_global);
+        assert_eq!(book.expiry_index, expected_expiry);
+    }
+
     fn assert_index_contains_every_exact_overlap(
         book: &ReservationBook,
         resource_id: &str,
@@ -948,6 +1005,91 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn generated_grant_release_expiry_epoch_trace_preserves_all_indexes() {
+        let mut book = book_with_uncertainty(u32::MAX, 500);
+        book.register_resource("work-zone-B", u32::MAX)
+            .expect("second resource");
+        book.register_resource("work-zone-C", u32::MAX)
+            .expect("third resource");
+
+        for index in 0..360_u64 {
+            let start = 1_000 + index * 10_000 + (index % 7) * 100;
+            let duration = 500 + (index * 17) % 5_000;
+            let end = start + duration;
+            let mut item = request(
+                &format!("trace-{index}"),
+                &format!("robot-{index}"),
+                start,
+                end,
+                end + 5_000,
+                1 + (index % 3) as u32,
+            );
+            item.resource_id = match index % 3 {
+                0 => "work-zone-A",
+                1 => "work-zone-B",
+                _ => "work-zone-C",
+            }
+            .to_owned();
+            item.clock_uncertainty_ms = [0, 100, 250, 500][(index % 4) as usize];
+            book.reserve(item, 0).expect("generated reservation");
+        }
+        assert_all_indexes_match_full_history(&book);
+
+        for index in (0..360_u64).filter(|index| index % 4 == 0) {
+            book.release(&format!("trace-{index}"), &format!("robot-{index}"))
+                .expect("deterministic owner release");
+        }
+        assert_all_indexes_match_full_history(&book);
+
+        let due_by_reference = book.reference_due_count_at(40_000);
+        assert_eq!(book.expire(40_000), due_by_reference);
+        assert_all_indexes_match_full_history(&book);
+
+        for index in 360..420_u64 {
+            let start = 50_000 + (index - 360) * 7_000;
+            let end = start + 1_000 + (index % 5) * 250;
+            let mut item = request(
+                &format!("trace-{index}"),
+                &format!("robot-{index}"),
+                start,
+                end,
+                end + 10_000,
+                1,
+            );
+            item.resource_id = if index % 2 == 0 {
+                "work-zone-B".to_owned()
+            } else {
+                "work-zone-C".to_owned()
+            };
+            item.clock_uncertainty_ms = [0, 50, 250, 500][(index % 4) as usize];
+            book.reserve(item, 40_000).expect("post-expiry reservation");
+        }
+        assert_all_indexes_match_full_history(&book);
+
+        book.advance_site_epoch("site-epoch-2")
+            .expect("active-only invalidation");
+        assert_all_indexes_match_full_history(&book);
+        assert!(book.active_by_resource.is_empty());
+        assert!(book.time_buckets.is_empty());
+        assert!(book.global_by_resource.is_empty());
+        assert!(book.expiry_index.is_empty());
+
+        assert_eq!(
+            book.state("trace-0"),
+            Some(ReservationState::Released)
+        );
+        assert_eq!(
+            book.state("trace-2"),
+            Some(ReservationState::Expired)
+        );
+        assert_eq!(
+            book.state("trace-419"),
+            Some(ReservationState::Invalidated)
+        );
+        assert_eq!(book.reservations.len(), 420);
     }
 
     #[test]
