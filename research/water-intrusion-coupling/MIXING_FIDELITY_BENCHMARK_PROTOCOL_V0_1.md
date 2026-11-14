@@ -136,6 +136,10 @@ Mixing fidelity is a sub-qualification of network transport, not a new sixth cau
 
 Conservative tracer qualification precedes reactive chemistry. This separates transport/mixing discrepancy from reaction-rate discrepancy.
 
-## 8. Nonclaims
+## 8. Identifiability and cost-aware experiment design
+
+The accompanying [Mixing Experiment Identifiability and Sensor Design note](MIXING_EXPERIMENT_DESIGN_V0_1.md) defines the preflight rank test for inlet excitation, all-outlet observation requirements, D-/E-optimal information criteria, model discrimination and cost frontiers. The critical negative control is a rank-deficient equal-excitation test: repeated measurements of the same input pattern cannot identify a full mixing operator. This is a design contract only; executable rank/conditioning fixtures are a subsequent increment.
+
+## 9. Nonclaims
 
 All T0 rows are synthetic. No measured physical data, site mixing operator, tank RTD, validated solver, potability result, toxicological conclusion, SANS 241 compliance claim or release authority is created by this protocol.
