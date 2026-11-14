@@ -49,6 +49,8 @@ pub struct ForecastCaseScore {
     pub model_mean: Option<f64>,
     pub absolute_error: Option<f64>,
     pub median: Option<f64>,
+    pub lower_50: Option<f64>,
+    pub upper_50: Option<f64>,
     pub lower_80: Option<f64>,
     pub upper_80: Option<f64>,
     pub lower_95: Option<f64>,
@@ -183,6 +185,8 @@ pub fn score_forecast_case(case: &ForecastCase) -> Result<ForecastCaseScore, For
             model_mean: None,
             absolute_error: None,
             median: None,
+            lower_50: None,
+            upper_50: None,
             lower_80: None,
             upper_80: None,
             lower_95: None,
@@ -198,6 +202,8 @@ pub fn score_forecast_case(case: &ForecastCase) -> Result<ForecastCaseScore, For
         model_mean: Some(model_mean),
         absolute_error: Some((model_mean - case.observed).abs()),
         median: Some(empirical_quantile(&case.model_samples, 0.5)?),
+        lower_50: Some(empirical_quantile(&case.model_samples, 0.25)?),
+        upper_50: Some(empirical_quantile(&case.model_samples, 0.75)?),
         lower_80: Some(empirical_quantile(&case.model_samples, 0.1)?),
         upper_80: Some(empirical_quantile(&case.model_samples, 0.9)?),
         lower_95: Some(empirical_quantile(&case.model_samples, 0.025)?),
@@ -246,14 +252,13 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
             model_crps_total += model_crps;
             paired_baseline_crps_total += score.baseline_crps;
             absolute_error_total += score.absolute_error.ok_or(ForecastError::NumericOverflow)?;
-            let median = score.median.ok_or(ForecastError::NumericOverflow)?;
+            let lower_50 = score.lower_50.ok_or(ForecastError::NumericOverflow)?;
+            let upper_50 = score.upper_50.ok_or(ForecastError::NumericOverflow)?;
             let lower_80 = score.lower_80.ok_or(ForecastError::NumericOverflow)?;
             let upper_80 = score.upper_80.ok_or(ForecastError::NumericOverflow)?;
             let lower_95 = score.lower_95.ok_or(ForecastError::NumericOverflow)?;
             let upper_95 = score.upper_95.ok_or(ForecastError::NumericOverflow)?;
-            if case.observed <= median {
-                coverage_50_count += 1;
-            } else if case.observed < median {
+            if case.observed >= lower_50 && case.observed <= upper_50 {
                 coverage_50_count += 1;
             }
             if case.observed >= lower_80 && case.observed <= upper_80 {
