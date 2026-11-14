@@ -138,12 +138,9 @@ pub fn qualify_rectangular_support(
         }
     }
 
-    for left_index in 0..samples.len() {
-        for right_index in (left_index + 1)..samples.len() {
-            if samples[left_index]
-                .bounds
-                .overlaps_with_positive_area(samples[right_index].bounds)
-            {
+    for (left_index, left) in samples.iter().enumerate() {
+        for right in samples.iter().skip(left_index + 1) {
+            if left.bounds.overlaps_with_positive_area(right.bounds) {
                 return Err(SupportError::OverlappingSourceSupports);
             }
         }
