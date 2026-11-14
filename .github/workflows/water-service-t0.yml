@@ -7,6 +7,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "research/water-service-engineering/**"
+      - "research/distribution-intrusion-transient/**"
       - ".github/workflows/water-service-t0.yml"
   pull_request:
     paths:
@@ -57,10 +58,10 @@ jobs:
           DISTRIBUTION_INTRUSION_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 --bin intrusion-t0 -- \\
-            research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json \\
-            research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json \\
-            research/distribution-intrusion-transient/manifest-v0.1.json \\
+          cargo run --locked --package water-service-t0 --bin intrusion-t0 -- \
+            research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json \
+            research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json \
+            research/distribution-intrusion-transient/manifest-v0.1.json \
             artifacts/distribution-intrusion-t0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipts
         if: always()
@@ -82,4 +83,7 @@ jobs:
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          INTRUSION_OUTCOME: ${{ steps.intrusion.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$INTRUSION_OUTCOME" = "success"
