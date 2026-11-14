@@ -9282,6 +9282,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-natural-hazards"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "symtropy-net"
 version = "0.1.0"
 dependencies = [
