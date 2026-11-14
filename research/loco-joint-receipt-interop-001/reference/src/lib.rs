@@ -470,7 +470,9 @@ fn decimal_u64_field(
     field: &'static str,
 ) -> Result<u64, WireError> {
     let value = require_string(object, field)?;
-    value.parse::<u64>().map_err(|_| WireError::InvalidField(field))
+    value
+        .parse::<u64>()
+        .map_err(|_| WireError::InvalidField(field))
 }
 
 fn require_false(object: &[(String, JsonValue)], field: &'static str) -> Result<(), WireError> {
@@ -547,7 +549,9 @@ pub fn validate_uq_sidecar(
     if schema_version != SCHEMA_VERSION {
         return Err(WireError::InvalidField("schema_version"));
     }
-    if require_string(sidecar_fields, "profile_id")?.trim().is_empty()
+    if require_string(sidecar_fields, "profile_id")?
+        .trim()
+        .is_empty()
         || require_string(sidecar_fields, "profile_version")? != SCHEMA_VERSION
     {
         return Err(WireError::InvalidField("profile_id/profile_version"));
@@ -665,10 +669,8 @@ pub fn validate_uq_sidecar(
         ));
     }
 
-    let mut requirements_by_id: BTreeMap<
-        String,
-        (&[(String, JsonValue)], &'static str),
-    > = BTreeMap::new();
+    let mut requirements_by_id: BTreeMap<String, (&[(String, JsonValue)], &'static str)> =
+        BTreeMap::new();
     let mut required_thermal_nodes = BTreeSet::new();
     let mut required_measurement_count = 0_usize;
     let mut not_applicable_requirement_count = 0_usize;
@@ -682,7 +684,8 @@ pub fn validate_uq_sidecar(
         let kind = require_string(requirement, "kind")?;
         let node_id = optional_string(requirement, "node_id")?;
         if kind == "thermal_node" {
-            let node = node_id.ok_or(WireError::InvalidField("measurement_requirements.node_id"))?;
+            let node =
+                node_id.ok_or(WireError::InvalidField("measurement_requirements.node_id"))?;
             if applicability_kind == "required" {
                 required_thermal_nodes.insert(node.to_owned());
             }
@@ -701,7 +704,11 @@ pub fn validate_uq_sidecar(
                 }
                 "not_applicable"
             }
-            _ => return Err(WireError::InvalidField("measurement_requirements.applicability")),
+            _ => {
+                return Err(WireError::InvalidField(
+                    "measurement_requirements.applicability",
+                ));
+            }
         };
         if requirements_by_id
             .insert(measurement_id, (requirement, stored_kind))
@@ -1011,7 +1018,9 @@ mod tests {
         let changed = resign_uq_sidecar(&changed);
         assert!(matches!(
             validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
-            Err(WireError::UqSidecarIncompleteEvidence("required channel missing"))
+            Err(WireError::UqSidecarIncompleteEvidence(
+                "required channel missing"
+            ))
         ));
     }
 
@@ -1025,7 +1034,9 @@ mod tests {
         let changed = resign_uq_sidecar(&changed);
         assert!(matches!(
             validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
-            Err(WireError::UqSidecarLineageMismatch("NotApplicable channel supplied"))
+            Err(WireError::UqSidecarLineageMismatch(
+                "NotApplicable channel supplied"
+            ))
         ));
     }
 
@@ -1040,7 +1051,9 @@ mod tests {
         let changed = resign_uq_sidecar(&changed);
         assert!(matches!(
             validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
-            Err(WireError::UqSidecarBindingMismatch("required measurement kind"))
+            Err(WireError::UqSidecarBindingMismatch(
+                "required measurement kind"
+            ))
         ));
     }
 
