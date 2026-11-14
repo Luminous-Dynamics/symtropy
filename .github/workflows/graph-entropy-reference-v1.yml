@@ -1,0 +1,48 @@
+name: Graph Entropy Reference Corpus
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tests/graph_entropy_reference_v1.rs"
+      - "docs/research/data/graph-entropy-reference-v1.json"
+      - ".github/workflows/graph-entropy-reference-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graph-entropy-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    name: Execute frozen reference corpus
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact triggering source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@ebb3d1676050bfd0971c36c1e215b5751473994d
+        with:
+          toolchain: 1.96.0
+
+      - name: Execute graph entropy reference tests
+        run: cargo test --test graph_entropy_reference_v1 --locked
+
+      - name: Record source identity
+        if: always()
+        run: |
+          printf 'trigger_sha=%s\n' "$GITHUB_SHA"
+          printf 'checked_out_sha=%s\n' "$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
