@@ -419,10 +419,16 @@ impl BlockedRandomizedMaintenanceTrial {
                 || !is_sha256_hex(&observation.outcome_evidence_sha256)
                 || !is_sha256_hex(&observation.outcome_calibration_record_sha256)
                 || observation.baseline_source_id.trim().is_empty()
-                || observation.baseline_measurement_principle_id.trim().is_empty()
+                || observation
+                    .baseline_measurement_principle_id
+                    .trim()
+                    .is_empty()
                 || observation.baseline_dependency_domain_id.trim().is_empty()
                 || observation.outcome_source_id.trim().is_empty()
-                || observation.outcome_measurement_principle_id.trim().is_empty()
+                || observation
+                    .outcome_measurement_principle_id
+                    .trim()
+                    .is_empty()
                 || observation.outcome_dependency_domain_id.trim().is_empty()
                 || observation.baseline_unit.trim().is_empty()
                 || observation.outcome_unit.trim().is_empty()
@@ -435,10 +441,14 @@ impl BlockedRandomizedMaintenanceTrial {
                 || !observation.assignment_available_at_seconds.is_finite()
                 || !observation.baseline_observed_at_seconds.is_finite()
                 || !observation.baseline_available_at_seconds.is_finite()
-                || !observation.baseline_calibration_valid_until_seconds.is_finite()
+                || !observation
+                    .baseline_calibration_valid_until_seconds
+                    .is_finite()
                 || !observation.outcome_observed_at_seconds.is_finite()
                 || !observation.outcome_available_at_seconds.is_finite()
-                || !observation.outcome_calibration_valid_until_seconds.is_finite()
+                || !observation
+                    .outcome_calibration_valid_until_seconds
+                    .is_finite()
                 || observation.baseline_quality != MeasurementQuality::Valid
                 || observation.outcome_quality != MeasurementQuality::Valid
                 || observation.baseline_calibration_status != CalibrationStatus::Verified
@@ -1161,7 +1171,10 @@ mod tests {
             estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
 
         assert!((with_measurement_bound.measurement_error_bound_abs - 0.5).abs() < 1e-12);
-        assert_eq!(with_measurement_bound.standard_error, without_measurement_bound.standard_error);
+        assert_eq!(
+            with_measurement_bound.standard_error,
+            without_measurement_bound.standard_error
+        );
         assert!(
             with_measurement_bound.measurement_robust_interval_treatment_minus_control[0]
                 < with_measurement_bound.confidence_interval_treatment_minus_control[0]
@@ -1240,9 +1253,7 @@ mod tests {
         assert_eq!(protocol["schema_version"], MAINTENANCE_EFFECT_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["estimator"]["exact_test_limit_units"], 16);
-        assert!(
-            protocol["hard_gates"].as_array().unwrap().len() >= 29
-        );
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 29);
         assert!(
             protocol["estimator"]["measurement_provenance"]
                 .as_object()
