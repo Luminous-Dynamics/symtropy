@@ -81,6 +81,8 @@ pub struct ObservationalTargetTrialProtocol {
     pub causal_graph_sha256: String,
     pub propensity_model_sha256: String,
     pub propensity_fit_data_sha256: String,
+    pub propensity_floor: f64,
+    pub propensity_ceiling: f64,
     pub time_zero_tolerance_seconds: f64,
     pub followup_horizon_seconds: f64,
     pub analysis_as_of_seconds: f64,
@@ -364,7 +366,12 @@ impl ObservationalTargetTrialProtocol {
         {
             return Err(TargetTrialValidationError::InvalidIdentity);
         }
-        if !self.time_zero_tolerance_seconds.is_finite()
+        if !self.propensity_floor.is_finite()
+            || !self.propensity_ceiling.is_finite()
+            || self.propensity_floor <= 0.0
+            || self.propensity_ceiling >= 1.0
+            || self.propensity_floor >= self.propensity_ceiling
+            || !self.time_zero_tolerance_seconds.is_finite()
             || self.time_zero_tolerance_seconds < 0.0
             || !self.followup_horizon_seconds.is_finite()
             || self.followup_horizon_seconds <= 0.0
@@ -590,6 +597,11 @@ pub fn evaluate_observational_target_trial_design(
                 > protocol.time_zero_tolerance_seconds
         {
             reasons.insert(TargetTrialNotIdentifiedReason::TimeZeroMisaligned);
+        }
+        if unit.propensity_repair < protocol.propensity_floor
+            || unit.propensity_repair > protocol.propensity_ceiling
+        {
+            reasons.insert(TargetTrialNotIdentifiedReason::PropensityOutsideDeclaredSupport);
         }
 
         let observed_covariates = unit
@@ -898,6 +910,8 @@ mod tests {
             causal_graph_sha256: digest('c'),
             propensity_model_sha256: digest('d'),
             propensity_fit_data_sha256: digest('e'),
+            propensity_floor: 0.05,
+            propensity_ceiling: 0.95,
             time_zero_tolerance_seconds: 0.01,
             followup_horizon_seconds: 100.0,
             analysis_as_of_seconds: 300.0,
@@ -1058,6 +1072,39 @@ mod tests {
         assert!(!report.causal_effect_estimated);
         assert!(!report.maintenance_authorized);
         assert_eq!(report.not_identified_reasons.len(), 0);
+    }
+
+    #[test]
+    fn each_asset_can_have_its_own_aligned_time_zero() {
+        let (mut dataset, _) = fixture();
+        for unit in dataset.units.iter_mut().filter(|unit| unit.stratum_id == "high_load") {
+            unit.eligibility_at_seconds += 10.0;
+            unit.assignment_at_seconds += 10.0;
+            unit.followup_start_seconds += 10.0;
+            for covariate in &mut unit.baseline_covariates {
+                covariate.observed_at_seconds += 10.0;
+                covariate.available_at_seconds += 10.0;
+            }
+            if let Some(outcome) = &mut unit.outcome {
+                outcome.observed_at_seconds += 10.0;
+                outcome.available_at_seconds += 10.0;
+            }
+        }
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert_eq!(
+            report.disposition,
+            TargetTrialDesignDisposition::StructurallyEligibleUnderDeclaredAssumptions
+        );
+    }
+
+    #[test]
+    fn propensity_outside_preregistered_support_is_not_identified() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0].propensity_repair = 0.99;
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::PropensityOutsideDeclaredSupport
+        ));
     }
 
     #[test]
