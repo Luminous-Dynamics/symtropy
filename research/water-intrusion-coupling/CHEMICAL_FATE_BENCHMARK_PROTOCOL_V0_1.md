@@ -33,7 +33,7 @@ These are explicit modelling assumptions, not universal physical truths. The man
 
 **Upstream verification maturity:** official workflow builds Windows, Ubuntu, Intel macOS and Apple Silicon, then runs a packaged example; a CMake `BUILD_TESTS` option is commented out. Do not describe this as a comprehensive independent physical chemistry test suite.
 
-Sources: [EPA MSX 2.0 manual](https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P10188CK.TXT), [conceptual framework](https://epanetmsx2manual.readthedocs.io/en/latest/2_framework.html), [repository](https://github.com/USEPA/EPANETMSX).
+Sources: [EPA MSX 2.0 manual](https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P100XGNO.TXT), [conceptual framework](https://epanetmsx2manual.readthedocs.io/en/latest/2_framework.html), [repository](https://github.com/USEPA/EPANETMSX).
 
 ### 2.2 EPyT-C 1.0.0 — broad open research comparator
 
