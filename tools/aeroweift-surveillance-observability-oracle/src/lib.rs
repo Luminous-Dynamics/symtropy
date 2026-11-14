@@ -49,6 +49,8 @@ pub enum CoverageStatus {
     PartialCoverage,
     /// A relevant evidence dependency is unknown, incomplete, stale or contradictory.
     Indeterminate,
+    /// Upstream sensor/service is explicitly degraded under its declared profile.
+    Degraded,
     /// No admitted claim covers this class/cell/time or a declared condition is out of scope.
     NotQualified,
 }
@@ -216,7 +218,9 @@ pub fn evaluate(
         if !claim.coverage_qualified || !claim.environment_qualified {
             continue;
         }
-        if claim.evidence_class == CoverageEvidenceClass::Unknown
+        if claim.claim_id.trim().is_empty()
+            || claim.source_id.trim().is_empty()
+            || claim.evidence_class == CoverageEvidenceClass::Unknown
             || claim.profile_id.trim().is_empty()
             || claim.environment_profile.trim().is_empty()
         {
