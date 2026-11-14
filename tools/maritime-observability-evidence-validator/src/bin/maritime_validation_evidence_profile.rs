@@ -159,11 +159,26 @@ mod tests{
     fn result()->Value{evaluate(&fixture()).expect("profiles evaluate")}
     fn item<'a>(r:&'a Value,id:&str)->&'a Value{r["profiles"].as_array().unwrap().iter().find(|p|p["profile_id"]==id).unwrap()}
     #[test]fn six_profiles_reconcile_a_b_and_leakage(){let r=result();assert_eq!(r["profile_count"],6);assert_eq!(item(&r,"A0-window-random-split")["computed_physical_independence_ceiling"],"A0");assert_eq!(item(&r,"A0-window-random-split")["computed_domain_shift_ceiling"],"B0");assert_eq!(item(&r,"A0-window-random-split")["leakage_risk"],"HIGH");assert_eq!(item(&r,"A1-recording-holdout-operating-shift")["computed_physical_independence_ceiling"],"A1");assert_eq!(item(&r,"A1-recording-holdout-operating-shift")["computed_domain_shift_ceiling"],"B1");assert_eq!(item(&r,"A2-component-holdout-sensor-shift-adapted")["computed_physical_independence_ceiling"],"A2");assert_eq!(item(&r,"A2-component-holdout-sensor-shift-adapted")["computed_domain_shift_ceiling"],"B2");assert_eq!(item(&r,"A3-machine-holdout-with-concern")["computed_physical_independence_ceiling"],"A3");assert_eq!(item(&r,"A3-machine-holdout-with-concern")["computed_domain_shift_ceiling"],"B3");assert_eq!(item(&r,"A4-site-holdout")["computed_physical_independence_ceiling"],"A4");assert_eq!(item(&r,"A4-site-holdout")["computed_domain_shift_ceiling"],"B4");assert_eq!(item(&r,"A1-incomplete-reporting")["leakage_risk"],"UNCLEAR");}
-    #[test]fn unlabeled_adaptation_is_not_automatically_leakage(){let p=item(&result(),"A2-component-holdout-sensor-shift-adapted");assert_eq!(p["target_domain_access"],"UNLABELED_ADAPTATION");assert_eq!(p["leakage_risk"],"LOW");}
+    #[test]
+    fn unlabeled_adaptation_is_not_automatically_leakage() {
+        let evaluated = result();
+        let p = item(&evaluated, "A2-component-holdout-sensor-shift-adapted");
+        assert_eq!(p["target_domain_access"], "UNLABELED_ADAPTATION");
+        assert_eq!(p["leakage_risk"], "LOW");
+    }
     #[test]fn documented_concern_is_some_concerns(){assert_eq!(item(&result(),"A3-machine-holdout-with-concern")["leakage_risk"],"SOME_CONCERNS");}
     #[test]fn recording_holdout_cannot_claim_site_independence(){let mut v=fixture();v["profiles"][1]["physical_independence"]["declared_level"]=json!("A4");let e=evaluate(&v).unwrap_err();assert!(e.iter().any(|x|x["code"]=="PHYSICAL_INDEPENDENCE_OVERCLAIM"));}
     #[test]fn a0_window_profile_requires_both_development_and_evaluation_partitions(){let mut v=fixture();v["profiles"][0]["unit_records"][1]["partition"]=json!("DEVELOPMENT");let e=evaluate(&v).unwrap_err();assert!(e.iter().any(|x|x["code"]=="BOTH_PARTITIONS_REQUIRED"));}
-    #[test]fn labeled_target_adaptation_is_not_automatically_leakage(){let mut v=fixture();v["profiles"][3]["leakage_audit"]["preprocessing_fit_scope"]=json!("TRAIN_ONLY");v["profiles"][3]["leakage_audit"]["documented_concerns"]=json!([]);let p=item(&evaluate(&v).unwrap(),"A3-machine-holdout-with-concern");assert_eq!(p["target_domain_access"],"LABELED_ADAPTATION");assert_eq!(p["leakage_risk"],"LOW");}
+    #[test]
+    fn labeled_target_adaptation_is_not_automatically_leakage() {
+        let mut fixture = fixture();
+        fixture["profiles"][3]["leakage_audit"]["preprocessing_fit_scope"] = json!("TRAIN_ONLY");
+        fixture["profiles"][3]["leakage_audit"]["documented_concerns"] = json!([]);
+        let evaluated = evaluate(&fixture).unwrap();
+        let p = item(&evaluated, "A3-machine-holdout-with-concern");
+        assert_eq!(p["target_domain_access"], "LABELED_ADAPTATION");
+        assert_eq!(p["leakage_risk"], "LOW");
+    }
     #[test]fn test_tuning_is_high_leakage(){let mut v=fixture();v["profiles"][3]["leakage_audit"]["model_selection_data"]=json!("TEST_USED");assert_eq!(item(&evaluate(&v).unwrap(),"A3-machine-holdout-with-concern")["leakage_risk"],"HIGH");}
     #[test]fn global_preprocessing_is_high_leakage(){let mut v=fixture();v["profiles"][1]["leakage_audit"]["preprocessing_fit_scope"]=json!("ALL_DATA");assert_eq!(item(&evaluate(&v).unwrap(),"A1-recording-holdout-operating-shift")["leakage_risk"],"HIGH");}
 }
