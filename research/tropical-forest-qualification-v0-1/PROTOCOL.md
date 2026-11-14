@@ -30,6 +30,17 @@ The first goal is modest and falsifiable: predict selected forest-structure and 
 - [Living World Cell #252](https://github.com/Luminous-Dynamics/symtropy/issues/252) owns the bounded causal ecological vertical slice; [Living Valley #1247](https://github.com/Luminous-Dynamics/symtropy/issues/1247) owns larger historical environmental causality. This programme supplies empirical profiles and validation criteria, not shortcuts around their prerequisite gates.
 - Reuse [ABM runtime comparison #3787](https://github.com/Luminous-Dynamics/symtropy/issues/3787) and [collective cognition benchmark #4578](https://github.com/Luminous-Dynamics/symtropy/issues/4578) for runtime and interaction-topology comparisons.
 
+### Existing scientific-qualification owners — compose, do not fork
+
+- [Structural ecological uncertainty #2244](https://github.com/Luminous-Dynamics/symtropy/issues/2244): compare plausible ecological model structures and their decision implications.
+- [Model-set adequacy #2334](https://github.com/Luminous-Dynamics/symtropy/issues/2334): test whether all registered models can agree and still be wrong because the generating mechanism was omitted.
+- [Ecological transfer and shock recovery #2214](https://github.com/Luminous-Dynamics/symtropy/issues/2214): hold out ecological regimes and measure transfer, resilience, and population invariants.
+- [Closed-box aquatic process oracle #2206](https://github.com/Luminous-Dynamics/symtropy/issues/2206): reuse its process-accounting discipline and zero-third-party-dependency reference-kernel philosophy; its aquatic process equations are not forest equations.
+- [Causal intervention validity #2186](https://github.com/Luminous-Dynamics/symtropy/issues/2186) and [active sensing under budgets #2171](https://github.com/Luminous-Dynamics/symtropy/issues/2171): reuse intervention and experiment-selection semantics.
+- [Living World Cell #252](https://github.com/Luminous-Dynamics/symtropy/issues/252) remains the canonical structural-flora / ecological-consequence integration owner.
+
+This tropical programme specializes those capabilities for forest demography, canopy structure, forest observation operators, and regional hindcasts. It does not create another model-uncertainty engine, general OOD detector, active-sensing policy, or water solver.
+
 ## Initial model boundary
 
 The first model family covers:
@@ -40,6 +51,7 @@ The first model family covers:
 4. Disturbance and recovery where independent labels distinguish degradation, temporary disturbance, permanent land conversion, fire, windthrow, landslide, or drought.
 5. Deadwood / litter / decomposition and nutrient return only after the relevant stocks, fluxes and boundary terms can be accounted for.
 6. Horizontal heterogeneity and canopy gaps only where they improve independent predictions over patch/cohort baselines.
+7. A **spatially explicit cohort-canopy profile**: cohorts have declared crown-area / position support, canopy gaps persist after mortality or disturbance, and the resulting local light field can affect recruitment. This is an explicit benchmark target because the 2026 LPJ-GUESS spatially explicit canopy scheme (SEC) demonstrates that cohort placement can recover gap and recruitment behaviour without fully resolving every individual tree. The matched competitors must include the standard horizontally uniform patch canopy, perfect-plasticity approximation (PPA), spatially explicit cohort canopy (SEC), and an individual-tree reference only on a small enough case to be tractable.
 
 A tree cohort is not an individual tree. A pixel is not a plot. A plot mean is not a global forest state. Every variable must declare its support and conversion model.
 
@@ -47,26 +59,43 @@ Later, separate evidence-qualified modules can add animal populations, movement,
 
 ## Candidate evidence sources
 
+The source layers measure different constructs. They are complementary, not interchangeable truth labels.
+
 | Source | Spatial / temporal character | Appropriate role | Non-negotiable caveat |
 |---|---|---|---|
-| JRC Tropical Moist Forest (TMF) | Landsat, 30 m, annual tropical moist-forest change series (1990–2025 for current cited product) | Disturbance, degradation, deforestation and regrowth context | Pin dataset version and class definitions; not tree demography |
+| JRC Tropical Moist Forest (TMF) | v2025 product: 30 m wall-to-wall Landsat Collection 2, annual change collection for 1990–2025, with timing/intensity and transition classes | Disturbance, degradation, deforestation and regrowth context | Degradation is temporary disturbance while remaining forested; deforestation is forest-to-nonforest transition. Preserve the TMF ontology rather than collapsing both to tree loss |
 | UMD / Global Forest Watch tree-cover loss | Landsat, 30 m, annual (2001–2025) | Disturbance-event screening / change context | Loss includes natural events, harvest and plantations; it is not synonymous with permanent deforestation; preserve methodology-era boundaries |
-| MapBiomas Collection 11 (Brazil) | Annual land cover, 30 m, 1985–2025 | Brazil / Amazon regional transition context | Brazil coverage is not full Amazon / Congo / New Guinea coverage; use collection-specific accuracy and class semantics |
-| NASA GEDI L4A V2.1 | Sparse ISS lidar footprints; aboveground biomass density and prediction standard error | Biomass / canopy-structure constraints and calibration checks | Preserve footprint support, beam, orbit, quality flags, algorithm group and uncertainty; do not treat as wall-to-wall truth |
+| MapBiomas Collection 11 (Brazil) | Annual land cover and use, 30 m, 1985–2025; collection notice updated August 2026 | Brazil / Amazon regional transition context | Brazil coverage is not full Amazon / Congo / New Guinea coverage; preserve class/year accuracy information and collection-specific semantics |
+| NASA GEDI L4A V2.1 | Footprint-level model estimates of aboveground biomass density (Mg/ha) and prediction standard error; nominal coverage 2019-04-18 to 2025-07-09 | Biomass / canopy-structure constraints and calibration checks | Approx. 25 m footprints sampled along sparse tracks, not wall-to-wall truth. Retain beam, orbit, algorithm group, input waveform metrics and all quality flags. There were no acquisitions while the instrument was stored from March 2023 to April 2024; do not interpret that interval as ecological absence |
 | ForestPlots.net and partner networks (including RAINFOR, AfriTRON, GEM, ForestGEO, etc.) | Plot / stem censuses with species, size, demography, traits and soil metadata | Growth, mortality, recruitment, species/trait and process calibration | Access is tiered, contributor governed and may be non-redistributable; request permission before use or derived publication |
-| New Guinea / Papua New Guinea field networks | To be established case by case | Regional transfer and local calibration | Do not imply plot coverage or permission before confirmation from data custodians |
+| Papua New Guinea National Forest Inventory (FAO FAM Catalogue) | Nationally representative multipurpose inventory published to the FAO Food and Agriculture Microdata Catalogue in March 2026 | Independent New Guinea / PNG regional evidence and sampling-frame context | Catalogue publication does not automatically grant unrestricted row-level access or derivative rights; confirm the exact download, variables, design weights, spatial disclosure, and licensing with PNGFA / FAO before ingestion |
 
 Reference pages:
 - JRC TMF: https://forobs.jrc.ec.europa.eu/TMF/
 - UMD / GFW 2025 data explanation: https://www.globalforestwatch.org/blog/data-and-tools/2025-tree-cover-loss-data-explained/
 - MapBiomas: https://brasil.mapbiomas.org/en/
 - GEDI L4A V2.1: https://catalog.data.gov/dataset/gedi-l4a-footprint-level-aboveground-biomass-density-version-2-1
+- MapBiomas Collection 11 platform / accuracy information: https://plataforma.brasil.mapbiomas.org/
+- Papua New Guinea NFI publication notice / FAO FAM Catalogue: https://www.fao.org/in-action/boosting-transparency-forest-data/news-and-events/news/detail/papua-new-guinea-publishes-national-forest-inventory-in-fam-catalogue/en
 - ForestPlots.NET: https://forestplots.net/en/about
 - ForestPlots data conditions: https://cloudcms.forestplots.net/en/join-forestplots/working-with-data
 - RAINFOR field manuals: https://rainfor.org/en/manuals/after-the-field/
 - AfriTRON manuals: https://afritron.org/en/manuals
 
 Data admission records the exact asset/version/digest, provider, access and derivative rights, purpose, temporal interval, spatial support, CRS/datum, units, quality flags, processing history, and evaluation split. A dataset can be referenced without copying its protected rows.
+
+### The observation-operator rule
+
+Keep a latent ecological state separate from each observation product:
+
+\`observation = H_source(latent_state, sampling_geometry, instrument, acquisition, processing) + observation_error\`
+
+- A plot census samples selected stems inside a plot, with census dates, size thresholds, taxonomic decisions and measurement error.
+- GEDI L4A is a footprint-level model estimate derived from waveform metrics and field-plot calibration. It does not directly observe a plot-wide biomass surface.
+- TMF is a Landsat-derived thematic change product with its own 30 m support, annual time bins and class ontology.
+- MapBiomas is a separate annual land-cover/use classification product with its own training and accuracy profile.
+
+The evaluator must apply the relevant observation operator to the model state before scoring. Do not compare a cohort's total biomass directly with one GEDI footprint, treat TMF degradation as tree mortality, or turn cloud/no-data into stable forest. Separate process uncertainty, parameter uncertainty, sampling uncertainty, sensor/algorithm uncertainty and label uncertainty.
 
 ## Strong external comparators
 
@@ -79,15 +108,28 @@ Data admission records the exact asset/version/digest, provider, access and deri
   - https://www.lss.ls.tum.de/en/lsai/lpj-guess/
 - A multi-model forest demography study compares BiomeE, CABLE-POP, FATES, LPJ-GUESS, JULES-RED and ORCHIDEE against regrowth and natural forest observations, including tropical sites:
   - https://ntrs.nasa.gov/citations/20230012086
-- A 2026 LPJ-GUESS paper adds a spatially-explicit canopy scheme to address horizontal heterogeneity and gap regeneration:
+- A 2026 LPJ-GUESS paper adds a spatially-explicit canopy scheme (SEC): cohorts retain positions in a patch, so mortality can create persistent gaps and change understory light and recruitment without resolving all trees individually. Its evaluation includes aboveground woody biomass, mortality and productivity by size class, coexistence, regeneration and sensitivity:
   - https://gmd.copernicus.org/articles/19/3595/2026/
 
-The programme must reproduce strong references on matched tasks, rather than claiming superiority from a toy model. FATES literature reports that model biases can remain along tropical precipitation gradients and by functional type; the 2026 LPJ-GUESS work is explicitly trying to improve small-scale canopy-gap processes. Those are benchmark targets, not proof that either model is universally best.
+The programme must reproduce strong references on matched tasks, rather than claiming superiority from a toy model. NGEE Tropics explicitly uses a model-experiment (ModEx) loop: site-specific meteorology and plant traits, field measurements designed to address process uncertainty, and multi-scale model evaluation. A published FATES assessment reports high aboveground woody productivity bias across much of the tropics under default parameters, overestimation of drought-deciduous abundance, and underestimation of evergreen functional types along a Neotropical precipitation gradient. These are specific published results and useful challenge dimensions, not proof that FATES is universally weak. The 2026 LPJ-GUESS SEC work is a strong canopy-structure comparator, not a baseline to dismiss.
+
+The competitive aim is to outperform on a declared task and evidence class: e.g. a held-out mortality forecast, cohort size-structure trajectory, canopy-gap recruitment response, or decision-quality-per-survey-budget. Do not rank complete models with one pooled score.
 
 ### Observation / biodiversity references
 
-- The NEON Ecological Forecasting Challenge evaluates forecasts by site and forecast horizon using CRPS and compares them to a null forecast: https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html
+- The NEON Ecological Forecasting Challenge evaluates forecasts by site and forecast horizon using CRPS and compares them to a null forecast. Adopt this scoring discipline, while recognizing that NEON challenge targets are not equivalent to tropical tree demography: https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html
 - WildlifeBench V1 provides a task-specific camera-trap species-identification benchmark on 790 expert-labelled events from Europe and Ecuador. It is not an ecosystem simulator and does not yet cover Amazon/Congo/New Guinea as a balanced, all-taxa benchmark: https://wildlifebench.org/camera-trap/
+
+## Key paradigm shift: model-set criticism, not just model fitting
+
+A collection of models is not adequate merely because its members agree. Use the existing structural-uncertainty and model-set-adequacy owners (#2244 and #2334) to run four distinct tests:
+
+1. **Parameter uncertainty:** the same equations, different plausible parameter sets.
+2. **Structural disagreement:** plausible models fit history but imply different future or intervention responses.
+3. **Omitted mechanism:** all registered models agree, but a blinded generating process contains a mechanism absent from every candidate model.
+4. **Observation-process shift:** the ecological state is unchanged but sensor, sampling geometry, cloud, detection threshold or processing changes.
+
+For each, score forecast calibration, decision regret, out-of-domain detection, false alarms and abstention. A high internal ensemble agreement must not increase confidence when residuals or held-out mechanism challenges indicate model-set inadequacy. Select the next observation or experiment to discriminate the hypotheses under the same time, cost, access and ecological-disturbance budgets. The system recommends; the benchmark does not authorize real-world intervention.
 
 ## Evaluation protocol
 
@@ -143,7 +185,7 @@ Once baseline variance, sample size and cluster structure are known, preregister
 
 1. Audit each current code variable/process as **measured**, **derived**, **illustrative**, or **unimplemented**.
 2. Define a typed forest-state vocabulary and units; do not relabel generic `[0,1]` values as physical measurements.
-3. Create a tiny known-truth synthetic forest patch manifest and verify growth / mortality / biomass budgets.
+3. Create a tiny known-truth synthetic forest patch manifest and verify growth / mortality / biomass budgets; run the standalone Rust verifier at `validator/` and preserve its receipt.
 4. Implement a simple persistence/climatology and size-stratified statistical baseline before calibrating a complex model.
 5. Reproduce or explicitly mark FATES / LPJ-GUESS baselines `NOT_RUN` with a reason.
 6. Secure plot-network collaboration and derivative rights before ingesting restricted data; start with properly licensed EO source snapshots.
