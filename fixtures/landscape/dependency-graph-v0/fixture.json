@@ -1,0 +1,221 @@
+{
+  "schema_version": "symtropy.landscape_dependency_graph_fixture.v0.1",
+  "suite_id": "LANDSCAPE-SETS-DEPENDENCY-GRAPH-V0.1",
+  "data_origin": "synthetic_fixture",
+  "claim_ceiling": "STRUCTURAL_DEPENDENCY_ANALYSIS_ONLY",
+  "dependency_semantics_sha256": "c59d81f7c468b80b21f4a2a90ca5900d1ac0dcd541c14319469ed323904fa7fc",
+  "graph_id": "synthetic-johannesburg-landscape-services-v0",
+  "nodes": [
+    {
+      "node_id": "water_source",
+      "label": "Water source",
+      "layer": "ecological",
+      "is_service": false,
+      "required_dependency_groups": []
+    },
+    {
+      "node_id": "irrigation_network",
+      "label": "Irrigation network",
+      "layer": "technical",
+      "is_service": false,
+      "required_dependency_groups": [
+        "water_supply"
+      ]
+    },
+    {
+      "node_id": "maintenance_crew",
+      "label": "Maintenance crew",
+      "layer": "social",
+      "is_service": false,
+      "required_dependency_groups": []
+    },
+    {
+      "node_id": "canopy",
+      "label": "Established canopy",
+      "layer": "ecological",
+      "is_service": false,
+      "required_dependency_groups": [
+        "irrigation",
+        "maintenance"
+      ]
+    },
+    {
+      "node_id": "built_shade_structure",
+      "label": "Built shade structure",
+      "layer": "technical",
+      "is_service": false,
+      "required_dependency_groups": []
+    },
+    {
+      "node_id": "public_path",
+      "label": "Accessible public path",
+      "layer": "technical",
+      "is_service": false,
+      "required_dependency_groups": []
+    },
+    {
+      "node_id": "soil_infiltration",
+      "label": "Infiltrating soil",
+      "layer": "ecological",
+      "is_service": false,
+      "required_dependency_groups": []
+    },
+    {
+      "node_id": "drainage_network",
+      "label": "Maintained drainage",
+      "layer": "technical",
+      "is_service": false,
+      "required_dependency_groups": [
+        "maintenance"
+      ]
+    },
+    {
+      "node_id": "heat_refuge_service",
+      "label": "Heat refuge access",
+      "layer": "social",
+      "is_service": true,
+      "required_dependency_groups": [
+        "shade",
+        "access"
+      ]
+    },
+    {
+      "node_id": "tree_ecology_service",
+      "label": "Tree habitat service",
+      "layer": "ecological",
+      "is_service": true,
+      "required_dependency_groups": [
+        "canopy",
+        "soil"
+      ]
+    },
+    {
+      "node_id": "stormwater_service",
+      "label": "Stormwater retention service",
+      "layer": "ecological",
+      "is_service": true,
+      "required_dependency_groups": [
+        "soil",
+        "drainage"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "edge_id": "edge-irrigation-water",
+      "dependent_node_id": "irrigation_network",
+      "provider_node_id": "water_source",
+      "requirement_group_id": "water_supply"
+    },
+    {
+      "edge_id": "edge-canopy-irrigation",
+      "dependent_node_id": "canopy",
+      "provider_node_id": "irrigation_network",
+      "requirement_group_id": "irrigation"
+    },
+    {
+      "edge_id": "edge-canopy-maintenance",
+      "dependent_node_id": "canopy",
+      "provider_node_id": "maintenance_crew",
+      "requirement_group_id": "maintenance"
+    },
+    {
+      "edge_id": "edge-drainage-maintenance",
+      "dependent_node_id": "drainage_network",
+      "provider_node_id": "maintenance_crew",
+      "requirement_group_id": "maintenance"
+    },
+    {
+      "edge_id": "edge-heat-canopy",
+      "dependent_node_id": "heat_refuge_service",
+      "provider_node_id": "canopy",
+      "requirement_group_id": "shade"
+    },
+    {
+      "edge_id": "edge-heat-built-shade",
+      "dependent_node_id": "heat_refuge_service",
+      "provider_node_id": "built_shade_structure",
+      "requirement_group_id": "shade"
+    },
+    {
+      "edge_id": "edge-heat-path",
+      "dependent_node_id": "heat_refuge_service",
+      "provider_node_id": "public_path",
+      "requirement_group_id": "access"
+    },
+    {
+      "edge_id": "edge-tree-canopy",
+      "dependent_node_id": "tree_ecology_service",
+      "provider_node_id": "canopy",
+      "requirement_group_id": "canopy"
+    },
+    {
+      "edge_id": "edge-tree-soil",
+      "dependent_node_id": "tree_ecology_service",
+      "provider_node_id": "soil_infiltration",
+      "requirement_group_id": "soil"
+    },
+    {
+      "edge_id": "edge-stormwater-soil",
+      "dependent_node_id": "stormwater_service",
+      "provider_node_id": "soil_infiltration",
+      "requirement_group_id": "soil"
+    },
+    {
+      "edge_id": "edge-stormwater-drainage",
+      "dependent_node_id": "stormwater_service",
+      "provider_node_id": "drainage_network",
+      "requirement_group_id": "drainage"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "baseline",
+      "label": "All declared dependencies operational",
+      "failed_node_ids": [],
+      "disabled_edge_ids": []
+    },
+    {
+      "scenario_id": "drought",
+      "label": "Water source unavailable",
+      "failed_node_ids": [
+        "water_source"
+      ],
+      "disabled_edge_ids": []
+    },
+    {
+      "scenario_id": "maintenance_shock",
+      "label": "Maintenance capacity unavailable",
+      "failed_node_ids": [
+        "maintenance_crew"
+      ],
+      "disabled_edge_ids": []
+    },
+    {
+      "scenario_id": "access_disruption",
+      "label": "Accessible path unavailable",
+      "failed_node_ids": [
+        "public_path"
+      ],
+      "disabled_edge_ids": []
+    },
+    {
+      "scenario_id": "irrigation_link_outage",
+      "label": "Canopy irrigation link disabled",
+      "failed_node_ids": [],
+      "disabled_edge_ids": [
+        "edge-canopy-irrigation"
+      ]
+    },
+    {
+      "scenario_id": "compound_failure",
+      "label": "Water, maintenance and access jointly unavailable",
+      "failed_node_ids": [
+        "water_source",
+        "maintenance_crew",
+        "public_path"
+      ],
+      "disabled_edge_ids": []
+    }
+  ]
+}

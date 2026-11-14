@@ -1,0 +1,16 @@
+{
+  "schema_version": "symtropy.landscape_dependency_semantics.v0",
+  "title": "Landscape Social-Ecological-Technical Dependency Semantics",
+  "direction": "A dependency edge means the dependent node requires its provider node.",
+  "dependency_groups": "Every declared group is mandatory (AND across groups); within one group, any one operational provider alternative is sufficient (OR across alternatives).",
+  "support_rule": "A node is operational only if it has not failed and every declared dependency group has at least one non-disabled edge to an operational provider.",
+  "cycles": "Rejected in v0. Static prerequisite graphs must be acyclic; feedback loops require a separate dynamic model and are not approximated by this contract.",
+  "scenario_forcing": "A scenario may fail named nodes and/or disable named dependency edges. These are injected structural stressors, not probabilities or physical predictions.",
+  "cause_reporting": "Unsupported nodes report direct failed-node status or unsatisfied dependency groups, with each provider alternative marked operational, node-failed, edge-disabled, or dependency-unavailable so callers can trace upstream causes.",
+  "claim_ceiling": "STRUCTURAL_DEPENDENCY_ANALYSIS_ONLY",
+  "out_of_scope": [
+    "No hydrology, canopy-growth, thermal-comfort, biodiversity, economic, legal, or causal model is run.",
+    "No failure probabilities, recovery time, feedback delay, or physical capacity is inferred.",
+    "No dependency edge is treated as observed fact unless an upstream application supplies and qualifies it."
+  ]
+}

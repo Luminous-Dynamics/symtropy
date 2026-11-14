@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/landscape-dependency-graph-fixture-v0.1.schema.json",
+  "title": "Landscape dependency graph fixture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "suite_id",
+    "data_origin",
+    "claim_ceiling",
+    "dependency_semantics_sha256",
+    "graph_id",
+    "nodes",
+    "dependencies",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy.landscape_dependency_graph_fixture.v0.1"
+    },
+    "suite_id": {
+      "const": "LANDSCAPE-SETS-DEPENDENCY-GRAPH-V0.1"
+    },
+    "data_origin": {
+      "const": "synthetic_fixture"
+    },
+    "claim_ceiling": {
+      "const": "STRUCTURAL_DEPENDENCY_ANALYSIS_ONLY"
+    },
+    "dependency_semantics_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "graph_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "label",
+          "layer",
+          "is_service",
+          "required_dependency_groups"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "layer": {
+            "enum": [
+              "social",
+              "ecological",
+              "technical"
+            ]
+          },
+          "is_service": {
+            "type": "boolean"
+          },
+          "required_dependency_groups": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "edge_id",
+          "dependent_node_id",
+          "provider_node_id",
+          "requirement_group_id"
+        ],
+        "properties": {
+          "edge_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependent_node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider_node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requirement_group_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "label",
+          "failed_node_ids",
+          "disabled_edge_ids"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failed_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "disabled_edge_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}
