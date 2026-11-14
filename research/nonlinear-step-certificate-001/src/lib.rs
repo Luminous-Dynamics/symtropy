@@ -191,6 +191,9 @@ pub enum CertificateInputErrorV1 {
     BasisSingular,
     MetricFactorMismatch,
     IntegerArithmeticOverflow,
+    ReceiptBindingMismatch,
+    ReplayDidNotCertify,
+    ReplayResultMismatch,
 }
 
 impl fmt::Display for CertificateInputErrorV1 {
@@ -326,6 +329,11 @@ impl MetricFrame2V1 {
         &self,
         profile: KrawczykProfileV1,
     ) -> Result<(), CertificateInputErrorV1> {
+        // The integer frame matrices are converted to binary64 interval
+        // endpoints below. Restrict entries to f64's exact-integer range.
+        if profile.maximum_basis_entry <= 0 || profile.maximum_basis_entry > (1_i64 << 53) {
+            return Err(CertificateInputErrorV1::InvalidProfile);
+        }
         let all_entries = self
             .basis_to_physical
             .iter()
@@ -451,11 +459,22 @@ impl QuadraticSystem2V1 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct CertificateBindingV1 {
+    pub system: QuadraticSystem2V1,
+    pub frame: MetricFrame2V1,
+    pub center_in_frame: Vector2,
+    pub metric_box_radius: Vector2,
+    pub profile: KrawczykProfileV1,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct KrawczykReceiptV1 {
     pub system_id: &'static str,
-    /// Non-cryptographic fixture label; this is not an identity digest.
+    /// Non-cryptographic display label only; exact replay uses the full binding.
     pub frame_id_tag: u64,
+    /// Complete source problem and profile retained for independent replay.
+    pub binding: CertificateBindingV1,
     pub krawczyk_image: IntervalVector2,
     pub state_box_in_frame: IntervalVector2,
     pub state_box_in_physical_frame: IntervalVector2,
@@ -475,7 +494,7 @@ pub struct InconclusiveReceiptV1 {
     pub reason: InconclusiveReasonV1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CertificationOutcomeV1 {
     UniqueRootCertified(KrawczykReceiptV1),
     Inconclusive(InconclusiveReceiptV1),
@@ -926,6 +945,13 @@ pub fn certify_unique_root(
             KrawczykReceiptV1 {
                 system_id: system.system_id,
                 frame_id_tag,
+                binding: CertificateBindingV1 {
+                    system,
+                    frame: frame.clone(),
+                    center_in_frame,
+                    metric_box_radius,
+                    profile,
+                },
                 krawczyk_image: image,
                 state_box_in_frame,
                 state_box_in_physical_frame,
@@ -944,6 +970,129 @@ pub fn certify_unique_root(
         Ok(outcome) => Ok(outcome),
         Err(error) => Ok(interval_failure(system.system_id, frame_id_tag, error)),
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KrawczykVerificationReceiptV1 {
+    pub system_id: &'static str,
+    pub frame_id_tag: u64,
+    pub replayed_metric_state_error_radius_upper: f64,
+    pub replayed_contraction_bound_inf: f64,
+    pub replayed_inclusion_margin_lower: f64,
+}
+
+fn same_f64_bits(left: f64, right: f64) -> bool {
+    left.to_bits() == right.to_bits()
+}
+
+fn same_vector2_bits(left: Vector2, right: Vector2) -> bool {
+    same_f64_bits(left[0], right[0]) && same_f64_bits(left[1], right[1])
+}
+
+fn same_matrix2_bits(left: Matrix2, right: Matrix2) -> bool {
+    (0..2).all(|row| (0..2).all(|column| same_f64_bits(left[row][column], right[row][column])))
+}
+
+fn same_system_bits(left: QuadraticSystem2V1, right: QuadraticSystem2V1) -> bool {
+    left.system_id == right.system_id
+        && same_vector2_bits(left.constant, right.constant)
+        && same_matrix2_bits(left.linear, right.linear)
+        && (0..2).all(|row| {
+            (0..3).all(|column| {
+                same_f64_bits(left.quadratic[row][column], right.quadratic[row][column])
+            })
+        })
+}
+
+fn same_profile_bits(left: KrawczykProfileV1, right: KrawczykProfileV1) -> bool {
+    left.maximum_basis_entry == right.maximum_basis_entry
+        && same_f64_bits(
+            left.maximum_preconditioner_inf_norm,
+            right.maximum_preconditioner_inf_norm,
+        )
+        && same_f64_bits(
+            left.maximum_contraction_bound,
+            right.maximum_contraction_bound,
+        )
+        && same_f64_bits(left.minimum_box_radius, right.minimum_box_radius)
+        && same_f64_bits(left.maximum_box_radius, right.maximum_box_radius)
+}
+
+fn same_binding_bits(left: &CertificateBindingV1, right: &CertificateBindingV1) -> bool {
+    same_system_bits(left.system, right.system)
+        && left.frame.frame_id == right.frame.frame_id
+        && left.frame.basis_to_physical == right.frame.basis_to_physical
+        && left.frame.state_metric_lower == right.frame.state_metric_lower
+        && left.frame.residual_metric_lower == right.frame.residual_metric_lower
+        && same_vector2_bits(left.center_in_frame, right.center_in_frame)
+        && same_vector2_bits(left.metric_box_radius, right.metric_box_radius)
+        && same_profile_bits(left.profile, right.profile)
+}
+
+fn same_interval_bits(left: Interval, right: Interval) -> bool {
+    same_f64_bits(left.lower, right.lower) && same_f64_bits(left.upper, right.upper)
+}
+
+fn same_receipt_bits(left: &KrawczykReceiptV1, right: &KrawczykReceiptV1) -> bool {
+    left.system_id == right.system_id
+        && left.frame_id_tag == right.frame_id_tag
+        && same_binding_bits(&left.binding, &right.binding)
+        && (0..2).all(|index| {
+            same_interval_bits(left.krawczyk_image[index], right.krawczyk_image[index])
+                && same_interval_bits(left.state_box_in_frame[index], right.state_box_in_frame[index])
+                && same_interval_bits(
+                    left.state_box_in_physical_frame[index],
+                    right.state_box_in_physical_frame[index],
+                )
+        })
+        && same_matrix2_bits(left.preconditioner, right.preconditioner)
+        && same_interval_bits(
+            left.preconditioner_determinant,
+            right.preconditioner_determinant,
+        )
+        && same_f64_bits(left.preconditioner_inf_norm, right.preconditioner_inf_norm)
+        && same_f64_bits(left.contraction_bound_inf, right.contraction_bound_inf)
+        && same_f64_bits(left.inclusion_margin_lower, right.inclusion_margin_lower)
+        && same_f64_bits(left.residual_dual_norm_upper, right.residual_dual_norm_upper)
+        && same_f64_bits(
+            left.metric_state_error_radius_upper,
+            right.metric_state_error_radius_upper,
+        )
+}
+
+/// Independently replay a root receipt and require exact input/output bit agreement.
+///
+/// The caller supplies the expected binding from its frozen problem record. This
+/// prevents a valid certificate for a different system, frame, box or profile
+/// from being silently reused. This is exact structural replay, not a signature
+/// or cryptographic digest.
+pub fn verify_krawczyk_receipt(
+    expected: &CertificateBindingV1,
+    receipt: &KrawczykReceiptV1,
+) -> Result<KrawczykVerificationReceiptV1, CertificateInputErrorV1> {
+    if !same_binding_bits(expected, &receipt.binding) {
+        return Err(CertificateInputErrorV1::ReceiptBindingMismatch);
+    }
+    let replay = certify_unique_root(
+        expected.system,
+        &expected.frame,
+        expected.center_in_frame,
+        expected.metric_box_radius,
+        expected.profile,
+    )?;
+    let CertificationOutcomeV1::UniqueRootCertified(replayed) = replay else {
+        return Err(CertificateInputErrorV1::ReplayDidNotCertify);
+    };
+    if !same_receipt_bits(receipt, &replayed) {
+        return Err(CertificateInputErrorV1::ReplayResultMismatch);
+    }
+    Ok(KrawczykVerificationReceiptV1 {
+        system_id: replayed.system_id,
+        frame_id_tag: replayed.frame_id_tag,
+        replayed_metric_state_error_radius_upper: replayed.metric_state_error_radius_upper,
+        replayed_contraction_bound_inf: replayed.contraction_bound_inf,
+        replayed_inclusion_margin_lower: replayed.inclusion_margin_lower,
+    })
 }
 
 #[cfg(test)]
@@ -1063,6 +1212,66 @@ mod tests {
         assert!(dense.state_box_in_physical_frame[0].upper > 0.5);
         assert!(dense.state_box_in_physical_frame[1].lower < -0.25);
         assert!(dense.state_box_in_physical_frame[1].upper > -0.25);
+    }
+
+    #[test]
+    fn certificate_retains_complete_problem_and_replays_bit_exactly() {
+        let system = QuadraticSystem2V1::known_root_fixture();
+        let frame = MetricFrame2V1::upper_shear(3);
+        let center = approximate_shear_center(3);
+        let radius = [0.01, 0.01];
+        let profile = KrawczykProfileV1::default();
+        let receipt = certified(
+            certify_unique_root(system, &frame, center, radius, profile).unwrap(),
+        );
+        let verification = verify_krawczyk_receipt(&receipt.binding, &receipt).unwrap();
+        assert_eq!(verification.system_id, system.system_id);
+        assert_eq!(
+            verification.replayed_metric_state_error_radius_upper,
+            receipt.metric_state_error_radius_upper
+        );
+    }
+
+    #[test]
+    fn replay_rejects_changed_system_frame_box_and_profile() {
+        let system = QuadraticSystem2V1::known_root_fixture();
+        let frame = MetricFrame2V1::upper_shear(2);
+        let center = approximate_shear_center(2);
+        let radius = [0.01, 0.01];
+        let profile = KrawczykProfileV1::default();
+        let receipt = certified(
+            certify_unique_root(system, &frame, center, radius, profile).unwrap(),
+        );
+
+        let mut altered_system = receipt.binding.clone();
+        altered_system.system.constant[0] =
+            f64::from_bits(altered_system.system.constant[0].to_bits() + 1);
+        assert_eq!(
+            verify_krawczyk_receipt(&altered_system, &receipt),
+            Err(CertificateInputErrorV1::ReceiptBindingMismatch)
+        );
+
+        let mut altered_frame = receipt.binding.clone();
+        altered_frame.frame.frame_id.push_str("-mutated");
+        assert_eq!(
+            verify_krawczyk_receipt(&altered_frame, &receipt),
+            Err(CertificateInputErrorV1::ReceiptBindingMismatch)
+        );
+
+        let mut altered_box = receipt.binding.clone();
+        altered_box.metric_box_radius[0] =
+            f64::from_bits(altered_box.metric_box_radius[0].to_bits() + 1);
+        assert_eq!(
+            verify_krawczyk_receipt(&altered_box, &receipt),
+            Err(CertificateInputErrorV1::ReceiptBindingMismatch)
+        );
+
+        let mut altered_profile = receipt.binding.clone();
+        altered_profile.profile.maximum_contraction_bound = 0.98;
+        assert_eq!(
+            verify_krawczyk_receipt(&altered_profile, &receipt),
+            Err(CertificateInputErrorV1::ReceiptBindingMismatch)
+        );
     }
 
     #[test]
