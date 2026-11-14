@@ -37,6 +37,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-admission-contract-synthetic-v0.1.json
 
+# Executable known-truth model-set diagnostics (public synthetic; not blind)
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-model-set-known-truth-diagnostics-synthetic-v0.1.json
+
 # Public model-set adequacy development manifest (not a blind test)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-model-set-adequacy-development-v0.1.json
@@ -47,7 +51,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -87,6 +91,18 @@ Twenty kernel unit tests cover identity, containment, partial and zero overlap, 
 ## Decision-value corpus
 
 The public forest decision-value corpus defines twenty case families and checks two worked synthetic examples. The arithmetic oracle verifies that high information can have zero decision value when the loss matrix is state-invariant, and independently recomputes the positive-EVSI example (gross 8.8 synthetic loss units; net 5.8 after cost). This is not execution of the existing EVSI policy kernel or a field-survey recommendation.
+
+## Executable known-truth model-set diagnostics
+
+The separate `model_set_kernel` evaluates five public analytic counterexamples. It compares candidate historical aggregate fit, pairwise cohort-space forecast disagreement and residual to an explicit validation state. It distinguishes:
+- structural disagreement despite aggregate historical fit;
+- common structural omission where candidates agree but all miss validation;
+- candidate history-fit failure;
+- a matched control where no failure is detected.
+
+The five-case CLI corpus returns `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS` when the kernel matches the declared arithmetic and dispositions. Eight Rust unit tests exercise the pure kernel; two tests in `lib.rs` exercise corpus execution and a delayed-response truth mutation. This is a toy diagnostic, not a forest process model or a blind detector. The known truth is public and all quantities are synthetic. A `NO_FAILURE_DETECTED_ON_THIS_SYNTHETIC_CASE` disposition is not an adequacy certificate.
+
+See [MODEL_SET_KNOWN_TRUTH_DIAGNOSTICS_V0_1.md](../MODEL_SET_KNOWN_TRUTH_DIAGNOSTICS_V0_1.md) and [#5198](https://github.com/Luminous-Dynamics/symtropy/issues/5198).
 
 ## Model-set adequacy
 
@@ -131,4 +147,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 78 Rust unit tests: 33 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, and 17 in the variable-aware aggregation kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small; it does not change production `symtropy-basin` APIs or canonical Living World ownership. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 88 Rust unit tests: 35 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel and 8 in the known-truth model-set kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small; it does not change production `symtropy-basin` APIs or canonical Living World ownership. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
