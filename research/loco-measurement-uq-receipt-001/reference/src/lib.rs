@@ -1309,6 +1309,7 @@ mod tests {
     fn missing_required_measurement_is_unknown_not_zero() {
         let mut audit = profile();
         audit.measurements.clear();
+        audit.uncertainty_receipts.clear();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
         assert!(
@@ -1350,6 +1351,7 @@ mod tests {
     #[test]
     fn stale_uncertainty_receipt_is_unknown() {
         let mut audit = profile();
+        audit.measurements[0].end_tick = 149;
         audit.uncertainty_receipts[0].valid_through_tick = 149;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
