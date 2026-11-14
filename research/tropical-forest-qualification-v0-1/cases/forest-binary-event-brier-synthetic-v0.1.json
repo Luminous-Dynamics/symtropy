@@ -1,0 +1,141 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-BINARY-EVENT-BRIER-001",
+  "status": "PUBLIC_SYNTHETIC_BINARY_EVENT_SCORE_CASES_NOT_ECOLOGICAL_CALIBRATION",
+  "target": {
+    "event_name": "canopy_disturbance_within_horizon",
+    "horizon_days": 90
+  },
+  "baseline_kind": "FIXED_SYNTHETIC_BERNOULLI_REFERENCE",
+  "claim_ceiling": "Six public synthetic binary-event forecasts exercise Brier score, paired baseline Brier skill, five-bin reliability summaries and explicit abstention coverage. Five probabilities are issued and one abstains. No event prevalence, probability calibration or ecological skill is established.",
+  "cases": [
+    {
+      "forecast_id": "BRIER-DISTURBANCE-EVENT-001",
+      "event_name": "canopy_disturbance_within_horizon",
+      "horizon_days": 90,
+      "event_probability": 0.8,
+      "observed_event": true,
+      "baseline_probability": 0.5,
+      "expected": {
+        "model_brier": 0.04,
+        "baseline_brier": 0.25
+      }
+    },
+    {
+      "forecast_id": "BRIER-NO-DISTURBANCE-001",
+      "event_name": "canopy_disturbance_within_horizon",
+      "horizon_days": 90,
+      "event_probability": 0.1,
+      "observed_event": false,
+      "baseline_probability": 0.5,
+      "expected": {
+        "model_brier": 0.01,
+        "baseline_brier": 0.25
+      }
+    },
+    {
+      "forecast_id": "BRIER-DISTURBANCE-MODERATE-001",
+      "event_name": "canopy_disturbance_within_horizon",
+      "horizon_days": 90,
+      "event_probability": 0.6,
+      "observed_event": true,
+      "baseline_probability": 0.5,
+      "expected": {
+        "model_brier": 0.16,
+        "baseline_brier": 0.25
+      }
+    },
+    {
+      "forecast_id": "BRIER-FALSE-ALARM-001",
+      "event_name": "canopy_disturbance_within_horizon",
+      "horizon_days": 90,
+      "event_probability": 0.9,
+      "observed_event": false,
+      "baseline_probability": 0.5,
+      "expected": {
+        "model_brier": 0.81,
+        "baseline_brier": 0.25
+      }
+    },
+    {
+      "forecast_id": "BRIER-ABSTENTION-001",
+      "event_name": "canopy_disturbance_within_horizon",
+      "horizon_days": 90,
+      "event_probability": null,
+      "observed_event": true,
+      "baseline_probability": 0.5,
+      "expected": {
+        "model_brier": null,
+        "baseline_brier": 0.25
+      }
+    },
+    {
+      "forecast_id": "BRIER-LOW-PROB-NON-EVENT-001",
+      "event_name": "canopy_disturbance_within_horizon",
+      "horizon_days": 90,
+      "event_probability": 0.3,
+      "observed_event": false,
+      "baseline_probability": 0.5,
+      "expected": {
+        "model_brier": 0.09,
+        "baseline_brier": 0.25
+      }
+    }
+  ],
+  "expected_summary": {
+    "eligible_case_count": 6,
+    "forecast_case_count": 5,
+    "abstained_case_count": 1,
+    "forecast_coverage_fraction": 0.8333333333333334,
+    "mean_model_brier": 0.222,
+    "mean_baseline_brier_paired": 0.25,
+    "mean_baseline_brier_all": 0.25,
+    "brier_skill_score": 0.112,
+    "reliability_bins": [
+      {
+        "lower_bound": 0,
+        "upper_bound": 0.2,
+        "case_count": 1,
+        "mean_forecast_probability": 0.1,
+        "observed_event_frequency": 0
+      },
+      {
+        "lower_bound": 0.2,
+        "upper_bound": 0.4,
+        "case_count": 1,
+        "mean_forecast_probability": 0.3,
+        "observed_event_frequency": 0
+      },
+      {
+        "lower_bound": 0.4,
+        "upper_bound": 0.6,
+        "case_count": 0,
+        "mean_forecast_probability": null,
+        "observed_event_frequency": null
+      },
+      {
+        "lower_bound": 0.6,
+        "upper_bound": 0.8,
+        "case_count": 1,
+        "mean_forecast_probability": 0.6,
+        "observed_event_frequency": 1
+      },
+      {
+        "lower_bound": 0.8,
+        "upper_bound": 1,
+        "case_count": 2,
+        "mean_forecast_probability": 0.85,
+        "observed_event_frequency": 0.5
+      }
+    ],
+    "disposition": "SCORED_WITH_EXPLICIT_EVENT_FORECAST_COVERAGE"
+  },
+  "execution": {
+    "runner": "BERNOULLI_BRIER_AND_FIXED_BIN_RELIABILITY",
+    "external_data_ingested": false,
+    "event_calibration": "NOT_ESTABLISHED",
+    "ecological_forecast_skill": "NOT_ESTABLISHED",
+    "blind_evaluation": "NOT_CREATED"
+  }
+}
