@@ -665,6 +665,162 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_filter_barrier_assurance(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 8;
+    const CEILING: &str = "synthetic_contract_semantics_only_no_filter_or_water_safety_claim";
+
+    if string(inputs, &["schema_version"])? != "filter-barrier-assurance-cases-v0.1"
+        || string(inputs, &["evidence_class"])? != "synthetic_barrier_state_contract_fixture"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != "filter-barrier-assurance-oracle-v0.1"
+        || string(oracle, &["evidence_class"])? != "synthetic_barrier_state_contract_fixture"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("filter barrier input/oracle identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "filter barrier cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "filter barrier oracle cases must be an array".to_owned())?;
+    if cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "filter barrier expected {EXPECTED_CASES} input/oracle cases; got {}/{}",
+            cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["case_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("filter barrier duplicate oracle ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("filter barrier duplicate input ID: {id}"));
+        }
+        let i = at(case, &["inputs"])?;
+        let requested_scope = string(i, &["requested_claim_scope"])?;
+        let challenge = string(i, &["independent_challenge_status"])?;
+        let envelope = string(i, &["operating_envelope_status"])?;
+        let bypass = string(i, &["bypass_state"])?;
+        let sensor = string(i, &["sensor_health"])?;
+        let media = string(i, &["media_service_state"])?;
+        let maintenance = string(i, &["maintenance_state"])?;
+        let lab = string(i, &["lab_sample_state"])?;
+        let scopes = at(i, &["qualified_claim_scopes"])?
+            .as_array()
+            .ok_or_else(|| format!("{id}: qualified_claim_scopes must be an array"))?;
+        let scope_matches = scopes
+            .iter()
+            .any(|scope| scope.as_str() == Some(requested_scope.as_str()));
+
+        let (qualification, operating) = if bypass == "open" {
+            ("BYPASSED", "BYPASSED")
+        } else if media == "expired" {
+            ("OUT_OF_SERVICE", "OUT_OF_SERVICE")
+        } else if bypass == "unknown" || media == "unknown" {
+            ("UNKNOWN", "UNKNOWN")
+        } else if sensor == "offline" {
+            ("UNKNOWN", "UNKNOWN")
+        } else if sensor == "degraded" {
+            ("DEGRADED", "NOT_OBSERVED")
+        } else if maintenance == "requalification_pending" {
+            ("UNKNOWN", "UNKNOWN")
+        } else if challenge != "valid" {
+            ("NOT_QUALIFIED", "NOT_OBSERVED")
+        } else if !scope_matches {
+            ("CLAIM_SCOPE_MISMATCH", "NOT_OBSERVED")
+        } else if envelope == "unknown" {
+            ("UNKNOWN", "UNKNOWN")
+        } else if envelope == "out_of_profile" {
+            ("OUT_OF_DOMAIN", "OUT_OF_PROFILE")
+        } else {
+            ("QUALIFIED_FOR_DECLARED_ENVELOPE", "OBSERVED_IN_PROFILE")
+        };
+
+        let sample_evidence = match lab.as_str() {
+            "not_available" => "NOT_AVAILABLE",
+            "sample_result_present" => "SAMPLE_RESULT_PRESENT",
+            "sample_flagged_for_authority_review" => "SAMPLE_FLAGGED_FOR_AUTHORITY_REVIEW",
+            _ => return Err(format!("{id}: unsupported lab sample evidence state")),
+        };
+        let actual = json!({
+            "qualification_disposition": qualification,
+            "current_operating_disposition": operating,
+            "sample_evidence_disposition": sample_evidence,
+            "potability_or_compliance_claim_allowed": false
+        });
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("filter barrier oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "family": "FILTER_BARRIER_ASSURANCE",
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "filter barrier input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|a, b| {
+        a.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+
+    Ok(json!({
+        "schema_version": "filter-barrier-assurance-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_barrier_state_contract_fixture",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "No filter, cartridge, membrane, UV unit or treatment train is qualified.",
+            "A process indicator is not independent challenge evidence.",
+            "No potability, SANS 241 compliance, pathogen reduction or contaminant reduction claim is established.",
+            "Laboratory sample evidence is sample-specific and is not propagated through time or across locations.",
+            "No regulator incident, advisory, release or actuator action is authorized."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -683,9 +839,91 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "filter_barrier_inputs" => include_str!(
+                "../../../research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json"
+            ),
+            "filter_barrier_oracle" => include_str!(
+                "../../../research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_eight_filter_barrier_cases_match_separate_oracle() {
+        let result = evaluate_filter_barrier_assurance(
+            &load("filter_barrier_inputs"),
+            &load("filter_barrier_oracle"),
+        )
+        .expect("filter barrier cases must evaluate");
+        assert_eq!(result["result_count"], 8);
+        assert_eq!(result["matched_case_count"], 8);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn open_bypass_cannot_be_masked_by_healthy_sensors_or_valid_test() {
+        let result = evaluate_filter_barrier_assurance(
+            &load("filter_barrier_inputs"),
+            &load("filter_barrier_oracle"),
+        )
+        .expect("filter barrier cases must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FBA-002-open-bypass")
+            .unwrap();
+        assert_eq!(row["computed"]["qualification_disposition"], "BYPASSED");
+        assert_eq!(row["computed"]["potability_or_compliance_claim_allowed"], false);
+    }
+
+    #[test]
+    fn sensor_offline_makes_current_barrier_state_unknown() {
+        let result = evaluate_filter_barrier_assurance(
+            &load("filter_barrier_inputs"),
+            &load("filter_barrier_oracle"),
+        )
+        .expect("filter barrier cases must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FBA-003-critical-sensor-offline")
+            .unwrap();
+        assert_eq!(row["computed"]["qualification_disposition"], "UNKNOWN");
+    }
+
+    #[test]
+    fn aesthetic_qualification_does_not_imply_viral_claim() {
+        let result = evaluate_filter_barrier_assurance(
+            &load("filter_barrier_inputs"),
+            &load("filter_barrier_oracle"),
+        )
+        .expect("filter barrier cases must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FBA-008-scope-mismatch")
+            .unwrap();
+        assert_eq!(
+            row["computed"]["qualification_disposition"],
+            "CLAIM_SCOPE_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn unknown_operating_envelope_never_assumes_in_profile() {
+        let mut inputs = load("filter_barrier_inputs");
+        inputs["cases"][0]["inputs"]["operating_envelope_status"] = json!("unknown");
+        let result = evaluate_filter_barrier_assurance(
+            &inputs,
+            &load("filter_barrier_oracle"),
+        );
+        assert!(result.is_err() || result.unwrap()["results"][0]["computed"]["qualification_disposition"] == "UNKNOWN");
     }
 
     #[test]
