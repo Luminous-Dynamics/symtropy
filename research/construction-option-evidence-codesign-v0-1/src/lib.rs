@@ -1253,6 +1253,76 @@ mod tests {
     }
 
     #[test]
+    fn joint_evaluation_does_not_mutate_option_specific_planning_books() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let package = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        let occupancy_before = package.occupancy_book.clone();
+        let reservations_before = package.reservation_book.clone();
+
+        let report = evaluate(
+            std::slice::from_ref(&candidate),
+            std::slice::from_ref(&package),
+            100,
+        )
+        .expect("joint package evaluation");
+
+        assert!(report.joint_frontier_proven);
+        assert_eq!(package.occupancy_book, occupancy_before);
+        assert_eq!(package.reservation_book, reservations_before);
+        assert_eq!(package.occupancy_book.occupancy_count(), 0);
+        assert_eq!(
+            package
+                .reservation_book
+                .active_reservation_count_for_resource("SURVEY-INSTRUMENT-1"),
+            Ok(0)
+        );
+    }
+
+    #[test]
+    fn action_reservation_clock_domain_must_match_campaign_snapshot() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let mut package = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        package.actions[0].occupancy.reservation.clock_domain_id =
+            "different-clock-domain".to_owned();
+
+        assert_eq!(
+            evaluate(&[candidate], &[package], 100),
+            Err(JointEvaluationError::ObservationContextMismatch {
+                option_id: "option-a".to_owned(),
+                action_id: "scan-option-a".to_owned(),
+            })
+        );
+    }
+
+    #[test]
     fn missing_campaign_is_typed_for_robust_feasible_option() {
         let candidate = option(
             "option-a",
