@@ -1118,6 +1118,112 @@ mod tests {
         receipt
     }
 
+    fn exact_f64_ratio(value: f64) -> (i128, i128) {
+        let bits = value.to_bits();
+        let negative = (bits >> 63) != 0;
+        let exponent_bits = ((bits >> 52) & 0x7ff) as i32;
+        let fraction = bits & ((1_u64 << 52) - 1);
+        let (significand, exponent) = if exponent_bits == 0 {
+            (i128::from(fraction), -1074)
+        } else {
+            (
+                i128::from((1_u64 << 52) | fraction),
+                exponent_bits - 1023 - 52,
+            )
+        };
+        let signed = if negative {
+            -significand
+        } else {
+            significand
+        };
+        if exponent >= 0 {
+            (signed << exponent as u32, 1)
+        } else {
+            (signed, 1_i128 << (-exponent) as u32)
+        }
+    }
+
+    fn exact_add(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
+        (
+            left.0 * right.1 + right.0 * left.1,
+            left.1 * right.1,
+        )
+    }
+
+    fn exact_sub(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
+        (
+            left.0 * right.1 - right.0 * left.1,
+            left.1 * right.1,
+        )
+    }
+
+    fn exact_mul(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
+        (left.0 * right.0, left.1 * right.1)
+    }
+
+    fn exact_div(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
+        assert_ne!(right.0, 0);
+        let sign = if right.0 < 0 { -1 } else { 1 };
+        (
+            left.0 * right.1 * sign,
+            left.1 * right.0 * sign,
+        )
+    }
+
+    fn compare_f64_with_ratio(value: f64, numerator: i128, denominator: i128) -> std::cmp::Ordering {
+        let (value_numerator, value_denominator) = exact_f64_ratio(value);
+        (value_numerator * denominator).cmp(&(numerator * value_denominator))
+    }
+
+    fn assert_interval_contains_ratio(interval: Interval, rational: (i128, i128)) {
+        assert!(rational.1 > 0);
+        assert_ne!(
+            compare_f64_with_ratio(interval.lower, rational.0, rational.1),
+            std::cmp::Ordering::Greater,
+            "lower endpoint exceeds exact rational"
+        );
+        assert_ne!(
+            compare_f64_with_ratio(interval.upper, rational.0, rational.1),
+            std::cmp::Ordering::Less,
+            "upper endpoint is below exact rational"
+        );
+    }
+
+    #[test]
+    fn interval_arithmetic_contains_exact_dyadic_rational_operations() {
+        for numerator in -31_i64..=31 {
+            for denominator_power in [3_u32, 5, 8] {
+                let denominator = (1_u64 << denominator_power) as f64;
+                let left_value = numerator as f64 / denominator;
+                let right_value = (numerator + 7) as f64 / (denominator * 2.0);
+                if right_value == 0.0 {
+                    continue;
+                }
+                let left = Interval::point(left_value).unwrap();
+                let right = Interval::point(right_value).unwrap();
+                let left_exact = exact_f64_ratio(left_value);
+                let right_exact = exact_f64_ratio(right_value);
+
+                assert_interval_contains_ratio(
+                    left.add(right).unwrap(),
+                    exact_add(left_exact, right_exact),
+                );
+                assert_interval_contains_ratio(
+                    left.sub(right).unwrap(),
+                    exact_sub(left_exact, right_exact),
+                );
+                assert_interval_contains_ratio(
+                    left.mul(right).unwrap(),
+                    exact_mul(left_exact, right_exact),
+                );
+                assert_interval_contains_ratio(
+                    left.div(right).unwrap(),
+                    exact_div(left_exact, right_exact),
+                );
+            }
+        }
+    }
+
     #[test]
     fn interval_addition_contains_exact_dyadic_sum() {
         let left = Interval::point(0.1).unwrap();
@@ -1272,6 +1378,44 @@ mod tests {
             verify_krawczyk_receipt(&altered_profile, &receipt),
             Err(CertificateInputErrorV1::ReceiptBindingMismatch)
         );
+    }
+
+    #[test]
+    fn metric_whitened_krawczyk_certificate_survives_seventeen_dense_shears() {
+        let system = QuadraticSystem2V1::known_root_fixture();
+        let profile = KrawczykProfileV1::default();
+        let mut reference = None;
+        for shear in -8_i64..=8 {
+            let frame = MetricFrame2V1::upper_shear(shear);
+            let center = approximate_shear_center(shear);
+            let receipt = certified(
+                certify_unique_root(
+                    system,
+                    &frame,
+                    center,
+                    [0.01, 0.01],
+                    profile,
+                )
+                .unwrap(),
+            );
+            assert!(receipt.contraction_bound_inf < 1.0);
+            assert!(receipt.inclusion_margin_lower > 0.0);
+            assert!(receipt.state_box_in_physical_frame[0].lower < 0.5);
+            assert!(receipt.state_box_in_physical_frame[0].upper > 0.5);
+            assert!(receipt.state_box_in_physical_frame[1].lower < -0.25);
+            assert!(receipt.state_box_in_physical_frame[1].upper > -0.25);
+            if let Some((radius, contraction, residual)) = reference {
+                assert!((radius - receipt.metric_state_error_radius_upper).abs() < 1.0e-10);
+                assert!((contraction - receipt.contraction_bound_inf).abs() < 1.0e-8);
+                assert!((residual - receipt.residual_dual_norm_upper).abs() < 1.0e-8);
+            } else {
+                reference = Some((
+                    receipt.metric_state_error_radius_upper,
+                    receipt.contraction_bound_inf,
+                    receipt.residual_dual_norm_upper,
+                ));
+            }
+        }
     }
 
     #[test]
