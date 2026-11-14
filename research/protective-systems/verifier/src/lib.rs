@@ -4,9 +4,11 @@
 //! performance, test validity, certification, regulatory compliance, or safety.
 
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+
+pub mod voi;
 
 pub const ACCEPT_RECORD_ONLY: &str = "ACCEPT_RECORD_ONLY";
 pub const REJECT_SCOPE: &str = "REJECT_SCOPE";
@@ -212,7 +214,6 @@ fn decision(name: &str, reason: &str) -> (String, String) {
 /// Evaluate one structurally valid record using conservative B0 semantics.
 pub fn evaluate_case(case: &Value) -> (String, String) {
     let domain = text(case, "domain").unwrap_or("");
-    let fixture_class = text(case, "fixture_class").unwrap_or("");
     let evidence_class = nested_text(case, "evidence", "class").unwrap_or("");
     let standard_id = nested_text(case, "standard", "id").unwrap_or("");
     let standard_scope = nested_text(case, "standard", "scope").unwrap_or("");
@@ -458,7 +459,7 @@ mod tests {
     #[test]
     fn missing_units_are_not_accepted() {
         let mut root = corpus();
-        root["cases"][0]["evidence"]["units_present"] = json!(false);
+        root["cases"][0]["evidence"]["units_present"] = serde_json::json!(false);
         let result = evaluate_case(&root["cases"][0]);
         assert_eq!(result.0, REJECT_MISSING_OR_INVALID);
     }
@@ -466,7 +467,7 @@ mod tests {
     #[test]
     fn structural_validator_rejects_duplicate_case_ids() {
         let mut root = corpus();
-        root["cases"][1]["case_id"] = json!("HUMAN-POSITIVE-TORSO-001");
+        root["cases"][1]["case_id"] = serde_json::json!("HUMAN-POSITIVE-TORSO-001");
         let error = evaluate_corpus(&root).expect_err("duplicate IDs must fail");
         assert!(error.messages.iter().any(|m| m.contains("duplicates")));
     }
