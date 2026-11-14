@@ -104,6 +104,19 @@ Do not accept an ordinary floating-point point integrator plus an arbitrary epsi
 
 A good first prototype may use an axis-aligned outer box because it is easy to inspect and independently check. Its conservatism must be measured. Correlation loss and box inflation are first-class metrics, not invisible implementation details.
 
+## 4.1 Dual-envelope architecture: deterministic outer set + calibrated operational envelope
+
+AeroWeft should preserve two mathematically distinct outputs when the upstream model supports both:
+
+1. **Deterministic outer enclosure:** a conservative set that contains all states admitted by the declared bounded model, within the explicitly qualified domain and numeric proof obligations. Any under-approximation is a hard failure. This is the only layer that can support a bounded worst-case exclusion claim.
+2. **Probabilistic prediction envelope:** a calibrated distribution/credible volume for the likely trajectory under an explicit stochastic model and data regime. It supports efficiency, alert prioritization and resource planning. Its empirical coverage, calibration, sharpness and shift sensitivity must be measured separately.
+
+The probabilistic envelope may be narrower and more useful for planning, but its uncovered tail cannot be treated as physically impossible. A 95% volume is not a deterministic safety enclosure. If the probabilistic envelope leaves the deterministic outer set, the omitted tail remains part of the hard-bound domain and must be handled by the applicable conservative policy or remain unresolved.
+
+For each time slice, report the nesting/overlap relationship, deterministic outer-set volume, probabilistic envelope volume, empirical calibration, tail misses, and unsupported conditions. Do not add both into one "confidence" number.
+
+This architecture is informed by existing reachability literature: a zonotopic Kalman filter plus reachable tubes has been studied for aircraft maneuvering-envelope estimation/prediction using the CALC landing challenge, and reach-avoid/backward-reachability methods have been explored for aircraft conflict management. The research opportunity is not to claim novelty for reachable sets, but to make model applicability, independent proof obligations, provenance, uncertainty lineage and downstream network decisions composable across Luminous' projects. [Reference: zonotopic reachable flight regions](https://doi.org/10.1016/j.ifacol.2017.08.716); [ETH Zurich air-traffic reach-avoid research](https://control.ee.ethz.ch/research/applications/air-traffic-control.html).
+
 ## 5. Tube contract
 
 A tube consists of ordered time slices. Every slice must bind:
