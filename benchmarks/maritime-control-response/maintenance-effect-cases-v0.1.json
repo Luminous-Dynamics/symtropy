@@ -51,6 +51,26 @@
       "case_id": "ME10",
       "scenario": "Exact randomization enumeration exceeds the bounded v0.1 unit limit.",
       "expected": "rejected_exact_test_bound"
+    },
+    {
+      "case_id": "ME11",
+      "scenario": "An outcome measurement is stale despite a numeric value and valid digest.",
+      "expected": "rejected_invalid_measurement_quality"
+    },
+    {
+      "case_id": "ME12",
+      "scenario": "Calibration expires before outcome evidence becomes available to analysis.",
+      "expected": "rejected_expired_calibration"
+    },
+    {
+      "case_id": "ME13",
+      "scenario": "One randomized unit uses a different outcome measurement principle than the frozen trial.",
+      "expected": "rejected_measurement_principle_mismatch"
+    },
+    {
+      "case_id": "ME14",
+      "scenario": "All observations carry deterministic absolute-error bounds; report sampling interval and separately expanded measurement-robust interval.",
+      "expected": "accepted_with_measurement_error_bound"
     }
   ]
 }
