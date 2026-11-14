@@ -535,6 +535,8 @@ pub enum OptioneeringError {
     MissingStageDecision(OptionTier),
     DuplicateStageDecision(OptionTier),
     StageOrderInvalid,
+    StageDecisionAfterTerminal(OptionTier),
+    StageClosureHasOptions(OptionTier),
     MissingStageEvidence(OptionTier),
     StaleProjectContext(OptionTier),
     DuplicateScenario(String),
@@ -652,6 +654,21 @@ pub fn evaluate_option_set(
         }
     }
 
+    let mut terminal_stage_seen = false;
+    for tier in OptionTier::ORDERED {
+        if let Some(decision) = decisions_by_tier.get(&tier) {
+            if terminal_stage_seen {
+                return Err(OptioneeringError::StageDecisionAfterTerminal(tier));
+            }
+            if matches!(
+                decision.disposition,
+                StageDisposition::OpenForEvaluation | StageDisposition::Unknown
+            ) {
+                terminal_stage_seen = true;
+            }
+        }
+    }
+
     let mut evaluated_tier = None;
     let mut disposition = ReportDisposition::AllStagesClosed;
     for tier in OptionTier::ORDERED {
@@ -660,6 +677,9 @@ pub fn evaluate_option_set(
             .ok_or(OptioneeringError::MissingStageDecision(tier))?;
         match decision.disposition {
             StageDisposition::ClosedNoViableAlternative | StageDisposition::NotApplicable => {
+                if options.iter().any(|option| option.tier == tier) {
+                    return Err(OptioneeringError::StageClosureHasOptions(tier));
+                }
                 continue;
             }
             StageDisposition::Unknown => {
@@ -1983,6 +2003,84 @@ mod tests {
             Err(OptioneeringError::MissingMatchedReference(
                 "candidate".to_owned(),
                 "missing-baseline".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn closed_stage_cannot_hide_candidates_at_that_stage() {
+        let avoid_candidate = option(
+            "avoid-candidate",
+            OptionTier::Avoid,
+            "design-reuse",
+            vec![
+                result(
+                    "nominal",
+                    "design-reuse",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 7_000,
+                        shared_cost_minor_units: 500,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 400,
+                        workflow_crew_minutes: 300,
+                        energy_wh: 1_000,
+                        carbon_gco2e: 600,
+                        rework_units: 0,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-reuse",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 8_000,
+                        shared_cost_minor_units: 500,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 450,
+                        workflow_crew_minutes: 320,
+                        energy_wh: 1_100,
+                        carbon_gco2e: 650,
+                        rework_units: 1,
+                    },
+                ),
+            ],
+        );
+
+        assert_eq!(
+            evaluate_option_set(
+                &contract(),
+                &[
+                    stage(
+                        OptionTier::Avoid,
+                        StageDisposition::ClosedNoViableAlternative,
+                    ),
+                    stage(OptionTier::Switch, StageDisposition::OpenForEvaluation),
+                ],
+                &scenarios(),
+                &[avoid_candidate]
+            ),
+            Err(OptioneeringError::StageClosureHasOptions(
+                OptionTier::Avoid
+            ))
+        );
+    }
+
+    #[test]
+    fn later_stage_decisions_are_rejected_after_current_stage_opens() {
+        assert_eq!(
+            evaluate_option_set(
+                &contract(),
+                &[
+                    stage(OptionTier::Avoid, StageDisposition::OpenForEvaluation),
+                    stage(
+                        OptionTier::Switch,
+                        StageDisposition::ClosedNoViableAlternative,
+                    ),
+                ],
+                &scenarios(),
+                &[]
+            ),
+            Err(OptioneeringError::StageDecisionAfterTerminal(
+                OptionTier::Switch
             ))
         );
     }
