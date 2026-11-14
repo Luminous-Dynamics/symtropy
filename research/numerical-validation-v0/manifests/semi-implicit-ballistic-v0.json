@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-semi-implicit-ballistic-v0",
+  "evidence_class": "analytic_numerical_verification",
+  "method": {
+    "name": "semi_implicit_euler_kick_drift",
+    "claim": "first_order_global_position_error_for_constant_acceleration_fixture",
+    "symplectic_claim": "only_for_appropriate_separable_hamiltonian_systems",
+    "unconditional_stability_claimed": false,
+    "second_order_convergence_claimed": false
+  },
+  "system": {
+    "dimension": 3,
+    "equation": "x''(t) = g",
+    "gravity_m_per_s2": [0.0, -9.81, 0.0],
+    "initial_position_m": [0.25, 2.0, -0.5],
+    "initial_velocity_m_per_s": [0.3, 2.0, -0.1],
+    "linear_damping": 0.0,
+    "angular_damping": 0.0,
+    "final_time_s": 1.0
+  },
+  "reference": {
+    "position": "x0 + v0*T + 0.5*g*T^2",
+    "velocity": "v0 + g*T"
+  },
+  "timesteps_s": [0.1, 0.05, 0.025],
+  "expected": {
+    "position_global_error_order": 1,
+    "position_error_ratio_when_halving_dt": 2.0,
+    "velocity_error_order": "roundoff_for_constant_acceleration"
+  },
+  "acceptance": {
+    "position_error_ratio_abs_tolerance": 1e-10,
+    "velocity_error_abs_tolerance": 1e-10,
+    "integral_step_count_required": true,
+    "nonzero_damping_allowed": false
+  },
+  "interpretation": {
+    "scope": "constant_acceleration_analytic_fixture",
+    "does_not_prove": [
+      "stability_for_arbitrary_hamiltonian_systems",
+      "stability_for_arbitrary_timestep",
+      "stiff_system_accuracy",
+      "physical_validation_against_experiment",
+      "second_order_convergence"
+    ]
+  }
+}
