@@ -26,7 +26,9 @@ impl OptionTier {
 pub struct PerformanceRequirement {
     pub metric_id: String,
     pub unit_symbol: String,
-    /// Fixed-point integer value in the scale declared by the contract.
+    /// Positive fixed-point divisor: actual metric value = stored integer / scale.
+    /// Scenario values and bounds use the same declared integer scale.
+    pub scale: u64,
     pub minimum_value: Option<i64>,
     pub maximum_value: Option<i64>,
 }
