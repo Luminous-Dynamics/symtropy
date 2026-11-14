@@ -153,6 +153,20 @@ pub fn bound_rect_overlap_under_translation(
         return Err(SupportError::InvalidShiftBounds);
     }
 
+    let shifted_coordinates = [
+        source.min_x + shift.min_dx,
+        source.min_x + shift.max_dx,
+        source.max_x + shift.min_dx,
+        source.max_x + shift.max_dx,
+        source.min_y + shift.min_dy,
+        source.min_y + shift.max_dy,
+        source.max_y + shift.min_dy,
+        source.max_y + shift.max_dy,
+    ];
+    if !shifted_coordinates.iter().all(|value| value.is_finite()) {
+        return Err(SupportError::InvalidGeometry);
+    }
+
     let x_overlap = axis_overlap_bounds(
         target.min_x,
         target.max_x,
@@ -176,8 +190,8 @@ pub fn bound_rect_overlap_under_translation(
     Ok(OverlapUncertaintyBounds {
         minimum_overlap_area_m2,
         maximum_overlap_area_m2,
-        minimum_coverage_fraction: minimum_overlap_area_m2 / target_area,
-        maximum_coverage_fraction: maximum_overlap_area_m2 / target_area,
+        minimum_coverage_fraction: (minimum_overlap_area_m2 / target_area).clamp(0.0, 1.0),
+        maximum_coverage_fraction: (maximum_overlap_area_m2 / target_area).clamp(0.0, 1.0),
     })
 }
 
