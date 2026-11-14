@@ -16,7 +16,8 @@ use construction_observation_portfolio_core::{
 };
 use construction_production_optioneering_core::{
     FunctionalOutcomeContract, OptionCandidate, OptionEvaluation, OptionStatus, OptioneeringError,
-    OptioneeringReport, RobustObjectives, ScenarioCase, StageGateDecision, evaluate_option_set,
+    OptioneeringReport, ReportDisposition, RobustObjectives, ScenarioCase, StageGateDecision,
+    evaluate_option_set,
 };
 use construction_robot_interop_core::resources::ReservationBook;
 use construction_spacetime_occupancy_core::{SpatialError, SpatialOccupancyBook};
@@ -99,6 +100,22 @@ impl OptionEvidenceCampaign {
             });
         }
         validate_currency_code(&self.currency_code)?;
+
+        let occupancy_binding = self.occupancy_book.binding();
+        if occupancy_binding.floor_id != self.floor_id
+            || occupancy_binding.site_epoch != self.site_epoch
+            || occupancy_binding.design_revision_digest != self.option_design_digest
+            || occupancy_binding.target_frame_id != self.target_frame_id
+        {
+            return Err(JointEvaluationError::BaseOccupancyContextMismatch(
+                self.option_id.clone(),
+            ));
+        }
+        if self.reservation_book.current_site_epoch() != self.site_epoch {
+            return Err(JointEvaluationError::ReservationSiteEpochMismatch(
+                self.option_id.clone(),
+            ));
+        }
 
         let mut action_ids = BTreeSet::new();
         let mut occupancy_ids = BTreeSet::new();
@@ -287,6 +304,8 @@ pub enum JointEvaluationError {
     OptionDesignMismatch { option_id: String, expected: String, received: String },
     CampaignCurrencyMismatch { option_id: String, expected: String, received: String },
     ObservationContextMismatch { option_id: String, action_id: String },
+    BaseOccupancyContextMismatch(String),
+    ReservationSiteEpochMismatch(String),
     ArithmeticOverflow,
     Optioneering(OptioneeringError),
     Portfolio(PortfolioError),
@@ -499,7 +518,11 @@ pub fn evaluate_option_evidence_packages(
         .collect();
     provisional_feasible_option_ids.sort();
 
-    let joint_frontier_proven = !unresolved_campaign;
+    let construction_frontier_resolved = matches!(
+        option_report.disposition,
+        ReportDisposition::FrontierComputed | ReportDisposition::NoRobustFeasibleCandidates
+    );
+    let joint_frontier_proven = construction_frontier_resolved && !unresolved_campaign;
     Ok(JointOptioneeringReport {
         functional_contract_id: option_report.functional_contract_id,
         functional_contract_digest: option_report.functional_contract_digest,
