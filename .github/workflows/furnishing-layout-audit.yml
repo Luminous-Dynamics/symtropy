@@ -1,0 +1,45 @@
+name: Furnishing Layout Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.json'
+      - 'fixtures/interiors/furnishing_layout_scenarios_v0_1.schema.json'
+      - 'tools/furnishing-layout-audit/**'
+      - '.github/workflows/furnishing-layout-audit.yml'
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Exact-head furnishing layout oracle
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Assert exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "${{ github.repository }}" = "Luminous-Dynamics/symtropy"
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/furnishing-layout-audit/Cargo.toml -- --check
+      - name: Run known-truth and mutation tests
+        run: cargo test --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/furnishing-layout-audit/Cargo.toml --all-targets -- -D warnings
+
