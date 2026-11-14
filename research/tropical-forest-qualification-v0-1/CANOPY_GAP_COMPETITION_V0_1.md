@@ -22,7 +22,19 @@ This benchmark asks whether preserving cohort position and crown support improve
 
 The first three are the key competition. The individual model is a bounded comparator, not a priori ground truth. The published LPJ-GUESS SEC scheme is the current external reference for spatially explicit cohort canopies.
 
-## 3. Analytical toy fixture (not a biological light model)
+## 3. Published comparison target and cost boundary
+
+The 2026 LPJ-GUESS paper provides a concrete, reproducible challenge rather than a vague canopy inspiration:
+
+- At its Barro Colorado Island case, standard LPJ did not maintain a recruitment layer in the reported harvest experiment.
+- PPA formed a recruitment layer at 20% harvest but did not retain it to 60 years in the reported cases.
+- SEC retained a recruitment layer beyond 60 years even at 20% harvest.
+- SEC averaged 2.26× the runtime of standard LPD in the article's patch-count experiment; PPA averaged 1.54×.
+- The article notes SEC was not part of the cited 2025 demographic vegetation model intercomparison.
+
+These results are specific to the article's model version, sites, assumptions and experiment. The Luminous comparison must reproduce the source case where possible and must compare runtime and ecological output together. It must not imply that SEC universally dominates PPA or every cohort canopy.
+
+## 4. Analytical toy fixture (not a biological light model)
 
 Use an 8 × 8 grid of equal-area cells. Each of two hypothetical canopy arrangements has exactly 32 occupied cells and local LAI = 2 on occupied cells; all other cells have LAI = 0. Both therefore have identical total LAI = 64 and mean LAI = 1.
 
@@ -42,7 +54,7 @@ Expected values:
 
 This fixture is designed to falsify the assumption that equal aggregate LAI implies equal local gap structure. It does not prove which arrangement better predicts real seedling recruitment.
 
-## 4. Required process-level tests
+## 5. Required process-level tests
 
 1. **Gap creation:** remove one declared cohort / crown contribution; local gap light rises only in cells whose canopy support changed.
 2. **Clustered disturbance:** remove equal biomass in two different spatial patterns; compare gap geometry and understory light.
@@ -53,7 +65,7 @@ This fixture is designed to falsify the assumption that equal aggregate LAI impl
 7. **Fidelity promotion:** when recruitment depends on local light, a representation with only global LAI must be marked insufficient or refined before authoritative use.
 8. **Budget parity:** all representations receive identical initial state, forcing, candidate actions, duration, parameter-fitting data and compute budget declarations.
 
-## 5. Scorecard
+## 6. Scorecard
 
 - gap area distribution, component count and connectivity;
 - understory light mean, quantiles, variance and spatial autocorrelation;
@@ -65,12 +77,12 @@ This fixture is designed to falsify the assumption that equal aggregate LAI impl
 
 A spatially explicit model should only be selected when the process and task need its additional state. If only aggregate biomass is being predicted, simpler representations may be sufficient.
 
-## 6. Admissible SOTA comparison
+## 7. Admissible SOTA comparison
 
 Reproduce a pinned LPJ-GUESS baseline and the published SEC / PPA semantics on the same frozen cases. Report implementation differences and unavailable features. Do not claim to have reproduced SEC merely because a model places cohort centroids in a grid.
 
 Use LPJ-GUESS, FATES and an individual-tree reference only where their scientific target, parameters, forcing, and observed outputs can be made semantically comparable. The Luminous benchmark should report a multi-axis Pareto frontier rather than hide ecological error inside a runtime win.
 
-## 7. Claim ceiling
+## 8. Claim ceiling
 
 A pass on the analytical toy fixture proves only that the implementation distinguishes aggregate-equal but spatially different canopy arrangements and preserves declared invariants. It does not validate canopy radiation, tropical allometry, tree mortality, recruitment, species coexistence or forestry decisions.
