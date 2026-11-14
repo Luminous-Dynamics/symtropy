@@ -45,7 +45,7 @@
     "interval_nonclaim": "The Wilson interval measures Monte Carlo uncertainty in the tail probability, not uncertainty in the ATE and not causal-identification uncertainty."
   },
   "replay_contract": {
-    "frame_digest": "SHA-256 over domain-separated, canonical stratum IDs, frozen allocations, unit IDs, observed assignment arms, observed outcomes, units, trial ID and assignment-plan digest",
+    "frame_digest": "SHA-256 over the full serialized trial after canonical sorting of observations by unit ID and stratum allocations by stratum ID; this binds the complete trial contract including all measurement evidence, calibration, time, quality and uncertainty fields.",
     "sampled_assignments_digest": "SHA-256 over domain-separated randomization-frame digest, algorithm ID, seed, draw count and each sampled allocation encoded in canonical unit-ID order",
     "row_order": "Unit and stratum input row order must not change the frame digest, sampled-assignment digest or p-value.",
     "prng": "SplitMix64 constants and wrapping semantics are frozen by a Rust golden-vector test. It is a reproducible simulation PRNG, not a cryptographic generator.",
@@ -77,7 +77,8 @@
     "A fixed draw budget is used; no data-dependent early stopping is allowed.",
     "A work-budget failure must occur before any sampling begins.",
     "Allocation constraint violations are counted and must remain zero.",
-    "The result cannot authorize maintenance, physical restoration or operating-restriction clearance."
+    "The result cannot authorize maintenance, physical restoration or operating-restriction clearance.",
+    "The canonical frame digest binds the complete validated trial object, including all source, calibration, timestamp, measurement-quality and uncertainty metadata."
   ],
   "comparators": [
     {
