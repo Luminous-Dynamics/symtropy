@@ -38,6 +38,16 @@ struct EvaluationContext<'a> {
     max_timestamp_uncertainty_ms: f64,
 }
 
+type ValidatedPairCase = (
+    String,
+    String,
+    String,
+    PairEvidenceClass,
+    BTreeMap<String, Channel>,
+    Vec<Value>,
+    Vec<Value>,
+);
+
 fn push(errors: &mut Errors, code: &str, path: &str, detail: impl Into<String>) {
     errors.push(json!({"code":code,"path":path,"detail":detail.into()}));
 }
@@ -163,7 +173,7 @@ fn availability(raw:Option<&str>)->Option<PairAvailability>{
     }
 }
 
-fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BTreeMap<String,Channel>,Vec<Value>,Vec<Value>),Errors>{
+fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
     let mut errors=Vec::new();
     exact_keys(case,&["schema_version","case_id","evidence_class","asset","operating_domain","maximum_timestamp_uncertainty_ms","channels","pairs","dependency_cut_scenarios","authority_boundary","claim_ceiling"],&[],"$",&mut errors);
     if text(case,"schema_version")!=Some("0.1.0"){
@@ -186,14 +196,12 @@ fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BT
     let regime=text(&case["operating_domain"],"regime_id").unwrap_or("").to_owned();
     exact_keys(&case["operating_domain"],&["regime_id","qualification_state"],&[],"$.operating_domain",&mut errors);
     if regime.is_empty(){push(&mut errors,"REGIME_REQUIRED","$.operating_domain.regime_id","regime ID required");}
-    let regime_qualified=text(&case["operating_domain"],"qualification_state")==Some("qualified");
     if !matches!(text(&case["operating_domain"],"qualification_state"),Some("qualified"|"unsupported"|"not_evaluated")){
         push(&mut errors,"REGIME_STATE","$.operating_domain.qualification_state","invalid regime state");
     }
-    let max_timestamp_uncertainty=finite(case,"maximum_timestamp_uncertainty_ms").filter(|x|*x>0.0).unwrap_or_else(||{
+    if finite(case,"maximum_timestamp_uncertainty_ms").is_none_or(|x|x<=0.0){
         push(&mut errors,"MAX_TIMESTAMP_UNCERTAINTY_INVALID","$.maximum_timestamp_uncertainty_ms","maximum timestamp uncertainty must be finite and positive");
-        0.0
-    });
+    }
 
     let Some(items)=case["channels"].as_array() else{
         push(&mut errors,"CHANNELS_REQUIRED","$.channels","channels array required");
@@ -275,10 +283,9 @@ fn validate_case(case:&Value)->Result<(String,String,String,PairEvidenceClass,BT
         if pair["minimum_independent_principles"].as_u64().is_none_or(|v|v==0){
             push(&mut errors,"PAIR_THRESHOLD_INVALID",&format!("{path}.minimum_independent_principles"),"minimum independent principles must be positive");
         }
-        if let Some(expected)=text(pair,"expected_status"){
-            if !matches!(expected,"IDENTIFIABLE"|"NOT_IDENTIFIABLE"|"INSUFFICIENT_EVIDENCE"){
-                push(&mut errors,"EXPECTED_STATUS_INVALID",&format!("{path}.expected_status"),"invalid expected status");
-            }
+        if let Some(expected)=text(pair,"expected_status")
+            && !matches!(expected,"IDENTIFIABLE"|"NOT_IDENTIFIABLE"|"INSUFFICIENT_EVIDENCE"){
+            push(&mut errors,"EXPECTED_STATUS_INVALID",&format!("{path}.expected_status"),"invalid expected status");
         }
         let Some(responses)=pair["responses"].as_array() else{
             push(&mut errors,"PAIR_RESPONSES_REQUIRED",&format!("{path}.responses"),"responses array required");
@@ -383,8 +390,8 @@ fn classify_one(pair:&Value,channels:&BTreeMap<String,Channel>,context:Evaluatio
             channel_id:channel_id.to_owned(),
             independence_group_ref:channel.principle_group.clone(),
             dependency_groups:channel.dependencies.clone(),
-            interval_a:response["interval_a"].as_array().and_then(|a|Some((a.get(0)?.as_f64()?,a.get(1)?.as_f64()?))),
-            interval_b:response["interval_b"].as_array().and_then(|a|Some((a.get(0)?.as_f64()?,a.get(1)?.as_f64()?))),
+            interval_a:response["interval_a"].as_array().and_then(|a|Some((a.first()?.as_f64()?,a.get(1)?.as_f64()?))),
+            interval_b:response["interval_b"].as_array().and_then(|a|Some((a.first()?.as_f64()?,a.get(1)?.as_f64()?))),
             availability_a:availability(text(response,"availability_a")).expect("validated"),
             availability_b:availability(text(response,"availability_b")).expect("validated"),
             evidence_role_a:evidence_role(text(response,"evidence_role_a"),channel,context,common_timebase.as_deref(),common_clock_digest.as_deref()),
