@@ -55,7 +55,7 @@ The estimator is the stratum-weighted difference in means. The report includes t
 
 ### Measurement provenance and uncertainty
 
-Each baseline and outcome measurement binds a source ID, measurement principle, dependency domain, evidence digest, quality state, calibration-record digest and calibration-valid-until time. Only valid evidence with verified calibration that remains valid through evidence availability is admitted. The outcome measurement principle is frozen by the trial and must match across every randomization unit.
+Each baseline and outcome measurement binds a source ID, measurement principle, dependency domain, evidence digest, quality state, calibration-record digest and calibration-valid-from and calibration-valid-until times. Only valid evidence with verified calibration that remains valid through evidence availability is admitted. The outcome measurement principle is frozen by the trial and must match across every randomization unit.
 
 The estimator requires a deterministic absolute-error bound for each baseline/outcome measurement. Baseline uncertainty is recorded and validated but is not used for adjustment in P0. Outcome uncertainty is summarized separately:
 
@@ -85,7 +85,7 @@ A test changes only unobserved potential outcomes: the known-truth score changes
 
 ## Falsification and synthetic cases
 
-The machine-readable manifest has fourteen scenarios:
+The machine-readable manifest has fifteen scenarios:
 1. blocked randomized known-truth repair experiment;
 2. observational assignment rejected;
 3. missing treatment/control overlap rejected;
@@ -99,7 +99,8 @@ The machine-readable manifest has fourteen scenarios:
 11. stale outcome measurement rejected;
 12. calibration expired before evidence availability rejected;
 13. outcome measurement principle differs from the frozen trial;
-14. valid measurement-error bounds produce a separate robust effect interval.
+14. valid measurement-error bounds produce a separate robust effect interval;
+15. calibration becoming effective after observation is rejected.
 
 The Rust unit suite exercises the estimator, exact randomization reference distribution, directionality, chronology, assignment design, oracle separation, calibration validity, measurement-principle binding, deterministic measurement-error expansion and the protocol/case manifest.
 
