@@ -45,7 +45,7 @@ jobs:
           WATER_SERVICE_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 -- \
+          cargo run --locked --package water-service-t0 --bin water-service-t0 -- \
             research/water-service-engineering/t0-known-answer-vectors-v0.1.json \
             research/water-service-engineering/benchmark-manifest-v0.1.json \
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
@@ -133,6 +133,106 @@ jobs:
                       )
           print("PUMP_T1_CW_01_PASS: 5 independent sizing cases match separate oracle")
           PY
+      - name: Validate matched-duty whole-system pump energy cases
+        id: pump_system_energy_contracts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          schema = json.loads((root / "pump-system-energy-matched-duty.schema.json").read_text())
+          inputs = json.loads((root / "pump-system-energy-matched-duty-cases-v0.1.json").read_text())
+          oracle = json.loads((root / "pump-system-energy-matched-duty-oracle-v0.1.json").read_text())
+          manifest = json.loads((root / "pump-system-energy-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inputs),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"PUMP_SYSTEM_ENERGY_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+
+          rho = inputs["assumptions"]["water_density_kg_m3"]
+          gravity = inputs["assumptions"]["gravity_m_s2"]
+          efficiency = inputs["assumptions"]["wire_to_water_efficiency_assumed"]
+          expected = {row["case_id"]: row["expected"] for row in oracle["cases"]}
+          ids = [row["case_id"] for row in inputs["cases"]]
+          if len(ids) != 5 or len(set(ids)) != 5 or len(expected) != 5:
+              raise SystemExit("PUMP_SYSTEM_ENERGY_CASE_IDENTITY_FAIL")
+          if sorted(ids) != sorted(expected) or manifest["case_count"] != 5:
+              raise SystemExit("PUMP_SYSTEM_ENERGY_INPUT_ORACLE_MANIFEST_FAIL")
+          if any("expected" in row for row in inputs["cases"]):
+              raise SystemExit("PUMP_SYSTEM_ENERGY_INPUT_EMBEDS_ORACLE_FAIL")
+
+          def close(actual, target):
+              return math.isclose(actual, target, rel_tol=1e-9, abs_tol=1e-12)
+
+          for row in inputs["cases"]:
+              i = row["inputs"]
+              q = i["flow_m3_s"]
+              h0 = i["pump_shutoff_head_m"]
+              b = i["pump_curve_k_m_per_m6_s2"]
+              hs = i["system_static_head_m"]
+              k = i["system_curve_k_m_per_m6_s2"]
+              q2 = q * q
+              fixed_head = h0 - b * q2
+              system_head = hs + k * q2
+              throttle_head = fixed_head - system_head
+              if fixed_head <= 0 or system_head <= 0 or throttle_head < -1e-9:
+                  raise SystemExit(f"PUMP_SYSTEM_ENERGY_FIXED_SPEED_INFEASIBLE: {row['case_id']}")
+              speed2 = (system_head + b * q2) / h0
+              if speed2 <= 0 or speed2 > 1.0 + 1e-9:
+                  raise SystemExit(f"PUMP_SYSTEM_ENERGY_VFD_SPEED_OUT_OF_RANGE: {row['case_id']}")
+              speed = math.sqrt(speed2)
+              vfd_head = speed2 * h0 - b * q2
+              fixed_hydraulic = rho * gravity * q * fixed_head
+              vfd_hydraulic = rho * gravity * q * vfd_head
+              fixed_electric = fixed_hydraulic / efficiency
+              vfd_electric = vfd_hydraulic / efficiency
+              actual = {
+                  "fixed_speed_pump_head_m": fixed_head,
+                  "system_required_head_m": system_head,
+                  "fixed_speed_throttle_head_m": max(0.0, throttle_head),
+                  "vfd_speed_ratio": speed,
+                  "vfd_pump_head_m": vfd_head,
+                  "fixed_speed_hydraulic_power_w": fixed_hydraulic,
+                  "vfd_hydraulic_power_w": vfd_hydraulic,
+                  "fixed_speed_electrical_power_w": fixed_electric,
+                  "vfd_electrical_power_w": vfd_electric,
+                  "equal_service_energy_saving_fraction": 1.0 - vfd_electric / fixed_electric,
+                  "system_head_fraction_of_fixed_speed_head": system_head / fixed_head,
+              }
+              target = expected[row["case_id"]]
+              for key, value in actual.items():
+                  if not close(value, target[key]):
+                      raise SystemExit(
+                          f"PUMP_SYSTEM_ENERGY_ORACLE_MISMATCH: {row['case_id']} {key}: {value} != {target[key]}"
+                      )
+          low = expected["PSE-001-friction-dominated-low-static-head"]["equal_service_energy_saving_fraction"]
+          high = expected["PSE-002-high-static-head"]["equal_service_energy_saving_fraction"]
+          if not low > high:
+              raise SystemExit("PUMP_SYSTEM_ENERGY_STATIC_HEAD_NEGATIVE_CONTROL_FAIL")
+          print("PUMP_SYSTEM_ENERGY_M0_PASS: 5 matched-duty cases; independent oracle and static-head negative control pass")
+          PY
+      - name: Evaluate pump system energy M0 at exact revision
+        id: pump_system_energy
+        env:
+          PUMP_SYSTEM_ENERGY_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin pump-system-energy -- \
+            research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json \
+            research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json \
+            research/water-service-engineering/pump-system-energy-matched-duty.schema.json \
+            research/water-service-engineering/pump-system-energy-manifest-v0.1.json \
+            artifacts/pump-system-energy/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,12 +248,22 @@ jobs:
             research/water-service-engineering/pump-t1-cw-01-sizing-oracle-v0.1.json
             research/water-service-engineering/pump-t1-cw-01-sizing.schema.json
             research/water-service-engineering/PUMP_T1_CW_01_DESIGN_BASIS_V0_1.md
+            research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json
+            research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json
+            research/water-service-engineering/pump-system-energy-matched-duty.schema.json
+            research/water-service-engineering/pump-system-energy-manifest-v0.1.json
+            research/water-service-engineering/PUMP_SYSTEM_ENERGY_SERVICE_M0_V0_1.md
+            artifacts/pump-system-energy/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           PUMP_T1_SIZING_OUTCOME: ${{ steps.pump_t1_sizing.outcome }}
+          PUMP_SYSTEM_ENERGY_CONTRACTS_OUTCOME: ${{ steps.pump_system_energy_contracts.outcome }}
+          PUMP_SYSTEM_ENERGY_OUTCOME: ${{ steps.pump_system_energy.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$PUMP_T1_SIZING_OUTCOME" = "success"
+          test "$PUMP_SYSTEM_ENERGY_CONTRACTS_OUTCOME" = "success"
+          test "$PUMP_SYSTEM_ENERGY_OUTCOME" = "success"
