@@ -14,8 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 pub const DIAGNOSIS_REVISION_SCHEMA: &str = "symtropy-diagnostic-revision-v0.1";
-pub const DIAGNOSIS_REVISION_RECEIPT_SCHEMA: &str =
-    "symtropy-diagnostic-revision-receipt-v0.1";
+pub const DIAGNOSIS_REVISION_RECEIPT_SCHEMA: &str = "symtropy-diagnostic-revision-receipt-v0.1";
 const TIME_TOLERANCE_SECONDS: f64 = 1e-9;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -158,23 +157,67 @@ impl fmt::Display for DiagnosticRevisionError {
         match self {
             Self::InvalidBinding => write!(formatter, "diagnostic revision binding is invalid"),
             Self::InvalidIdentity => write!(formatter, "diagnostic revision identity is empty"),
-            Self::InvalidDigest => write!(formatter, "diagnostic revision digest is not lowercase SHA-256"),
-            Self::InvalidDisposition => write!(formatter, "diagnostic disposition is invalid for the frozen hypothesis catalogue"),
-            Self::InvalidTimestamp => write!(formatter, "diagnostic evidence or revision timestamp is invalid"),
-            Self::EvidenceNotYetAvailable => write!(formatter, "evidence was not available when the revision was issued"),
-            Self::NoNewEvidence => write!(formatter, "a diagnostic revision needs new evidence or an explicit invalidation basis"),
+            Self::InvalidDigest => write!(
+                formatter,
+                "diagnostic revision digest is not lowercase SHA-256"
+            ),
+            Self::InvalidDisposition => write!(
+                formatter,
+                "diagnostic disposition is invalid for the frozen hypothesis catalogue"
+            ),
+            Self::InvalidTimestamp => write!(
+                formatter,
+                "diagnostic evidence or revision timestamp is invalid"
+            ),
+            Self::EvidenceNotYetAvailable => write!(
+                formatter,
+                "evidence was not available when the revision was issued"
+            ),
+            Self::NoNewEvidence => write!(
+                formatter,
+                "a diagnostic revision needs new evidence or an explicit invalidation basis"
+            ),
             Self::DuplicateEvidence(id) => write!(formatter, "evidence digest was repeated: {id}"),
-            Self::EvidenceAlreadyInvalidated(id) => write!(formatter, "invalidated evidence cannot be resurrected: {id}"),
-            Self::UnknownInvalidatedEvidence(id) => write!(formatter, "invalidation target was not active: {id}"),
-            Self::DuplicateInvalidation(id) => write!(formatter, "evidence was invalidated more than once: {id}"),
-            Self::InvalidInvalidationBasis(id) => write!(formatter, "invalidation basis is missing or has the wrong declared effect: {id}"),
-            Self::InconsistentRevisionKind => write!(formatter, "revision kind does not match the prior disposition or evidence delta"),
-            Self::TransitionNotEvidenceJustified => write!(formatter, "changed disposition is not justified by the declared evidence effects"),
-            Self::RevisionTimeNotMonotonic => write!(formatter, "revision issue time did not increase"),
-            Self::SessionClosed => write!(formatter, "diagnostic lineage is closed after withdrawal"),
-            Self::ReceiptChainBreak => write!(formatter, "diagnostic revision receipt chain is incomplete or out of order"),
-            Self::ReceiptIntegrityFailure => write!(formatter, "diagnostic revision receipt digest or replay failed"),
-            Self::Serialization => write!(formatter, "failed to serialize diagnostic revision evidence"),
+            Self::EvidenceAlreadyInvalidated(id) => write!(
+                formatter,
+                "invalidated evidence cannot be resurrected: {id}"
+            ),
+            Self::UnknownInvalidatedEvidence(id) => {
+                write!(formatter, "invalidation target was not active: {id}")
+            }
+            Self::DuplicateInvalidation(id) => {
+                write!(formatter, "evidence was invalidated more than once: {id}")
+            }
+            Self::InvalidInvalidationBasis(id) => write!(
+                formatter,
+                "invalidation basis is missing or has the wrong declared effect: {id}"
+            ),
+            Self::InconsistentRevisionKind => write!(
+                formatter,
+                "revision kind does not match the prior disposition or evidence delta"
+            ),
+            Self::TransitionNotEvidenceJustified => write!(
+                formatter,
+                "changed disposition is not justified by the declared evidence effects"
+            ),
+            Self::RevisionTimeNotMonotonic => {
+                write!(formatter, "revision issue time did not increase")
+            }
+            Self::SessionClosed => {
+                write!(formatter, "diagnostic lineage is closed after withdrawal")
+            }
+            Self::ReceiptChainBreak => write!(
+                formatter,
+                "diagnostic revision receipt chain is incomplete or out of order"
+            ),
+            Self::ReceiptIntegrityFailure => write!(
+                formatter,
+                "diagnostic revision receipt digest or replay failed"
+            ),
+            Self::Serialization => write!(
+                formatter,
+                "failed to serialize diagnostic revision evidence"
+            ),
         }
     }
 }
@@ -192,8 +235,7 @@ fn sha256_serializable<T: Serialize>(
     domain: &[u8],
     value: &T,
 ) -> Result<String, DiagnosticRevisionError> {
-    let bytes =
-        serde_json::to_vec(value).map_err(|_| DiagnosticRevisionError::Serialization)?;
+    let bytes = serde_json::to_vec(value).map_err(|_| DiagnosticRevisionError::Serialization)?;
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update(bytes);
@@ -209,7 +251,10 @@ pub fn revision_hypothesis_catalogue_sha256(
     {
         return Err(DiagnosticRevisionError::InvalidBinding);
     }
-    sha256_serializable(b"symtropy-diagnostic-hypothesis-catalogue-v1\0", hypothesis_ids)
+    sha256_serializable(
+        b"symtropy-diagnostic-hypothesis-catalogue-v1\0",
+        hypothesis_ids,
+    )
 }
 
 impl DiagnosticRevisionBinding {
@@ -283,10 +328,7 @@ fn validate_evidence(
     Ok(())
 }
 
-fn has_effect(
-    evidence: &[RevisionEvidenceReference],
-    expected: &[RevisionEvidenceEffect],
-) -> bool {
+fn has_effect(evidence: &[RevisionEvidenceReference], expected: &[RevisionEvidenceEffect]) -> bool {
     evidence
         .iter()
         .any(|item| expected.contains(&item.declared_effect))
@@ -301,7 +343,14 @@ fn transition_is_justified(
     use RevisionEvidenceEffect as E;
 
     match (previous, next) {
-        (D::KnownHypotheses { hypothesis_ids: before }, D::KnownHypotheses { hypothesis_ids: after }) => {
+        (
+            D::KnownHypotheses {
+                hypothesis_ids: before,
+            },
+            D::KnownHypotheses {
+                hypothesis_ids: after,
+            },
+        ) => {
             let before_set = before.iter().collect::<BTreeSet<_>>();
             let after_set = after.iter().collect::<BTreeSet<_>>();
             let removed = before_set.difference(&after_set).count();
@@ -313,12 +362,15 @@ fn transition_is_justified(
             } else {
                 has_effect(
                     evidence,
-                    &[E::ContradictsCurrent, E::NarrowsHypothesisSet, E::ExpandsAmbiguity],
+                    &[
+                        E::ContradictsCurrent,
+                        E::NarrowsHypothesisSet,
+                        E::ExpandsAmbiguity,
+                    ],
                 )
             }
         }
-        (D::NoFault, D::KnownHypotheses { .. })
-        | (D::KnownHypotheses { .. }, D::NoFault) => {
+        (D::NoFault, D::KnownHypotheses { .. }) | (D::KnownHypotheses { .. }, D::NoFault) => {
             has_effect(evidence, &[E::ContradictsCurrent])
         }
         (_, D::UnknownOrOutOfSupport) => has_effect(
@@ -327,11 +379,17 @@ fn transition_is_justified(
         ),
         (_, D::NotEvaluable) => has_effect(evidence, &[E::ContextShift]),
         (D::UnknownOrOutOfSupport, D::KnownHypotheses { .. })
-        | (D::NotEvaluable, D::KnownHypotheses { .. }) => {
-            has_effect(evidence, &[E::ContradictsCurrent, E::NarrowsHypothesisSet, E::ContextShift])
+        | (D::NotEvaluable, D::KnownHypotheses { .. }) => has_effect(
+            evidence,
+            &[
+                E::ContradictsCurrent,
+                E::NarrowsHypothesisSet,
+                E::ContextShift,
+            ],
+        ),
+        (D::UnknownOrOutOfSupport, D::NoFault) | (D::NotEvaluable, D::NoFault) => {
+            has_effect(evidence, &[E::ContradictsCurrent, E::ContextShift])
         }
-        (D::UnknownOrOutOfSupport, D::NoFault)
-        | (D::NotEvaluable, D::NoFault) => has_effect(evidence, &[E::ContradictsCurrent, E::ContextShift]),
         (D::Withdrawn, _) => false,
         (_, D::Withdrawn) => false,
         _ => has_effect(evidence, &[E::ContradictsCurrent, E::ContextShift]),
@@ -341,10 +399,7 @@ fn transition_is_justified(
 fn active_evidence_sha256(
     active: &BTreeMap<String, RevisionEvidenceReference>,
 ) -> Result<String, DiagnosticRevisionError> {
-    sha256_serializable(
-        b"symtropy-diagnostic-active-evidence-set-v1\0",
-        active,
-    )
+    sha256_serializable(b"symtropy-diagnostic-active-evidence-set-v1\0", active)
 }
 
 fn revision_receipt_sha256(
@@ -352,10 +407,7 @@ fn revision_receipt_sha256(
 ) -> Result<String, DiagnosticRevisionError> {
     let mut payload = receipt.clone();
     payload.receipt_sha256.clear();
-    sha256_serializable(
-        b"symtropy-diagnostic-revision-receipt-v1\0",
-        &payload,
-    )
+    sha256_serializable(b"symtropy-diagnostic-revision-receipt-v1\0", &payload)
 }
 
 pub struct DiagnosticRevisionSession {
@@ -370,9 +422,7 @@ pub struct DiagnosticRevisionSession {
 }
 
 impl DiagnosticRevisionSession {
-    pub fn new(
-        binding: DiagnosticRevisionBinding,
-    ) -> Result<Self, DiagnosticRevisionError> {
+    pub fn new(binding: DiagnosticRevisionBinding) -> Result<Self, DiagnosticRevisionError> {
         binding.validate()?;
         Ok(Self {
             binding,
@@ -427,7 +477,10 @@ impl DiagnosticRevisionSession {
                     invalidation.invalidated_evidence_sha256.clone(),
                 ));
             }
-            if !self.active_evidence.contains_key(&invalidation.invalidated_evidence_sha256) {
+            if !self
+                .active_evidence
+                .contains_key(&invalidation.invalidated_evidence_sha256)
+            {
                 return Err(DiagnosticRevisionError::UnknownInvalidatedEvidence(
                     invalidation.invalidated_evidence_sha256.clone(),
                 ));
@@ -466,10 +519,9 @@ impl DiagnosticRevisionSession {
             (DiagnosticRevisionKind::InitialAssessment, None) => {
                 if !input.invalidations.is_empty()
                     || matches!(&input.disposition, DiagnosticDisposition::Withdrawn)
-                    || input
-                        .new_evidence
-                        .iter()
-                        .any(|item| item.declared_effect == RevisionEvidenceEffect::InvalidatesPriorEvidence)
+                    || input.new_evidence.iter().any(|item| {
+                        item.declared_effect == RevisionEvidenceEffect::InvalidatesPriorEvidence
+                    })
                 {
                     return Err(DiagnosticRevisionError::InconsistentRevisionKind);
                 }
@@ -680,11 +732,7 @@ mod tests {
                 hypothesis_ids: vec!["fault_b".into()]
             })
         );
-        let replayed = replay_diagnostic_revision_chain(
-            binding(),
-            session.receipts(),
-        )
-        .unwrap();
+        let replayed = replay_diagnostic_revision_chain(binding(), session.receipts()).unwrap();
         assert_eq!(replayed.receipts(), session.receipts());
     }
 
@@ -726,7 +774,10 @@ mod tests {
             invalidations: vec![],
             disposition: DiagnosticDisposition::NoFault,
         });
-        assert_eq!(result, Err(DiagnosticRevisionError::EvidenceNotYetAvailable));
+        assert_eq!(
+            result,
+            Err(DiagnosticRevisionError::EvidenceNotYetAvailable)
+        );
     }
 
     #[test]
@@ -765,7 +816,9 @@ mod tests {
         });
         assert_eq!(
             missing_basis,
-            Err(DiagnosticRevisionError::InvalidInvalidationBasis(digest('e')))
+            Err(DiagnosticRevisionError::InvalidInvalidationBasis(digest(
+                'e'
+            )))
         );
 
         let unknown_target = session.append(&DiagnosticRevisionInput {
@@ -785,7 +838,9 @@ mod tests {
         });
         assert_eq!(
             unknown_target,
-            Err(DiagnosticRevisionError::UnknownInvalidatedEvidence(digest('f')))
+            Err(DiagnosticRevisionError::UnknownInvalidatedEvidence(digest(
+                'f'
+            )))
         );
     }
 
@@ -811,7 +866,10 @@ mod tests {
             })
             .unwrap();
         assert_eq!(first.revision_index, 0);
-        assert_eq!(second.revision_kind, DiagnosticRevisionKind::EvidenceRetraction);
+        assert_eq!(
+            second.revision_kind,
+            DiagnosticRevisionKind::EvidenceRetraction
+        );
         assert_eq!(session.receipts()[0], first);
         assert_eq!(session.active_evidence_count(), 1);
         assert_eq!(
@@ -850,12 +908,7 @@ mod tests {
                         2.5,
                         2.8,
                     ),
-                    evidence(
-                        'e',
-                        RevisionEvidenceEffect::ContextShift,
-                        2.6,
-                        2.9,
-                    ),
+                    evidence('e', RevisionEvidenceEffect::ContextShift, 2.6, 2.9),
                 ],
                 invalidations: vec![RevisionEvidenceInvalidation {
                     invalidated_evidence_sha256: digest('c'),
@@ -878,7 +931,9 @@ mod tests {
         });
         assert_eq!(
             result,
-            Err(DiagnosticRevisionError::EvidenceAlreadyInvalidated(digest('c')))
+            Err(DiagnosticRevisionError::EvidenceAlreadyInvalidated(digest(
+                'c'
+            )))
         );
     }
 
@@ -925,12 +980,7 @@ mod tests {
     fn duplicate_evidence_is_rejected_even_when_source_wrapper_changes() {
         let mut session = DiagnosticRevisionSession::new(binding()).unwrap();
         initial_fault_a(&mut session);
-        let mut replay = evidence(
-            'c',
-            RevisionEvidenceEffect::SupportsCurrent,
-            1.0,
-            1.5,
-        );
+        let mut replay = evidence('c', RevisionEvidenceEffect::SupportsCurrent, 1.0, 1.5);
         replay.source_id = "different-wrapper".into();
         let result = session.append(&DiagnosticRevisionInput {
             revision_kind: DiagnosticRevisionKind::Corroboration,
@@ -966,9 +1016,12 @@ mod tests {
             })
             .unwrap();
         assert_eq!(first.issued_at_seconds, 2.0);
-        assert_eq!(first.disposition, DiagnosticDisposition::KnownHypotheses {
-            hypothesis_ids: vec!["fault_a".into()]
-        });
+        assert_eq!(
+            first.disposition,
+            DiagnosticDisposition::KnownHypotheses {
+                hypothesis_ids: vec!["fault_a".into()]
+            }
+        );
         assert_eq!(second.issued_at_seconds, 6.0);
         assert_eq!(session.receipts()[0], first);
     }
@@ -978,9 +1031,15 @@ mod tests {
         let mut changed = binding();
         changed.configuration_sha256 = digest('e');
         let session = DiagnosticRevisionSession::new(binding()).unwrap();
-        assert_ne!(session.binding().configuration_sha256, changed.configuration_sha256);
+        assert_ne!(
+            session.binding().configuration_sha256,
+            changed.configuration_sha256
+        );
         assert_eq!(
-            DiagnosticRevisionSession::new(changed).unwrap().receipts().len(),
+            DiagnosticRevisionSession::new(changed)
+                .unwrap()
+                .receipts()
+                .len(),
             0
         );
     }
@@ -1004,8 +1063,7 @@ mod tests {
             })
             .unwrap();
         let original = session.receipts().to_vec();
-        let replayed =
-            replay_diagnostic_revision_chain(binding(), &original).unwrap();
+        let replayed = replay_diagnostic_revision_chain(binding(), &original).unwrap();
         assert_eq!(replayed.receipts(), original.as_slice());
 
         let mut tampered = original;
@@ -1034,14 +1092,16 @@ mod tests {
                 hypothesis_ids: vec!["fault_a".into()],
             },
         });
-        assert_eq!(result, Err(DiagnosticRevisionError::RevisionTimeNotMonotonic));
+        assert_eq!(
+            result,
+            Err(DiagnosticRevisionError::RevisionTimeNotMonotonic)
+        );
     }
 
     #[test]
     fn protocol_and_fixture_keep_the_hard_gates_machine_readable() {
         let protocol: serde_json::Value =
-            serde_json::from_str(include_str!("../diagnostic-claim-revision-v0.1.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../diagnostic-claim-revision-v0.1.json")).unwrap();
         let corpus: serde_json::Value =
             serde_json::from_str(include_str!("../diagnostic-claim-revision-cases-v0.1.json"))
                 .unwrap();
@@ -1049,10 +1109,12 @@ mod tests {
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 12);
         assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
-        assert!(corpus["cases"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|case| case["expected_contract_result"].is_string()));
+        assert!(
+            corpus["cases"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|case| case["expected_contract_result"].is_string())
+        );
     }
 }
