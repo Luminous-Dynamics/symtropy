@@ -73,5 +73,17 @@
     "TSNET-TNET1-EPANET-FIXTURE",
     "PTSNET-TNET3-VALVE-DEMO",
     "SHEFFIELD-PHYSICAL-INTRUSION-LOOP"
-  ]
+  ],
+  "evidence_status_snapshot": {
+    "snapshot_date": "2026-11-14",
+    "transient_t0_case_count": 10,
+    "transient_t0_source_level_oracle_replay": "10_of_10_matched",
+    "native_rust_build_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "physical_t1_pressure_trace_validation": "not_performed",
+    "physical_t1_intrusion_tracer_validation": "not_performed",
+    "sheffield_raw_pressure_and_tracer_records": "not_acquired_pending_rights_aware_data_request",
+    "commercial_solver_runs": "not_performed",
+    "transient_solver_qualification": "not_qualified",
+    "ingress_model_qualification": "not_qualified"
+  }
 }
