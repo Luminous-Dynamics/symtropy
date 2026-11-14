@@ -163,6 +163,19 @@
       "limitations": [
         "leak detection/localization is not junction mixing or tank RTD"
       ]
+    },
+    {
+      "source_id": "BENTLEY-WATER-QUALITY-COMPAT-2026",
+      "title": "OpenFlows WaterGEMS/WaterCAD engine compatibility and 2.2.0 water-quality calculation updates",
+      "url": "https://bentleysystems.service-now.com/community?id=kb_article_view&sysparm_article=KB0014547",
+      "evidence_class": "commercial_software_version_documentation",
+      "role": "exact-build differential comparator for EPANET 2.2.0 and WaterGEMS engine modes",
+      "availability": "public_vendor_documentation",
+      "limitations": [
+        "article says WaterGEMS 2.2.0 uses updated EPANET 2.2.0 water-quality calculations from version 24.00.02.20 onward",
+        "a separate Bentley feature-details page appears inconsistent; exact product build, engine mode and water-quality time-step must be tested and recorded",
+        "software version documentation is not physical water-mixing validation"
+      ]
     }
   ],
   "ingestion_rules": [
