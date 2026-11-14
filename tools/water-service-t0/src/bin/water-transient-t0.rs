@@ -12,7 +12,7 @@ const INPUT_CEILING: &str =
     "analytical_arithmetic_and_applicability_only_no_solver_or_physical_qualification";
 const ORACLE_CEILING: &str =
     "expected_analytical_contract_outputs_no_solver_or_physical_qualification";
-const CASE_COUNT: usize = 8;
+const CASE_COUNT: usize = 10;
 
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
     value.get(key).ok_or_else(|| format!("missing JSON field: {key}"))
@@ -215,6 +215,72 @@ fn compute(case: &Value) -> Result<Value, String> {
             Ok(json!({
                 "disposition": "INVALID_INPUT",
                 "reason": "PIPE_LENGTH_NOT_POSITIVE",
+                "solver_qualification_permitted": false
+            }))
+        }
+        "WT-T0-009-wave-speed-uncertainty-envelope" => {
+            let length = number(inputs, "pipe_length_m")?;
+            let wave_min = number(inputs, "wave_speed_min_m_s")?;
+            let wave_max = number(inputs, "wave_speed_max_m_s")?;
+            let density = number(inputs, "density_kg_m3")?;
+            let gravity = number(inputs, "gravity_m_s2")?;
+            let velocity_change = number(inputs, "velocity_change_m_s")?;
+            let closure = number(inputs, "closure_duration_s")?;
+            let initial_pressure = number(inputs, "initial_absolute_pressure_pa")?;
+
+            require(length > 0.0, "pipe length must be positive")?;
+            require(
+                wave_min > 0.0 && wave_max > 0.0,
+                "wave-speed bounds must be positive",
+            )?;
+            require(
+                wave_min <= wave_max,
+                "wave-speed interval must be ordered",
+            )?;
+            require(density > 0.0 && gravity > 0.0, "fluid properties must be positive")?;
+            require(velocity_change >= 0.0, "this envelope case requires non-negative velocity change")?;
+            require(closure >= 0.0, "closure duration must be non-negative")?;
+            require(initial_pressure > 0.0, "initial absolute pressure must be positive")?;
+
+            let pressure_min = density * wave_min * velocity_change;
+            let pressure_max = density * wave_max * velocity_change;
+            let one_way_min = length / wave_max;
+            let one_way_max = length / wave_min;
+            let round_trip_min = 2.0 * one_way_min;
+            let round_trip_max = 2.0 * one_way_max;
+            let ratio_min = closure / round_trip_max;
+            let ratio_max = closure / round_trip_min;
+
+            require(
+                ratio_max < 1.0,
+                "closure must be rapid across the complete wave-speed interval",
+            )?;
+
+            Ok(json!({
+                "disposition": "UNCERTAINTY_ENVELOPE_ONLY",
+                "pressure_change_min_pa": pressure_min,
+                "pressure_change_max_pa": pressure_max,
+                "head_change_min_m": pressure_min / (density * gravity),
+                "head_change_max_m": pressure_max / (density * gravity),
+                "one_way_time_min_s": one_way_min,
+                "one_way_time_max_s": one_way_max,
+                "round_trip_time_min_s": round_trip_min,
+                "round_trip_time_max_s": round_trip_max,
+                "closure_to_round_trip_ratio_min": ratio_min,
+                "closure_to_round_trip_ratio_max": ratio_max,
+                "post_event_candidate_absolute_pressure_min_pa": initial_pressure + pressure_min,
+                "post_event_candidate_absolute_pressure_max_pa": initial_pressure + pressure_max,
+                "solver_qualification_permitted": false
+            }))
+        }
+        "WT-T0-010-reversed-wave-speed-interval" => {
+            let wave_min = number(inputs, "wave_speed_min_m_s")?;
+            let wave_max = number(inputs, "wave_speed_max_m_s")?;
+            require(wave_min > 0.0 && wave_max > 0.0, "wave-speed bounds must be positive")?;
+            require(wave_min > wave_max, "case requires a reversed wave-speed interval")?;
+            Ok(json!({
+                "disposition": "INVALID_INPUT",
+                "reason": "WAVE_SPEED_INTERVAL_NOT_ORDERED",
                 "solver_qualification_permitted": false
             }))
         }
@@ -533,7 +599,7 @@ mod tests {
     }
 
     #[test]
-    fn all_eight_cases_match_separate_oracle() {
+    fn all_ten_cases_match_separate_oracle() {
         let result = result();
         assert_eq!(result["result_count"], CASE_COUNT);
         assert_eq!(result["matched_case_count"], CASE_COUNT);
@@ -611,6 +677,36 @@ mod tests {
             .unwrap()
             .iter()
             .find(|row| row["case_id"] == "WT-T0-008-invalid-negative-pipe-length")
+            .unwrap();
+        assert_eq!(row["computed"]["disposition"], "INVALID_INPUT");
+    }
+
+    #[test]
+    fn wave_speed_uncertainty_propagates_to_pressure_and_timing_bounds() {
+        let result = result();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WT-T0-009-wave-speed-uncertainty-envelope")
+            .unwrap();
+        assert_eq!(row["computed"]["pressure_change_min_pa"], 450000.0);
+        assert_eq!(row["computed"]["pressure_change_max_pa"], 550000.0);
+        assert!(
+            row["computed"]["one_way_time_min_s"].as_f64().unwrap()
+                < row["computed"]["one_way_time_max_s"].as_f64().unwrap()
+        );
+        assert!(!row["computed"]["solver_qualification_permitted"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn reversed_wave_speed_interval_is_rejected() {
+        let result = result();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "WT-T0-010-reversed-wave-speed-interval")
             .unwrap();
         assert_eq!(row["computed"]["disposition"], "INVALID_INPUT");
     }
