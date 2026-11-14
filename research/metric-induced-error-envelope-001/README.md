@@ -42,7 +42,7 @@ The dependency-free Rust test suite covers dense non-orthogonal rebasing invaria
 
 ## Constraint-space extension: Delassus metric
 
-The crate now includes a separate typed constraint-space layer. Given an SPD mass metric M = L L^T and full-row-rank constraint Jacobian J, it whitens each constraint row:
+The crate now includes a separate typed constraint-space layer. For a full-row-rank constraint Jacobian J, the Delassus operator W = J M^-1 J^T maps constraint multiplier covectors to constraint residual vectors. Thus multipliers are measured with the cometric W, while residual vectors are measured with the dual metric W^-1. The two object types are distinct in the Rust API. Given an SPD mass metric M = L L^T, the implementation whitens each constraint row:
 
 Y = J L^-T
 
@@ -52,10 +52,10 @@ W = Y Y^T = J M^-1 J^T.
 
 The implementation uses triangular solves only and does not form M^-1. It retains Y as an explicit witness, reconstructs W from Y Y^T, and independently compares that result with the direct Riesz-solve formulation in the test suite. The exact diagonal of W is therefore available as the row-wise squared norm of Y.
 
-For constraint multiplier lambda and constraint residual r, the layer uses the induced dual pair:
+For constraint multiplier covector lambda and residual vector r, the layer uses the induced dual pair:
 
-- multiplier norm: ||lambda||_W = sqrt(lambda^T W lambda);
-- residual norm: ||r||_(W^-1) = sqrt(r^T W^-1 r).
+- multiplier cometric norm: ||lambda||_W = sqrt(lambda^T W lambda);
+- residual metric norm: ||r||_(W^-1) = sqrt(r^T W^-1 r).
 
 The mechanical identities exercised by the tests are:
 
