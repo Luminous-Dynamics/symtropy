@@ -1,0 +1,189 @@
+# Water Transient Solver Qualification — Research Design v0.1
+
+**Tracking issue:** [#5170 WATER-TRANSIENT-SOLVER-QUAL-001](https://github.com/Luminous-Dynamics/symtropy/issues/5170)  
+**Parent use case:** [#5145 distribution intrusion under pressure transients](https://github.com/Luminous-Dynamics/symtropy/issues/5145)  
+**Snapshot:** 14 November 2026  
+**Evidence class:** research design and synthetic arithmetic only  
+**Evidence ceiling:** no transient solver qualification, pressure-surge design approval, physical intrusion result, health or water-quality claim
+
+## 1. Research objective
+
+Select and independently qualify a transient hydraulic reference method for the pressure histories needed by the distribution-intrusion experiment.
+
+The question is not simply whether two solvers agree. It is whether a declared transient model can reproduce analytical behaviour, converge numerically, match physical pressure traces within metrology uncertainty, and expose the limits of its use in negative-pressure / intrusion analysis.
+
+The programme will not build a competing water-hammer solver. It will compare available methods, construct reproducible test cases, identify unsupported physics and quantify model discrepancy.
+
+## 2. Current reference landscape
+
+### EPANET-AWH (October 2026)
+
+Koşucu, *Empowering EPANET with an algebraic water hammer hydraulic solver to model unsteady flow in water distribution systems*, Journal of Water Process Engineering 92, article 110770, DOI [10.1016/j.jwpe.2026.110770](https://doi.org/10.1016/j.jwpe.2026.110770).
+
+The paper describes a quasi-adaptive EPANET 3 extension: steady Generalized Global Gradient Algorithm operation transitions to Algebraic Water Hammer after sudden pump/valve events. Each pipe is treated as one computational element rather than spatially segmented as in a conventional Method of Characteristics calculation. The paper includes an instantaneous-acceleration-based unsteady-friction term.
+
+Reported comparison:
+- Two networks and four event classes: valve closure, pump shutdown, pump startup and sudden 50 L/s withdrawal.
+- Agreement with Bentley HAMMER up to NSE 0.90.
+- On a 1,489-pipe Nault network, a 40-second simulation ran in 1,490 seconds versus 2,013 seconds for HAMMER (26% lower runtime).
+- The paper reports peak-head differences below 2 metres on the larger network.
+
+Sources:
+- [Journal paper](https://doi.org/10.1016/j.jwpe.2026.110770)
+- [Public implementation cited by the paper](https://github.com/MehmetMelihKosucu/EPANET-AWH)
+
+This is a new candidate baseline, not an accepted solver. Agreement with a commercial solver does not establish physical validity. The reported 26% runtime reduction is not real-time operation; the reported large-network run still took roughly 37 times the simulated event horizon. The extension's exact revision, licence, build instructions, feature matrix and input assumptions must be inspected before code is built, copied or adapted. Do not infer the extension's licence from upstream EPANET.
+
+### Bentley OpenFlows HAMMER
+
+Bentley documentation for 2026 describes MOC as its default system-wide transient method, with rigid-column treatment available for selected applications. It explicitly distinguishes transients occurring over seconds/fractions of seconds from steady hydraulic changes over minutes/hours. It describes numerical validation against analytical solutions, laboratory flow/pressure records and field measurements.
+
+- [Hydraulic transient pressure analysis](https://docs.bentley.com/LiveContent/web/OpenFlows%20Water%20-%20WaterCAD-v2026/Help/en/topics/1481500/GUID-C77555E732074D47B2A30C4E38067B79.html)
+- [Numerical model calibration and validation](https://docs.bentley.com/LiveContent/web/OpenFlows%20Water%20-%20WaterCAD-v2026/Help/en/topics/1481506/GUID-5644BE0A701A41C7BDB25FCD95A8AB4F.html)
+
+HAMMER is a commercial comparator, not ground truth. Every comparison must disclose its exact build, settings, boundaries, wave speed, friction model and numerical tolerances.
+
+### Independent physical references
+
+- Fox et al. (2014), *Experimental Proof of Contaminant Ingress into a Leaking Pipe During a Transient Event*, DOI [10.1016/j.proeng.2014.02.073](https://doi.org/10.1016/j.proeng.2014.02.073). Rapid upstream valve closure produced a pressure transient in a loop with an engineered leak surrounded by porous media; externally introduced pollutant entered and was transported downstream.
+- Jones et al. (2014), *Experimental Quantification of Intrusion Due to Transients in Distribution Systems*, DOI [10.1016/j.proeng.2014.11.444](https://doi.org/10.1016/j.proeng.2014.11.444). Intrusion volume was quantified under multiple initial conditions and associated with the magnitude/duration of negative pressure transients.
+- Fox et al. (2015), *Experimental Quantification of Contaminant Ingress into a Buried Leaking Pipe during Transient Events*, DOI [10.1061/(ASCE)HY.1943-7900.0001040](https://doi.org/10.1061/(ASCE)HY.1943-7900.0001040). The published Sheffield rig is a 141 m recirculating MDPE loop (63 mm nominal pipe, 50 mm nominal internal diameter, seven loops) with a leak inside a porous-media pack.
+- Jones et al. (2018), *Experimental Quantification of Intrusion Volumes due to Transients in Drinking Water Distribution Systems*, DOI [10.1061/(ASCE)PS.1949-1204.0000348](https://doi.org/10.1061/(ASCE)PS.1949-1204.0000348). The tested experiments relate intrusion volume to the time integral of the measured driving head.
+
+These are physical reference conditions, not universal laws or a complete openly reproducible dataset. Obtain raw-data rights and measurement metadata before numerical reproduction.
+
+### Incident retrospective: Kuressaare, Estonia
+
+Kaur et al. (1 September 2026), *Analysis of a drinking water contamination incident: Hydraulic intrusion pathways, preparedness gaps, and lessons for water safety management*, Water Research X 32, article 100601, DOI [10.1016/j.wroa.2026.100601](https://doi.org/10.1016/j.wroa.2026.100601).
+
+The study reconstructs a May 2023 incident in which a wastewater pipe-bursting accident damaged a drinking-water main. Transient low pressure and flow reversal enabled intrusion and propagation. It reports 135 emergency-department contacts and pathogen findings in 39 of 40 analysed patient samples, while noting that the total affected population is unknown. Additional data are not publicly available due to sensitivity. Treat this as an incident-response and reconstruction reference, not an openly available pressure-wave dataset.
+
+## 3. The comparison ladder
+
+A model can pass one rung and fail the next. Report each separately.
+
+1. **T0-A analytical identity:** dimensional consistency, Joukowsky pressure/head increment, wave travel time, reflection timing and rapid-versus-slow closure applicability.
+2. **T0-B input/feature contract:** topology, geometry, material, wave speed, fluid state, boundaries, devices, initial conditions, event timing and model feature limits.
+3. **T0-C numerical verification:** mesh/timestep refinement, convergence residuals, stability and repeatability.
+4. **T1 physical pressure validation:** measured pressure traces, transducer bandwidth/calibration, synchronized event timing and repeated independently reset runs.
+5. **T2 intrusion coupling:** test whether predicted pressure histories bound measured ingress/tracer volumes on the same physical geometry and media; hydraulic fit alone is not ingress validation.
+6. **T3 incident reconstruction:** only with rights-cleared source records, owner/authority permission, data-quality review and honest treatment of unavailable observations.
+7. **T4 transfer:** different pipe materials, scales, networks, operators, event classes and seasons.
+
+## 4. T0-A analytical contract
+
+The initial vector set is [water-transient-t0-cases-v0.1.json](water-transient-t0-cases-v0.1.json); expected outputs are frozen separately in [water-transient-t0-oracle-v0.1.json](water-transient-t0-oracle-v0.1.json).
+
+For an instantaneous velocity change under the declared single-phase elastic-column assumptions:
+
+`delta_p = rho * a * delta_v`
+
+`delta_H = delta_p / (rho * g) = a * delta_v / g`
+
+For a pipe length `L` and wave speed `a`:
+
+`one_way_time = L / a`
+
+`round_trip_time = 2 * L / a`
+
+The Joukowsky instantaneous-change result is not a general valve-closure solution. The closure time must be compared with the wave travel time. Slow closure, changing boundary conditions, air admission, cavitation/column separation, non-Newtonian flow, viscoelastic wall response, complex device dynamics or out-of-domain material properties require a separately qualified method and cannot be silently handled by the simple formula.
+
+T0-A outputs are arithmetic and applicability states only. They do not certify peak pressure, pipe class, surge protection or cavitation safety.
+
+## 5. Solver-input contract
+
+A solver trial must bind:
+- exact network/topology and geometry revision;
+- actual pipe ID, wall thickness/material, restraint/support and elastic properties;
+- measured or documented wave speed with uncertainty and derivation;
+- fluid density, viscosity and temperature;
+- friction model and roughness;
+- initial steady-state heads/flows and event precondition;
+- pump inertia/curves, valve travel/closure law, check/air/PRV behavior and boundary conditions;
+- event schedule and time origin;
+- time step / spatial discretization / algebraic solver settings;
+- convergence tolerance, solver revision, compiler/build and runtime environment.
+
+A missing or unsupported model feature is not a parameter to guess. It produces an explicit Unsupported/Indeterminate result and a feature-matrix entry.
+
+## 6. Physical T1 pressure rig
+
+Start with contained, clean water only:
+- loop with known pipe lengths, dimensions and restraint;
+- controlled valve closure and pump-trip event capability;
+- multiple independently calibrated pressure channels;
+- flow measurement and event-state timestamps;
+- acquisition bandwidth and sample rate chosen from the anticipated waveform, demonstrated response and anti-aliasing;
+- repeatable start state and independently reset runs;
+- raw sensor series, calibration, uncertainty and test deviations.
+
+Do not add external tracer until the pressure-only loop has a qualified pressure reference. Then compose with #5145's separate defect/external-head chamber. No potable supply is connected to a tracer experiment.
+
+Mechanical pressure containment, relief paths, restraints, trapped-pressure release, rotating machinery guards, electrical/wet-zone separation, emergency stop and containment require competent site-specific review before procurement, fabrication, filling or energization.
+
+## 7. Models to compare
+
+- closed-form analytical cases;
+- EPANET-AWH after exact source/revision/licence and feature verification;
+- Bentley HAMMER MOC with exact release/settings;
+- independent/public-domain MOC implementation if rights and scope permit;
+- direct calibrated laboratory pressure records as the physical reference.
+
+MOC itself needs spatial/time-step convergence checks. EPANET-AWH versus HAMMER is model-to-model comparison, not physical validation. EPANET steady-state / extended-period hydraulics is not a substitute for transient analysis.
+
+Feature matrix must separately record support/validation for:
+- wave propagation and unsteady friction;
+- pump shutdown/startup/inertia and check-valve closure;
+- valve closure laws and device characteristics;
+- negative absolute pressure, cavitation/column separation and cavity collapse;
+- air pockets / air valves;
+- viscoelastic pipe response;
+- leak/orifice boundary interaction and external head;
+- branched-network reflections and reservoir/tank boundaries;
+- unsteady demand, flow reversal and source boundary.
+
+No untested feature is silently credited.
+
+## 8. Metrics and targets
+
+For every sensor/event:
+- min/max head and pressure bias/error;
+- peak value and peak-time error;
+- wave arrival/phase, reflection timing and amplitude decay;
+- duration below declared external head and absolute/vapour-pressure threshold;
+- RMSE, NSE, correlation and residual distribution (none is sufficient alone);
+- uncertainty interval coverage/width for extrema and low-pressure duration;
+- sensitivity to wave speed, wall stiffness/restraint, roughness, closure law, timestep and boundary choices;
+- continuity/mass residual and convergence-failure rate;
+- wall-clock time, memory, setup effort and real-time factor;
+- unsupported-feature refusal and out-of-domain rate.
+
+Hard gates:
+- analytical identities match within declared tolerance;
+- numerical convergence is demonstrated;
+- held-out physical pressure extrema and timing are bounded by uncertainty-aware criteria;
+- no false-safe classification of a measured critical pressure excursion in the frozen physical corpus;
+- no model-to-model result is called physical validation;
+- no negative-pressure indication is automatically treated as confirmed intrusion;
+- no unqualified solver output authorizes isolation, repair, restart or water release.
+
+Proposed research targets (not achieved):
+- reproduce at least one Sheffield pressure experiment with pre-registered tolerances tied to transducer uncertainty;
+- reproduce at least one published EPANET-AWH event with the exact input/network revision if rights allow;
+- establish physically bounded 95% prediction intervals for minimum pressure and low-pressure duration on held-out runs;
+- improve the physical-accuracy / compute Pareto frontier versus the published AWH/HAMMER comparison without degrading extrema coverage;
+- measure runtime independently; a live supervisory target of 10x decision-horizon compute margin is investigated only after accuracy and failure behavior are qualified.
+
+## 9. Composition
+
+- #4398 owns steady-state EPANET/Rust solver parity and feature qualification; this programme does not fork it.
+- #5145 owns physical ingress and tracer measurement.
+- #4959/#4994 own pump service and clean-water T1 rig.
+- #5075 owns paired-trial fairness.
+- #5069 owns independently verified service restoration.
+- #5136 owns claim-conditioned treatment barrier assurance.
+- Mycelix #6034/#6057/#6025/#6029 own instrument/calibration/measurand contracts.
+
+## 10. Nonclaims
+
+No solver is qualified as a pressure-surge design authority; no pump/valve/pipe installation is certified; no pressure simulation proves contaminant ingress, pathogen transport, water quality or public-health risk; no SANS/regulatory/field claim is established. A T0 arithmetic pass is not a physical water-hammer test.
