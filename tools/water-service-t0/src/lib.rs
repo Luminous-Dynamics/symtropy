@@ -702,7 +702,6 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
     let max_source_age = number(inputs, &["policy", "max_source_profile_age_s"])?;
     let max_lab_age = number(inputs, &["policy", "max_lab_sample_age_s"])?;
     let default_requirement = string(inputs, &["policy", "default_microbial_requirement"])?;
-    let default_thresholds = microbial_thresholds(&default_requirement)?;
 
     let mut expected_by_id = BTreeMap::new();
     for row in oracle_cases {
@@ -778,7 +777,7 @@ pub fn evaluate_water_barrier_f0(inputs: &Value, oracle: &Value) -> Result<Value
                 "DETECTED" => {
                     let minimum = if ["bacteria", "viruses", "protozoa"].contains(&hazard_id.as_str())
                     {
-                        default_thresholds
+                        thresholds
                             .get(&hazard_id)
                             .copied()
                             .ok_or_else(|| format!("{id}: missing microbial threshold"))?
