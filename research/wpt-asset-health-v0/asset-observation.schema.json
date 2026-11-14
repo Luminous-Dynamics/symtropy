@@ -228,16 +228,6 @@
             "number",
             "null"
           ]
-        },
-        "thermal_stimulus": {
-          "enum": [
-            "ACTIVE_WPT_LOSS",
-            "PASSIVE_THERMAL_SURROGATE",
-            "AMBIENT_ONLY",
-            "OTHER",
-            "UNKNOWN",
-            null
-          ]
         }
       }
     },
@@ -420,7 +410,8 @@
         "maximum_gradient_c_per_m",
         "thermal_dose_c_hour",
         "temperature_reference_id",
-        "spatial_temperature_profile"
+        "spatial_temperature_profile",
+        "spatial_heat_flux_profile"
       ],
       "properties": {
         "maximum_coil_temperature_c": {
@@ -490,6 +481,58 @@
               },
               "temperature_c": {
                 "type": "number"
+              },
+              "method_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "spatial_heat_flux_profile": {
+          "type": "array",
+          "description": "Spatially indexed heat-flux observations. Peak temperature alone does not establish thermal-field equivalence.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "coordinate_frame_id",
+              "x_mm",
+              "y_mm",
+              "depth_mm",
+              "heat_flux_w_m2",
+              "normal_direction",
+              "method_id"
+            ],
+            "properties": {
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "x_mm": {
+                "type": "number"
+              },
+              "y_mm": {
+                "type": "number"
+              },
+              "depth_mm": {
+                "type": "number"
+              },
+              "heat_flux_w_m2": {
+                "type": "number"
+              },
+              "normal_direction": {
+                "enum": [
+                  "INTO_PAVEMENT",
+                  "OUT_OF_PAVEMENT",
+                  "LATERAL",
+                  "UNKNOWN"
+                ]
               },
               "method_id": {
                 "type": "string",
