@@ -1008,7 +1008,11 @@ mod tests {
         };
 
         assert_eq!(
-            choose_targeted_observation(&[first.clone(), second], &[need.clone()], &book()),
+            choose_targeted_observation(
+                &[first.clone(), second],
+                std::slice::from_ref(&need),
+                &book()
+            ),
             Err(ObservationPlanError::DuplicateAction(
                 "same-action".to_owned()
             ))
