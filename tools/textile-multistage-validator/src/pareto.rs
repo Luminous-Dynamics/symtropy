@@ -202,6 +202,8 @@ pub struct Candidate {
     pub receiving_specification_version: String,
     pub utility_tick_unit: String,
     pub route_receipt_ids: Vec<String>,
+    pub route_receipt_sha256: Vec<String>,
+    pub route_evidence_manifest_sha256: Vec<String>,
     pub schedule_validation: ValidationReport,
     /// Findings from validate_route_gates for this exact candidate/problem.
     pub route_findings: Vec<Finding>,
@@ -518,6 +520,23 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
             &mut findings,
             "ROUTE_RECEIPT_DUPLICATE",
             "candidate route receipt IDs must be unique",
+        );
+        hard_reject = true;
+    }
+    if candidate.route_receipt_ids.is_empty()
+        || candidate.route_receipt_sha256.len() != candidate.route_receipt_ids.len()
+        || candidate.route_evidence_manifest_sha256.len() != candidate.route_receipt_ids.len()
+        || candidate.route_receipt_ids.iter().any(|value| !nonempty(value))
+        || candidate.route_receipt_sha256.iter().any(|value| !valid_sha256(value))
+        || candidate
+            .route_evidence_manifest_sha256
+            .iter()
+            .any(|value| !valid_sha256(value))
+    {
+        add(
+            &mut findings,
+            "ROUTE_RECEIPT_BINDING_INVALID",
+            "every route receipt ID must bind exact receipt and evidence-manifest SHA-256 values",
         );
         hard_reject = true;
     }
@@ -986,6 +1005,8 @@ mod tests {
             receiving_specification_version: "2.0".to_owned(),
             utility_tick_unit: "minute".to_owned(),
             route_receipt_ids: vec![format!("route-{id}")],
+            route_receipt_sha256: vec!["c".repeat(64)],
+            route_evidence_manifest_sha256: vec!["d".repeat(64)],
             schedule_validation: ValidationReport {
                 valid: true,
                 problem_name: "matched-lot-problem".to_owned(),
@@ -1112,11 +1133,12 @@ mod tests {
     #[test]
     fn damage_metric_binds_to_input_lot_not_recovered_output_lot() {
         let mut candidate = candidate("damage-lot", 8_000_000, 100, 12);
+        let input_lot_id = candidate.input_lot_id.clone();
         let damage = candidate.objectives
             .iter_mut()
             .find(|item| item.metric == ObjectiveMetric::DamageAreaMm2)
             .unwrap();
-        damage.evidence.lot_id = candidate.input_lot_id.clone();
+        damage.evidence.lot_id = input_lot_id;
         let report = evaluate_tournament(&[candidate.clone()]);
         assert!(report.pareto_fronts.len() == 1, "{:?}", report.assessments[0].findings);
 
@@ -1134,7 +1156,10 @@ mod tests {
     #[test]
     fn duplicate_route_receipt_identity_is_rejected() {
         let mut candidate = candidate("route-duplicate", 8_000_000, 100, 12);
-        candidate.route_receipt_ids.push(candidate.route_receipt_ids[0].clone());
+        let duplicate_receipt_id = candidate.route_receipt_ids[0].clone();
+        candidate.route_receipt_ids.push(duplicate_receipt_id);
+        candidate.route_receipt_sha256.push("e".repeat(64));
+        candidate.route_evidence_manifest_sha256.push("f".repeat(64));
         let report = evaluate_tournament(&[candidate]);
         assert!(report.pareto_fronts.is_empty());
         assert!(report.assessments[0].findings.iter().any(|item| item.code == "ROUTE_RECEIPT_DUPLICATE"));
@@ -1226,6 +1251,9 @@ mod tests {
         let mut candidate = candidate("replay", 8_000_000, 100, 12);
         candidate.requires_disruption_replay = true;
         candidate.scenario_id = "machine-outage-01".to_owned();
+        for observation in &mut candidate.objectives {
+            observation.evidence.scenario_id = candidate.scenario_id.clone();
+        }
         candidate.resilience_validation = Some(ResilienceReport {
             scenario_id: candidate.scenario_id.clone(),
             observed_at_tick: 5,
