@@ -110,3 +110,6 @@ Aspirational target: at least 5% improvement on one preregistered quality-adjust
 A 2026 closed-loop robotic welding survey is indexed for February 2027 (DOI 10.1016/j.rcim.2026.103375); it is forthcoming as of 11 November 2026 and is not treated as currently published evidence.
 
 Mancini & Skriko's review (7 November 2026; DOI 10.1007/s40194-026-02695-6) stresses that there are few common large-structure benchmarks and that material/geometry/constraint heterogeneity makes direct leaderboard comparisons misleading. It identifies sparse reviewed coverage of aluminium (~10%) and high-strength steels (~1%), reinforcing the need for explicit domain coverage and local-to-global transfer tests.
+
+
+Lockfile provenance: the standalone Cargo.lock is being generated with pinned Cargo 1.96.0 on this branch; the focused workflow retains `--locked` for tests and Clippy.
