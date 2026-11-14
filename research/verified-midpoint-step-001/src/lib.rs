@@ -590,7 +590,8 @@ fn solve3_point(matrix: &Matrix3, rhs: &Vector3) -> Result<Vector3, IntervalErro
                 continue;
             }
             let factor = row_values[column];
-            for (entry, pivot_entry) in row_values.iter_mut().zip(pivot_values.iter()).skip(column) {
+            for (entry, pivot_entry) in row_values.iter_mut().zip(pivot_values.iter()).skip(column)
+            {
                 *entry -= factor * pivot_entry;
             }
         }
