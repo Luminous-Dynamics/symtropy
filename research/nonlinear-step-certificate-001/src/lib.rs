@@ -1157,6 +1157,9 @@ mod tests {
         } else {
             significand
         };
+        if signed == 0 {
+            return (0, 1);
+        }
         if exponent >= 0 {
             normalize_ratio(signed << exponent as u32, 1)
         } else {
