@@ -88,7 +88,52 @@
                 "minItems": 1
               },
               "post_treatment_verification": {
-                "type": "object"
+                "type": "object",
+                "required": [
+                  "status",
+                  "sampled_at_unix",
+                  "laboratory_method_accredited",
+                  "sample_id",
+                  "sample_location_id",
+                  "tested_hazard_ids"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "MISSING",
+                      "INVALID"
+                    ]
+                  },
+                  "sampled_at_unix": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "laboratory_method_accredited": {
+                    "type": "boolean"
+                  },
+                  "sample_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "sample_location_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "tested_hazard_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
               }
             }
           }
