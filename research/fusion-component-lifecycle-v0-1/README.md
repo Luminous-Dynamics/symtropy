@@ -33,11 +33,12 @@ The strongest possible result is deliberately **not** a manufacturing release, s
 
 ## Current hard gates
 
-1. Process capability.
-2. Tolerance-stack assessment.
-3. Inspection access.
-4. Assembly access.
-5. Replacement access.
+1. Material applicability under the declared environment / condition profile.
+2. Process capability.
+3. Tolerance-stack assessment.
+4. Inspection access.
+5. Assembly access.
+6. Replacement access.
 
 The crate does not calculate these physical/engineering properties. It validates only the evidence contract and synthetic gate logic supplied by a caller.
 
