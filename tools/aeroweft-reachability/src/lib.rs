@@ -656,6 +656,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_empty_step_sequence() {
+        let east = axis(interval(1.0, 1.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        let mut input = request(0, 1_000, east);
+        input.steps.clear();
+        assert_eq!(
+            propagate_bounded_velocity(&input),
+            Err(ReachabilityError::EmptySteps)
+        );
+    }
+
+    #[test]
     fn rejects_reversed_time_intervals() {
         let east = axis(interval(1.0, 1.0), interval(0.0, 0.0), interval(0.0, 0.0));
         let input = request(2_000, 1_000, east);
