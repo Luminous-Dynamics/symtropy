@@ -179,6 +179,7 @@ pub enum MaintenanceEffectError {
     TooManyRandomizationUnits(usize),
     RandomizationSpaceEmpty,
     InvalidOracle,
+    EstimateMismatch,
     OracleUnitMismatch(String),
     OracleObservedOutcomeMismatch(String),
     Serialization,
@@ -208,6 +209,7 @@ impl fmt::Display for MaintenanceEffectError {
             Self::TooManyRandomizationUnits(count) => write!(formatter, "exact randomization enumeration is bounded to 16 units; got {count}"),
             Self::RandomizationSpaceEmpty => write!(formatter, "no assignment satisfies the frozen blocked allocation"),
             Self::InvalidOracle => write!(formatter, "synthetic potential-outcome oracle is incomplete or invalid"),
+            Self::EstimateMismatch => write!(formatter, "supplied effect estimate does not match the observed trial estimator output"),
             Self::OracleUnitMismatch(id) => write!(formatter, "oracle unit set differs from randomized trial: {id}"),
             Self::OracleObservedOutcomeMismatch(id) => write!(formatter, "observed outcome does not match the selected oracle potential outcome: {id}"),
             Self::Serialization => write!(formatter, "failed to serialize maintenance-effect data"),
@@ -334,15 +336,18 @@ impl BlockedRandomizedMaintenanceTrial {
                     observation.unit_id.clone(),
                 ));
             }
-            if observation.assignment_available_at_seconds
-                > self.assignment_at_seconds + TIME_TOLERANCE_SECONDS
+            if observation.assignment_available_at_seconds < 0.0
+                || observation.assignment_available_at_seconds
+                    > self.assignment_at_seconds + TIME_TOLERANCE_SECONDS
             {
                 return Err(MaintenanceEffectError::InvalidObservation(
                     observation.unit_id.clone(),
                 ));
             }
-            if observation.baseline_observed_at_seconds
-                >= self.assignment_at_seconds - TIME_TOLERANCE_SECONDS
+            if observation.baseline_observed_at_seconds < 0.0
+                || observation.baseline_available_at_seconds < observation.baseline_observed_at_seconds
+                || observation.baseline_observed_at_seconds
+                    >= self.assignment_at_seconds - TIME_TOLERANCE_SECONDS
                 || observation.baseline_available_at_seconds
                     > self.assignment_at_seconds + TIME_TOLERANCE_SECONDS
             {
@@ -350,9 +355,11 @@ impl BlockedRandomizedMaintenanceTrial {
                     observation.unit_id.clone(),
                 ));
             }
-            if observation.outcome_observed_at_seconds
-                < self.assignment_at_seconds + self.followup_horizon_seconds
-                    - TIME_TOLERANCE_SECONDS
+            if observation.outcome_observed_at_seconds < 0.0
+                || observation.outcome_available_at_seconds < 0.0
+                || observation.outcome_observed_at_seconds
+                    < self.assignment_at_seconds + self.followup_horizon_seconds
+                        - TIME_TOLERANCE_SECONDS
             {
                 return Err(MaintenanceEffectError::FollowupHorizonNotMet(
                     observation.unit_id.clone(),
@@ -651,12 +658,23 @@ pub fn score_synthetic_effect_against_oracle(
     estimate: &RandomizedMaintenanceEffectEstimate,
     oracle: &SyntheticPotentialOutcomeOracle,
 ) -> Result<SyntheticOracleScore, MaintenanceEffectError> {
+    trial.validate()?;
     if oracle.schema_version != MAINTENANCE_EFFECT_ORACLE_SCHEMA
         || oracle.trial_id != trial.trial_id
         || !is_sha256_hex(&oracle.oracle_dataset_sha256)
         || estimate.trial_id != trial.trial_id
     {
         return Err(MaintenanceEffectError::InvalidOracle);
+    }
+    let recomputed = estimate_blocked_randomized_maintenance_effect(trial)?;
+    if (estimate.ate_treatment_minus_control - recomputed.ate_treatment_minus_control).abs()
+        > VARIANCE_TOLERANCE
+        || (estimate.standard_error - recomputed.standard_error).abs() > VARIANCE_TOLERANCE
+        || estimate.confidence_interval_treatment_minus_control
+            != recomputed.confidence_interval_treatment_minus_control
+        || estimate.exact_randomization_p_value != recomputed.exact_randomization_p_value
+    {
+        return Err(MaintenanceEffectError::EstimateMismatch);
     }
     let mut oracle_map = BTreeMap::new();
     for outcome in &oracle.outcomes {
@@ -904,6 +922,64 @@ mod tests {
             estimate_blocked_randomized_maintenance_effect(&trial),
             Err(MaintenanceEffectError::TooManyRandomizationUnits(17))
         );
+    }
+
+    #[test]
+    fn assignment_evidence_available_after_assignment_time_is_rejected() {
+        let (mut trial, _) = fixture();
+        trial.observations[0].assignment_available_at_seconds = 101.0;
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&trial),
+            Err(MaintenanceEffectError::InvalidObservation(
+                trial.observations[0].unit_id.clone()
+            ))
+        );
+    }
+
+    #[test]
+    fn baseline_availability_cannot_precede_its_observation_time() {
+        let (mut trial, _) = fixture();
+        trial.observations[0].baseline_available_at_seconds = 70.0;
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&trial),
+            Err(MaintenanceEffectError::BaselineNotAvailableAtAssignment(
+                trial.observations[0].unit_id.clone()
+            ))
+        );
+    }
+
+    #[test]
+    fn changing_only_unobserved_potential_outcomes_changes_scoring_not_estimation() {
+        let (trial, oracle) = fixture();
+        let estimate = estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
+        let original_score =
+            score_synthetic_effect_against_oracle(&trial, &estimate, &oracle).unwrap();
+        let mut counterfactual_oracle = oracle;
+        for (observation, potential) in trial.observations.iter().zip(
+            counterfactual_oracle.outcomes.iter_mut(),
+        ) {
+            match observation.assigned_arm {
+                AssignedArm::Treatment => {
+                    potential.potential_outcome_control += 10.0;
+                }
+                AssignedArm::Control => {
+                    potential.potential_outcome_treatment += 10.0;
+                }
+            }
+        }
+        let recomputed_estimate =
+            estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
+        let counterfactual_score =
+            score_synthetic_effect_against_oracle(&trial, &recomputed_estimate, &counterfactual_oracle).unwrap();
+        assert_eq!(
+            estimate.ate_treatment_minus_control,
+            recomputed_estimate.ate_treatment_minus_control
+        );
+        assert_ne!(
+            original_score.true_finite_population_ate,
+            counterfactual_score.true_finite_population_ate
+        );
+        assert!(!recomputed_estimate.potential_outcome_oracle_used_for_estimation);
     }
 
     #[test]
