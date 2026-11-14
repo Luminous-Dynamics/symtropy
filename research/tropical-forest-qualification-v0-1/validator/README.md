@@ -21,6 +21,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-operator-negative-controls-v0.1.json
 
+# Exact rectangular support intersection (synthetic, pre-transformed planar coordinates only)
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-support-intersection-synthetic-v0.1.json
+
 # Record-level observation admission envelope (synthetic; no production adapter)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-admission-contract-synthetic-v0.1.json
@@ -35,7 +39,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -47,9 +51,9 @@ The exported `canopy_kernel` module provides a minimal spatial cohort-to-cell LA
 
 ## Rectangular observation support kernel
 
-The exported `support_kernel` module qualifies exact axis-aligned rectangles in one already-declared planar coordinate system. It reports target area, geometric overlap area, geometric coverage fraction and valid-data coverage fraction separately. Cloud/no-data footprints may contribute geometric coverage but not valid-data coverage. Partial support is reported as partial; the kernel does not extrapolate. Overlapping source rectangles are rejected to prevent double counting, and CRS mismatches are rejected rather than silently transformed.
+The exported `support_kernel` module qualifies exact axis-aligned rectangles in one already-declared planar coordinate system. It reports target area, geometric overlap area, geometric coverage fraction and valid-data coverage fraction separately. Cloud/no-data footprints may contribute geometric coverage but not valid-data coverage. Partial support is reported as partial; the kernel does not extrapolate. Overlapping source rectangles are rejected to prevent double counting, and CRS mismatches are rejected rather than silently transformed. The fourteen-case machine-readable corpus returns a SHA-256-bound `PASS_SYNTHETIC_SUPPORT` receipt only when the actual kernel agrees with the declared analytical cases.
 
-Fourteen Rust unit tests cover identity, containment, partial and zero overlap, tiled and fragmented coverage, invalid-data masks, mixed validity, registration shift, CRS mismatch, duplicate overlap, invalid geometry, edge-touching tiles and empty evidence. The module is a bounded analytical kernel, not a production GIS adapter. It does not implement arbitrary polygons, rotated raster transforms, CRS conversion, geometry repair, registration-error distributions, intensive/extensive/count/categorical value aggregation, source asset authentication, or field validation. These remain explicit work in [#5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237).
+Fourteen kernel unit tests cover identity, containment, partial and zero overlap, tiled and fragmented coverage, invalid-data masks, mixed validity, registration shift, CRS mismatch, duplicate overlap, invalid geometry, edge-touching tiles and empty evidence. The module is a bounded analytical kernel, not a production GIS adapter. It does not implement arbitrary polygons, rotated raster transforms, CRS conversion, geometry repair, registration-error distributions, intensive/extensive/count/categorical value aggregation, source asset authentication, or field validation. These remain explicit work in [#5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237).
 
 ## Decision-value corpus
 
@@ -66,6 +70,7 @@ The public forest model-set corpus is a case-family contract only. It deliberate
 | Biomass accounting | `PASS` | The synthetic live/deadwood transitions, declared transfers, total stocks and disconnected-control invariants are internally consistent |
 | Canopy geometry | `PASS_SYNTHETIC_GEOMETRY` | The 8×8 analytical grid matches its declared LAI, four-neighbour gap topology and uncalibrated synthetic transmittance equations; ten public challenge-case IDs and expected dispositions are valid. The challenge processes are not executed |
 | Observation operators | `PASS_SYNTHETIC_RULES` | The nine synthetic input descriptors are run through the Rust rule engine and produce their declared missingness/support/semantics dispositions; no external data or production adapter is used |
+| Rectangular support intersection | `PASS_SYNTHETIC_SUPPORT` | Fourteen exact axis-aligned rectangle cases report geometric and valid-data coverage separately; CRS mismatch, overlap and degenerate geometry are refused; no CRS transforms or arbitrary polygons are implemented |
 | Observation admission envelope | `MANIFEST_VALID` | Eleven synthetic record descriptors exercise provenance, rights-purpose, support/time, missingness, qualified absence, domain, semantics and leakage gates; no real asset, production adapter or rights authority is executed |
 | Model-set adequacy | `MANIFEST_VALID` | The ten public development case families and expected dispositions are well-formed; no blind generator or independent custodian is provided |
 | Decision value | `MANIFEST_VALID` | Twenty public development cases, the zero-EVSI counterexample, and the positive-EVSI worked arithmetic are coherent; the existing EVSI policy kernel is not executed by this validator |
@@ -97,4 +102,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 43 Rust unit tests across the accounting verifier, synthetic observation rules, the observation admission envelope, canopy manifest checks, model-set manifest checks, the headless cohort-canopy kernel and the rectangular observation support kernel. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 46 Rust unit tests across the accounting verifier, synthetic observation rules, the observation admission envelope, canopy manifest checks, model-set manifest checks, the headless cohort-canopy kernel and the rectangular observation support kernel. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
