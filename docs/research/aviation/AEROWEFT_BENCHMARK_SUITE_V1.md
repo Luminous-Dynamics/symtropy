@@ -260,6 +260,32 @@ This track is owned by [AEROWEFT-SERVICE-QUALITY-001 #5248](https://github.com/L
 
 Synthetic fixed points and cycles are correctness controls, not adoption forecasts. Empirical preference coefficients require rights-cleared, representative, group-split data and calibration.
 
+
+### Track K — finite-buffer airside blocking and queue spillback
+
+Question: does an aircraft that completes nominal landing service actually have an available downstream taxi/stand/parking/charging resource, or does blocking-after-service keep it on the TLOF and push the delay back into terminal holding, energy reserve and later schedules?
+
+This track is owned by [AEROWEFT-AIRSIDE-BLOCKING-001 #5261](https://github.com/Luminous-Dynamics/symtropy/issues/5261). It consumes candidate schedule/resource receipts from #5186, provides airside wait/practical-capacity outcomes to #5248, and may provide option-loss evidence to #5207. It does not create another scheduler, passenger queue, aircraft model or power solver.
+
+**Metrics**
+- TLOF service occupancy versus blocking-after-service occupancy.
+- Finite stand/taxi/charger/holding occupancy and queue length.
+- Exact blocked resource, aircraft, duration and downstream blocker witness.
+- Actual versus nominal landing/release times, terminal holding and synthetic/profile-qualified energy delta.
+- Charging/turnaround extension and next-mission eligibility.
+- Nominal throughput versus practical capacity under a preregistered delay envelope.
+- p50/p95/p99/max delay, movements displaced/deferred and resource spillback attribution.
+
+**Initial targets**
+- 100% exact agreement with an independent tiny event-trace oracle.
+- Zero overlapping capacity-one resource claims or unmatched releases.
+- Zero implicit infinite buffers or missing downstream resources treated as available.
+- 100% explicit accounting of blocking/holding/delay events and causes.
+- Exact replay and input-order/ID permutation invariance.
+- A queueing approximation that drops blocking-after-service must be labelled as optimistic and rejected as a finite-buffer feasibility result.
+
+This is event/fixture semantics, not a real vertiport capacity estimate or aircraft energy claim.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -274,6 +300,8 @@ Synthetic fixed points and cycles are correctness controls, not adoption forecas
 | [2026 Dubai integrated UAM MIP](https://doi.org/10.1016/j.trip.2026.101945) | Joint site, fleet, route, schedule and partial-recharge decisions; multi-trip and speed-dependent battery discharge | Paper reports 4–30% improvement over its studied heuristics; vertiport simultaneous landing/parking capacity is omitted and charging-plug availability is simplified; data/implementation/assumptions must be pinned before reproduction |
 | [2026 joint backup-site planning](https://doi.org/10.1016/j.tre.2026.105075) | Joint vertiport and backup-landing-site selection, flight routes and contingency assignments; diversion-time, low-altitude conflict and passenger-disruption safety costs | Direct baseline for backup-site planning; AeroWeft must demonstrate additional value from source-qualified common-cause dependencies, complete recovery chains and fleet-level non-anticipative recoverability |
 
+| [2026 vertiport airside DES](https://doi.org/10.1016/j.jatrs.2026.100109) | Practical versus throughput capacity; topology, stand/TLOF ratios, taxi operations and queueing policies beyond FIFO | Required finite-buffer DES baseline class; exact topology, service distributions, code and operating assumptions must be pinned before faithful reproduction |
+| [2026 taxi/parking-level vertiport throughput](https://doi.org/10.3390/aerospace13010109) | Separate taxi and parking resources, charging duration, hourly demand and scheduling | Layout/capacity model-class comparison; the two-level architecture and synthetic case assumptions must be matched |
 | [2026 Lyu & Feng vertiport/vertipad capacity](https://doi.org/10.1016/j.tra.2026.105027) | Joint location + pad-capacity planning with MNL demand, multi-server queueing and Lagrangian relaxation/Benders decomposition | Required service-quality baseline; Shanghai case and on-request data are not a direct reproducer; match wait definition, choice coefficients and server assumptions |
 | [2026 Qin et al. vertiport capacity/commuter behaviour](https://doi.org/10.1016/j.tre.2026.105103) | Bilevel capacity/commuter-choice linkage; market underinvestment and policy-backfire analysis | Required model-class comparator; full-text assumptions and welfare estimand must be audited before numerical comparison |
 | [2026 demand-uncertain vertiport planning](https://doi.org/10.1016/j.tra.2026.104957) | Risk-based two-stage site selection and fleet optimization; route-extension sensitivity under airspace restrictions; existing heliport use | Paper-level comparator until exact formulation, uncertainty set, data and code are reviewed |
@@ -310,6 +338,10 @@ Current 2026 UAM research that should remain in the comparison matrix:
 
 - [Dubai integrated site/fleet/routing/recharging optimization](https://doi.org/10.1016/j.trip.2026.101945): mixed-integer planning for sites, fleet, multi-trip routes and partial charging; the published 4–30% gain is relative to the study's own heuristics and scenario assumptions.
 - [Lyu & Feng vertiport and vertipad capacity planning](https://doi.org/10.1016/j.tra.2026.105027): choice-based demand and multi-server queue waiting feed strategic site and pad-capacity decisions; this is the reference for Track J.
+- [Wille et al. (2026), vertiport airside capacity by discrete-event simulation](https://doi.org/10.1016/j.jatrs.2026.100109): distinguishes throughput from practical capacity and includes taxi effects plus priority/non-FIFO queuing; this is the primary Track K model-class baseline.
+- [Nagrare & Lieb (2026), vertiport throughput with taxiing and parking levels](https://doi.org/10.3390/aerospace13010109): charging duration and parking capacity affect turnaround, schedule flexibility and throughput.
+- [Sengupta et al. (2025), UAM research challenges and opportunities](https://doi.org/10.1146/annurev-control-022823-031353): identifies finite parking/blocking and the interaction of airborne holding, battery state, charging and parking occupancy as cross-layer capacity issues.
+
 - [Qin et al. vertiport capacity and commuter behaviour](https://doi.org/10.1016/j.tre.2026.105103): bilevel service-capacity/commuter-choice interaction; market and policy results remain model- and context-specific.
 - [Gottschalg et al. demand-uncertain airport-shuttle planning](https://doi.org/10.1016/j.tra.2026.104957): risk-averse two-stage site/fleet planning with recourse under realized demand.
 - [Salt Lake City parcel-level vertiport suitability](https://doi.org/10.1016/j.cities.2026.107255): almost 60 spatial datasets and fewer than 1% highly suitable parcels in the studied geography.
