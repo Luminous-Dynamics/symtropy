@@ -1,0 +1,525 @@
+{
+  "schema_id": "aeroweift.surveillance-observability.synthetic-coverage-claims.v0",
+  "fixture_id": "AW-SURV-OBS-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Finite coverage-claim and missing-track semantics only; not a radar/ADS-B/EOIR receiver test, DAA capability, collision avoidance, sensor range guarantee, airspace clearance or proof that a region is physically empty.",
+  "timebase": {
+    "unit": "integer synthetic ticks",
+    "intervals": "half-open",
+    "time_owner": "Mycelix #435",
+    "coverage_validity_is_separate_from_observation_time": true
+  },
+  "traffic_classes": [
+    "cooperative-crewed",
+    "non-cooperative-crewed",
+    "uncrewed-profile-qualified-only",
+    "unknown"
+  ],
+  "sensor_modalities": [
+    "ADS-B",
+    "TDOA-MLAT",
+    "EO-IR",
+    "GROUND-RADAR"
+  ],
+  "coverage_claim_schema": {
+    "required_scope": [
+      "sensor/profile identity",
+      "traffic class",
+      "spatiotemporal cell and validity interval",
+      "environment profile",
+      "coverage evidence class",
+      "PNT/time qualification",
+      "dependency inventory completeness",
+      "independent failure-domain family identity"
+    ],
+    "evidence_classes": [
+      "measured",
+      "certified",
+      "modelled",
+      "synthetic",
+      "unknown"
+    ],
+    "missing_dependency_semantics": "indeterminate-not-independent"
+  },
+  "scenarios": [
+    {
+      "id": "cooperative-adsb-current-track-in-qualified-cell",
+      "cell_id": "cell-north-a",
+      "tick": 5,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 2,
+      "claims": [
+        {
+          "id": "adsb-rx-1",
+          "source_id": "receiver-1",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-north-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-east",
+          "profile_id": "synthetic-adsb-profile-v0"
+        },
+        {
+          "id": "adsb-rx-2",
+          "source_id": "receiver-2",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-north-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-west",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": {
+        "id": "track-coop-a",
+        "source_id": "receiver-1",
+        "traffic_class": "cooperative-crewed",
+        "cell_id": "cell-north-a",
+        "tick": 5,
+        "current": true,
+        "integrity_qualified": true
+      },
+      "expected": {
+        "coverage_status": "QUALIFIED_COVERAGE",
+        "observation_status": "QUALIFIED_TRACK",
+        "independent_family_count": 2,
+        "unresolved_possible_occupancy": false,
+        "meaning": "A qualified cooperative report exists; this is a track, not a claim that the rest of the cell is empty."
+      }
+    },
+    {
+      "id": "cooperative-report-outside-coverage",
+      "cell_id": "cell-north-b",
+      "tick": 5,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "adsb-cell-a",
+          "source_id": "receiver-a",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-north-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-a",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "NOT_QUALIFIED",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "No report and no valid coverage claim for this cell; the cell is not an empty-airspace result."
+      }
+    },
+    {
+      "id": "adsb-only-does-not-cover-noncooperative-crewed-traffic",
+      "cell_id": "cell-south-a",
+      "tick": 4,
+      "traffic_class": "non-cooperative-crewed",
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "adsb-coop-only",
+          "source_id": "adsb-rx",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-south-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-adsb",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "NOT_QUALIFIED",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "ADS-B cooperative coverage is not promoted to non-cooperative coverage."
+      }
+    },
+    {
+      "id": "eo-ir-qualified-only-in-declared-daylight-regime",
+      "cell_id": "cell-field-a",
+      "tick": 6,
+      "traffic_class": "non-cooperative-crewed",
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "eoir-daylight",
+          "source_id": "eoir-unit-1",
+          "sensor_modality": "EO-IR",
+          "traffic_class": "non-cooperative-crewed",
+          "cell_id": "cell-field-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-eoir",
+          "profile_id": "synthetic-eoir-daylight-v0",
+          "environment_profile": "synthetic-day-clear"
+        }
+      ],
+      "observation": {
+        "id": "track-noncoop-eoir",
+        "source_id": "eoir-unit-1",
+        "traffic_class": "non-cooperative-crewed",
+        "cell_id": "cell-field-a",
+        "tick": 6,
+        "current": true,
+        "integrity_qualified": true
+      },
+      "expected": {
+        "coverage_status": "QUALIFIED_COVERAGE",
+        "observation_status": "QUALIFIED_TRACK",
+        "independent_family_count": 1,
+        "unresolved_possible_occupancy": false,
+        "meaning": "A synthetic non-cooperative track is accepted only within the declared EO/IR profile and environmental envelope."
+      }
+    },
+    {
+      "id": "three-receivers-share-one-critical-failure-domain",
+      "cell_id": "cell-east-a",
+      "tick": 5,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 2,
+      "claims": [
+        {
+          "id": "rx-1",
+          "source_id": "receiver-1",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-east-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "shared-time-power-net",
+          "profile_id": "synthetic-adsb-profile-v0"
+        },
+        {
+          "id": "rx-2",
+          "source_id": "receiver-2",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-east-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "shared-time-power-net",
+          "profile_id": "synthetic-adsb-profile-v0"
+        },
+        {
+          "id": "rx-3",
+          "source_id": "receiver-3",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-east-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "shared-time-power-net",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "PARTIAL_COVERAGE",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 1,
+        "unresolved_possible_occupancy": true,
+        "meaning": "Three receiver IDs with one shared timing/power/network family do not meet a two-family profile."
+      }
+    },
+    {
+      "id": "tdoa-distinct-sites-but-unknown-common-time-dependency",
+      "cell_id": "cell-west-a",
+      "tick": 5,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 2,
+      "claims": [
+        {
+          "id": "tdoa-pair-a",
+          "source_id": "mlat-pair-a",
+          "sensor_modality": "TDOA-MLAT",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-west-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": false,
+          "independent_family_id": null,
+          "profile_id": "synthetic-tdoa-profile-v0"
+        },
+        {
+          "id": "tdoa-pair-b",
+          "source_id": "mlat-pair-b",
+          "sensor_modality": "TDOA-MLAT",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-west-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": false,
+          "independent_family_id": null,
+          "profile_id": "synthetic-tdoa-profile-v0"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "INDETERMINATE",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "Distinct receiver sites do not establish independent timing domains when the dependency inventory is unknown."
+      }
+    },
+    {
+      "id": "pnt-time-integrity-loss-invalidates-track-claim",
+      "cell_id": "cell-north-c",
+      "tick": 7,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "adsb-time-degraded",
+          "source_id": "receiver-time-uncertain",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-north-c",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": false,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-timed",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": {
+        "id": "track-time-uncertain",
+        "source_id": "receiver-time-uncertain",
+        "traffic_class": "cooperative-crewed",
+        "cell_id": "cell-north-c",
+        "tick": 7,
+        "current": false,
+        "integrity_qualified": false
+      },
+      "expected": {
+        "coverage_status": "INDETERMINATE",
+        "observation_status": "INVALID_OR_STALE_TRACK",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "The time-dependent surveillance claim is invalidated; the aircraft is not removed from the physical world."
+      }
+    },
+    {
+      "id": "environmental-obstruction-withdraws-eoir-coverage",
+      "cell_id": "cell-field-b",
+      "tick": 8,
+      "traffic_class": "non-cooperative-crewed",
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "eoir-obscured",
+          "source_id": "eoir-unit-2",
+          "sensor_modality": "EO-IR",
+          "traffic_class": "non-cooperative-crewed",
+          "cell_id": "cell-field-b",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": false,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-eoir-2",
+          "profile_id": "synthetic-eoir-daylight-v0",
+          "environment_profile": "synthetic-occluded"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "NOT_QUALIFIED",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "The sensor claim is outside its declared environment profile."
+      }
+    },
+    {
+      "id": "missing-report-no-independent-sensor",
+      "cell_id": "cell-remote-a",
+      "tick": 2,
+      "traffic_class": "unknown",
+      "minimum_independent_families": 1,
+      "claims": [],
+      "observation": null,
+      "expected": {
+        "coverage_status": "NOT_QUALIFIED",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "No report and no admitted coverage claim never means an empty traffic set."
+      }
+    },
+    {
+      "id": "positive-control-separate-cooperative-and-noncooperative-coverage",
+      "cell_id": "cell-test-a",
+      "tick": 3,
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "positive-adsb",
+          "source_id": "positive-adsb-rx",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-test-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-positive-adsb",
+          "profile_id": "synthetic-adsb-profile-v0"
+        },
+        {
+          "id": "positive-eoir",
+          "source_id": "positive-eoir",
+          "sensor_modality": "EO-IR",
+          "traffic_class": "non-cooperative-crewed",
+          "cell_id": "cell-test-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-positive-eoir",
+          "profile_id": "synthetic-eoir-daylight-v0"
+        }
+      ],
+      "evaluations": [
+        {
+          "traffic_class": "cooperative-crewed",
+          "minimum_independent_families": 1,
+          "observation": {
+            "id": "positive-coop-track",
+            "source_id": "positive-adsb-rx",
+            "traffic_class": "cooperative-crewed",
+            "cell_id": "cell-test-a",
+            "tick": 3,
+            "current": true,
+            "integrity_qualified": true
+          },
+          "expected": {
+            "coverage_status": "QUALIFIED_COVERAGE",
+            "observation_status": "QUALIFIED_TRACK",
+            "independent_family_count": 1,
+            "unresolved_possible_occupancy": false
+          }
+        },
+        {
+          "traffic_class": "non-cooperative-crewed",
+          "minimum_independent_families": 1,
+          "observation": {
+            "id": "positive-noncoop-track",
+            "source_id": "positive-eoir",
+            "traffic_class": "non-cooperative-crewed",
+            "cell_id": "cell-test-a",
+            "tick": 3,
+            "current": true,
+            "integrity_qualified": true
+          },
+          "expected": {
+            "coverage_status": "QUALIFIED_COVERAGE",
+            "observation_status": "QUALIFIED_TRACK",
+            "independent_family_count": 1,
+            "unresolved_possible_occupancy": false
+          }
+        }
+      ],
+      "expected": {
+        "meaning": "The same cell may have separate class-specific qualified claims; no single pooled coverage score is emitted."
+      }
+    }
+  ],
+  "invariants": [
+    "No report or no cooperative transmission is not an empty-airspace claim.",
+    "Cooperative and non-cooperative traffic coverage are separate classes and metrics.",
+    "ADS-B-only claims cannot qualify non-cooperative traffic coverage.",
+    "Every coverage claim binds a class, volume, time, environment, profile, source and evidence type.",
+    "Coverage, detection, track initiation, track continuity, classification and physical occupancy are separate claims.",
+    "Multiple receiver IDs sharing a critical failure domain count as one independent family.",
+    "Unknown dependency inventory is not independence.",
+    "Time/PNT loss invalidates the affected time-dependent track claim, not the physical aircraft.",
+    "A sensor outside its environment envelope cannot qualify coverage for that cell.",
+    "Qualified coverage is not proof of zero traffic or a clearance to treat all untracked space as free.",
+    "Unresolved or not-qualified surveillance returns possible occupancy or not-assessable, never an empty occupancy set.",
+    "The adapter performs no DAA avoidance, tactical instruction, flight control or operational authorization."
+  ],
+  "required_mutations": [
+    "Remove one cooperative ADS-B report while preserving the cell; no empty-space claim may be created.",
+    "Change an ADS-B claim's traffic class from cooperative-crewed to non-cooperative-crewed without new evidence; coverage must fail.",
+    "Widen the sensor coverage time interval only by changing its validity, then remove the current tick from that interval; coverage must cease.",
+    "Change a dependency inventory from complete to unknown; independent-family count must not increase.",
+    "Split three receiver source IDs into one shared family; the family count remains one.",
+    "Change PNT/time qualification from true to false; the affected track cannot remain qualified.",
+    "Change EO/IR environment qualification from true to false; that cell becomes not-qualified.",
+    "Permute claims and observations while preserving IDs and meanings; semantic results must remain identical."
+  ]
+}
