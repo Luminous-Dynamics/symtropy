@@ -118,7 +118,7 @@ fn compute(inputs: &Value) -> Result<Value, String> {
     let mut outlet_ids = BTreeSet::new();
     let mut outlet_mass = 0.0;
     let mut delayed_mass = 0.0;
-    let mut masses = vec![injected];
+    let mut covariance_dimension = 1usize;
     for stream in streams {
         let stream_id = text(stream, "stream_id")?;
         if !stream_ids.insert(stream_id.to_owned()) {
@@ -142,7 +142,7 @@ fn compute(inputs: &Value) -> Result<Value, String> {
             "delayed_tail" => delayed_mass += mass,
             _ => return Ok(disposition("REJECTED_CONTRACT", Some("UNKNOWN_RECOVERY_STREAM_KIND"))),
         }
-        masses.push(mass);
+        covariance_dimension += 1;
     }
     if !outlet_mass.is_finite() || !delayed_mass.is_finite() {
         return Ok(disposition("INVALID_INPUT", Some("RECOVERY_MASS_SUM_OVERFLOW")));
@@ -157,7 +157,6 @@ fn compute(inputs: &Value) -> Result<Value, String> {
     let inventory = field(inputs, "inventory")?;
     let inventory_state = text(inventory, "state")?;
     let mut inventory_mass = 0.0;
-    let mut inventory_is_physical = false;
     let mut inventory_issue: Option<&str> = None;
     match inventory_state {
         "measured" => {
@@ -170,8 +169,7 @@ fn compute(inputs: &Value) -> Result<Value, String> {
                     if inventory_mass < 0.0 {
                         return Ok(disposition("INVALID_INPUT", Some("NEGATIVE_PHYSICAL_INVENTORY")));
                     }
-                    masses.push(inventory_mass);
-                    inventory_is_physical = true;
+                    covariance_dimension += 1;
                 }
                 "measurement_system_loss" => {
                     inventory_issue = Some("MEASUREMENT_SYSTEM_LOSS_IS_NOT_PHYSICAL_INVENTORY");
@@ -192,7 +190,7 @@ fn compute(inputs: &Value) -> Result<Value, String> {
     }
 
     let covariance_rows = array(inputs, "mass_balance_covariance")?;
-    let n = masses.len();
+    let n = covariance_dimension;
     if covariance_rows.len() != n {
         return Ok(disposition("REJECTED_CONTRACT", Some("MASS_COVARIANCE_DIMENSION_MISMATCH")));
     }
