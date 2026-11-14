@@ -1153,8 +1153,7 @@ mod tests {
             ),
         ];
         let p = problem(units, &[("robot-fleet", 1)], false);
-        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto)
-            .expect("portfolio search");
+        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto).expect("portfolio search");
         assert_eq!(result.completeness, SearchCompleteness::Exhaustive);
         assert!(result.infeasible_declared_portfolio);
         assert!(result.pareto_frontier.is_empty());
@@ -1248,10 +1247,12 @@ mod tests {
             &[("crew", 1), ("robot", 1), ("assisted", 1)],
             false,
         );
-        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto)
-            .expect("exact portfolio");
+        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto).expect("exact portfolio");
         assert_eq!(result.pareto_frontier.len(), 1);
-        assert_eq!(result.pareto_frontier[0].choices[0].mode, ExecutionMode::Human);
+        assert_eq!(
+            result.pareto_frontier[0].choices[0].mode,
+            ExecutionMode::Human
+        );
         assert_eq!(result.excluded_options.len(), 2);
     }
 
@@ -1405,7 +1406,17 @@ mod tests {
         let p = problem(units, &[("crew", 1), ("robot", 1)], false);
         let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto).expect("frontier");
         assert_eq!(result.pareto_frontier.len(), 2);
-        assert!(result.pareto_frontier.iter().any(|plan| plan.metrics.makespan_ms == 200));
-        assert!(result.pareto_frontier.iter().any(|plan| plan.metrics.makespan_ms == 100));
+        assert!(
+            result
+                .pareto_frontier
+                .iter()
+                .any(|plan| plan.metrics.makespan_ms == 200)
+        );
+        assert!(
+            result
+                .pareto_frontier
+                .iter()
+                .any(|plan| plan.metrics.makespan_ms == 100)
+        );
     }
 }
