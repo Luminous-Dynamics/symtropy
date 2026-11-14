@@ -1,0 +1,1110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/manufacturing/instrument_architecture_matrix_v0_1.schema.json",
+  "title": "MUS-OPT instrument architecture scenario matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "workstream_id",
+    "status",
+    "evidence_note",
+    "architectures",
+    "manufacturing_routes",
+    "objective_definitions",
+    "baseline_coverage_required",
+    "scenarios"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "instrument-architecture-matrix/0.1"
+    },
+    "workstream_id": {
+      "const": "MUS-OPT-001"
+    },
+    "status": {
+      "const": "SYNTHETIC_UNQUALIFIED_NOT_RANKABLE"
+    },
+    "evidence_note": {
+      "type": "string",
+      "minLength": 40
+    },
+    "architectures": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "acoustic_resonator_replaceable_sensor",
+          "low_voltage_electronic_instrument",
+          "modular_electro_acoustic_hybrid"
+        ]
+      }
+    },
+    "manufacturing_routes": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "hand_workshop_assembly",
+          "maker_digital_fabrication_commodity_electronics",
+          "qualified_contract_manufacturing"
+        ]
+      }
+    },
+    "objective_definitions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bom_cost",
+        "assembly_time",
+        "calibration_time",
+        "first_pass_yield",
+        "material_waste",
+        "energy_use",
+        "median_repair_time",
+        "p90_repair_time",
+        "critical_part_lead_time"
+      ],
+      "properties": {
+        "bom_cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "currency_per_unit"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "assembly_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "minute_per_unit"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "calibration_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "minute_per_unit"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "first_pass_yield": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "fraction_0_to_1"
+            },
+            "direction": {
+              "const": "maximize"
+            }
+          }
+        },
+        "material_waste": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "gram_per_unit"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "energy_use": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "watt_hour_per_unit"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "median_repair_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "minute_per_repair"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "p90_repair_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "minute_per_repair"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        },
+        "critical_part_lead_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "direction"
+          ],
+          "properties": {
+            "unit": {
+              "const": "calendar_day"
+            },
+            "direction": {
+              "const": "minimize"
+            }
+          }
+        }
+      }
+    },
+    "baseline_coverage_required": {
+      "const": 9
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 21,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "direction",
+        "evidence_status",
+        "source_ref",
+        "as_of_date",
+        "uncertainty_absolute"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "currency_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z]{3}$"
+        },
+        "direction": {
+          "enum": [
+            "minimize",
+            "maximize"
+          ]
+        },
+        "evidence_status": {
+          "enum": [
+            "unresolved",
+            "quoted",
+            "observed",
+            "derived",
+            "synthetic"
+          ]
+        },
+        "source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "as_of_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "uncertainty_absolute": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_status": {
+                "const": "unresolved"
+              }
+            },
+            "required": [
+              "evidence_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "null"
+              },
+              "source_ref": {
+                "type": "null"
+              },
+              "as_of_date": {
+                "type": "null"
+              },
+              "uncertainty_absolute": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "value",
+              "source_ref",
+              "as_of_date",
+              "uncertainty_absolute"
+            ]
+          }
+        }
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "scenario_type",
+        "architecture",
+        "manufacturing_route",
+        "condition",
+        "challenge",
+        "objective_evidence",
+        "expected_disposition",
+        "rationale"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^(BASE|STRESS|NEG)-[0-9]{3}$"
+        },
+        "scenario_type": {
+          "enum": [
+            "baseline",
+            "stress_test",
+            "negative_control"
+          ]
+        },
+        "architecture": {
+          "enum": [
+            "acoustic_resonator_replaceable_sensor",
+            "low_voltage_electronic_instrument",
+            "modular_electro_acoustic_hybrid"
+          ]
+        },
+        "manufacturing_route": {
+          "enum": [
+            "hand_workshop_assembly",
+            "maker_digital_fabrication_commodity_electronics",
+            "qualified_contract_manufacturing"
+          ]
+        },
+        "condition": {
+          "enum": [
+            "reference",
+            "critical_part_unavailable",
+            "fx_and_lead_time_shock",
+            "tightened_tolerance_requirement",
+            "failed_build_and_rework"
+          ]
+        },
+        "challenge": {
+          "enum": [
+            "none",
+            "unknown_cost_treated_as_zero",
+            "unapproved_substitute_treated_as_qualified",
+            "simulation_metric_treated_as_physical",
+            "failed_builds_omitted",
+            "repair_success_without_post_test",
+            "rank_without_required_evidence",
+            "license_missing_but_release_allowed",
+            "stale_design_revision_accepted"
+          ]
+        },
+        "objective_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bom_cost",
+            "assembly_time",
+            "calibration_time",
+            "first_pass_yield",
+            "material_waste",
+            "energy_use",
+            "median_repair_time",
+            "p90_repair_time",
+            "critical_part_lead_time"
+          ],
+          "properties": {
+            "bom_cost": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction",
+                    "currency_code"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "currency_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    },
+                    "currency_code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^[A-Z]{3}$"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "const": "unresolved"
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "currency_code": {
+                            "type": "null"
+                          }
+                        },
+                        "required": [
+                          "currency_code"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "currency_code": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          }
+                        },
+                        "required": [
+                          "currency_code"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "assembly_time": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "calibration_time": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "first_pass_yield": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "fraction_0_to_1"
+                    },
+                    "direction": {
+                      "const": "maximize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "material_waste": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "gram_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "energy_use": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "watt_hour_per_unit"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "median_repair_time": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_repair"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "p90_repair_time": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "minute_per_repair"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "critical_part_lead_time": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/metric"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "unit",
+                    "direction"
+                  ],
+                  "properties": {
+                    "unit": {
+                      "const": "calendar_day"
+                    },
+                    "direction": {
+                      "const": "minimize"
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "evidence_status": {
+                            "enum": [
+                              "quoted",
+                              "observed",
+                              "derived"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "evidence_status"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "value": {
+                            "type": "number"
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "as_of_date": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "source_ref",
+                          "as_of_date"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "expected_disposition": {
+          "enum": [
+            "UNRANKED_MISSING_EVIDENCE",
+            "BLOCKED_UNVERIFIED",
+            "REJECT_CLAIM",
+            "BLOCK_RANKING",
+            "BLOCK_RELEASE"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 20
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scenario_type": {
+                "const": "baseline"
+              }
+            },
+            "required": [
+              "scenario_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "condition": {
+                "const": "reference"
+              },
+              "challenge": {
+                "const": "none"
+              },
+              "expected_disposition": {
+                "const": "UNRANKED_MISSING_EVIDENCE"
+              },
+              "scenario_id": {
+                "pattern": "^BASE-[0-9]{3}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scenario_type": {
+                "const": "stress_test"
+              }
+            },
+            "required": [
+              "scenario_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "challenge": {
+                "const": "none"
+              },
+              "expected_disposition": {
+                "const": "BLOCKED_UNVERIFIED"
+              },
+              "scenario_id": {
+                "pattern": "^STRESS-[0-9]{3}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scenario_type": {
+                "const": "negative_control"
+              }
+            },
+            "required": [
+              "scenario_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "challenge": {
+                "not": {
+                  "const": "none"
+                }
+              },
+              "expected_disposition": {
+                "enum": [
+                  "REJECT_CLAIM",
+                  "BLOCK_RANKING",
+                  "BLOCK_RELEASE"
+                ]
+              },
+              "scenario_id": {
+                "pattern": "^NEG-[0-9]{3}$"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
