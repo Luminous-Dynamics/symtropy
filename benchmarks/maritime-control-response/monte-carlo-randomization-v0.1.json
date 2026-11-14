@@ -53,7 +53,7 @@
     "row_order": "Unit and stratum input row order must not change the frame digest, sampled-assignment digest or p-value.",
     "prng": "SplitMix64 constants and wrapping semantics are frozen by a Rust golden-vector test. It is a reproducible simulation PRNG, not a cryptographic generator.",
     "seed_nonclaim": "A seed digest or reproducible stream does not prove the seed was generated without bias or that the real-world trial was randomized correctly.",
-    "analysis_configuration": "The config binds a lowercase SHA-256 analysis-plan digest, preregistration-record reference, unsigned 64-bit seed, fixed draw count and a seed-commitment digest computed over (analysis-plan digest, seed, draw count). The result publishes the config digest and both commitment references. Upstream receipt authentication remains outside this module."
+    "analysis_configuration": "The config binds a lowercase SHA-256 analysis-plan digest, preregistration-record reference, unsigned 64-bit seed, fixed draw count and a seed-commitment digest computed over (analysis-plan digest, seed, draw count). The result publishes the config digest and both commitment references. Upstream receipt authentication remains outside this module. The seed-commitment hash is also domain-bound to the frozen PRNG algorithm ID."
   },
   "hard_gates": [
     "The input trial must pass the blocked-randomized trial contract from #5111.",
@@ -94,7 +94,8 @@
     "A frozen 200-seed regression panel compares each Monte Carlo Wilson interval against the exact Fisher tail probability; its 90% minimum coverage assertion is a deterministic regression guard, not a claim of global nominal coverage.",
     "Every Monte Carlo configuration must include a valid analysis-plan SHA-256 and non-empty preregistration-record reference.",
     "The seed commitment SHA-256 must match the analysis-plan digest, unsigned seed and fixed draw count; a mismatch fails before sampling.",
-    "The result and sampled-assignment digest bind the canonical config digest, preventing silent config/seed/draw-budget substitution within one run."
+    "The result and sampled-assignment digest bind the canonical config digest, preventing silent config/seed/draw-budget substitution within one run.",
+    "The seed commitment must also bind the frozen PRNG algorithm ID, so a PRNG-version change requires a new commitment and configuration digest."
   ],
   "comparators": [
     {
@@ -219,6 +220,11 @@
       "case_id": "MC20",
       "scenario": "Output binds the analysis-plan digest, preregistration reference, seed commitment and canonical configuration digest.",
       "expected": "analysis_config_provenance_bound"
+    },
+    {
+      "case_id": "MC21",
+      "scenario": "Changing the analysis-plan digest changes the configuration digest, seed commitment and sampled-assignment replay digest even with the same seed and trial frame.",
+      "expected": "analysis_plan_replay_binding"
     }
   ],
   "metrics": [
