@@ -216,8 +216,10 @@ pub enum NotAssessableReason {
     UpstreamStillRecovering,
     /// The upstream PNT/service state is indeterminate.
     UpstreamIndeterminate,
-    /// The service state provides no admissible source role in this adapter version.
-    StateNotAdmissible,
+    /// A required policy identifier or independent-family count is invalid.
+    InvalidPolicy,
+    /// The declared time-scale identity is absent.
+    InvalidTimeScaleIdentity,
 }
 
 /// Result of the PNT/time admission and position-set expansion.
@@ -293,23 +295,94 @@ pub fn evaluate(input: &AdapterInput) -> AdapterOutcome {
         }
     };
 
+    if input.policy.profile_id.trim().is_empty()
+        || input.policy.horizontal_frame_id.trim().is_empty()
+        || input.policy.vertical_datum_id.trim().is_empty()
+        || input.policy.minimum_independent_families == 0
+    {
+        return reject(NotAssessableReason::InvalidPolicy);
+    }
+    if input.assessment_time_scale_id.trim().is_empty() {
+        return reject(NotAssessableReason::InvalidTimeScaleIdentity);
+    }
+
     match evaluate_claim(claim, input) {
         Ok((elapsed_seconds, position)) => {
             let Some(dependency_snapshot_id) = claim.dependency_snapshot_id.clone() else {
                 return reject(NotAssessableReason::DependencySnapshotIncomplete);
             };
+            let Some(clock_correlation_id) = claim.clock_correlation_id.clone() else {
+                return reject(NotAssessableReason::MissingClockCorrelation);
+            };
+            let Some(clock_correlation_sha256) = claim.clock_correlation_sha256.clone() else {
+                return reject(NotAssessableReason::MissingClockCorrelation);
+            };
+            let Some(assessment_clock_correlation_sha256) =
+                input.assessment_clock_correlation_sha256.clone()
+            else {
+                return reject(NotAssessableReason::AssessmentClockUnqualified);
+            };
+            let common = (
+                claim.source_id.clone(),
+                claim.source_claim_sha256.clone(),
+                claim.profile_id.clone(),
+                clock_correlation_id,
+                clock_correlation_sha256,
+                assessment_clock_correlation_sha256,
+                input.service_state_receipt_sha256.clone(),
+                [
+                    claim.sample_time_lower_utc_ms,
+                    claim.sample_time_upper_utc_ms,
+                ],
+                [
+                    input.assessment_time_lower_utc_ms,
+                    input.assessment_time_upper_utc_ms,
+                ],
+                dependency_snapshot_id,
+                elapsed_seconds,
+                position,
+            );
+            let (
+                source_id,
+                source_claim_sha256,
+                profile_id,
+                clock_correlation_id,
+                clock_correlation_sha256,
+                assessment_clock_correlation_sha256,
+                service_state_receipt_sha256,
+                sample_time_interval_utc_ms,
+                assessment_time_interval_utc_ms,
+                dependency_snapshot_id,
+                elapsed_seconds,
+                position,
+            ) = common;
+
             if accepted_as_fallback {
                 AdapterOutcome::AcceptedFallback {
-                    source_id: claim.source_id.clone(),
-                    source_claim_sha256: claim.source_claim_sha256.clone(),
+                    source_id,
+                    source_claim_sha256,
+                    profile_id,
+                    clock_correlation_id,
+                    clock_correlation_sha256,
+                    assessment_clock_correlation_sha256,
+                    service_state_receipt_sha256,
+                    sample_time_interval_utc_ms,
+                    assessment_time_interval_utc_ms,
                     dependency_snapshot_id,
                     elapsed_seconds,
                     position,
                 }
             } else {
                 AdapterOutcome::AcceptedPrimary {
-                    source_id: claim.source_id.clone(),
-                    source_claim_sha256: claim.source_claim_sha256.clone(),
+                    source_id,
+                    source_claim_sha256,
+                    profile_id,
+                    clock_correlation_id,
+                    clock_correlation_sha256,
+                    assessment_clock_correlation_sha256,
+                    service_state_receipt_sha256,
+                    sample_time_interval_utc_ms,
+                    assessment_time_interval_utc_ms,
                     dependency_snapshot_id,
                     elapsed_seconds,
                     position,
@@ -340,6 +413,11 @@ fn evaluate_claim(
         || claim.vertical_datum_id != input.policy.vertical_datum_id
     {
         return Err(NotAssessableReason::FrameOrDatumMismatch);
+    }
+    if claim.sample_time_scale_id.trim().is_empty()
+        || claim.assessment_time_scale_id.trim().is_empty()
+    {
+        return Err(NotAssessableReason::InvalidTimeScaleIdentity);
     }
     if claim.sample_time_scale_id != input.assessment_time_scale_id
         || claim.assessment_time_scale_id != input.assessment_time_scale_id
