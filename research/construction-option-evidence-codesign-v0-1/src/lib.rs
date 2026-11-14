@@ -793,9 +793,9 @@ mod tests {
             "design-b",
             90,
             90,
-            90,
-            90,
-            90,
+            100,
+            100,
+            100,
             true,
         );
         let campaigns = vec![
@@ -983,6 +983,114 @@ mod tests {
         );
         assert!(!report.joint_frontier_proven);
         assert!(report.proven_frontier_option_ids.is_empty());
+    }
+
+    #[test]
+    fn independent_pareto_oracle_matches_joint_frontier_fixture() {
+        let option_a = option(
+            "option-a",
+            "design-a",
+            100,
+            100,
+            100,
+            100,
+            100,
+            true,
+        );
+        let option_b = option(
+            "option-b",
+            "design-b",
+            90,
+            90,
+            100,
+            100,
+            100,
+            true,
+        );
+        let campaigns = vec![
+            campaign(
+                &option_a,
+                0,
+                0,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+            campaign(
+                &option_b,
+                100,
+                100,
+                CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+            ),
+        ];
+        let report = evaluate(&[option_a, option_b], &campaigns, 100)
+            .expect("joint fixture");
+
+        // Independently calculate the tiny two-package frontier from fixture-visible
+        // objective fields. This oracle does not call JointObjectives::dominates.
+        let a = report.joint_evaluations
+            .iter()
+            .find(|item| item.option_id == "option-a")
+            .and_then(|item| item.objectives.as_ref())
+            .expect("option-a objectives");
+        let b = report.joint_evaluations
+            .iter()
+            .find(|item| item.option_id == "option-b")
+            .and_then(|item| item.objectives.as_ref())
+            .expect("option-b objectives");
+        let b_no_worse_than_a =
+            b.combined_lifecycle_cost_minor_units <= a.combined_lifecycle_cost_minor_units
+            && b.total_workflow_crew_minutes <= a.total_workflow_crew_minutes
+            && b.construction_elapsed_minutes <= a.construction_elapsed_minutes
+            && b.total_energy_wh <= a.total_energy_wh
+            && b.construction_carbon_gco2e <= a.construction_carbon_gco2e;
+        let a_no_worse_than_b =
+            a.combined_lifecycle_cost_minor_units <= b.combined_lifecycle_cost_minor_units
+            && a.total_workflow_crew_minutes <= b.total_workflow_crew_minutes
+            && a.construction_elapsed_minutes <= b.construction_elapsed_minutes
+            && a.total_energy_wh <= b.total_energy_wh
+            && a.construction_carbon_gco2e <= b.construction_carbon_gco2e;
+        let oracle_frontier = match (a_no_worse_than_b, b_no_worse_than_a) {
+            (true, false) => vec!["option-a".to_owned()],
+            (false, true) => vec!["option-b".to_owned()],
+            _ => vec!["option-a".to_owned(), "option-b".to_owned()],
+        };
+        assert_eq!(report.proven_frontier_option_ids, oracle_frontier);
+    }
+
+    #[test]
+    fn option_evidence_package_rejects_base_occupancy_book_context_mismatch() {
+        let candidate = option(
+            "option-a",
+            "design-a",
+            100,
+            20,
+            30,
+            50,
+            60,
+            true,
+        );
+        let mut package = campaign(
+            &candidate,
+            10,
+            5,
+            CampaignCostTreatment::AdditionalToOptionLifecycleCost,
+        );
+        package.occupancy_book = SpatialOccupancyBook::new(
+            SiteBinding {
+                floor_id: "wrong-floor".to_owned(),
+                site_epoch: package.site_epoch.clone(),
+                design_revision_digest: package.option_design_digest.clone(),
+                target_frame_id: package.target_frame_id.clone(),
+            },
+            package.clock_domain_id.clone(),
+        )
+        .expect("wrong-floor occupancy book");
+
+        assert_eq!(
+            evaluate(&[candidate], &[package], 100),
+            Err(JointEvaluationError::BaseOccupancyContextMismatch(
+                "option-a".to_owned()
+            ))
+        );
     }
 
     #[test]
