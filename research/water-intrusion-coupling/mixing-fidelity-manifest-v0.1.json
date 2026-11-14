@@ -42,11 +42,13 @@
   "evidence_status": {
     "snapshot_date": "2026-11-14",
     "synthetic_cases": 15,
-    "independent_fixture_oracle_cross_check": "pending",
-    "native_rust_tests_rustfmt_clippy": "pending",
+    "independent_fixture_oracle_cross_check": "15_of_15_matched",
+    "native_rust_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
     "hosted_ci_exact_head": "pending",
     "physical_tracer_tests": "not_performed",
     "raw_physical_measurements": "none",
-    "production_evidence_digests": "not_applicable_synthetic_fixture_markers_only"
+    "production_evidence_digests": "not_applicable_synthetic_fixture_markers_only",
+    "independent_check_method": "separate JavaScript arithmetic implementation evaluated input fixtures against the frozen oracle; Rust binary was not executed in this environment",
+    "rust_unit_tests_authored": 8
   }
 }
