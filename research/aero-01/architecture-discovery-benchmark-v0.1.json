@@ -1,0 +1,717 @@
+{
+  "schema": "luminous.aero01.architecture-discovery-benchmark",
+  "schema_version": "0.1.0",
+  "created_utc": "2026-11-07T00:00:00Z",
+  "status": "preregistration_template_not_frozen",
+  "evidence_ceiling": "Research benchmark protocol only. Mission values, aircraft configurations, operating constraints, source datasets, total budgets and confirmatory splits must be frozen before confirmatory runs. No aircraft performance, safety, airworthiness, certification or better-than-SOTA result is asserted.",
+  "parent_issue": 3921,
+  "owners": {
+    "mdo_interop_issue": 3237,
+    "decision_value_issue": 2890,
+    "shape_benchmark_issue": 2896,
+    "whole_aircraft_closure_issue": 3945,
+    "mass_state_issue": 3984
+  },
+  "research_questions": [
+    "architecture_discovery",
+    "continuous_parameter_optimization",
+    "analysis_graph_and_discipline_activation",
+    "fidelity_and_experiment_acquisition"
+  ],
+  "mission_card_ref": "research/aero-01/mission-cards-v0.1.json",
+  "task_families": [
+    {
+      "id": "WREN2-TRAINING-LOCAL",
+      "family": "Wren 2",
+      "mission_cards": [
+        "WREN2-TRAINING-SORTIE",
+        "WREN2-LOCAL-PERSONAL"
+      ],
+      "status": "unfrozen"
+    },
+    {
+      "id": "WREN2-CROSS-COUNTRY",
+      "family": "Wren 2",
+      "mission_cards": [
+        "WREN2-CROSS-COUNTRY"
+      ],
+      "status": "unfrozen"
+    },
+    {
+      "id": "WAYFARER4-TOURING",
+      "family": "Wayfarer 4",
+      "mission_cards": [
+        "WAYFARER4-TOURING-LEG"
+      ],
+      "status": "unfrozen"
+    },
+    {
+      "id": "WAYFARER4-UTILITY-HOT-HIGH",
+      "family": "Wayfarer 4",
+      "mission_cards": [
+        "WAYFARER4-PRACTICAL-UTILITY",
+        "WAYFARER4-SHORT-FIELD-HOT-HIGH"
+      ],
+      "status": "unfrozen"
+    }
+  ],
+  "architecture_candidates": [
+    {
+      "id": "C0",
+      "topology": "conventional_fixed_wing_direct_drive",
+      "role": "reference"
+    },
+    {
+      "id": "C1",
+      "topology": "high_aspect_ratio_or_strut_braced",
+      "role": "wing_load_path_counterfactual"
+    },
+    {
+      "id": "C2",
+      "topology": "partial_span_blown_lift_distributed_propulsion",
+      "role": "powered_lift_counterfactual"
+    },
+    {
+      "id": "C3",
+      "topology": "full_span_blown_wing_distributed_propulsion",
+      "role": "conditional_higher_integration_candidate"
+    },
+    {
+      "id": "C4",
+      "topology": "battery_electric_fixed_wing",
+      "role": "short_mission_trainer_candidate"
+    },
+    {
+      "id": "C5P",
+      "topology": "parallel_hybrid",
+      "role": "hybrid_counterfactual"
+    },
+    {
+      "id": "C5S",
+      "topology": "series_hybrid",
+      "role": "hybrid_counterfactual"
+    },
+    {
+      "id": "C6",
+      "topology": "evidence_selected_alternative_geometry",
+      "role": "open_architecture_slot"
+    },
+    {
+      "id": "C7_PLUS",
+      "topology": "VTOL",
+      "role": "separate_mission_class_only_when_vertical_access_is_required"
+    }
+  ],
+  "participant_policies": [
+    {
+      "id": "P0",
+      "name": "expert_manual_sequential",
+      "architecture_policy": "expert_selects_before_runs",
+      "optimizer": "deterministic_sequential",
+      "experiment_policy": "expert_chosen"
+    },
+    {
+      "id": "P1",
+      "name": "fixed_architecture_sweeps",
+      "architecture_policy": "fixed",
+      "optimizer": "deterministic_sweep",
+      "experiment_policy": "fixed_design"
+    },
+    {
+      "id": "P2",
+      "name": "fixed_architecture_gradient_adjoint",
+      "architecture_policy": "fixed",
+      "optimizer": "gradient_or_adjoint_when_valid",
+      "experiment_policy": "gradient_based"
+    },
+    {
+      "id": "P3",
+      "name": "fixed_architecture_evolutionary_moo",
+      "architecture_policy": "fixed",
+      "optimizer": "evolutionary_multiobjective",
+      "experiment_policy": "population_based"
+    },
+    {
+      "id": "P4",
+      "name": "fixed_architecture_bayesian_multifidelity",
+      "architecture_policy": "fixed",
+      "optimizer": "bayesian_multifidelity",
+      "experiment_policy": "cost_aware_acquisition"
+    },
+    {
+      "id": "P5",
+      "name": "fixed_graph_mdf_idf",
+      "architecture_policy": "fixed",
+      "optimizer": "MDF_or_IDF",
+      "experiment_policy": "declared_graph"
+    },
+    {
+      "id": "P6",
+      "name": "dynamic_architecture_workflow",
+      "architecture_policy": "categorical_search",
+      "optimizer": "declared_optimizer",
+      "experiment_policy": "topology_dependent_graph_and_fidelity"
+    },
+    {
+      "id": "P7",
+      "name": "dynamic_workflow_plus_decision_value",
+      "architecture_policy": "categorical_search",
+      "optimizer": "declared_optimizer",
+      "experiment_policy": "decision_value_acquisition"
+    },
+    {
+      "id": "P8",
+      "name": "random_space_filling_control",
+      "architecture_policy": "random_admissible",
+      "optimizer": "random_or_space_filling",
+      "experiment_policy": "random"
+    },
+    {
+      "id": "P9",
+      "name": "objective_only_acquisition",
+      "architecture_policy": "fixed_or_declared",
+      "optimizer": "declared_optimizer",
+      "experiment_policy": "objective_only"
+    },
+    {
+      "id": "P10",
+      "name": "uncertainty_only_acquisition",
+      "architecture_policy": "fixed_or_declared",
+      "optimizer": "declared_optimizer",
+      "experiment_policy": "uncertainty_only"
+    },
+    {
+      "id": "P11",
+      "name": "expert_next_experiment",
+      "architecture_policy": "fixed_or_declared",
+      "optimizer": "declared_optimizer",
+      "experiment_policy": "human_expert"
+    }
+  ],
+  "workflow_rules": [
+    "Each discipline node declares inputs, outputs, units, configuration digest, applicability domain, fidelity and cost.",
+    "An inactive discipline means not_assessed, never zero mass, zero drag, zero cost or implicit pass.",
+    "A dynamic workflow may skip a high-cost analysis only when a conservative lower-fidelity result proves it cannot change the decision; otherwise return indeterminate or acquire evidence.",
+    "All graph activation decisions, skipped analyses, failures and abstentions are retained in an immutable run receipt.",
+    "Reuse issue owners #3900 for phase-resolved hybrid dispatch and #3903 for installed battery/capacitor evidence; do not fork those physical models."
+  ],
+  "matched_budget_costs": [
+    "low_medium_high_fidelity_solver_calls",
+    "failed_timed_out_aborted_and_nonconverged_runs",
+    "mesh_geometry_and_solver_setup",
+    "surrogate_training_validation_refresh_and_audit",
+    "architecture_graph_construction_adapter_development_and_workflow_compilation",
+    "optimizer_acquisition_and_hyperparameter_tuning",
+    "human_engineering_setup_review_intervention_and_manual_design",
+    "independent_replay_oracle_and_confirmation_calls",
+    "measured_compute_wall_time_and_energy_where_available",
+    "attributable_source_acquisition_and_preprocessing"
+  ],
+  "report_cost_views": [
+    "marginal_after_reusable_adapters",
+    "fully_loaded_including_adapter_and_workflow_construction"
+  ],
+  "anti_leakage": {
+    "stages": [
+      "development",
+      "calibration",
+      "confirmatory_holdout"
+    ],
+    "requirements": [
+      "Confirmatory geometry/mission/operating-condition outcomes are hidden until preregistered freeze.",
+      "Use multiple independent seeds and paired initial conditions.",
+      "Hold out at least one mission variant and one operating-condition family from tuning.",
+      "Report Wren 2 and Wayfarer 4 separately before any pooled result.",
+      "Never use a confirmatory physical/reference observation for tuning and then call it independent validation."
+    ]
+  },
+  "primary_method_metrics": [
+    "independently_validated_feasible_pareto_hypervolume_vs_fully_loaded_cost",
+    "cost_to_first_independently_reproduced_feasible_architecture",
+    "architecture_decision_regret_against_exact_small_case_oracle",
+    "false_feasible_selection_rate_with_denominator_and_uncertainty",
+    "lower_decile_hard_constraint_margin_on_held_out_tasks",
+    "cost_per_decision_changing_experiment",
+    "budget_fraction_spent_on_experiments_unable_to_change_recommendation",
+    "probability_calibration_only_for_calibrated_probabilistic_outputs",
+    "out_of_domain_abstention_and_unsupported_graph_activation"
+  ],
+  "aircraft_metrics": [
+    "payload_range_reserve",
+    "takeoff_ground_roll_and_obstacle_clear_distance_separately",
+    "landing_ground_roll_and_obstacle_clear_distance_separately",
+    "climb_go_around_and_diversion_margin",
+    "installed_system_mass_and_power",
+    "energy_or_fuel_per_completed_mission_and_passenger_kilometre",
+    "loading_state_mass_cg_inertia_and_evidence_quality",
+    "failure_and_degraded_mission_feasibility",
+    "maintenance_turnaround_and_cost_per_completed_mission"
+  ],
+  "negative_controls": [
+    "omit_motor_inverter_cable_mount_cooling_or_containment_mass",
+    "substitute_cell_level_specific_energy_for_installed_system_value",
+    "omit_propeller_drag_or_claim_powered_lift_after_relevant_propulsor_failure",
+    "treat_peak_power_as_continuous_or_ignore_generator_ramp_start",
+    "ignore_cooling_parasitics_thermal_derating_or_battery_end_of_life",
+    "compare_unmatched_payload_reserve_or_environment",
+    "promote_aerodynamic_data_outside_applicability_domain",
+    "carry_feasibility_across_stale_configuration_state_source_or_solver_identity",
+    "allow_weighted_scalar_to_compensate_for_hard_constraint_violation",
+    "drop_failed_nonconverged_or_out_of_domain_analyses",
+    "leak_confirmatory_tasks_into_tuning",
+    "omit_required_discipline_for_selected_architecture"
+  ],
+  "prospective_internal_targets": {
+    "oracle_agreement_fraction": 1,
+    "false_feasible_synthetic_cases": 0,
+    "minimum_independent_geometry_mission_families_for_general_claim": 3,
+    "mission_metric_improvement_goal_fraction": 0.1,
+    "cost_to_same_validated_quality_stretch_reduction_fraction": 0.2,
+    "caveat": "Prospective internal research goals only; not aviation standards, approved product requirements or achieved results. Do not relax after observing confirmatory results."
+  },
+  "literature": [
+    {
+      "id": "dynamic_mdao_2026",
+      "title": "Dynamic multidisciplinary design analysis and optimization workflows: Concept and implementation",
+      "doi": "10.1016/j.ast.2026.111748",
+      "url": "https://doi.org/10.1016/j.ast.2026.111748",
+      "finding_scope": "Dynamic runtime architecture/workflow MDAO demonstrated on a mathematical VSDS Goldstein problem; not aircraft physical validation."
+    },
+    {
+      "id": "shapebench_2026",
+      "title": "ShapeBench: A Scalable Benchmark and Diagnostic Suite for Standardized Evaluation in Aerodynamic Shape Optimization",
+      "url": "https://arxiv.org/abs/2605.20763",
+      "reported_scope": "103 tasks across eight shape categories; mean pairwise optimizer rank Spearman rho approximately 0.013; shape benchmark, not whole-aircraft validation."
+    },
+    {
+      "id": "bocode_2026",
+      "title": "BOCoDe: Engineering-Centered Benchmarking for Bayesian Optimization",
+      "url": "https://arxiv.org/abs/2608.15073",
+      "reported_scope": "307 optimization problems including 159 engineering tasks; 31 algorithms; engineering rankings vary by task/domain."
+    }
+  ],
+  "claim_ceiling": "A method win applies only to the frozen tasks, data, budgets, fidelity gates and evidence scope. It does not establish aircraft safety, flightworthiness, certification, manufacturability, physical superiority or commercial readiness.",
+  "discipline_graph": {
+    "node_catalog": [
+      {
+        "id": "GEO",
+        "name": "parametric_geometry",
+        "outputs": [
+          "geometry_digest",
+          "reference_frames",
+          "reference_dimensions"
+        ]
+      },
+      {
+        "id": "MASS",
+        "name": "installed_mass_cg_inertia",
+        "outputs": [
+          "mass_ledger_digest",
+          "loading_state_digest",
+          "mass_cg_inertia"
+        ]
+      },
+      {
+        "id": "AERO0",
+        "name": "low_order_aerodynamics",
+        "outputs": [
+          "screening_polars",
+          "drag_lift_moments",
+          "applicability_state"
+        ]
+      },
+      {
+        "id": "AERO_PROP",
+        "name": "propeller_wing_flap_interaction",
+        "outputs": [
+          "powered_lift_increment",
+          "propulsive_drag",
+          "asymmetry_cases"
+        ]
+      },
+      {
+        "id": "STR",
+        "name": "structural_sizing",
+        "outputs": [
+          "structural_mass",
+          "stiffness",
+          "strength_margins"
+        ]
+      },
+      {
+        "id": "AEL",
+        "name": "aeroelastic_gust_flutter",
+        "outputs": [
+          "deformation",
+          "flutter_margins",
+          "gust_load_response"
+        ]
+      },
+      {
+        "id": "PROP",
+        "name": "installed_propulsion_sizing",
+        "outputs": [
+          "shaft_power",
+          "installed_mass",
+          "propeller_map"
+        ]
+      },
+      {
+        "id": "ELEC",
+        "name": "electrical_distribution",
+        "outputs": [
+          "bus_power_balance",
+          "wire_protection_mass",
+          "fault_zones"
+        ]
+      },
+      {
+        "id": "STORE",
+        "name": "installed_energy_storage",
+        "outputs": [
+          "usable_energy",
+          "power_limits",
+          "end_of_life_state"
+        ]
+      },
+      {
+        "id": "THERM",
+        "name": "thermal_rejection",
+        "outputs": [
+          "heat_balance",
+          "cooling_mass",
+          "thermal_derating"
+        ]
+      },
+      {
+        "id": "MISSION",
+        "name": "mission_trajectory_reserve",
+        "outputs": [
+          "phase_energy",
+          "payload_range_reserve",
+          "mission_feasibility"
+        ]
+      },
+      {
+        "id": "FAIL",
+        "name": "failure_degraded_operation",
+        "outputs": [
+          "failure_case_feasibility",
+          "recourse_margins"
+        ]
+      },
+      {
+        "id": "LIFE",
+        "name": "serviceability_lifecycle_cost",
+        "outputs": [
+          "maintenance_hours",
+          "turnaround",
+          "lifecycle_cost"
+        ]
+      },
+      {
+        "id": "MFG",
+        "name": "manufacturing_tolerance_inspection",
+        "outputs": [
+          "process_capability",
+          "inspection_cost",
+          "coupon_plan"
+        ]
+      }
+    ],
+    "common_required_before_architecture_admission": [
+      "GEO",
+      "MASS",
+      "AERO0",
+      "MISSION",
+      "LIFE"
+    ],
+    "topology_gates": {
+      "C0": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "MISSION",
+          "LIFE"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "THERM",
+          "FAIL"
+        ]
+      },
+      "C1": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "STR",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "AEL",
+          "THERM",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C2": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "AERO_PROP",
+          "PROP",
+          "ELEC",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C3": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "AERO_PROP",
+          "PROP",
+          "ELEC",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C4": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C5P": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C5S": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C6": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "MISSION"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "PROP",
+          "THERM",
+          "FAIL",
+          "LIFE",
+          "MFG"
+        ]
+      },
+      "C7_PLUS": {
+        "required_before_mission_claim": [
+          "GEO",
+          "MASS",
+          "AERO0",
+          "PROP",
+          "ELEC",
+          "STORE",
+          "THERM",
+          "MISSION",
+          "FAIL"
+        ],
+        "must_resolve_before_qualified_comparison": [
+          "STR",
+          "AEL",
+          "LIFE",
+          "MFG"
+        ]
+      }
+    },
+    "edge_contracts": [
+      {
+        "from": "GEO",
+        "to": "MASS",
+        "identity": "geometry_digest_and_reference_frame"
+      },
+      {
+        "from": "GEO",
+        "to": "AERO0",
+        "identity": "geometry_digest_and_mesh_generation"
+      },
+      {
+        "from": "AERO0",
+        "to": "STR",
+        "identity": "pressure_loads_and_operating_point_digest"
+      },
+      {
+        "from": "AERO_PROP",
+        "to": "PROP",
+        "identity": "propulsor_geometry_and_operating_map"
+      },
+      {
+        "from": "STR",
+        "to": "MASS",
+        "identity": "structural_mass_generation_digest"
+      },
+      {
+        "from": "PROP",
+        "to": "MASS",
+        "identity": "installed_propulsion_bom_digest"
+      },
+      {
+        "from": "ELEC",
+        "to": "MASS",
+        "identity": "installed_electrical_bom_digest"
+      },
+      {
+        "from": "STORE",
+        "to": "MASS",
+        "identity": "installed_storage_bom_digest"
+      },
+      {
+        "from": "THERM",
+        "to": "MASS",
+        "identity": "cooling_and_containment_bom_digest"
+      },
+      {
+        "from": "MASS",
+        "to": "MISSION",
+        "identity": "exact_loading_state_digest"
+      },
+      {
+        "from": "PROP",
+        "to": "MISSION",
+        "identity": "phase_resolved_propulsive_power"
+      },
+      {
+        "from": "ELEC",
+        "to": "MISSION",
+        "identity": "phase_resolved_bus_power"
+      },
+      {
+        "from": "STORE",
+        "to": "MISSION",
+        "identity": "state_of_charge_and_power_limits"
+      },
+      {
+        "from": "THERM",
+        "to": "MISSION",
+        "identity": "temperature_derating_and_parasitics"
+      },
+      {
+        "from": "FAIL",
+        "to": "MISSION",
+        "identity": "declared_failure_and_recourse_matrix"
+      },
+      {
+        "from": "MISSION",
+        "to": "LIFE",
+        "identity": "completed_mission_and_turnaround_definition"
+      }
+    ],
+    "activation_rule": "A discipline may be skipped only when a conservative, independently checked lower-fidelity bound proves its outcome cannot change the preregistered decision. Otherwise report not_assessed and withhold any claim that depends on it. Every activation, skip, failure and promotion carries a candidate/mission/source/solver identity and cost receipt."
+  },
+  "fidelity_ladder": [
+    {
+      "id": "F0",
+      "name": "analytical_and_hand_calculable",
+      "promotion": "exact_independent_oracle"
+    },
+    {
+      "id": "F1",
+      "name": "low_order_mission_and_geometry",
+      "promotion": "declared_scope_sensitivity_and_conservative_discrepancy"
+    },
+    {
+      "id": "F2",
+      "name": "conceptual_geometry_and_aero",
+      "promotion": "no_potential_flow_mislabeled_as_viscous_RANS"
+    },
+    {
+      "id": "F3",
+      "name": "pinned_RANS_or_adjoint",
+      "promotion": "protocol_convergence_mesh_grid_and_applicability_qualification"
+    },
+    {
+      "id": "F4",
+      "name": "coupled_structure_thermal_propulsion",
+      "promotion": "independent_solver_references_and_coupling_residuals"
+    },
+    {
+      "id": "F5",
+      "name": "calibrated_component_coupon_or_tunnel",
+      "promotion": "independent_metrology_and_held_out_data"
+    },
+    {
+      "id": "F6",
+      "name": "aircraft_level_physical_validation",
+      "promotion": "separate_engineering_safety_and_authority_controlled_program"
+    }
+  ],
+  "preregistration": [
+    "Freeze mission, primary metric, hard constraints, reserve policy and design space before optimization.",
+    "Freeze baseline variant, source/effectivity evidence class and exact solver/task versions.",
+    "Freeze development/calibration/confirmatory split and paired seeds.",
+    "Freeze total-cost ledger and stop rules before revealing confirmatory outcomes.",
+    "Record every failure, timeout, non-convergence, abstention and skipped discipline."
+  ]
+}

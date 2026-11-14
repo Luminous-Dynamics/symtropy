@@ -1,0 +1,321 @@
+{
+  "schema": "luminous.aero01.whole-aircraft-closure-fixtures.v0.1",
+  "created": "2026-11-06",
+  "evidence_ceiling": "Synthetic bookkeeping fixtures only. No values represent a real aircraft, component, or demonstrated performance.",
+  "conventions": {
+    "units": "SI unless field name declares otherwise",
+    "reference_frame": "x forward, y right, z up; metres; origin is an arbitrary synthetic datum",
+    "inertia": "Point-mass tensor about computed CG; off-diagonal entries use -sum(m * delta_i * delta_j)",
+    "tolerances": "No engineering acceptance tolerance is implied unless explicitly included in a fixture"
+  },
+  "fixtures": [
+    {
+      "id": "mass-cg-inertia-point-masses-001",
+      "purpose": "Hand-checkable total mass, three-dimensional centre of gravity and point-mass inertia tensor",
+      "evidence_class": "synthetic_fixture",
+      "items": [
+        {
+          "id": "left_wing_lump",
+          "mass_kg": 50,
+          "x_m": 1.3,
+          "y_m": -1.8,
+          "z_m": 0.4
+        },
+        {
+          "id": "right_wing_lump",
+          "mass_kg": 50,
+          "x_m": 1.3,
+          "y_m": 1.8,
+          "z_m": 0.4
+        },
+        {
+          "id": "fuselage_structure_lump",
+          "mass_kg": 260,
+          "x_m": 1.6,
+          "y_m": 0,
+          "z_m": 0.35
+        },
+        {
+          "id": "propulsion_lump",
+          "mass_kg": 120,
+          "x_m": 2.2,
+          "y_m": 0,
+          "z_m": 0.6
+        },
+        {
+          "id": "fuel_lump",
+          "mass_kg": 85,
+          "x_m": 2.1,
+          "y_m": 0,
+          "z_m": 0.25
+        },
+        {
+          "id": "systems_lump",
+          "mass_kg": 95,
+          "x_m": 1.2,
+          "y_m": 0,
+          "z_m": 0.45
+        },
+        {
+          "id": "pilot_point_mass",
+          "mass_kg": 80,
+          "x_m": 2.7,
+          "y_m": -0.35,
+          "z_m": 0.55
+        },
+        {
+          "id": "passenger_point_mass",
+          "mass_kg": 80,
+          "x_m": 2.7,
+          "y_m": 0.35,
+          "z_m": 0.55
+        },
+        {
+          "id": "baggage_point_mass",
+          "mass_kg": 25,
+          "x_m": 3.1,
+          "y_m": 0,
+          "z_m": 0.35
+        }
+      ],
+      "expected": {
+        "total_mass_kg": 845,
+        "center_of_gravity_m": {
+          "x": 1.9076923076923078,
+          "y": 0,
+          "z": 0.43047337278106507
+        },
+        "inertia_about_cg_kg_m2": {
+          "Ixx": 354.0778106508876,
+          "Iyy": 268.9778106508876,
+          "Izz": 602.1,
+          "Ixy": 0,
+          "Ixz": -22.726923076923086,
+          "Iyz": 0
+        },
+        "expected_disposition": "ARITHMETIC_FIXTURE_ONLY_NO_AIRCRAFT_FEASIBILITY_CLAIM"
+      }
+    },
+    {
+      "id": "bus-power-residual-001",
+      "purpose": "Preserve a non-zero bus-power residual instead of forcing balance",
+      "evidence_class": "synthetic_fixture",
+      "inputs_kw": {
+        "generator_net_bus_output": 55,
+        "battery_bus_output": 20,
+        "propulsion_bus_demand": 65,
+        "auxiliary_demand": 4,
+        "conversion_losses": 5,
+        "storage_charging_demand": 0
+      },
+      "expected": {
+        "source_total_kw": 75,
+        "accounted_demand_total_kw": 74,
+        "residual_kw": 1,
+        "expected_disposition": "NONZERO_RESIDUAL_REQUIRES_DECLARED_TOLERANCE_AND_UNCERTAINTY"
+      }
+    },
+    {
+      "id": "battery-discharge-state-001",
+      "purpose": "Check sign-consistent battery energy accounting for a constant bus output interval",
+      "evidence_class": "synthetic_fixture",
+      "inputs": {
+        "starting_stored_energy_kwh": 30,
+        "battery_bus_output_kw": 20,
+        "duration_hours": 0.25,
+        "discharge_efficiency": 0.95
+      },
+      "expected": {
+        "battery_terminal_energy_delivered_kwh": 5,
+        "stored_energy_removed_kwh": 5.2631578947368425,
+        "ending_stored_energy_kwh": 24.736842105263158,
+        "expected_disposition": "ENERGY_ARITHMETIC_ONLY_THERMAL_VOLTAGE_POWER_LIMITS_NOT_MODELLED"
+      }
+    },
+    {
+      "id": "stale-cg-claim-001",
+      "purpose": "Reject a caller-supplied centre of gravity inconsistent with the mass ledger",
+      "evidence_class": "synthetic_negative_control",
+      "source_fixture_id": "mass-cg-inertia-point-masses-001",
+      "supplied_cg_m": {
+        "x": 1.9,
+        "y": 0,
+        "z": 0.43047337278106507
+      },
+      "comparison_tolerance_m": 0.000001,
+      "expected": {
+        "recomputed_cg_x_m": 1.9076923076923078,
+        "absolute_x_error_m": 0.007692307692307776,
+        "expected_disposition": "REJECT_INCONSISTENT_CG"
+      }
+    },
+    {
+      "id": "unknown-installed-cooling-mass-001",
+      "purpose": "Prevent an unknown cooling-system mass from being silently treated as zero",
+      "evidence_class": "synthetic_negative_control",
+      "mass_item": {
+        "id": "cooling_system",
+        "mass_kg": null,
+        "source_state": "unknown"
+      },
+      "expected": {
+        "total_mass_kg": null,
+        "expected_disposition": "INDETERMINATE_MISSING_MATERIAL_MASS_INPUT"
+      }
+    },
+    {
+      "id": "lift-force-arithmetic-001",
+      "purpose": "Hand-check dynamic pressure and lift force arithmetic",
+      "evidence_class": "synthetic_fixture",
+      "inputs": {
+        "air_density_kg_m3": 1,
+        "true_airspeed_m_s": 30,
+        "reference_area_m2": 10,
+        "lift_coefficient": 0.8
+      },
+      "expected": {
+        "dynamic_pressure_pa": 450,
+        "lift_force_n": 3600,
+        "expected_disposition": "ARITHMETIC_FIXTURE_ONLY_NOT_AERODYNAMIC_VALIDATION"
+      }
+    },
+    {
+      "id": "drag-force-arithmetic-001",
+      "purpose": "Hand-check drag force arithmetic under an explicitly supplied coefficient",
+      "evidence_class": "synthetic_fixture",
+      "inputs": {
+        "air_density_kg_m3": 1,
+        "true_airspeed_m_s": 30,
+        "reference_area_m2": 10,
+        "drag_coefficient": 0.04
+      },
+      "expected": {
+        "dynamic_pressure_pa": 450,
+        "drag_force_n": 180,
+        "expected_disposition": "ARITHMETIC_FIXTURE_ONLY_NOT_AERODYNAMIC_VALIDATION"
+      }
+    },
+    {
+      "id": "moving-fuel-cg-001",
+      "purpose": "Verify longitudinal CG changes when consumable fuel is burned",
+      "evidence_class": "synthetic_fixture",
+      "inputs": {
+        "fixed_mass_kg": 500,
+        "fixed_mass_x_m": 1.5,
+        "fuel_mass_initial_kg": 100,
+        "fuel_mass_final_kg": 25,
+        "fuel_tank_x_m": 3.5
+      },
+      "expected": {
+        "initial_total_mass_kg": 600,
+        "initial_cg_x_m": 1.8333333333333333,
+        "final_total_mass_kg": 525,
+        "final_cg_x_m": 1.5952380952380953,
+        "expected_disposition": "CG_ARITHMETIC_ONLY_APPROVED_ENVELOPE_NOT_SUPPLIED"
+      }
+    },
+    {
+      "id": "phase-energy-reserve-pass-001",
+      "purpose": "Check chronological phase energy and retained minimum energy reserve",
+      "evidence_class": "synthetic_fixture",
+      "inputs": {
+        "starting_stored_energy_kwh": 40,
+        "discharge_efficiency": 0.95,
+        "reserve_fraction_of_starting_energy": 0.2,
+        "phases": [
+          {
+            "name": "climb",
+            "bus_output_kw": 10,
+            "duration_hours": 1
+          },
+          {
+            "name": "cruise",
+            "bus_output_kw": 20,
+            "duration_hours": 0.5
+          },
+          {
+            "name": "descent",
+            "bus_output_kw": 5,
+            "duration_hours": 0.5
+          }
+        ]
+      },
+      "expected": {
+        "bus_energy_delivered_kwh": 22.5,
+        "stored_energy_removed_kwh": 23.68421052631579,
+        "ending_stored_energy_kwh": 16.31578947368421,
+        "reserve_energy_kwh": 8,
+        "reserve_margin_kwh": 8.315789473684212,
+        "expected_disposition": "PASS_SYNTHETIC_ENERGY_RESERVE_ARITHMETIC_ONLY"
+      }
+    },
+    {
+      "id": "phase-energy-reserve-fail-001",
+      "purpose": "Reject a mission whose required stored energy breaches the declared reserve",
+      "evidence_class": "synthetic_negative_control",
+      "inputs": {
+        "starting_stored_energy_kwh": 20,
+        "discharge_efficiency": 0.95,
+        "reserve_fraction_of_starting_energy": 0.15,
+        "phases": [
+          {
+            "name": "climb",
+            "bus_output_kw": 10,
+            "duration_hours": 1
+          },
+          {
+            "name": "cruise",
+            "bus_output_kw": 20,
+            "duration_hours": 0.5
+          },
+          {
+            "name": "descent",
+            "bus_output_kw": 5,
+            "duration_hours": 0.5
+          }
+        ]
+      },
+      "expected": {
+        "bus_energy_delivered_kwh": 22.5,
+        "stored_energy_required_kwh": 23.68421052631579,
+        "available_above_reserve_kwh": 17,
+        "shortfall_against_available_kwh": 6.684210526315791,
+        "expected_disposition": "REJECT_RESERVE_BREACH"
+      }
+    },
+    {
+      "id": "stale-discipline-result-001",
+      "purpose": "Reject a solver result produced for a different aircraft configuration digest",
+      "evidence_class": "synthetic_negative_control",
+      "inputs": {
+        "requested_configuration_digest": "sha256:config-new",
+        "discipline_result_configuration_digest": "sha256:config-old",
+        "mission_digest_matches": true
+      },
+      "expected": {
+        "expected_disposition": "REJECT_STALE_CONFIGURATION_IDENTITY",
+        "result_must_not_be_used_for_feasibility": true
+      }
+    },
+    {
+      "id": "solver-iteration-limit-001",
+      "purpose": "Ensure iteration exhaustion is never promoted to closure",
+      "evidence_class": "synthetic_negative_control",
+      "inputs": {
+        "termination_state": "iteration_limit",
+        "converged": false,
+        "maximum_residual": 0.025,
+        "declared_residual_tolerance": 0.001
+      },
+      "expected": {
+        "residual_exceeds_tolerance": true,
+        "expected_disposition": "NON_CONVERGED",
+        "feasibility_claim_allowed": false
+      }
+    }
+  ],
+  "fixture_count": 12,
+  "notes": [
+    "All fixtures are synthetic bookkeeping/physics arithmetic examples. Lift/drag fixtures use prescribed coefficients and do not validate any aerodynamic model."
+  ]
+}

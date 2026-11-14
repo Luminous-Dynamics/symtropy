@@ -1,0 +1,100 @@
+{
+  "schema": "luminous.aero01.external-benchmark-manifest",
+  "schema_version": "0.1.0",
+  "retrieved_utc": "2026-11-07T00:00:00Z",
+  "status": "reference_manifest_not_execution_receipts",
+  "claim_ceiling": "These are external reference candidates and versions to pin for future matched comparisons. No solver was executed by this manifest; no benchmark result or aircraft validation is claimed.",
+  "tools": [
+    {
+      "id": "OPENMDAO",
+      "name": "OpenMDAO",
+      "role": "reference multidisciplinary optimization framework",
+      "stable_release": "3.45.2",
+      "stable_release_date": "2026-10-27",
+      "current_development_docs_refreshed": "2026-11-06",
+      "license": "Apache-2.0",
+      "baseline_requirements": [
+        "Pin 3.45.2 source and environment for a reproducible stable comparison.",
+        "Keep latest development documentation separate from the pinned stable release.",
+        "Count model/adapter setup, optimization calls, human setup and independent audit in total budget."
+      ],
+      "sources": [
+        "https://openmdao.org/docs/",
+        "https://openmdao.org/newdocs_list/",
+        "https://pypi.org/project/openmdao/"
+      ]
+    },
+    {
+      "id": "SU2",
+      "name": "SU2",
+      "role": "CFD and PDE-constrained optimization backend",
+      "stable_release": "8.6.0",
+      "stable_release_date": "2026-10-30",
+      "license": "LGPL-2.1",
+      "relevant_release_notes": [
+        "GPU-enabled linear-solver updates",
+        "pressure-based incompressible solver",
+        "multi-zone adjoint support for turbomachinery",
+        "experimental FSI plus conjugate heat transfer capability"
+      ],
+      "baseline_requirements": [
+        "Pin exact source tag, commit, compiler, dependencies, configuration and mesh.",
+        "For discrete-adjoint comparisons use a source build; the official binary-download page states adjoint functionality is unavailable in binary executables.",
+        "Keep participant-historical SU2 8.0.1 reproduction separate from the current 8.6.0 release lane.",
+        "Do not compare potential-flow, RANS and adjoint results without distinct fidelity/protocol labels."
+      ],
+      "sources": [
+        "https://su2code.github.io/download.html",
+        "https://github.com/su2code/SU2/releases",
+        "https://github.com/su2code/SU2"
+      ]
+    }
+  ],
+  "research_benchmarks": [
+    {
+      "id": "SHAPEBENCH",
+      "version_or_paper": "2026 preprint",
+      "task_scope": "103 aerodynamic shape-optimization tasks across eight shape categories",
+      "reported_finding": "Mean pairwise optimizer-ranking Spearman correlation approximately 0.013; task-level ranks generalize poorly across shape categories.",
+      "use": "Geometry optimizer stress/transfer benchmark only; a win is not whole-aircraft architecture validation.",
+      "source": "https://arxiv.org/abs/2605.20763"
+    },
+    {
+      "id": "BOCODE",
+      "version_or_paper": "2026 preprint",
+      "task_scope": "307 optimization problems including 159 engineering tasks; 31 evaluated algorithms",
+      "reported_finding": "Optimizer rankings are domain/task dependent; transfer from synthetic/HPO problems to engineering is weak.",
+      "use": "Engineering optimizer-transfer comparator; retain task families and costs separately.",
+      "source": "https://arxiv.org/abs/2608.15073"
+    },
+    {
+      "id": "DYNAMIC_MDAO",
+      "version_or_paper": "Aerospace Science and Technology 175 (2026), article 111748",
+      "task_scope": "Runtime-changing variables, tools, constraints and active subworkflows; mathematical VSDS Goldstein example",
+      "reported_finding": "Dynamic architecture/workflow exploration with fewer evaluations/runtime than multiple static workflows in the reported mathematical case.",
+      "use": "Method hypothesis for aircraft-specific matched-budget testing, not a demonstrated aircraft advantage.",
+      "source": "https://doi.org/10.1016/j.ast.2026.111748"
+    }
+  ],
+  "regulatory_context": [
+    {
+      "authority": "SACAA",
+      "scope": "South African engineering/airworthiness guidance",
+      "source": "https://www.caa.co.za/industry-information/airworthiness/",
+      "note": "The current page lists separate TGMs for Type Certification, Type Acceptance, Design Organisation Approval, Experimental Certificate of Airworthiness and Amateur-Built Aircraft. The applicable path must be confirmed with SACAA; no US/EASA pathway should be presumed to transfer."
+    },
+    {
+      "authority": "FAA",
+      "scope": "United States Part 23 Means of Compliance reference only",
+      "source": "https://www.faa.gov/aircraft/air_cert/design_approvals/small_airplanes/small_airplanes_regs/part_23_moc",
+      "note": "US accepted means of compliance and novel-design assessment are jurisdiction-specific; not a South African approval."
+    }
+  ],
+  "freeze_requirements": [
+    "Pin source URL, exact version/tag/commit, byte digest, environment, build flags and adapter revision before execution.",
+    "Record data/task licences and permitted use.",
+    "Record hardware/software resource limits and actual cost receipts.",
+    "Keep historical reproduction lanes separate from current-release comparison lanes.",
+    "An unexecuted reference manifest is not a benchmark receipt."
+  ]
+}
