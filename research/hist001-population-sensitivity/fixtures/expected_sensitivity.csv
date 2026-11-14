@@ -1,0 +1,55 @@
+persons_per_homestead,homestead_use_years,phase,subinterval,duration_years,general_population,capital_population,total_if_capital_added
+40,40,Mapungubwe,reported phase interval,50,3648.00,5000,8648.00
+40,40,Transitional,reported phase interval,120,1906.67,2500,4406.67
+40,40,Leokwe,reported phase interval,200,504.00,none,not_applicable
+40,40,Zhizo,reported phase interval,100,352.00,300,652.00
+40,40,K2,initial smaller-capital interval,25,1020.00,300,1320.00
+40,40,K2,later interval,125,1632.00,1500,3132.00
+40,50,Mapungubwe,reported phase interval,50,4560.00,5000,9560.00
+40,50,Transitional,reported phase interval,120,2383.33,2500,4883.33
+40,50,Leokwe,reported phase interval,200,630.00,none,not_applicable
+40,50,Zhizo,reported phase interval,100,440.00,300,740.00
+40,50,K2,initial smaller-capital interval,25,1020.00,300,1320.00
+40,50,K2,later interval,125,2040.00,1500,3540.00
+40,60,Mapungubwe,reported phase interval,50,5472.00,5000,10472.00
+40,60,Transitional,reported phase interval,120,2860.00,2500,5360.00
+40,60,Leokwe,reported phase interval,200,756.00,none,not_applicable
+40,60,Zhizo,reported phase interval,100,528.00,300,828.00
+40,60,K2,initial smaller-capital interval,25,1020.00,300,1320.00
+40,60,K2,later interval,125,2448.00,1500,3948.00
+50,40,Mapungubwe,reported phase interval,50,4560.00,5000,9560.00
+50,40,Transitional,reported phase interval,120,2383.33,2500,4883.33
+50,40,Leokwe,reported phase interval,200,630.00,none,not_applicable
+50,40,Zhizo,reported phase interval,100,440.00,300,740.00
+50,40,K2,initial smaller-capital interval,25,1275.00,300,1575.00
+50,40,K2,later interval,125,2040.00,1500,3540.00
+50,50,Mapungubwe,reported phase interval,50,5700.00,5000,10700.00
+50,50,Transitional,reported phase interval,120,2979.17,2500,5479.17
+50,50,Leokwe,reported phase interval,200,787.50,none,not_applicable
+50,50,Zhizo,reported phase interval,100,550.00,300,850.00
+50,50,K2,initial smaller-capital interval,25,1275.00,300,1575.00
+50,50,K2,later interval,125,2550.00,1500,4050.00
+50,60,Mapungubwe,reported phase interval,50,6840.00,5000,11840.00
+50,60,Transitional,reported phase interval,120,3575.00,2500,6075.00
+50,60,Leokwe,reported phase interval,200,945.00,none,not_applicable
+50,60,Zhizo,reported phase interval,100,660.00,300,960.00
+50,60,K2,initial smaller-capital interval,25,1275.00,300,1575.00
+50,60,K2,later interval,125,3060.00,1500,4560.00
+60,40,Mapungubwe,reported phase interval,50,5472.00,5000,10472.00
+60,40,Transitional,reported phase interval,120,2860.00,2500,5360.00
+60,40,Leokwe,reported phase interval,200,756.00,none,not_applicable
+60,40,Zhizo,reported phase interval,100,528.00,300,828.00
+60,40,K2,initial smaller-capital interval,25,1530.00,300,1830.00
+60,40,K2,later interval,125,2448.00,1500,3948.00
+60,50,Mapungubwe,reported phase interval,50,6840.00,5000,11840.00
+60,50,Transitional,reported phase interval,120,3575.00,2500,6075.00
+60,50,Leokwe,reported phase interval,200,945.00,none,not_applicable
+60,50,Zhizo,reported phase interval,100,660.00,300,960.00
+60,50,K2,initial smaller-capital interval,25,1530.00,300,1830.00
+60,50,K2,later interval,125,3060.00,1500,4560.00
+60,60,Mapungubwe,reported phase interval,50,8208.00,5000,13208.00
+60,60,Transitional,reported phase interval,120,4290.00,2500,6790.00
+60,60,Leokwe,reported phase interval,200,1134.00,none,not_applicable
+60,60,Zhizo,reported phase interval,100,792.00,300,1092.00
+60,60,K2,initial smaller-capital interval,25,1530.00,300,1830.00
+60,60,K2,later interval,125,3672.00,1500,5172.00
