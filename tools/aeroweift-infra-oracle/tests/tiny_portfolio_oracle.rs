@@ -4,7 +4,7 @@ use aeroweift_infra_oracle::{
     failure_set, minimal_failure_sets, portfolio_has_complete_chain,
     site_complete_chain_available, site_landing_available, FailureDomain, OracleError,
     ALL_FAILURE_DOMAINS, PORTFOLIO_DIVERSE_AC, PORTFOLIO_NORTH_AB,
-    PORTFOLIO_UNKNOWN_ONLY, SITE_NORTH_A,
+    PORTFOLIO_NORTH_AB_PLUS_C, PORTFOLIO_UNKNOWN_ONLY, SITE_NORTH_A,
 };
 
 const GOLDEN_FIXTURE: &str = include_str!(
@@ -108,6 +108,29 @@ fn adding_failures_never_restores_a_complete_chain() {
     }
 
     assert!(portfolio_has_complete_chain(&PORTFOLIO_DIVERSE_AC, &empty));
+}
+
+#[test]
+fn adding_an_independent_recovery_site_never_shrinks_the_feasible_portfolio_set() {
+    for mask in 0usize..(1usize << ALL_FAILURE_DOMAINS.len()) {
+        let failed_domains: Vec<_> = ALL_FAILURE_DOMAINS
+            .iter()
+            .enumerate()
+            .filter_map(|(index, domain)| {
+                ((mask & (1usize << index)) != 0).then_some(*domain)
+            })
+            .collect();
+        let failed = failure_set(&failed_domains);
+
+        let original = portfolio_has_complete_chain(&PORTFOLIO_NORTH_AB, &failed);
+        let augmented =
+            portfolio_has_complete_chain(&PORTFOLIO_NORTH_AB_PLUS_C, &failed);
+
+        assert!(
+            !original || augmented,
+            "adding site C reduced feasibility for outage set {failed:?}"
+        );
+    }
 }
 
 #[test]
