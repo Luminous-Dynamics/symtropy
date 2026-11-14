@@ -86,3 +86,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT multi-fidelity waveform benchmark
+      run: cargo test --locked -p wpt-multifidelity-bench
+
+    - name: Run WPT multi-fidelity synthetic known-truth suite
+      run: cargo run --locked -p wpt-multifidelity-bench -- benchmarks/wpt-multifidelity/v1/synthetic-transient-comparison.json
