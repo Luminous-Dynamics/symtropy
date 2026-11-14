@@ -1,0 +1,128 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "CAVERN-REPRESENTATIVENESS-SHIFT-001",
+  "case_id": "CRS-001",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "decision_loss": {
+    "false_accept_cost": 3,
+    "false_reject_cost": 1,
+    "accept_if_posterior_at_or_below": 0.25
+  },
+  "strata": [
+    {
+      "id": "routine",
+      "defect_prior": 0.02
+    },
+    {
+      "id": "thermal_stress",
+      "defect_prior": 0.35
+    }
+  ],
+  "sampling_profiles": {
+    "training": {
+      "routine_weight": 0.95,
+      "thermal_stress_weight": 0.05,
+      "interpretation": "synthetic sampling distribution used to compare acquisition policies"
+    },
+    "deployment_shift": {
+      "routine_weight": 0.5,
+      "thermal_stress_weight": 0.5,
+      "interpretation": "sealed synthetic evaluation distribution; not known to the acquisition policy"
+    }
+  },
+  "measurements": [
+    {
+      "id": "M1",
+      "description": "nominal-optimized observation; high accuracy on routine cases, weak sensitivity under thermal stress",
+      "operating_characteristics": [
+        {
+          "stratum": "routine",
+          "sensitivity": 0.99,
+          "specificity": 0.99
+        },
+        {
+          "stratum": "thermal_stress",
+          "sensitivity": 0.55,
+          "specificity": 0.95
+        }
+      ],
+      "per_stratum_expected_information_bits": [
+        {
+          "stratum": "routine",
+          "bits": 0.11158875842997805
+        },
+        {
+          "stratum": "thermal_stress",
+          "bits": 0.23556374799190938
+        }
+      ],
+      "per_stratum_expected_decision_loss": [
+        {
+          "stratum": "routine",
+          "loss": 0.0104
+        },
+        {
+          "stratum": "thermal_stress",
+          "loss": 0.505
+        }
+      ],
+      "expected_information_bits_training": 0.1177875079080746,
+      "expected_decision_loss_training": 0.03513,
+      "expected_decision_loss_deployment_shift": 0.2577
+    },
+    {
+      "id": "M2",
+      "description": "robust observation; moderate and consistent accuracy across both strata",
+      "operating_characteristics": [
+        {
+          "stratum": "routine",
+          "sensitivity": 0.85,
+          "specificity": 0.85
+        },
+        {
+          "stratum": "thermal_stress",
+          "sensitivity": 0.85,
+          "specificity": 0.85
+        }
+      ],
+      "per_stratum_expected_information_bits": [
+        {
+          "stratum": "routine",
+          "bits": 0.033953216768703
+        },
+        {
+          "stratum": "thermal_stress",
+          "bits": 0.3581102309772388
+        }
+      ],
+      "per_stratum_expected_decision_loss": [
+        {
+          "stratum": "routine",
+          "loss": 0.06
+        },
+        {
+          "stratum": "thermal_stress",
+          "loss": 0.255
+        }
+      ],
+      "expected_information_bits_training": 0.050161067479129,
+      "expected_decision_loss_training": 0.06975,
+      "expected_decision_loss_deployment_shift": 0.1575
+    }
+  ],
+  "no_measurement_baseline": {
+    "expected_decision_loss_training": 0.0895,
+    "expected_decision_loss_deployment_shift": 0.355
+  },
+  "expected_rankings": {
+    "training_maximum_mutual_information": "M1",
+    "training_minimum_decision_loss": "M1",
+    "deployment_shift_minimum_decision_loss": "M2"
+  },
+  "claim_limitations": [
+    "All priors, sampling weights, observation sensitivities/specificities and costs are synthetic design values.",
+    "This case is not a model of any real CEA sensor, crop, cavern, structure or defect prevalence.",
+    "This is not an implementation or reproduction of the R-IDeA acquisition function.",
+    "The deployment-shift profile is used only by the sealed evaluator; acquisition policy selection receives only the training profile."
+  ]
+}
