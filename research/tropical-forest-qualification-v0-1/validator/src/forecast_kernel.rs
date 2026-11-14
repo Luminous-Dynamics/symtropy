@@ -275,52 +275,54 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
     let eligible_case_count = cases.len();
     let abstained_case_count = eligible_case_count - forecast_case_count;
     let forecast_coverage_fraction =
-        forecast_case_count as f64 / count_as_f64(eligible_case_count)?;
+        count_as_f64(forecast_case_count)? / count_as_f64(eligible_case_count)?;
     let mean_baseline_crps_all = all_baseline_crps_total / count_as_f64(eligible_case_count)?;
-    let (mean_model_crps, mean_baseline_crps_paired, crps_skill_score, mean_absolute_error,
-        interval_coverage_50, interval_coverage_80, interval_coverage_95,
-        mean_interval_width_80, mean_interval_width_95, disposition) =
-        if forecast_case_count == 0 {
-            (None, None, None, None, None, None, None, None, None, "NO_FORECAST_COVERAGE")
-        } else {
-            let paired_count = count_as_f64(forecast_case_count)?;
-            let model_mean = model_crps_total / paired_count;
-            let baseline_mean = paired_baseline_crps_total / paired_count;
-            let skill = if baseline_mean > 0.0 {
-                Some(1.0 - model_mean / baseline_mean)
-            } else {
-                None
-            };
-            (
-                Some(model_mean),
-                Some(baseline_mean),
-                skill,
-                Some(absolute_error_total / paired_count),
-                Some(coverage_50_count as f64 / paired_count),
-                Some(coverage_80_count as f64 / paired_count),
-                Some(coverage_95_count as f64 / paired_count),
-                Some(width_80_total / paired_count),
-                Some(width_95_total / paired_count),
-                "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE",
-            )
-        };
+
+    if forecast_case_count == 0 {
+        return Ok(ForecastSummary {
+            eligible_case_count,
+            forecast_case_count,
+            abstained_case_count,
+            forecast_coverage_fraction,
+            mean_model_crps: None,
+            mean_baseline_crps_paired: None,
+            mean_baseline_crps_all,
+            crps_skill_score: None,
+            mean_absolute_error: None,
+            interval_coverage_50: None,
+            interval_coverage_80: None,
+            interval_coverage_95: None,
+            mean_interval_width_80: None,
+            mean_interval_width_95: None,
+            disposition: "NO_FORECAST_COVERAGE",
+        });
+    }
+
+    let paired_count = count_as_f64(forecast_case_count)?;
+    let model_mean = model_crps_total / paired_count;
+    let baseline_mean = paired_baseline_crps_total / paired_count;
+    let crps_skill_score = if baseline_mean > 0.0 {
+        Some(1.0 - model_mean / baseline_mean)
+    } else {
+        None
+    };
 
     Ok(ForecastSummary {
         eligible_case_count,
         forecast_case_count,
         abstained_case_count,
         forecast_coverage_fraction,
-        mean_model_crps,
-        mean_baseline_crps_paired,
+        mean_model_crps: Some(model_mean),
+        mean_baseline_crps_paired: Some(baseline_mean),
         mean_baseline_crps_all,
         crps_skill_score,
-        mean_absolute_error,
-        interval_coverage_50,
-        interval_coverage_80,
-        interval_coverage_95,
-        mean_interval_width_80,
-        mean_interval_width_95,
-        disposition,
+        mean_absolute_error: Some(absolute_error_total / paired_count),
+        interval_coverage_50: Some(count_as_f64(coverage_50_count)? / paired_count),
+        interval_coverage_80: Some(count_as_f64(coverage_80_count)? / paired_count),
+        interval_coverage_95: Some(count_as_f64(coverage_95_count)? / paired_count),
+        mean_interval_width_80: Some(width_80_total / paired_count),
+        mean_interval_width_95: Some(width_95_total / paired_count),
+        disposition: "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE",
     })
 }
 
