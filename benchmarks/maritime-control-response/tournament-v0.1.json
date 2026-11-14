@@ -924,7 +924,8 @@
     "optional_stopping_claim": "model_conditional_ville_bound_for_valid_block_level_null_e_process",
     "familywise_control": "bonferroni",
     "physical_cause_claim_allowed": false,
-    "claim_ceiling": "synthetic block-level likelihood mechanics only; block independence and likelihood calibration not validated"
+    "claim_ceiling": "synthetic block-level likelihood mechanics only; block independence and likelihood calibration not validated",
+    "block_independence_note": "Non-overlap alone is not proof of independence; the block-level dependence assumption must be independently reviewed and bound before confirmatory use."
   },
   "published_marine_engine_baseline_audit": {
     "path": "published-marine-engine-baseline-audit-v0.1.json",
