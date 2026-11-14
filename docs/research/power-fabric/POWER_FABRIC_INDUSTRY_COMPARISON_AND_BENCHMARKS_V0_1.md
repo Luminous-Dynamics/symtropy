@@ -55,6 +55,33 @@ Sources:
 - Electrical digital twins, 24 Jun 2026: https://blog.se.com/energy-management-energy-efficiency/2026/06/24/electrical-digital-twins-turning-data-into-decisions/
 - South Africa digital services: https://www.se.com/za/en/work/services/digital-services/
 
+### Engineering digital-twin and interoperability baselines — ETAP and IEC
+
+**ETAP Digital Twin** publicly describes a unified engineering and real-time platform used to model, design, visualize, analyze, predict, control and provide insight on electrical power-system management and performance. Power Fabric must therefore not claim that an electrical digital twin, graph model or engineering-to-operations platform is itself novel.
+
+Sources:
+- ETAP Digital Twin fact sheet: https://etap.com/docs/default-source/brochures/fact-sheets/digital-twin-fact-sheet-web.pdf
+
+The interoperability standards landscape also already provides important pieces:
+- **IEC 81346-1:2022 / ISO 81346-10:2022** provide general and power-supply-specific structuring and reference-designation rules. ISO shows an edition-2 Working Draft under development; do not represent the draft as a published edition.
+- **IEC 61970-301:2020 + AMD1:2022** provides the CIM base model for power-system network objects.
+- **IEC 61968-11:2013** provides CIM distribution extensions.
+- **IEC 61850-6:2009 + AMD1:2018 + AMD2:2024** defines SCL for exchanging IED and substation configuration descriptions between engineering tools.
+- **IEC TR 61850-1-1:2026** updates the series overview and includes namespace concepts.
+- **IEC 62351** is a multi-part power-system communication security series; its parts have different versions and scope.
+
+Sources:
+- IEC 81346-1:2022: https://webstore.iec.ch/en/publication/64021
+- ISO 81346-10:2022: https://www.iso.org/standard/75471.html
+- ISO/WD 81346-10 (edition 2 working draft): https://www.iso.org/standard/93711.html
+- IEC 61970-301: https://webstore.iec.ch/en/publication/62698
+- IEC 61968-11: https://webstore.iec.ch/en/publication/6199
+- IEC 61850-6 consolidated version: https://webstore.iec.ch/en/publication/103863
+- IEC TR 61850-1-1:2026: https://webstore.iec.ch/en/publication/105222
+- IEC 62351 series catalogue: https://webstore.iec.ch/en/publication/6912
+
+**Power Fabric implication:** the defensible research contribution is not a new universal electrical ontology. It is an evidence-bound composition layer that connects typed module compatibility, versioned as-built graph, provenance, loss-aware adapters to existing standards, human-readable projections and change invalidation. Standards-specific semantics must remain in their own versioned mapping profiles; successful serialization is not conformance or safety.
+
 ### Existing electrical installation safety practice — South Africa
 
 SANS 10142-1 requires correct and permanent marking/identification in its inspection/report process. ECA(SA)'s October 2026 technical explainer emphasizes that an incorrect label can be more dangerous than no label because a person may isolate the wrong circuit and believe the intended equipment is isolated. ECA's November 2026 series also highlights that electrical verification includes measured earth continuity, not merely the visible presence of an earth conductor.
