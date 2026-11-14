@@ -37,7 +37,7 @@ Represent the treatment asset as a claim-scoped barrier:
 3. What influent challenge envelope, flow, temperature, pressure, pH, turbidity/UVT/salinity and cumulative treated volume were validated?
 4. Does the current process remain within that envelope?
 5. Is the media/membrane/UV source correctly identified, installed, sealed, not expired and not bypassed?
-6. Are sensors current, calibrated and located on the right side of the barrier?
+6. Are sensors healthy, calibration-current and located on the right side of the barrier?
 7. Has post-maintenance requalification been completed?
 8. What independent samples exist, and what is their exact time/location/analyte/method scope?
 
@@ -72,7 +72,7 @@ Independent lab evidence is reported separately as NOT_AVAILABLE, SAMPLE_RESULT_
 1. Known open bypass => BYPASSED.
 2. Known expired/retired media or cartridge => OUT_OF_SERVICE.
 3. Unknown bypass or media identity/service state => UNKNOWN.
-4. Offline critical sensor => UNKNOWN; degraded sensor => DEGRADED.
+4. Offline critical sensor => UNKNOWN; degraded sensor => DEGRADED; expired or unknown calibration => UNKNOWN.
 5. Maintenance without required requalification => UNKNOWN.
 6. Missing/expired/failed independent challenge qualification => NOT_QUALIFIED.
 7. Requested claim not contained in tested claim scopes => CLAIM_SCOPE_MISMATCH.
@@ -108,7 +108,7 @@ Independent lab evidence is reported separately as NOT_AVAILABLE, SAMPLE_RESULT_
 - Membrane integrity / challenge tests, adsorption breakthrough, particle-size removal or UV validation as appropriate to the process.
 - Begin-, mid- and end-of-life performance.
 - Operating envelope including flow, pressure, temperature, pH, turbidity/UVT, salinity, source chemistry and cumulative treated volume.
-- Bypass/tamper detection, media expiry, sensor outage/drift, maintenance and restart recovery.
+- Bypass/tamper detection, media expiry, sensor outage/drift, calibration expiry, maintenance and restart recovery.
 - False-green state rate, time to detect degradation, abstention rate, calibration error and detection coverage.
 - Cost per litre of water meeting the declared quality profile; energy, chemical use, waste and downtime.
 
@@ -132,3 +132,6 @@ No process proxy, software status, filter certificate outside its scope, or synt
 ## 10. Nonclaims
 
 No product, barrier, pathogen log reduction, contaminant reduction, potability, SANS compliance, certification, municipal compliance, treatment life or safe-use claim is established here. All fixtures are synthetic contract tests only.
+
+
+The v0.1 synthetic corpus now includes a separate calibration-state input. A sensor can be responsive and still be unusable for qualification because its calibration is expired or unknown; this disposition is UNKNOWN, not normal.
