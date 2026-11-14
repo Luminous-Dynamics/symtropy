@@ -1,0 +1,87 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "DISTRIBUTION-INTRUSION-TRANSIENT-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5145",
+  "status": "research_design_and_proposed_synthetic_vectors",
+  "snapshot_date": "2026-11-14",
+  "evidence_class": "design_and_synthetic_only",
+  "evidence_ceiling": "no_physical_ingress_measurement_no_pathogen_or_health_claim_no_potability_no_regulatory_or_field_qualification",
+  "composition": {
+    "symtropy": [
+      4398,
+      4902,
+      4959,
+      4963,
+      4994,
+      5018,
+      5069,
+      5075,
+      5136
+    ],
+    "mycelix": [
+      6034,
+      6057,
+      6025,
+      6029,
+      6100
+    ]
+  },
+  "owned_boundary": [
+    "physical_external_ingress_mechanism",
+    "pressure_transient_to_intrusion_experiment",
+    "tracer_ingress_and_downstream_transport_measurement",
+    "synthetic_evidence_and_negative_control_vectors"
+  ],
+  "explicit_non_owners": [
+    "water_quality_ledger",
+    "asset_registry",
+    "hydraulic_network_solver",
+    "pressure_transient_solver",
+    "leak_detector",
+    "treatment_or_potability_authority",
+    "operational_control_or_release_authority"
+  ],
+  "tiers": {
+    "T0": "synthetic arithmetic and evidence semantics only",
+    "T1": "closed non-potable clean-water tracer rig",
+    "T2": "qualified laboratory methods under approved protocol",
+    "T3": "asset-owner and authority-approved supervised site observation",
+    "T4": "independent multi-site and multi-condition replication"
+  },
+  "scenario_file": "intrusion-t0-scenarios-v0.1.json",
+  "scenario_count": 12,
+  "scenario_ids": [
+    "DI-T0-001-positive-tracer-with-valid-pressure-and-pathway",
+    "DI-T0-002-transient-with-no-defect-and-complete-negative-samples",
+    "DI-T0-003-defect-and-tracer-but-no-external-head-exceedance",
+    "DI-T0-004-pressure-deficit-with-unknown-pathway",
+    "DI-T0-005-missing-downstream-sample",
+    "DI-T0-006-expired-pressure-or-sample-calibration",
+    "DI-T0-007-detection-limit-insufficient",
+    "DI-T0-008-tracer-source-ambiguous",
+    "DI-T0-009-ingress-known-but-mass-balance-incomplete",
+    "DI-T0-010-downstream-tracer-arrival",
+    "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence",
+    "DI-T0-012-similar-pressure-event-no-ingress-pathway"
+  ],
+  "non_compensable_invariants": [
+    "pressure_event_alone_never_confirms_ingress",
+    "pressure_recovery_never_confirms_water_quality_recommissioning",
+    "missing_sample_or_unknown_pathway_never_becomes_no_ingress",
+    "below_detection_is_not_zero",
+    "ambiguous_tracer_source_never_becomes_confirmed_ingress",
+    "unmeasured_declared_stream_never_counts_as_zero_mass",
+    "potability_claim_never_permitted_by_T0_or_T1",
+    "release_authority_never_minted_by_T0_or_T1",
+    "steady_state_EPANET_never_substitutes_for_transient_qualification"
+  ],
+  "proposed_next_steps": [
+    "validate scenario IDs and arithmetic with a separate known-answer oracle",
+    "freeze pressure and sensor bandwidth requirements from the physical test envelope",
+    "select a qualified transient reference method without creating a competing solver",
+    "design the external-head defect spool and containment with competent reviewers",
+    "reproduce a published intrusion experiment before new-model comparisons"
+  ],
+  "input_file": "intrusion-t0-scenarios-v0.1.json",
+  "oracle_file": "intrusion-t0-oracle-v0.1.json"
+}
