@@ -15,7 +15,11 @@
     "assumption_assessments",
     "negative_control_status",
     "unit_timelines",
-    "sensitivity_analysis_status"
+    "sensitivity_analysis_status",
+    "negative_control_evidence_sha256",
+    "negative_control_reviewer_ref",
+    "sensitivity_analysis_evidence_sha256",
+    "sensitivity_analysis_reviewer_ref"
   ],
   "properties": {
     "trial_id": {
@@ -240,6 +244,22 @@
         "violated",
         "unknown"
       ]
+    },
+    "negative_control_evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "negative_control_reviewer_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sensitivity_analysis_evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sensitivity_analysis_reviewer_ref": {
+      "type": "string",
+      "minLength": 1
     }
   }
 }
