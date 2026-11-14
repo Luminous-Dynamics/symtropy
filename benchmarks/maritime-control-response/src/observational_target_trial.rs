@@ -144,8 +144,6 @@ pub struct ObservationalTargetTrialUnit {
     /// Probability of assignment to the repair strategy, estimated from
     /// pre-treatment covariates only and bound to the protocol model/data digests.
     pub propensity_repair: f64,
-    pub propensity_evidence_sha256: String,
-    pub propensity_available_at_seconds: f64,
     pub baseline_covariates: Vec<BaselineCovariateMeasurement>,
     pub followup_status: FollowupStatus,
     pub censoring_at_seconds: Option<f64>,
@@ -185,7 +183,6 @@ pub enum TargetTrialNotIdentifiedReason {
     OutcomeNotInFollowupWindow,
     OutcomeEvidenceUnavailable,
     OutcomeMeasurementContractMismatch,
-    PropensityEvidenceUnavailable,
     AssumptionReviewReferenceMissing,
 }
 
@@ -490,9 +487,6 @@ impl ObservationalTargetTrialDataset {
             }
             if !unit.propensity_repair.is_finite()
                 || !(0.0..=1.0).contains(&unit.propensity_repair)
-                || !is_sha256_hex(&unit.propensity_evidence_sha256)
-                || !unit.propensity_available_at_seconds.is_finite()
-                || unit.propensity_available_at_seconds < 0.0
             {
                 return Err(TargetTrialValidationError::InvalidPropensity(
                     unit.unit_id.clone(),
@@ -625,11 +619,6 @@ pub fn evaluate_observational_target_trial_design(
             || unit.propensity_repair > protocol.propensity_ceiling
         {
             reasons.insert(TargetTrialNotIdentifiedReason::PropensityOutsideDeclaredSupport);
-        }
-        if unit.propensity_available_at_seconds
-            > unit_time_zero + protocol.time_zero_tolerance_seconds
-        {
-            reasons.insert(TargetTrialNotIdentifiedReason::PropensityEvidenceUnavailable);
         }
 
         let observed_covariates = unit
@@ -1132,13 +1121,15 @@ mod tests {
     }
 
     #[test]
-    fn propensity_evidence_available_after_time_zero_is_not_identified() {
+    fn propensity_model_using_post_treatment_covariates_is_rejected() {
         let (mut dataset, _) = fixture();
-        dataset.units[0].propensity_available_at_seconds = 101.0;
-        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
-        assert!(report.not_identified_reasons.contains(
-            &TargetTrialNotIdentifiedReason::PropensityEvidenceUnavailable
-        ));
+        dataset.protocol.propensity_fit_covariate_ids.push("post_repair_temperature".into());
+        assert_eq!(
+            dataset.protocol.validate(),
+            Err(TargetTrialValidationError::InvalidProtocol(
+                "propensity model must use exactly the declared pre-treatment baseline covariates".into()
+            ))
+        );
     }
 
     #[test]
