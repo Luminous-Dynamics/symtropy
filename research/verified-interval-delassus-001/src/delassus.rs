@@ -659,6 +659,54 @@ mod tests {
     }
 
     #[test]
+    fn non_symmetric_mass_intervals_are_rejected() {
+        let mass = [
+            [Interval::point(2.0).unwrap(), Interval::new(0.1, 0.2).unwrap()],
+            [Interval::new(0.15, 0.25).unwrap(), Interval::point(3.0).unwrap()],
+        ];
+        let jacobian = point_interval_jacobian(&[[1.0, 0.0]]).unwrap();
+        assert!(matches!(
+            certify_delassus_coefficients(&mass, &jacobian, profile()),
+            Err(VerifiedDelassusErrorV1::NonSymmetricMassIntervals)
+        ));
+    }
+
+    #[test]
+    fn near_singular_mass_family_is_inconclusive() {
+        let mass = [
+            [Interval::new(-1.0e-8, 1.0e-8).unwrap(), Interval::zero()],
+            [Interval::zero(), Interval::point(1.0).unwrap()],
+        ];
+        let jacobian = point_interval_jacobian(&[[1.0, 0.0]]).unwrap();
+        assert!(matches!(
+            certify_delassus_coefficients(&mass, &jacobian, profile()),
+            Err(VerifiedDelassusErrorV1::InconclusiveMassSpd { .. })
+        ));
+    }
+
+    #[test]
+    fn transposed_constraint_rhs_fails_mass_solve_provenance_check() {
+        let mass = point_interval_matrix(&[[2.0, 0.0], [0.0, 3.0]]).unwrap();
+        let jacobian = point_interval_jacobian(&[[1.0, 2.0], [3.0, 5.0]]).unwrap();
+        let (lower, _) = cholesky_interval(&mass, 0.0, true).unwrap();
+
+        // Deliberately use columns of J instead of rows of J in B = M^-1 J^T.
+        let mut wrong_b = [[Interval::zero(); 2]; 2];
+        for constraint in 0..2 {
+            let wrong_rhs: [Interval; 2] =
+                std::array::from_fn(|coordinate| jacobian[coordinate][constraint]);
+            let solution = interval_mass_solve(&lower, &wrong_rhs).unwrap();
+            for coordinate in 0..2 {
+                wrong_b[coordinate][constraint] = solution[coordinate];
+            }
+        }
+        assert!(matches!(
+            verify_mass_residual(&mass, &jacobian, &wrong_b),
+            Err(VerifiedDelassusErrorV1::CoefficientResidualNotEnclosed { .. })
+        ));
+    }
+
+    #[test]
     fn non_spd_mass_is_inconclusive() {
         let mass = point_interval_matrix(&[[1.0, 2.0], [2.0, 1.0]]).unwrap();
         let j = point_interval_jacobian(&[[1.0, 0.0]]).unwrap();
@@ -680,7 +728,26 @@ mod tests {
             Interval::new(0.749, 0.751).unwrap(),
             Interval::new(-1.251, -1.249).unwrap(),
         ];
-        assert!(c.residual_dual_norm_upper(&residual).unwrap().is_finite());
-        assert!(c.multiplier_kinetic_norm_upper(&multiplier).unwrap().is_finite());
+        let residual_bound = c.residual_dual_norm_upper(&residual).unwrap();
+        let multiplier_bound = c.multiplier_kinetic_norm_upper(&multiplier).unwrap();
+        assert!(residual_bound.is_finite());
+        assert!(multiplier_bound.is_finite());
+
+        let w00 = 0.7_f64;
+        let w01 = -0.2_f64;
+        let w11 = 23.0_f64 / 15.0;
+        let determinant = w00 * w11 - w01 * w01;
+        let residual_point = [0.25_f64, -0.4_f64];
+        let residual_squared =
+            (w11 * residual_point[0] * residual_point[0]
+                - 2.0 * w01 * residual_point[0] * residual_point[1]
+                + w00 * residual_point[1] * residual_point[1])
+                / determinant;
+        let multiplier_point = [0.75_f64, -1.25_f64];
+        let multiplier_squared = w00 * multiplier_point[0] * multiplier_point[0]
+            + 2.0 * w01 * multiplier_point[0] * multiplier_point[1]
+            + w11 * multiplier_point[1] * multiplier_point[1];
+        assert!(residual_squared.sqrt() <= residual_bound);
+        assert!(multiplier_squared.sqrt() <= multiplier_bound);
     }
 }
