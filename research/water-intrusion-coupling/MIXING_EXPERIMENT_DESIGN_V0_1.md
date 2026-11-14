@@ -117,16 +117,13 @@ A rank test on (U) is necessary but not sufficient: outlet observability, measur
 
 ## 7. Proposed future executable T0/T1 checks
 
-The next evaluator increment should add:
-1. a full-rank, independently excited inlet design that identifies a known transfer matrix;
-2. a rank-deficient equal-excitation negative control that must abstain;
-3. a noisy near-collinear excitation that reports poor conditioning;
-4. an omitted-outlet control that blocks physical operator qualification;
-5. an RTD input-waveform-missing case that abstains;
-6. a redundant-sensor case where extra sensors add little independent information;
-7. a budget-constrained design comparison with an explicit information/cost Pareto set.
+Initial executable increment, now authored in `mixing-identifiability-t0.rs`, contains 10 synthetic vectors: orthogonal full-rank excitation, equal simultaneous excitation, near-collinear excitation below a declared relative rank threshold, missing outlet observation, unmeasured inlet mass flux, missing tank input waveform, duplicate outlet index, negative excitation, a three-inlet full-rank design, and repeated rank-deficient proportional excitation. An independent JavaScript Gaussian-elimination implementation matched **10/10** frozen-oracle outputs. Ten Rust unit tests are authored. The rank threshold is explicit, but this evaluator does **not** yet calculate a full singular spectrum, condition number, Fisher information matrix, sensor redundancy score or budget Pareto frontier. Native Cargo/rustfmt/Clippy and exact-head CI remain pending.
 
-These are not yet implemented as fixtures or executable checks. The equations above define the intended contract for that work.
+The next increment should add:
+1. scale-aware singular-value/condition-number reporting and sensitivity to rank threshold;
+2. an outlet-sensor redundancy case with independent measurement covariance;
+3. D-/E-optimal experiment selection and model-discrimination criteria;
+4. a budget-constrained design comparison with an explicit information/cost Pareto set.
 
 ## 8. Nonclaims
 
