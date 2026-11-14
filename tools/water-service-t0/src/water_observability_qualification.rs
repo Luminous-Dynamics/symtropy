@@ -1347,3 +1347,4 @@ mod tests {
         assert!(errors.iter().any(|error| error.contains("topology_ref")));
     }
 }
+

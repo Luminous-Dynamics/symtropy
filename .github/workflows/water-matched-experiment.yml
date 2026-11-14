@@ -1,0 +1,59 @@
+name: Water matched experiment admission
+
+on:
+  push:
+    paths:
+      - "tools/water-service-t0/**"
+      - "research/water-service-engineering/matched-experiments/**"
+      - ".github/workflows/water-matched-experiment.yml"
+  pull_request:
+    paths:
+      - "tools/water-service-t0/**"
+      - "research/water-service-engineering/matched-experiments/**"
+      - ".github/workflows/water-matched-experiment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-matched-experiment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pair-admission:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust, rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --package water-service-t0 -- --check
+      - name: Run pair-admission known-answer and adversarial tests
+        run: cargo test --locked --package water-service-t0
+      - name: Run strict Clippy
+        run: cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
+      - name: Evaluate exact checked-out pair corpus
+        env:
+          WATER_MATCHED_EXPERIMENT_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-matched-experiment -- \
+            research/water-service-engineering/matched-experiments/pairs-v0.1.json \
+            research/water-service-engineering/matched-experiments/pairs-v0.1.schema.json \
+            research/water-service-engineering/matched-experiments/admission-oracle-v0.1.json \
+            artifacts/water-matched-experiment/receipt.json
+      - name: Upload exact-head pair inputs, lockfile and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-matched-experiment-exact-head-evidence
+          path: |
+            research/water-service-engineering/matched-experiments/pairs-v0.1.json
+            research/water-service-engineering/matched-experiments/pairs-v0.1.schema.json
+            research/water-service-engineering/matched-experiments/admission-oracle-v0.1.json
+            Cargo.lock
+            artifacts/water-matched-experiment/receipt.json
+          if-no-files-found: warn
