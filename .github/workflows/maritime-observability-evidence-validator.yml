@@ -1,0 +1,185 @@
+name: Maritime observability evidence validator
+on:
+  push:
+    branches: ["research/maritime-fault-observability-v0-1"]
+    paths:
+      - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
+      - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
+      - "docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-observability-evidence-validator.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
+      - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
+      - "docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-observability-evidence-validator.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: maritime-observability-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - name: Format workspace Rust sources
+        run: cargo fmt --all
+
+      - name: Test evidence validator
+        run: cargo test --locked -p maritime-observability-evidence-validator
+      - name: Strict Clippy
+        run: cargo clippy --locked -p maritime-observability-evidence-validator --all-targets -- -D warnings
+      - name: Execute synthetic report and bind receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/synthetic-report-v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin maritime-observability-evidence-validator -- "$input" --source-commit "$source_commit" --report-sha256 "$digest" > maritime-observability-evidence-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .report_sha256 == $digest and .sensor_count == 6 and .fault_count == 3 and .pair_count == 3 and .measured_input_pairs_eligible_for_independent_review == 2 and .declared_isolability_claims_not_supported_by_measured_inputs == 0 and .physical_pair_separability_recomputed == false and (.pair_audits | length == 3) and (.pair_audits | all(.physical_pair_separability_recomputed == false))' maritime-observability-evidence-receipt.json
+      - name: Execute qualification impact analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/qualification-dependency-manifest.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification_impact -- \
+            "$input" --source-commit "$source_commit" --change-set-sha256 "$digest" > maritime-qualification-impact-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .change_set_sha256 == $digest
+            and .change_count == 2
+            and .impacted_qualification_count == 5
+            and .requalification_required_count == 5
+            and .unaffected_qualification_count == 2
+            and .impact_path_count == 12
+            and (.impact_paths | length == 12)
+            and (.impact_traversal_state_count > 0 and .impact_traversal_state_count < 250000)
+            and (.max_impact_path_depth <= 512)
+            and (.impacted_qualifications | all(.impact_path_count > 0))
+            and (.unaffected_qualifications | all(.impact_path_count == 0))
+            and .mutation_performed == false
+            and .authorization_granted == false
+          ' maritime-qualification-impact-receipt.json
+      - name: Execute maritime pairwise observability adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/pairwise-observability-case.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin maritime_pairwise_observability -- \
+            "$input" --source-commit "$source_commit" --case-sha256 "$digest" > maritime-pairwise-observability-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .case_sha256 == $digest
+            and .reused_kernel.crate == "symtropy-sensor-observability-bench"
+            and .reused_kernel.git_revision == "3c4a86de830a24bbf97c7d7fe30d79de299999c5"
+            and .pair_count == 1
+            and .identifiable_pair_count == 1
+            and .base_pair_results[0].status == "IDENTIFIABLE"
+            and .base_pair_results[0].observed_independent_principles == 3
+            and .dependency_cut_results[0].pair_results[0].status == "NOT_IDENTIFIABLE"
+            and .dependency_cut_results[1].pair_results[0].status == "IDENTIFIABLE"
+            and .pair_separability_computed_by_reused_kernel == true
+            and (.base_pair_results[0].measurement_window_id_a != .base_pair_results[0].measurement_window_id_b)
+            and .base_pair_results[0].window_comparison.state == "MATCHED"
+            and (.base_pair_results[0].window_comparison.window_a.configuration_sha256 == .base_pair_results[0].window_comparison.window_b.configuration_sha256)
+            and (.base_pair_results[0].window_comparison.window_a.configuration_sha256 == .base_pair_results[0].window_comparison.asset_configuration_sha256)
+            and (.base_pair_results[0].window_comparison.episode_definition_sha256 | length == 64)
+            and .base_pair_results[0].pair_kernel_evaluated == true
+            and .pair_kernel_evaluated_count == 3
+            and .pair_kernel_skipped_count == 0
+            and .window_comparison_withheld_count == 0
+            and .source_artifact_payloads_verified == false
+            and .physical_diagnosability_established == false
+            and .mutation_performed == false
+            and .authorization_granted == false
+          ' maritime-pairwise-observability-receipt.json
+
+      - name: Execute passive observation value-of-information evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/observation-value-fixture.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin observation_value -- \
+            "$input" --source-commit "$source_commit" --case-sha256 "$digest" > maritime-observation-value-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .case_sha256 == $digest
+            and .candidate_count == 4
+            and .evaluated_candidate_count == 2
+            and .not_evaluated_candidate_count == 2
+            and .positive_net_value_candidate_count == 1
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .ranked_candidates[0].candidate_id == "needle-lift-existing-trace"
+            and .ranked_candidates[0].status == "ROBUST_POSITIVE_NET_VALUE"
+            and (.ranked_candidates[0].likelihood_scenario_count == 3)
+            and (.ranked_candidates[0].prior_ambiguity_scenario_count == 2)
+            and (.ranked_candidates[0].joint_scenario_count == 9)
+            and (.ranked_candidates[0].robust_net_evsi_min > 0)
+            and .ranked_candidates[1].status == "NOT_ROBUST_POSITIVE_NET_VALUE"
+          ' maritime-observation-value-receipt.json
+      - name: Archive rustfmt-normalized maritime sources
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin
+          cp tools/maritime-observability-evidence-validator/src/bin/maritime_pairwise_observability.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/observation_value.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/qualification_impact.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/main.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
+          cp tools/maritime-observability-evidence-validator/src/lib.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
+          tar -czf maritime-rustfmt-sources.tar.gz -C /tmp/maritime-rustfmt .
+      - name: Upload rustfmt-normalized maritime sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-rustfmt-sources
+          path: maritime-rustfmt-sources.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maritime-observability-and-impact-receipts
+          path: |
+            maritime-observability-evidence-receipt.json
+            maritime-qualification-impact-receipt.json
+            maritime-observation-value-receipt.json
+          if-no-files-found: error
+          retention-days: 90

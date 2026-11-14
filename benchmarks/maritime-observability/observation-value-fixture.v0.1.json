@@ -1,0 +1,523 @@
+{
+  "schema_version": "0.1.0",
+  "assessment_id": "SYNTHETIC-PASSIVE-OBSERVATION-VALUE-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "hypotheses": [
+    {
+      "hypothesis_id": "FUEL_RESTRICTION",
+      "prior_probability": 0.45
+    },
+    {
+      "hypothesis_id": "INJECTOR_DEGRADATION",
+      "prior_probability": 0.45
+    },
+    {
+      "hypothesis_id": "SENSOR_BIAS",
+      "prior_probability": 0.1
+    }
+  ],
+  "decisions": [
+    {
+      "decision_id": "REPORT_RESTRICTION",
+      "losses": {
+        "FUEL_RESTRICTION": 0,
+        "INJECTOR_DEGRADATION": 1,
+        "SENSOR_BIAS": 0.7
+      }
+    },
+    {
+      "decision_id": "REPORT_INJECTOR",
+      "losses": {
+        "FUEL_RESTRICTION": 1,
+        "INJECTOR_DEGRADATION": 0,
+        "SENSOR_BIAS": 0.7
+      }
+    },
+    {
+      "decision_id": "REPORT_AMBIGUITY",
+      "losses": {
+        "FUEL_RESTRICTION": 0.25,
+        "INJECTOR_DEGRADATION": 0.25,
+        "SENSOR_BIAS": 0.25
+      }
+    }
+  ],
+  "existing_evidence_dependency_groups": [
+    "controller-gateway",
+    "pressure-gateway",
+    "tachometer-power"
+  ],
+  "candidates": [
+    {
+      "candidate_id": "needle-lift-existing-trace",
+      "observation_kind": "EXISTING_CHANNEL_REVIEW",
+      "evidence_role": "MEASURED_EXISTING_RECORD",
+      "read_only": true,
+      "already_available": true,
+      "availability_state": "AVAILABLE",
+      "measurement_quality_state": "CURRENT",
+      "sensor_calibration_state": "CURRENT",
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timebase_qualification_state": "QUALIFIED",
+      "timebase_qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "needle-lift-power",
+        "daq-lift-a"
+      ],
+      "likelihood_model_qualification_state": "QUALIFIED",
+      "likelihood_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "acquisition_cost": 0.02,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.8,
+            "INJECTOR_DEGRADATION": 0.2,
+            "SENSOR_BIAS": 0.2
+          }
+        },
+        {
+          "outcome_id": "NORMAL",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.1,
+            "INJECTOR_DEGRADATION": 0.7,
+            "SENSOR_BIAS": 0.2
+          }
+        },
+        {
+          "outcome_id": "UNEXPECTED",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.1,
+            "INJECTOR_DEGRADATION": 0.1,
+            "SENSOR_BIAS": 0.6
+          }
+        }
+      ],
+      "likelihood_scenarios": [
+        {
+          "scenario_id": "alternate-calibration-envelope-090",
+          "likelihood_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.7533333333333334,
+                "INJECTOR_DEGRADATION": 0.21333333333333335,
+                "SENSOR_BIAS": 0.21333333333333335
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.12333333333333334,
+                "INJECTOR_DEGRADATION": 0.6633333333333333,
+                "SENSOR_BIAS": 0.21333333333333335
+              }
+            },
+            {
+              "outcome_id": "UNEXPECTED",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.12333333333333334,
+                "INJECTOR_DEGRADATION": 0.12333333333333334,
+                "SENSOR_BIAS": 0.5733333333333334
+              }
+            }
+          ]
+        },
+        {
+          "scenario_id": "alternate-regime-envelope-095",
+          "likelihood_model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.7766666666666667,
+                "INJECTOR_DEGRADATION": 0.2066666666666667,
+                "SENSOR_BIAS": 0.2066666666666667
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.11166666666666668,
+                "INJECTOR_DEGRADATION": 0.6816666666666666,
+                "SENSOR_BIAS": 0.2066666666666667
+              }
+            },
+            {
+              "outcome_id": "UNEXPECTED",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.11166666666666668,
+                "INJECTOR_DEGRADATION": 0.11166666666666668,
+                "SENSOR_BIAS": 0.5866666666666667
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "independent-exhaust-temperature-record",
+      "observation_kind": "EXISTING_CHANNEL_REVIEW",
+      "evidence_role": "MEASURED_EXISTING_RECORD",
+      "read_only": true,
+      "already_available": true,
+      "availability_state": "AVAILABLE",
+      "measurement_quality_state": "CURRENT",
+      "sensor_calibration_state": "CURRENT",
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timebase_qualification_state": "QUALIFIED",
+      "timebase_qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "exhaust-temp-power",
+        "daq-exhaust-b"
+      ],
+      "likelihood_model_qualification_state": "QUALIFIED",
+      "likelihood_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "acquisition_cost": 0.03,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.5,
+            "INJECTOR_DEGRADATION": 0.4,
+            "SENSOR_BIAS": 0.1
+          }
+        },
+        {
+          "outcome_id": "NORMAL",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.4,
+            "INJECTOR_DEGRADATION": 0.5,
+            "SENSOR_BIAS": 0.1
+          }
+        },
+        {
+          "outcome_id": "HIGH",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.1,
+            "INJECTOR_DEGRADATION": 0.1,
+            "SENSOR_BIAS": 0.8
+          }
+        }
+      ],
+      "likelihood_scenarios": [
+        {
+          "scenario_id": "alternate-calibration-envelope-090",
+          "likelihood_model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.48333333333333334,
+                "INJECTOR_DEGRADATION": 0.39333333333333337,
+                "SENSOR_BIAS": 0.12333333333333334
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.39333333333333337,
+                "INJECTOR_DEGRADATION": 0.48333333333333334,
+                "SENSOR_BIAS": 0.12333333333333334
+              }
+            },
+            {
+              "outcome_id": "HIGH",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.12333333333333334,
+                "INJECTOR_DEGRADATION": 0.12333333333333334,
+                "SENSOR_BIAS": 0.7533333333333334
+              }
+            }
+          ]
+        },
+        {
+          "scenario_id": "alternate-regime-envelope-095",
+          "likelihood_model_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.49166666666666664,
+                "INJECTOR_DEGRADATION": 0.39666666666666667,
+                "SENSOR_BIAS": 0.11166666666666668
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.39666666666666667,
+                "INJECTOR_DEGRADATION": 0.49166666666666664,
+                "SENSOR_BIAS": 0.11166666666666668
+              }
+            },
+            {
+              "outcome_id": "HIGH",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.11166666666666668,
+                "INJECTOR_DEGRADATION": 0.11166666666666668,
+                "SENSOR_BIAS": 0.7766666666666667
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "derived-load-estimate",
+      "observation_kind": "EXISTING_CHANNEL_REVIEW",
+      "evidence_role": "DERIVED",
+      "read_only": true,
+      "already_available": true,
+      "availability_state": "AVAILABLE",
+      "measurement_quality_state": "CURRENT",
+      "sensor_calibration_state": "CURRENT",
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timebase_qualification_state": "QUALIFIED",
+      "timebase_qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "controller-gateway",
+        "derived-pipeline-v2"
+      ],
+      "likelihood_model_qualification_state": "QUALIFIED",
+      "likelihood_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "acquisition_cost": 0.005,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.5,
+            "INJECTOR_DEGRADATION": 0.3,
+            "SENSOR_BIAS": 0.2
+          }
+        },
+        {
+          "outcome_id": "NORMAL",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.3,
+            "INJECTOR_DEGRADATION": 0.5,
+            "SENSOR_BIAS": 0.2
+          }
+        },
+        {
+          "outcome_id": "HIGH",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.2,
+            "INJECTOR_DEGRADATION": 0.2,
+            "SENSOR_BIAS": 0.6
+          }
+        }
+      ],
+      "likelihood_scenarios": [
+        {
+          "scenario_id": "alternate-calibration-envelope-090",
+          "likelihood_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.48333333333333334,
+                "INJECTOR_DEGRADATION": 0.30333333333333334,
+                "SENSOR_BIAS": 0.21333333333333335
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.30333333333333334,
+                "INJECTOR_DEGRADATION": 0.48333333333333334,
+                "SENSOR_BIAS": 0.21333333333333335
+              }
+            },
+            {
+              "outcome_id": "HIGH",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.21333333333333335,
+                "INJECTOR_DEGRADATION": 0.21333333333333335,
+                "SENSOR_BIAS": 0.5733333333333334
+              }
+            }
+          ]
+        },
+        {
+          "scenario_id": "alternate-regime-envelope-095",
+          "likelihood_model_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.49166666666666664,
+                "INJECTOR_DEGRADATION": 0.30166666666666664,
+                "SENSOR_BIAS": 0.2066666666666667
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.30166666666666664,
+                "INJECTOR_DEGRADATION": 0.49166666666666664,
+                "SENSOR_BIAS": 0.2066666666666667
+              }
+            },
+            {
+              "outcome_id": "HIGH",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.2066666666666667,
+                "INJECTOR_DEGRADATION": 0.2066666666666667,
+                "SENSOR_BIAS": 0.5866666666666667
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "stale-thermocouple-record",
+      "observation_kind": "EXISTING_CHANNEL_REVIEW",
+      "evidence_role": "MEASURED_EXISTING_RECORD",
+      "read_only": true,
+      "already_available": true,
+      "availability_state": "STALE",
+      "measurement_quality_state": "STALE",
+      "sensor_calibration_state": "EXPIRED",
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timebase_qualification_state": "QUALIFIED",
+      "timebase_qualification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dependency_groups": [
+        "exhaust-temp-power-old"
+      ],
+      "likelihood_model_qualification_state": "QUALIFIED",
+      "likelihood_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "acquisition_cost": 0.01,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.4,
+            "INJECTOR_DEGRADATION": 0.4,
+            "SENSOR_BIAS": 0.2
+          }
+        },
+        {
+          "outcome_id": "NORMAL",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.4,
+            "INJECTOR_DEGRADATION": 0.4,
+            "SENSOR_BIAS": 0.2
+          }
+        },
+        {
+          "outcome_id": "HIGH",
+          "likelihoods": {
+            "FUEL_RESTRICTION": 0.2,
+            "INJECTOR_DEGRADATION": 0.2,
+            "SENSOR_BIAS": 0.6
+          }
+        }
+      ],
+      "likelihood_scenarios": [
+        {
+          "scenario_id": "alternate-calibration-envelope-090",
+          "likelihood_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.39333333333333337,
+                "INJECTOR_DEGRADATION": 0.39333333333333337,
+                "SENSOR_BIAS": 0.21333333333333335
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.39333333333333337,
+                "INJECTOR_DEGRADATION": 0.39333333333333337,
+                "SENSOR_BIAS": 0.21333333333333335
+              }
+            },
+            {
+              "outcome_id": "HIGH",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.21333333333333335,
+                "INJECTOR_DEGRADATION": 0.21333333333333335,
+                "SENSOR_BIAS": 0.5733333333333334
+              }
+            }
+          ]
+        },
+        {
+          "scenario_id": "alternate-regime-envelope-095",
+          "likelihood_model_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "qualification_state": "QUALIFIED",
+          "outcomes": [
+            {
+              "outcome_id": "LOW",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.39666666666666667,
+                "INJECTOR_DEGRADATION": 0.39666666666666667,
+                "SENSOR_BIAS": 0.2066666666666667
+              }
+            },
+            {
+              "outcome_id": "NORMAL",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.39666666666666667,
+                "INJECTOR_DEGRADATION": 0.39666666666666667,
+                "SENSOR_BIAS": 0.2066666666666667
+              }
+            },
+            {
+              "outcome_id": "HIGH",
+              "likelihoods": {
+                "FUEL_RESTRICTION": 0.2066666666666667,
+                "INJECTOR_DEGRADATION": 0.2066666666666667,
+                "SENSOR_BIAS": 0.5866666666666667
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "new_measurement_initiated": false,
+    "controller_write": false,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic passive value-of-information demonstration only. It does not validate real observation likelihoods, physical diagnosability, sensor independence, maintenance decisions, vessel safety, or authorization to initiate tests or change equipment.",
+  "prior_ambiguity_scenarios": [
+    {
+      "scenario_id": "fuel-dominant-prior-v1",
+      "prior_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "qualification_state": "QUALIFIED",
+      "prior_probabilities": {
+        "FUEL_RESTRICTION": 0.5,
+        "INJECTOR_DEGRADATION": 0.4,
+        "SENSOR_BIAS": 0.1
+      }
+    },
+    {
+      "scenario_id": "fuel-dominant-prior-v2",
+      "prior_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "qualification_state": "QUALIFIED",
+      "prior_probabilities": {
+        "FUEL_RESTRICTION": 0.52,
+        "INJECTOR_DEGRADATION": 0.38,
+        "SENSOR_BIAS": 0.1
+      }
+    }
+  ]
+}

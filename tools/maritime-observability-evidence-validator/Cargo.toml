@@ -1,0 +1,11 @@
+[package]
+name = "maritime-observability-evidence-validator"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[dependencies]
+sha2 = "0.10"
+serde_json = "1.0"
+symtropy-sensor-observability-bench = { git = "https://github.com/Luminous-Dynamics/symtropy", rev = "3c4a86de830a24bbf97c7d7fe30d79de299999c5" }

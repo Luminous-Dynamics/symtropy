@@ -1,0 +1,209 @@
+{
+  "schema_version": "0.1.0",
+  "change_set_id": "MARITIME-QUALIFICATION-IMPACT-SYNTHETIC-001",
+  "generated_at": "2026-11-13T06:00:00Z",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "asset_scope": {
+    "asset_id": "synthetic-main-engine-01",
+    "configuration_revision": "cfg-r3",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "nodes": [
+    {
+      "node_id": "E-SENSOR-TOPOLOGY",
+      "node_kind": "evidence",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "scope": "asset-configuration",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "E-TIMEBASE-CERT",
+      "node_kind": "evidence",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scope": "engine-run-timebase",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "E-PRESSURE-CAL",
+      "node_kind": "evidence",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "scope": "pressure-sensor-01",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "E-FAULT-MODEL",
+      "node_kind": "evidence",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "scope": "engine-cfg-r3",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "E-CONTROL-MODEL",
+      "node_kind": "evidence",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "scope": "engine-cfg-r3-steady-load",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "E-RUL-MODEL",
+      "node_kind": "evidence",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "scope": "engine-cfg-r3",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "E-AUX-MODEL",
+      "node_kind": "evidence",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "scope": "auxiliary-alarm",
+      "qualification_state": "not_applicable"
+    },
+    {
+      "node_id": "Q-PRESSURE-CAL",
+      "node_kind": "qualification",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "scope": "pressure-sensor-01",
+      "qualification_state": "qualified"
+    },
+    {
+      "node_id": "Q-TIMEBASE",
+      "node_kind": "qualification",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "scope": "engine-run-timebase",
+      "qualification_state": "qualified"
+    },
+    {
+      "node_id": "Q-OBSERVABILITY",
+      "node_kind": "qualification",
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "scope": "engine-cfg-r3-steady-load",
+      "qualification_state": "qualified"
+    },
+    {
+      "node_id": "Q-CONTROL-RESPONSE",
+      "node_kind": "qualification",
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "scope": "engine-cfg-r3-steady-load",
+      "qualification_state": "qualified"
+    },
+    {
+      "node_id": "Q-ENGINE-HEALTH",
+      "node_kind": "qualification",
+      "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "scope": "engine-cfg-r3-steady-load",
+      "qualification_state": "qualified"
+    },
+    {
+      "node_id": "Q-RUL",
+      "node_kind": "qualification",
+      "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "scope": "engine-cfg-r3",
+      "qualification_state": "qualified"
+    },
+    {
+      "node_id": "Q-AUX-ALARM",
+      "node_kind": "qualification",
+      "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "scope": "auxiliary-alarm",
+      "qualification_state": "qualified"
+    }
+  ],
+  "dependency_edges": [
+    {
+      "dependent_id": "Q-PRESSURE-CAL",
+      "prerequisite_id": "E-PRESSURE-CAL",
+      "dependency_type": "calibrated_against"
+    },
+    {
+      "dependent_id": "Q-TIMEBASE",
+      "prerequisite_id": "E-TIMEBASE-CERT",
+      "dependency_type": "qualified_against"
+    },
+    {
+      "dependent_id": "Q-OBSERVABILITY",
+      "prerequisite_id": "E-SENSOR-TOPOLOGY",
+      "dependency_type": "uses"
+    },
+    {
+      "dependent_id": "Q-OBSERVABILITY",
+      "prerequisite_id": "E-FAULT-MODEL",
+      "dependency_type": "uses"
+    },
+    {
+      "dependent_id": "Q-OBSERVABILITY",
+      "prerequisite_id": "Q-PRESSURE-CAL",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-OBSERVABILITY",
+      "prerequisite_id": "Q-TIMEBASE",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-CONTROL-RESPONSE",
+      "prerequisite_id": "Q-OBSERVABILITY",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-CONTROL-RESPONSE",
+      "prerequisite_id": "Q-TIMEBASE",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-CONTROL-RESPONSE",
+      "prerequisite_id": "E-CONTROL-MODEL",
+      "dependency_type": "uses"
+    },
+    {
+      "dependent_id": "Q-ENGINE-HEALTH",
+      "prerequisite_id": "Q-OBSERVABILITY",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-ENGINE-HEALTH",
+      "prerequisite_id": "Q-TIMEBASE",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-RUL",
+      "prerequisite_id": "Q-ENGINE-HEALTH",
+      "dependency_type": "requires"
+    },
+    {
+      "dependent_id": "Q-RUL",
+      "prerequisite_id": "E-RUL-MODEL",
+      "dependency_type": "uses"
+    },
+    {
+      "dependent_id": "Q-AUX-ALARM",
+      "prerequisite_id": "E-AUX-MODEL",
+      "dependency_type": "uses"
+    }
+  ],
+  "changes": [
+    {
+      "change_id": "CHG-SENSOR-TOPOLOGY-001",
+      "node_id": "E-SENSOR-TOPOLOGY",
+      "previous_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "new_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "change_kind": "ASSET_RECONFIGURATION",
+      "effective_at": "2026-11-13T05:30:00Z"
+    },
+    {
+      "change_id": "CHG-TIMEBASE-QUAL-001",
+      "node_id": "E-TIMEBASE-CERT",
+      "previous_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "new_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "change_kind": "TIMEBASE_REQUALIFICATION",
+      "effective_at": "2026-11-13T05:45:00Z"
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition_authorization": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic dependency-graph impact analysis only. It does not establish physical diagnosability, automatically mutate or revoke an operational qualification, authorize inspections or maintenance, change equipment, clear restrictions, or grant permission to operate."
+}
