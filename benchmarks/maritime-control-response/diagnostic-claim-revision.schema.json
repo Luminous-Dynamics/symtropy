@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-diagnostic-claim-revision-v0.1.json",
+  "title": "Symtropy append-only diagnostic claim revision receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "binding",
+    "revision_index",
+    "issued_at_seconds",
+    "revision_kind",
+    "new_evidence",
+    "invalidations",
+    "disposition",
+    "active_evidence_sha256",
+    "invalidated_evidence_sha256",
+    "previous_receipt_sha256",
+    "receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-diagnostic-revision-receipt-v0.1"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "recording_id",
+        "asset_id",
+        "configuration_sha256",
+        "model_sha256",
+        "hypothesis_catalogue_sha256",
+        "hypothesis_ids"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recording_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "hypothesis_catalogue_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "hypothesis_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "revision_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "issued_at_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "revision_kind": {
+      "enum": [
+        "initial_assessment",
+        "corroboration",
+        "reassessment",
+        "evidence_retraction"
+      ]
+    },
+    "new_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_sha256",
+          "source_id",
+          "role",
+          "observed_at_seconds",
+          "available_at_seconds",
+          "declared_effect"
+        ],
+        "properties": {
+          "evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "sensor_measurement",
+              "actuator_feedback",
+              "control_intent",
+              "disturbance_context",
+              "derived_residual",
+              "operator_observation",
+              "maintenance_record",
+              "calibration_record",
+              "configuration_record",
+              "independent_assessment"
+            ]
+          },
+          "observed_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "available_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "declared_effect": {
+            "enum": [
+              "supports_current",
+              "contradicts_current",
+              "narrows_hypothesis_set",
+              "expands_ambiguity",
+              "context_shift",
+              "invalidates_prior_evidence"
+            ]
+          }
+        }
+      }
+    },
+    "invalidations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "invalidated_evidence_sha256",
+          "basis_evidence_sha256"
+        ],
+        "properties": {
+          "invalidated_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "basis_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "disposition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "no_fault"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "hypothesis_ids"
+          ],
+          "properties": {
+            "kind": {
+              "const": "known_hypotheses"
+            },
+            "hypothesis_ids": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "unknown_or_out_of_support"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "not_evaluable"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "withdrawn"
+            }
+          }
+        }
+      ]
+    },
+    "active_evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "invalidated_evidence_sha256": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "previous_receipt_sha256": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

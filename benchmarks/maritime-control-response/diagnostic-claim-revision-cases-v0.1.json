@@ -1,0 +1,76 @@
+{
+  "schema_version": "symtropy-diagnostic-revision-cases-v0.1",
+  "status": "synthetic_contract_cases_not_empirical_data",
+  "cases": [
+    {
+      "id": "R01",
+      "scenario": "Initial fault claim A, then independent contradiction supports B; both revisions retained.",
+      "expected_contract_result": "accepted"
+    },
+    {
+      "id": "R02",
+      "scenario": "New independent evidence corroborates A; current disposition remains A.",
+      "expected_contract_result": "accepted"
+    },
+    {
+      "id": "R03",
+      "scenario": "Missing sensor channel alone attempts to withdraw A.",
+      "expected_contract_result": "rejected_no_new_evidence"
+    },
+    {
+      "id": "R04",
+      "scenario": "Evidence observed earlier but available after the prior decision; later revision uses it only after availability.",
+      "expected_contract_result": "accepted"
+    },
+    {
+      "id": "R05",
+      "scenario": "Evidence availability time is later than the revision issue time.",
+      "expected_contract_result": "rejected_future_available"
+    },
+    {
+      "id": "R06",
+      "scenario": "Previously invalidated evidence digest is reintroduced under a different source wrapper.",
+      "expected_contract_result": "rejected_resurrection"
+    },
+    {
+      "id": "R07",
+      "scenario": "Evidence invalidation targets an evidence digest not active in prior revision.",
+      "expected_contract_result": "rejected_unknown_invalidation_target"
+    },
+    {
+      "id": "R08",
+      "scenario": "Invalidation cites a basis digest not included among newly added evidence.",
+      "expected_contract_result": "rejected_missing_invalidation_basis"
+    },
+    {
+      "id": "R09",
+      "scenario": "Ambiguous set {A,B} becomes {A} with only supporting-current evidence.",
+      "expected_contract_result": "rejected_unsupported_narrowing"
+    },
+    {
+      "id": "R10",
+      "scenario": "Unknown/out-of-support evidence is coerced into known fault A without a transition effect.",
+      "expected_contract_result": "rejected_unsupported_reassessment"
+    },
+    {
+      "id": "R11",
+      "scenario": "Model or configuration identity changes inside an existing lineage.",
+      "expected_contract_result": "rejected_binding_change"
+    },
+    {
+      "id": "R12",
+      "scenario": "A previous receipt is edited while its successor still references the old digest.",
+      "expected_contract_result": "rejected_receipt_integrity"
+    },
+    {
+      "id": "R13",
+      "scenario": "Revision issue time does not strictly increase.",
+      "expected_contract_result": "rejected_non_monotonic_time"
+    },
+    {
+      "id": "R14",
+      "scenario": "A withdrawn lineage receives another update instead of starting a new lineage.",
+      "expected_contract_result": "rejected_closed_lineage"
+    }
+  ]
+}

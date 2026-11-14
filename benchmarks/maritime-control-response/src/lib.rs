@@ -12,6 +12,7 @@
 pub mod active_probe;
 pub mod behavioral_sets;
 pub mod csv_audit;
+pub mod diagnosis_revision;
 pub mod event_metrics;
 pub mod external_dataset;
 pub mod joint_scenario_posterior;
