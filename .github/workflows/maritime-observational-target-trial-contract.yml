@@ -61,10 +61,10 @@ jobs:
           assert protocol["schema_version"] == "symtropy-marine-observational-target-trial-v0.1"
           assert protocol["status"] == "protocol_only_not_executed"
           assert protocol["scope"]["causal_estimates_enabled"] is False
-          assert len(protocol["hard_gates"]) >= 25
-          assert len(protocol["cases"]) == 13
-          assert len(corpus["cases"]) == 13
-          assert len({case["case_id"] for case in corpus["cases"]}) == 13
+          assert len(protocol["hard_gates"]) >= 28
+          assert len(protocol["cases"]) == 14
+          assert len(corpus["cases"]) == 14
+          assert len({case["case_id"] for case in corpus["cases"]}) == 14
           assert dataset_schema["additionalProperties"] is False
           assert oracle_schema["additionalProperties"] is False
           assert report_schema["additionalProperties"] is False
@@ -79,6 +79,8 @@ jobs:
           assert "baseline_covariates" in unit_required
           assert "concurrent_intervention_ids" in unit_required
           assert "propensity_repair" in unit_required
+          assert "strategy_record_sha256" in unit_required
+          assert "strategy_record_ref" in unit_required
           assert "outcome" in unit_required
           print("Observational target-trial protocol/schema/corpus checks: PASS")
           PY
