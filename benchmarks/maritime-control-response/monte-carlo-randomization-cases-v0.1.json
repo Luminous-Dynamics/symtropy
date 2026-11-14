@@ -101,6 +101,11 @@
       "case_id": "MC20",
       "scenario": "Output binds the analysis-plan digest, preregistration reference, seed commitment and canonical configuration digest.",
       "expected": "analysis_config_provenance_bound"
+    },
+    {
+      "case_id": "MC21",
+      "scenario": "Changing the analysis-plan digest changes the configuration digest, seed commitment and sampled-assignment replay digest even with the same seed and trial frame.",
+      "expected": "analysis_plan_replay_binding"
     }
   ]
 }
