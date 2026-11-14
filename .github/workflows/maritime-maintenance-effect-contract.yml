@@ -56,7 +56,7 @@ jobs:
           assert protocol["schema_version"] == "symtropy-marine-maintenance-effect-v0.1"
           assert protocol["status"] == "protocol_only_not_executed"
           assert len(protocol["hard_gates"]) >= 20
-          assert protocol["exact_randomization"]["maximum_units"] == 16
+          assert protocol["estimator"]["exact_test_limit_units"] == 16
           assert len(corpus["cases"]) == 10
           assert len({case["case_id"] for case in corpus["cases"]}) == 10
           assert trial_schema["additionalProperties"] is False
