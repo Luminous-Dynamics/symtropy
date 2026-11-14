@@ -10,7 +10,7 @@ This isolated, dependency-free Rust crate propagates a position interval through
 - Conservative occupancy over the full time slice, not just at the endpoint.
 - A separately propagated endpoint enclosure for composition with the next time slice.
 - Fail-closed input and arithmetic errors.
-- Eight synthetic unit-test definitions plus one separately compiled integration test using an integer-millimetre / integer-millisecond reference oracle.
+- Seventeen synthetic unit-test definitions plus two separately compiled integration tests using an integer-millimetre / integer-millisecond reference oracle.
 
 ## What is not implemented
 
