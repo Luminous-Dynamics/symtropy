@@ -16,7 +16,9 @@
       "mass": "mg",
       "ph": "dimensionless",
       "temperature": "degC",
-      "flow": "L/s"
+      "flow": "L/s",
+      "conserved_moiety_concentration": "mg/L_conserved_moiety_equivalent",
+      "molar_concentration": "mmol/L"
     }
   },
   "cases": [
@@ -27,7 +29,8 @@
         "model_id": "synthetic-first-order",
         "initial_parent_concentration_mg_l": 2.5,
         "first_order_rate_h_inv": 0.1,
-        "elapsed_time_h": 5
+        "elapsed_time_h": 5,
+        "output_basis": "parent_loss_equivalent_not_measured_product"
       }
     },
     {
@@ -38,7 +41,8 @@
         "initial_A_mg_l": 1,
         "k1_h_inv": 0.2,
         "k2_h_inv": 0.1,
-        "elapsed_time_h": 3
+        "elapsed_time_h": 3,
+        "concentration_basis": "conserved_moiety_equivalent"
       }
     },
     {
@@ -49,7 +53,8 @@
         "initial_A_mg_l": 1,
         "k1_h_inv": 0.15,
         "k2_h_inv": 0.15,
-        "elapsed_time_h": 4
+        "elapsed_time_h": 4,
+        "concentration_basis": "conserved_moiety_equivalent"
       }
     },
     {
@@ -150,6 +155,20 @@
         "initial_parent_concentration_mg_l": -1,
         "first_order_rate_h_inv": -0.1,
         "elapsed_time_h": 4
+      }
+    },
+    {
+      "case_id": "CF-T0-013-stoichiometric-molecular-weight-conversion",
+      "description": "Complete synthetic reaction ledger uses molar stoichiometry and distinct molecular weights; do not equate parent mg/L with product mg/L without conversion.",
+      "inputs": {
+        "model_id": "synthetic-stoichiometric-mass-conversion",
+        "initial_parent_mmol_l": 1,
+        "remaining_parent_mmol_l": 0.6,
+        "product_B_stoich_mol_per_mol_parent": 1,
+        "product_C_stoich_mol_per_mol_parent": 1,
+        "molecular_weight_parent_g_mol": 100,
+        "molecular_weight_B_g_mol": 50,
+        "molecular_weight_C_g_mol": 50
       }
     }
   ]
