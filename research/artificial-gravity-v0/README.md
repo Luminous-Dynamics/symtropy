@@ -111,7 +111,7 @@ Requires a qualified spacecraft, rotary-interface and life-support design, indep
 Freeze targets only after the reference corpus and instrumentation uncertainty are established. Candidate stretch goals:
 
 - analytic calculation residual below 1e-10 relative error for valid f64 test points;
-- zero acceptance of NaN, infinity, negative radius/RPM, or invalid geometry;
+- zero acceptance of NaN/infinity inputs, overflowed or underflowed inverse results, negative radius/RPM, or invalid geometry;
 - independent rotating-frame implementation agrees within 0.1% over a declared deterministic corpus;
 - simulation-to-measurement acceleration discrepancy below 1% in the demonstrator's calibrated envelope;
 - no uncontained overspeed, rotor contact, or unlogged protective trip during the declared unmanned envelope;
