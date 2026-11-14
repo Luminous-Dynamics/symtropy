@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v0/schema-index.json",
+  "title": "WPT Empirical Envelope v0 schema index",
+  "type": "object",
+  "const": {
+    "source_schema": "source.schema.json",
+    "realization_schema": "realization.schema.json"
+  }
+}
