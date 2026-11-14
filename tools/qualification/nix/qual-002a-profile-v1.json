@@ -1,0 +1,103 @@
+{
+  "schema_id": "luminous.qual-002-capsule-policy.v1",
+  "profile_id": "nix-pure-sandbox-qualified-v1",
+  "execution_class": "PureDerivation",
+  "supported_systems": [
+    "x86_64-linux"
+  ],
+  "nix_policy": {
+    "sandbox": true,
+    "sandbox_fallback": false,
+    "pure_eval": true,
+    "restrict_eval": true,
+    "allow_import_from_derivation": false,
+    "accept_flake_config": false,
+    "allow_unsafe_native_code_during_evaluation": false,
+    "require_sigs": true,
+    "substitute_theorem_result": false,
+    "remote_builders_allowed": false,
+    "remote_store_allowed": false,
+    "plugin_files_allowed": false,
+    "pre_build_hook_allowed": false,
+    "post_build_hook_allowed": false,
+    "diff_hook_allowed": false,
+    "fixed_output_theorem_allowed": false,
+    "impure_theorem_allowed": false,
+    "no_chroot_theorem_allowed": false,
+    "network_theorem_allowed": false
+  },
+  "preparation_policy": {
+    "network_allowed_for_content_pinned_fetches": true,
+    "subject_code_execution_allowed": false,
+    "all_remote_inputs_content_pinned": true
+  },
+  "environment_policy": {
+    "mode": "deny-ambient-allow-reviewed-suite",
+    "base_set": {
+      "HOME": "/homeless-shelter",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "NIX_CONFIG": "",
+      "NIX_PATH": "",
+      "NIX_USER_CONF_FILES": "/dev/null",
+      "SOURCE_DATE_EPOCH": "1",
+      "TZ": "UTC"
+    },
+    "ambient_clear": [
+      "CARGO_ENCODED_RUSTFLAGS",
+      "CARGO_HOME",
+      "CC",
+      "CXX",
+      "LD_LIBRARY_PATH",
+      "NIX_CACHE_HOME",
+      "NIX_CONF_DIR",
+      "NIX_CONFIG_HOME",
+      "NIX_REMOTE",
+      "NIX_SSL_CERT_FILE",
+      "NIX_STATE_HOME",
+      "PKG_CONFIG_PATH",
+      "RUSTC_WRAPPER",
+      "RUSTFLAGS",
+      "RUSTUP_HOME",
+      "SSL_CERT_FILE"
+    ],
+    "suite_owned_keys": [
+      "CARGO_HOME",
+      "CC",
+      "CXX",
+      "LD_LIBRARY_PATH",
+      "PKG_CONFIG_PATH"
+    ]
+  },
+  "source_identity_required": [
+    "exact_parent",
+    "manifest_digest",
+    "owned_paths",
+    "required_commit_count",
+    "subject_commit_sha",
+    "subject_repository",
+    "subject_tree_sha"
+  ],
+  "evidence_required": [
+    "builders_config",
+    "capsule_policy_digest",
+    "derivation_json_digest",
+    "derivation_path",
+    "effective_environment",
+    "effective_nix_config",
+    "hook_config",
+    "nix_version",
+    "output_path",
+    "plugin_config",
+    "sandbox_config",
+    "source_nar_hash",
+    "source_store_path",
+    "store_config",
+    "subject_identity",
+    "substituter_config",
+    "suite_id",
+    "suite_steps",
+    "system",
+    "trust_config"
+  ]
+}
