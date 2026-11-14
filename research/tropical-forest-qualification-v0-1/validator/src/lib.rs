@@ -1200,7 +1200,6 @@ mod tests {
 
     #[test]
     fn no_acquisition_is_preserved_as_missing_not_zero() {
-        let mut manifest: Value = serde_json::from_str(OBSERVATION_FIXTURE).expect("valid corpus");
         let receipt = evaluate(OBSERVATION_FIXTURE.as_bytes()).expect("observation corpus parses");
         let check = receipt["checks"]
             .as_array()
@@ -1214,7 +1213,11 @@ mod tests {
             })
             .expect("GEDI storage-gap check is present");
         assert_eq!(check["passed"], true);
-        assert_eq!(manifest["cases"][1]["input"]["acquisition_status"], "no_acquisition");
+        assert!(check["detail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("derived=UNOBSERVED_NO_ACQUISITION"));
+        assert_eq!(receipt["external_data_ingested"], false);
     }
 
     #[test]
