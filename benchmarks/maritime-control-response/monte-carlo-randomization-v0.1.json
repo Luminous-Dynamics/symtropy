@@ -78,7 +78,8 @@
     "A work-budget failure must occur before any sampling begins.",
     "Allocation constraint violations are counted and must remain zero.",
     "The result cannot authorize maintenance, physical restoration or operating-restriction clearance.",
-    "The canonical frame digest binds the complete validated trial object, including all source, calibration, timestamp, measurement-quality and uncertainty metadata."
+    "The canonical frame digest binds the complete validated trial object, including all source, calibration, timestamp, measurement-quality and uncertainty metadata.",
+    "A valid input exceeding 10,000 independent units must be rejected before randomization sampling."
   ],
   "comparators": [
     {
@@ -163,6 +164,11 @@
       "case_id": "MC12",
       "scenario": "Monte Carlo uncertainty is explicitly separated from the ATE sampling interval.",
       "expected": "uncertainty_channel_separation"
+    },
+    {
+      "case_id": "MC13",
+      "scenario": "A valid blocked trial containing 10,001 independent units is rejected before Monte Carlo sampling.",
+      "expected": "unit_ceiling_rejected"
     }
   ],
   "metrics": [
