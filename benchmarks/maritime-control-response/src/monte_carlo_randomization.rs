@@ -253,7 +253,6 @@ impl SamplingWorkspace {
 
     fn sample_blocked_assignment<'a>(
         &'a mut self,
-        trial: &BlockedRandomizedMaintenanceTrial,
         groups: &BTreeMap<String, Vec<usize>>,
         allocations: &BTreeMap<&str, (usize, usize)>,
         rng: &mut SplitMix64,
@@ -427,7 +426,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let mut allocation_constraint_violations = 0usize;
     for _ in 0..config.draw_count {
         let assignment =
-            workspace.sample_blocked_assignment(trial, &groups, &allocations, &mut rng)?;
+            workspace.sample_blocked_assignment(&groups, &allocations, &mut rng)?;
         allocation_constraint_violations += count_allocation_constraint_violations(
             trial,
             &groups,
@@ -653,7 +652,7 @@ mod tests {
         let mut counts = BTreeMap::<u8, usize>::new();
         for _ in 0..12_000 {
             let assignment = workspace
-                .sample_blocked_assignment(&trial, &groups, &allocations, &mut rng)
+                .sample_blocked_assignment(&groups, &allocations, &mut rng)
                 .unwrap();
             let mask = first_group
                 .iter()
