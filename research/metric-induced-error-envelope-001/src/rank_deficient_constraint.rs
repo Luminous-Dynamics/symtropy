@@ -255,8 +255,8 @@ fn build_h_orthonormal_range_basis<
         }
 
         let pivot = h_norm(residual_metric, &columns[pivot_index])?;
-        if pivot <= threshold || !pivot.is_finite() {
-            break;
+        if !pivot.is_finite() {
+            return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
         }
         for coordinate in 0..K {
             basis[coordinate][rank] = columns[pivot_index][coordinate] / pivot;
@@ -403,7 +403,6 @@ pub struct RankDeficientDelassusQuotientV1<
     reduced_cholesky: [[f64; K]; K],
     rank: usize,
     rank_resolved: bool,
-    unresolved_relative_pivot: Option<f64>,
     profile: ConstraintQuotientProfileV1,
     receipt: ConstraintQuotientAdmissionReceiptV1,
     _spaces: PhantomData<(Frame, Space)>,
@@ -503,7 +502,6 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             reduced_cholesky,
             rank,
             rank_resolved,
-            unresolved_relative_pivot,
             profile,
             receipt: ConstraintQuotientAdmissionReceiptV1 {
                 numerical_rank: rank,
@@ -541,7 +539,9 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         let squared = crate::dot(multiplier.components(), &mapped);
         let scale = crate::vector_euclidean(multiplier.components())
             * crate::vector_euclidean(&mapped);
-        if !squared.is_finite() || squared < -self.profile.relative_rank_tolerance * scale {
+        if !squared.is_finite() || !scale.is_finite()
+            || squared < -self.profile.relative_rank_tolerance * scale
+        {
             return Err(ConstraintQuotientErrorV1::NegativeQuotientQuadraticForm);
         }
         Ok(squared.max(0.0).sqrt())
