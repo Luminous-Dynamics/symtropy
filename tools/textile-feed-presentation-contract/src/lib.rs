@@ -270,6 +270,17 @@ impl FeedRun {
             if !item_by_id.contains_key(terminal.item_id.as_str()) {
                 add("ORPHAN_TERMINAL_DISPOSITION", Some(&terminal.item_id), "terminal disposition references an item absent from the incoming manifest");
             }
+            if terminal.outcome == TerminalOutcome::Routed
+                && !attempts_by_item
+                    .get(terminal.item_id.as_str())
+                    .is_some_and(|attempts| attempts.iter().any(|attempt| attempt.state.is_single()))
+            {
+                add(
+                    "ROUTED_WITHOUT_VALID_PRESENTATION",
+                    Some(&terminal.item_id),
+                    "a routed item requires at least one valid single-item presentation attempt",
+                );
+            }
             match (terminal.outcome, terminal.actual_destination.as_deref()) {
                 (TerminalOutcome::Routed, Some(destination)) if nonempty(destination) => {}
                 (TerminalOutcome::Routed, _) => {
@@ -592,6 +603,30 @@ mod tests {
         let mut run = valid_run();
         run.terminal_dispositions[1].completed_at_ns = 30;
         assert!(run.validate().findings.iter().any(|finding| finding.code == "TERMINAL_PRECEDES_FINAL_ATTEMPT"));
+    }
+
+    #[test]
+    fn routed_item_requires_a_valid_single_item_presentation_attempt() {
+        let mut run = valid_run();
+        run.attempts.retain(|attempt| attempt.item_id != "ITEM-01");
+        let report = run.validate();
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "ROUTED_WITHOUT_VALID_PRESENTATION")
+        );
+        assert!(run.metrics().is_err());
+
+        let mut run = valid_run();
+        run.attempts[0].state = PresentationState::DoublePick;
+        let report = run.validate();
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "ROUTED_WITHOUT_VALID_PRESENTATION")
+        );
     }
 
     #[test]
