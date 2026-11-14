@@ -16,16 +16,18 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.as_slice() == ["--help"] || args.is_empty() {
+    if args.len() == 1 && args[0] == "--help" {
         println!(
             "usage: symmetry-handoff-verify --handoff <json> --manifest <json> --artifact-root <dir>\n\
              Verifies exact byte identity only; does not qualify physical equivalence."
         );
-        return if args.is_empty() {
-            Err("missing required arguments".to_owned())
-        } else {
-            Ok(())
-        };
+        return Ok(());
+    }
+    if args.is_empty() {
+        return Err(
+            "usage: symmetry-handoff-verify --handoff <json> --manifest <json> --artifact-root <dir>"
+                .to_owned(),
+        );
     }
 
     let mut handoff_path: Option<String> = None;
