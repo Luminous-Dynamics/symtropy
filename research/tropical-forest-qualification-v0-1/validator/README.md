@@ -21,6 +21,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-operator-negative-controls-v0.1.json
 
+# Variable-aware aggregation (intensive, extensive, counts, categorical)
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-variable-aware-aggregation-synthetic-v0.1.json
+
 # Exact rectangular support intersection (synthetic, pre-transformed planar coordinates only)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-support-intersection-synthetic-v0.1.json
@@ -39,7 +43,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -48,6 +52,19 @@ The standalone package has its own Cargo workspace boundary, so root `cargo fmt 
 ## Headless canopy kernel
 
 The exported `canopy_kernel` module provides a minimal spatial cohort-to-cell LAI representation, explicit one-way cohort mortality, derived Beer–Lambert transmittance, four-neighbour gap components and an optical understory eligibility mask. It is a synthetic analytical kernel only; it does not implement crown allometry, multiple scattering, species physiology, recruitment, succession or a calibrated radiation model. Its eight unit tests are included in the library test suite.
+
+## Variable-aware aggregation kernel
+
+The exported `aggregation_kernel` distinguishes four incompatible operations:
+
+- **Intensive variables:** area-weighted mean over valid observed overlap only; target unit is declared separately from the expected result. It reports geometric/valid coverage and never extrapolates a partial observed mean to the unobserved target.
+- **Extensive stock from density:** integrates `Mg/ha × overlap_m² / 10,000` into Mg over valid observed overlap. This is a unit conversion/integration under the source density's support assumption, not a whole-target imputation.
+- **Sampled counts:** uses a Horvitz–Thompson total only for an explicitly declared probability sample with positive first-order inclusion probabilities and consistent frame/design identity. It deliberately does not report a standard error without second-order inclusion probabilities or another justified variance method.
+- **Categorical variables:** preserves class IDs and reports area/fraction by class. It never averages category codes.
+
+The twelve-case synthetic CLI corpus covers full and partial intensive means, all-masked data, unit mismatch, full/partial biomass density integration, probability-sample count estimation, invalid inclusion probability, non-probability sampling refusal, categorical fractions, masked categorical support and empty class refusal. Three corpus/mutation tests are added; the kernel adds seventeen unit tests. Receipt status is `PASS_SYNTHETIC_AGGREGATION`.
+
+The bounded kernel does not validate the real sampling design, first/second-order inclusion probabilities, source units or source data; it does not implement arbitrary polygons, raster affine transforms, CRS conversion or survey-design variance. Its outputs remain synthetic research evidence.
 
 ## Rectangular observation support kernel
 
@@ -85,7 +102,7 @@ See [DATASET_CANDIDATE_REGISTER_V0_1.json](../DATASET_CANDIDATE_REGISTER_V0_1.js
 - Non-negative declared flows, parameter/effect consistency and explicit decomposition boundary.
 - Live biomass, deadwood, total biomass, mortality transfer and biomass budget.
 - Disconnected-control invariance using declared causal links, comparing canonical stocks separately from derived totals.
-- Record-level observation admission checks for source digest/operator/support completeness, declared rights-purpose, missingness, qualified absence, domain, variable semantics, repeated-census support and split leakage.
+- Variable-aware aggregation tests for area-weighted intensive means, density-to-stock integration, probability-sample count totals and categorical area composition; record-level observation admission checks for source digest/operator/support completeness, declared rights-purpose, missingness, qualified absence, domain, variable semantics, repeated-census support and split leakage.
 - Observation corpus rule execution for support mismatch, no acquisition, label-semantic mismatch, geographic out-of-domain, cloud/no-data, plot leakage, inaccessible DRC units, PNG security/logistics omissions and single-census longitudinal overclaim; production adapter and rights execution remain explicitly not implemented.
 - Decision-value corpus coverage, public-not-blind boundary, zero-EVSI loss-invariance case and positive-EVSI arithmetic from the declared binary likelihood/loss model.
 - Canopy coordinate bounds, duplicate/overlap/coverage, total and mean LAI, connected gap components, synthetic transmission, uniform-baseline calculations, and ten unique named challenge-family dispositions.
@@ -102,4 +119,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 46 Rust unit tests across the accounting verifier, synthetic observation rules, the observation admission envelope, canopy manifest checks, model-set manifest checks, the headless cohort-canopy kernel and the rectangular observation support kernel. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 66 Rust unit tests across the accounting verifier, synthetic observation rules, the observation admission envelope, canopy manifest checks, model-set manifest checks, the headless cohort-canopy kernel and the rectangular observation support kernel and variable-aware aggregation kernel. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
