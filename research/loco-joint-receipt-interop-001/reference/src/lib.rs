@@ -579,6 +579,180 @@ fn required_array_strings(
     Ok(output)
 }
 
+fn uncertainty_source_dependencies(
+    receipt: &[(String, JsonValue)],
+    measurement_id: &str,
+    evidence_disposition: &mut UqEvidenceDisposition,
+) -> Result<
+    (
+        Vec<(String, String)>,
+        BTreeMap<String, (String, Option<String>)>,
+    ),
+    WireError,
+> {
+    let components = array_field(receipt, "components")?;
+    let declarations = array_field(receipt, "dependence")?;
+    if components.is_empty() {
+        return Err(WireError::UqSidecarIncompleteEvidence(
+            "uncertainty source components missing",
+        ));
+    }
+
+    let mut expected_groups: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut source_members = Vec::with_capacity(components.len());
+    let mut component_ids = BTreeSet::new();
+    for component_value in components {
+        let JsonValue::Object(component) = component_value else {
+            return Err(WireError::InvalidField("uncertainty component"));
+        };
+        let component_id = require_string(component, "component_id")?.to_owned();
+        if !component_ids.insert(component_id.clone()) {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "duplicate uncertainty component identity",
+            ));
+        }
+        let source_digest = require_string(component, "source_receipt_digest")?.to_owned();
+        let group_id = require_string(component, "dependence_group_id")?.to_owned();
+        expected_groups
+            .entry(group_id.clone())
+            .or_default()
+            .insert(component_id);
+        source_members.push((source_digest, group_id));
+    }
+
+    let mut observed_groups: BTreeMap<String, (BTreeSet<String>, String, Option<String>)> =
+        BTreeMap::new();
+    for declaration_value in declarations {
+        let JsonValue::Object(declaration) = declaration_value else {
+            return Err(WireError::InvalidField("uncertainty dependence"));
+        };
+        let group_id = require_string(declaration, "dependence_group_id")?.to_owned();
+        let declared_components = required_array_strings(declaration, "component_ids")?;
+        let decision = object_field(declaration, "decision")?;
+        let decision_kind = require_string(decision, "kind")?.to_owned();
+        let decision_receipt = optional_nonempty_string(decision, "receipt_digest")?;
+        match decision_kind.as_str() {
+            "joint_model" | "independence_supported" => {
+                if decision_receipt.is_none() {
+                    return Err(WireError::UqSidecarIncompleteEvidence(
+                        "dependence decision receipt missing",
+                    ));
+                }
+            }
+            "unknown" => {
+                if decision_receipt.is_some() {
+                    return Err(WireError::UqSidecarBindingMismatch(
+                        "Unknown dependence has a purported qualified receipt",
+                    ));
+                }
+                downgrade_uq_disposition(
+                    evidence_disposition,
+                    UqEvidenceDisposition::Unknown,
+                );
+            }
+            _ => return Err(WireError::InvalidField("uncertainty dependence decision")),
+        }
+        if observed_groups
+            .insert(
+                group_id,
+                (declared_components, decision_kind, decision_receipt),
+            )
+            .is_some()
+        {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "duplicate dependence declaration",
+            ));
+        }
+    }
+
+    if expected_groups.len() != observed_groups.len()
+        || expected_groups.iter().any(|(group_id, members)| {
+            observed_groups
+                .get(group_id)
+                .map(|(declared, _, _)| declared != members)
+                .unwrap_or(true)
+        })
+    {
+        return Err(WireError::UqSidecarLineageMismatch(
+            "dependence groups do not exactly cover source components",
+        ));
+    }
+
+    let mut source_links = Vec::with_capacity(source_members.len());
+    let mut decisions_by_group = BTreeMap::new();
+    for (source_digest, group_id) in source_members {
+        let (_, kind, digest) = observed_groups
+            .get(&group_id)
+            .ok_or(WireError::UqSidecarLineageMismatch(
+                "component dependence declaration missing",
+            ))?;
+        source_links.push((source_digest, group_id.clone()));
+        decisions_by_group.insert(group_id, (kind.clone(), digest.clone()));
+    }
+
+    let _ = measurement_id;
+    Ok((source_links, decisions_by_group))
+}
+
+fn validate_uncertainty_coverage(
+    receipt: &[(String, JsonValue)],
+    evidence_disposition: &mut UqEvidenceDisposition,
+) -> Result<(), WireError> {
+    let coverage = object_field(receipt, "coverage")?;
+    let kind = require_string(coverage, "kind")?;
+    require_equal_string_fields(
+        receipt,
+        "unit_code",
+        coverage,
+        "unit_code",
+        "uncertainty coverage unit",
+    )?;
+    match (
+        get_member(receipt, "decimal_exponent"),
+        get_member(coverage, "decimal_exponent"),
+    ) {
+        (Some(JsonValue::Integer(left)), Some(JsonValue::Integer(right))) if left == right => {}
+        _ => {
+            return Err(WireError::UqSidecarBindingMismatch(
+                "uncertainty coverage decimal scale",
+            ));
+        }
+    }
+    let lower = decimal_i128_field(coverage, "lower_scaled")?;
+    let upper = decimal_i128_field(coverage, "upper_scaled")?;
+    if lower > upper {
+        return Err(WireError::UqSidecarLineageMismatch(
+            "uncertainty coverage interval inverted",
+        ));
+    }
+
+    match kind {
+        "conservative_bound" => {}
+        "probability_interval" => {
+            match get_member(coverage, "coverage_probability_ppm") {
+                Some(JsonValue::Integer(value)) if (1..=1_000_000).contains(value) => {}
+                _ => return Err(WireError::InvalidField("coverage_probability_ppm")),
+            }
+            let method = require_string(coverage, "method")?;
+            match method {
+                "first_order_gum" | "higher_order_gum" | "monte_carlo_distribution"
+                | "other_approved" => {}
+                _ => return Err(WireError::InvalidField("uncertainty coverage method")),
+            }
+            let convergence =
+                optional_nonempty_string(coverage, "convergence_receipt_digest")?;
+            if method == "monte_carlo_distribution" && convergence.is_none() {
+                downgrade_uq_disposition(
+                    evidence_disposition,
+                    UqEvidenceDisposition::Inconclusive,
+                );
+            }
+        }
+        _ => return Err(WireError::InvalidField("uncertainty coverage kind")),
+    }
+    Ok(())
+}
+
 /// Verify a UQ sidecar against the exact v0.1 parent causal packet.
 ///
 /// The strict Draft 2020-12 schema and detailed coverage/dependence semantics
