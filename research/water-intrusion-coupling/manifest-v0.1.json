@@ -52,7 +52,10 @@
     "sequential_reaction_concentrations_must_declare_conserved_moiety_equivalent_basis",
     "parent_concentration_loss_is_not_reported_as_measured_product_concentration",
     "compound_mass_balance_requires_stoichiometry_and_molecular_weight_conversion",
-    "summed_mg_per_l_of_different_compounds_is_not_assumed_to_be_conserved_mass"
+    "summed_mg_per_l_of_different_compounds_is_not_assumed_to_be_conserved_mass",
+    "sequential_reaction_concentrations_declare_conserved_moiety_equivalent_basis",
+    "parent_loss_is_not_reported_as_measured_transformation_product",
+    "different_compound_mass_concentrations_require_molecular_weight_and_stoichiometric_conversion"
   ],
   "evidence_status_snapshot": {
     "snapshot_date": "2026-11-14",
@@ -102,7 +105,7 @@
     "snapshot_date": "2026-11-14",
     "t0_cases": 8,
     "independent_source_level_oracle_replay": "8_of_8_matched",
-    "rust_unit_tests": 12,
+    "rust_unit_tests": 14,
     "native_cargo_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
     "model_or_solver_physical_qualification": "not_performed",
     "raw_physical_measurements_acquired": "none_in_this_t0_fixture",
@@ -117,6 +120,7 @@
     "chemical_fate_physical_or_laboratory_validation": "not_performed",
     "chemical_fate_raw_site_samples_acquired": "none_in_this_T0_corpus",
     "case_count": 13,
-    "source_level_oracle_replay": "pending after stoichiometric molecular-weight case"
+    "source_level_oracle_replay": "13_of_13_matched",
+    "native_rust_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow"
   }
 }
