@@ -521,13 +521,147 @@ mod tests {
     }
 
     #[test]
-    fn rejects_empty_step_sequence() {
+    fn negative_velocity_occupancy_contains_integer_reference_samples() {
+        let east = axis(interval(-10.0, -10.0), interval(-2.0, 2.0), interval(-1.0, 1.0));
+        let tube = propagate_bounded_velocity(&request(0, 1_000, east)).unwrap();
+        let occupancy = tube.slices[0].east_m;
+
+        // Independently enumerate integer millimetres, milliseconds and
+        // bounded velocities. Negative motion must retain the t=0 endpoint.
+        for initial_mm in [2_000_i128, 3_000_i128] {
+            for velocity_mmps in (-13_000_i128..=-7_000_i128).step_by(1_000) {
+                for elapsed_ms in (0_i128..=1_000_i128).step_by(100) {
+                    let position_mm = initial_mm + (velocity_mmps * elapsed_ms) / 1_000;
+                    let position_m = position_mm as f64 / 1_000.0;
+                    assert!(occupancy.lower() <= position_m);
+                    assert!(occupancy.upper() >= position_m);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn sign_changing_velocity_contains_both_sides_of_initial_position() {
+        let east = axis(interval(-2.0, 3.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        let mut input = request(0, 1_000, east);
+        input.initial_position.east_m = interval(0.0, 0.0);
+        let tube = propagate_bounded_velocity(&input).unwrap();
+        assert!(tube.slices[0].east_m.lower() <= -2.0);
+        assert!(tube.slices[0].east_m.upper() >= 3.0);
+    }
+
+    #[test]
+    fn all_three_axes_are_propagated_independently() {
+        let mut input = request(
+            10_000,
+            12_000,
+            axis(interval(1.0, 2.0), interval(0.0, 0.0), interval(0.0, 0.0)),
+        );
+        input.initial_position = InitialPosition {
+            east_m: interval(1.0, 1.5),
+            north_m: interval(-2.0, -1.0),
+            up_m: interval(10.0, 11.0),
+        };
+        input.steps[0].velocity.north =
+            axis(interval(-3.0, -1.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        input.steps[0].velocity.up =
+            axis(interval(0.5, 1.5), interval(0.0, 0.0), interval(0.0, 0.0));
+
+        let tube = propagate_bounded_velocity(&input).unwrap();
+        let slice = tube.slices[0];
+        assert!(slice.east_m.lower() <= 1.0);
+        assert!(slice.east_m.upper() >= 5.5);
+        assert!(slice.north_m.lower() <= -8.0);
+        assert!(slice.north_m.upper() >= -1.0);
+        assert!(slice.up_m.lower() <= 10.0);
+        assert!(slice.up_m.upper() >= 14.0);
+    }
+
+    #[test]
+    fn contiguous_steps_compose_without_losing_endpoint_reachability() {
+        let east = axis(interval(1.0, 2.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        let mut input = request(0, 1_000, east);
+        input.initial_position.east_m = interval(1.0, 1.0);
+        input.steps.push(VelocityStep {
+            start_utc_ms: 1_000,
+            end_utc_ms: 2_000,
+            velocity: VelocityEnvelope {
+                east: axis(interval(-1.0, 0.0), interval(0.0, 0.0), interval(0.0, 0.0)),
+                north: input.steps[0].velocity.north,
+                up: input.steps[0].velocity.up,
+            },
+        });
+
+        let tube = propagate_bounded_velocity(&input).unwrap();
+        assert_eq!(tube.slices.len(), 2);
+        assert!(tube.slices[0].east_m.lower() <= 1.0);
+        assert!(tube.slices[0].east_m.upper() >= 3.0);
+        assert!(tube.slices[1].east_m.lower() <= 1.0);
+        assert!(tube.slices[1].east_m.upper() >= 3.0);
+        assert!(tube.final_position.east_m.lower() <= 1.0);
+        assert!(tube.final_position.east_m.upper() >= 3.0);
+    }
+
+    #[test]
+    fn widening_model_and_control_contributions_cannot_shrink_tube() {
+        let mut narrow = axis(interval(10.0, 10.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        let mut wide = narrow;
+        wide.model_uncertainty_mps = interval(-1.0, 1.0);
+        wide.control_mps = interval(-2.0, 2.0);
+        let mut narrow_request = request(0, 1_000, narrow);
+        let mut wide_request = request(0, 1_000, wide);
+        narrow_request.initial_position.east_m = interval(0.0, 0.0);
+        wide_request.initial_position.east_m = interval(0.0, 0.0);
+
+        let narrow_tube = propagate_bounded_velocity(&narrow_request).unwrap();
+        let wide_tube = propagate_bounded_velocity(&wide_request).unwrap();
+        assert!(wide_tube.slices[0].east_m.lower() <= narrow_tube.slices[0].east_m.lower());
+        assert!(wide_tube.slices[0].east_m.upper() >= narrow_tube.slices[0].east_m.upper());
+    }
+
+    #[test]
+    fn interval_arithmetic_fails_closed_on_overflow() {
+        let huge = Interval::point(f64::MAX).unwrap();
+        assert_eq!(
+            huge.checked_add(huge),
+            Err(ReachabilityError::ArithmeticOverflow)
+        );
+        assert_eq!(
+            huge.checked_mul(Interval::point(2.0).unwrap()),
+            Err(ReachabilityError::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn rejects_non_finite_and_reversed_velocity_intervals() {
+        assert_eq!(
+            Interval::new(f64::NAN, 1.0),
+            Err(ReachabilityError::NonFiniteInput)
+        );
+        assert_eq!(
+            Interval::new(2.0, 1.0),
+            Err(ReachabilityError::InvalidInterval)
+        );
+    }
+
+    #[test]
+    fn rejects_empty_profile_identifiers() {
         let east = axis(interval(1.0, 1.0), interval(0.0, 0.0), interval(0.0, 0.0));
         let mut input = request(0, 1_000, east);
-        input.steps.clear();
+        input.profile.horizontal_frame_id.clear();
         assert_eq!(
             propagate_bounded_velocity(&input),
-            Err(ReachabilityError::EmptySteps)
+            Err(ReachabilityError::InvalidProfile)
+        );
+    }
+
+    #[test]
+    fn rejects_reversed_time_intervals() {
+        let east = axis(interval(1.0, 1.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        let input = request(2_000, 1_000, east);
+        assert_eq!(
+            propagate_bounded_velocity(&input),
+            Err(ReachabilityError::InvalidTime)
         );
     }
 }
