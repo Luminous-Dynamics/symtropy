@@ -214,28 +214,29 @@
       "source_id": "BRAZIL-NFI-2013-FAO-FAM",
       "provider": "Brazilian Forest Service; FAO FAM metadata",
       "reference_id": "BRA_2013_NFI_v01_EN_M_v01_A_OCS",
-      "record_url": "https://microdata.fao.org/",
+      "record_url": "https://microdata.fao.org/index.php/catalog/2074",
       "region": {
         "country": "Brazil",
         "coverage_note": "National inventory; Amazon-specific subsample / sampling design requires exact release documents"
       },
       "temporal": {
         "start": "2013",
-        "cycle_note": "design describes a five-year repeat interval; actual matched repeat waves not established here"
+        "cycle_note": "FAO FAM metadata says a sample unit is re-measured every five years; the exact admitted repeat waves and record-level comparability are not established by this metadata entry."
       },
       "sample": {
-        "national_grid": "20km grid, densified in selected domains",
-        "amazon_design": "four 10m x 10m subplots in a Maltese-cross layout; 2,000m2 total plot support"
+        "national_sampling_grid": "20km x 20km, with densification for selected applications",
+        "amazon_design": "four rectangular subunits of 20m x 100m (2,000m2) in the Maltese Cross cluster; each subunit subdivided into 10m x 10m plots"
       },
       "data_access": {
-        "microdata_access": "confidentiality declaration and SNIF / Forest Service conditions apply"
+        "microdata_access": "external repository; confidentiality declaration and SNIF accessibility terms apply",
+        "metadata_access": "public FAO FAM record"
       },
       "intended_use": "Potential national / Amazon stratified inventory comparison after data-file and sampling-design review",
       "disallowed_inference": "A planned five-year resampling interval is not proof of available longitudinal panel data.",
       "admission_status": "METADATA_ONLY_ACCESS_TERMS_AND_WAVES_TO_VERIFY",
       "downloaded": false,
       "data_ingested": false,
-      "next_gate": "Find exact public catalogue landing page and file versions; verify repeat waves and harmonized variable definitions before admission."
+      "next_gate": "Obtain the exact FAM/SNIF release and field methodology; verify repeat waves, Amazon subunit design, variable support and legal conditions before admission."
     }
   ],
   "cross_source_admission_gates": [
