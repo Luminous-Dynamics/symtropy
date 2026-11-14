@@ -151,9 +151,9 @@ struct Block{
     cost:f64,duration:f64,calibration:f64,sensors:BTreeSet<String>,
 }
 fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,String>{
-    if text(input,"schema_version")?!="mixing-design-search-t0-input-v0.1"{return Err("unexpected input schema".into());}
-    if text(oracle,"schema_version")?!="mixing-design-search-t0-oracle-v0.1"{return Err("unexpected oracle schema".into());}
-    for x in [input,oracle,manifest]{if text(x,"programme_id")?!=PROGRAMME{return Err("programme identity mismatch".into());}}
+    if text(input,"schema_version")? != "mixing-design-search-t0-input-v0.1"{return Err("unexpected input schema".into());}
+    if text(oracle,"schema_version")? != "mixing-design-search-t0-oracle-v0.1"{return Err("unexpected oracle schema".into());}
+    for x in [input,oracle,manifest]{if text(x,"programme_id")? != PROGRAMME{return Err("programme identity mismatch".into());}}
     for key in ["physical_qualification_established","potability_claim_permitted","release_authorized"]{
         if field(oracle,key)?.as_bool()!=Some(false){return Err(format!("oracle may not set {key} true"));}
     }
@@ -163,16 +163,18 @@ fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,Strin
     let rows=array(input,"blocks")?;let expected=array(oracle,"blocks")?;
     let ids=array(manifest,"block_ids")?;
     if rows.len()>MAX_EXACT_BLOCKS{return Err("exact subset limit exceeded".into());}
-    if rows.len()!=BLOCK_COUNT||expected.len()!=BLOCK_COUNT||usize_value(manifest,"block_count")?!=BLOCK_COUNT{
+    if rows.len()!=BLOCK_COUNT||expected.len()!=BLOCK_COUNT||usize_value(manifest,"block_count")? != BLOCK_COUNT{
         return Err("frozen block count mismatch".into());
     }
-    let pairs=array(input,"model_pair_ids")?.iter().map(|x|x.as_str().map(str::to_owned).ok_or_else(||"model pair id must be text".to_owned())).collect::<Result<BTreeSet<_>,_>>()?;
+    let pair_rows=array(input,"model_pair_ids")?;
+    let pairs=pair_rows.iter().map(|x|x.as_str().map(str::to_owned).ok_or_else(||"model pair id must be text".to_owned())).collect::<Result<BTreeSet<_>,_>>()?;
     if pairs.is_empty(){return Err("model_pair_ids cannot be empty".into());}
+    if pairs.len()!=pair_rows.len(){return Err("duplicate model pair identity".into());}
     let mut out=Vec::new();let mut seen=BTreeSet::new();
     for row in rows{
         let id=text(row,"block_id")?.to_owned();
         if !seen.insert(id.clone()){return Err("duplicate block_id".into());}
-        if text(row,"cross_block_noise_contract")?!="independent"{return Err("cross-block covariance unknown: independence must be explicit".into());}
+        if text(row,"cross_block_noise_contract")? != "independent"{return Err("cross-block covariance unknown: independence must be explicit".into());}
         let digest=text(row,"information_receipt_sha256")?;
         if !hex_digest(digest){return Err(format!("block {id} lacks a valid information receipt digest"));}
         let mut receipt_material=row.clone();
@@ -208,6 +210,7 @@ fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,Strin
     }
     let oracle_ids=expected.iter().map(|x|text(x,"block_id").map(str::to_owned)).collect::<Result<BTreeSet<_>,_>>()?;
     let manifest_ids=ids.iter().map(|x|x.as_str().map(str::to_owned).ok_or_else(||"manifest block id must be text".to_owned())).collect::<Result<BTreeSet<_>,_>>()?;
+    if oracle_ids.len()!=expected.len()||manifest_ids.len()!=ids.len(){return Err("duplicate oracle or manifest block identity".into());}
     if seen!=oracle_ids||seen!=manifest_ids{return Err("input/oracle/manifest block identity mismatch".into());}
     Ok(out)
 }
