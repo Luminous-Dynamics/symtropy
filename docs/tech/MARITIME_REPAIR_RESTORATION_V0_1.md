@@ -48,12 +48,15 @@ Every configured condition (for example engine load and speed) must be present i
 
 ### Independent measurement path
 
-Every post-repair metric must:
+Every pre- and post-repair metric must:
 - be current and valid;
-- have verified calibration;
+- have verified calibration tied to a calibration-record SHA-256 digest;
+- bind source identity, observation time and availability time within the episode window;
 - have uncertainty no greater than the metric envelope's maximum;
 - use a measurement principle not present in the diagnostic evidence path;
 - use a dependency domain not present in the diagnostic evidence path.
+
+The pre-repair baseline and post-repair verification must also use the **same independent reference measurement principle and dependency domain**. Otherwise a change of instrument or acquisition path could mimic an improvement even when the plant did not change.
 
 If the diagnostic sensor/gateway is also the only post-repair measurement, physical restoration is not established. Replacing or calibrating a sensor may restore measurement quality, but does not by itself prove that the plant has recovered.
 
@@ -79,8 +82,10 @@ Causal repair-effect claims require an appropriate controlled or counterfactual 
 
 ## Synthetic known-answer contract
 
-The evaluator currently contains 12 Rust tests and an 8-case machine-readable challenge manifest. The cases cover:
-- verified restoration under matched conditions;
+The evaluator currently contains 18 Rust tests and an 8-case machine-readable challenge manifest. The cases cover:
+- verified restoration under matched conditions and a consistent independent reference measurement path;
+- pre/post measurement-path changes and diagnostic-dependency reuse;
+- time-of-observation/availability and calibration-record completeness;
 - repair record with no physical recovery;
 - unmatched operating load;
 - reuse of the diagnostic dependency domain;
