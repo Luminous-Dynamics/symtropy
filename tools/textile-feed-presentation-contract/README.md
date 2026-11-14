@@ -25,7 +25,7 @@ A classifier's conditional accuracy cannot be reported as the line's end-to-end 
 
 ## Synthetic challenge corpus
 
-- `feed-cases.example.json` contains 18 positive and adversarial event-accounting cases.
+- `feed-cases.example.json` contains 22 positive and adversarial event-accounting cases.
 - `feed-cases.schema.json` defines the versioned corpus shape.
 - The Rust corpus test executes every case mutation, compares exact expected finding codes, and refuses to emit metrics for invalid runs.
 
