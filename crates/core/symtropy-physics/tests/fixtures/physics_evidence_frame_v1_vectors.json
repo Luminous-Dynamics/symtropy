@@ -1,0 +1,50 @@
+{
+  "profile": "PHYS-EVID-02A canonical physics evidence frame v1",
+  "magic_hex": "73796d74726f70792d706879736963732d65766964656e636500",
+  "format_version": 1,
+  "max_payload_len": 1048576,
+  "vectors": [
+    {
+      "name": "session-binding",
+      "kind": "EvidenceSessionBinding",
+      "domain": "evidence-session-binding",
+      "payload_hex": "00010203040506070809",
+      "expected_hex": "73796d74726f70792d706879736963732d65766964656e63650065766964656e63652d73657373696f6e2d62696e64696e670000000001000000000000000a00010203040506070809"
+    },
+    {
+      "name": "endpoint-empty",
+      "kind": "EndpointSample",
+      "domain": "endpoint-sample",
+      "payload_hex": "",
+      "expected_hex": "73796d74726f70792d706879736963732d65766964656e636500656e64706f696e742d73616d706c6500000000010000000000000000"
+    },
+    {
+      "name": "consecutive-binary",
+      "kind": "ConsecutiveSampledPresence",
+      "domain": "consecutive-presence",
+      "payload_hex": "000102ff",
+      "expected_hex": "73796d74726f70792d706879736963732d65766964656e636500636f6e73656375746976652d70726573656e636500000000010000000000000004000102ff"
+    },
+    {
+      "name": "step-receipt",
+      "kind": "StepExecutionReceipt",
+      "domain": "step-execution-receipt",
+      "payload_hex": "deadbeef",
+      "expected_hex": "73796d74726f70792d706879736963732d65766964656e636500737465702d657865637574696f6e2d7265636569707400000000010000000000000004deadbeef"
+    },
+    {
+      "name": "fixed-cadence",
+      "kind": "FixedCadenceStepReceipt",
+      "domain": "fixed-cadence-step-receipt",
+      "payload_hex": "3f90000000000000",
+      "expected_hex": "73796d74726f70792d706879736963732d65766964656e63650066697865642d636164656e63652d737465702d72656365697074000000000100000000000000083f90000000000000"
+    },
+    {
+      "name": "timed-nonutf8",
+      "kind": "TimedSampledPresenceTransition",
+      "domain": "timed-sampled-transition",
+      "payload_hex": "00ff807f10",
+      "expected_hex": "73796d74726f70792d706879736963732d65766964656e63650074696d65642d73616d706c65642d7472616e736974696f6e0000000001000000000000000500ff807f10"
+    }
+  ]
+}
