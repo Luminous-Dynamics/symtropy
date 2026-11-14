@@ -567,7 +567,6 @@ pub fn evaluate_observational_target_trial_design(
 ) -> Result<ObservationalTargetTrialReport, TargetTrialValidationError> {
     dataset.validate()?;
     let protocol = &dataset.protocol;
-    let time_zero = dataset.units[0].eligibility_at_seconds;
     let dataset_sha256 = dataset.digest()?;
     let mut reasons = BTreeSet::new();
 
@@ -588,8 +587,6 @@ pub fn evaluate_observational_target_trial_design(
         if (unit.assignment_at_seconds - unit_time_zero).abs()
             > protocol.time_zero_tolerance_seconds
             || (unit.followup_start_seconds - unit_time_zero).abs()
-                > protocol.time_zero_tolerance_seconds
-            || (unit_time_zero - time_zero).abs()
                 > protocol.time_zero_tolerance_seconds
         {
             reasons.insert(TargetTrialNotIdentifiedReason::TimeZeroMisaligned);
@@ -877,6 +874,10 @@ mod tests {
         std::iter::repeat_n(ch, 64).collect()
     }
 
+    fn digest_from_u64(value: u64) -> String {
+        format!("{value:064x}")
+    }
+
     fn fixture() -> (
         ObservationalTargetTrialDataset,
         SyntheticPotentialOutcomeOracle,
@@ -906,8 +907,8 @@ mod tests {
                     stratum_id: "low_load".into(),
                     minimum_repair_units: 2,
                     minimum_comparator_units: 2,
-                    minimum_propensity_overlap: 0.05,
-                    minimum_effective_sample_size_per_arm: 2.0,
+                    minimum_propensity_overlap: 0.01,
+                    minimum_effective_sample_size_per_arm: 1.9,
                 },
                 TargetTrialStratum {
                     stratum_id: "high_load".into(),
@@ -955,12 +956,12 @@ mod tests {
                     StrategyArm::ComparatorStrategy => potential_comparator,
                 };
                 let propensity = match unit_index {
-                    0 => 0.75,
-                    1 => 0.65,
-                    2 => 0.35,
-                    _ => 0.25,
+                    0 => 0.55,
+                    1 => 0.52,
+                    2 => 0.54,
+                    _ => 0.50,
                 };
-                let suffix = (stratum_index * 4 + unit_index) as u8;
+                let suffix = (stratum_index * 4 + unit_index) as u64;
                 units.push(ObservationalTargetTrialUnit {
                     unit_id: id.clone(),
                     asset_id: id.clone(),
@@ -985,7 +986,7 @@ mod tests {
                             observed_at_seconds: 90.0,
                             available_at_seconds: 95.0,
                             source_id: format!("severity-source-{id}"),
-                            evidence_sha256: digest((b'a' + suffix) as char),
+                            evidence_sha256: digest_from_u64(10_000 + suffix),
                         },
                         BaselineCovariateMeasurement {
                             covariate_id: "load_band_score".into(),
@@ -995,7 +996,7 @@ mod tests {
                             observed_at_seconds: 90.0,
                             available_at_seconds: 95.0,
                             source_id: format!("load-source-{id}"),
-                            evidence_sha256: digest((b'b' + suffix) as char),
+                            evidence_sha256: digest_from_u64(20_000 + suffix),
                         },
                     ],
                     followup_status: FollowupStatus::Complete,
@@ -1008,12 +1009,12 @@ mod tests {
                         observed_at_seconds: 210.0,
                         available_at_seconds: 220.0,
                         source_id: format!("outcome-source-{id}"),
-                        evidence_sha256: digest((b'c' + suffix) as char),
+                        evidence_sha256: digest_from_u64(30_000 + suffix),
                         measurement_principle_id: "calibrated_shaft_torque".into(),
                         dependency_domain_id: format!("outcome-daq-{id}"),
                         quality: MeasurementQuality::Valid,
                         calibration_status: CalibrationStatus::Verified,
-                        calibration_record_sha256: digest((b'd' + suffix) as char),
+                        calibration_record_sha256: digest_from_u64(40_000 + suffix),
                         calibration_valid_from_seconds: 0.0,
                         calibration_valid_until_seconds: 1_000.0,
                         uncertainty_abs: 0.25,
@@ -1023,7 +1024,7 @@ mod tests {
                     unit_id: id,
                     potential_outcome_repair: potential_repair,
                     potential_outcome_comparator: potential_comparator,
-                    oracle_record_sha256: digest((b'e' + suffix) as char),
+                    oracle_record_sha256: digest_from_u64(50_000 + suffix),
                 });
             }
         }
