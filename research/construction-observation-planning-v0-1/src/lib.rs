@@ -190,7 +190,7 @@ pub fn choose_targeted_observation(
     for action in actions {
         action.validate()?;
         if let Some(expected) = cost_currency_code {
-            if expected != action.cost_currency_code {
+            if expected != action.cost_currency_code.as_str() {
                 return Err(ObservationPlanError::MixedCostCurrency {
                     expected: expected.to_owned(),
                     received: action.cost_currency_code.clone(),
