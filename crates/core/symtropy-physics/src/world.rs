@@ -2561,3 +2561,112 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+mod analytic_contact_fixtures {
+    use super::*;
+    use symtropy_math::Point;
+
+    fn head_on_equal_mass_collision(restitution: f64) -> (PhysicsWorld<3>, BodyHandle, BodyHandle) {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.solver_iterations = 8;
+
+        let a = world.add_sphere(Point::new([-1.0, 0.0, 0.0]), 1.0, 1.0);
+        let b = world.add_sphere(Point::new([1.0, 0.0, 0.0]), 1.0, 1.0);
+
+        for (handle, velocity) in [
+            (a, SVector::from([1.0, 0.0, 0.0])),
+            (b, SVector::from([-1.0, 0.0, 0.0])),
+        ] {
+            let body = world.body_mut(handle).unwrap();
+            body.linear_velocity = velocity;
+            body.linear_damping = 0.0;
+            body.angular_damping = 0.0;
+            body.friction = 0.0;
+            body.restitution = restitution;
+        }
+
+        (world, a, b)
+    }
+
+    #[test]
+    fn equal_mass_elastic_collision_matches_closed_form_impulse() {
+        let (mut world, a, b) = head_on_equal_mass_collision(1.0);
+        let before = world.invariant_snapshot();
+
+        // The bodies begin exactly touching and move into one another.
+        world.step(0.01);
+
+        let after = world.invariant_snapshot();
+        let velocity_a = world.body(a).unwrap().linear_velocity;
+        let velocity_b = world.body(b).unwrap().linear_velocity;
+
+        assert!(!world.contacts.is_empty(), "expected a contact manifold");
+        assert!((velocity_a[0] + 1.0).abs() < 1e-8, "v_a={velocity_a:?}");
+        assert!((velocity_b[0] - 1.0).abs() < 1e-8, "v_b={velocity_b:?}");
+        assert!(
+            after.linear_momentum.norm() < 1e-8,
+            "isolated collision should conserve total linear momentum: {:?}",
+            after.linear_momentum
+        );
+        assert!(
+            (after.kinetic_energy - before.kinetic_energy).abs() < 1e-8,
+            "elastic collision should conserve kinetic energy: before={}, after={}",
+            before.kinetic_energy,
+            after.kinetic_energy
+        );
+        assert!(
+            world
+                .contacts
+                .iter()
+                .flat_map(|manifold| manifold.points.iter())
+                .all(|point| point.lambda >= 0.0),
+            "unilateral contact solver must never pull bodies together"
+        );
+    }
+
+    #[test]
+    fn equal_mass_inelastic_collision_matches_restitution_energy_law() {
+        let restitution = 0.5;
+        let (mut world, a, b) = head_on_equal_mass_collision(restitution);
+        let before = world.invariant_snapshot();
+
+        world.step(0.01);
+
+        let after = world.invariant_snapshot();
+        let velocity_a = world.body(a).unwrap().linear_velocity;
+        let velocity_b = world.body(b).unwrap().linear_velocity;
+
+        assert!(
+            (velocity_a[0] + restitution).abs() < 1e-8,
+            "v_a={velocity_a:?}"
+        );
+        assert!(
+            (velocity_b[0] - restitution).abs() < 1e-8,
+            "v_b={velocity_b:?}"
+        );
+        assert!(
+            after.linear_momentum.norm() < 1e-8,
+            "isolated collision should conserve total linear momentum"
+        );
+        let expected_energy = before.kinetic_energy * restitution * restitution;
+        assert!(
+            (after.kinetic_energy - expected_energy).abs() < 1e-8,
+            "restitution law predicts K_after=e² K_before: before={}, after={}, expected={expected_energy}",
+            before.kinetic_energy,
+            after.kinetic_energy
+        );
+        assert!(
+            after.kinetic_energy <= before.kinetic_energy + 1e-10,
+            "passive inelastic collision must not create kinetic energy"
+        );
+        assert!(
+            world
+                .contacts
+                .iter()
+                .flat_map(|manifold| manifold.points.iter())
+                .all(|point| point.lambda >= 0.0),
+            "unilateral contact solver must never pull bodies together"
+        );
+    }
+}
