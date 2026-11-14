@@ -883,17 +883,9 @@ fn assess_dc_ports(
     };
 
     let polarity = match (left.polarity, right.polarity) {
-        (Some(DcPolarity::Reversible), Some(other)) => Some(other),
-        (Some(other), Some(DcPolarity::Reversible)) => Some(other),
-        (Some(DcPolarity::PositiveToNegative), Some(DcPolarity::PositiveToNegative)) => {
-            Some(DcPolarity::PositiveToNegative)
-        }
-        (Some(DcPolarity::NegativeToPositive), Some(DcPolarity::NegativeToPositive)) => {
-            Some(DcPolarity::NegativeToPositive)
-        }
-        (Some(DcPolarity::Reversible), Some(DcPolarity::Reversible)) => {
-            Some(DcPolarity::Reversible)
-        }
+        (Some(left), Some(right)) if left == right => Some(left),
+        (Some(DcPolarity::Reversible), Some(other))
+        | (Some(other), Some(DcPolarity::Reversible)) => Some(other),
         (Some(_), Some(_)) => {
             reasons.push(CompatibilityReason::DcPolarityMismatch);
             None
