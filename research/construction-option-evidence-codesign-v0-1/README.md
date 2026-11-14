@@ -22,6 +22,8 @@ Each robust-feasible option requires one option-specific campaign package, bound
 
 The evaluator calls the existing exact bounded campaign solver for each option. It does not duplicate set-cover, spatial conflict or capacity semantics.
 
+The joint report preserves the option engine's construction-only matched contrasts and emits a second set of **joint deltas** only where both the reference and candidate have complete, optimality-proven campaigns. This keeps single-factor claims honest while including the option-specific evidence cost, crew and energy burden in the full contrast.
+
 A valid Avoid alternative can have zero work needs and zero observation actions. The campaign solver must prove this empty campaign complete, with zero observation burden; it must not invent a scan merely because a campaign input exists.
 
 ## Cost boundary
@@ -46,7 +48,9 @@ cargo clippy --manifest-path research/construction-option-evidence-codesign-v0-1
 cargo bench --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked --bench joint_scale
 ```
 
-The current synthetic Rust corpus includes fourteen tests, including construction-only dominated option reversal after campaign burden, explicit included/additional cost treatment, robust-infeasible short-circuit, node-budget exhaustion, exact small Pareto oracle, mismatched base and action design bindings, action clock-domain mismatch, missing campaign input, zero-work Avoid campaign, proven campaign infeasibility, empty open-stage frontier, and read-only preservation of both planning snapshots during joint evaluation.
+The current synthetic Rust corpus includes fifteen tests, including construction-only dominated option reversal after campaign burden, explicit included/additional cost treatment, robust-infeasible short-circuit, node-budget exhaustion, exact small Pareto oracle, mismatched base and action design bindings, action clock-domain mismatch, missing campaign input, zero-work Avoid campaign, proven campaign infeasibility, empty open-stage frontier, read-only preservation of both planning snapshots, and matched manual/assisted/guarded-robot panel routes on the same design and schedule.
+
+The panel-route fixture deliberately yields a Pareto trade-off rather than one scalar winner: the guarded-robot route uses fewer synthetic crew-minutes and less elapsed time, but has higher synthetic lifecycle cost and energy. These are authored experiment inputs, not measurements or predicted field performance.
 
 The hosted benchmark measures composition p50/p95/p99 across 2/4/8/16 alternatives with 25 repetitions each. It reports campaign search nodes and joint frontier size separately. These are runner-specific measurements, not a construction productivity claim or field SLO.
 
