@@ -416,9 +416,15 @@ mod tests {
     }
 
     #[test]
-    fn reject_all_and_accept_all_are_not_valid_policies() {
+    fn reject_all_and_accept_all_policies_fail_the_mixed_control_corpus() {
         let report = evaluate_corpus(&corpus()).expect("corpus must validate");
-        assert!(report.cases.iter().any(|c| c.expected_decision != REJECT_MISSING_OR_INVALID));
+        let accept_all_matches = report.cases.iter()
+            .all(|case| case.expected_decision == ACCEPT_RECORD_ONLY);
+        let reject_all_matches = report.cases.iter()
+            .all(|case| case.expected_decision == REJECT_MISSING_OR_INVALID);
+
+        assert!(!accept_all_matches);
+        assert!(!reject_all_matches);
         assert!(report.cases.iter().any(|c| c.expected_decision == ACCEPT_RECORD_ONLY));
         assert!(report.cases.iter().any(|c| c.expected_decision == ABSTAIN_UNKNOWN));
         assert!(report.cases.iter().any(|c| c.expected_decision == REJECT_SCOPE));
