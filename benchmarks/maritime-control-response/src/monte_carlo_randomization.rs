@@ -187,7 +187,7 @@ impl MonteCarloRandomizationConfig {
         let bytes =
             serde_json::to_vec(self).map_err(|_| MonteCarloRandomizationError::Serialization)?;
         let mut hasher = Sha256::new();
-        hasher.update(b"symtropy-marine-monte-carlo-config-v1\\0");
+        hasher.update(b"symtropy-marine-monte-carlo-config-v1\0");
         hasher.update(bytes);
         Ok(format!("{:x}", hasher.finalize()))
     }
@@ -195,7 +195,7 @@ impl MonteCarloRandomizationConfig {
 
 fn seed_commitment_sha256(analysis_plan_sha256: &str, seed_u64: u64, draw_count: usize) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"symtropy-marine-monte-carlo-seed-commit-v1\\0");
+    hasher.update(b"symtropy-marine-monte-carlo-seed-commit-v1\0");
     hasher.update(MONTE_CARLO_RANDOMIZATION_ALGORITHM.as_bytes());
     hasher.update(analysis_plan_sha256.as_bytes());
     hasher.update(seed_u64.to_le_bytes());
@@ -292,7 +292,7 @@ fn randomization_frame_sha256(
     let bytes =
         serde_json::to_vec(&canonical).map_err(|_| MonteCarloRandomizationError::Serialization)?;
     let mut hasher = Sha256::new();
-    hasher.update(b"symtropy-marine-randomization-frame-v1\\0");
+    hasher.update(b"symtropy-marine-randomization-frame-v1\0");
     hasher.update(bytes);
     Ok(format!("{:x}", hasher.finalize()))
 }
