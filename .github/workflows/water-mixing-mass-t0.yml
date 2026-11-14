@@ -1,0 +1,65 @@
+name: water-mixing-mass-t0
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/water-mixing-mass-t0.yml"
+      - "tools/water-service-t0/**"
+      - "research/water-intrusion-coupling/mixing-mass-t0-*.json"
+      - "research/water-intrusion-coupling/MIXING_MASS_ACCOUNTING_V0_1.md"
+  push:
+    branches:
+      - main
+      - research/water-mixing-mass-ledger-t0-v0.1
+    paths:
+      - ".github/workflows/water-mixing-mass-t0.yml"
+      - "tools/water-service-t0/**"
+      - "research/water-intrusion-coupling/mixing-mass-t0-*.json"
+      - "research/water-intrusion-coupling/MIXING_MASS_ACCOUNTING_V0_1.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-mixing-mass-t0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mass-accounting-t0:
+    name: Rust format, tests, clippy and frozen-oracle replay
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/water-service-t0/Cargo.toml --all -- --check
+
+      - name: Run native Rust tests
+        run: cargo test --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-mass-t0
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-mass-t0 -- -D warnings
+
+      - name: Replay frozen mass-accounting oracle
+        env:
+          WATER_MIXING_MASS_T0_REVISION: ${{ github.sha }}
+        run: |
+          cargo run --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-mass-t0 -- \
+            research/water-intrusion-coupling/mixing-mass-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/mixing-mass-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/mixing-mass-t0-manifest-v0.1.json \
+            artifacts/water-mixing-mass-t0/receipt.json
+
+      - name: Archive synthetic mass-accounting receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-mixing-mass-t0-${{ github.sha }}
+          path: artifacts/water-mixing-mass-t0/receipt.json
+          if-no-files-found: warn
