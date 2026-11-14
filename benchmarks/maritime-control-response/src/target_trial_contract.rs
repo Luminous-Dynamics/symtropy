@@ -200,7 +200,11 @@ pub struct ObservationalEmulationDiagnostics {
     pub followup_completeness_fraction: f64,
     pub assumption_assessments: Vec<AssumptionAssessment>,
     pub negative_control_status: AssessmentStatus,
+    pub negative_control_evidence_sha256: String,
+    pub negative_control_reviewer_ref: String,
     pub sensitivity_analysis_status: AssessmentStatus,
+    pub sensitivity_analysis_evidence_sha256: String,
+    pub sensitivity_analysis_reviewer_ref: String,
     pub unit_timelines: Vec<EmulationUnitTimeline>,
 }
 
@@ -661,8 +665,18 @@ pub fn evaluate_observational_target_trial(
     if diagnostics.negative_control_status != AssessmentStatus::Supported {
         blockers.push("negative control is unknown or violates its preregistered expectation".into());
     }
+    if !is_sha256_hex(&diagnostics.negative_control_evidence_sha256)
+        || diagnostics.negative_control_reviewer_ref.trim().is_empty()
+    {
+        blockers.push("negative-control assessment lacks an evidence digest or reviewer".into());
+    }
     if diagnostics.sensitivity_analysis_status != AssessmentStatus::Supported {
         blockers.push("sensitivity analysis is missing, unknown or incomplete".into());
+    }
+    if !is_sha256_hex(&diagnostics.sensitivity_analysis_evidence_sha256)
+        || diagnostics.sensitivity_analysis_reviewer_ref.trim().is_empty()
+    {
+        blockers.push("sensitivity-analysis assessment lacks an evidence digest or reviewer".into());
     }
 
     let disposition = if protocol_incomplete {
@@ -857,7 +871,11 @@ mod tests {
                 },
             ],
             negative_control_status: AssessmentStatus::Supported,
+            negative_control_evidence_sha256: digest('f'),
+            negative_control_reviewer_ref: "review-negative-control".into(),
             sensitivity_analysis_status: AssessmentStatus::Supported,
+            sensitivity_analysis_evidence_sha256: digest('1'),
+            sensitivity_analysis_reviewer_ref: "review-sensitivity".into(),
             unit_timelines: timelines,
         }
     }
@@ -991,6 +1009,17 @@ mod tests {
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
         assert!(report.blockers.iter().any(|item| item.contains("deferred/usual-care")));
+    }
+
+    #[test]
+    fn negative_control_and_sensitivity_reviews_require_receipt_digests_and_reviewers() {
+        let mut data = diagnostics();
+        data.sensitivity_analysis_evidence_sha256 = "not-a-digest".into();
+        data.negative_control_reviewer_ref.clear();
+        let report = evaluate_observational_target_trial(&protocol(), &data);
+        assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+        assert!(report.blockers.iter().any(|item| item.contains("negative-control assessment")));
+        assert!(report.blockers.iter().any(|item| item.contains("sensitivity-analysis assessment")));
     }
 
     #[test]
