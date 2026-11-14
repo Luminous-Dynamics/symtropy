@@ -693,11 +693,6 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
 
 
 fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
-    let expected: BTreeMap<&'static str, &'static str> = [
-        ("FOREST-DECISION-VALUE-001", "HIGH_INFORMATION_ZERO_DECISION_VALUE"),
-    ]
-    .into_iter()
-    .collect();
     let expected_cases: BTreeMap<&'static str, &'static str> = [
         ("FOREST-DECISION-VALUE-001", "HIGH_INFORMATION_ZERO_DECISION_VALUE"),
         ("FOREST-DECISION-VALUE-002", "POSITIVE_NET_DECISION_VALUE"),
@@ -1371,6 +1366,8 @@ mod tests {
         include_str!("../../cases/canopy-gap-representation-synthetic-v0.1.json");
     const MODEL_SET_FIXTURE: &str =
         include_str!("../../cases/forest-model-set-adequacy-development-v0.1.json");
+    const DECISION_VALUE_FIXTURE: &str =
+        include_str!("../../cases/forest-decision-value-development-v0.1.json");
 
     #[test]
     fn observation_corpus_executes_nine_synthetic_rule_cases() {
@@ -1487,6 +1484,41 @@ mod tests {
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated manifest");
         let receipt = evaluate(&bytes).expect("well-formed manifest returns a receipt");
         assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn decision_value_manifest_validates_twenty_cases_and_worked_evsi() {
+        let receipt = evaluate(DECISION_VALUE_FIXTURE.as_bytes()).expect("decision-value corpus parses");
+        assert_eq!(receipt["result"], "MANIFEST_VALID");
+        assert_eq!(receipt["public_case_count"], 20);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["expected_gross_evsi_example"], 8.8);
+        assert_eq!(receipt["expected_net_value_after_cost_example"], 5.8);
+        assert_eq!(receipt["decision_policy_performance"], "NOT_ESTABLISHED");
+        assert_eq!(receipt["existing_evsi_kernel_execution"], "NOT_RUN");
+    }
+
+    #[test]
+    fn decision_value_evsi_arithmetic_mutation_is_rejected() {
+        let mut manifest: Value =
+            serde_json::from_str(DECISION_VALUE_FIXTURE).expect("valid decision-value corpus");
+        manifest["worked_examples"]["moderate_uncertainty_positive_decision_value"]
+            ["net_expected_value_after_cost"] = json!(9.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated decision-value corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn high_information_without_action_change_has_zero_decision_value() {
+        let receipt = evaluate(DECISION_VALUE_FIXTURE.as_bytes()).expect("decision-value corpus parses");
+        let check = receipt["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| check["id"] == "DECISION-VALUE-HIGH-UNCERTAINTY-ZERO-EVSI-001")
+            .expect("zero-EVSI check is present");
+        assert_eq!(check["passed"], true);
     }
 
     #[test]
