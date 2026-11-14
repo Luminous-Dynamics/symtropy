@@ -33,6 +33,14 @@ cargo clippy --manifest-path research/construction-production-optioneering-v0-1/
 cargo bench --manifest-path research/construction-production-optioneering-v0-1/Cargo.toml --locked --bench frontier_scale
 ```
 
+## Machine-readable input contract and frozen reference corpus
+
+- JSON Schema: [optioneering-input-v0.1.schema.json](schemas/optioneering-input-v0.1.schema.json), Git blob SHA-1 `1d82c52d65f88e7786df6805ed21b6c37de8339d`.
+- Frozen reference input: [reference-floor-matched-contrasts-v0.1.json](fixtures/reference-floor-matched-contrasts-v0.1.json), Git blob SHA-1 `3fc8b2a83ac7051276240e32abc2b76c3e04fe48`.
+- The fixture contains one 100 m² homogeneous accepted-output contract, two deterministic scenarios (nominal and outage/rework), and four options: in-situ baseline, scheduler-only improvement, prefabricated method, and prefabricated-plus-robot combined intervention.
+- The option profiles identify design, method, scheduler and fleet revisions. The three alternatives explicitly reference the in-situ baseline for matched comparison.
+- These are Git blob SHA-1 object IDs, not SHA-256 content hashes. The current Rust crate evaluates typed in-memory structures; a JSON ingestion/Schema-validation adapter is not yet included. External adapters should validate against the published schema before translating to the Rust API.
+
 ## Synthetic benchmark harness
 
 The dependency-free frontier benchmark evaluates 10, 100, 500, 1,000 and 2,000 alternatives across two frozen scenarios, with 11 repeated runs and p50/p95/p99 evaluation latency. The Linux CI job runs this harness after metadata/lockfile, format, tests and strict Clippy. These are local evaluator timings only; they do not represent construction-hours, schedule quality or field productivity. The scaling workload deliberately has no matched pairs so its result isolates feasibility/Pareto evaluation overhead from optional attribution work.
