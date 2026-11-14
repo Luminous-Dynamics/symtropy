@@ -1,0 +1,36 @@
+name: tbm-ring-metrics
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "benchmarks/tbm-ring-metrics/**"
+      - ".github/workflows/tbm-ring-metrics.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/tbm-ring-metrics/**"
+      - ".github/workflows/tbm-ring-metrics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tbm-ring-metrics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/tbm-ring-metrics/Cargo.toml -- --check
+      - name: Test hand-checkable ring metrics
+        run: cargo test --locked --manifest-path benchmarks/tbm-ring-metrics/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path benchmarks/tbm-ring-metrics/Cargo.toml --all-targets -- -D warnings
