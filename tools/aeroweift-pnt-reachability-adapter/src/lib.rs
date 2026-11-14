@@ -161,6 +161,8 @@ pub struct AdapterInput {
     pub assessment_time_scale_id: String,
     /// Qualification of the evaluation clock correlation.
     pub assessment_clock_qualification: ClockQualification,
+    /// Identity of the evaluation clock-correlation artifact.
+    pub assessment_clock_correlation_id: Option<String>,
     /// Digest syntax for the evaluation clock-correlation artifact.
     pub assessment_clock_correlation_sha256: Option<String>,
     /// Exact upstream PNT service-state receipt digest syntax.
@@ -222,33 +224,57 @@ pub enum NotAssessableReason {
     InvalidTimeScaleIdentity,
 }
 
+
+/// Evidence lineage retained by every accepted initial-position receipt.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AcceptedClaimLineage {
+    /// Stable source-claim identifier.
+    pub source_id: String,
+    /// Exact source-claim digest syntax.
+    pub source_claim_sha256: String,
+    /// Navigation/reachability profile identity.
+    pub profile_id: String,
+    /// Horizontal coordinate frame identity.
+    pub horizontal_frame_id: String,
+    /// Vertical datum identity.
+    pub vertical_datum_id: String,
+    /// Source observation clock-correlation identity.
+    pub clock_correlation_id: String,
+    /// Source observation clock-correlation digest syntax.
+    pub clock_correlation_sha256: String,
+    /// Evaluation clock-correlation identity.
+    pub assessment_clock_correlation_id: String,
+    /// Evaluation clock-correlation digest syntax.
+    pub assessment_clock_correlation_sha256: String,
+    /// Upstream PNT service-state receipt digest syntax.
+    pub service_state_receipt_sha256: String,
+    /// Exact source observation-time interval.
+    pub sample_time_interval_utc_ms: [u64; 2],
+    /// Exact evaluation-time interval.
+    pub assessment_time_interval_utc_ms: [u64; 2],
+    /// Exact Mycelix common-mode/dependency snapshot identity.
+    pub dependency_snapshot_id: String,
+}
+
 /// Result of the PNT/time admission and position-set expansion.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AdapterOutcome {
     /// Primary deterministic hard bound was admitted and expanded.
     AcceptedPrimary {
-        /// Source identifier preserved from the claim.
-        source_id: String,
-        /// Exact source claim digest syntax preserved from the claim.
-        source_claim_sha256: String,
-        /// Dependency snapshot identifier preserved from the claim.
-        dependency_snapshot_id: String,
+        /// Complete source/time/profile/dependency lineage.
+        lineage: AcceptedClaimLineage,
         /// Derived elapsed-time interval in seconds.
         elapsed_seconds: Interval,
-        /// Conservative position enclosure at the assessment epoch.
+        /// Conservative position enclosure at the evaluation epoch.
         position: PositionBounds,
     },
     /// Independent fallback deterministic hard bound was admitted and expanded.
     AcceptedFallback {
-        /// Source identifier preserved from the fallback claim.
-        source_id: String,
-        /// Exact source claim digest syntax preserved from the fallback.
-        source_claim_sha256: String,
-        /// Dependency snapshot identifier preserved from the fallback.
-        dependency_snapshot_id: String,
+        /// Complete fallback source/time/profile/dependency lineage.
+        lineage: AcceptedClaimLineage,
         /// Derived elapsed-time interval in seconds.
         elapsed_seconds: Interval,
-        /// Conservative position enclosure at the assessment epoch.
+        /// Conservative position enclosure at the evaluation epoch.
         position: PositionBounds,
     },
     /// No deterministic hard-bound initial position is admissible.
@@ -317,73 +343,51 @@ pub fn evaluate(input: &AdapterInput) -> AdapterOutcome {
             let Some(clock_correlation_sha256) = claim.clock_correlation_sha256.clone() else {
                 return reject(NotAssessableReason::MissingClockCorrelation);
             };
-            let Some(assessment_clock_correlation_sha256) =
-                input.assessment_clock_correlation_sha256.clone()
+            let Some(assessment_clock_correlation_id) =
+                input.assessment_clock_correlation_id.as_deref()
             else {
                 return reject(NotAssessableReason::AssessmentClockUnqualified);
             };
-            let common = (
-                claim.source_id.clone(),
-                claim.source_claim_sha256.clone(),
-                claim.profile_id.clone(),
+            if assessment_clock_correlation_id.trim().is_empty() {
+                return reject(NotAssessableReason::AssessmentClockUnqualified);
+            }
+            let Some(assessment_clock_correlation_sha256) =
+                input.assessment_clock_correlation_sha256.as_deref()
+            else {
+                return reject(NotAssessableReason::AssessmentClockUnqualified);
+            };
+
+            let lineage = AcceptedClaimLineage {
+                source_id: claim.source_id.clone(),
+                source_claim_sha256: claim.source_claim_sha256.clone(),
+                profile_id: claim.profile_id.clone(),
+                horizontal_frame_id: claim.horizontal_frame_id.clone(),
+                vertical_datum_id: claim.vertical_datum_id.clone(),
                 clock_correlation_id,
                 clock_correlation_sha256,
-                assessment_clock_correlation_sha256,
-                input.service_state_receipt_sha256.clone(),
-                [
+                assessment_clock_correlation_id: assessment_clock_correlation_id.to_owned(),
+                assessment_clock_correlation_sha256: assessment_clock_correlation_sha256.to_owned(),
+                service_state_receipt_sha256: input.service_state_receipt_sha256.clone(),
+                sample_time_interval_utc_ms: [
                     claim.sample_time_lower_utc_ms,
                     claim.sample_time_upper_utc_ms,
                 ],
-                [
+                assessment_time_interval_utc_ms: [
                     input.assessment_time_lower_utc_ms,
                     input.assessment_time_upper_utc_ms,
                 ],
                 dependency_snapshot_id,
-                elapsed_seconds,
-                position,
-            );
-            let (
-                source_id,
-                source_claim_sha256,
-                profile_id,
-                clock_correlation_id,
-                clock_correlation_sha256,
-                assessment_clock_correlation_sha256,
-                service_state_receipt_sha256,
-                sample_time_interval_utc_ms,
-                assessment_time_interval_utc_ms,
-                dependency_snapshot_id,
-                elapsed_seconds,
-                position,
-            ) = common;
+            };
 
             if accepted_as_fallback {
                 AdapterOutcome::AcceptedFallback {
-                    source_id,
-                    source_claim_sha256,
-                    profile_id,
-                    clock_correlation_id,
-                    clock_correlation_sha256,
-                    assessment_clock_correlation_sha256,
-                    service_state_receipt_sha256,
-                    sample_time_interval_utc_ms,
-                    assessment_time_interval_utc_ms,
-                    dependency_snapshot_id,
+                    lineage,
                     elapsed_seconds,
                     position,
                 }
             } else {
                 AdapterOutcome::AcceptedPrimary {
-                    source_id,
-                    source_claim_sha256,
-                    profile_id,
-                    clock_correlation_id,
-                    clock_correlation_sha256,
-                    assessment_clock_correlation_sha256,
-                    service_state_receipt_sha256,
-                    sample_time_interval_utc_ms,
-                    assessment_time_interval_utc_ms,
-                    dependency_snapshot_id,
+                    lineage,
                     elapsed_seconds,
                     position,
                 }
