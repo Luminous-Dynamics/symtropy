@@ -1,0 +1,92 @@
+name: TAVIS result audit (Rust)
+
+on:
+  push:
+    branches: ["feat/tavis-result-audit-20261020"]
+    paths:
+      - "tools/vision-active-benchmarks/tavis-result-audit/**"
+      - ".github/workflows/tavis-result-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-active-benchmarks/tavis-result-audit/**"
+      - ".github/workflows/tavis-result-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tavis-result-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Verify exact source head
+        shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - name: Format Rust sources (temporary artifact collection)
+        shell: bash
+        run: cargo fmt --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
+
+      - name: Archive formatted Rust audit source for review
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf tavis-audit-formatted.tar.gz \
+            tools/vision-active-benchmarks/tavis-result-audit
+
+      - name: Upload formatted source archive
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tavis-audit-formatted-source
+          path: tavis-audit-formatted.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Compile and test result audit
+        shell: bash
+        run: cargo test --manifest-path tools/vision-active-benchmarks/tavis-result-audit/Cargo.toml
+      - name: Commit formatted Rust source back to same-repository PR branch
+        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$TARGET_BRANCH" ]]; then
+            echo "Refusing to push because PR head branch is unavailable." >&2
+            exit 2
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/vision-active-benchmarks/tavis-result-audit/src/lib.rs tools/vision-active-benchmarks/tavis-result-audit/src/main.rs
+          if git diff --cached --quiet; then
+            echo "Rust source is already formatted."
+            exit 0
+          fi
+          git commit -m "style(vision): format TAVIS audit source"
+          git push origin "HEAD:$TARGET_BRANCH"
