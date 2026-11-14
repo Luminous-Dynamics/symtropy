@@ -55,7 +55,11 @@ The paper proposes a pressure-driven multi-species extension combining pressure-
 
 ## 3. T0 known-answer corpus
 
-The executable synthetic set is [chemical-fate-t0-cases-v0.1.json](chemical-fate-t0-cases-v0.1.json), compared with the separate [oracle](chemical-fate-t0-oracle-v0.1.json). It covers first-order decay; sequential A→B→C transformation with unequal and equal rate-constant limits; Langmuir bulk/wall equilibrium; a conserved-moiety ledger distinct from parent-compound mass; missing residual streams; missing water matrix/temperature/pH; missing rate coefficients; unsupported wall species in storage tanks; pressure-driven transient input incorrectly supplied by EPANET-MSX-only hydraulics; required dispersion with dispersion disabled; and invalid negative concentration/rate values.
+The executable synthetic set is [chemical-fate-t0-cases-v0.1.json](chemical-fate-t0-cases-v0.1.json), compared with the separate [oracle](chemical-fate-t0-oracle-v0.1.json). It covers first-order decay; sequential A→B→C transformation with unequal and equal rate-constant limits; Langmuir bulk/wall equilibrium; a conserved-moiety ledger distinct from parent-compound mass; explicit stoichiometric/molecular-weight conversion; missing residual streams; missing water matrix/temperature/pH; missing rate coefficients; unsupported wall species in storage tanks; pressure-driven transient input incorrectly supplied by EPANET-MSX-only hydraulics; required dispersion with dispersion disabled; and invalid negative concentration/rate values.
+
+For the first-order case, parent loss is reported as an equivalent concentration, **not** as a measured transformation-product concentration. Sequential A/B/C concentrations must declare a common `conserved_moiety_equivalent` basis.
+
+**Mass-balance rule:** compound concentrations in mg/L must not be summed across species with different molecular weights and declared conserved mass by assumption. Convert each compound using molecular weights and stoichiometric coefficients, or track a declared conserved element/moiety on a consistent equivalent basis. Parent loss alone is not evidence of a measured product. Missing products, side streams or wall fractions remain unresolved rather than being assigned zero.
 
 The equations are deliberately small and analytically checkable. A successful arithmetic vector is not a chemical model qualification.
 
