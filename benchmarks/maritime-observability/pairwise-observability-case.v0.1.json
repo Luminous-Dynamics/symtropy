@@ -120,7 +120,13 @@
           "availability_a": "VALID",
           "availability_b": "VALID",
           "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
-          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "window_id_a": "synthetic-window-fault-a",
+          "window_artifact_sha256_a": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "window_id_b": "synthetic-window-fault-b",
+          "window_artifact_sha256_b": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "interval_derivation_id": "synthetic-interval-authoring-v1",
+          "interval_derivation_sha256": "abababababababababababababababababababababababababababababababab"
         },
         {
           "channel_id": "injection-pressure-b",
@@ -136,7 +142,13 @@
           "availability_a": "VALID",
           "availability_b": "VALID",
           "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
-          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "window_id_a": "synthetic-window-fault-a",
+          "window_artifact_sha256_a": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "window_id_b": "synthetic-window-fault-b",
+          "window_artifact_sha256_b": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "interval_derivation_id": "synthetic-interval-authoring-v1",
+          "interval_derivation_sha256": "abababababababababababababababababababababababababababababababab"
         },
         {
           "channel_id": "shaft-speed",
@@ -152,7 +164,13 @@
           "availability_a": "VALID",
           "availability_b": "VALID",
           "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
-          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "window_id_a": "synthetic-window-fault-a",
+          "window_artifact_sha256_a": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "window_id_b": "synthetic-window-fault-b",
+          "window_artifact_sha256_b": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "interval_derivation_id": "synthetic-interval-authoring-v1",
+          "interval_derivation_sha256": "abababababababababababababababababababababababababababababababab"
         },
         {
           "channel_id": "combustion-vibration",
@@ -168,7 +186,13 @@
           "availability_a": "VALID",
           "availability_b": "VALID",
           "evidence_role_a": "SYNTHETIC_CONFORMANCE_FIXTURE",
-          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE"
+          "evidence_role_b": "SYNTHETIC_CONFORMANCE_FIXTURE",
+          "window_id_a": "synthetic-window-fault-a",
+          "window_artifact_sha256_a": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "window_id_b": "synthetic-window-fault-b",
+          "window_artifact_sha256_b": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "interval_derivation_id": "synthetic-interval-authoring-v1",
+          "interval_derivation_sha256": "abababababababababababababababababababababababababababababababab"
         }
       ],
       "measurement_window_id_a": "synthetic-window-fault-a",

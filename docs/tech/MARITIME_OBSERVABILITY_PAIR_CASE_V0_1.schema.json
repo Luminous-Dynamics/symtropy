@@ -263,7 +263,13 @@
                 "availability_a",
                 "availability_b",
                 "evidence_role_a",
-                "evidence_role_b"
+                "evidence_role_b",
+                "window_id_a",
+                "window_artifact_sha256_a",
+                "window_id_b",
+                "window_artifact_sha256_b",
+                "interval_derivation_id",
+                "interval_derivation_sha256"
               ],
               "properties": {
                 "channel_id": {
@@ -341,6 +347,30 @@
                     "EXPERT_AUTHORED",
                     "UNKNOWN"
                   ]
+                },
+                "window_id_a": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "window_artifact_sha256_a": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "window_id_b": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "window_artifact_sha256_b": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "interval_derivation_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "interval_derivation_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
                 }
               }
             }

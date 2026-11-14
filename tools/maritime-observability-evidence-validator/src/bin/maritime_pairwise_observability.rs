@@ -443,7 +443,7 @@ fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
         let mut seen=BTreeSet::new();
         for (j,response) in responses.iter().enumerate(){
             let rpath=format!("{path}.responses[{j}]");
-            exact_keys(response,&["channel_id","unit","interval_a","interval_b","availability_a","availability_b","evidence_role_a","evidence_role_b"],&[] ,&rpath,&mut errors);
+            exact_keys(response,&["channel_id","unit","interval_a","interval_b","availability_a","availability_b","evidence_role_a","evidence_role_b","window_id_a","window_artifact_sha256_a","window_id_b","window_artifact_sha256_b","interval_derivation_id","interval_derivation_sha256"],&[] ,&rpath,&mut errors);
             let channel_id=text(response,"channel_id").unwrap_or("");
             if !seen.insert(channel_id.to_owned()){push(&mut errors,"DUPLICATE_PAIR_CHANNEL",&rpath,"one response per channel is permitted");}
             let Some(channel)=channels.get(channel_id) else{
@@ -452,6 +452,23 @@ fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
             };
             if text(response,"unit")!=Some(channel.unit.as_str()){
                 push(&mut errors,"PAIR_CHANNEL_UNIT_MISMATCH",&format!("{rpath}.unit"),"response unit must match sensor inventory");
+            }
+            // Bind each response interval to its exact measurement window and artifact.
+            let window_refs = [
+                ("a", &pair["measurement_window_a"], "window_id_a", "window_artifact_sha256_a"),
+                ("b", &pair["measurement_window_b"], "window_id_b", "window_artifact_sha256_b"),
+            ];
+            for (side, window, id_key, digest_key) in window_refs {
+                if text(response,id_key) != text(window,"window_id") {
+                    push(&mut errors,"RESPONSE_WINDOW_ID_MISMATCH",&format!("{rpath}.{id_key}"),format!("response interval {side} must bind the exact pair measurement window"));
+                }
+                if text(response,digest_key) != text(window,"artifact_sha256") {
+                    push(&mut errors,"RESPONSE_WINDOW_ARTIFACT_MISMATCH",&format!("{rpath}.{digest_key}"),format!("response interval {side} must bind the exact measurement-window artifact digest"));
+                }
+            }
+            if text(response,"interval_derivation_id").is_none()
+                || !response.get("interval_derivation_sha256").and_then(Value::as_str).is_some_and(sha256) {
+                push(&mut errors,"INTERVAL_DERIVATION_IDENTITY_INVALID",&rpath,"response intervals require a derivation method ID and SHA-256 identity");
             }
             for (interval_key,availability_key) in [("interval_a","availability_a"),("interval_b","availability_b")]{
                 let parsed=interval(response,interval_key,&rpath,&mut errors);
@@ -697,6 +714,41 @@ mod tests{
     }
     fn status<'a>(v:&'a Value,id:&str)->&'a str{
         v["base_pair_results"].as_array().unwrap().iter().find(|p|p["pair_id"]==id).unwrap()["status"].as_str().unwrap()
+    }
+    #[test]
+    fn every_response_interval_binds_its_exact_measurement_window_and_artifact() {
+        let v=fixture();
+        let pair=&v["pairs"][0];
+        for response in pair["responses"].as_array().unwrap() {
+            assert_eq!(response["window_id_a"],pair["measurement_window_a"]["window_id"]);
+            assert_eq!(response["window_artifact_sha256_a"],pair["measurement_window_a"]["artifact_sha256"]);
+            assert_eq!(response["window_id_b"],pair["measurement_window_b"]["window_id"]);
+            assert_eq!(response["window_artifact_sha256_b"],pair["measurement_window_b"]["artifact_sha256"]);
+            assert!(response["interval_derivation_id"].as_str().is_some());
+            assert!(response["interval_derivation_sha256"].as_str().is_some_and(sha256));
+        }
+        assert!(validate_case(&v).is_ok());
+    }
+    #[test]
+    fn response_interval_cannot_be_rebound_to_another_window() {
+        let mut v=fixture();
+        v["pairs"][0]["responses"][0]["window_id_a"]=json!("unrelated-window");
+        let errors=validate_case(&v).unwrap_err();
+        assert!(errors.iter().any(|e|e["code"]=="RESPONSE_WINDOW_ID_MISMATCH"));
+    }
+    #[test]
+    fn response_interval_cannot_be_rebound_to_another_artifact_digest() {
+        let mut v=fixture();
+        v["pairs"][0]["responses"][0]["window_artifact_sha256_b"]=json!("c".repeat(64));
+        let errors=validate_case(&v).unwrap_err();
+        assert!(errors.iter().any(|e|e["code"]=="RESPONSE_WINDOW_ARTIFACT_MISMATCH"));
+    }
+    #[test]
+    fn response_interval_requires_a_derivation_identity() {
+        let mut v=fixture();
+        v["pairs"][0]["responses"][0]["interval_derivation_sha256"]=json!("bad");
+        let errors=validate_case(&v).unwrap_err();
+        assert!(errors.iter().any(|e|e["code"]=="INTERVAL_DERIVATION_IDENTITY_INVALID"));
     }
     #[test]
     fn frozen_fixture_expected_statuses_are_enforced(){

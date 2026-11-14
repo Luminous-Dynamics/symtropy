@@ -456,3 +456,10 @@ Configuration changes, a different episode-definition version, or conflicting re
 The maritime adapter now enforces that one physical `sensor_id` maps to exactly one declared measurement principle and one independence-group reference within an asset configuration. Multiple channel aliases from that same transducer are permitted only if they retain the same mapping; the reusable kernel still counts that group once. This blocks a duplicated register/tag from being represented as a second independent measurement principle.
 
 A channel with `installed=false` cannot contribute even to a synthetic conformance pair. Synthetic fixtures may exercise the logic, but the current-configuration inventory remains binding. These checks are structural admission controls; they do not independently verify the physical sensor register or wiring diagram.
+
+
+## Response-interval provenance binding — P0.3
+
+Each per-channel interval pair now carries explicit references to the exact measurement window and raw-artifact digest for fault state A and fault state B, plus a versioned interval-derivation ID and SHA-256 identity. The adapter rejects a response row whose window ID or artifact digest differs from the pair's declared measurement windows, and rejects missing or malformed derivation identity.
+
+This closes a contract-level join gap: a matched pair of measurement-window records can no longer be combined with unrelated per-channel interval rows while still passing schema admission. It does **not** prove that the referenced archive bytes were downloaded or that the interval values were correctly calculated from those bytes. The output therefore continues to state `source_artifact_payloads_verified=false` and `physical_diagnosability_established=false`. Independent payload retrieval, digest verification and interval recomputation remain a separate evidence tier.
