@@ -128,7 +128,11 @@ impl DependencyGraph {
         require_non_empty("current_profile_version", &current_profile_version)?;
 
         let mut changed_inputs = BTreeMap::new();
+        let mut seen_change_ids = BTreeSet::new();
         for change in changes {
+            if !seen_change_ids.insert(change.input_id.clone()) {
+                return Err(ChangeImpactError::DuplicateChangedInput { input_id: change.input_id });
+            }
             let Some(input) = self.inputs.get(&change.input_id) else {
                 return Err(ChangeImpactError::UnknownChangedInput { input_id: change.input_id });
             };
@@ -139,8 +143,8 @@ impl DependencyGraph {
             }
             if let Some(new_digest) = &change.new_digest { require_non_empty("new_input_digest", new_digest)?; }
             let changed = change.new_digest.as_deref() != Some(input.digest.as_str());
-            if changed && changed_inputs.insert(change.input_id.clone(), change.clone()).is_some() {
-                return Err(ChangeImpactError::DuplicateChangedInput { input_id: change.input_id });
+            if changed {
+                changed_inputs.insert(change.input_id.clone(), change);
             }
         }
 
