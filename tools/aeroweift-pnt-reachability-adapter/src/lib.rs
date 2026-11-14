@@ -554,15 +554,17 @@ fn evaluate_claim(
     Ok((elapsed_seconds, position))
 }
 
+const MAX_EXACT_INTEGER_MS: u64 = 9_007_199_254_740_991;
+
 fn elapsed_interval_seconds(
     lower_ms: u64,
     upper_ms: u64,
 ) -> Option<Interval> {
-    if lower_ms > upper_ms {
+    if lower_ms > upper_ms || upper_ms > MAX_EXACT_INTEGER_MS {
         return None;
     }
-    // Accepted profile ages are deliberately bounded by the operation policy,
-    // and therefore lie inside the exact integer range of binary64.
+    // Keep elapsed integer milliseconds within the core's documented exact
+    // binary64 integer domain before converting to fractional seconds.
     let lower_nearest = lower_ms as f64 / 1_000.0;
     let upper_nearest = upper_ms as f64 / 1_000.0;
     if !lower_nearest.is_finite() || !upper_nearest.is_finite() {
