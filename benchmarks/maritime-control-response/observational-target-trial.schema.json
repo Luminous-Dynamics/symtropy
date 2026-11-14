@@ -222,7 +222,9 @@
           "followup_status",
           "censoring_at_seconds",
           "concurrent_intervention_ids",
-          "outcome"
+          "outcome",
+          "strategy_record_ref",
+          "strategy_record_sha256"
         ],
         "properties": {
           "unit_id": {
@@ -447,6 +449,14 @@
                 "type": "null"
               }
             ]
+          },
+          "strategy_record_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_record_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
           }
         }
       }
