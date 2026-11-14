@@ -47,14 +47,18 @@ pub struct OperatingCondition {
 #[serde(deny_unknown_fields)]
 pub struct CapabilityMeasurement {
     pub measurement_id: String,
+    pub source_id: String,
     pub metric_id: String,
     pub measurement_principle_id: String,
     pub dependency_domain_id: String,
+    pub observed_at_seconds: f64,
+    pub available_at_seconds: f64,
     pub value: f64,
     pub uncertainty_abs: f64,
     pub unit: String,
     pub quality: MeasurementQuality,
     pub calibration: CalibrationState,
+    pub calibration_record_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -367,13 +371,25 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
     let mut measurement_ids = BTreeSet::new();
     for measurement in &episode.measurements {
         if measurement.measurement_id.trim().is_empty()
+            || measurement.source_id.trim().is_empty()
             || measurement.metric_id.trim().is_empty()
             || measurement.measurement_principle_id.trim().is_empty()
             || measurement.dependency_domain_id.trim().is_empty()
             || measurement.unit.trim().is_empty()
+            || !measurement.observed_at_seconds.is_finite()
+            || !measurement.available_at_seconds.is_finite()
+            || measurement.observed_at_seconds < episode.started_at_seconds
+            || measurement.observed_at_seconds > episode.ended_at_seconds
+            || measurement.available_at_seconds < measurement.observed_at_seconds
+            || measurement.available_at_seconds > episode.ended_at_seconds
             || !measurement.value.is_finite()
             || !measurement.uncertainty_abs.is_finite()
             || measurement.uncertainty_abs < 0.0
+            || (measurement.calibration == CalibrationState::Verified
+                && measurement
+                    .calibration_record_sha256
+                    .as_deref()
+                    .is_none_or(|digest| !is_sha256_hex(digest)))
         {
             return Err(RepairVerificationError::InvalidMeasurement(
                 measurement.measurement_id.clone(),
@@ -746,14 +762,18 @@ mod tests {
     ) -> CapabilityMeasurement {
         CapabilityMeasurement {
             measurement_id: measurement_id.into(),
+            source_id: measurement_id.into(),
             metric_id: metric_id.into(),
             measurement_principle_id: measurement_principle_id.into(),
             dependency_domain_id: dependency_domain_id.into(),
+            observed_at_seconds: 0.0,
+            available_at_seconds: 0.0,
             value,
             uncertainty_abs: 0.5,
             unit: "kPa".into(),
             quality: MeasurementQuality::Valid,
             calibration: CalibrationState::Verified,
+            calibration_record_sha256: Some(digest('d')),
         }
     }
 
@@ -768,6 +788,17 @@ mod tests {
         principles: [&str; 2],
         domains: [&str; 2],
     ) -> TestEpisode {
+        let mut torque_measurement =
+            measurement("m-torque", "propulsion_delivery_pressure", torque, principles[0], domains[0]);
+        torque_measurement.source_id = format!("{id}-torque-meter");
+        torque_measurement.observed_at_seconds = end - 1.0;
+        torque_measurement.available_at_seconds = end;
+        let mut cooling_measurement =
+            measurement("m-cooling", "cooling_pressure", cooling, principles[1], domains[1]);
+        cooling_measurement.source_id = format!("{id}-cooling-meter");
+        cooling_measurement.observed_at_seconds = end - 1.0;
+        cooling_measurement.available_at_seconds = end;
+
         TestEpisode {
             episode_id: id.into(),
             asset_id: "engine-001".into(),
@@ -786,10 +817,7 @@ mod tests {
                     unit: "rpm".into(),
                 },
             ],
-            measurements: vec![
-                measurement("m-torque", "propulsion_torque", torque, principles[0], domains[0]),
-                measurement("m-cooling", "cooling_pressure", cooling, principles[1], domains[1]),
-            ],
+            measurements: vec![torque_measurement, cooling_measurement],
         }
     }
 
@@ -816,7 +844,7 @@ mod tests {
             capability_envelopes: vec![
                 CapabilityEnvelope {
                     capability_id: "propulsion-delivery".into(),
-                    metric_id: "propulsion_torque".into(),
+                    metric_id: "propulsion_delivery_pressure".into(),
                     unit: "kPa".into(),
                     lower_bound: 90.0,
                     upper_bound: 120.0,
