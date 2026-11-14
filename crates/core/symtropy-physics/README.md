@@ -71,10 +71,11 @@ cargo run --release --example oriented_collision_validation
 
 The output is CSV for CI gates and external analysis. See
 [`RESEARCH_VALIDATION.md`](RESEARCH_VALIDATION.md) for the general validity
-protocol and [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
-for the transformed-geometry contract, limitations, and external campaign. Public
-research claims should follow that protocol and explicitly distinguish proven,
-experimental, and planned capabilities.
+protocol, [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
+for the transformed-geometry contract, and [`ELASTIC_COLLISION_VALIDATION.md`](ELASTIC_COLLISION_VALIDATION.md)
+for the closed-form head-on elastic/inelastic collision benchmark. The new collision
+example is authored but remains unqualified until its exact-head workflow passes.
+Public research claims should distinguish verified, experimental, and planned capabilities.
 
 ## PhysicsCallback — Custom Force Modulation
 
