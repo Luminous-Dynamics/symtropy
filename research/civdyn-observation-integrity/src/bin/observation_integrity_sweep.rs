@@ -16,7 +16,9 @@ fn policy() -> AdmissionPolicy {
         expected_unit: "service_index".to_owned(),
         expected_calibration_revision: "cal-7".to_owned(),
         expected_configuration_revision: "cfg-3".to_owned(),
-        maximum_age_ticks: 2,
+        decision_cutoff_tick: 20,
+        maximum_observation_age_ticks: 10,
+        maximum_transport_lag_ticks: 2,
         numeric_tolerance: 2,
     }
 }
@@ -292,12 +294,52 @@ fn run_sweep() -> usize {
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
-    let mut stale_primary = primary();
-    stale_primary.event_tick = 1;
+    let mut excessive_transport_lag = primary();
+    excessive_transport_lag.ingestion_tick = 13;
     disposition_case!(
         "excessive-event-to-ingestion-lag-is-rejected",
-        vec![stale_primary],
+        vec![excessive_transport_lag],
         CandidateDisposition::RejectEvidence
+    );
+
+    let mut stale_at_cutoff = primary();
+    stale_at_cutoff.event_tick = 1;
+    disposition_case!(
+        "stale-observation-at-decision-cutoff-is-rejected",
+        vec![stale_at_cutoff],
+        CandidateDisposition::RejectEvidence
+    );
+
+    let mut arrived_after_cutoff = primary();
+    arrived_after_cutoff.ingestion_tick = 21;
+    disposition_case!(
+        "recent-observation-arriving-after-cutoff-is-rejected",
+        vec![arrived_after_cutoff],
+        CandidateDisposition::RejectEvidence
+    );
+
+    disposition_case!(
+        "pairwise-cross-check-disagreement-is-conflict",
+        vec![
+            primary(),
+            measured(
+                "side-a",
+                EvidenceKind::IndependentPhysicalMeasurement,
+                48,
+                "sensor-b",
+                "gateway-b",
+                "trust-root-b",
+            ),
+            measured(
+                "side-b",
+                EvidenceKind::IndependentPhysicalMeasurement,
+                52,
+                "sensor-c",
+                "gateway-c",
+                "trust-root-c",
+            ),
+        ],
+        CandidateDisposition::EvidenceConflict
     );
 
     let mut wrong_calibration = primary();
@@ -420,12 +462,20 @@ fn run_sweep() -> usize {
     let first = vec![
         primary(),
         measured(
-            "independent",
+            "side-a",
             EvidenceKind::IndependentPhysicalMeasurement,
-            51,
+            48,
             "sensor-b",
             "gateway-b",
             "trust-root-b",
+        ),
+        measured(
+            "side-b",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            52,
+            "sensor-c",
+            "gateway-c",
+            "trust-root-c",
         ),
     ];
     let mut reversed = first.clone();
