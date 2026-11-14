@@ -1273,7 +1273,7 @@ mod tests {
         assert_eq!(protocol["schema_version"], MAINTENANCE_EFFECT_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["estimator"]["exact_test_limit_units"], 16);
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 29);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 30);
         assert!(
             protocol["estimator"]["measurement_provenance"]
                 .as_object()
@@ -1283,6 +1283,6 @@ mod tests {
             corpus["schema_version"],
             "symtropy-marine-maintenance-effect-cases-v0.1"
         );
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 15);
     }
 }
