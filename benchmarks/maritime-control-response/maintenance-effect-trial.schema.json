@@ -20,7 +20,8 @@
     "assignment_plan_sha256",
     "assignment_audit_ref",
     "stratum_allocations",
-    "observations"
+    "observations",
+    "outcome_measurement_principle_id"
   ],
   "properties": {
     "schema_version": {
@@ -134,7 +135,23 @@
           "outcome_unit",
           "outcome_observed_at_seconds",
           "outcome_available_at_seconds",
-          "outcome_evidence_sha256"
+          "outcome_evidence_sha256",
+          "baseline_source_id",
+          "baseline_measurement_principle_id",
+          "baseline_dependency_domain_id",
+          "baseline_quality",
+          "baseline_calibration_status",
+          "baseline_calibration_record_sha256",
+          "baseline_calibration_valid_until_seconds",
+          "baseline_uncertainty_abs",
+          "outcome_source_id",
+          "outcome_measurement_principle_id",
+          "outcome_dependency_domain_id",
+          "outcome_quality",
+          "outcome_calibration_status",
+          "outcome_calibration_record_sha256",
+          "outcome_calibration_valid_until_seconds",
+          "outcome_uncertainty_abs"
         ],
         "properties": {
           "unit_id": {
@@ -196,9 +213,93 @@
           "outcome_evidence_sha256": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$"
+          },
+          "baseline_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseline_measurement_principle_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseline_dependency_domain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "baseline_quality": {
+            "enum": [
+              "valid",
+              "missing",
+              "stale",
+              "rejected",
+              "conflicted"
+            ]
+          },
+          "baseline_calibration_status": {
+            "enum": [
+              "verified",
+              "unknown",
+              "expired"
+            ]
+          },
+          "baseline_calibration_record_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "baseline_calibration_valid_until_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "baseline_uncertainty_abs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "outcome_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_measurement_principle_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_dependency_domain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome_quality": {
+            "enum": [
+              "valid",
+              "missing",
+              "stale",
+              "rejected",
+              "conflicted"
+            ]
+          },
+          "outcome_calibration_status": {
+            "enum": [
+              "verified",
+              "unknown",
+              "expired"
+            ]
+          },
+          "outcome_calibration_record_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "outcome_calibration_valid_until_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "outcome_uncertainty_abs": {
+            "type": "number",
+            "minimum": 0
           }
         }
       }
+    },
+    "outcome_measurement_principle_id": {
+      "type": "string",
+      "minLength": 1
     }
   }
 }
