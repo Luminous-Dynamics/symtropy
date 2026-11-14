@@ -724,6 +724,39 @@ mod tests {
     }
 
     #[test]
+    fn leaving_damping_or_stiffness_in_the_old_frame_breaks_covariance() {
+        let profile = EffectiveMetricProfileV1::default();
+        let physical = fixture(0.4);
+        let frame = IntegerFrame2V1::upper_shear(4);
+        let correct_problem = rebase_problem(&physical, &frame, profile).unwrap();
+        let canonical = solve_discrete_step(&physical, profile).unwrap();
+
+        let mut wrong_damping = correct_problem.clone();
+        wrong_damping.damping = physical.damping;
+        let wrong_damping_result = solve_discrete_step(&wrong_damping, profile).unwrap();
+        let lifted_damping_velocity =
+            apply(frame.basis(), wrong_damping_result.next_velocity);
+        assert!(
+            vector_inf([
+                canonical.next_velocity[0] - lifted_damping_velocity[0],
+                canonical.next_velocity[1] - lifted_damping_velocity[1]
+            ]) > 1.0e-5
+        );
+
+        let mut wrong_stiffness = correct_problem;
+        wrong_stiffness.stiffness = physical.stiffness;
+        let wrong_stiffness_result = solve_discrete_step(&wrong_stiffness, profile).unwrap();
+        let lifted_stiffness_velocity =
+            apply(frame.basis(), wrong_stiffness_result.next_velocity);
+        assert!(
+            vector_inf([
+                canonical.next_velocity[0] - lifted_stiffness_velocity[0],
+                canonical.next_velocity[1] - lifted_stiffness_velocity[1]
+            ]) > 1.0e-5
+        );
+    }
+
+    #[test]
     fn wrong_effective_metric_exponent_is_detected() {
         let problem = fixture(0.5);
         let correct = problem.effective_metric().unwrap();
