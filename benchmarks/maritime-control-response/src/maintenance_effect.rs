@@ -18,8 +18,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 pub const MAINTENANCE_EFFECT_SCHEMA: &str = "symtropy-marine-maintenance-effect-v0.1";
-pub const MAINTENANCE_EFFECT_ORACLE_SCHEMA: &str =
-    "symtropy-marine-maintenance-effect-oracle-v0.1";
+pub const MAINTENANCE_EFFECT_ORACLE_SCHEMA: &str = "symtropy-marine-maintenance-effect-oracle-v0.1";
 const MAX_EXACT_RANDOMIZATION_UNITS: usize = 16;
 const TIME_TOLERANCE_SECONDS: f64 = 1e-9;
 const VARIANCE_TOLERANCE: f64 = 1e-12;
@@ -188,30 +187,84 @@ pub enum MaintenanceEffectError {
 impl fmt::Display for MaintenanceEffectError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidSchemaVersion => write!(formatter, "unexpected maintenance-effect schema version"),
+            Self::InvalidSchemaVersion => {
+                write!(formatter, "unexpected maintenance-effect schema version")
+            }
             Self::InvalidIdentity => write!(formatter, "maintenance-effect identity is empty"),
-            Self::InvalidDigest => write!(formatter, "maintenance-effect digest is not lowercase SHA-256"),
-            Self::NonRandomizedDesign => write!(formatter, "P0 estimator accepts blocked randomized assignment only"),
+            Self::InvalidDigest => write!(
+                formatter,
+                "maintenance-effect digest is not lowercase SHA-256"
+            ),
+            Self::NonRandomizedDesign => write!(
+                formatter,
+                "P0 estimator accepts blocked randomized assignment only"
+            ),
             Self::InvalidTimestamp => write!(formatter, "maintenance-effect timestamp is invalid"),
-            Self::InvalidConfidenceLevel => write!(formatter, "confidence level must be 0.90, 0.95 or 0.99"),
+            Self::InvalidConfidenceLevel => {
+                write!(formatter, "confidence level must be 0.90, 0.95 or 0.99")
+            }
             Self::InvalidAllocation(id) => write!(formatter, "invalid blocked allocation: {id}"),
-            Self::DuplicateStratum(id) => write!(formatter, "duplicate randomization stratum: {id}"),
-            Self::UnknownStratum(id) => write!(formatter, "observation refers to unknown stratum: {id}"),
+            Self::DuplicateStratum(id) => {
+                write!(formatter, "duplicate randomization stratum: {id}")
+            }
+            Self::UnknownStratum(id) => {
+                write!(formatter, "observation refers to unknown stratum: {id}")
+            }
             Self::DuplicateUnit(id) => write!(formatter, "duplicate randomization unit: {id}"),
-            Self::InvalidObservation(id) => write!(formatter, "invalid observation or provenance: {id}"),
-            Self::BaselineNotAvailableAtAssignment(id) => write!(formatter, "baseline was not available at assignment time: {id}"),
-            Self::OutcomeUnavailableAtAnalysis(id) => write!(formatter, "outcome was not available at analysis time: {id}"),
-            Self::FollowupHorizonNotMet(id) => write!(formatter, "outcome does not meet the preregistered follow-up horizon: {id}"),
-            Self::UnitOrMetricMismatch(id) => write!(formatter, "outcome metric or unit does not match the trial: {id}"),
-            Self::StratumAllocationMismatch(id) => write!(formatter, "observed arm counts do not match the frozen stratum allocation: {id}"),
-            Self::PositivityFailure(id) => write!(formatter, "both randomized arms are not represented in stratum: {id}"),
-            Self::InsufficientWithinArmReplication(id) => write!(formatter, "at least two independent units per arm are required for variance in stratum: {id}"),
-            Self::TooManyRandomizationUnits(count) => write!(formatter, "exact randomization enumeration is bounded to 16 units; got {count}"),
-            Self::RandomizationSpaceEmpty => write!(formatter, "no assignment satisfies the frozen blocked allocation"),
-            Self::InvalidOracle => write!(formatter, "synthetic potential-outcome oracle is incomplete or invalid"),
-            Self::EstimateMismatch => write!(formatter, "supplied effect estimate does not match the observed trial estimator output"),
-            Self::OracleUnitMismatch(id) => write!(formatter, "oracle unit set differs from randomized trial: {id}"),
-            Self::OracleObservedOutcomeMismatch(id) => write!(formatter, "observed outcome does not match the selected oracle potential outcome: {id}"),
+            Self::InvalidObservation(id) => {
+                write!(formatter, "invalid observation or provenance: {id}")
+            }
+            Self::BaselineNotAvailableAtAssignment(id) => write!(
+                formatter,
+                "baseline was not available at assignment time: {id}"
+            ),
+            Self::OutcomeUnavailableAtAnalysis(id) => write!(
+                formatter,
+                "outcome was not available at analysis time: {id}"
+            ),
+            Self::FollowupHorizonNotMet(id) => write!(
+                formatter,
+                "outcome does not meet the preregistered follow-up horizon: {id}"
+            ),
+            Self::UnitOrMetricMismatch(id) => write!(
+                formatter,
+                "outcome metric or unit does not match the trial: {id}"
+            ),
+            Self::StratumAllocationMismatch(id) => write!(
+                formatter,
+                "observed arm counts do not match the frozen stratum allocation: {id}"
+            ),
+            Self::PositivityFailure(id) => write!(
+                formatter,
+                "both randomized arms are not represented in stratum: {id}"
+            ),
+            Self::InsufficientWithinArmReplication(id) => write!(
+                formatter,
+                "at least two independent units per arm are required for variance in stratum: {id}"
+            ),
+            Self::TooManyRandomizationUnits(count) => write!(
+                formatter,
+                "exact randomization enumeration is bounded to 16 units; got {count}"
+            ),
+            Self::RandomizationSpaceEmpty => write!(
+                formatter,
+                "no assignment satisfies the frozen blocked allocation"
+            ),
+            Self::InvalidOracle => write!(
+                formatter,
+                "synthetic potential-outcome oracle is incomplete or invalid"
+            ),
+            Self::EstimateMismatch => write!(
+                formatter,
+                "supplied effect estimate does not match the observed trial estimator output"
+            ),
+            Self::OracleUnitMismatch(id) => {
+                write!(formatter, "oracle unit set differs from randomized trial: {id}")
+            }
+            Self::OracleObservedOutcomeMismatch(id) => write!(
+                formatter,
+                "observed outcome does not match the selected oracle potential outcome: {id}"
+            ),
             Self::Serialization => write!(formatter, "failed to serialize maintenance-effect data"),
         }
     }
@@ -303,8 +356,7 @@ impl BlockedRandomizedMaintenanceTrial {
         }
 
         let mut units = BTreeSet::new();
-        let mut observed_counts =
-            BTreeMap::<String, (usize, usize)>::new();
+        let mut observed_counts = BTreeMap::<String, (usize, usize)>::new();
         for observation in &self.observations {
             if observation.unit_id.trim().is_empty() {
                 return Err(MaintenanceEffectError::InvalidIdentity);
@@ -345,7 +397,8 @@ impl BlockedRandomizedMaintenanceTrial {
                 ));
             }
             if observation.baseline_observed_at_seconds < 0.0
-                || observation.baseline_available_at_seconds < observation.baseline_observed_at_seconds
+                || observation.baseline_available_at_seconds
+                    < observation.baseline_observed_at_seconds
                 || observation.baseline_observed_at_seconds
                     >= self.assignment_at_seconds - TIME_TOLERANCE_SECONDS
                 || observation.baseline_available_at_seconds
@@ -365,8 +418,7 @@ impl BlockedRandomizedMaintenanceTrial {
                     observation.unit_id.clone(),
                 ));
             }
-            if observation.outcome_available_at_seconds
-                < observation.outcome_observed_at_seconds
+            if observation.outcome_available_at_seconds < observation.outcome_observed_at_seconds
                 || observation.outcome_available_at_seconds
                     > self.analysis_as_of_seconds + TIME_TOLERANCE_SECONDS
             {
@@ -459,16 +511,11 @@ fn stratified_difference_in_means(
     let total_count = refs.len() as f64;
     let mut weighted_effect = 0.0;
     for allocation in &trial.stratum_allocations {
-        let (treatment_mean, control_mean) = arm_means_for_stratum(
-            &refs,
-            &allocation.stratum_id,
-            treatment_mask,
-            unit_indices,
-        )?;
+        let (treatment_mean, control_mean) =
+            arm_means_for_stratum(&refs, &allocation.stratum_id, treatment_mask, unit_indices)?;
         let stratum_count =
             (allocation.planned_treatment_count + allocation.planned_control_count) as f64;
-        weighted_effect +=
-            (stratum_count / total_count) * (treatment_mean - control_mean);
+        weighted_effect += (stratum_count / total_count) * (treatment_mean - control_mean);
     }
     Some(weighted_effect)
 }
@@ -574,18 +621,12 @@ pub fn estimate_blocked_randomized_maintenance_effect(
             })
             .map(|item| item.observed_outcome_value)
             .collect::<Vec<_>>();
-        let treatment_variance =
-            sample_variance(&treatment).ok_or_else(|| {
-                MaintenanceEffectError::InsufficientWithinArmReplication(
-                    allocation.stratum_id.clone(),
-                )
-            })?;
-        let control_variance =
-            sample_variance(&control).ok_or_else(|| {
-                MaintenanceEffectError::InsufficientWithinArmReplication(
-                    allocation.stratum_id.clone(),
-                )
-            })?;
+        let treatment_variance = sample_variance(&treatment).ok_or_else(|| {
+            MaintenanceEffectError::InsufficientWithinArmReplication(allocation.stratum_id.clone())
+        })?;
+        let control_variance = sample_variance(&control).ok_or_else(|| {
+            MaintenanceEffectError::InsufficientWithinArmReplication(allocation.stratum_id.clone())
+        })?;
         let treatment_mean = treatment.iter().sum::<f64>() / treatment.len() as f64;
         let control_mean = control.iter().sum::<f64>() / control.len() as f64;
         let stratum_count = (treatment.len() + control.len()) as f64;
@@ -632,7 +673,8 @@ pub fn estimate_blocked_randomized_maintenance_effect(
         control_label: trial.control_label.clone(),
         outcome_metric_id: trial.outcome_metric_id.clone(),
         outcome_unit: trial.outcome_unit.clone(),
-        estimand: "finite_population_average_treatment_effect_for_the_randomized_eligible_units".into(),
+        estimand: "finite_population_average_treatment_effect_for_the_randomized_eligible_units"
+            .into(),
         estimator: "stratum_weighted_difference_in_means_with_neyman_conservative_variance".into(),
         ate_treatment_minus_control: ate,
         benefit_oriented_effect,
@@ -719,8 +761,7 @@ pub fn score_synthetic_effect_against_oracle(
         true_finite_population_ate: truth,
         estimation_error: error,
         absolute_bias: error.abs(),
-        interval_contains_truth: estimate.confidence_interval_treatment_minus_control[0]
-            <= truth
+        interval_contains_truth: estimate.confidence_interval_treatment_minus_control[0] <= truth
             && truth <= estimate.confidence_interval_treatment_minus_control[1],
         oracle_used_for_estimation: false,
     })
@@ -955,9 +996,11 @@ mod tests {
         let original_score =
             score_synthetic_effect_against_oracle(&trial, &estimate, &oracle).unwrap();
         let mut counterfactual_oracle = oracle;
-        for (observation, potential) in trial.observations.iter().zip(
-            counterfactual_oracle.outcomes.iter_mut(),
-        ) {
+        for (observation, potential) in trial
+            .observations
+            .iter()
+            .zip(counterfactual_oracle.outcomes.iter_mut())
+        {
             match observation.assigned_arm {
                 AssignedArm::Treatment => {
                     potential.potential_outcome_control += 10.0;
@@ -967,10 +1010,13 @@ mod tests {
                 }
             }
         }
-        let recomputed_estimate =
-            estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
-        let counterfactual_score =
-            score_synthetic_effect_against_oracle(&trial, &recomputed_estimate, &counterfactual_oracle).unwrap();
+        let recomputed_estimate = estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
+        let counterfactual_score = score_synthetic_effect_against_oracle(
+            &trial,
+            &recomputed_estimate,
+            &counterfactual_oracle,
+        )
+        .unwrap();
         assert_eq!(
             estimate.ate_treatment_minus_control,
             recomputed_estimate.ate_treatment_minus_control
@@ -1015,8 +1061,11 @@ mod tests {
             serde_json::from_str(include_str!("../maintenance-effect-cases-v0.1.json")).unwrap();
         assert_eq!(protocol["schema_version"], MAINTENANCE_EFFECT_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
-        assert_eq!(protocol["exact_randomization"]["maximum_units"], 16);
-        assert_eq!(corpus["schema_version"], "symtropy-marine-maintenance-effect-cases-v0.1");
+        assert_eq!(protocol["estimator"]["exact_test_limit_units"], 16);
+        assert_eq!(
+            corpus["schema_version"],
+            "symtropy-marine-maintenance-effect-cases-v0.1"
+        );
         assert_eq!(corpus["cases"].as_array().unwrap().len(), 10);
     }
 }
