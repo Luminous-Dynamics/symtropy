@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.1",
+  "fixture_id": "reference-class-learning-negative-controls-v0.1",
+  "claim_ceiling": "synthetic-validator-conformance-only",
+  "cases": [
+    {
+      "case_id": "descriptive-single-site",
+      "study_design": "Descriptive",
+      "expected_promotion": "LocalDescriptiveOnly",
+      "purpose": "One complete accepted-output case must not be promoted into a transferable or causal claim."
+    },
+    {
+      "case_id": "matched-observational",
+      "study_design": "MatchedObservational",
+      "expected_promotion": "MatchedReferenceCandidate",
+      "expected_causal_claim": "NotSupported",
+      "purpose": "Matching on declared observed covariates does not eliminate unmeasured confounding."
+    },
+    {
+      "case_id": "quasi-experimental-pretrend-fail",
+      "study_design": "QuasiExperimental",
+      "diagnostics": { "PreInterventionTrend": "Failed" },
+      "expected_promotion": "Quarantined",
+      "expected_causal_claim": "Rejected",
+      "purpose": "A failed identification diagnostic blocks quasi-experimental causal eligibility."
+    },
+    {
+      "case_id": "missing-attempt-denominator",
+      "study_design": "MatchedObservational",
+      "mutation": "drop-one-final-disposition",
+      "expected": "OutcomeDenominatorMismatch",
+      "purpose": "Rejected, reworked or unresolved work cannot disappear from the denominator."
+    },
+    {
+      "case_id": "project-leakage",
+      "mutation": "same-project-in-training-and-blind",
+      "expected": "ProjectLeakage",
+      "purpose": "No random-row split may leak project identity into both training and holdout."
+    },
+    {
+      "case_id": "out-of-domain-access",
+      "mutation": "future-context-occupied-high-rise-façade",
+      "expected": "OutOfDomain",
+      "purpose": "A ground-level guarded panel reference does not transfer automatically to occupied high-rise façade work."
+    },
+    {
+      "case_id": "independently-replicated-observational",
+      "study_design": "MatchedObservational",
+      "replication_sites": 2,
+      "independent_assessors": 2,
+      "expected_promotion": "IndependentlyReplicatedDescriptiveReference",
+      "expected_causal_claim": "NotSupported",
+      "purpose": "Replication strengthens scope/transfer evidence but does not turn observational association into causality."
+    }
+  ]
+}
