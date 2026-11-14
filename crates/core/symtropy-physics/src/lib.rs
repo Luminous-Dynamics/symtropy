@@ -32,6 +32,9 @@ pub mod replay;
 pub mod support_map;
 pub mod world;
 
+#[cfg(test)]
+mod coupled_friction_transition_witness;
+
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
