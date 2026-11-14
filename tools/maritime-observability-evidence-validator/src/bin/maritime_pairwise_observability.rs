@@ -579,6 +579,17 @@ mod tests{
         assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
     }
     #[test]
+    fn reconstructed_channel_cannot_contribute_as_independent_measurement(){
+        let mut v=fixture();
+        v["pairs"][0]["minimum_independent_principles"]=json!(3);
+        v["channels"][3]["source_role"]=json!("reconstructed");
+        v["channels"][3]["derived_from_channel_ids"]=json!(["shaft-speed"]);
+        v["pairs"][0]["responses"][3]["evidence_role_a"]=json!("RECONSTRUCTED");
+        v["pairs"][0]["responses"][3]["evidence_role_b"]=json!("RECONSTRUCTED");
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
     fn overlapping_intervals_do_not_discriminate(){
         let mut v=fixture();
         for response in v["pairs"][0]["responses"].as_array_mut().unwrap(){

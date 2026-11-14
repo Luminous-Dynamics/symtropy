@@ -436,7 +436,8 @@
                     "measured",
                     "derived",
                     "simulated",
-                    "expert_authored"
+                    "expert_authored",
+                    "reconstructed"
                   ]
                 },
                 "channel_ids": {
@@ -522,7 +523,8 @@
                     "measured",
                     "derived",
                     "simulated",
-                    "expert_authored"
+                    "expert_authored",
+                    "reconstructed"
                   ]
                 },
                 "channel_ids": {
@@ -713,7 +715,8 @@
             "measured",
             "derived",
             "simulated",
-            "expert_authored"
+            "expert_authored",
+            "reconstructed"
           ]
         },
         "channel_ids": {

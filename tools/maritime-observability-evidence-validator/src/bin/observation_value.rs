@@ -273,7 +273,7 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
             push(&mut errors,"ACTIVE_OBSERVATION_FORBIDDEN",&path,"candidate must be read-only and already available");
         }
         let evidence_role = text(candidate,"evidence_role").unwrap_or("");
-        if !matches!(evidence_role, "MEASURED_EXISTING_RECORD"|"CALIBRATION_RECORD"|"DERIVED"|"SIMULATED") {
+        if !matches!(evidence_role, "MEASURED_EXISTING_RECORD"|"CALIBRATION_RECORD"|"DERIVED"|"RECONSTRUCTED"|"SIMULATED") {
             push(&mut errors,"EVIDENCE_ROLE_INVALID",&format!("{path}.evidence_role"),"unsupported evidence role");
         }
         if !matches!(text(candidate,"availability_state"),Some("AVAILABLE"|"MISSING"|"STALE"|"UNKNOWN")) {
@@ -443,6 +443,7 @@ fn evaluate(input: &Value) -> Result<Value,Errors> {
         if !matches!(text(candidate,"sensor_calibration_state"),Some("CURRENT"|"NOT_APPLICABLE")) { reasons.insert("CALIBRATION_NOT_CURRENT"); }
         if text(candidate,"timebase_qualification_state") != Some("QUALIFIED") { reasons.insert("TIMEBASE_NOT_QUALIFIED"); }
         if text(candidate,"likelihood_model_qualification_state") != Some("QUALIFIED") { reasons.insert("LIKELIHOOD_MODEL_NOT_QUALIFIED"); }
+        if evidence_role == "RECONSTRUCTED" { reasons.insert("RECONSTRUCTED_EVIDENCE_NOT_INDEPENDENT"); }
         if !matches!(evidence_role,"MEASURED_EXISTING_RECORD"|"CALIBRATION_RECORD") { reasons.insert("EVIDENCE_NOT_MEASURED_OR_CALIBRATION_RECORD"); }
         if dependencies.iter().any(|dependency| existing_dependencies.contains(dependency)) {
             reasons.insert("SHARED_DEPENDENCY_WITH_EXISTING_EVIDENCE");
@@ -598,6 +599,17 @@ mod tests {
         assert_eq!(derived["status"],"NOT_EVALUATED");
         assert!(derived["reason_codes"].as_array().unwrap().iter().any(|reason|reason=="SHARED_DEPENDENCY_WITH_EXISTING_EVIDENCE"));
         assert!(derived["reason_codes"].as_array().unwrap().iter().any(|reason|reason=="EVIDENCE_NOT_MEASURED_OR_CALIBRATION_RECORD"));
+    }
+    #[test]
+    fn reconstructed_candidate_is_not_scored_as_new_independent_observation(){
+        let mut input=fixture();
+        input["candidates"][0]["evidence_role"]=json!("RECONSTRUCTED");
+        let report=evaluate(&input).unwrap();
+        let candidate=report["ranked_candidates"].as_array().unwrap()
+            .iter().find(|item|item["candidate_id"]=="needle-lift-existing-trace").unwrap();
+        assert_eq!(candidate["status"],"NOT_EVALUATED");
+        assert!(candidate["reason_codes"].as_array().unwrap()
+            .iter().any(|code|code=="RECONSTRUCTED_EVIDENCE_NOT_INDEPENDENT"));
     }
     #[test]
     fn stale_or_expired_record_is_not_scored(){

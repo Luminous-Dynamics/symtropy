@@ -133,7 +133,8 @@
               "MEASURED_EXISTING_RECORD",
               "CALIBRATION_RECORD",
               "DERIVED",
-              "SIMULATED"
+              "SIMULATED",
+              "RECONSTRUCTED"
             ]
           },
           "read_only": {

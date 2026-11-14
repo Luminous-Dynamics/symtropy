@@ -176,6 +176,9 @@ fn audit_pair(pair: &Value, sensors: &BTreeMap<String, &Value>, errors: &mut Vec
                 Some("derived") => {
                     reasons.insert("DERIVED_EVIDENCE_NOT_INDEPENDENT");
                 }
+                Some("reconstructed") => {
+                    reasons.insert("RECONSTRUCTED_EVIDENCE_NOT_INDEPENDENT");
+                }
                 Some("simulated") => {
                     reasons.insert("SIMULATION_ONLY_EVIDENCE");
                 }
@@ -862,6 +865,20 @@ mod tests {
             "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE"
         );
         assert_eq!(r["pair_audits"][0]["physical_pair_separability_recomputed"], false);
+    }
+
+    #[test]
+    fn reconstructed_evidence_cannot_support_declared_isolability() {
+        let mut x = fixture();
+        x["pair_assessments"][0]["evidence_refs"][0]["evidence_role"] = json!("reconstructed");
+        let r = validate(&x).unwrap();
+        assert_eq!(
+            r["pair_audits"][0]["measured_isolability_claim_status"],
+            "DECLARED_ISOLABILITY_NOT_SUPPORTED_BY_REFERENCED_MEASURED_EVIDENCE"
+        );
+        assert!(r["pair_audits"][0]["reason_codes"]
+            .as_array().unwrap()
+            .iter().any(|code| code == "RECONSTRUCTED_EVIDENCE_NOT_INDEPENDENT"));
     }
 
     #[test]
