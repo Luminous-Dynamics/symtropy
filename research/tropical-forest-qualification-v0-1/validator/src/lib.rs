@@ -1,10 +1,10 @@
-pub mod canopy_kernel;
-
 //! Offline semantic verifier for the synthetic tropical-forest qualification fixture.
 //!
 //! This validates arithmetic and causal-isolation properties of a declared synthetic
 //! case. It does not estimate ecological parameters, validate a biological model, or
 //! turn a synthetic pass into field evidence.
+
+pub mod canopy_kernel;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -315,7 +315,7 @@ fn adjudicate_observation_case(case: &Value) -> Result<&'static str, String> {
             let unit = string_at(case, &["input", "split_group_unit"])?;
             let same_plot = at(case, &["input", "same_plot_across_splits"])?
                 .as_bool().ok_or_else(|| "same_plot_across_splits must be boolean".to_string())?;
-            Ok(if unit == "stem" && same_plot { "REJECT_LEAKAGE" } else { "NO_WITHIN_PLOT_SPLIT_CONFLICT_DETECTED" })
+            Ok(if same_plot { "REJECT_LEAKAGE" } else { "NO_WITHIN_PLOT_SPLIT_CONFLICT_DETECTED" })
         }
         "DRC-INACCESSIBLE-SAMPLE-UNITS-001" => {
             let status = string_at(case, &["input", "survey_status"])?;
