@@ -175,3 +175,55 @@ The HMP-001 research branch does not add a new social-simulation engine to Symtr
 Industry and academic systems often optimize interaction quality, agent believability or output similarity. This programme should compete on a harder standard: **reproducible prediction of held-out collective outcomes, explicit mechanism tests, valid intervention forecasts and transparent failure characterization.**
 
 A defensible SOTA claim requires a matched public tournament against classical ABMs, statistical models, stateless and persistent LLM agents, and the best available frontier/open-weight systems. It also requires independent reproduction. Until then, this is a proposed methodology—not a performance result.
+
+
+## 10. Integration target: Plurality Integrity under Interaction (PIB)
+
+The companion Symthaea RFC, [Plurality Integrity under Interaction v0.1](https://github.com/Luminous-Dynamics/symthaea/blob/research/human-meaning-pluralism-v0-1/docs/research/PLURALITY_INTEGRITY_BENCHMARK_V0_1.md), defines system-level measures for how agent interaction changes supported human perspectives. Symtropy is the proposed experimental harness for testing those dynamics, not the source of cultural ground truth.
+
+### Episode contract
+
+Each episode should freeze and receipt:
+
+- scenario ID, version and content digest;
+- each actor's starting position, provenance/scope and evidence access;
+- actor policy, authority and permitted operations;
+- interaction protocol, decision rule, time/round limit and random seed;
+- complete interaction/event trace, including edits, summaries, votes and tool calls;
+- any newly introduced evidence and its source/time;
+- per-agent final state, group decision and unresolved disagreements;
+- scoring code, model/system revision, run environment and independent review.
+
+Do not infer that a simulated agent represents a real population, or use synthetic persona text as human reference data.
+
+### Required treatment arms
+
+Run matched episodes under:
+1. no interaction / independent response;
+2. balanced deliberation with equal speaking opportunities;
+3. majority vote without deliberation;
+4. high-status or repeated-message pressure;
+5. new shared evidence introduced mid-episode;
+6. explicit negotiation with unresolved dissent retained;
+7. a transparent authority decision with an appeal path.
+
+These treatments distinguish evidence-supported convergence from conformity, procedural selection and unexplained drift.
+
+### Measurements to export
+
+- false-consensus and dissent-erasure rates;
+- within-group and between-group distribution fidelity;
+- conditional plurality retention, measured against permissioned human reference distributions;
+- minority-perspective detection, attribution and material consideration;
+- evidence-supported convergence precision;
+- task success and norm compliance as separate axes;
+- judge calibration and abstention by task/context;
+- interaction drift over time, not only the final response.
+
+Do not maximize response entropy. The target is calibrated fidelity to observed human variation and legitimate context, with genuine convergence allowed when new evidence or an explicitly authorized decision warrants it.
+
+### Validation gate
+
+A Symtropy result can establish that a simulation implementation reproduces a specified synthetic protocol or matches a defined empirical pattern. It cannot establish that the simulated agents are people, that the represented group agrees with the scenario, or that a governance decision is legitimate. The confirmatory target requires human-human reference trajectories collected with appropriate consent and scope, a held-out evaluation set, sensitivity/negative controls and external review.
+
+**Status:** integration contract only. No PIB simulation runner, human reference corpus, interaction trajectory study or validation result has been implemented.
