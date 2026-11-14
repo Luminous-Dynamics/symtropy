@@ -277,6 +277,9 @@ pub struct ConsciousnessField<const D: usize> {
     /// Accumulated sanctuary absorption (deferred from &self → &mut self).
     /// Uses AtomicU64 storing f64 bits for thread safety (Bevy requires Sync).
     sanctuary_absorbed: std::sync::atomic::AtomicU64,
+    /// Count of invalid harmony inputs encountered at non-fallible physics callback boundaries.
+    /// A nonzero count means that simulation output must not be treated as qualified evidence.
+    harmony_field_validation_failures: std::sync::atomic::AtomicU64,
 }
 
 impl<const D: usize> ConsciousnessField<D> {
@@ -292,7 +295,28 @@ impl<const D: usize> ConsciousnessField<D> {
             ledger: ThermodynamicLedger::new(),
             constants: ThermodynamicConstants::default(),
             sanctuary_absorbed: std::sync::atomic::AtomicU64::new(0u64.to_le()),
+            harmony_field_validation_failures: std::sync::atomic::AtomicU64::new(0),
         }
+    }
+
+    /// Number of invalid HarmonyField values encountered at physics callback boundaries.
+    ///
+    /// The physics callback trait cannot return `Result`, so invalid friction data
+    /// uses a neutral fallback and invalid resonance uses zero resonance to keep
+    /// the integrator finite. This counter makes those fallbacks observable:
+    /// any nonzero count means the associated simulation output is unqualified.
+    pub fn harmony_field_validation_failure_count(&self) -> u64 {
+        self.harmony_field_validation_failures
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Read and clear the invalid-HarmonyField counter for a simulation interval.
+    ///
+    /// Call at a controlled observation boundary (for example, after each tick).
+    /// A nonzero return must be recorded as an invalid/unqualified interval.
+    pub fn take_harmony_field_validation_failures(&self) -> u64 {
+        self.harmony_field_validation_failures
+            .swap(0, std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Drain accumulated sanctuary absorption into ledger.
@@ -673,8 +697,22 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
             .map(|e| e.harmony_activations)
             .unwrap_or([0.0; crate::harmony_field::NUM_HARMONIES]);
         let point = symtropy_math::Point(*contact_point);
-        self.harmony_field
-            .friction_multiplier(&point, &entity_harmonies)
+        match self
+            .harmony_field
+            .try_friction_multiplier(&point, &entity_harmonies)
+        {
+            Ok(multiplier) if multiplier.is_finite() && (0.5..=1.0).contains(&multiplier) => {
+                multiplier
+            }
+            _ => {
+                // The PhysicsCallback trait cannot propagate a typed error.
+                // Preserve a finite neutral contact coefficient, but retain a
+                // diagnostic receipt so callers cannot qualify this run silently.
+                self.harmony_field_validation_failures
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                1.0
+            }
+        }
     }
 
     fn on_collision(&mut self, event: &symtropy_physics::CollisionEvent<D>) {
@@ -693,7 +731,23 @@ impl<const D: usize> PhysicsCallback<D> for ConsciousnessField<D> {
                 .get(&event.body_b)
                 .map(|e| e.harmony_activations);
             match (harm_a, harm_b) {
-                (Some(a), Some(b)) => crate::harmony_field::HarmonyField::<D>::resonance(&a, &b),
+                (Some(a), Some(b)) => {
+                    match crate::harmony_field::HarmonyField::<D>::try_resonance(&a, &b) {
+                        Ok(resonance)
+                            if resonance.is_finite() && (0.0..=1.0).contains(&resonance) =>
+                        {
+                            resonance
+                        }
+                        _ => {
+                            // Invalid profiles must not become a high-confidence
+                            // "compatible" collision. Use maximum surprise and record
+                            // that this interval is not qualified.
+                            self.harmony_field_validation_failures
+                                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            0.0
+                        }
+                    }
+                }
                 _ => 0.0,
             }
         };
@@ -1097,6 +1151,70 @@ mod tests {
             (energy_after - energy_before).abs() < 1e-10,
             "disabled leakage should not affect energy"
         );
+    }
+
+    #[test]
+    fn invalid_harmony_profile_uses_finite_callback_fallback_and_records_failure() {
+        use symtropy_physics::world::PhysicsCallback;
+
+        let mut field = ConsciousnessField::<3>::new();
+        let handle = BodyHandle(0);
+        field.register(handle, 100.0, 10.0);
+        field.entities.get_mut(&handle).unwrap().harmony_activations[2] = f64::NAN;
+        field.rebuild_harmony_field(&[(handle, symtropy_math::Point::origin())]);
+
+        let contact = SVector::from([0.0, 0.0, 0.0]);
+        let multiplier = PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
+
+        assert_eq!(multiplier, 1.0);
+        assert_eq!(field.harmony_field_validation_failure_count(), 1);
+        assert_eq!(field.take_harmony_field_validation_failures(), 1);
+        assert_eq!(field.harmony_field_validation_failure_count(), 0);
+    }
+
+    #[test]
+    fn invalid_collision_harmony_is_conservative_and_records_failure() {
+        use symtropy_physics::contact::CollisionEvent;
+        use symtropy_physics::world::PhysicsCallback;
+
+        let mut field = ConsciousnessField::<3>::new();
+        let body_a = BodyHandle(0);
+        let body_b = BodyHandle(1);
+        field.register(body_a, 100.0, 10.0);
+        field.register(body_b, 100.0, 10.0);
+        field.entities.get_mut(&body_a).unwrap().harmony_activations[4] = f64::INFINITY;
+
+        let event = CollisionEvent {
+            body_a,
+            body_b,
+            impulse: 10.0,
+            normal: SVector::from([1.0, 0.0, 0.0]),
+            depth: 0.25,
+        };
+        PhysicsCallback::<3>::on_collision(&mut field, &event);
+
+        assert_eq!(field.harmony_field_validation_failure_count(), 1);
+        assert!(field.entities.get(&body_a).unwrap().prediction_error > 0.0);
+        assert!(field.entities.get(&body_b).unwrap().prediction_error > 0.0);
+        assert_eq!(field.take_harmony_field_validation_failures(), 1);
+    }
+
+    #[test]
+    fn valid_harmony_profile_does_not_increment_validation_failure_counter() {
+        use symtropy_physics::world::PhysicsCallback;
+
+        let mut field = ConsciousnessField::<3>::new();
+        let handle = BodyHandle(0);
+        field.register(handle, 100.0, 10.0);
+        field.entities.get_mut(&handle).unwrap().harmony_activations[7] = 1.0;
+        field.rebuild_harmony_field(&[(handle, symtropy_math::Point::origin())]);
+
+        let contact = SVector::from([0.0, 0.0, 0.0]);
+        let multiplier = PhysicsCallback::<3>::friction_multiplier(&field, &contact, handle);
+
+        assert!(multiplier.is_finite());
+        assert!((0.5..=1.0).contains(&multiplier));
+        assert_eq!(field.harmony_field_validation_failure_count(), 0);
     }
 
     #[test]
