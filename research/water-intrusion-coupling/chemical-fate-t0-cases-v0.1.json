@@ -1,0 +1,156 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "WATER-INTRUSION-CHEMICAL-FATE-T0",
+  "evidence_class": "synthetic_only",
+  "evidence_ceiling": "analytical_reaction_and_model_scope_contracts_only_no_physical_chemical_qualification",
+  "profile": {
+    "profile_id": "LUMINOUS-WATER-CHEMICAL-FATE-T0",
+    "revision": "0.1",
+    "all_values_are_fictional": true,
+    "units": {
+      "concentration": "mg/L",
+      "rate": "1/h",
+      "time": "h",
+      "surface_loading": "mg/m2",
+      "adsorption_equilibrium": "L/mg",
+      "mass": "mg",
+      "ph": "dimensionless",
+      "temperature": "degC",
+      "flow": "L/s"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "CF-T0-001-first-order-decay-known-answer",
+      "description": "Single-species first-order parent decay with an analytical known answer; no field kinetics are implied.",
+      "inputs": {
+        "model_id": "synthetic-first-order",
+        "initial_parent_concentration_mg_l": 2.5,
+        "first_order_rate_h_inv": 0.1,
+        "elapsed_time_h": 5
+      }
+    },
+    {
+      "case_id": "CF-T0-002-sequential-reaction-unequal-rate-constants",
+      "description": "Sequential A to B to C transformation with unequal positive first-order rate constants.",
+      "inputs": {
+        "model_id": "synthetic-sequential-first-order",
+        "initial_A_mg_l": 1,
+        "k1_h_inv": 0.2,
+        "k2_h_inv": 0.1,
+        "elapsed_time_h": 3
+      }
+    },
+    {
+      "case_id": "CF-T0-003-sequential-reaction-equal-rate-limit",
+      "description": "Equal-rate limit of the sequential A to B to C solution; avoids division by a near-zero rate difference.",
+      "inputs": {
+        "model_id": "synthetic-sequential-first-order",
+        "initial_A_mg_l": 1,
+        "k1_h_inv": 0.15,
+        "k2_h_inv": 0.15,
+        "elapsed_time_h": 4
+      }
+    },
+    {
+      "case_id": "CF-T0-004-langmuir-bulk-wall-equilibrium",
+      "description": "Langmuir bulk-to-wall equilibrium arithmetic with declared units and finite positive parameters.",
+      "inputs": {
+        "model_id": "synthetic-langmuir-equilibrium",
+        "bulk_concentration_mg_l": 2,
+        "maximum_surface_loading_mg_m2": 10,
+        "adsorption_equilibrium_l_mg": 0.5
+      }
+    },
+    {
+      "case_id": "CF-T0-005-conserved-moiety-ledger-complete",
+      "description": "Conserved-moiety mass ledger closes across parent, measured products, wall-bound material and other measured residue.",
+      "inputs": {
+        "model_id": "synthetic-conserved-moiety-ledger",
+        "initial_moiety_mass_mg": 10,
+        "remaining_parent_moiety_mass_mg": 6,
+        "measured_product_moiety_mass_mg": 3,
+        "wall_bound_moiety_mass_mg": 0.5,
+        "other_measured_moiety_mass_mg": 0.5
+      }
+    },
+    {
+      "case_id": "CF-T0-006-missing-residual-stream-does-not-force-closure",
+      "description": "A declared residual stream is unmeasured; mass-balance closure is unresolved and the missing stream is never replaced with zero.",
+      "inputs": {
+        "model_id": "synthetic-conserved-moiety-ledger",
+        "initial_moiety_mass_mg": 10,
+        "remaining_parent_moiety_mass_mg": 6,
+        "measured_product_moiety_mass_mg": 3,
+        "wall_bound_moiety_mass_mg": 0.5,
+        "other_measured_moiety_mass_mg": null
+      }
+    },
+    {
+      "case_id": "CF-T0-007-missing-water-matrix-temperature-and-ph",
+      "description": "Reaction coefficients are not transferable without water matrix, temperature and pH evidence.",
+      "inputs": {
+        "model_id": "site-chemistry-model",
+        "initial_parent_concentration_mg_l": 2,
+        "first_order_rate_h_inv": 0.1,
+        "elapsed_time_h": 4,
+        "water_matrix_id": null,
+        "temperature_c": null,
+        "ph": null
+      }
+    },
+    {
+      "case_id": "CF-T0-008-missing-reaction-kinetic-parameter",
+      "description": "Required reaction rate is absent; the evaluator must not substitute a generic literature value or zero.",
+      "inputs": {
+        "model_id": "site-chemistry-model",
+        "initial_parent_concentration_mg_l": 2,
+        "first_order_rate_h_inv": null,
+        "elapsed_time_h": 4,
+        "water_matrix_id": "MATRIX-A",
+        "temperature_c": 20,
+        "ph": 7.2
+      }
+    },
+    {
+      "case_id": "CF-T0-009-wall-species-requested-in-mixed-tank",
+      "description": "EPANET-MSX supports bulk and wall species in pipes, but wall species do not exist in storage tanks; this requested scope must be rejected.",
+      "inputs": {
+        "model_id": "EPANET-MSX-2.0",
+        "species_phase": "wall",
+        "process_domain": "storage_tank",
+        "tank_mixing_model": "complete_mixing"
+      }
+    },
+    {
+      "case_id": "CF-T0-010-pressure-driven-input-required-but-not-supplied-by-msx",
+      "description": "EPANET-MSX's EPANET 2.2 hydraulic input is not a pressure-driven high-frequency transient model; a pressure-driven ingress hydraulic input is required.",
+      "inputs": {
+        "model_id": "EPANET-MSX-2.0",
+        "hydraulic_engine": "EPANET-2.2",
+        "hydraulic_mode": "demand_driven_extended_period",
+        "required_hydraulic_mode": "pressure_driven_transient",
+        "pressure_history_digest_marker": null
+      }
+    },
+    {
+      "case_id": "CF-T0-011-dispersion-required-but-disabled",
+      "description": "A scenario requires longitudinal dispersion, but the MSX dispersion option is disabled; the result is unsupported for this scenario.",
+      "inputs": {
+        "model_id": "EPANET-MSX-2.0",
+        "dispersion_required": true,
+        "dispersion_enabled": false
+      }
+    },
+    {
+      "case_id": "CF-T0-012-negative-concentration-or-rate",
+      "description": "Negative concentration or reaction rate values are physically invalid for this declared non-negative species/decay profile.",
+      "inputs": {
+        "model_id": "synthetic-first-order",
+        "initial_parent_concentration_mg_l": -1,
+        "first_order_rate_h_inv": -0.1,
+        "elapsed_time_h": 4
+      }
+    }
+  ]
+}
