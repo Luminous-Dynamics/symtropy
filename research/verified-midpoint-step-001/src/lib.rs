@@ -345,9 +345,15 @@ fn interval_solve3(
     rhs: &[IntervalV1; 3],
 ) -> Result<[IntervalV1; 3], IntervalErrorV1> {
     let a = matrix;
-    let c00 = a[1][1].checked_mul(a[2][2])?.checked_sub(a[1][2].checked_mul(a[2][1])?)?;
-    let c01 = a[1][2].checked_mul(a[2][0])?.checked_sub(a[1][0].checked_mul(a[2][2])?)?;
-    let c02 = a[1][0].checked_mul(a[2][1])?.checked_sub(a[1][1].checked_mul(a[2][0])?)?;
+    let c00 = a[1][1]
+        .checked_mul(a[2][2])?
+        .checked_sub(a[1][2].checked_mul(a[2][1])?)?;
+    let c01 = a[1][2]
+        .checked_mul(a[2][0])?
+        .checked_sub(a[1][0].checked_mul(a[2][2])?)?;
+    let c02 = a[1][0]
+        .checked_mul(a[2][1])?
+        .checked_sub(a[1][1].checked_mul(a[2][0])?)?;
     let determinant = a[0][0]
         .checked_mul(c00)?
         .checked_add(a[0][1].checked_mul(c01)?)?
@@ -359,18 +365,30 @@ fn interval_solve3(
     let adjugate = [
         [
             c00,
-            a[0][2].checked_mul(a[2][1])?.checked_sub(a[0][1].checked_mul(a[2][2])?)?,
-            a[0][1].checked_mul(a[1][2])?.checked_sub(a[0][2].checked_mul(a[1][1])?)?,
+            a[0][2]
+                .checked_mul(a[2][1])?
+                .checked_sub(a[0][1].checked_mul(a[2][2])?)?,
+            a[0][1]
+                .checked_mul(a[1][2])?
+                .checked_sub(a[0][2].checked_mul(a[1][1])?)?,
         ],
         [
             c01,
-            a[0][0].checked_mul(a[2][2])?.checked_sub(a[0][2].checked_mul(a[2][0])?)?,
-            a[0][2].checked_mul(a[1][0])?.checked_sub(a[0][0].checked_mul(a[1][2])?)?,
+            a[0][0]
+                .checked_mul(a[2][2])?
+                .checked_sub(a[0][2].checked_mul(a[2][0])?)?,
+            a[0][2]
+                .checked_mul(a[1][0])?
+                .checked_sub(a[0][0].checked_mul(a[1][2])?)?,
         ],
         [
             c02,
-            a[0][1].checked_mul(a[2][0])?.checked_sub(a[0][0].checked_mul(a[2][1])?)?,
-            a[0][0].checked_mul(a[1][1])?.checked_sub(a[0][1].checked_mul(a[1][0])?)?,
+            a[0][1]
+                .checked_mul(a[2][0])?
+                .checked_sub(a[0][0].checked_mul(a[2][1])?)?,
+            a[0][0]
+                .checked_mul(a[1][1])?
+                .checked_sub(a[0][1].checked_mul(a[1][0])?)?,
         ],
     ];
 
@@ -465,7 +483,8 @@ fn evaluate_reduced_equation(
             .checked_add(relative_midpoint[2])?
             .checked_sub(initial[2])?,
     ];
-    let derivative_scale = IntervalV1::point(2.0)?.checked_div(IntervalV1::point(problem.time_step)?)?;
+    let derivative_scale =
+        IntervalV1::point(2.0)?.checked_div(IntervalV1::point(problem.time_step)?)?;
     let derivative = derivative_scale.checked_mul(interval_dot3(
         &relative_prime,
         &twice_relative_minus_initial,
@@ -571,11 +590,7 @@ fn solve3_point(matrix: &Matrix3, rhs: &Vector3) -> Result<Vector3, IntervalErro
                 continue;
             }
             let factor = row_values[column];
-            for (entry, pivot_entry) in row_values
-                .iter_mut()
-                .zip(pivot_values.iter())
-                .skip(column)
-            {
+            for (entry, pivot_entry) in row_values.iter_mut().zip(pivot_values.iter()).skip(column) {
                 *entry -= factor * pivot_entry;
             }
         }
@@ -599,8 +614,8 @@ fn candidate_step(
         for (column, (system_value, delassus_value)) in
             system_row.iter_mut().zip(delassus_row.iter()).enumerate()
         {
-            *system_value = (if row == column { 1.0 } else { 0.0 })
-                - h2_over_four * lambda * delassus_value;
+            *system_value =
+                (if row == column { 1.0 } else { 0.0 }) - h2_over_four * lambda * delassus_value;
         }
     }
     let relative = solve3_point(&system, &problem.free_relative_position)?;
@@ -644,12 +659,13 @@ fn interval_step(
     let mut velocity = [IntervalV1::point(0.0)?; 6];
     for row in 0..6 {
         let mut correction = IntervalV1::point(0.0)?;
-        for (b_component, relative_component) in
-            problem.mass_inverse_jacobian_transpose[row].iter().zip(relative.iter())
+        for (b_component, relative_component) in problem.mass_inverse_jacobian_transpose[row]
+            .iter()
+            .zip(relative.iter())
         {
-            correction = correction.checked_add(
-                IntervalV1::point(*b_component)?.checked_mul(*relative_component)?,
-            )?;
+            correction = correction
+                .checked_add(IntervalV1::point(*b_component)?.checked_mul(*relative_component)?)?;
+        }
         }
         let midpoint = IntervalV1::point(problem.free_midpoint_velocity[row])?
             .checked_add(lambda_half_h.checked_mul(correction)?)?;
@@ -665,7 +681,8 @@ fn interval_step(
 fn euclidean_radius_upper(radii: &Vector6) -> Result<f64, IntervalErrorV1> {
     let mut squared = IntervalV1::point(0.0)?;
     for radius in radii {
-        squared = squared.checked_add(IntervalV1::point(*radius)?.checked_mul(IntervalV1::point(*radius)?)?)?;
+        squared = squared
+            .checked_add(IntervalV1::point(*radius)?.checked_mul(IntervalV1::point(*radius)?)?)?;
     }
     squared.sqrt_upper()
 }
@@ -774,17 +791,17 @@ pub fn certify_midpoint_step(
             InconclusiveReasonV1::DerivativeIntervalContainsZero,
         ));
     }
-    let residual_over_derivative = match residual_at_candidate.checked_div(derivative_on_starting_interval)
-    {
-        Ok(value) => value,
-        Err(error) => {
-            return Ok(inconclusive(
-                candidate_multiplier,
-                starting_interval,
-                InconclusiveReasonV1::IntervalArithmeticFailure(error),
-            ));
-        }
-    };
+    let residual_over_derivative =
+        match residual_at_candidate.checked_div(derivative_on_starting_interval) {
+            Ok(value) => value,
+            Err(error) => {
+                return Ok(inconclusive(
+                    candidate_multiplier,
+                    starting_interval,
+                    InconclusiveReasonV1::IntervalArithmeticFailure(error),
+                ));
+            }
+        };
     let interval_newton_image = match point_lambda.checked_sub(residual_over_derivative) {
         Ok(value) => value,
         Err(error) => {
