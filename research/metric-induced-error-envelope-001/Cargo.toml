@@ -19,3 +19,7 @@ name = "newton_kantorovich_ladder"
 path = "examples/newton_kantorovich_ladder.rs"
 
 [workspace]
+
+[[example]]
+name = "scalar_krawczyk_quadratic"
+path = "examples/scalar_krawczyk_quadratic.rs"
