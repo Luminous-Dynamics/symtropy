@@ -534,9 +534,7 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         hard_reject = true;
     }
 
-    if candidate.route_receipt_ids.is_empty()
-        || candidate.route_receipt_ids.iter().any(|value| !nonempty(value))
-    {
+    if candidate.route_receipt_ids.is_empty() {
         add(
             &mut findings,
             "ROUTE_RECEIPT_MISSING",
@@ -557,10 +555,18 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         );
         hard_reject = true;
     }
-    if candidate.route_receipt_ids.is_empty()
-        || candidate.route_receipt_sha256.len() != candidate.route_receipt_ids.len()
-        || candidate.route_evidence_manifest_sha256.len() != candidate.route_receipt_ids.len()
-        || candidate.route_receipt_ids.iter().any(|value| !nonempty(value))
+    if !candidate.route_receipt_ids.is_empty()
+        && (candidate.route_receipt_sha256.len() != candidate.route_receipt_ids.len()
+            || candidate.route_evidence_manifest_sha256.len() != candidate.route_receipt_ids.len())
+    {
+        add(
+            &mut findings,
+            "ROUTE_RECEIPT_BINDING_MISSING",
+            "each route receipt ID requires an exact receipt digest and evidence-manifest digest",
+        );
+        insufficient = true;
+    }
+    if candidate.route_receipt_ids.iter().any(|value| !nonempty(value))
         || candidate.route_receipt_sha256.iter().any(|value| !valid_sha256(value))
         || candidate
             .route_evidence_manifest_sha256
@@ -570,7 +576,7 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         add(
             &mut findings,
             "ROUTE_RECEIPT_BINDING_INVALID",
-            "every route receipt ID must bind exact receipt and evidence-manifest SHA-256 values",
+            "route receipt IDs and corresponding digest references must be non-empty and valid lowercase SHA-256 values",
         );
         hard_reject = true;
     }
@@ -659,6 +665,7 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
     if findings.iter().any(|finding| matches!(
         finding.code,
         "OBJECTIVE_DUPLICATE"
+            | "OBJECTIVE_UNEXPECTED"
             | "OBJECTIVE_UNIT_MISMATCH"
             | "OBJECTIVE_EVIDENCE_INVALID"
             | "OBJECTIVE_EVIDENCE_BASIS_MISMATCH"
