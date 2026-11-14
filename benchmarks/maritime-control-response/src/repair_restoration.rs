@@ -310,7 +310,43 @@ fn capability_envelopes_sha256(
 fn repair_case_sha256(
     case: &RepairVerificationCase,
 ) -> Result<String, RepairVerificationError> {
-    sha256_serializable(b"symtropy-marine-repair-verification-case-v1\0", case)
+    let mut canonical = case.clone();
+    canonical
+        .binding
+        .diagnostic_measurement_principle_ids
+        .sort();
+    canonical
+        .binding
+        .diagnostic_dependency_domain_ids
+        .sort();
+    canonical
+        .binding
+        .condition_tolerances
+        .sort_by(|left, right| left.condition_id.cmp(&right.condition_id));
+    canonical
+        .binding
+        .capability_envelopes
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    canonical
+        .pre_repair_episode
+        .conditions
+        .sort_by(|left, right| left.condition_id.cmp(&right.condition_id));
+    canonical
+        .post_repair_episode
+        .conditions
+        .sort_by(|left, right| left.condition_id.cmp(&right.condition_id));
+    canonical
+        .pre_repair_episode
+        .measurements
+        .sort_by(|left, right| left.metric_id.cmp(&right.metric_id));
+    canonical
+        .post_repair_episode
+        .measurements
+        .sort_by(|left, right| left.metric_id.cmp(&right.metric_id));
+    canonical
+        .concurrent_changes
+        .sort_by(|left, right| left.change_id.cmp(&right.change_id));
+    sha256_serializable(b"symtropy-marine-repair-verification-case-v1\0", &canonical)
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -1046,6 +1082,22 @@ mod tests {
         assert!(!report.physical_restoration_authorized);
         assert!(!report.maintenance_authorized);
         assert!(!report.operating_restriction_clearance_authorized);
+    }
+
+    #[test]
+    fn canonical_case_digest_is_invariant_to_set_like_measurement_order() {
+        let case = valid_case();
+        let first_digest = repair_case_sha256(&case).unwrap();
+        let mut reordered = case;
+        reordered
+            .pre_repair_episode
+            .measurements
+            .reverse();
+        reordered
+            .binding
+            .capability_envelopes
+            .reverse();
+        assert_eq!(first_digest, repair_case_sha256(&reordered).unwrap());
     }
 
     #[test]
