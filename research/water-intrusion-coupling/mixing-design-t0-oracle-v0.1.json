@@ -1,0 +1,75 @@
+{
+  "schema_version": "mixing-design-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-EXPERIMENT-DESIGN-QUAL-001",
+  "physical_qualification_established": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "designs": [
+    {
+      "design_id": "MDT-T0-001-balanced-orthogonal",
+      "expected": {
+        "design_state": "ELIGIBLE_DESIGN_CANDIDATE",
+        "worst_case_target_rank": 2,
+        "worst_case_minimum_singular_value": 1,
+        "worst_case_condition_number": 1,
+        "worst_case_log_determinant": 0,
+        "worst_case_minimum_model_separation": 0.4242640687119285
+      }
+    },
+    {
+      "design_id": "MDT-T0-002-ill-conditioned",
+      "expected": {
+        "design_state": "ILL_CONDITIONED",
+        "worst_case_target_rank": 2,
+        "worst_case_minimum_singular_value": 0.001,
+        "worst_case_condition_number": 1000,
+        "worst_case_log_determinant": -13.815510557964274,
+        "worst_case_minimum_model_separation": 0.01414213562373095
+      }
+    },
+    {
+      "design_id": "MDT-T0-003-rank-deficient",
+      "expected": {
+        "design_state": "UNIDENTIFIABLE",
+        "worst_case_target_rank": 1,
+        "worst_case_minimum_singular_value": 0,
+        "worst_case_condition_number": null,
+        "worst_case_log_determinant": null,
+        "worst_case_minimum_model_separation": 0
+      }
+    },
+    {
+      "design_id": "MDT-T0-004-robust-two-strata",
+      "expected": {
+        "design_state": "ELIGIBLE_DESIGN_CANDIDATE",
+        "worst_case_target_rank": 2,
+        "worst_case_minimum_singular_value": 0.4,
+        "worst_case_condition_number": 2.5,
+        "worst_case_log_determinant": -1.8325814637483102,
+        "worst_case_minimum_model_separation": 0.7826237921249264
+      }
+    },
+    {
+      "design_id": "MDT-T0-005-nuisance-confounded",
+      "expected": {
+        "design_state": "UNIDENTIFIABLE",
+        "worst_case_target_rank": 1,
+        "worst_case_minimum_singular_value": 0,
+        "worst_case_condition_number": null,
+        "worst_case_log_determinant": null,
+        "worst_case_minimum_model_separation": 0.4242640687119285
+      }
+    },
+    {
+      "design_id": "MDT-T0-006-nuisance-unresolved",
+      "expected": {
+        "design_state": "NUISANCE_UNRESOLVED",
+        "worst_case_target_rank": 0,
+        "worst_case_minimum_singular_value": 0,
+        "worst_case_condition_number": null,
+        "worst_case_log_determinant": null,
+        "worst_case_minimum_model_separation": 0.4242640687119285
+      }
+    }
+  ]
+}
