@@ -1,0 +1,32 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<mujoco model="dumbbell-dense-rebasis-adapter">
+  <compiler angle="radian" inertiafromgeom="false"/>
+  <option timestep="0.02" gravity="0 0 0" jacobian="sparse"/>
+
+  <worldbody>
+    <body name="mass-1" pos="0 0 0">
+      <joint name="mass-1-x" type="slide" axis="1 0 0" limited="false"/>
+      <joint name="mass-1-y" type="slide" axis="0 1 0" limited="false"/>
+      <joint name="mass-1-z" type="slide" axis="0 0 1" limited="false"/>
+      <inertial pos="0 0 0" mass="1.3" diaginertia="0.01 0.01 0.01"/>
+      <site name="mass-1-site" pos="0 0 0" size="0.01"/>
+    </body>
+    <body name="mass-2" pos="1.2 0 0">
+      <joint name="mass-2-x" type="slide" axis="1 0 0" limited="false"/>
+      <joint name="mass-2-y" type="slide" axis="0 1 0" limited="false"/>
+      <joint name="mass-2-z" type="slide" axis="0 0 1" limited="false"/>
+      <inertial pos="0 0 0" mass="2.1" diaginertia="0.01 0.01 0.01"/>
+      <site name="mass-2-site" pos="0 0 0" size="0.01"/>
+    </body>
+  </worldbody>
+
+  <tendon>
+    <spatial name="fixed-link-length">
+      <site site="mass-1-site"/>
+      <site site="mass-2-site"/>
+    </spatial>
+  </tendon>
+  <equality>
+    <tendon name="fixed-link" tendon1="fixed-link-length"/>
+  </equality>
+</mujoco>
