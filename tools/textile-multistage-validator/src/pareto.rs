@@ -10,6 +10,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::resilience::ResilienceReport;
+use crate::route_gate::{RouteReceipt, RouteReceiptStatus};
 use crate::utilities::UtilityReport;
 use crate::{Finding, ValidationReport};
 
@@ -222,9 +223,8 @@ pub struct Candidate {
     pub receiving_specification_id: String,
     pub receiving_specification_version: String,
     pub utility_tick_unit: String,
-    pub route_receipt_ids: Vec<String>,
-    pub route_receipt_sha256: Vec<String>,
-    pub route_evidence_manifest_sha256: Vec<String>,
+    /// Exact route receipts already checked by validate_route_gates.
+    pub route_receipts: Vec<RouteReceipt>,
     pub schedule_validation: ValidationReport,
     /// Findings from validate_route_gates for this exact candidate/problem.
     pub route_findings: Vec<Finding>,
@@ -538,20 +538,20 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         hard_reject = true;
     }
 
-    if candidate.route_receipt_ids.is_empty() {
+    if candidate.route_receipts.is_empty() {
         add(
             &mut findings,
             "ROUTE_RECEIPT_MISSING",
-            "candidate must bind one or more exact route receipt IDs",
+            "candidate must bind one or more exact eligible route receipts",
         );
         insufficient = true;
     }
     let unique_route_receipts: BTreeSet<&str> = candidate
-        .route_receipt_ids
+        .route_receipts
         .iter()
-        .map(String::as_str)
+        .map(|receipt| receipt.receipt_id.as_str())
         .collect();
-    if unique_route_receipts.len() != candidate.route_receipt_ids.len() {
+    if unique_route_receipts.len() != candidate.route_receipts.len() {
         add(
             &mut findings,
             "ROUTE_RECEIPT_DUPLICATE",
@@ -559,30 +559,48 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         );
         hard_reject = true;
     }
-    if !candidate.route_receipt_ids.is_empty()
-        && (candidate.route_receipt_sha256.len() != candidate.route_receipt_ids.len()
-            || candidate.route_evidence_manifest_sha256.len() != candidate.route_receipt_ids.len())
-    {
-        add(
-            &mut findings,
-            "ROUTE_RECEIPT_BINDING_MISSING",
-            "each route receipt ID requires an exact receipt digest and evidence-manifest digest",
-        );
-        insufficient = true;
-    }
-    if candidate.route_receipt_ids.iter().any(|value| !nonempty(value))
-        || candidate.route_receipt_sha256.iter().any(|value| !valid_sha256(value))
-        || candidate
-            .route_evidence_manifest_sha256
-            .iter()
-            .any(|value| !valid_sha256(value))
-    {
-        add(
-            &mut findings,
-            "ROUTE_RECEIPT_BINDING_INVALID",
-            "route receipt IDs and corresponding digest references must be non-empty and valid lowercase SHA-256 values",
-        );
-        hard_reject = true;
+    for receipt in &candidate.route_receipts {
+        if receipt.status != RouteReceiptStatus::Eligible {
+            add(
+                &mut findings,
+                "ROUTE_RECEIPT_NOT_ELIGIBLE",
+                format!("route receipt {} is not Eligible", receipt.receipt_id),
+            );
+            if matches!(
+                receipt.status,
+                RouteReceiptStatus::Conditional | RouteReceiptStatus::InsufficientEvidence
+            ) {
+                insufficient = true;
+            } else {
+                hard_reject = true;
+            }
+        }
+        if !nonempty(&receipt.receipt_version)
+            || !nonempty(&receipt.receipt_id)
+            || !nonempty(&receipt.lot_id)
+            || !nonempty(&receipt.route_id)
+            || !nonempty(&receipt.receiving_specification_id)
+            || receipt.input_mass_mg == 0
+            || receipt.lot_id != candidate.input_lot_id
+            || receipt.input_mass_mg != candidate.input_mass_mg
+            || receipt.receiving_specification_id != candidate.receiving_specification_id
+            || !valid_sha256(&receipt.receipt_sha256)
+            || !valid_sha256(&receipt.evidence_manifest_sha256)
+            || !nonempty(&receipt.source_contract_version)
+            || !nonempty(&receipt.issuer_id)
+            || !nonempty(&receipt.verifier_id)
+            || receipt.issuer_id == receipt.verifier_id
+        {
+            add(
+                &mut findings,
+                "ROUTE_RECEIPT_BINDING_INVALID",
+                format!(
+                    "route receipt {} must bind this input lot/mass/specification and valid digests/independent issuer-verifier",
+                    receipt.receipt_id
+                ),
+            );
+            hard_reject = true;
+        }
     }
     if !candidate.route_findings.is_empty() {
         add(
@@ -1060,9 +1078,20 @@ mod tests {
             receiving_specification_id: "ring-spinning-spec".to_owned(),
             receiving_specification_version: "2.0".to_owned(),
             utility_tick_unit: "minute".to_owned(),
-            route_receipt_ids: vec![format!("route-{id}")],
-            route_receipt_sha256: vec!["c".repeat(64)],
-            route_evidence_manifest_sha256: vec!["d".repeat(64)],
+            route_receipts: vec![RouteReceipt {
+                receipt_version: "textile-route-receipt-v1".to_owned(),
+                receipt_id: format!("route-{id}"),
+                lot_id: "incoming-lot-01".to_owned(),
+                route_id: "mechanical-recycling-v1".to_owned(),
+                receiving_specification_id: "ring-spinning-spec".to_owned(),
+                input_mass_mg: 10_000_000,
+                status: RouteReceiptStatus::Eligible,
+                receipt_sha256: "c".repeat(64),
+                evidence_manifest_sha256: "d".repeat(64),
+                source_contract_version: "textile-recovery-v1".to_owned(),
+                issuer_id: "route-issuer".to_owned(),
+                verifier_id: "route-verifier".to_owned(),
+            }],
             schedule_validation: ValidationReport {
                 valid: true,
                 problem_name: "matched-lot-problem".to_owned(),
@@ -1396,10 +1425,7 @@ mod tests {
     #[test]
     fn duplicate_route_receipt_identity_is_rejected() {
         let mut candidate = candidate("route-duplicate", 8_000_000, 100, 12);
-        let duplicate_receipt_id = candidate.route_receipt_ids[0].clone();
-        candidate.route_receipt_ids.push(duplicate_receipt_id);
-        candidate.route_receipt_sha256.push("e".repeat(64));
-        candidate.route_evidence_manifest_sha256.push("f".repeat(64));
+        candidate.route_receipts.push(candidate.route_receipts[0].clone());
         let report = evaluate_tournament(&[candidate]);
         assert!(report.pareto_fronts.is_empty());
         assert!(report.assessments[0].findings.iter().any(|item| item.code == "ROUTE_RECEIPT_DUPLICATE"));
