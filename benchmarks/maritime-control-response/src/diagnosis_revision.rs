@@ -69,7 +69,7 @@ pub struct RevisionEvidenceInvalidation {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(untagged)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum DiagnosticDisposition {
     NoFault,
     KnownHypotheses { hypothesis_ids: Vec<String> },
@@ -843,34 +843,42 @@ mod tests {
             .append(&DiagnosticRevisionInput {
                 revision_kind: DiagnosticRevisionKind::EvidenceRetraction,
                 issued_at_seconds: 3.0,
-                new_evidence: vec![evidence(
-                    'd',
-                    RevisionEvidenceEffect::InvalidatesPriorEvidence,
-                    2.5,
-                    2.8,
-                )],
+                new_evidence: vec![
+                    evidence(
+                        'd',
+                        RevisionEvidenceEffect::InvalidatesPriorEvidence,
+                        2.5,
+                        2.8,
+                    ),
+                    evidence(
+                        'e',
+                        RevisionEvidenceEffect::ContextShift,
+                        2.6,
+                        2.9,
+                    ),
+                ],
                 invalidations: vec![RevisionEvidenceInvalidation {
                     invalidated_evidence_sha256: digest('c'),
                     basis_evidence_sha256: digest('d'),
                 }],
-                disposition: DiagnosticDisposition::Withdrawn,
+                disposition: DiagnosticDisposition::NotEvaluable,
             })
             .unwrap();
         let result = session.append(&DiagnosticRevisionInput {
-            revision_kind: DiagnosticRevisionKind::InitialAssessment,
+            revision_kind: DiagnosticRevisionKind::Corroboration,
             issued_at_seconds: 4.0,
             new_evidence: vec![evidence(
                 'c',
                 RevisionEvidenceEffect::SupportsCurrent,
-                3.5,
-                3.8,
+                1.0,
+                3.9,
             )],
             invalidations: vec![],
-            disposition: DiagnosticDisposition::NoFault,
+            disposition: DiagnosticDisposition::NotEvaluable,
         });
         assert_eq!(
             result,
-            Err(DiagnosticRevisionError::SessionClosed)
+            Err(DiagnosticRevisionError::EvidenceAlreadyInvalidated(digest('c')))
         );
     }
 
@@ -1002,10 +1010,10 @@ mod tests {
 
         let mut tampered = original;
         tampered[0].disposition = DiagnosticDisposition::NoFault;
-        assert_eq!(
+        assert!(matches!(
             replay_diagnostic_revision_chain(binding(), &tampered),
             Err(DiagnosticRevisionError::ReceiptIntegrityFailure)
-        );
+        ));
     }
 
     #[test]
