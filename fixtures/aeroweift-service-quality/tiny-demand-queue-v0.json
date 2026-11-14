@@ -1,0 +1,233 @@
+{
+  "schema_id": "aeroweift.service-quality.deterministic-feedback.v0",
+  "fixture_id": "AW-SQ-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Finite deterministic choice and queue-feedback fixture only; not an empirical passenger-demand forecast, market model, fare recommendation, aircraft schedule, airport capacity claim, or operational UAM result.",
+  "timebase": {
+    "unit": "minutes",
+    "epoch": "synthetic-period-start",
+    "horizon_minutes": 30,
+    "all_arrivals_simultaneous": true,
+    "queue_discipline": "FCFS",
+    "deterministic_service_minutes_per_pad_server": 5
+  },
+  "alternatives": [
+    {
+      "id": "ground-mode",
+      "kind": "surface-transport",
+      "generalized_cost_excluding_queue_minutes": 20,
+      "available": true
+    },
+    {
+      "id": "uam-mode",
+      "kind": "synthetic-aerial-service",
+      "generalized_cost_excluding_queue_minutes": 13,
+      "available": true
+    },
+    {
+      "id": "outside-option",
+      "kind": "no-trip-or-unmodelled-mode",
+      "generalized_cost_excluding_queue_minutes": null,
+      "available": true
+    }
+  ],
+  "cohorts": [
+    {
+      "id": "cohort-a-time-sensitive",
+      "potential_trips": 1,
+      "maximum_uam_queue_wait_minutes": 7,
+      "non_uam_choice": "ground-mode",
+      "tie_rule": "uam-mode"
+    },
+    {
+      "id": "cohort-b-moderately-time-sensitive",
+      "potential_trips": 1,
+      "maximum_uam_queue_wait_minutes": 4,
+      "non_uam_choice": "ground-mode",
+      "tie_rule": "uam-mode"
+    },
+    {
+      "id": "cohort-c-low-wait-tolerance",
+      "potential_trips": 1,
+      "maximum_uam_queue_wait_minutes": 2,
+      "non_uam_choice": "ground-mode",
+      "tie_rule": "uam-mode"
+    }
+  ],
+  "choice_rule": {
+    "kind": "finite-threshold-table",
+    "decision": "choose uam-mode when modeled mean UAM queue wait is less than or equal to the cohort maximum; otherwise choose ground-mode",
+    "no_probabilities": true,
+    "no_calibrated_parameters": true,
+    "outside_option_used": false,
+    "reason": "The tiny fixture isolates queue feedback and exact fixed-point behavior; it is not intended as a realistic demand model."
+  },
+  "queue_model": {
+    "kind": "simultaneous-arrivals-identical-deterministic-servers",
+    "per_pad_service_duration_minutes": 5,
+    "wait_for_sorted_customer_at_index_zero_based": "floor(index / server_count) * service_duration",
+    "aggregate_measure": "unweighted mean waiting time across all currently UAM-choosing cohorts",
+    "mean_wait_table_minutes": {
+      "1": {
+        "0": 0,
+        "1": 0,
+        "2": 2.5,
+        "3": 5
+      },
+      "2": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 1.6666666666666667
+      }
+    },
+    "note": "Mean waits are derived from deterministic service completion ordering, not a Poisson/M/M/c assumption."
+  },
+  "feedback_operator": {
+    "demand_state": "integer count of cohorts choosing UAM in the current iterate",
+    "order": "all cohorts update simultaneously from the same prior-iterate mean wait",
+    "update": "recompute mean queue wait using current UAM demand, then each cohort chooses UAM iff mean wait is at most its threshold",
+    "fixed_point_definition": "next demand equals current demand",
+    "cycle_definition": "a previously visited demand state recurs before a fixed point"
+  },
+  "expected_results": {
+    "one_server": {
+      "mean_wait_table_minutes": {
+        "0": 0,
+        "1": 0,
+        "2": 2.5,
+        "3": 5
+      },
+      "choice_map": {
+        "0": {
+          "next_demand": 3,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive",
+            "cohort-c-low-wait-tolerance"
+          ]
+        },
+        "1": {
+          "next_demand": 3,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive",
+            "cohort-c-low-wait-tolerance"
+          ]
+        },
+        "2": {
+          "next_demand": 2,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive"
+          ]
+        },
+        "3": {
+          "next_demand": 1,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive"
+          ]
+        }
+      },
+      "fixed_points": [
+        2
+      ],
+      "cycles": [
+        [
+          1,
+          3
+        ]
+      ],
+      "converges_from_initial_demand_2": true,
+      "cycles_from_initial_demand_1": true,
+      "cycles_from_initial_demand_3": true
+    },
+    "two_servers": {
+      "mean_wait_table_minutes": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 1.6666666666666667
+      },
+      "choice_map": {
+        "0": {
+          "next_demand": 3,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive",
+            "cohort-c-low-wait-tolerance"
+          ]
+        },
+        "1": {
+          "next_demand": 3,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive",
+            "cohort-c-low-wait-tolerance"
+          ]
+        },
+        "2": {
+          "next_demand": 3,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive",
+            "cohort-c-low-wait-tolerance"
+          ]
+        },
+        "3": {
+          "next_demand": 3,
+          "uam_cohorts": [
+            "cohort-a-time-sensitive",
+            "cohort-b-moderately-time-sensitive",
+            "cohort-c-low-wait-tolerance"
+          ]
+        }
+      },
+      "fixed_points": [
+        3
+      ],
+      "cycles": [],
+      "converges_from_all_declared_initial_demands": true
+    }
+  },
+  "comparators": {
+    "exogenous_fixed_demand": {
+      "assumed_uam_demand": 3,
+      "ignores_queue_feedback": true,
+      "expected_one_server_mean_wait_minutes": 5,
+      "expected_capacity_quality_mismatch": true
+    },
+    "no_queue_choice": {
+      "mean_wait_minutes": 0,
+      "expected_uam_demand": 3,
+      "expected_limitation": "Does not account for service congestion; overstates demand at the one-server fixed point."
+    }
+  },
+  "public_value_separation": {
+    "operator_private_benefit": "not-defined-in-this-fixture",
+    "user_generalized_cost": "mode-choice thresholds only",
+    "external_benefits": "not-defined-in-this-fixture",
+    "policy_claims_allowed": false
+  },
+  "required_mutations": [
+    "Increase service duration while keeping the choice table fixed; queue waits must not decrease.",
+    "Add a pad server with the same arrivals and service times; mean queue wait must not increase.",
+    "Permute cohort order and IDs; the exact choice map and fixed points must remain unchanged after identity remapping.",
+    "Change one cohort's maximum wait threshold; only that cohort's choice rule may change.",
+    "Remove the mean wait for a demand/server state; return unknown/incomplete instead of zero.",
+    "Repeat an already seen demand state; report a cycle rather than convergence.",
+    "Change the queue discipline; the previous oracle result is invalidated by the queue-rule digest."
+  ],
+  "invariants": [
+    "Every potential trip is assigned to one chosen alternative or explicitly unresolved.",
+    "The demand update is simultaneous and uses only the prior iterate's declared service outcome.",
+    "A repeated state before a fixed point is a cycle, not convergence.",
+    "Every reported fixed point is rechecked by one exact application of the update operator.",
+    "More pad servers cannot increase wait under the same deterministic arrival/service trace.",
+    "The finite threshold table is synthetic and is not called calibrated or representative.",
+    "Queue wait is not substituted for a hard airspace, aircraft, resource, recovery or legal constraint.",
+    "Higher UAM demand or operator revenue is not itself a public-value improvement."
+  ]
+}
