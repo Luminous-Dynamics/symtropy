@@ -469,9 +469,13 @@ fn compute(case: &Value) -> Result<Value, String> {
                 text(inputs, "sample_result")? == "not_sampled",
                 "case requires no tracer sample",
             )?;
-            Ok(indeterminate(
-                "PHYSICAL_REVERSE_FLOW_AND_TRACER_OBSERVATIONS_UNAVAILABLE",
-            ))
+            Ok(json!({
+                "model_boundary_disposition": "MODEL_ZERO_FLOW_IS_NOT_A_NEGATIVE_INGRESS_OBSERVATION",
+                "ingress_disposition": "INDETERMINATE",
+                "reason": "PHYSICAL_REVERSE_FLOW_AND_TRACER_OBSERVATIONS_UNAVAILABLE",
+                "potability_claim_permitted": false,
+                "release_authorized": false
+            }))
         }
         "DI-T0-015-reverse-flow-observed-but-downstream-tracer-sample-missing" => {
             require(
