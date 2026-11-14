@@ -11,6 +11,15 @@ PR #5111 implements a blocked-randomized finite-population ATE and a two-sided e
 
 This module is only a scale-up of the **randomization reference distribution**. It does not alter the ATE estimator, observational identification assumptions, or the measurement-uncertainty model.
 
+## Schemas and hosted benchmark evidence
+
+- `monte-carlo-randomization-config.schema.json` is a closed Draft 2020-12 configuration schema. It accepts the complete unsigned 64-bit seed range and the frozen draw-count bounds.
+- `monte-carlo-randomization-result.schema.json` is a closed result schema, including zero allocation violations, no exact-enumeration claim and false authorization fields.
+- `monte-carlo-randomization-result.example.json` is an explicitly synthetic example validated against the result schema in the exact-head workflow.
+- The workflow checks the exact `u64::MAX` value (`18446744073709551615`) in both config and result schemas. This guards against schema generators that round the largest integer through IEEE-754 floating point.
+- The exact-head workflow executes the fixed-budget throughput harness, records the commit, runner architecture, Rust compiler metadata and CPU information, then uploads the JSONL profile for 14 days. Each JSONL row binds the algorithm, seed, draw count, observed statistic, exceedance count, raw and plus-one p-values, Monte Carlo uncertainty and replay digests.
+- The v0.1 throughput harness does not measure peak memory. It reports elapsed microseconds, draws/second and unit-draws/second only; memory remains a separately instrumented benchmark task.
+
 ## Algorithm contract
 
 Rust module: `src/monte_carlo_randomization.rs`.
