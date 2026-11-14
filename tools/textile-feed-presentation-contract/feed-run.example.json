@@ -7,13 +7,17 @@
       "item_id": "ITEM-01",
       "lot_id": "LOT-01",
       "intake_sequence": 1,
-      "reference_destination": "cotton"
+      "reference_destination": "cotton",
+      "intake_at_ns": 100,
+      "measured_mass_mg": 10000
     },
     {
       "item_id": "ITEM-02",
       "lot_id": "LOT-01",
       "intake_sequence": 2,
-      "reference_destination": "polyester"
+      "reference_destination": "polyester",
+      "intake_at_ns": 110,
+      "measured_mass_mg": 20000
     }
   ],
   "attempts": [
@@ -23,8 +27,8 @@
       "attempt_number": 1,
       "predecessor_attempt_id": null,
       "state": "single_item_in_field_of_view",
-      "started_at_ns": 100,
-      "completed_at_ns": 200,
+      "started_at_ns": 200,
+      "completed_at_ns": 300,
       "evidence": {
         "evidence_id": "EV-01",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -37,8 +41,8 @@
       "attempt_number": 1,
       "predecessor_attempt_id": null,
       "state": "overlap",
-      "started_at_ns": 110,
-      "completed_at_ns": 220,
+      "started_at_ns": 210,
+      "completed_at_ns": 310,
       "evidence": {
         "evidence_id": "EV-02",
         "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -51,8 +55,8 @@
       "attempt_number": 2,
       "predecessor_attempt_id": "ATTEMPT-02",
       "state": "single_item_in_field_of_view",
-      "started_at_ns": 230,
-      "completed_at_ns": 320,
+      "started_at_ns": 320,
+      "completed_at_ns": 420,
       "evidence": {
         "evidence_id": "EV-03",
         "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -65,7 +69,7 @@
       "item_id": "ITEM-01",
       "outcome": "routed",
       "actual_destination": "cotton",
-      "completed_at_ns": 240,
+      "completed_at_ns": 500,
       "evidence": {
         "evidence_id": "TERM-01",
         "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
@@ -76,12 +80,14 @@
       "item_id": "ITEM-02",
       "outcome": "manual_review",
       "actual_destination": null,
-      "completed_at_ns": 340,
+      "completed_at_ns": 600,
       "evidence": {
         "evidence_id": "TERM-02",
         "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "method_ref": "operator-log-v1"
       }
     }
-  ]
+  ],
+  "run_started_at_ns": 0,
+  "run_completed_at_ns": 1000
 }
