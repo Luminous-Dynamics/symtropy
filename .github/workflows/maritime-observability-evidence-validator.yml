@@ -114,6 +114,9 @@ jobs:
             and .pair_separability_computed_by_reused_kernel == true
             and (.base_pair_results[0].measurement_window_id_a != .base_pair_results[0].measurement_window_id_b)
             and .base_pair_results[0].window_comparison.state == "MATCHED"
+            and (.base_pair_results[0].window_comparison.window_a.configuration_sha256 == .base_pair_results[0].window_comparison.window_b.configuration_sha256)
+            and (.base_pair_results[0].window_comparison.window_a.configuration_sha256 == .base_pair_results[0].window_comparison.asset_configuration_sha256)
+            and (.base_pair_results[0].window_comparison.episode_definition_sha256 | length == 64)
             and .base_pair_results[0].pair_kernel_evaluated == true
             and .pair_kernel_evaluated_count == 3
             and .pair_kernel_skipped_count == 0
