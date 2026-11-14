@@ -1,0 +1,126 @@
+{
+  "schema_version": "lead-lag-rssct-f0-cases-v0.1",
+  "evidence_class": "synthetic_adsorption_scaling_and_lead_lag_state",
+  "evidence_ceiling": "synthetic_scaling_arithmetic_and_sample_state_only_no_adsorbent_or_water_quality_claim",
+  "units": {
+    "particle_size_scale_factor": "dimensionless",
+    "full_scale_duration_days": "day",
+    "small_scale_duration_days": "day",
+    "concentration_ratio": "C_over_C0"
+  },
+  "scaling_cases": [
+    {
+      "case_id": "RSSCT-F0-001-sf-2-CD",
+      "particle_size_scale_factor": 2,
+      "diffusivity_exponent": 0,
+      "full_scale_duration_days": 730
+    },
+    {
+      "case_id": "RSSCT-F0-002-sf-2-PD",
+      "particle_size_scale_factor": 2,
+      "diffusivity_exponent": 1,
+      "full_scale_duration_days": 730
+    },
+    {
+      "case_id": "RSSCT-F0-003-sf-5-CD",
+      "particle_size_scale_factor": 5,
+      "diffusivity_exponent": 0,
+      "full_scale_duration_days": 730
+    },
+    {
+      "case_id": "RSSCT-F0-004-sf-5-PD",
+      "particle_size_scale_factor": 5,
+      "diffusivity_exponent": 1,
+      "full_scale_duration_days": 730
+    },
+    {
+      "case_id": "RSSCT-F0-005-sf-10-CD",
+      "particle_size_scale_factor": 10,
+      "diffusivity_exponent": 0,
+      "full_scale_duration_days": 730
+    },
+    {
+      "case_id": "RSSCT-F0-006-sf-10-PD",
+      "particle_size_scale_factor": 10,
+      "diffusivity_exponent": 1,
+      "full_scale_duration_days": 730
+    }
+  ],
+  "lead_lag_cases": [
+    {
+      "case_id": "LEADLAG-F0-001-no-interstage-sample",
+      "inputs": {
+        "analyte_claim_id": "SYNTHETIC-ANALYTE-CLAIM-01",
+        "breakthrough_threshold_c_over_c0": 0.1,
+        "lead_interstage_sample_state": "no_sample",
+        "lead_interstage_c_over_c0": null,
+        "lead_interstage_claim_binding_valid": false,
+        "final_outlet_sample_state": "no_sample",
+        "final_outlet_c_over_c0": null,
+        "final_outlet_claim_binding_valid": false,
+        "guard_bed_identity_verified": true,
+        "service_history_continuous": true
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-002-interstage-breakthrough-final-missing",
+      "inputs": {
+        "analyte_claim_id": "SYNTHETIC-ANALYTE-CLAIM-01",
+        "breakthrough_threshold_c_over_c0": 0.1,
+        "lead_interstage_sample_state": "accepted_quantified",
+        "lead_interstage_c_over_c0": 0.16,
+        "lead_interstage_claim_binding_valid": true,
+        "final_outlet_sample_state": "no_sample",
+        "final_outlet_c_over_c0": null,
+        "final_outlet_claim_binding_valid": false,
+        "guard_bed_identity_verified": true,
+        "service_history_continuous": true
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-003-interstage-breakthrough-final-accepted-below",
+      "inputs": {
+        "analyte_claim_id": "SYNTHETIC-ANALYTE-CLAIM-01",
+        "breakthrough_threshold_c_over_c0": 0.1,
+        "lead_interstage_sample_state": "accepted_quantified",
+        "lead_interstage_c_over_c0": 0.16,
+        "lead_interstage_claim_binding_valid": true,
+        "final_outlet_sample_state": "accepted_quantified",
+        "final_outlet_c_over_c0": 0.04,
+        "final_outlet_claim_binding_valid": true,
+        "guard_bed_identity_verified": true,
+        "service_history_continuous": true
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-004-interstage-censored-below-loq",
+      "inputs": {
+        "analyte_claim_id": "SYNTHETIC-ANALYTE-CLAIM-01",
+        "breakthrough_threshold_c_over_c0": 0.1,
+        "lead_interstage_sample_state": "accepted_below_loq",
+        "lead_interstage_c_over_c0": null,
+        "lead_interstage_claim_binding_valid": true,
+        "final_outlet_sample_state": "accepted_quantified",
+        "final_outlet_c_over_c0": 0.03,
+        "final_outlet_claim_binding_valid": true,
+        "guard_bed_identity_verified": true,
+        "service_history_continuous": true
+      }
+    },
+    {
+      "case_id": "LEADLAG-F0-005-interstage-breakthrough-guard-identity-lost",
+      "inputs": {
+        "analyte_claim_id": "SYNTHETIC-ANALYTE-CLAIM-01",
+        "breakthrough_threshold_c_over_c0": 0.1,
+        "lead_interstage_sample_state": "accepted_quantified",
+        "lead_interstage_c_over_c0": 0.2,
+        "lead_interstage_claim_binding_valid": true,
+        "final_outlet_sample_state": "accepted_quantified",
+        "final_outlet_c_over_c0": 0.05,
+        "final_outlet_claim_binding_valid": true,
+        "guard_bed_identity_verified": false,
+        "service_history_continuous": false
+      }
+    }
+  ]
+}
