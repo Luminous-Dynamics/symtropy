@@ -323,3 +323,14 @@ Every admitted dataset needs immutable source/version/digest records, rights sta
 | EUROCONTROL trajectory-prediction requirements and NASA formal-methods work | Do our model/intent separation, independent verification, scope, failure semantics and evidence traceability meet the relevant research/practice expectations? These are reference specifications and research programmes, not drop-in numerical baselines. |
 
 For every performance comparison freeze the inputs, horizon, aircraft models, uncertainty assumptions, source vintage, candidate search space, objective, hard constraints, hardware, toolchain and implementation revision. Report p50/p95/p99 end-to-end latency and memory, but also prediction error, coverage, tube inflation, false alarms, missed conflicts, abstention, throughput and community outcomes. Candidate-generation latency alone must never be presented as full conflict-management performance.
+
+
+## 14. Cross-project model / intent / authority boundary
+
+The companion [AEROWEFT_MODEL_BOUNDARY_V1.md](AEROWEFT_MODEL_BOUNDARY_V1.md)
+defines the typed separation between mission request, aircraft intent, aircraft
+configuration, physical model profile, environment, predicted trajectory,
+deterministic reachable enclosure, probabilistic envelope, resource reservation,
+authority decision and observation. This is the cross-project interface
+contract for Symthaea #6249 -> Symtropy #5163 -> Sol-Atlas #189 / Mycelix #5023.
+A digest, reservation or verifier receipt must never become flight authorization.
