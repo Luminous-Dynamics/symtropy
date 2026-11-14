@@ -669,16 +669,13 @@ pub fn evaluate_pump_system_energy(inputs: &Value, oracle: &Value) -> Result<Val
     const EXPECTED_CASES: usize = 5;
     const INPUT_SCHEMA: &str = "pump-system-energy-matched-duty-cases-v0.1";
     const ORACLE_SCHEMA: &str = "pump-system-energy-matched-duty-oracle-v0.1";
-    const CEILING: &str =
-        "synthetic_pump_system_equation_checks_only_no_energy_saving_or_installed_performance_claim";
+    const CEILING: &str = "synthetic_pump_system_equation_checks_only_no_energy_saving_or_installed_performance_claim";
 
     if string(inputs, &["schema_version"])? != INPUT_SCHEMA
-        || string(inputs, &["evidence_class"])?
-            != "synthetic_matched_hydraulic_service_arithmetic"
+        || string(inputs, &["evidence_class"])? != "synthetic_matched_hydraulic_service_arithmetic"
         || string(inputs, &["evidence_ceiling"])? != CEILING
         || string(oracle, &["schema_version"])? != ORACLE_SCHEMA
-        || string(oracle, &["evidence_class"])?
-            != "synthetic_matched_hydraulic_service_arithmetic"
+        || string(oracle, &["evidence_class"])? != "synthetic_matched_hydraulic_service_arithmetic"
         || string(oracle, &["evidence_ceiling"])? != CEILING
     {
         return Err("pump energy M0 input/oracle identity or evidence ceiling mismatch".to_owned());
@@ -702,14 +699,21 @@ pub fn evaluate_pump_system_energy(inputs: &Value, oracle: &Value) -> Result<Val
     let gravity = number(inputs, &["assumptions", "gravity_m_s2"])?;
     let efficiency = number(inputs, &["assumptions", "wire_to_water_efficiency_assumed"])?;
     if rho <= 0.0 || gravity <= 0.0 || !(0.0 < efficiency && efficiency <= 1.0) {
-        return Err("pump energy M0 physical constants or efficiency are outside domain".to_owned());
+        return Err(
+            "pump energy M0 physical constants or efficiency are outside domain".to_owned(),
+        );
     }
     if string(
         inputs,
-        &["assumptions", "efficiency_is_identical_for_fixed_speed_and_vfd"],
+        &[
+            "assumptions",
+            "efficiency_is_identical_for_fixed_speed_and_vfd",
+        ],
     )? != "yes_for_isolating_head_loss_effect_only"
     {
-        return Err("pump energy M0 efficiency assumption is not the declared isolation model".to_owned());
+        return Err(
+            "pump energy M0 efficiency assumption is not the declared isolation model".to_owned(),
+        );
     }
 
     let mut expected_by_id = BTreeMap::new();
@@ -878,11 +882,9 @@ mod tests {
 
     #[test]
     fn all_five_pump_energy_matched_duty_cases_match_oracle() {
-        let result = evaluate_pump_system_energy(
-            &load("pump_energy_inputs"),
-            &load("pump_energy_oracle"),
-        )
-        .expect("pump energy benchmark must evaluate");
+        let result =
+            evaluate_pump_system_energy(&load("pump_energy_inputs"), &load("pump_energy_oracle"))
+                .expect("pump energy benchmark must evaluate");
         assert_eq!(result["result_count"], 5);
         assert_eq!(result["matched_case_count"], 5);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
@@ -919,9 +921,7 @@ mod tests {
     fn pump_energy_rejects_duty_beyond_fixed_speed_curve() {
         let mut inputs = load("pump_energy_inputs");
         inputs["cases"][0]["inputs"]["system_static_head_m"] = json!(100.0);
-        assert!(
-            evaluate_pump_system_energy(&inputs, &load("pump_energy_oracle")).is_err()
-        );
+        assert!(evaluate_pump_system_energy(&inputs, &load("pump_energy_oracle")).is_err());
     }
 
     #[test]
