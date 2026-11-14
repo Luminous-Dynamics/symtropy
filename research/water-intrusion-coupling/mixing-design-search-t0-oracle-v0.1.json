@@ -1,0 +1,42 @@
+{
+  "schema_version": "mixing-design-search-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-DESIGN-SEARCH-001",
+  "physical_qualification_established": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "expected": {
+    "exact_best_block_ids": [
+      "A-inlet-one",
+      "B-inlet-two",
+      "C-nuisance-one-calibration",
+      "D-nuisance-two-calibration"
+    ],
+    "exact_eligible_subset_ids": [
+      [
+        "A-inlet-one",
+        "B-inlet-two",
+        "C-nuisance-one-calibration",
+        "D-nuisance-two-calibration"
+      ]
+    ],
+    "pareto_frontier_block_sets": [
+      [
+        "A-inlet-one",
+        "B-inlet-two",
+        "C-nuisance-one-calibration",
+        "D-nuisance-two-calibration"
+      ]
+    ],
+    "greedy_expected_state": "MODEL_DISCRIMINATION_INSUFFICIENT",
+    "greedy_expected_block_ids": [
+      "E-high-information-low-discrimination"
+    ],
+    "random_best_block_ids": [
+      "A-inlet-one",
+      "B-inlet-two",
+      "C-nuisance-one-calibration",
+      "D-nuisance-two-calibration"
+    ],
+    "random_best_state": "ELIGIBLE_DESIGN"
+  }
+}
