@@ -114,10 +114,11 @@ jobs:
             (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.2") and
             (.sequential_evidence.status == "protocol_only_not_executed") and
             (.sequential_evidence.model.evidence_unit_kind == "non_overlapping_calibrated_block") and
-            (.sequential_evidence.protocol_constraints.raw_sample_pseudoreplication_prohibited == true) and
-            (.sequential_evidence.protocol_constraints.non_overlapping_blocks == true) and
-            (.sequential_evidence.protocol_constraints.minimum_block_separation_required == true) and
-            (.sequential_evidence.validity_conditions.dependence | contains("not proof of independence"))
+            (.sequential_evidence.raw_sample_pseudoreplication_allowed == false) and
+            (.sequential_evidence.non_overlapping_blocks == true) and
+            (.sequential_evidence.minimum_block_separation_required == true) and
+            (.sequential_evidence.block_aggregation_and_dependence_review_bound == true) and
+            (.sequential_evidence.block_independence_note | contains("not proof of independence"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate standalone shift matrix
@@ -185,6 +186,12 @@ jobs:
           jq -e '
             .schema_version == "symtropy-sequential-evidence-v0.2" and
             .status == "protocol_only_not_executed" and
+            (.protocol_constraints.one_block_one_receipt == true) and
+            (.protocol_constraints.contiguous_block_ordinals == true) and
+            (.protocol_constraints.raw_sample_pseudoreplication_prohibited == true) and
+            (.protocol_constraints.non_overlapping_blocks == true) and
+            (.protocol_constraints.minimum_block_separation_required == true) and
+            (.validity_conditions.block_independence | contains("not proof of independence")) and
             (.familywise_control != null) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/sequential-evidence-v0.2.json >/dev/null
