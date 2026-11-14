@@ -10,7 +10,7 @@ use crate::{
     RelationshipDirection, ServiceEdge, ServiceEdgeKind, ServiceGraph,
     ModuleIdentity, ServiceGraphError, ServiceNode, ServiceNodeKind,
 };
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -60,8 +60,11 @@ impl GraphCompileContext {
 pub struct IrGraphMappingProfile {
     profile_id: String,
     profile_version: String,
+    #[serde(serialize_with = "serialize_object_kind_map")]
     object_kind_map: BTreeMap<NamespacedType, ServiceNodeKind>,
+    #[serde(serialize_with = "serialize_relationship_kind_map")]
     relationship_kind_map: BTreeMap<NamespacedType, ServiceEdgeKind>,
+    #[serde(serialize_with = "serialize_domain_evidence_map")]
     domain_evidence_map: BTreeMap<ClaimDomain, GraphEvidenceState>,
     object_evidence_claim_ids: BTreeMap<String, String>,
     object_module_identities: BTreeMap<String, ModuleIdentity>,
@@ -103,6 +106,64 @@ impl IrGraphMappingProfile {
 
     pub fn profile_id(&self) -> &str { &self.profile_id }
     pub fn profile_version(&self) -> &str { &self.profile_version }
+}
+
+
+#[derive(Serialize)]
+struct ObjectKindMapEntry<'a> {
+    source: &'a NamespacedType,
+    target: ServiceNodeKind,
+}
+
+fn serialize_object_kind_map<S>(
+    value: &BTreeMap<NamespacedType, ServiceNodeKind>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| ObjectKindMapEntry { source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
+}
+
+#[derive(Serialize)]
+struct RelationshipKindMapEntry<'a> {
+    source: &'a NamespacedType,
+    target: ServiceEdgeKind,
+}
+
+fn serialize_relationship_kind_map<S>(
+    value: &BTreeMap<NamespacedType, ServiceEdgeKind>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| RelationshipKindMapEntry { source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
+}
+
+#[derive(Serialize)]
+struct DomainEvidenceMapEntry {
+    source: ClaimDomain,
+    target: GraphEvidenceState,
+}
+
+fn serialize_domain_evidence_map<S>(
+    value: &BTreeMap<ClaimDomain, GraphEvidenceState>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| DomainEvidenceMapEntry { source: *source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -419,7 +480,12 @@ impl std::error::Error for GraphBridgeError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ClaimProvenance, IrObject, IrRelationship, IrSchemaVersion, ObjectIdentity, PropertyClaim, PropertyValue};
+    use crate::{
+        BuildMetadata, ClaimProvenance, IrObject, IrRelationship, IrSchemaVersion,
+        ObjectIdentity, PropertyClaim, PropertyValue, Sha256Digest,
+        StandardProfilePin, StandardPublicationStatus, StandardReference,
+        UpstreamArtifactPin, compile_ir_to_service_graph_reproducibly,
+    };
     use std::collections::BTreeMap;
 
     fn ns(value: &str) -> NamespacedType { NamespacedType::new("urn:pf:test", value).unwrap() }
@@ -451,6 +517,153 @@ mod tests {
     fn ctx(maturity: GraphMaturity, state: GraphEvidenceState) -> GraphCompileContext {
         GraphCompileContext::new("graph:home","revision:1","sha256:declared","synthetic scope",
             maturity,state,Some("evidence:revision".into()),true).unwrap()
+    }
+
+
+    fn build_metadata(include_amd1: bool) -> BuildMetadata {
+        build_metadata_with_lock(include_amd1, b"synthetic Cargo.lock")
+    }
+
+    fn build_metadata_with_lock(include_amd1: bool, lock_contents: &[u8]) -> BuildMetadata {
+        let standard = StandardReference::new(
+            "IEC 60364-8-82", Some("8-82".into()), "2022",
+            if include_amd1 { vec!["AMD1:2026".into()] } else { Vec::new() },
+            StandardPublicationStatus::Published, None,
+        ).unwrap();
+        let standard_pin = StandardProfilePin::new(
+            "profile:prosumer-pei", "0.1", standard,
+            Sha256Digest::from_bytes(b"synthetic registry record"),
+            Sha256Digest::from_bytes(b"synthetic applicability rules"),
+        ).unwrap();
+        let upstream = UpstreamArtifactPin::new(
+            "artifact:module-catalogue", "revision:catalogue:1",
+            "module identity catalogue", Sha256Digest::from_bytes(b"synthetic module catalogue"),
+        ).unwrap();
+        BuildMetadata::new(
+            "symtropy-energy-systems", "0.1.0",
+            "rustc:1.96.0;target:x86_64-unknown-linux-gnu",
+            Sha256Digest::from_bytes(lock_contents),
+            vec![standard_pin], vec![upstream],
+        ).unwrap()
+    }
+
+    #[test]
+    fn mapping_profile_serializes_complex_maps_as_ordered_structured_arrays() {
+        let value = serde_json::to_value(profile()).unwrap();
+        assert!(value["object_kind_map"].is_array());
+        assert!(value["relationship_kind_map"].is_array());
+        assert!(value["domain_evidence_map"].is_array());
+        assert_eq!(value["object_kind_map"][0]["source"]["namespace"], "urn:pf:test");
+    }
+
+    #[test]
+    fn reproducible_compilation_emits_stable_digest_bound_build_receipt() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = first.receipt();
+        assert_eq!(receipt.receipt_version(), 1);
+        assert_eq!(receipt.digest_algorithm(), "sha256");
+        assert_eq!(receipt.source_document_revision_id(), "revision:ir:1");
+        assert_eq!(receipt.mapping_profile_id(), "profile:home");
+        assert_eq!(receipt.graph_revision_id(), "revision:1");
+        assert_eq!(receipt.graph_maturity(), GraphMaturity::DesignOnly);
+        assert!(receipt.source_document_digest().as_str().starts_with("sha256:"));
+        assert!(receipt.mapping_profile_digest().as_str().starts_with("sha256:"));
+        assert!(receipt.service_graph_payload_digest().as_str().starts_with("sha256:"));
+        assert!(receipt.build_lock_digest().as_str().starts_with("sha256:"));
+        assert_eq!(receipt.build_lock_digest(), second.receipt().build_lock_digest());
+        assert_eq!(receipt.standard_profiles().len(), 1);
+        assert_eq!(receipt.upstream_artifacts().len(), 1);
+    }
+
+    #[test]
+    fn changed_standard_profile_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let a = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let b = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(false),
+        ).unwrap();
+        assert_ne!(a.receipt().build_lock_digest(), b.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_mapping_profile_changes_profile_and_build_lock_digests() {
+        let document = doc(RelationshipDirection::Directed);
+        let original_profile = profile();
+        let mut changed_profile = profile();
+        changed_profile.domain_evidence_map.insert(
+            ClaimDomain::Declared, GraphEvidenceState::FieldObserved,
+        );
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &original_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &changed_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert_ne!(original.receipt().mapping_profile_digest(), changed.receipt().mapping_profile_digest());
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_dependency_lock_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_lock(true, b"Cargo.lock revision A"),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_lock(true, b"Cargo.lock revision B"),
+        ).unwrap();
+        assert_ne!(first.receipt().build_lock_digest(), second.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_source_revision_changes_source_digest_and_build_lock() {
+        let first_document = doc(RelationshipDirection::Directed);
+        let source = first_document.objects()["source:grid"].clone();
+        let load = first_document.objects()["load:lighting"].clone();
+        let edge = first_document.relationships()["edge:grid-lighting"].clone();
+        let second_document = PowerFabricDocument::new(
+            IrSchemaVersion::current(), "document:1", "revision:ir:changed",
+            vec![source, load], vec![edge], Vec::new(),
+        ).unwrap();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &first_document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &second_document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert_ne!(first.receipt().source_document_digest(), second.receipt().source_document_digest());
+        assert_ne!(first.receipt().build_lock_digest(), second.receipt().build_lock_digest());
     }
 
     #[test]
