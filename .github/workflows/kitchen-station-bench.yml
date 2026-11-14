@@ -1,0 +1,125 @@
+name: Kitchen Station Benchmark Harness
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/kitchen-station-bench/**"
+      - "docs/research/KITCHEN_STATION_SCENARIOS_V1.json"
+      - "docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json"
+      - "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json"
+      - "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json"
+      - ".github/workflows/kitchen-station-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kitchen-station-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Test semantic validation and negative controls
+        run: cargo test --manifest-path tools/kitchen-station-bench/Cargo.toml
+
+      - name: CLI help smoke test
+        run: cargo run --quiet --manifest-path tools/kitchen-station-bench/Cargo.toml -- --help
+
+      - name: Check contract linkage
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '.scenarios | length >= 1' docs/research/KITCHEN_STATION_SCENARIOS_V1.json
+          jq -e '(.metrics | length) >= 1' docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json
+          jq -e '.candidate_families | length >= 1' docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema"' docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json
+
+
+      - name: End-to-end synthetic contract smoke (not physical evidence)
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          expected_commit="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "$expected_commit"
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          jq -c --slurpfile registry docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json '
+            .scenarios[] as $scenario | {
+              schema_version: "1.0.0",
+              record_id: ("SYNTH-" + $scenario.scenario_id),
+              candidate_id: "REF-0",
+              scenario_id: $scenario.scenario_id,
+              trial_id: ("SMOKE-" + $scenario.scenario_id),
+              run_status: "blocked",
+              evidence_class: "synthetic_fixture",
+              recorded_at: "2026-10-20T12:00:00Z",
+              conditions: {"fixture_type":"contract-validation-only"},
+              candidate_spec: {"revision":"synthetic-only","sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+              protocol: {"version":"synthetic-only","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+              metrics: [
+                $scenario.primary_metrics[] as $id | {
+                  metric_id: $id,
+                  metric_status: "blocked",
+                  unit: $registry[0].metrics[$id].unit_options[0],
+                  status_reason: "synthetic smoke only; no physical measurement"
+                }
+              ],
+              safety_gates: [
+                $scenario.required_safety_gate_ids[] as $gate | {
+                  gate_id: $gate,
+                  status: "unknown",
+                  basis: "synthetic smoke only; gate not evaluated"
+                }
+              ],
+              raw_artifacts: [],
+              deviations: [],
+              exclusion_reason: "Generated contract smoke fixture; no physical trial was run.",
+              claim_limit: "Synthetic contract smoke only; not a product result."
+            }
+          ' docs/research/KITCHEN_STATION_SCENARIOS_V1.json > "$temp_dir/records.jsonl"
+          index=0
+          while IFS= read -r record; do
+            printf '%s\n' "$record" > "$temp_dir/record-$index.json"
+            index=$((index + 1))
+          done < "$temp_dir/records.jsonl"
+          test "$index" -eq 13
+          cargo run --quiet --manifest-path tools/kitchen-station-bench/Cargo.toml -- \
+            validate "$temp_dir" --contracts docs/research > kitchen-station-contract-smoke-receipt.json
+          jq --arg source_commit "$source_commit" \
+            '. + {source_commit:$source_commit, receipt_kind:"synthetic_contract_smoke_only"}' \
+            kitchen-station-contract-smoke-receipt.json > "$temp_dir/receipt.json"
+          mv "$temp_dir/receipt.json" kitchen-station-contract-smoke-receipt.json
+          jq -e '
+            .status == "contract_valid"
+            and .record_count == 13
+            and .physically_eligible_records == 0
+            and .records_by_run_status.blocked == 13
+            and (.contract_sha256 | length == 4 and all(.[]; test("^[a-f0-9]{64}$")))
+            and (.record_file_sha256 | length == 13 and all(.[]; test("^[a-f0-9]{64}$")))
+            and (.source_commit | test("^[a-f0-9]{40}$"))
+            and .receipt_kind == "synthetic_contract_smoke_only"
+          ' kitchen-station-contract-smoke-receipt.json
+
+      - name: Upload synthetic contract smoke receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: kitchen-station-contract-smoke-receipt
+          path: kitchen-station-contract-smoke-receipt.json
+          if-no-files-found: error
+          retention-days: 90

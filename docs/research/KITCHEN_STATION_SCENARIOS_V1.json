@@ -1,0 +1,592 @@
+{
+  "schema_version": "1.0.0",
+  "programme": "KITCHEN-STATION-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2313",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/2324",
+  "status": "specification_not_executed",
+  "evidence_rules": {
+    "physical_observations_present": false,
+    "simulation_results_present": false,
+    "silent_imputation_allowed": false,
+    "unknown_safety_gate_can_be_compensated_by_performance": false,
+    "product_superiority_claim_allowed_before_physical_trials": false,
+    "proposed_targets_are_results": false
+  },
+  "common_protocol": {
+    "freeze_reference_and_candidate_revisions": true,
+    "record_test_instrument_identity_calibration_and_uncertainty": true,
+    "record_supply_pressure_flow_and_water_temperature": true,
+    "record_room_temperature_relative_humidity_and_airflow_for_drying": true,
+    "define_task_endpoint_before_trial": true,
+    "retain_failed_invalid_and_repeated_trials_with_status": true,
+    "randomize_or_balance_candidate_order_when_feasible": true,
+    "report_raw_metrics_and_uncertainty_separately": true,
+    "residential_and_food_service_results_must_not_be_pooled_without_justification": true,
+    "food_contact_and_plumbing_compliance_are_independent_gates": true
+  },
+  "scenarios": [
+    {
+      "scenario_id": "SINK-BASELINE-001",
+      "domain": "sink_station",
+      "purpose": "Establish repeatable reference performance for a declared wash task and item/load set.",
+      "conditions_to_freeze": [
+        "reference fixture/model/revision",
+        "basin and counter geometry",
+        "tap pressure and temperature",
+        "standardized soil and item/load list",
+        "detergent and wash/rinse protocol",
+        "operator and trial order",
+        "task completion and cleaning endpoint"
+      ],
+      "primary_metrics": [
+        "potable_litres_per_completed_task",
+        "litres_by_prewash_wash_final_rinse_and_rewash",
+        "hot_water_energy_wh_per_task",
+        "cleaning_endpoint",
+        "task_duration",
+        "spill_or_overflow_events",
+        "measurement_uncertainty"
+      ],
+      "hard_gates": [
+        "reference identity and test procedure are reproducible",
+        "meter boundary and calibration are declared",
+        "failed and repeated tasks remain in the data",
+        "no missing required measure is silently replaced"
+      ],
+      "adversarial_controls": [
+        "compare only faucet nameplate flow",
+        "change load or soil between trials",
+        "omit rewashes or invalid runs"
+      ],
+      "claim_limit": "A reference baseline does not show superiority or prove hygienic safety.",
+      "required_safety_gate_ids": [
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-WATER-ACCOUNTING",
+        "GATE-FOOD-CONTACT"
+      ]
+    },
+    {
+      "scenario_id": "SINK-LOW-PRESSURE-002",
+      "domain": "sink_station",
+      "purpose": "Compare usability and task outcomes across declared lower-than-nominal supply pressure.",
+      "conditions_to_freeze": [
+        "fixture revision",
+        "low/nominal/high pressure points and measurement method",
+        "flow and temperature",
+        "standardized task/load",
+        "acceptable endpoint",
+        "pressure stability during task"
+      ],
+      "primary_metrics": [
+        "litres_per_task",
+        "task_duration",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "flow_stability",
+        "user_effort",
+        "task_failure_rate"
+      ],
+      "hard_gates": [
+        "pressure is measured throughout or sampling limitations are declared",
+        "lower pressure does not excuse a failed endpoint",
+        "limits and tested interval are explicit"
+      ],
+      "adversarial_controls": [
+        "assume pressure from building type",
+        "report rated flow without measured pressure",
+        "drop failed trials"
+      ],
+      "claim_limit": "Only supports the tested pressure range and task; it is not a guarantee for all low-pressure systems.",
+      "required_safety_gate_ids": [
+        "GATE-PRESSURE-ENVELOPE",
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-SUPPLY-SAFETY"
+      ]
+    },
+    {
+      "scenario_id": "SINK-TASK-FLOW-003",
+      "domain": "sink_station",
+      "purpose": "Compare stream/spray/default/high-flow controls by total task completion rather than litres per minute.",
+      "conditions_to_freeze": [
+        "flow-mode definitions and control behavior",
+        "test pressure",
+        "standardized soil/load",
+        "detergent protocol",
+        "endpoint and rewash rule",
+        "mode-switch sequence"
+      ],
+      "primary_metrics": [
+        "total_litres_per_completed_task",
+        "hot_water_energy_wh",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "task_duration",
+        "mode_switch_errors",
+        "accidental_high_flow_activations"
+      ],
+      "hard_gates": [
+        "all consumed water is accounted for",
+        "mode-switch and accidental-activation observations are recorded",
+        "cleaning endpoint is matched across candidates"
+      ],
+      "adversarial_controls": [
+        "credit only steady-state faucet litres per minute",
+        "exclude user correction or rewash",
+        "ignore failure to return to efficient default"
+      ],
+      "claim_limit": "A flow mode is not superior unless whole-task outcomes and cleaning endpoints support it.",
+      "required_safety_gate_ids": [
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-WATER-ACCOUNTING",
+        "GATE-CONTROL-STATE"
+      ]
+    },
+    {
+      "scenario_id": "SINK-SPLASH-TRACER-004",
+      "domain": "sink_station",
+      "purpose": "Compare splash deposition under a standardized, safe fluorescent tracer protocol.",
+      "conditions_to_freeze": [
+        "basin/faucet geometry",
+        "pressure, flow, stream mode and impact point",
+        "tracer protocol and concentration",
+        "predefined receiver/surface map",
+        "lighting/imaging method",
+        "number of repeats and cleaning between trials"
+      ],
+      "primary_metrics": [
+        "deposition_by_surface",
+        "affected_area_or_intensity_under_declared_method",
+        "between_trial_variability",
+        "deposition_on_clean_staging_zone",
+        "water_consumption_during_test"
+      ],
+      "hard_gates": [
+        "receiver locations are frozen before comparison",
+        "cleaning of the fixture and receivers between trials is recorded",
+        "measurement method is identical across designs"
+      ],
+      "adversarial_controls": [
+        "count only visible front splash",
+        "move sensitive receivers after seeing results",
+        "equate fluorescent tracer deposition with pathogen transfer"
+      ],
+      "claim_limit": "Tracer deposition is a comparative proxy, not a pathogen or illness-risk measurement.",
+      "required_safety_gate_ids": [
+        "GATE-TRACER-SAFETY",
+        "GATE-RECEIVER-FREEZE",
+        "GATE-CLEANING-RESET"
+      ]
+    },
+    {
+      "scenario_id": "SINK-MODULE-CLEANABILITY-005",
+      "domain": "sink_station",
+      "purpose": "Test whether removable inserts drain, remain inspectable and can be cleaned without residue traps.",
+      "conditions_to_freeze": [
+        "insert identity/material/revision",
+        "food/soil class and standardized application",
+        "cleaning agent and protocol",
+        "disassembly/reassembly method",
+        "drying/inspection method",
+        "number of service cycles"
+      ],
+      "primary_metrics": [
+        "disassembly_time",
+        "cleaning_time",
+        "residue_observations_by_zone",
+        "trapped_water",
+        "reassembly_errors",
+        "wear_or_damage",
+        "post-service_fit_and_drain"
+      ],
+      "hard_gates": [
+        "seams and underside are inspected",
+        "cleaning is performed as specified",
+        "insert switching is not counted as sanitation",
+        "food-contact suitability remains a separate documented gate"
+      ],
+      "adversarial_controls": [
+        "inspect only visible top surfaces",
+        "treat color coding as a hygiene barrier",
+        "ignore trapped water or hard-to-reach joints"
+      ],
+      "claim_limit": "Visual or tracer observations do not establish microbial safety or food-contact regulatory compliance.",
+      "required_safety_gate_ids": [
+        "GATE-FOOD-CONTACT",
+        "GATE-CLEANING-ACCESS",
+        "GATE-STABILITY"
+      ]
+    },
+    {
+      "scenario_id": "DRY-PASSIVE-BASELINE-006",
+      "domain": "drying_station",
+      "purpose": "Establish passive-rack drying performance under fixed ambient conditions and a declared item set.",
+      "conditions_to_freeze": [
+        "rack revision and loaded layout",
+        "item types and starting water load",
+        "room temperature and relative humidity",
+        "ambient airflow",
+        "drain arrangement",
+        "dryness endpoint and weighing protocol"
+      ],
+      "primary_metrics": [
+        "time_to_declared_dryness_endpoint",
+        "residual_water_mass_by_item_type",
+        "fraction_items_meeting_endpoint",
+        "drip_or_rewetting_events",
+        "rack_footprint",
+        "loaded_capacity",
+        "cleaning_time"
+      ],
+      "hard_gates": [
+        "endpoint and stability tolerance are declared before trials",
+        "item type and rack position are retained in results",
+        "ambient conditions are measured",
+        "empty rack capacity is not substituted for loaded capacity"
+      ],
+      "adversarial_controls": [
+        "decide dryness by appearance alone",
+        "change room RH without recording it",
+        "ignore cups or cutlery that dry slower than plates"
+      ],
+      "claim_limit": "Dryness endpoint does not establish sanitization or pathogen removal.",
+      "required_safety_gate_ids": [
+        "GATE-DRY-ENDPOINT",
+        "GATE-AMBIENT-COVERAGE",
+        "GATE-LOADED-CONFIGURATION"
+      ]
+    },
+    {
+      "scenario_id": "DRY-LOAD-COVERAGE-007",
+      "domain": "drying_station",
+      "purpose": "Detect item- and position-specific failure across a standardized loaded set.",
+      "conditions_to_freeze": [
+        "item taxonomy and dimensions",
+        "count and arrangement",
+        "rack position labels",
+        "drainage geometry",
+        "ambient temperature/RH",
+        "endpoint and trial timing"
+      ],
+      "primary_metrics": [
+        "dryness_completion_by_item_and_position",
+        "time_to_endpoint_by_item_type",
+        "residual_water_mass",
+        "pooled_water_locations",
+        "item_contact_or_rewetting_events",
+        "usable_loaded_capacity"
+      ],
+      "hard_gates": [
+        "every item is tracked",
+        "slowest subgroup remains visible in reporting",
+        "loaded configuration is reproducible"
+      ],
+      "adversarial_controls": [
+        "report only average dry time",
+        "omit hard-to-place items",
+        "change item mix to inflate capacity"
+      ],
+      "claim_limit": "Performance applies only to the tested loaded set and defined conditions.",
+      "required_safety_gate_ids": [
+        "GATE-LOAD-DECLARED",
+        "GATE-DRY-ENDPOINT",
+        "GATE-ITEM-COVERAGE"
+      ]
+    },
+    {
+      "scenario_id": "DRY-AIR-ASSIST-008",
+      "domain": "drying_station",
+      "purpose": "Determine whether optional assisted airflow provides a worthwhile drying benefit without unacceptable cost or contamination transfer.",
+      "conditions_to_freeze": [
+        "fan/heater/air-path revision",
+        "power metering boundary",
+        "airflow and direction",
+        "sound measurement position",
+        "room temperature/RH",
+        "matched rack load and baseline",
+        "contamination receiver locations"
+      ],
+      "primary_metrics": [
+        "time_to_declared_dryness_endpoint",
+        "residual_water_mass",
+        "energy_wh_per_load",
+        "noise_under_declared_method",
+        "airflow",
+        "tracer_deposition_on_clean_items_and_surfaces",
+        "temperature_exposure"
+      ],
+      "hard_gates": [
+        "passive and assisted variants use matched conditions",
+        "dirty drain air is not intentionally routed over clean items",
+        "no sanitization claim is inferred from airflow/heat",
+        "electrical and ingress-safety review remains separate"
+      ],
+      "adversarial_controls": [
+        "claim energy efficiency without measuring energy",
+        "use heat or UV as assumed sanitization",
+        "ignore noise, aerosol/deposition or local hot spots"
+      ],
+      "claim_limit": "Only validates measured drying/energy trade-offs under the declared setup; no microbial or regulatory claim.",
+      "required_safety_gate_ids": [
+        "GATE-ELECTRICAL-SAFETY",
+        "GATE-CONTAMINATION-PATH",
+        "GATE-ENERGY-MEASURED",
+        "GATE-DRY-ENDPOINT"
+      ]
+    },
+    {
+      "scenario_id": "SERVICE-POSTCHECK-009",
+      "domain": "sink_and_drying_station",
+      "purpose": "Verify repairability through successful service and functional post-checks.",
+      "conditions_to_freeze": [
+        "unit/revision",
+        "fault and service boundary",
+        "part identity and compatibility",
+        "tools",
+        "safe isolation method",
+        "leak/flow/drain acceptance procedure"
+      ],
+      "primary_metrics": [
+        "diagnosis_time",
+        "hands_on_repair_time",
+        "part_wait_time",
+        "destructive_damage",
+        "leak_result",
+        "post_service_flow",
+        "post_service_drainage",
+        "remaining_faults"
+      ],
+      "hard_gates": [
+        "local plumbing/electrical qualification requirements are respected",
+        "post-checks pass before declaring success",
+        "installed part and revision are recorded"
+      ],
+      "adversarial_controls": [
+        "count parts installed instead of verified repair",
+        "omit slow/failed service attempts",
+        "ignore leak or altered flow"
+      ],
+      "claim_limit": "One successful service event does not establish universal repairability or lifetime parts availability.",
+      "required_safety_gate_ids": [
+        "GATE-QUALIFIED-SERVICE",
+        "GATE-LEAK-POSTCHECK",
+        "GATE-FLOW-POSTCHECK",
+        "GATE-DRAIN-POSTCHECK"
+      ]
+    },
+    {
+      "scenario_id": "ERGONOMICS-ACCESS-010",
+      "domain": "sink_and_drying_station",
+      "purpose": "Assess reach, grip and task completion for varied user needs and seated/standing postures.",
+      "conditions_to_freeze": [
+        "participant inclusion criteria and consent",
+        "fixture dimensions and control forces",
+        "task sequence/load",
+        "measurement method",
+        "accessibility accommodations",
+        "safety stopping rules"
+      ],
+      "primary_metrics": [
+        "successful_task_completion",
+        "task_duration",
+        "reach_and_posture_observations",
+        "control_force_or_grip_failure",
+        "spill_events",
+        "user_rated_effort",
+        "assistance_required"
+      ],
+      "hard_gates": [
+        "participants can stop without penalty",
+        "representative variation is declared",
+        "individual observations are not hidden by averages",
+        "privacy-preserving data handling is specified"
+      ],
+      "adversarial_controls": [
+        "recruit only able-bodied expert users",
+        "infer accessibility from a rendering",
+        "treat user preference as proof of safety"
+      ],
+      "claim_limit": "A limited usability study cannot establish universal accessibility; report tested user groups and conditions.",
+      "required_safety_gate_ids": [
+        "GATE-CONSENT-PRIVACY",
+        "GATE-STOPPING-RULES",
+        "GATE-ACCESSIBILITY-COHORT"
+      ]
+    },
+    {
+      "scenario_id": "DATA-INTEGRITY-011",
+      "domain": "cross_cutting",
+      "purpose": "Prove that missing, invalid, failed and blocked observations cannot silently improve the comparison.",
+      "conditions_to_freeze": [
+        "required fields and their units",
+        "per-cell status vocabulary",
+        "invalidation rules",
+        "analysis version",
+        "raw record identifiers",
+        "denominator and exclusion policy"
+      ],
+      "primary_metrics": [
+        "required_field_completeness",
+        "explicit_status_coverage",
+        "invalid_record_count",
+        "excluded_record_count_by_reason",
+        "independent_recalculation_agreement"
+      ],
+      "hard_gates": [
+        "every expected candidate/profile/metric cell has a value or explicit status",
+        "unknown never maps to zero or pass",
+        "failed and invalid trials remain auditable",
+        "reported aggregates reconcile with raw records"
+      ],
+      "adversarial_controls": [
+        "replace absent flow with zero",
+        "drop difficult candidate/profile combinations",
+        "label a skipped run as pass",
+        "report a score without denominator"
+      ],
+      "claim_limit": "Data integrity is necessary for valid comparison but does not itself demonstrate physical performance.",
+      "required_safety_gate_ids": [
+        "GATE-COMPLETE-RECORD-COVERAGE",
+        "GATE-NO-SILENT-IMPUTATION",
+        "GATE-DIGEST-INTEGRITY"
+      ]
+    },
+    {
+      "scenario_id": "SINK-BATCH-FLOW-012",
+      "domain": "sink_station",
+      "purpose": "Compare measured-volume batch washing against continuous stream and a declared low-flow setting for an identical household load.",
+      "conditions_to_freeze": [
+        "candidate/reference revision",
+        "standardized item/load and soil",
+        "batch fill volume and wash-stage water",
+        "final-rinse method and water volume",
+        "measured pressure, flow and incoming water temperature",
+        "detergent protocol",
+        "cleaning endpoint and rewash rule",
+        "operator/order and repetitions",
+        "safe handling/lift limit for the wash insert"
+      ],
+      "primary_metrics": [
+        "potable_litres_per_completed_task",
+        "hot_water_energy_wh_per_task",
+        "cleaning_endpoint",
+        "rewash_rate",
+        "task_duration",
+        "spill_or_overflow_events",
+        "successful_task_completion"
+      ],
+      "hard_gates": [
+        "same task endpoint and load across candidates",
+        "final rinse uses the separately declared method and is not silently omitted",
+        "dirty wash water is never credited as a final rinse",
+        "all water consumed by pre-rinse, wash, final rinse and rewash is included",
+        "insert fill mass/volume and safe handling are measured",
+        "food-service deployment is separately reviewed against applicable requirements"
+      ],
+      "adversarial_controls": [
+        "compare batch wash on a small load with flowing wash on a larger load",
+        "exclude final rinse water from the batch method",
+        "change detergent or soil between candidates",
+        "reuse dirty water as if it were clean final-rinse water",
+        "ignore handling difficulty, spillage, rewashes or load failures",
+        "assume domestic method satisfies commercial sanitation requirements"
+      ],
+      "claim_limit": "Supports only the tested household load, detergent, source-water conditions and defined endpoint; does not establish food-service compliance or universal water savings.",
+      "required_safety_gate_ids": [
+        "GATE-DO-NOT-REUSE-DIRTY-RINSE",
+        "GATE-CLEANING-ENDPOINT",
+        "GATE-WATER-ACCOUNTING",
+        "GATE-HANDLING-SAFETY"
+      ]
+    },
+    {
+      "scenario_id": "SINK-PRERINSE-FORCE-013",
+      "domain": "commercial_pre_rinse",
+      "purpose": "Compare commercial pre-rinse spray valves by task-complete water, adequate spray force/coverage and soil-removal endpoint over a declared pressure envelope.",
+      "conditions_to_freeze": [
+        "valve/nozzle model and revision",
+        "flowing inlet pressure profile",
+        "water temperature",
+        "nozzle-to-target distance and angle",
+        "target geometry and soil/substrate recipe",
+        "initial soil amount and standardized load",
+        "trigger duty pattern and task endpoint",
+        "test method/version and deviations",
+        "measurement calibration and uncertainty",
+        "operator protocol and repetitions",
+        "predefined clean-surface splash receivers"
+      ],
+      "primary_metrics": [
+        "water_consumption_during_test",
+        "spray_force_n",
+        "spray_coverage_area_cm2",
+        "soil_removal_fraction",
+        "task_duration",
+        "user_effort",
+        "cleaning_endpoint",
+        "litres_per_task"
+      ],
+      "hard_gates": [
+        "pressure is measured under flowing conditions",
+        "matched soil/load/geometry and endpoint across candidates",
+        "force and coverage are assessed over the declared pressure envelope, not one favorable point",
+        "water includes every trigger event and any rerinse",
+        "predefined splash receivers remain fixed",
+        "applicable commercial plumbing/food-equipment compliance is reviewed separately"
+      ],
+      "adversarial_controls": [
+        "lower rated flow increases trigger-on time or rerinse volume",
+        "central force passes while edge coverage fails",
+        "pressure or nozzle distance changes across candidates",
+        "a soil class fails while the average hides it",
+        "tracer deposition moves onto another sensitive surface",
+        "initial performance is reported without post-wear or post-service checks"
+      ],
+      "claim_limit": "A valve-level and matched-task comparison under declared conditions; not a sanitation, microbial-reduction, certification or universal superiority claim.",
+      "required_safety_gate_ids": [
+        "GATE-COMMERCIAL-APPLICATION",
+        "GATE-PRESSURE-ENVELOPE",
+        "GATE-SOIL-REMOVAL",
+        "GATE-SPRAY-COVERAGE",
+        "GATE-SPLASH-DEPOSITION"
+      ]
+    }
+  ],
+  "stretch_targets": {
+    "potable_water_reduction_per_matched_task_fraction": 0.2,
+    "tracer_splash_deposition_reduction_fraction": 0.3,
+    "passive_drying_time_reduction_fraction": 0.25,
+    "zero_silent_imputation": true,
+    "status": "proposed_hypotheses_not_results",
+    "require_no_cleaning_endpoint_regression": true,
+    "require_no_unreported_surface_deposition_relocation": true,
+    "targets_are_not_certification_criteria": true
+  },
+  "references": [
+    "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P10180T6.TXT",
+    "https://www.fda.gov/food/fda-food-code/food-code-2022",
+    "https://standards.nsf.org/discussion/nsfansi-2-2026-food-equipment-uploaded",
+    "https://www.health.gov.za/food-control-regulations/",
+    "https://www.gov.za/sites/default/files/gcis_document/201709/41100gon982.pdf",
+    "https://doi.org/10.1016/j.foodcont.2021.108433",
+    "https://doi.org/10.1016/j.jhin.2021.04.017",
+    "https://la.kohler.com/en/product-detail/23650",
+    "https://www.pelhamandwhite.com/workstation",
+    "https://environment.durban.gov.za/uploads/0000/6/2025/09/23/water-conservation-guideline.pdf",
+    "https://www.cogta.gov.za/index.php/2020/02/25/play-part-in-saving-water/",
+    "https://www.epa.gov/watersense/pre-rinse-spray-valves",
+    "https://store.astm.org/f2324-13r26.html",
+    "https://www.asme.org/codes-standards/find-codes-standards/plumbing-supply-fittings-%28with-10-18-errata%29"
+  ],
+  "record_schema": "docs/research/KITCHEN_STATION_RECORD_SCHEMA_V1.json",
+  "metric_registry": "docs/research/KITCHEN_STATION_METRIC_REGISTRY_V1.json",
+  "design_space": "docs/research/KITCHEN_STATION_DESIGN_SPACE_V1.json",
+  "related_issues": [
+    "https://github.com/Luminous-Dynamics/symtropy/issues/2359"
+  ],
+  "acceptance_targets": {
+    "every_scenario_has_required_safety_gate_ids": true,
+    "every_trial_must_status_each_required_safety_gate": true,
+    "missing_required_gate_blocks_physical_eligibility": true,
+    "unknown_or_failed_required_gate_cannot_be_compensated_by_performance": true
+  }
+}
