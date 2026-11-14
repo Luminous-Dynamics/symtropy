@@ -1,0 +1,69 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "TEXTILE-SCHEDULE-PARETO-CASES-001",
+  "fixture_class": "synthetic",
+  "objective_schema_version": "textile-schedule-objectives-v0.1",
+  "claim_ceiling": "Synthetic Pareto comparison semantics only; no factory, receiver, worker or meter measurements.",
+  "cases": [
+    {
+      "case_id": "PARETO-001-INCOMPARABLE",
+      "mutation": "high-output_vs-low-energy",
+      "expected": "same_first_front"
+    },
+    {
+      "case_id": "PARETO-002-STRICT-DOMINANCE",
+      "mutation": "strictly-better-all-objectives",
+      "expected": "later_front"
+    },
+    {
+      "case_id": "PARETO-003-EQUAL-VECTOR-TIE",
+      "mutation": "identical-objective-vectors-distinct-output-lots",
+      "expected": "same_first_front"
+    },
+    {
+      "case_id": "PARETO-004-SCHEDULE-INFEASIBLE",
+      "mutation": "invalid-independent-schedule-report",
+      "expected": "candidate_ineligible"
+    },
+    {
+      "case_id": "PARETO-005-ROUTE-GATE-FAILED",
+      "mutation": "upstream-route-findings-nonempty",
+      "expected": "candidate_ineligible"
+    },
+    {
+      "case_id": "PARETO-006-UTILITY-UNKNOWN",
+      "mutation": "utility-report-absent",
+      "expected": "candidate_insufficient"
+    },
+    {
+      "case_id": "PARETO-007-RECEIVER-CONDITIONAL",
+      "mutation": "receiver-disposition-conditional",
+      "expected": "candidate_insufficient"
+    },
+    {
+      "case_id": "PARETO-008-BORROWED-OUTPUT-ACCEPTANCE",
+      "mutation": "receiver-output-lot-does-not-match",
+      "expected": "candidate_ineligible"
+    },
+    {
+      "case_id": "PARETO-009-ESTIMATED-UTILITY",
+      "mutation": "engineering-estimate-used-as-meter-observation",
+      "expected": "candidate_ineligible"
+    },
+    {
+      "case_id": "PARETO-010-MIXED-INPUT-LOT",
+      "mutation": "candidates-use-different-input-lot",
+      "expected": "tournament_invalid"
+    },
+    {
+      "case_id": "PARETO-011-DUPLICATE-CANDIDATE-ID",
+      "mutation": "candidate-ids-not-unique",
+      "expected": "tournament_invalid"
+    },
+    {
+      "case_id": "PARETO-012-MISSING-DISRUPTION-REPLAY",
+      "mutation": "disruption-tournament-without-replay",
+      "expected": "candidate_insufficient"
+    }
+  ]
+}
