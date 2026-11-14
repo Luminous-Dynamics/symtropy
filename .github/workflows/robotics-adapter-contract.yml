@@ -1,0 +1,65 @@
+name: Robotics Adapter Contract Tests
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/robotics-adapter-contract.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/bridges/symtropy-robotics-bridge-core/**"
+      - "crates/bridges/symtropy-symthaea-adapter/**"
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/robotics-adapter-contract.yml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "crates/bridges/symtropy-robotics-bridge-core/**"
+      - "crates/bridges/symtropy-symthaea-adapter/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robotics-adapter-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  contract-tests:
+    name: Robotics Contract Tests (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Test generic robotics planner contract
+        run: cargo test --locked -p symtropy-robotics-bridge-core --lib
+
+      - name: Test Symthaea adapter contract
+        run: cargo test --locked -p symtropy-symthaea-adapter --lib
+
+      - name: Lint changed robotics crates and tests
+        run: cargo clippy --locked -p symtropy-robotics-bridge-core -p symtropy-symthaea-adapter --all-targets -- -D warnings
