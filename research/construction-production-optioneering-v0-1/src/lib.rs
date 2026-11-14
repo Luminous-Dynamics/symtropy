@@ -53,10 +53,6 @@ impl PerformanceRequirement {
         Ok(())
     }
 
-    fn accepts(&self, value: i64) -> bool {
-        self.minimum_value.is_none_or(|minimum| value >= minimum)
-            && self.maximum_value.is_none_or(|maximum| value <= maximum)
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -813,17 +809,22 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Copy)]
+    struct ScenarioMetrics {
+        direct_cost_minor_units: u64,
+        shared_cost_minor_units: u64,
+        maintenance_cost_minor_units: u64,
+        elapsed_minutes: u64,
+        workflow_crew_minutes: u64,
+        energy_wh: u64,
+        carbon_gco2e: u64,
+        rework_units: u64,
+    }
+
     fn result(
         scenario_id: &str,
         design: &str,
-        direct: u64,
-        shared: u64,
-        maintenance: u64,
-        elapsed: u64,
-        crew: u64,
-        energy: u64,
-        carbon: u64,
-        rework: u64,
+        metrics: ScenarioMetrics,
     ) -> ScenarioResult {
         ScenarioResult {
             scenario_id: scenario_id.to_owned(),
@@ -841,17 +842,17 @@ mod tests {
                 ("fire-rating-minutes".to_owned(), 90),
                 ("acoustic-insulation".to_owned(), 50),
             ]),
-            direct_cost_minor_units: direct,
-            shared_cost_minor_units: shared,
-            maintenance_cost_minor_units: maintenance,
+            direct_cost_minor_units: metrics.direct_cost_minor_units,
+            shared_cost_minor_units: metrics.shared_cost_minor_units,
+            maintenance_cost_minor_units: metrics.maintenance_cost_minor_units,
             repair_cost_minor_units: 0,
             end_of_life_cost_minor_units: 0,
-            elapsed_minutes: elapsed,
-            workflow_crew_minutes: crew,
-            energy_wh: energy,
-            carbon_gco2e: carbon,
+            elapsed_minutes: metrics.elapsed_minutes,
+            workflow_crew_minutes: metrics.workflow_crew_minutes,
+            energy_wh: metrics.energy_wh,
+            carbon_gco2e: metrics.carbon_gco2e,
             material_mass_kg_milli: 150_000,
-            rework_units: rework,
+            rework_units: metrics.rework_units,
         }
     }
 
@@ -904,19 +905,8 @@ mod tests {
                 OptionTier::Avoid,
                 "design-reuse",
                 vec![
-                    result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
-                    result(
-                        "outage-rework",
-                        "design-reuse",
-                        8_000,
-                        500,
-                        100,
-                        450,
-                        320,
-                        1_100,
-                        650,
-                        1,
-                    ),
+                    result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
+                    result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 }),
                 ],
             ),
             option(
@@ -924,19 +914,8 @@ mod tests {
                 OptionTier::Switch,
                 "design-prefab",
                 vec![
-                    result("nominal", "design-prefab", 9_000, 300, 50, 350, 260, 900, 500, 0),
-                    result(
-                        "outage-rework",
-                        "design-prefab",
-                        10_000,
-                        300,
-                        50,
-                        420,
-                        280,
-                        950,
-                        520,
-                        1,
-                    ),
+                    result("nominal", "design-prefab", ScenarioMetrics { direct_cost_minor_units: 9_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 350, workflow_crew_minutes: 260, energy_wh: 900, carbon_gco2e: 500, rework_units: 0 }),
+                    result("outage-rework", "design-prefab", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 420, workflow_crew_minutes: 280, energy_wh: 950, carbon_gco2e: 520, rework_units: 1 }),
                 ],
             ),
             option(
@@ -944,19 +923,8 @@ mod tests {
                 OptionTier::Improve,
                 "design-cip-robot",
                 vec![
-                    result("nominal", "design-cip-robot", 10_000, 400, 80, 320, 240, 850, 550, 0),
-                    result(
-                        "outage-rework",
-                        "design-cip-robot",
-                        11_000,
-                        400,
-                        80,
-                        480,
-                        300,
-                        1_000,
-                        600,
-                        2,
-                    ),
+                    result("nominal", "design-cip-robot", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 400, maintenance_cost_minor_units: 80, elapsed_minutes: 320, workflow_crew_minutes: 240, energy_wh: 850, carbon_gco2e: 550, rework_units: 0 }),
+                    result("outage-rework", "design-cip-robot", ScenarioMetrics { direct_cost_minor_units: 11_000, shared_cost_minor_units: 400, maintenance_cost_minor_units: 80, elapsed_minutes: 480, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 2 }),
                 ],
             ),
         ];
@@ -983,8 +951,8 @@ mod tests {
             OptionTier::Switch,
             "design-prefab",
             vec![
-                result("nominal", "design-prefab", 9_000, 300, 50, 350, 260, 900, 500, 0),
-                result("outage-rework", "design-prefab", 10_000, 300, 50, 420, 280, 950, 520, 1),
+                result("nominal", "design-prefab", ScenarioMetrics { direct_cost_minor_units: 9_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 350, workflow_crew_minutes: 260, energy_wh: 900, carbon_gco2e: 500, rework_units: 0 }),
+                result("outage-rework", "design-prefab", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 420, workflow_crew_minutes: 280, energy_wh: 950, carbon_gco2e: 520, rework_units: 1 }),
             ],
         )];
         let report = evaluate_option_set(
@@ -1015,8 +983,8 @@ mod tests {
             OptionTier::Switch,
             "design-prefab",
             vec![
-                result("nominal", "design-prefab", 9_000, 300, 50, 350, 260, 900, 500, 0),
-                result("outage-rework", "design-prefab", 10_000, 300, 50, 420, 280, 950, 520, 1),
+                result("nominal", "design-prefab", ScenarioMetrics { direct_cost_minor_units: 9_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 350, workflow_crew_minutes: 260, energy_wh: 900, carbon_gco2e: 500, rework_units: 0 }),
+                result("outage-rework", "design-prefab", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 420, workflow_crew_minutes: 280, energy_wh: 950, carbon_gco2e: 520, rework_units: 1 }),
             ],
         )];
         let report = evaluate_option_set(
@@ -1047,18 +1015,7 @@ mod tests {
 
     #[test]
     fn every_scenario_must_pass_independent_acceptance() {
-        let mut rejected = result(
-            "outage-rework",
-            "design-reuse",
-            8_000,
-            500,
-            100,
-            450,
-            320,
-            1_100,
-            650,
-            1,
-        );
+        let mut rejected = result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 });
         rejected.acceptance = EvidenceDisposition::Unknown {
             reason_ref: "unknown:inspection-not-returned".to_owned(),
         };
@@ -1067,7 +1024,7 @@ mod tests {
             OptionTier::Avoid,
             "design-reuse",
             vec![
-                result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
+                result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
                 rejected,
             ],
         )];
@@ -1090,25 +1047,14 @@ mod tests {
 
     #[test]
     fn one_missing_hard_gate_disqualifies_robust_option() {
-        let mut failed = result(
-            "outage-rework",
-            "design-reuse",
-            8_000,
-            500,
-            100,
-            450,
-            320,
-            1_100,
-            650,
-            1,
-        );
+        let mut failed = result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 });
         failed.hard_gate_results.remove("fire-performance");
         let options = vec![option(
             "reuse-existing",
             OptionTier::Avoid,
             "design-reuse",
             vec![
-                result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
+                result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
                 failed,
             ],
         )];
@@ -1128,18 +1074,7 @@ mod tests {
 
     #[test]
     fn performance_requirements_are_hard_bounds_not_weighted_scores() {
-        let mut bad = result(
-            "outage-rework",
-            "design-reuse",
-            8_000,
-            500,
-            100,
-            450,
-            320,
-            1_100,
-            650,
-            1,
-        );
+        let mut bad = result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 });
         bad.performance_values
             .insert("acoustic-insulation".to_owned(), 40);
         let options = vec![option(
@@ -1147,7 +1082,7 @@ mod tests {
             OptionTier::Avoid,
             "design-reuse",
             vec![
-                result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
+                result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
                 bad,
             ],
         )];
@@ -1177,8 +1112,8 @@ mod tests {
                 OptionTier::Switch,
                 "design-cheap",
                 vec![
-                    result("nominal", "design-cheap", 5_000, 100, 0, 600, 500, 900, 400, 0),
-                    result("outage-rework", "design-cheap", 5_500, 100, 0, 650, 520, 950, 420, 1),
+                    result("nominal", "design-cheap", ScenarioMetrics { direct_cost_minor_units: 5_000, shared_cost_minor_units: 100, maintenance_cost_minor_units: 0, elapsed_minutes: 600, workflow_crew_minutes: 500, energy_wh: 900, carbon_gco2e: 400, rework_units: 0 }),
+                    result("outage-rework", "design-cheap", ScenarioMetrics { direct_cost_minor_units: 5_500, shared_cost_minor_units: 100, maintenance_cost_minor_units: 0, elapsed_minutes: 650, workflow_crew_minutes: 520, energy_wh: 950, carbon_gco2e: 420, rework_units: 1 }),
                 ],
             ),
             option(
@@ -1186,8 +1121,8 @@ mod tests {
                 OptionTier::Switch,
                 "design-fast",
                 vec![
-                    result("nominal", "design-fast", 9_000, 200, 0, 300, 250, 900, 500, 0),
-                    result("outage-rework", "design-fast", 9_500, 200, 0, 320, 270, 950, 520, 1),
+                    result("nominal", "design-fast", ScenarioMetrics { direct_cost_minor_units: 9_000, shared_cost_minor_units: 200, maintenance_cost_minor_units: 0, elapsed_minutes: 300, workflow_crew_minutes: 250, energy_wh: 900, carbon_gco2e: 500, rework_units: 0 }),
+                    result("outage-rework", "design-fast", ScenarioMetrics { direct_cost_minor_units: 9_500, shared_cost_minor_units: 200, maintenance_cost_minor_units: 0, elapsed_minutes: 320, workflow_crew_minutes: 270, energy_wh: 950, carbon_gco2e: 520, rework_units: 1 }),
                 ],
             ),
             option(
@@ -1195,8 +1130,8 @@ mod tests {
                 OptionTier::Switch,
                 "design-dominated",
                 vec![
-                    result("nominal", "design-dominated", 10_000, 300, 50, 700, 600, 1_200, 700, 2),
-                    result("outage-rework", "design-dominated", 11_000, 300, 50, 750, 620, 1_250, 720, 3),
+                    result("nominal", "design-dominated", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 700, workflow_crew_minutes: 600, energy_wh: 1_200, carbon_gco2e: 700, rework_units: 2 }),
+                    result("outage-rework", "design-dominated", ScenarioMetrics { direct_cost_minor_units: 11_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 750, workflow_crew_minutes: 620, energy_wh: 1_250, carbon_gco2e: 720, rework_units: 3 }),
                 ],
             ),
         ];
@@ -1238,8 +1173,8 @@ mod tests {
             OptionTier::Avoid,
             "design-reuse",
             vec![
-                result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
-                result("outage-rework", "design-reuse", 8_000, 500, 250, 450, 320, 1_100, 650, 1),
+                result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
+                result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 250, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 }),
             ],
         )];
         let report = evaluate_option_set(
@@ -1271,8 +1206,8 @@ mod tests {
                 OptionTier::Avoid,
                 "design-reuse",
                 vec![
-                    result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
-                    result("outage-rework", "design-reuse", 8_000, 500, 100, 450, 320, 1_100, 650, 1),
+                    result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
+                    result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 }),
                 ],
             )],
         )
@@ -1383,18 +1318,7 @@ mod tests {
             "reuse-existing",
             OptionTier::Avoid,
             "design-reuse",
-            vec![result(
-                "nominal",
-                "design-reuse",
-                7_000,
-                500,
-                100,
-                400,
-                300,
-                1_000,
-                600,
-                0,
-            )],
+            vec![result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 })],
         );
         assert_eq!(
             evaluate_option_set(
@@ -1419,8 +1343,8 @@ mod tests {
             OptionTier::Avoid,
             "design-reuse",
             vec![
-                result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
-                result("outage-rework", "design-reuse", 8_000, 500, 100, 450, 320, 1_100, 650, 1),
+                result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
+                result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 }),
             ],
         );
         assert_eq!(
@@ -1467,8 +1391,8 @@ mod tests {
             OptionTier::Avoid,
             "design-reuse",
             vec![
-                result("nominal", "design-reuse", 7_000, 500, 100, 400, 300, 1_000, 600, 0),
-                result("outage-rework", "design-reuse", 8_000, 500, 100, 450, 320, 1_100, 650, 1),
+                result("nominal", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 7_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 400, workflow_crew_minutes: 300, energy_wh: 1_000, carbon_gco2e: 600, rework_units: 0 }),
+                result("outage-rework", "design-reuse", ScenarioMetrics { direct_cost_minor_units: 8_000, shared_cost_minor_units: 500, maintenance_cost_minor_units: 100, elapsed_minutes: 450, workflow_crew_minutes: 320, energy_wh: 1_100, carbon_gco2e: 650, rework_units: 1 }),
             ],
         );
         candidate.functional_contract_id = "different-unit-class".to_owned();
@@ -1495,19 +1419,8 @@ mod tests {
             OptionTier::Switch,
             "design-prefab-v2",
             vec![
-                result("nominal", "design-prefab-v2", 9_000, 300, 50, 350, 260, 900, 500, 0),
-                result(
-                    "outage-rework",
-                    "design-prefab-v2",
-                    10_000,
-                    300,
-                    50,
-                    420,
-                    280,
-                    950,
-                    520,
-                    1,
-                ),
+                result("nominal", "design-prefab-v2", ScenarioMetrics { direct_cost_minor_units: 9_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 350, workflow_crew_minutes: 260, energy_wh: 900, carbon_gco2e: 500, rework_units: 0 }),
+                result("outage-rework", "design-prefab-v2", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 420, workflow_crew_minutes: 280, energy_wh: 950, carbon_gco2e: 520, rework_units: 1 }),
             ],
         );
         candidate.scenario_results.get_mut("outage-rework").unwrap().option_design_digest =
@@ -1539,19 +1452,8 @@ mod tests {
             OptionTier::Switch,
             "design-prefab-v2",
             vec![
-                result("nominal", "design-prefab-v2", 9_000, 300, 50, 350, 260, 900, 500, 0),
-                result(
-                    "outage-rework",
-                    "design-prefab-v2",
-                    10_000,
-                    300,
-                    50,
-                    420,
-                    280,
-                    950,
-                    520,
-                    1,
-                ),
+                result("nominal", "design-prefab-v2", ScenarioMetrics { direct_cost_minor_units: 9_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 350, workflow_crew_minutes: 260, energy_wh: 900, carbon_gco2e: 500, rework_units: 0 }),
+                result("outage-rework", "design-prefab-v2", ScenarioMetrics { direct_cost_minor_units: 10_000, shared_cost_minor_units: 300, maintenance_cost_minor_units: 50, elapsed_minutes: 420, workflow_crew_minutes: 280, energy_wh: 950, carbon_gco2e: 520, rework_units: 1 }),
             ],
         );
         candidate
