@@ -130,12 +130,12 @@ Do not put tracer into a potable distribution asset. Tracer selection, compatibi
 
 Politecnico di Milano's FluidLab describes E-NET as an experimental water-distribution network based on the Jowitt–Xu benchmark. The facility page lists three inverter-driven pumps, 25–100 mm pipe diameters, 0–7 L/s demand, an approximate 1.1 km total length, and an EPANET input file available for download/contact. It explicitly lists experimental verification and technology testing among the facility goals.
 
-The 2026 E-NET article describes the numerical scaling of the Jowitt–Xu network, with Reynolds-number and head-loss similarity, and reports a 0.38 m head-loss RMSE across 888 simulated conditions. Crucially, the article states that its paper focuses on the numerical implementation/digital counterpart and that the numerical model can subsequently be validated in controlled experiments at the physical E-NET facility. Do not cite that 0.38 m numerical comparison as a measured tracer or physical mixing result.
+The 2026 E-NET article reports SCADA integration, pressure sensors at every node and dual metering for independent demand/leakage control. Its Jowitt–Xu/E-NET comparison uses Reynolds-number and head-loss similarity and reports a 0.38 m head-loss RMSE across 888 simulated conditions. That RMSE is a numerical model comparison, not a measured tracer or physical mixing result. The article does not report dissolved-tracer concentration sensing at every junction outlet.
 
-Candidate T1 path: evaluate E-NET as a host network and request a modular, instrumented junction/tank tracer test section. The facility page does not establish that the needed concentration sensors, injection hardware, tracer compatibility protocol or mass-recovery apparatus are already installed. These must be confirmed with the facility team before a test plan is claimed feasible.
+Candidate T1 path: retain E-NET's existing hydraulic/pressure and demand/leakage instrumentation, then request a modular instrumented junction/tank tracer section. FluidLab separately lists an E-Loop with pressure, flow, temperature and solid-particle concentration measurements, but this is a different facility and does not establish dissolved conservative-tracer capability on E-NET. Concentration sensors or synchronized outlet sampling, injection hardware, sample-line characterization, tracer compatibility and mass-recovery apparatus must be confirmed with the facility team before a test plan is claimed feasible.
 
 References:
-- FluidLab experimental facilities / E-NET: https://www.fluidlab.polimi.it/exp/
+- FluidLab experimental facilities / E-NET and E-Loop: https://www.fluidlab.polimi.it/exp/\n- E-NET SCADA, pressure-sensor and dual-metering description: https://doi.org/10.1007/s11269-026-04785-y
 - Ferrarese, Fathi & Malavasi (2026), *From Real to Laboratory Scale: Simulation and Scaling Methodology for a New Benchmark Water Distribution Network Model*, DOI: https://doi.org/10.1007/s11269-026-04785-y
 
 ## 8. Public numerical benchmark assets
