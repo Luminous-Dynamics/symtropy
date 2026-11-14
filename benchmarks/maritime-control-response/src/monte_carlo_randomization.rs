@@ -237,36 +237,53 @@ fn validate_work_budget(
     Ok(())
 }
 
-fn sample_blocked_assignment(
-    trial: &BlockedRandomizedMaintenanceTrial,
-    groups: &BTreeMap<String, Vec<usize>>,
-    allocations: &BTreeMap<&str, (usize, usize)>,
-    rng: &mut SplitMix64,
-) -> Result<Vec<bool>, MonteCarloRandomizationError> {
-    let mut treatment_mask = vec![false; trial.observations.len()];
-    for (stratum_id, indices) in groups {
-        let Some((planned_treatment_count, _)) = allocations.get(stratum_id.as_str()) else {
-            return Err(MonteCarloRandomizationError::MissingStratum(
-                stratum_id.clone(),
-            ));
-        };
-        if *planned_treatment_count > indices.len() {
-            return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
-        }
-        let mut shuffled = indices.clone();
-        let treatment_count = *planned_treatment_count;
-        for position in 0..treatment_count {
-            let remaining = shuffled.len() - position;
-            let offset = rng
-                .uniform_below(remaining)
-                .ok_or(MonteCarloRandomizationError::InvalidAssignmentSpace)?;
-            shuffled.swap(position, position + offset);
-        }
-        for index in shuffled.iter().take(treatment_count) {
-            treatment_mask[*index] = true;
+#[derive(Debug)]
+struct SamplingWorkspace {
+    treatment_mask: Vec<bool>,
+    shuffled_indices: Vec<usize>,
+}
+
+impl SamplingWorkspace {
+    fn new(unit_count: usize, maximum_stratum_size: usize) -> Self {
+        Self {
+            treatment_mask: vec![false; unit_count],
+            shuffled_indices: Vec::with_capacity(maximum_stratum_size),
         }
     }
-    Ok(treatment_mask)
+
+    fn sample_blocked_assignment<'a>(
+        &'a mut self,
+        trial: &BlockedRandomizedMaintenanceTrial,
+        groups: &BTreeMap<String, Vec<usize>>,
+        allocations: &BTreeMap<&str, (usize, usize)>,
+        rng: &mut SplitMix64,
+    ) -> Result<&'a [bool], MonteCarloRandomizationError> {
+        self.treatment_mask.fill(false);
+        for (stratum_id, indices) in groups {
+            let Some((planned_treatment_count, _)) = allocations.get(stratum_id.as_str()) else {
+                return Err(MonteCarloRandomizationError::MissingStratum(
+                    stratum_id.clone(),
+                ));
+            };
+            if *planned_treatment_count > indices.len() {
+                return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
+            }
+
+            self.shuffled_indices.clear();
+            self.shuffled_indices.extend_from_slice(indices);
+            for position in 0..*planned_treatment_count {
+                let remaining = self.shuffled_indices.len() - position;
+                let offset = rng
+                    .uniform_below(remaining)
+                    .ok_or(MonteCarloRandomizationError::InvalidAssignmentSpace)?;
+                self.shuffled_indices.swap(position, position + offset);
+            }
+            for index in self.shuffled_indices.iter().take(*planned_treatment_count) {
+                self.treatment_mask[*index] = true;
+            }
+        }
+        Ok(&self.treatment_mask)
+    }
 }
 
 fn count_allocation_constraint_violations(
@@ -387,6 +404,8 @@ pub fn estimate_monte_carlo_randomization_p_value(
     validate_work_budget(trial.observations.len(), config.draw_count)?;
     let groups = stratum_indices(trial);
     let allocations = allocation_map(trial);
+    let maximum_stratum_size = groups.values().map(Vec::len).max().unwrap_or(0);
+    let mut workspace = SamplingWorkspace::new(trial.observations.len(), maximum_stratum_size);
     let frame_sha256 = randomization_frame_sha256(trial)?;
     let observed_mask = trial
         .observations
@@ -407,7 +426,8 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let mut exceedances = 0usize;
     let mut allocation_constraint_violations = 0usize;
     for _ in 0..config.draw_count {
-        let assignment = sample_blocked_assignment(trial, &groups, &allocations, &mut rng)?;
+        let assignment =
+            workspace.sample_blocked_assignment(trial, &groups, &allocations, &mut rng)?;
         allocation_constraint_violations += count_allocation_constraint_violations(
             trial,
             &groups,
@@ -626,12 +646,15 @@ mod tests {
         let trial = trial();
         let groups = stratum_indices(&trial);
         let allocations = allocation_map(&trial);
+        let maximum_stratum_size = groups.values().map(Vec::len).max().unwrap_or(0);
+        let mut workspace = SamplingWorkspace::new(trial.observations.len(), maximum_stratum_size);
         let mut rng = SplitMix64::new(2026);
         let first_group = groups.values().next().unwrap();
         let mut counts = BTreeMap::<u8, usize>::new();
         for _ in 0..12_000 {
-            let assignment =
-                sample_blocked_assignment(&trial, &groups, &allocations, &mut rng).unwrap();
+            let assignment = workspace
+                .sample_blocked_assignment(&trial, &groups, &allocations, &mut rng)
+                .unwrap();
             let mask = first_group
                 .iter()
                 .enumerate()
