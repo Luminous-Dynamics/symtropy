@@ -86,6 +86,21 @@
       "case_id": "MC17",
       "scenario": "A frozen panel of 200 independent SplitMix64 seed streams checks Wilson interval coverage against the exact Fisher tail probability.",
       "expected": "multi_seed_monte_carlo_interval_coverage"
+    },
+    {
+      "case_id": "MC18",
+      "scenario": "The preregistration record reference is missing or empty.",
+      "expected": "rejected_missing_preregistration"
+    },
+    {
+      "case_id": "MC19",
+      "scenario": "The seed-commitment digest does not match analysis-plan digest, seed and draw count.",
+      "expected": "rejected_seed_commitment_mismatch"
+    },
+    {
+      "case_id": "MC20",
+      "scenario": "Output binds the analysis-plan digest, preregistration reference, seed commitment and canonical configuration digest.",
+      "expected": "analysis_config_provenance_bound"
     }
   ]
 }
