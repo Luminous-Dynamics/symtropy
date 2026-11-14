@@ -43,10 +43,21 @@ The plus-one correction is not cosmetic. Phipson and Smyth showed why randomly d
 SplitMix was described by Steele, Lea and Flood as a fast splittable pseudorandom generator; this implementation freezes a simple SplitMix64 stream for deterministic replay. That citation does not imply cryptographic quality or seed fairness:
 - Steele, Lea & Flood (2014), [Fast Splittable Pseudorandom Number Generators](https://gee.cs.oswego.edu/dl/papers/oopsla14.pdf).
 
+## Preregistered analysis and seed commitment
+
+A reproducible seed by itself does not prevent seed shopping. The same dataset could be run with many seeds and a favourable p-value selected after the fact. The configuration therefore binds:
+- a lowercase SHA-256 digest of the frozen analysis plan;
+- a preregistration-record reference;
+- the unsigned 64-bit seed and fixed draw count;
+- a seed-commitment SHA-256 computed over the analysis-plan digest, seed and draw count.
+
+The canonical configuration digest is published in the result and incorporated into the sampled-assignment stream digest. A missing preregistration reference or mismatched seed commitment is rejected before sampling. This is a structural link to an upstream record: the module does not authenticate the receipt issuer, prove its timestamp, or independently establish that the analysis plan was fixed before outcomes were observed. An independently operated append-only or signed preregistration system is still required for that claim.
+
 ## Replay and provenance
 
 The result binds:
 - the frozen trial assignment-plan digest;
+- the analysis-plan digest, preregistration reference, seed commitment and canonical configuration digest;
 - a canonical randomization-frame digest over the full serialized trial, after sorting observations by unit ID and allocations by stratum ID (therefore binding the full source, calibration, timing, quality and uncertainty contract);
 - the algorithm ID/version, unsigned 64-bit seed and fixed draw count;
 - a digest over every sampled assignment in canonical unit-ID order;
@@ -75,9 +86,12 @@ The protocol and external manifest are synchronized at seventeen scenarios:
 14. the fixed-budget Rust throughput profile emits replay-bound metrics without a machine-independent speed threshold;
 15. an independent recount rejects an invalid sampled block before statistic evaluation;
 16. zero exceedances still produce the plus-one minimum p-value;
-17. a frozen 200-seed panel checks Wilson interval coverage against exact Fisher inference, with a 90% regression floor.
+17. a frozen 200-seed panel checks Wilson interval coverage against exact Fisher inference, with a 90% regression floor;
+18. a missing preregistration reference is rejected;
+19. a mismatched seed-commitment digest is rejected;
+20. the output binds analysis-plan, preregistration and configuration digests.
 
-The Rust suite currently contains eighteen tests. The `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL timing/throughput/replay records. The exact-head workflow runs the harness and uploads the JSONL output together with Rust and runner/CPU metadata. The JSONL records include algorithm ID, seed, draw budget, observed statistic, exceedance count, raw and corrected p-values, Monte Carlo uncertainty, frame digest and sampled-assignment digest. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials. The v0.1 harness measures elapsed time, draws/second and unit-draws/second; it does not yet measure peak memory.
+The Rust suite currently contains twenty tests. The `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL timing/throughput/replay records. The exact-head workflow runs the harness and uploads the JSONL output together with Rust and runner/CPU metadata. The JSONL records include algorithm ID, seed, draw budget, observed statistic, exceedance count, raw and corrected p-values, Monte Carlo uncertainty, frame digest and sampled-assignment digest. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials. The v0.1 harness measures elapsed time, draws/second and unit-draws/second; it does not yet measure peak memory.
 
 ## SOTA comparison and next benchmarks
 
