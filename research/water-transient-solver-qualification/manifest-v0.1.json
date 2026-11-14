@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5170",
+  "evidence_class": "design_and_synthetic_only",
+  "evidence_ceiling": "analytical_arithmetic_only_no_transient_solver_physical_surge_or_intrusion_qualification",
+  "input_file": "water-transient-t0-cases-v0.1.json",
+  "oracle_file": "water-transient-t0-oracle-v0.1.json",
+  "scenario_count": 8,
+  "scenario_ids": [
+    "WT-T0-001-rapid-closure-joukowsky-known-answer",
+    "WT-T0-002-one-way-and-round-trip-wave-time",
+    "WT-T0-003-negative-velocity-change-sign",
+    "WT-T0-004-slow-closure-outside-instantaneous-assumption",
+    "WT-T0-005-wave-speed-missing",
+    "WT-T0-006-single-phase-formula-crosses-vapour-pressure",
+    "WT-T0-007-closure-time-at-round-trip-boundary",
+    "WT-T0-008-invalid-negative-pipe-length"
+  ],
+  "non_compensable_invariants": [
+    "steady_state_EPANET_is_not_transient_qualification",
+    "solver_to_solver_agreement_is_not_physical_validation",
+    "Joukowsky_instantaneous_equation_requires_declared_assumptions",
+    "missing_wave_speed_never_becomes_zero_or_default",
+    "slow_or_boundary_closure_never_uses_rapid_closure_shortcut",
+    "absolute_pressure_and_vapour_boundary_must_be_checked",
+    "unsupported_cavitation_or_column_separation_is_out_of_domain",
+    "T0_never_authorizes_surge_design_or_operational_action"
+  ],
+  "comparators": {
+    "published_open_source_candidate": "EPANET-AWH DOI 10.1016/j.jwpe.2026.110770",
+    "commercial_comparator": "Bentley HAMMER exact build and settings required",
+    "physical_reference": "Sheffield intrusion and pressure-transient publications, rights-aware raw data acquisition required"
+  }
+}
