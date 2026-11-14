@@ -20,7 +20,7 @@ use construction_production_optioneering_core::{
     evaluate_option_set,
 };
 use construction_robot_interop_core::resources::ReservationBook;
-use construction_spacetime_occupancy_core::{SpatialError, SpatialOccupancyBook};
+use construction_spacetime_occupancy_core::SpatialOccupancyBook;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CampaignCostTreatment {
@@ -122,7 +122,23 @@ impl OptionEvidenceCampaign {
         let mut reservation_ids = BTreeSet::new();
         for action in &self.actions {
             require_non_empty("action_id", &action.action_id)?;
+            require_non_empty("coverage_profile_ref", &action.coverage_profile_ref)?;
+            require_non_empty("calibration_ref", &action.calibration_ref)?;
             require_non_empty("action_currency_code", &action.cost_currency_code)?;
+            require_non_empty("occupancy_id", &action.occupancy.occupancy_id)?;
+            require_non_empty("occupancy_task_id", &action.occupancy.task_id)?;
+            require_non_empty(
+                "reservation_id",
+                &action.occupancy.reservation.reservation_id,
+            )?;
+            require_non_empty(
+                "reservation_resource_id",
+                &action.occupancy.reservation.resource_id,
+            )?;
+            require_non_empty(
+                "reservation_owner_id",
+                &action.occupancy.reservation.owner_id,
+            )?;
             if action.cost_currency_code != self.currency_code {
                 return Err(JointEvaluationError::CampaignCurrencyMismatch {
                     option_id: self.option_id.clone(),
@@ -371,6 +387,13 @@ pub fn evaluate_option_evidence_packages(
         .iter()
         .map(|option| (option.option_id.as_str(), option))
         .collect();
+    for campaign_id in campaign_by_option.keys() {
+        if !option_by_id.contains_key(campaign_id) {
+            return Err(JointEvaluationError::UnexpectedCampaignInput(
+                (*campaign_id).to_owned(),
+            ));
+        }
+    }
     let evaluated_ids: BTreeSet<&str> = option_report
         .evaluations
         .iter()
