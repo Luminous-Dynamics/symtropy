@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inter-pass geometry measurement assurance input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "unit",
+    "before",
+    "after",
+    "difference_scope_id",
+    "transform_budget",
+    "datum_budget",
+    "decision_boundary",
+    "specification_interval"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-METROLOGY-ASSURANCE-001"
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "before": {
+      "$ref": "#/$defs/measurement"
+    },
+    "after": {
+      "$ref": "#/$defs/measurement"
+    },
+    "difference_scope_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transform_budget": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/budget"
+        },
+        {
+          "properties": {
+            "contributions": {
+              "items": {
+                "properties": {
+                  "kind": {
+                    "const": "Registration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "datum_budget": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/budget"
+        },
+        {
+          "properties": {
+            "contributions": {
+              "items": {
+                "properties": {
+                  "kind": {
+                    "const": "Datum"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "decision_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_at_tick",
+        "maximum_observation_age_ticks"
+      ],
+      "properties": {
+        "decision_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_observation_age_ticks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "specification_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower_units",
+        "upper_units"
+      ],
+      "properties": {
+        "lower_units": {
+          "type": "integer"
+        },
+        "upper_units": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "scope_id",
+        "workpiece_id",
+        "joint_revision",
+        "coordinate_frame",
+        "scan_id",
+        "scan_sha256",
+        "registration_receipt_sha256",
+        "observed_at_tick",
+        "value_units",
+        "budget",
+        "unit"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "observed_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value_units": {
+          "type": "integer"
+        },
+        "budget": {
+          "$ref": "#/$defs/budget"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "contributions"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contributions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/contribution"
+          }
+        }
+      }
+    },
+    "contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "kind",
+        "scope_id",
+        "unit",
+        "absolute_bound_units",
+        "valid_from_tick",
+        "valid_until_tick",
+        "verification"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "SensorCalibration",
+            "SurfaceResponse",
+            "RobotPose",
+            "Registration",
+            "Datum",
+            "ThermalCorrection",
+            "FeatureExtraction",
+            "EnvironmentalCorrection"
+          ]
+        },
+        "scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "absolute_bound_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verification": {
+          "enum": [
+            "Verified",
+            "Unverified"
+          ]
+        }
+      }
+    }
+  }
+}
