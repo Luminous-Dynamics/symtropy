@@ -243,6 +243,50 @@ fn adsb_only_claim_never_qualifies_noncooperative_traffic() {
     assert!(result.unresolved_possible_occupancy);
 }
 
+
+#[test]
+fn adsb_or_tdoa_claim_cannot_self_label_as_noncooperative_coverage() {
+    let adsb = claim(
+        "adsb-mislabelled",
+        "adsb-rx",
+        SensorModality::Adsb,
+        TrafficClass::NonCooperativeCrewed,
+        "cell-mislabelled",
+        Some("family-adsb"),
+    );
+    let result = assessment(
+        &[adsb],
+        None,
+        TrafficClass::NonCooperativeCrewed,
+        "cell-mislabelled",
+        5,
+        1,
+    );
+    assert_eq!(result.coverage_status, CoverageStatus::NotQualified);
+    assert!(result.qualified_claim_ids.is_empty());
+    assert!(result.unresolved_possible_occupancy);
+
+    let tdoa = claim(
+        "tdoa-mislabelled",
+        "tdoa-rx",
+        SensorModality::TdoaMlat,
+        TrafficClass::NonCooperativeCrewed,
+        "cell-mislabelled",
+        Some("family-tdoa"),
+    );
+    let result = assessment(
+        &[tdoa],
+        None,
+        TrafficClass::NonCooperativeCrewed,
+        "cell-mislabelled",
+        5,
+        1,
+    );
+    assert_eq!(result.coverage_status, CoverageStatus::NotQualified);
+    assert!(result.qualified_claim_ids.is_empty());
+    assert!(result.unresolved_possible_occupancy);
+}
+
 #[test]
 fn eo_ir_track_is_valid_only_under_its_declared_environment_claim() {
     let claim = claim(
