@@ -90,6 +90,7 @@ pub struct RandomizedUnitObservation {
     pub baseline_quality: MeasurementQuality,
     pub baseline_calibration_status: CalibrationStatus,
     pub baseline_calibration_record_sha256: String,
+    pub baseline_calibration_valid_from_seconds: f64,
     pub baseline_calibration_valid_until_seconds: f64,
     pub baseline_uncertainty_abs: f64,
     pub observed_outcome_value: f64,
@@ -103,6 +104,7 @@ pub struct RandomizedUnitObservation {
     pub outcome_quality: MeasurementQuality,
     pub outcome_calibration_status: CalibrationStatus,
     pub outcome_calibration_record_sha256: String,
+    pub outcome_calibration_valid_from_seconds: f64,
     pub outcome_calibration_valid_until_seconds: f64,
     /// Deterministic absolute-error bound from the measurement/calibration contract,
     /// not a standard deviation and not folded into the sampling standard error.
@@ -453,8 +455,12 @@ impl BlockedRandomizedMaintenanceTrial {
                 || observation.outcome_quality != MeasurementQuality::Valid
                 || observation.baseline_calibration_status != CalibrationStatus::Verified
                 || observation.outcome_calibration_status != CalibrationStatus::Verified
+                || observation.baseline_calibration_valid_from_seconds
+                    > observation.baseline_observed_at_seconds + TIME_TOLERANCE_SECONDS
                 || observation.baseline_calibration_valid_until_seconds
                     < observation.baseline_available_at_seconds
+                || observation.outcome_calibration_valid_from_seconds
+                    > observation.outcome_observed_at_seconds + TIME_TOLERANCE_SECONDS
                 || observation.outcome_calibration_valid_until_seconds
                     < observation.outcome_available_at_seconds
                 || observation.outcome_measurement_principle_id
@@ -934,6 +940,7 @@ mod tests {
                     baseline_quality: MeasurementQuality::Valid,
                     baseline_calibration_status: CalibrationStatus::Verified,
                     baseline_calibration_record_sha256: format!("{:064x}", digest_base + 4),
+                    baseline_calibration_valid_from_seconds: 0.0,
                     baseline_calibration_valid_until_seconds: 1000.0,
                     baseline_uncertainty_abs: 0.1,
                     observed_outcome_value: observed,
@@ -947,6 +954,7 @@ mod tests {
                     outcome_quality: MeasurementQuality::Valid,
                     outcome_calibration_status: CalibrationStatus::Verified,
                     outcome_calibration_record_sha256: format!("{:064x}", digest_base + 5),
+                    outcome_calibration_valid_from_seconds: 0.0,
                     outcome_calibration_valid_until_seconds: 1000.0,
                     outcome_uncertainty_abs: 0.25,
                 });
@@ -1142,6 +1150,18 @@ mod tests {
             estimate_blocked_randomized_maintenance_effect(&stale_trial),
             Err(MaintenanceEffectError::InvalidObservation(
                 stale_trial.observations[0].unit_id.clone()
+            ))
+        );
+    }
+
+    #[test]
+    fn calibration_must_be_effective_before_the_measurement_observation() {
+        let (mut trial, _) = fixture();
+        trial.observations[0].outcome_calibration_valid_from_seconds = 211.0;
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&trial),
+            Err(MaintenanceEffectError::InvalidObservation(
+                trial.observations[0].unit_id.clone()
             ))
         );
     }
