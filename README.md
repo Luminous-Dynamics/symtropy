@@ -137,6 +137,8 @@ Measured on NixOS, Rust stable, AMD Ryzen (single-threaded):
 
 Zero heap allocation in the physics hot path. All types use `const D: usize` generics with stack-allocated `nalgebra::SVector`.
 
+These are repository-reported microbenchmarks and sparse-body step measurements, not a complete engine comparison or a claim of superiority over Rapier, MuJoCo, Jolt, Box2D, or PhysX. The current 10/100/500-body step cases use widely spaced spheres and primarily measure integration / per-body overhead rather than dense contact solving. See the [Engine Qualification and Industry Comparison Guide](benchmarks/ENGINE_QUALIFICATION_GUIDE.md) for the common 2D/3D, N-dimensional reference, contact, CCD, joint, replay, and state-coupling workload plan.
+
 ## Collision Shapes
 
 | Shape | Dimensions | Support Complexity |
