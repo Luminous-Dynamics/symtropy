@@ -13,6 +13,8 @@ This qualifies the declared bounded constant-velocity slice arithmetic only. It 
 - Track H: infrastructure recovery portfolios and common-cause exposure (#5224).
 - Track I: reciprocal recoverability and option externalities (#5207).
 - Track J: endogenous demand, queueing and service-quality feedback (#5248).
+- Track K: finite-buffer airside blocking and queue spillback (#5261).
+- Track L: PNT/clock evidence to hard aircraft occupancy bounds (#5270).
 
 ## 2026 research references now in the benchmark suite
 
@@ -21,6 +23,9 @@ This qualifies the declared bounded constant-velocity slice arithmetic only. It 
 - Gottschalg et al. (2026), risk-averse two-stage site/fleet recourse under demand uncertainty, DOI 10.1016/j.tra.2026.104957.
 - Dubai integrated site/fleet/routing/recharging MIP, DOI 10.1016/j.trip.2026.101945.
 - Salt Lake City parcel-level siting, DOI 10.1016/j.cities.2026.107255.
+- EUROCONTROL GUID-203 (5 November 2026), GNSS degradation preparedness/detection/coordination/response/recovery.
+- Albaidhani (24 October 2026), measurement-limited civil-aviation GNSS spoofing benchmark, DOI 10.1016/j.nexres.2026.102604.
+- 2025 ADS-B spoofing TDoA multilateration with receiver-network redundancy, DOI 10.1016/j.trpro.2025.10.010.
 
 These are established baselines. AeroWeft must distinguish literature-level feature comparison, a transparent local implementation of a model class, and a faithful reproduction with exact source/data/parameters/solver pinned.
 
