@@ -1,0 +1,354 @@
+name: PHYS-OBS-09A Exact Timed Sampled Transition Qualification
+
+on:
+  push:
+    branches:
+      - "ci/exact-timed-sampled-transition-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exact-timed-sampled-transition-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: f8c6207a29d9189cdd5414bbe06a8a85fc14fdfd
+  CONVERGENCE_HEAD: 1be86d3a022ea4f714ad8f0563af94f47c2afcb1
+  SAMPLED_PARENT: e7fc7d90355917be2edac29b6d0ca3d1cd655a89
+  TIMING_PARENT: 1a9a81bc224be5d5e828cfbbdc5f3d9a30a13d13
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-09A timed sampled transition / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact convergence and product subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          test "$(git rev-parse "${PRODUCT_HEAD}^")" = "${CONVERGENCE_HEAD}"
+          test "$(git rev-list --count "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}")" = "1"
+
+          mapfile -t product_changed < <(git diff --name-only "${CONVERGENCE_HEAD}..${PRODUCT_HEAD}" | sort)
+          mapfile -t product_expected < <(printf '%s\n' \
+            crates/core/symtropy-physics/EXACT_TIMED_SAMPLED_PRESENCE_TRANSITION_V01.md \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/timed_sampled_presence.rs \
+            crates/core/symtropy-physics/tests/timed_sampled_presence_transition_v01.rs | sort)
+          test "${#product_changed[@]}" = "4"
+          test "${product_changed[*]}" = "${product_expected[*]}"
+
+          read -r -a parents <<< "$(git show -s --format='%P' "${CONVERGENCE_HEAD}")"
+          test "${#parents[@]}" = "2"
+          test "${parents[0]}" = "${SAMPLED_PARENT}"
+          test "${parents[1]}" = "${TIMING_PARENT}"
+          git merge-base --is-ancestor "${SAMPLED_PARENT}" "${CONVERGENCE_HEAD}"
+          git merge-base --is-ancestor "${TIMING_PARENT}" "${CONVERGENCE_HEAD}"
+          ! git merge-base --is-ancestor "${SAMPLED_PARENT}" "${TIMING_PARENT}"
+          ! git merge-base --is-ancestor "${TIMING_PARENT}" "${SAMPLED_PARENT}"
+
+          mapfile -t from_sampled < <(git diff --name-only "${SAMPLED_PARENT}..${CONVERGENCE_HEAD}" | sort)
+          mapfile -t expected_from_sampled < <(printf '%s\n' \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs | sort)
+          test "${from_sampled[*]}" = "${expected_from_sampled[*]}"
+
+          mapfile -t from_timing < <(git diff --name-only "${TIMING_PARENT}..${CONVERGENCE_HEAD}" | sort)
+          mapfile -t expected_from_timing < <(printf '%s\n' \
+            crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/src/sampled_presence.rs \
+            crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs | sort)
+          test "${from_timing[*]}" = "${expected_from_timing[*]}"
+
+          assert_blob() {
+            local ref="$1" path="$2" expected="$3"
+            local actual
+            actual="$(git rev-parse "${ref}:${path}")"
+            test "${actual}" = "${expected}"
+          }
+
+          # Frozen PHYS-OBS-06 semantic blobs are byte-identical in convergence.
+          for ref in "${SAMPLED_PARENT}" "${CONVERGENCE_HEAD}" "${PRODUCT_HEAD}"; do
+            assert_blob "${ref}" crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md b0f35ce122878bfa469d75fcf57f766fdd899214
+            assert_blob "${ref}" crates/core/symtropy-physics/src/sampled_presence.rs f836bfc48a418db2e89e63747bed24d6289cb1b0
+            assert_blob "${ref}" crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs b4e4feac40cf222e1202c477339754671adf0bfd
+          done
+
+          # Frozen PHYS-OBS-07 semantic blobs are byte-identical in convergence.
+          for ref in "${TIMING_PARENT}" "${CONVERGENCE_HEAD}" "${PRODUCT_HEAD}"; do
+            assert_blob "${ref}" crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md 8bb81f780dc9fc60c2814618cc05bf0984e51419
+            assert_blob "${ref}" crates/core/symtropy-physics/src/timed_evidence.rs b331c05431032d231ef5164a3a9b0ac5b858610e
+            assert_blob "${ref}" crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs 6a26b01f87c0cb60de960ad4afb1b075cb21f494
+          done
+
+          assert_blob "${CONVERGENCE_HEAD}" crates/core/symtropy-physics/src/lib.rs 600472b504b122ded91d8c3560178ca91b6eab3f
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/EXACT_TIMED_SAMPLED_PRESENCE_TRANSITION_V01.md 03f7679df12263f9c9cf72a491fef0bcd8d57f4b
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/src/timed_sampled_presence.rs 79822546f44ddc756502ad322b0d8f27c1c3500c
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/src/lib.rs 49c5402b33ac2cf97c7794c0855f5e7a05489b18
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/tests/timed_sampled_presence_transition_v01.rs 9861b2c218c03b4ec56a94293e6ea80e832f48af
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/EXACT_TIMED_SAMPLED_PRESENCE_TRANSITION_V01.md \
+            crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/timed_sampled_presence.rs \
+            crates/core/symtropy-physics/src/sampled_presence.rs \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/timed_sampled_presence_transition_v01.rs \
+            crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/exact-timed-sampled-transition-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run exact timed sampled-transition theorem
+        run: cargo test -p symtropy-physics --locked --test timed_sampled_presence_transition_v01
+
+      - name: Run PHYS-OBS-06 sampled-presence regression
+        run: cargo test -p symtropy-physics --locked --test consecutive_sampled_presence_v01
+
+      - name: Run PHYS-OBS-07 exact-step-receipt regression
+        run: cargo test -p symtropy-physics --locked --test exact_step_receipt_v01
+
+      - name: Run PHYS-OBS-05 issued-endpoint regression
+        run: cargo test -p symtropy-physics --locked --test qualified_stamped_endpoint_v01
+
+      - name: Run sealed evidence-authority regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit PHYS-OBS-09A claim boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          module = Path('crates/core/symtropy-physics/src/timed_sampled_presence.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/EXACT_TIMED_SAMPLED_PRESENCE_TRANSITION_V01.md').read_text()
+          tests = Path('crates/core/symtropy-physics/tests/timed_sampled_presence_transition_v01.rs').read_text()
+
+          token = 'LocalExactTimedSampledPresenceTransition'
+          derive = re.search(
+              rf'#\[derive\(([^)]*)\)\]\s*pub struct {token}',
+              module,
+              re.MULTILINE,
+          )
+          assert derive is not None
+          traits = {part.strip() for part in derive.group(1).split(',')}
+          assert {'Debug', 'PartialEq', 'Eq'} <= traits
+          assert 'Clone' not in traits
+          assert 'Copy' not in traits
+          assert 'Serialize' not in traits
+          assert 'Deserialize' not in traits
+
+          struct_start = module.index(f'pub struct {token}')
+          struct_end = module.index('\n}\n', struct_start) + 2
+          struct_block = module[struct_start:struct_end]
+          for line in struct_block.splitlines()[1:]:
+              assert not line.lstrip().startswith('pub '), line
+          assert 'previous_stamp: LocalQualifiedAuthorityStepStamp' in struct_block
+          assert 'current_stamp: LocalQualifiedAuthorityStepStamp' in struct_block
+          assert 'subject: PhysicsBodySubject' in struct_block
+          assert 'region: AuthorityEndpointBoxSpec<D>' in struct_block
+          assert 'dt_bits: u64' in struct_block
+
+          assert 'pub fn new' not in module
+          assert 'pub const fn new' not in module
+          assert 'impl From<' not in module
+          assert 'impl TryFrom<' not in module
+          assert 'Serialize' not in module
+          assert 'Deserialize' not in module
+          assert 'unsafe ' not in module
+
+          ctor_start = module.index('pub fn try_from_relation_and_receipt(')
+          ctor_open = module.index('{', ctor_start)
+          signature = module[ctor_start:ctor_open]
+          assert '&LocalConsecutiveSampledEndpointPresence<D>' in signature
+          assert '&LocalQualifiedStepExecutionReceipt' in signature
+          forbidden_signature = (
+              'AuthorityEndpointBoxObservation',
+              'LocalQualifiedStampedEndpointBoxObservation',
+              'LocalQualifiedAuthorityStepStamp,',
+              'PhysicsBodySubject,',
+              'AuthorityEndpointBoxSpec<D>,',
+              'dt_bits:',
+          )
+          for marker in forbidden_signature:
+              assert marker not in signature, marker
+
+          ctor_end = module.index('\n    pub const fn previous_stamp', ctor_start)
+          ctor = module[ctor_start:ctor_end]
+          assert 'let expected_current = relation.current_stamp();' in ctor
+          assert 'let actual_receipt = receipt.stamp();' in ctor
+          assert 'if actual_receipt != expected_current' in ctor
+          assert 'dt_bits: receipt.dt_bits()' in ctor
+          assert ctor.count('receipt.dt_bits()') == 1
+
+          # This join must not duplicate either predecessor theorem.
+          forbidden_module = (
+              'EndpointMembership',
+              'AuthorityEndpointBoxObservation',
+              'LocalQualifiedStampedEndpointBoxObservation',
+              'checked_sub(',
+              'checked_add(',
+              'step_authorized(',
+              'step_authorized_with_callback(',
+              'PhysicsWorld',
+              'symtropy_math',
+              'contains_local',
+              'is_finite()',
+              'NonFiniteDeltaTime',
+              'NonPositiveDeltaTime',
+          )
+          for marker in forbidden_module:
+              assert marker not in module, marker
+
+          assert 'previous_and_future_receipts_are_not_transition_duration_authority' in tests
+          assert 'equal_numeric_step_from_fresh_temporal_incarnation_is_rejected' in tests
+          assert 'equal_numeric_step_from_other_generation_or_authority_is_rejected' in tests
+          assert 'repeated_derivation_is_equal_semantic_evidence_not_progress' in tests
+          assert 'exact_current_receipt_binds_one_timed_sampled_transition' in tests
+
+          assert 'Receipt `N` is not credited' in contract
+          assert 'PHYS-OBS-08 / #1058 is not a dependency' in contract
+          assert 'No fixed cadence' in contract
+          assert 'no continuous occupancy' in contract.lower()
+          assert 'no cumulative elapsed interval' in contract.lower()
+          assert 'no settlement eligibility' in contract.lower()
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/EXACT_TIMED_SAMPLED_PRESENCE_TRANSITION_V01.md \
+            crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/timed_sampled_presence.rs \
+            crates/core/symtropy-physics/src/sampled_presence.rs \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/timed_sampled_presence_transition_v01.rs \
+            crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            crates/core/symtropy-physics/tests/sealed_evidence_authority_v01.rs \
+            > "${RUNNER_TEMP}/exact-timed-sampled-transition-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/exact-timed-sampled-transition-source-sha256.txt" \
+            "${RUNNER_TEMP}/exact-timed-sampled-transition-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+
+          def blob(ref, path):
+              return subprocess.check_output(
+                  ['git', 'rev-parse', f'{ref}:{path}'], text=True
+              ).strip()
+
+          sampled_paths = [
+              'crates/core/symtropy-physics/EXACT_CONSECUTIVE_SAMPLED_ENDPOINT_PRESENCE_V01.md',
+              'crates/core/symtropy-physics/src/sampled_presence.rs',
+              'crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs',
+          ]
+          timing_paths = [
+              'crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md',
+              'crates/core/symtropy-physics/src/timed_evidence.rs',
+              'crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs',
+          ]
+
+          receipt = {
+              'theorem': 'PHYS-OBS-09A exact timed sampled-presence transition v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'convergence_head': os.environ['CONVERGENCE_HEAD'],
+              'convergence_parent_count': 2,
+              'convergence_first_parent': os.environ['SAMPLED_PARENT'],
+              'convergence_second_parent': os.environ['TIMING_PARENT'],
+              'sampled_parent_blobs': {
+                  p: blob(os.environ['SAMPLED_PARENT'], p) for p in sampled_paths
+              },
+              'convergence_sampled_blobs': {
+                  p: blob(os.environ['CONVERGENCE_HEAD'], p) for p in sampled_paths
+              },
+              'timing_parent_blobs': {
+                  p: blob(os.environ['TIMING_PARENT'], p) for p in timing_paths
+              },
+              'convergence_timing_blobs': {
+                  p: blob(os.environ['CONVERGENCE_HEAD'], p) for p in timing_paths
+              },
+              'predecessor_blob_preservation': True,
+              'receipt_full_stamp_must_equal_relation_current_stamp': True,
+              'exact_executed_dt_bits': True,
+              'previous_step_receipt_credit': False,
+              'fixed_cadence_authority': False,
+              'cumulative_simulation_time_authority': False,
+              'continuous_occupancy_authority': False,
+              'dwell_arrival_authority': False,
+              'wall_clock_authority': False,
+              'persistent_or_settlement_authority': False,
+              'independent_predecessor_helper_pass_required_by_this_receipt': False,
+          }
+          Path('exact-timed-sampled-transition-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-timed-sampled-transition-${{ env.PRODUCT_HEAD }}
+          path: |
+            exact-timed-sampled-transition-qualification-receipt.json
+            ${{ runner.temp }}/exact-timed-sampled-transition-source-sha256.txt
+            ${{ runner.temp }}/exact-timed-sampled-transition-source-sha256-post.txt
+          if-no-files-found: error
