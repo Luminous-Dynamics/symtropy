@@ -185,7 +185,14 @@
         "reproducing_Onizuka_and_Nault_case_studies_requires_compile_time_edits_for_wave_speed_timestep_and_output_path"
       ],
       "source_commit_url": "https://github.com/MehmetMelihKosucu/EPANET-AWH/commit/1f009d84764f33775f6f0bf244d78fa439c30bb7",
-      "licence_file_sha256": "not_computed_in_this_benchmark"
+      "licence_file_sha256": "not_computed_in_this_benchmark",
+      "source_code_loci": {
+        "wave_speed": "src/Elements/pipe.cpp::Pipe::getWaveSpeed (diameter-based branch active; elastic formula commented out)",
+        "transient_step": "src/Core/constants.h::Delta_WH = 0.002",
+        "event_detection": "src/Core/hydengine.cpp::HydEngine::detectSignificantHydraulicEvent (fabs(setting_delta) > 0.1 or link status differs from previousStatus)",
+        "output_path": "src/Core/epanet3.cpp::EN_runEpanet (fixed C:\\\\EPANET-AWH\\\\Networks\\\\Results-Nault2018-AWH.txt and fixed J71/J70/J874 output list)",
+        "build": "CMakeLists.txt declares 2.8...3.13; README says target_precompile_headers requires CMake 3.16+"
+      }
     },
     {
       "solver_id": "bentley_hammer",
