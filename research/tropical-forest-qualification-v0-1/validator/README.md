@@ -55,6 +55,8 @@ The exported `canopy_kernel` module provides a minimal spatial cohort-to-cell LA
 
 ## Variable-aware aggregation kernel
 
+The full scientific contract, benchmark targets and claim limits are documented in [VARIABLE_AWARE_AGGREGATION_V0_1.md](../VARIABLE_AWARE_AGGREGATION_V0_1.md).
+
 The exported `aggregation_kernel` distinguishes four incompatible operations:
 
 - **Intensive variables:** area-weighted mean over valid observed overlap only; target unit is declared separately from the expected result. It reports geometric/valid coverage and never extrapolates a partial observed mean to the unobserved target.
@@ -70,7 +72,7 @@ The bounded kernel does not validate the real sampling design, first/second-orde
 
 The exported `support_kernel` module qualifies exact axis-aligned rectangles in one already-declared planar coordinate system. It reports target area, geometric overlap area, geometric coverage fraction and valid-data coverage fraction separately. Cloud/no-data footprints may contribute geometric coverage but not valid-data coverage. Partial support is reported as partial; the kernel does not extrapolate. Overlapping source rectangles are rejected to prevent double counting, and CRS mismatches are rejected rather than silently transformed. The fourteen-case machine-readable corpus returns a SHA-256-bound `PASS_SYNTHETIC_SUPPORT` receipt only when the actual kernel agrees with the declared analytical cases.
 
-Fourteen kernel unit tests cover identity, containment, partial and zero overlap, tiled and fragmented coverage, invalid-data masks, mixed validity, registration shift, CRS mismatch, duplicate overlap, invalid geometry, edge-touching tiles and empty evidence. The module is a bounded analytical kernel, not a production GIS adapter. It does not implement arbitrary polygons, rotated raster transforms, CRS conversion, geometry repair, registration-error distributions, intensive/extensive/count/categorical value aggregation, source asset authentication, or field validation. These remain explicit work in [#5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237).
+Fourteen kernel unit tests cover identity, containment, partial and zero overlap, tiled and fragmented coverage, invalid-data masks, mixed validity, registration shift, CRS mismatch, duplicate overlap, invalid geometry, edge-touching tiles and empty evidence. The module is a bounded analytical geometry kernel, not a production GIS adapter. It does not implement arbitrary polygons, rotated raster transforms, CRS conversion, geometry repair, registration-error distributions, source asset authentication or field validation. Variable-specific intensive/extensive/count/categorical operations are handled by the separate `aggregation_kernel` module. The remaining geometry work is explicit in [#5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237).
 
 ## Decision-value corpus
 
