@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/airborne-energy-observability-v0/observability.schema.json",
+  "title": "Aerial receiver pose observability known-truth case v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "record_state",
+    "evidence_class",
+    "field",
+    "receiver",
+    "observation_contract",
+    "pose_samples",
+    "expected_disposition",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "airborne-energy-observability-v0"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_state": {
+      "enum": [
+        "NOT_RUN",
+        "FIXTURE"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "NOT_RUN",
+        "SYNTHETIC_KNOWN_TRUTH",
+        "SYNTHETIC_ADVERSARIAL"
+      ]
+    },
+    "field": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "modality",
+            "field_id",
+            "field_sha256",
+            "field_revision"
+          ],
+          "properties": {
+            "modality": {
+              "enum": [
+                "RF_MICROWAVE",
+                "OPTICAL"
+              ]
+            },
+            "field_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "field_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "field_revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "receiver": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "receiver_id",
+            "receiver_sha256",
+            "sensor_kind",
+            "calibration_sha256"
+          ],
+          "properties": {
+            "receiver_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "receiver_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "sensor_kind": {
+              "enum": [
+                "SEGMENTED_RF_POWER",
+                "PHOTODIODE_SPOT",
+                "SYNTHETIC_OTHER"
+              ]
+            },
+            "calibration_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "observation_contract": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_translation_separation_mm",
+            "minimum_attitude_separation_mdeg",
+            "measurement_noise_tolerance"
+          ],
+          "properties": {
+            "minimum_translation_separation_mm": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minimum_attitude_separation_mdeg": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "measurement_noise_tolerance": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pose_samples": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pose_id",
+          "position_mm",
+          "attitude_mdeg",
+          "observation_signature",
+          "support_state"
+        ],
+        "properties": {
+          "pose_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "position_mm": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "attitude_mdeg": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer",
+              "minimum": -180000,
+              "maximum": 180000
+            }
+          },
+          "observation_signature": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "received_power_microwatt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "support_state": {
+            "enum": [
+              "IN_DOMAIN",
+              "OUT_OF_DOMAIN"
+            ]
+          }
+        }
+      }
+    },
+    "expected_disposition": {
+      "enum": [
+        "NOT_RUN",
+        "UNIQUE_WITHIN_DECLARED_SAMPLE_SET",
+        "AMBIGUOUS"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "const": "NOT_RUN"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_class": {
+            "const": "NOT_RUN"
+          },
+          "field": {
+            "type": "null"
+          },
+          "receiver": {
+            "type": "null"
+          },
+          "observation_contract": {
+            "type": "null"
+          },
+          "pose_samples": {
+            "maxItems": 0
+          },
+          "expected_disposition": {
+            "const": "NOT_RUN"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "const": "FIXTURE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_class": {
+            "enum": [
+              "SYNTHETIC_KNOWN_TRUTH",
+              "SYNTHETIC_ADVERSARIAL"
+            ]
+          },
+          "field": {
+            "type": "object"
+          },
+          "receiver": {
+            "type": "object"
+          },
+          "observation_contract": {
+            "type": "object"
+          },
+          "pose_samples": {
+            "minItems": 2
+          },
+          "expected_disposition": {
+            "enum": [
+              "UNIQUE_WITHIN_DECLARED_SAMPLE_SET",
+              "AMBIGUOUS"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

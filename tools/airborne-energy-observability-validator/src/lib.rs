@@ -442,13 +442,13 @@ fn validate_fixture(value: &Value, case_id: &str) -> Result<ObservabilityReport,
                 "observation_signature length differs from measurement_noise_tolerance",
             ));
         }
-        if let Some(power) = sample.get("received_power_microwatt") {
-            if power.as_u64().is_none() {
-                return Err(fail(
-                    &path,
-                    "received_power_microwatt must be a non-negative integer",
-                ));
-            }
+        if let Some(power) = sample.get("received_power_microwatt")
+            && power.as_u64().is_none()
+        {
+            return Err(fail(
+                &path,
+                "received_power_microwatt must be a non-negative integer",
+            ));
         }
         let support_state = string(sample, "support_state", &path)?;
         let in_domain = match support_state {

@@ -1,0 +1,111 @@
+{
+  "schema_version": "airborne-energy-observability-v0",
+  "case_id": "rf-high-power-ambiguous-pose-adversarial-001",
+  "record_state": "FIXTURE",
+  "evidence_class": "SYNTHETIC_ADVERSARIAL",
+  "field": {
+    "modality": "RF_MICROWAVE",
+    "field_id": "synthetic-ring-null-field",
+    "field_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "field_revision": "synthetic-field-r0"
+  },
+  "receiver": {
+    "receiver_id": "synthetic-segmented-receiver-02",
+    "receiver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "sensor_kind": "SEGMENTED_RF_POWER",
+    "calibration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "observation_contract": {
+    "minimum_translation_separation_mm": 500,
+    "minimum_attitude_separation_mdeg": 5000,
+    "measurement_noise_tolerance": [
+      2,
+      2,
+      2
+    ]
+  },
+  "pose_samples": [
+    {
+      "pose_id": "pose-ring-a",
+      "position_mm": [
+        -1000,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        100,
+        100,
+        100
+      ],
+      "received_power_microwatt": 800000,
+      "support_state": "IN_DOMAIN"
+    },
+    {
+      "pose_id": "pose-ring-b",
+      "position_mm": [
+        0,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        100,
+        100,
+        100
+      ],
+      "received_power_microwatt": 800000,
+      "support_state": "IN_DOMAIN"
+    },
+    {
+      "pose_id": "pose-ring-c",
+      "position_mm": [
+        1000,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        100,
+        100,
+        100
+      ],
+      "received_power_microwatt": 800000,
+      "support_state": "IN_DOMAIN"
+    },
+    {
+      "pose_id": "pose-outside",
+      "position_mm": [
+        9000,
+        0,
+        1000
+      ],
+      "attitude_mdeg": [
+        0,
+        0,
+        0
+      ],
+      "observation_signature": [
+        0,
+        0,
+        0
+      ],
+      "received_power_microwatt": 0,
+      "support_state": "OUT_OF_DOMAIN"
+    }
+  ],
+  "expected_disposition": "AMBIGUOUS",
+  "claim_ceiling": "Synthetic adversarial ambiguity fixture only. Several physically distinct in-domain poses produce indistinguishable sensor signatures despite high received-power proxy. The validator must reject unique pose admission. No field, receiver, power or tracking performance is physically modelled."
+}
