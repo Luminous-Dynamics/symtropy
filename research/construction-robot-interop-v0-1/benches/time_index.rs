@@ -306,7 +306,7 @@ fn epoch_invalidation_run(size: u64, active_after_release: u64) {
     for index in 0..size {
         let start = 1_000 + index * 20;
         book.reserve(
-            request(index, "epoch-load", start, start + 10, start + 20_000, 1),
+            request(index, "epoch-load", start, start + 10, start + 20_000),
             0,
         )
         .expect("epoch benchmark reservation");
