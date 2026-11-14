@@ -52,6 +52,10 @@ pub struct IncomingItem {
     pub lot_id: String,
     /// Unique sequence number assigned at intake; gaps are permitted.
     pub intake_sequence: u64,
+    /// Timestamp of physical intake on the run's monotonic clock.
+    pub intake_at_ns: u64,
+    /// Independently measured incoming item mass in milligrams.
+    pub measured_mass_mg: u64,
     /// Independent reference destination, when available.
     pub reference_destination: Option<String>,
 }
@@ -98,6 +102,10 @@ pub struct FeedRun {
     pub run_id: String,
     pub line_id: String,
     pub configuration_revision: String,
+    /// Beginning of the wall-clock measurement window on a monotonic clock.
+    pub run_started_at_ns: u64,
+    /// End of the wall-clock measurement window on the same clock.
+    pub run_completed_at_ns: u64,
     pub incoming_items: Vec<IncomingItem>,
     pub attempts: Vec<PresentationAttempt>,
     pub terminal_dispositions: Vec<TerminalDisposition>,
@@ -130,6 +138,18 @@ pub struct CountRate {
 pub struct FeedMetrics {
     pub incoming_items: u64,
     pub presentation_attempts: u64,
+    /// Sum of measured incoming item masses; milligrams.
+    pub input_mass_mg: u128,
+    /// Sum of masses for terminally routed items; milligrams, not receiver-accepted yield.
+    pub routed_mass_mg: u128,
+    /// Wall-clock elapsed measurement window; nanoseconds.
+    pub wall_clock_duration_ns: u64,
+    /// Gross incoming items/hour multiplied by 1,000; wall-clock denominator.
+    pub items_per_hour_x1000: u128,
+    /// Gross incoming kg/hour multiplied by 1,000; wall-clock denominator.
+    pub input_kg_per_hour_x1000: u128,
+    /// Routed kg/hour multiplied by 1,000; not a measure of downstream acceptance.
+    pub routed_kg_per_hour_x1000: u128,
     /// First attempt was a valid single-item presentation / all incoming items.
     pub first_pass_single_presentation: CountRate,
     /// At least one attempt achieved a valid single-item presentation / all incoming items.
@@ -196,11 +216,34 @@ impl FeedRun {
             add("EMPTY_INCOMING_MANIFEST", None, "a feed run must contain at least one incoming item");
         }
 
+        if self.run_started_at_ns >= self.run_completed_at_ns {
+            add(
+                "INVALID_RUN_INTERVAL",
+                None,
+                "run completion must be later than run start",
+            );
+        }
         let mut item_by_id = BTreeMap::<&str, &IncomingItem>::new();
         let mut intake_sequences = BTreeSet::new();
         for item in &self.incoming_items {
             if !nonempty(&item.item_id) || !nonempty(&item.lot_id) {
                 add("INVALID_INCOMING_ITEM", Some(&item.item_id), "item_id and lot_id must be non-empty");
+            }
+            if item.measured_mass_mg == 0 {
+                add(
+                    "MISSING_OR_ZERO_ITEM_MASS",
+                    Some(&item.item_id),
+                    "every incoming item must have a positive measured mass in milligrams",
+                );
+            }
+            if item.intake_at_ns < self.run_started_at_ns
+                || item.intake_at_ns >= self.run_completed_at_ns
+            {
+                add(
+                    "INTAKE_OUTSIDE_RUN",
+                    Some(&item.item_id),
+                    "item intake timestamp must lie within the run interval",
+                );
             }
             if item_by_id.insert(&item.item_id, item).is_some() {
                 add("DUPLICATE_INCOMING_ITEM", Some(&item.item_id), "incoming item identity appears more than once");
@@ -228,6 +271,24 @@ impl FeedRun {
             }
             if attempt.started_at_ns >= attempt.completed_at_ns {
                 add("INVALID_ATTEMPT_INTERVAL", Some(&attempt.item_id), "attempt finish must be later than attempt start");
+            }
+            if attempt.started_at_ns < self.run_started_at_ns
+                || attempt.completed_at_ns > self.run_completed_at_ns
+            {
+                add(
+                    "ATTEMPT_OUTSIDE_RUN",
+                    Some(&attempt.item_id),
+                    "presentation attempt must lie within the run interval",
+                );
+            }
+            if let Some(item) = item_by_id.get(attempt.item_id.as_str())
+                && attempt.started_at_ns < item.intake_at_ns
+            {
+                add(
+                    "ATTEMPT_BEFORE_INTAKE",
+                    Some(&attempt.item_id),
+                    "presentation attempt cannot precede physical intake",
+                );
             }
             if !valid_evidence(&attempt.evidence) {
                 add("INVALID_ATTEMPT_EVIDENCE", Some(&attempt.item_id), "attempt evidence requires an ID, valid SHA-256 and method reference");
@@ -269,6 +330,15 @@ impl FeedRun {
             }
             if !item_by_id.contains_key(terminal.item_id.as_str()) {
                 add("ORPHAN_TERMINAL_DISPOSITION", Some(&terminal.item_id), "terminal disposition references an item absent from the incoming manifest");
+            }
+            if terminal.completed_at_ns < self.run_started_at_ns
+                || terminal.completed_at_ns > self.run_completed_at_ns
+            {
+                add(
+                    "TERMINAL_OUTSIDE_RUN",
+                    Some(&terminal.item_id),
+                    "terminal disposition must lie within the run interval",
+                );
             }
             if terminal.outcome == TerminalOutcome::Routed
                 && !attempts_by_item
@@ -405,9 +475,37 @@ impl FeedRun {
             (denominator > 0).then_some(CountRate { numerator, denominator })
         };
 
+        let input_mass_mg: u128 = self
+            .incoming_items
+            .iter()
+            .map(|item| u128::from(item.measured_mass_mg))
+            .sum();
+        let routed_mass_mg: u128 = self
+            .incoming_items
+            .iter()
+            .filter(|item| terminal_by_item[item.item_id.as_str()].outcome == TerminalOutcome::Routed)
+            .map(|item| u128::from(item.measured_mass_mg))
+            .sum();
+        let wall_clock_duration_ns = self.run_completed_at_ns - self.run_started_at_ns;
+        // Convert exact wall-clock rates to milli-units without floating point:
+        // items/hour * 1000 = items * 3.6e15 / ns
+        // kg/hour * 1000 = mass_mg * 3.6e9 / ns
+        let items_per_hour_x1000 =
+            u128::from(total) * 3_600_000_000_000_000_u128 / u128::from(wall_clock_duration_ns);
+        let input_kg_per_hour_x1000 =
+            input_mass_mg * 3_600_000_000_u128 / u128::from(wall_clock_duration_ns);
+        let routed_kg_per_hour_x1000 =
+            routed_mass_mg * 3_600_000_000_u128 / u128::from(wall_clock_duration_ns);
+
         Ok(FeedMetrics {
             incoming_items: total,
             presentation_attempts: self.attempts.len() as u64,
+            input_mass_mg,
+            routed_mass_mg,
+            wall_clock_duration_ns,
+            items_per_hour_x1000,
+            input_kg_per_hour_x1000,
+            routed_kg_per_hour_x1000,
             first_pass_single_presentation: CountRate { numerator: first_pass_single, denominator: total },
             eventual_single_presentation: CountRate { numerator: eventual_single, denominator: total },
             end_to_end_routed: CountRate { numerator: routed, denominator: total },
@@ -444,6 +542,8 @@ mod tests {
             item_id: id.to_owned(),
             lot_id: "LOT-01".to_owned(),
             intake_sequence: sequence,
+            intake_at_ns: 5 + sequence,
+            measured_mass_mg: sequence * 10_000,
             reference_destination: Some(reference.to_owned()),
         }
     }
@@ -491,6 +591,8 @@ mod tests {
             run_id: "RUN-01".to_owned(),
             line_id: "LINE-01".to_owned(),
             configuration_revision: "FEEDER-R3".to_owned(),
+            run_started_at_ns: 0,
+            run_completed_at_ns: 100,
             incoming_items: vec![
                 item("ITEM-01", 1, "cotton"),
                 item("ITEM-02", 2, "polyester"),
@@ -518,6 +620,12 @@ mod tests {
         assert!(run.validate().valid, "{:#?}", run.validate().findings);
         let metrics = run.metrics().unwrap();
         assert_eq!(metrics.incoming_items, 4);
+        assert_eq!(metrics.input_mass_mg, 100_000);
+        assert_eq!(metrics.routed_mass_mg, 30_000);
+        assert_eq!(metrics.wall_clock_duration_ns, 100);
+        assert_eq!(metrics.items_per_hour_x1000, 144_000_000_000_000);
+        assert_eq!(metrics.input_kg_per_hour_x1000, 3_600_000_000_000);
+        assert_eq!(metrics.routed_kg_per_hour_x1000, 1_080_000_000_000);
         assert_eq!(metrics.first_pass_single_presentation, CountRate { numerator: 1, denominator: 4 });
         assert_eq!(metrics.eventual_single_presentation, CountRate { numerator: 2, denominator: 4 });
         assert_eq!(metrics.end_to_end_routed, CountRate { numerator: 2, denominator: 4 });
@@ -681,6 +789,60 @@ mod tests {
                 numerator: 1,
                 denominator: 2
             }
+        );
+    }
+
+    #[test]
+    fn run_interval_and_item_intake_time_are_required_for_throughput() {
+        let mut run = valid_run();
+        run.run_completed_at_ns = run.run_started_at_ns;
+        assert!(
+            run.validate()
+                .findings
+                .iter()
+                .any(|finding| finding.code == "INVALID_RUN_INTERVAL")
+        );
+
+        let mut run = valid_run();
+        run.incoming_items[0].intake_at_ns = 100;
+        assert!(
+            run.validate()
+                .findings
+                .iter()
+                .any(|finding| finding.code == "INTAKE_OUTSIDE_RUN")
+        );
+    }
+
+    #[test]
+    fn item_mass_must_be_measured_and_positive() {
+        let mut run = valid_run();
+        run.incoming_items[0].measured_mass_mg = 0;
+        assert!(
+            run.validate()
+                .findings
+                .iter()
+                .any(|finding| finding.code == "MISSING_OR_ZERO_ITEM_MASS")
+        );
+    }
+
+    #[test]
+    fn attempt_and_terminal_times_must_be_bound_to_intake_and_run() {
+        let mut run = valid_run();
+        run.attempts[0].started_at_ns = 4;
+        assert!(
+            run.validate()
+                .findings
+                .iter()
+                .any(|finding| finding.code == "ATTEMPT_BEFORE_INTAKE")
+        );
+
+        let mut run = valid_run();
+        run.terminal_dispositions[0].completed_at_ns = 101;
+        assert!(
+            run.validate()
+                .findings
+                .iter()
+                .any(|finding| finding.code == "TERMINAL_OUTSIDE_RUN")
         );
     }
 
