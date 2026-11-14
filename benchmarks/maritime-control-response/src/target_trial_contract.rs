@@ -200,6 +200,7 @@ pub struct ObservationalEmulationDiagnostics {
     pub followup_completeness_fraction: f64,
     pub assumption_assessments: Vec<AssumptionAssessment>,
     pub negative_control_status: AssessmentStatus,
+    pub sensitivity_analysis_status: AssessmentStatus,
     pub unit_timelines: Vec<EmulationUnitTimeline>,
 }
 
@@ -660,6 +661,9 @@ pub fn evaluate_observational_target_trial(
     if diagnostics.negative_control_status != AssessmentStatus::Supported {
         blockers.push("negative control is unknown or violates its preregistered expectation".into());
     }
+    if diagnostics.sensitivity_analysis_status != AssessmentStatus::Supported {
+        blockers.push("sensitivity analysis is missing, unknown or incomplete".into());
+    }
 
     let disposition = if protocol_incomplete {
         TargetTrialDisposition::ProtocolIncomplete
@@ -853,6 +857,7 @@ mod tests {
                 },
             ],
             negative_control_status: AssessmentStatus::Supported,
+            sensitivity_analysis_status: AssessmentStatus::Supported,
             unit_timelines: timelines,
         }
     }
@@ -968,6 +973,15 @@ mod tests {
         data.negative_control_status = AssessmentStatus::Unknown;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+    }
+
+    #[test]
+    fn missing_sensitivity_analysis_prevents_design_qualification() {
+        let mut data = diagnostics();
+        data.sensitivity_analysis_status = AssessmentStatus::Unknown;
+        let report = evaluate_observational_target_trial(&protocol(), &data);
+        assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+        assert!(report.blockers.iter().any(|item| item.contains("sensitivity analysis")));
     }
 
     #[test]
