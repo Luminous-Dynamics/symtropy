@@ -52,9 +52,15 @@ jobs:
           protocol = json.loads((root / "monte-carlo-randomization-v0.1.json").read_text())
           config_schema = json.loads((root / "monte-carlo-randomization-config.schema.json").read_text())
           result_schema = json.loads((root / "monte-carlo-randomization-result.schema.json").read_text())
+          result_example = json.loads((root / "monte-carlo-randomization-result.example.json").read_text())
           corpus = json.loads((root / "monte-carlo-randomization-cases-v0.1.json").read_text())
           Draft202012Validator.check_schema(config_schema)
           Draft202012Validator.check_schema(result_schema)
+          Draft202012Validator(result_schema).validate(result_example)
+          max_u64 = 18446744073709551615
+          assert config_schema["properties"]["seed_u64"]["maximum"] == max_u64
+          assert result_schema["properties"]["seed_u64"]["maximum"] == max_u64
+          Draft202012Validator(config_schema).validate({"seed_u64": max_u64, "draw_count": 2_000_000})
           assert protocol["schema_version"] == "symtropy-marine-monte-carlo-randomization-v0.1"
           assert protocol["status"] == "protocol_only_not_executed"
           assert protocol["algorithm"]["id"] == "splitmix64_v1"
@@ -69,6 +75,8 @@ jobs:
           assert "randomization_frame_sha256" in result_schema["required"]
           assert "sampled_assignments_sha256" in result_schema["required"]
           assert result_schema["properties"]["exact_enumeration_used"]["const"] is False
+          assert result_example["allocation_constraint_violations"] == 0
+          assert result_example["p_value_plus_one"] > 0
           print("Monte Carlo randomization protocol/schema/case checks: PASS")
           PY
 
