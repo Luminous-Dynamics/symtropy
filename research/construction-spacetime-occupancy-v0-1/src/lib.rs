@@ -458,11 +458,11 @@ impl SpatialOccupancyBook {
             return Err(SpatialError::PotentialConflict(Box::new(conflict)));
         }
 
-        Ok(PreparedInsertion::New(PreparedOccupancy {
+        Ok(PreparedInsertion::New(Box::new(PreparedOccupancy {
             occupancy,
             expanded_bounds,
             expanded_interval,
-        }))
+        })))
     }
 
     /// Commit a previously validated candidate. No typed validation or conflict
