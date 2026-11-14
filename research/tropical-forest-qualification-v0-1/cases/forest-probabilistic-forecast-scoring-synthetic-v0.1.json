@@ -1,0 +1,200 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-PROBABILISTIC-FORECAST-SCORING-001",
+  "status": "PUBLIC_SYNTHETIC_PROBABILISTIC_SCORE_CASES_NOT_ECOLOGICAL_CALIBRATION",
+  "target": {
+    "variable": "aboveground_biomass_density",
+    "unit": "Mg/ha",
+    "horizon_days": 365
+  },
+  "baseline_kind": "SYNTHETIC_POINT_MASS_REFERENCE",
+  "claim_ceiling": "Six public synthetic forecast cases exercise empirical CRPS, nearest-rank interval diagnostics, paired CRPS skill against a baseline, and explicit abstention coverage. Five forecasts are emitted and one abstains. This is not a calibrated forecast, an ecological evaluation, a blind test or a claim of SOTA skill.",
+  "cases": [
+    {
+      "forecast_id": "FORECAST-CRPS-TWO-MEMBER-REFERENCE-001",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg/ha",
+      "horizon_days": 365,
+      "observed": 1,
+      "model_samples": [
+        0,
+        2
+      ],
+      "baseline_samples": [
+        0
+      ],
+      "expected": {
+        "model_crps": 0.5,
+        "baseline_crps": 1,
+        "model_mean": 1,
+        "absolute_error": 0,
+        "median": 0,
+        "lower_50": 0,
+        "upper_50": 2,
+        "lower_80": 0,
+        "upper_80": 2,
+        "lower_95": 0,
+        "upper_95": 2
+      }
+    },
+    {
+      "forecast_id": "FORECAST-CRPS-SHIFTED-ENSEMBLE-001",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg/ha",
+      "horizon_days": 365,
+      "observed": 2,
+      "model_samples": [
+        1,
+        3
+      ],
+      "baseline_samples": [
+        0
+      ],
+      "expected": {
+        "model_crps": 0.5,
+        "baseline_crps": 2,
+        "model_mean": 2,
+        "absolute_error": 0,
+        "median": 1,
+        "lower_50": 1,
+        "upper_50": 3,
+        "lower_80": 1,
+        "upper_80": 3,
+        "lower_95": 1,
+        "upper_95": 3
+      }
+    },
+    {
+      "forecast_id": "FORECAST-UNDERDISPERSED-MISS-001",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg/ha",
+      "horizon_days": 365,
+      "observed": 5,
+      "model_samples": [
+        2,
+        2
+      ],
+      "baseline_samples": [
+        0
+      ],
+      "expected": {
+        "model_crps": 3,
+        "baseline_crps": 5,
+        "model_mean": 2,
+        "absolute_error": 3,
+        "median": 2,
+        "lower_50": 2,
+        "upper_50": 2,
+        "lower_80": 2,
+        "upper_80": 2,
+        "lower_95": 2,
+        "upper_95": 2
+      }
+    },
+    {
+      "forecast_id": "FORECAST-WIDE-ENSEMBLE-001",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg/ha",
+      "horizon_days": 365,
+      "observed": 1,
+      "model_samples": [
+        -2,
+        0,
+        2,
+        4
+      ],
+      "baseline_samples": [
+        0
+      ],
+      "expected": {
+        "model_crps": 0.75,
+        "baseline_crps": 1,
+        "model_mean": 1,
+        "absolute_error": 0,
+        "median": 0,
+        "lower_50": -2,
+        "upper_50": 2,
+        "lower_80": -2,
+        "upper_80": 4,
+        "lower_95": -2,
+        "upper_95": 4
+      }
+    },
+    {
+      "forecast_id": "FORECAST-ABSTENTION-001",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg/ha",
+      "horizon_days": 365,
+      "observed": 4,
+      "model_samples": [],
+      "baseline_samples": [
+        0
+      ],
+      "expected": {
+        "model_crps": null,
+        "baseline_crps": 4,
+        "model_mean": null,
+        "absolute_error": null,
+        "median": null,
+        "lower_50": null,
+        "upper_50": null,
+        "lower_80": null,
+        "upper_80": null,
+        "lower_95": null,
+        "upper_95": null
+      }
+    },
+    {
+      "forecast_id": "FORECAST-WORSE-THAN-BASELINE-001",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg/ha",
+      "horizon_days": 365,
+      "observed": 1,
+      "model_samples": [
+        8,
+        10
+      ],
+      "baseline_samples": [
+        0
+      ],
+      "expected": {
+        "model_crps": 7.5,
+        "baseline_crps": 1,
+        "model_mean": 9,
+        "absolute_error": 8,
+        "median": 8,
+        "lower_50": 8,
+        "upper_50": 10,
+        "lower_80": 8,
+        "upper_80": 10,
+        "lower_95": 8,
+        "upper_95": 10
+      }
+    }
+  ],
+  "expected_summary": {
+    "eligible_case_count": 6,
+    "forecast_case_count": 5,
+    "abstained_case_count": 1,
+    "forecast_coverage_fraction": 0.8333333333333334,
+    "mean_model_crps": 2.45,
+    "mean_baseline_crps_paired": 2,
+    "mean_baseline_crps_all": 2.3333333333333335,
+    "crps_skill_score": -0.225,
+    "mean_absolute_error": 2.2,
+    "interval_coverage_50": 0.6,
+    "interval_coverage_80": 0.6,
+    "interval_coverage_95": 0.6,
+    "mean_interval_width_80": 2.4,
+    "mean_interval_width_95": 2.4,
+    "disposition": "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE"
+  },
+  "execution": {
+    "runner": "EMPIRICAL_ENSEMBLE_CRPS_AND_SELECTIVE_COVERAGE",
+    "external_data_ingested": false,
+    "probabilistic_calibration": "NOT_ESTABLISHED",
+    "ecological_forecast_skill": "NOT_ESTABLISHED",
+    "blind_evaluation": "NOT_CREATED"
+  }
+}
