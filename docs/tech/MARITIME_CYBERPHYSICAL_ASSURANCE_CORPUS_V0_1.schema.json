@@ -1,0 +1,436 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_CYBERPHYSICAL_ASSURANCE_CORPUS_V0_1.schema.json",
+  "title": "Maritime cyber-physical assurance synthetic corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "asset",
+    "timebase",
+    "maximum_timestamp_uncertainty_ms",
+    "taxonomy",
+    "cases",
+    "authority_boundary",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "MARITIME-CYBER-PHYSICAL-ASSURANCE-SYNTHETIC-001"
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "configuration_revision",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timebase_id",
+        "qualification_state",
+        "qualification_id",
+        "qualification_sha256"
+      ],
+      "properties": {
+        "timebase_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_state": {
+          "const": "QUALIFIED"
+        },
+        "qualification_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "maximum_timestamp_uncertainty_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "taxonomy": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "class_id",
+          "event_kind",
+          "expected_physical_fault_ids",
+          "expected_information_fault_ids"
+        ],
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_physical_fault_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "expected_information_fault_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "class_id",
+          "evidence_role",
+          "measurement_window",
+          "truth",
+          "diagnosis",
+          "timing",
+          "recommendation",
+          "consequences"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "class_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_role": {
+            "const": "SYNTHETIC_KNOWN_TRUTH"
+          },
+          "measurement_window": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_configuration_sha256",
+              "timebase_id",
+              "timebase_qualification_state",
+              "timebase_qualification_sha256",
+              "quality_state",
+              "sample_interval_ms",
+              "sample_count",
+              "independent_episode_count",
+              "episode_definition_id",
+              "episode_definition_sha256"
+            ],
+            "properties": {
+              "asset_configuration_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timebase_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timebase_qualification_state": {
+                "const": "QUALIFIED"
+              },
+              "timebase_qualification_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "quality_state": {
+                "const": "CURRENT"
+              },
+              "sample_interval_ms": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "independent_episode_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "episode_definition_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "episode_definition_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "truth": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "physical_fault_ids",
+              "information_fault_ids"
+            ],
+            "properties": {
+              "physical_fault_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "information_fault_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "diagnosis": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reported_event_class_id",
+              "reported_physical_fault_ids",
+              "reported_information_fault_ids",
+              "disposition"
+            ],
+            "properties": {
+              "reported_event_class_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reported_physical_fault_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "reported_information_fault_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "disposition": {
+                "enum": [
+                  "MODE_OR_DISTURBANCE_CLASS",
+                  "SINGLE_FAULT",
+                  "COMPOUND_FAULT_SET"
+                ]
+              }
+            }
+          },
+          "timing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_onset_ms",
+              "event_onset_uncertainty_ms",
+              "diagnostic_emitted_ms",
+              "diagnostic_timestamp_uncertainty_ms",
+              "algorithm_compute_time_ms",
+              "command_path_instrumented",
+              "sensor_to_command_latency_ms"
+            ],
+            "properties": {
+              "event_onset_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "event_onset_uncertainty_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "diagnostic_emitted_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "diagnostic_timestamp_uncertainty_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "algorithm_compute_time_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "command_path_instrumented": {
+                "type": "boolean"
+              },
+              "sensor_to_command_latency_ms": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          },
+          "recommendation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "advisory_code",
+              "authority_scope"
+            ],
+            "properties": {
+              "advisory_code": {
+                "enum": [
+                  "MONITOR",
+                  "HUMAN_REVIEW",
+                  "REVIEW_EXISTING_RECORDS"
+                ]
+              },
+              "authority_scope": {
+                "const": "ADVISORY_ONLY"
+              }
+            }
+          },
+          "consequences": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "energy_not_supplied_kwh",
+              "critical_load_availability_percent",
+              "recovery_time_s",
+              "reserve_margin_kw"
+            ],
+            "properties": {
+              "energy_not_supplied_kwh": {
+                "type": "number",
+                "minimum": 0
+              },
+              "critical_load_availability_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "recovery_time_s": {
+                "type": "number",
+                "minimum": 0
+              },
+              "reserve_margin_kw": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "measurement_initiated",
+        "controller_write",
+        "generator_command",
+        "bess_command",
+        "load_shedding",
+        "topology_switching",
+        "actuation",
+        "maintenance_authorization",
+        "mode_transition_authorization",
+        "restriction_clearance"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "measurement_initiated": {
+          "const": false
+        },
+        "controller_write": {
+          "const": false
+        },
+        "generator_command": {
+          "const": false
+        },
+        "bess_command": {
+          "const": false
+        },
+        "load_shedding": {
+          "const": false
+        },
+        "topology_switching": {
+          "const": false
+        },
+        "actuation": {
+          "const": false
+        },
+        "maintenance_authorization": {
+          "const": false
+        },
+        "mode_transition_authorization": {
+          "const": false
+        },
+        "restriction_clearance": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 100
+    }
+  }
+}
