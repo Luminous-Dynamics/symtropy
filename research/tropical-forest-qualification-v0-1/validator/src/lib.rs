@@ -490,6 +490,73 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
         }));
     }
 
+    let expected_challenges: BTreeMap<&'static str, &'static str> = [
+        ("CANOPY-AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001", "SAME_AGGREGATES_DIFFERENT_SPATIAL_GAP_TOPOLOGY"),
+        ("CANOPY-MORTALITY-LOCAL-GAP-001", "LOCAL_CANOPY_SUPPORT_CHANGES_ONLY"),
+        ("CANOPY-CLUSTERED-VS-DISPERSED-MORTALITY-001", "EQUAL_LOSS_DIFFERENT_GAP_GEOMETRY"),
+        ("CANOPY-RECRUITMENT-LOCAL-LIGHT-001", "LOCAL_LIGHT_REQUIRED_FOR_RECRUITMENT_CLAIM"),
+        ("CANOPY-GAP-CLOSURE-CAUSAL-001", "GAP_CLOSURE_REQUIRES_EXPLICIT_GROWTH_SETTLEMENT"),
+        ("CANOPY-TRANSLATION-SYMMETRY-001", "TRANSLATED_CASE_OUTPUTS_EQUIVALENT"),
+        ("CANOPY-ROTATION-SYMMETRY-001", "ROTATED_CASE_OUTPUTS_EQUIVALENT"),
+        ("CANOPY-DISCONNECTED-CONTROL-001", "DISCONNECTED_PATCH_UNCHANGED"),
+        ("CANOPY-RENDERER-INDEPENDENCE-001", "CANONICAL_ECOLOGY_IDENTICAL"),
+        ("CANOPY-COARSE-FIDELITY-PROMOTION-001", "PROMOTE_SPATIAL_REPRESENTATION_OR_ABSTAIN"),
+    ]
+    .into_iter()
+    .collect();
+
+    let challenge_cases = at(manifest, &["challenge_cases"])?
+        .as_array()
+        .ok_or_else(|| "challenge_cases must be an array".to_string())?;
+    let mut seen_challenges = BTreeSet::new();
+    for (index, case) in challenge_cases.iter().enumerate() {
+        let id = case
+            .get("case_id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("challenge_cases[{index}].case_id must be a string"))?;
+        let family = case
+            .get("family")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("challenge_cases[{index}].family must be a string"))?;
+        let condition = case
+            .get("condition")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("challenge_cases[{index}].condition must be a string"))?;
+        let disposition = case
+            .get("expected_disposition")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("challenge_cases[{index}].expected_disposition must be a string"))?;
+        let unique = seen_challenges.insert(id.to_string());
+        let expected_disposition = expected_challenges
+            .iter()
+            .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
+        push_check(
+            &mut checks,
+            "CANOPY-CHALLENGE-CASE-SEMANTICS-001",
+            unique
+                && expected_disposition == Some(disposition)
+                && !family.trim().is_empty()
+                && !condition.trim().is_empty(),
+            format!(
+                "case={id}; expected={}; declared={disposition}; unique={unique}",
+                expected_disposition.unwrap_or("UNKNOWN_CASE")
+            ),
+        );
+    }
+    let declared_challenge_count = usize_at(manifest, &["execution", "challenge_case_count"])?;
+    push_check(
+        &mut checks,
+        "CANOPY-CHALLENGE-CASE-COVERAGE-001",
+        seen_challenges.len() == expected_challenges.len()
+            && challenge_cases.len() == expected_challenges.len()
+            && declared_challenge_count == expected_challenges.len(),
+        format!(
+            "{} unique cases; {} required; declared count={declared_challenge_count}",
+            seen_challenges.len(),
+            expected_challenges.len()
+        ),
+    );
+
     let components_differ = component_counts.len() == 2 && component_counts[0] != component_counts[1];
     let spatial_vs_uniform_differs = outputs.iter().all(|result| {
         let spatial = result["spatial_mean_transmittance"].as_f64().unwrap_or(f64::NAN);
@@ -516,6 +583,8 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
         "checks_total": checks.len(),
         "checks": check_values,
         "arrangements": outputs,
+        "challenge_case_count": seen_challenges.len(),
+        "challenge_cases_executed": false,
         "ecological_light_model_calibration": "NOT_ESTABLISHED",
         "field_validation": "NOT_ESTABLISHED"
     }))
@@ -1036,6 +1105,25 @@ mod tests {
             receipt["arrangements"][1]["open_components_four_neighbour"]
         );
         assert_eq!(receipt["ecological_light_model_calibration"], "NOT_ESTABLISHED");
+    }
+
+    #[test]
+    fn canopy_ten_case_manifest_has_expected_dispositions() {
+        let receipt = evaluate(CANOPY_FIXTURE.as_bytes()).expect("canopy fixture parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_GEOMETRY");
+        assert_eq!(receipt["challenge_case_count"], 10);
+        assert_eq!(receipt["challenge_cases_executed"], false);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+    }
+
+    #[test]
+    fn canopy_challenge_disposition_mutation_is_rejected() {
+        let mut manifest: Value =
+            serde_json::from_str(CANOPY_FIXTURE).expect("valid canopy fixture");
+        manifest["challenge_cases"][9]["expected_disposition"] = json!("EVERYTHING_IS_SUFFICIENT");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated canopy fixture");
+        let receipt = evaluate(&bytes).expect("well-formed fixture returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
     }
 
     #[test]
