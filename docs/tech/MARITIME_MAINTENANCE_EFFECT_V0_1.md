@@ -85,7 +85,7 @@ A test changes only unobserved potential outcomes: the known-truth score changes
 
 ## Falsification and synthetic cases
 
-The machine-readable manifest has fifteen scenarios:
+The machine-readable manifest has sixteen scenarios:
 1. blocked randomized known-truth repair experiment;
 2. observational assignment rejected;
 3. missing treatment/control overlap rejected;
@@ -100,9 +100,10 @@ The machine-readable manifest has fifteen scenarios:
 12. calibration expired before evidence availability rejected;
 13. outcome measurement principle differs from the frozen trial;
 14. valid measurement-error bounds produce a separate robust effect interval;
-15. calibration becoming effective after observation is rejected.
+15. calibration becoming effective after observation is rejected;
+16. a direct Rust caller supplying a non-finite calibration validity timestamp is rejected.
 
-The Rust unit suite exercises the estimator, exact randomization reference distribution, directionality, chronology, assignment design, oracle separation, calibration validity, measurement-principle binding, deterministic measurement-error expansion and the protocol/case manifest.
+The 19-test Rust unit suite exercises the estimator, exact randomization reference distribution, directionality, chronology, assignment design, oracle separation, calibration interval validity, measurement-principle binding, deterministic measurement-error expansion and the protocol/case manifest.
 
 ## What this does not estimate yet
 
