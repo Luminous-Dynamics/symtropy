@@ -98,6 +98,25 @@ Prefer passive thermal design, fixed PV, solid-state conversion and modular elec
 
 Do not force every subsystem to be solid-state. A mechanical disconnect or hybrid breaker may be the better safety boundary. The architecture should optimize failure containment and lifecycle service, not minimize the count of moving parts in isolation.
 
+## 4.1 Solid-state transformer maturity and hybrid strategy (research refresh — 14 Nov 2026)
+
+Solid-state transformers (SSTs) deserve a serious modularity track, but not a blanket assumption that an SST should replace every conventional transformer.
+
+The IEA's *State of Energy Innovation 2026* describes SSTs as modular power-electronic building blocks that can interface AC and DC, support bidirectional flow, perform voltage/power-quality functions and provide rapid local fault isolation. It also makes the deployment caveats explicit: pilot projects are underway, while cooling and protection robustness, supplier diversity, part-load losses, high cooling demand, power-quality tuning, non-traditional fault behaviour, integration with legacy assets and bankability remain material issues. It notes that hybrid approaches combining conventional transformers with power electronics have been more successful in addressing supply-chain and bankability risk in some pilots.
+
+A June 2026 IEEE Open Journal of Power Electronics article compares DC/DC converter topologies for modular SSTs and reports a 98.55% peak-efficiency result for one experimentally validated case study. That is a specific topology/case result, not a universal whole-SST or delivered-service efficiency figure.
+
+**Power Fabric decision:**
+- Keep conventional transformers as the default reference where they provide simpler, mature service.
+- Evaluate SSTs as modular AC/DC energy-router nodes where controllability, DC integration, footprint, power quality or fault isolation can justify complexity.
+- Prioritize hybrid transformer-plus-converter architectures as an intermediate deployment path.
+- Benchmark peak and part-load efficiency separately, plus full-chain conversion, cooling and auxiliary losses, power quality, protection/selectivity, fault response, EMI, cybersecurity, maintainability, lifecycle cost and supply-chain resilience.
+- Require repeatable module-level testing and multi-vendor interoperability before treating SST ports as plug-and-play.
+
+Sources:
+- IEA, *The State of Energy Innovation 2026*, SST deployment discussion: https://www.iea.org/reports/the-state-of-energy-innovation-2026
+- IEEE OJPEL, *A Review of DC-DC Converters for Modular Solid-State Transformers* (3 Jun 2026; DOI 10.1109/OJPEL.2026.3699737): https://doi.org/10.1109/OJPEL.2026.3699737
+
 ## 5. Multi-timescale storage and energy coupling
 
 Do not ask a single battery chemistry to solve every time horizon.
