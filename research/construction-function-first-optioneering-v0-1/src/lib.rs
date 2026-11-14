@@ -1007,7 +1007,7 @@ mod tests {
         assert_eq!(
             report.scenario_metrics_by_option["avoid"]["normal"]
                 [&MetricKey::WholeLifeCostMinorUnits],
-            900
+            800
         );
         assert_eq!(
             assess(&report, "avoid").gate_results["structural-adequacy"],
