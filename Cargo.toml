@@ -167,6 +167,7 @@ members = [
     # the archive's own assumed top-level workspace into this one's
     # crates/{apps,domains}/ convention. See symtropy/crates/apps/symtropy-firstlight/README.md.
     "crates/apps/symtropy-firstlight",
+    "tools/ocean-sequential-design-bench",
     "crates/domains/symtropy-game-state",
     "crates/domains/symtropy-iris",
     "crates/domains/symtropy-persistence",
