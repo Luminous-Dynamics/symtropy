@@ -20,6 +20,9 @@ use std::fmt;
 
 pub mod constraint_metric;
 
+#[cfg(test)]
+mod exact_constraint_oracle;
+
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
 
@@ -31,7 +34,8 @@ pub struct ConstraintSpace;
 impl CoordinateFrame for ConstraintSpace {}
 
 pub use constraint_metric::{
-    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1, rebase_constraint_jacobian,
+    ConstraintEquationRebasisV1, ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1,
+    constraint_pairing, rebase_constraint_jacobian,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

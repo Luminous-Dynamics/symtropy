@@ -47,6 +47,10 @@ jobs:
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example coordinate_ladder
       - name: Run Delassus constraint-space coordinate ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
+      - name: Run constraint-equation basis covariance ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_basis_ladder
+      - name: Run constraint-equation row-scaling ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_basis_scale_ladder
       - name: Run deterministic metric-layer microbenchmark
         run: |
           set -euo pipefail

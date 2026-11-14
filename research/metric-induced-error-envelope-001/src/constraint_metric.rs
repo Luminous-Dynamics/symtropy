@@ -218,6 +218,104 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
     }
 }
 
+/// A nonsingular change of constraint-equation basis.
+///
+/// The represented map is r_new = T r_old and J_new = T J_old.
+/// Multiplier covectors transform by the inverse transpose:
+/// lambda_new = T^-T lambda_old.
+///
+/// This is independent of a generalized-coordinate Rebasis.
+#[derive(Debug, Clone, Copy)]
+pub struct ConstraintEquationRebasisV1<
+    NewSpace: CoordinateFrame,
+    OldSpace: CoordinateFrame,
+    const K: usize,
+> {
+    rebasis: Rebasis<NewSpace, OldSpace, K>,
+}
+
+impl<NewSpace: CoordinateFrame, OldSpace: CoordinateFrame, const K: usize>
+    ConstraintEquationRebasisV1<NewSpace, OldSpace, K>
+{
+    /// Construct from the constraint residual map r_new = T r_old.
+    pub fn new(transform: [[f64; K]; K], profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
+        Ok(Self {
+            rebasis: Rebasis::new(transform, profile)?,
+        })
+    }
+
+    pub fn matrix(&self) -> &[[f64; K]; K] {
+        self.rebasis.matrix()
+    }
+
+    pub fn condition_inf_estimate(&self) -> Result<f64, MetricErrorV1> {
+        self.rebasis.condition_inf_estimate()
+    }
+
+    /// Residual pushforward: r_new = T r_old.
+    pub fn residual_to_new(
+        &self,
+        residual_old: &ConstraintResidualV1<OldSpace, K>,
+    ) -> Result<ConstraintResidualV1<NewSpace, K>, MetricErrorV1> {
+        let old_tangent = Tangent::<OldSpace, K>::new(residual_old.components)?;
+        let new_tangent = self.rebasis.tangent_to_from(&old_tangent)?;
+        ConstraintResidualV1::new(*new_tangent.components())
+    }
+
+    /// Multiplier pullback: lambda_new = T^-T lambda_old.
+    pub fn multiplier_to_new(
+        &self,
+        multiplier_old: &ConstraintMultiplierV1<OldSpace, K>,
+        profile: MetricProfileV1,
+    ) -> Result<ConstraintMultiplierV1<NewSpace, K>, MetricErrorV1> {
+        let old_cotangent = Cotangent::<OldSpace, K>::new(multiplier_old.components)?;
+        let new_cotangent = self.rebasis.cotangent_to_from(&old_cotangent, profile)?;
+        ConstraintMultiplierV1::new(*new_cotangent.components())
+    }
+
+    /// Constraint Jacobian left action: J_new = T J_old.
+    pub fn jacobian_to_new<const N: usize>(
+        &self,
+        jacobian_old: &[[f64; N]; K],
+    ) -> Result<[[f64; N]; K], MetricErrorV1> {
+        if K == 0 || N == 0 {
+            return Err(MetricErrorV1::ZeroDimension);
+        }
+        let mut jacobian_new = [[0.0; N]; K];
+        for (new_row, output_row) in jacobian_new.iter_mut().enumerate() {
+            for (dof, output) in output_row.iter_mut().enumerate() {
+                let mut value = 0.0;
+                for (old_row, source_row) in jacobian_old.iter().enumerate() {
+                    value += self.rebasis.matrix()[new_row][old_row] * source_row[dof];
+                }
+                if !value.is_finite() {
+                    return Err(MetricErrorV1::NonFiniteIntermediate);
+                }
+                *output = value;
+            }
+        }
+        Ok(jacobian_new)
+    }
+}
+
+/// Dual pairing between a constraint multiplier and constraint residual.
+pub fn constraint_pairing<Space: CoordinateFrame, const K: usize>(
+    multiplier: &ConstraintMultiplierV1<Space, K>,
+    residual: &ConstraintResidualV1<Space, K>,
+) -> Result<f64, MetricErrorV1> {
+    let value = multiplier
+        .components
+        .iter()
+        .zip(residual.components.iter())
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(MetricErrorV1::NonFiniteIntermediate)
+    }
+}
+
 /// Rebase a constraint Jacobian for q = S y: J_y = J_q S.
 /// Constraint coordinates themselves are unchanged.
 pub fn rebase_constraint_jacobian<
@@ -283,6 +381,18 @@ mod tests {
             (left - right).abs() <= tolerance * scale,
             "{left:.17e} != {right:.17e}"
         );
+    }
+
+    fn congruence_2(
+        transform: &[[f64; 2]; 2],
+        metric: &[[f64; 2]; 2],
+        row: usize,
+        column: usize,
+    ) -> f64 {
+        transform[row][0]
+            * (metric[0][0] * transform[column][0] + metric[0][1] * transform[column][1])
+            + transform[row][1]
+                * (metric[1][0] * transform[column][0] + metric[1][1] * transform[column][1])
     }
 
     #[test]
@@ -483,6 +593,406 @@ mod tests {
         assert!(matches!(
             result,
             Err(MetricErrorV1::NotPositiveDefinite { .. })
+        ));
+    }
+
+    #[test]
+    fn dense_constraint_equation_rebasis_preserves_delassus_dual_pair() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceNew;
+        impl CoordinateFrame for ConstraintSpaceNew {}
+
+        let mass = mass_q();
+        let jacobian_old = jacobian_q();
+        let delassus_old =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_old,
+                profile(),
+            )
+            .unwrap();
+        let equation_rebasis =
+            ConstraintEquationRebasisV1::<ConstraintSpaceNew, ConstraintSpace, 2>::new(
+                [[1.0, 3.0], [0.0, 1.0]],
+                profile(),
+            )
+            .unwrap();
+        let jacobian_new = equation_rebasis.jacobian_to_new(&jacobian_old).unwrap();
+        let delassus_new =
+            DelassusMetricV1::<CartesianQ, ConstraintSpaceNew, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_new,
+                profile(),
+            )
+            .unwrap();
+
+        let multiplier_old = ConstraintMultiplierV1::new([0.75, -1.25]).unwrap();
+        let residual_old = ConstraintResidualV1::new([0.25, -0.4]).unwrap();
+        let multiplier_new = equation_rebasis
+            .multiplier_to_new(&multiplier_old, profile())
+            .unwrap();
+        let residual_new = equation_rebasis.residual_to_new(&residual_old).unwrap();
+
+        let transform = equation_rebasis.matrix();
+        let old_metric = delassus_old.matrix();
+        let new_metric = delassus_new.matrix();
+        close(
+            new_metric[0][0],
+            congruence_2(transform, old_metric, 0, 0),
+            2.0e-12,
+        );
+        close(
+            new_metric[0][1],
+            congruence_2(transform, old_metric, 0, 1),
+            2.0e-12,
+        );
+        close(
+            new_metric[1][0],
+            congruence_2(transform, old_metric, 1, 0),
+            2.0e-12,
+        );
+        close(
+            new_metric[1][1],
+            congruence_2(transform, old_metric, 1, 1),
+            2.0e-12,
+        );
+
+        close(
+            delassus_old.multiplier_norm(&multiplier_old).unwrap(),
+            delassus_new.multiplier_norm(&multiplier_new).unwrap(),
+            2.0e-12,
+        );
+        close(
+            delassus_old.residual_norm(&residual_old).unwrap(),
+            delassus_new.residual_norm(&residual_new).unwrap(),
+            2.0e-12,
+        );
+        close(
+            constraint_pairing(&multiplier_old, &residual_old).unwrap(),
+            constraint_pairing(&multiplier_new, &residual_new).unwrap(),
+            2.0e-12,
+        );
+
+        let correction_old = delassus_old
+            .induced_velocity_correction(&multiplier_old)
+            .unwrap();
+        let correction_new = delassus_new
+            .induced_velocity_correction(&multiplier_new)
+            .unwrap();
+        for (left, right) in correction_old
+            .components()
+            .iter()
+            .zip(correction_new.components().iter())
+        {
+            close(*left, *right, 2.0e-12);
+        }
+
+        let minimum_old = delassus_old
+            .minimum_kinetic_correction(&residual_old)
+            .unwrap();
+        let minimum_new = delassus_new
+            .minimum_kinetic_correction(&residual_new)
+            .unwrap();
+        for (left, right) in minimum_old
+            .components()
+            .iter()
+            .zip(minimum_new.components().iter())
+        {
+            close(*left, *right, 2.0e-12);
+        }
+    }
+
+    #[test]
+    fn constraint_basis_rebasis_is_invariant_over_a_deterministic_shear_family() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceSheared;
+        impl CoordinateFrame for ConstraintSpaceSheared {}
+
+        let mass = mass_q();
+        let jacobian_old = jacobian_q();
+        let delassus_old =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_old,
+                profile(),
+            )
+            .unwrap();
+        let multiplier_old = ConstraintMultiplierV1::new([-0.5, 1.25]).unwrap();
+        let residual_old = ConstraintResidualV1::new([0.3, -0.8]).unwrap();
+        let norm_multiplier_old = delassus_old.multiplier_norm(&multiplier_old).unwrap();
+        let norm_residual_old = delassus_old.residual_norm(&residual_old).unwrap();
+        let pairing_old = constraint_pairing(&multiplier_old, &residual_old).unwrap();
+
+        for shear in -8..=8 {
+            let change =
+                ConstraintEquationRebasisV1::<ConstraintSpaceSheared, ConstraintSpace, 2>::new(
+                    [[1.0, shear as f64], [0.0, 1.0]],
+                    profile(),
+                )
+                .unwrap();
+            let jacobian_new = change.jacobian_to_new(&jacobian_old).unwrap();
+            let delassus_new =
+                DelassusMetricV1::<CartesianQ, ConstraintSpaceSheared, 3, 2>::from_mass_jacobian(
+                    &mass,
+                    jacobian_new,
+                    profile(),
+                )
+                .unwrap();
+            let multiplier_new = change
+                .multiplier_to_new(&multiplier_old, profile())
+                .unwrap();
+            let residual_new = change.residual_to_new(&residual_old).unwrap();
+
+            close(
+                delassus_new.multiplier_norm(&multiplier_new).unwrap(),
+                norm_multiplier_old,
+                3.0e-11,
+            );
+            close(
+                delassus_new.residual_norm(&residual_new).unwrap(),
+                norm_residual_old,
+                3.0e-11,
+            );
+            close(
+                constraint_pairing(&multiplier_new, &residual_new).unwrap(),
+                pairing_old,
+                3.0e-11,
+            );
+        }
+    }
+
+    #[test]
+    fn wrong_constraint_multiplier_or_residual_variance_is_detected() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceNew;
+        impl CoordinateFrame for ConstraintSpaceNew {}
+
+        let mass = mass_q();
+        let jacobian_old = jacobian_q();
+        let rebasis = ConstraintEquationRebasisV1::<ConstraintSpaceNew, ConstraintSpace, 2>::new(
+            [[1.0, 2.0], [0.0, 1.0]],
+            profile(),
+        )
+        .unwrap();
+        let jacobian_new = rebasis.jacobian_to_new(&jacobian_old).unwrap();
+        let delassus_new =
+            DelassusMetricV1::<CartesianQ, ConstraintSpaceNew, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_new,
+                profile(),
+            )
+            .unwrap();
+        let multiplier_old = ConstraintMultiplierV1::new([0.8, -0.4]).unwrap();
+        let residual_old = ConstraintResidualV1::new([0.3, 1.1]).unwrap();
+        let multiplier_correct = rebasis
+            .multiplier_to_new(&multiplier_old, profile())
+            .unwrap();
+        let residual_correct = rebasis.residual_to_new(&residual_old).unwrap();
+
+        // Incorrectly treating the multiplier as a tangent applies T, not T^-T.
+        let lambda = multiplier_old.components();
+        let multiplier_wrong = ConstraintMultiplierV1::<ConstraintSpaceNew, 2>::new([
+            lambda[0] + 2.0 * lambda[1],
+            lambda[1],
+        ])
+        .unwrap();
+        // Incorrectly treating the residual as a covector applies T^-T, not T.
+        let residual = residual_old.components();
+        let residual_wrong = ConstraintResidualV1::<ConstraintSpaceNew, 2>::new([
+            residual[0],
+            -2.0 * residual[0] + residual[1],
+        ])
+        .unwrap();
+
+        let correct_multiplier_norm = delassus_new.multiplier_norm(&multiplier_correct).unwrap();
+        let wrong_multiplier_norm = delassus_new.multiplier_norm(&multiplier_wrong).unwrap();
+        let correct_residual_norm = delassus_new.residual_norm(&residual_correct).unwrap();
+        let wrong_residual_norm = delassus_new.residual_norm(&residual_wrong).unwrap();
+
+        assert!((correct_multiplier_norm - wrong_multiplier_norm).abs() > 1.0e-3);
+        assert!((correct_residual_norm - wrong_residual_norm).abs() > 1.0e-3);
+    }
+
+    #[test]
+    fn generalized_and_constraint_rebases_commute_for_delassus_physics() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceNew;
+        impl CoordinateFrame for ConstraintSpaceNew {}
+
+        let mass_q = mass_q();
+        let jacobian_q = jacobian_q();
+        let delassus_q = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q,
+            jacobian_q,
+            profile(),
+        )
+        .unwrap();
+        let multiplier_q = ConstraintMultiplierV1::new([1.25, -0.6]).unwrap();
+        let residual_q = ConstraintResidualV1::new([-0.2, 0.75]).unwrap();
+
+        for shear_q in [1.0, 2.0, 4.0] {
+            let generalized_rebasis = Rebasis::<CartesianQ, DenseY, 3>::new(
+                [
+                    [1.0, shear_q, 0.5 * shear_q * shear_q],
+                    [0.0, 1.0, shear_q],
+                    [0.0, 0.0, 1.0],
+                ],
+                profile(),
+            )
+            .unwrap();
+            let mass_y = generalized_rebasis
+                .metric_to_to(&mass_q, profile())
+                .unwrap();
+            let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &generalized_rebasis).unwrap();
+
+            for shear_constraint in [1.0, 3.0, 5.0] {
+                let constraint_rebasis =
+                    ConstraintEquationRebasisV1::<ConstraintSpaceNew, ConstraintSpace, 2>::new(
+                        [[1.0, shear_constraint], [0.0, 1.0]],
+                        profile(),
+                    )
+                    .unwrap();
+                let jacobian_y_new = constraint_rebasis.jacobian_to_new(&jacobian_y).unwrap();
+                let delassus_y_new =
+                    DelassusMetricV1::<DenseY, ConstraintSpaceNew, 3, 2>::from_mass_jacobian(
+                        &mass_y,
+                        jacobian_y_new,
+                        profile(),
+                    )
+                    .unwrap();
+
+                let multiplier_new = constraint_rebasis
+                    .multiplier_to_new(&multiplier_q, profile())
+                    .unwrap();
+                let residual_new = constraint_rebasis.residual_to_new(&residual_q).unwrap();
+                close(
+                    delassus_q.multiplier_norm(&multiplier_q).unwrap(),
+                    delassus_y_new.multiplier_norm(&multiplier_new).unwrap(),
+                    5.0e-10,
+                );
+                close(
+                    delassus_q.residual_norm(&residual_q).unwrap(),
+                    delassus_y_new.residual_norm(&residual_new).unwrap(),
+                    5.0e-10,
+                );
+
+                let correction_q = delassus_q.minimum_kinetic_correction(&residual_q).unwrap();
+                let correction_y = delassus_y_new
+                    .minimum_kinetic_correction(&residual_new)
+                    .unwrap();
+                let lifted_correction_y =
+                    generalized_rebasis.tangent_to_from(&correction_y).unwrap();
+                for (left, right) in correction_q
+                    .components()
+                    .iter()
+                    .zip(lifted_correction_y.components().iter())
+                {
+                    close(*left, *right, 8.0e-10);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn constraint_equation_rebasis_preserves_physics_under_row_rescaling() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceScaled;
+        impl CoordinateFrame for ConstraintSpaceScaled {}
+
+        let mass = mass_q();
+        let jacobian_old = jacobian_q();
+        let delassus_old =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_old,
+                profile(),
+            )
+            .unwrap();
+        let multiplier_old = ConstraintMultiplierV1::new([0.75, -1.25]).unwrap();
+        let residual_old = ConstraintResidualV1::new([0.25, -0.4]).unwrap();
+
+        for scale in [0.01_f64, 0.1, 0.5, 1.0, 2.0, 10.0, 100.0] {
+            let change =
+                ConstraintEquationRebasisV1::<ConstraintSpaceScaled, ConstraintSpace, 2>::new(
+                    [[scale, 0.0], [0.0, 1.0]],
+                    profile(),
+                )
+                .unwrap();
+            let jacobian_new = change.jacobian_to_new(&jacobian_old).unwrap();
+            let delassus_new =
+                DelassusMetricV1::<CartesianQ, ConstraintSpaceScaled, 3, 2>::from_mass_jacobian(
+                    &mass,
+                    jacobian_new,
+                    profile(),
+                )
+                .unwrap();
+            let multiplier_new = change
+                .multiplier_to_new(&multiplier_old, profile())
+                .unwrap();
+            let residual_new = change.residual_to_new(&residual_old).unwrap();
+
+            close(
+                delassus_old.multiplier_norm(&multiplier_old).unwrap(),
+                delassus_new.multiplier_norm(&multiplier_new).unwrap(),
+                3.0e-10,
+            );
+            close(
+                delassus_old.residual_norm(&residual_old).unwrap(),
+                delassus_new.residual_norm(&residual_new).unwrap(),
+                3.0e-10,
+            );
+            close(
+                constraint_pairing(&multiplier_old, &residual_old).unwrap(),
+                constraint_pairing(&multiplier_new, &residual_new).unwrap(),
+                3.0e-10,
+            );
+
+            let correction_old = delassus_old
+                .minimum_kinetic_correction(&residual_old)
+                .unwrap();
+            let correction_new = delassus_new
+                .minimum_kinetic_correction(&residual_new)
+                .unwrap();
+            for (left, right) in correction_old
+                .components()
+                .iter()
+                .zip(correction_new.components().iter())
+            {
+                close(*left, *right, 3.0e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn near_singular_constraint_equation_scaling_is_rejected_by_profile() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceNearSingular;
+        impl CoordinateFrame for ConstraintSpaceNearSingular {}
+
+        let result =
+            ConstraintEquationRebasisV1::<ConstraintSpaceNearSingular, ConstraintSpace, 2>::new(
+                [[1.0e-18, 0.0], [0.0, 1.0]],
+                profile(),
+            );
+        assert!(matches!(
+            result,
+            Err(MetricErrorV1::SingularCoordinateTransform { .. })
+        ));
+    }
+
+    #[test]
+    fn singular_constraint_equation_rebasis_fails_closed() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceNew;
+        impl CoordinateFrame for ConstraintSpaceNew {}
+
+        let result = ConstraintEquationRebasisV1::<ConstraintSpaceNew, ConstraintSpace, 2>::new(
+            [[1.0, 2.0], [2.0, 4.0]],
+            profile(),
+        );
+        assert!(matches!(
+            result,
+            Err(MetricErrorV1::SingularCoordinateTransform { .. })
         ));
     }
 
