@@ -125,6 +125,27 @@ Reuse Sol-Atlas's existing EVSI and spatial-sampling work and Symtropy #2171. Do
 
 Scientific usefulness must not override data rights. Plot, camera-trap, Indigenous and community records need source-specific permissions, retention, derivative, attribution, revocation and benefit-sharing. Use Mycelix as the authority/custody layer; it does not decide ecological truth.
 
+### F. 2026 evidence update: observation integration and transfer are the competitive pressure points
+
+Recent 2026 work sharpens the comparison:
+
+- A systematic review of 190 forest computer-vision studies reports inconsistent evaluation practice, limited reporting of consistent splits / confidence intervals, and cross-biome performance degradation in the 20–45% range discussed by the review. These are review-level findings, not a universal law or a direct measurement of Luminous performance: https://link.springer.com/article/10.1007/s10531-026-03412-x
+- A DRC Luki Biosphere Reserve study used low-cost UAV imagery at 5 cm over roughly 200 ha. It evaluated three crown segmentation pipelines against 1,882 photointerpreted crowns across 19 plots and a separate field inventory of 360 trees across 18 plots. Algorithm rankings varied by target metric: the hybrid had the lowest crown-area error after correction, while SAM was strongest for tree-density estimates before correction. The authors explicitly treat photointerpretation as a human reference rather than absolute ground truth: https://onlinelibrary.wiley.com/doi/10.1002/ece3.74260
+- A 2026 camera-trap study found broad agreement between AI-labelled and expert-labelled multi-species occupancy models in its study assemblages, but also identified missed rare species and confusion between similar taxa. The correct downstream benchmark is ecological inference and rare-taxon error, not image-level accuracy alone: https://doi.org/10.1111/1365-2664.70370
+- A September 2026 *Nature Geoscience* perspective argues that the challenge is now the integration of satellite observations with field measurements, experiments and models across scales: https://www.nature.com/articles/s41561-026-02081-3
+
+**Competitive implication:** Luminous should not try to win each specialist model's native task simultaneously. It should make the handoff between those specialists scientifically safe and measurable. The new [Observation Admission Envelope v0.1](OBSERVATION_ADMISSION_CONTRACT_V0_1.md) is an initial executable contract for source identity, support, variable semantics, observation operators, declared rights-purpose, missingness, qualified absence and split lineage. It is synthetic-only and does not yet implement geospatial adapters, asset authenticity, data rights adjudication or field validation.
+
+A later end-to-end benchmark should include:
+1. **Observation admission:** false acceptance/rejection by failure family, including invalid absence and missingness promotion.
+2. **Support conversion:** error introduced when projecting plot, crown, GEDI-footprint and raster observations to the declared comparison support.
+3. **Transfer:** calibration and forecast degradation by held-out site, biome and region, with an explicit abstention curve.
+4. **Downstream inference:** effect of source-classification errors on mortality, biomass, occupancy and recovery estimates.
+5. **Operational cost:** latency, reviewer-hours, field travel, compute, storage and energy under matched hardware and coverage.
+6. **Decision quality:** realized regret or loss reduction per survey budget, not number of alerts or map layers.
+
+The 2026 literature's transfer and standardization gaps create an opportunity, but only a properly grouped, independent, rights-cleared tournament can establish whether the evidence-composition layer materially reduces them.
+
 ## 5. Fair benchmark tournament
 
 For each declared task, freeze:
@@ -169,7 +190,7 @@ Do not collapse these into one weighted score. A major rights failure, invalid a
 ## 7. Execution sequence
 
 1. Finish exact-head Rust verifier compilation / unit tests / receipt replay.
-2. Add a validator for observation-operator expected dispositions and canopy geometry invariants.
+2. Complete exact-head CI execution, then replay the observation-admission and observation-operator synthetic receipts.
 3. Reproduce the 2026 LPJ-GUESS SEC / PPA challenge on the bounded canopy fixtures.
 4. Implement a typed forest observation profile / latent-state projection adapter in the correct existing owner.
 5. Admit one rights-cleared plot dataset and one independent EO / lidar reference; preserve support and uncertainty.
