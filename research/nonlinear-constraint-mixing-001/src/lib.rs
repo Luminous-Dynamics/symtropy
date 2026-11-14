@@ -42,6 +42,7 @@ pub enum MixingErrorV1 {
     NonFiniteIntermediate,
     SingularMassMetric,
     SingularConstraintJacobian,
+    NonConvergentProjection,
     ArithmeticOverflow,
 }
 
@@ -127,7 +128,13 @@ pub fn reparameterized_constraint_jet(
     q: Vector3,
     chart: NonlinearMixingChartV1,
 ) -> Result<ConstraintJetV1, MixingErrorV1> {
-    let base = base_constraint_jet(q)?;
+    compose_constraint_jet(base_constraint_jet(q)?, chart)
+}
+
+pub fn compose_constraint_jet(
+    base: ConstraintJetV1,
+    chart: NonlinearMixingChartV1,
+) -> Result<ConstraintJetV1, MixingErrorV1> {
     let t = chart.jacobian(base.residual)?;
     let jacobian = mat_mul_2x2_2x3(t, base.jacobian)?;
     let mut hessian_second = base.hessians[1];
@@ -145,6 +152,79 @@ pub fn reparameterized_constraint_jet(
         jacobian,
         hessians: [base.hessians[0], hessian_second],
     })
+}
+
+/// A second unit-circle/plane fixture used for the metric-nearest projection oracle.
+pub fn circle_plane_projection_jet(q: Vector3) -> Result<ConstraintJetV1, MixingErrorV1> {
+    validate_vector3(q)?;
+    Ok(ConstraintJetV1 {
+        residual: [
+            finite(0.5 * (q[0] * q[0] + q[1] * q[1] - 1.0))?,
+            q[2],
+        ],
+        jacobian: [[q[0], q[1], 0.0], [0.0, 0.0, 1.0]],
+        hessians: [
+            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
+            [[0.0; 3]; 3],
+        ],
+    })
+}
+
+/// One mass-metric Gauss-Newton normal projection step for two equality constraints.
+pub fn metric_normal_projection_step(
+    mass: Matrix3,
+    jet: ConstraintJetV1,
+) -> Result<Vector3, MixingErrorV1> {
+    let w = delassus(jet.jacobian, mass)?;
+    let lambda = solve_spd2(w, jet.residual)?;
+    let generalized_force = generalized_constraint_force(jet.jacobian, lambda)?;
+    let mut displacement = solve_spd3(mass, generalized_force)?;
+    for value in &mut displacement {
+        *value = finite(-*value)?;
+    }
+    Ok(displacement)
+}
+
+pub fn iterate_circle_plane_projection(
+    start: Vector3,
+    mass: Matrix3,
+    chart: NonlinearMixingChartV1,
+    maximum_iterations: usize,
+    residual_tolerance: f64,
+) -> Result<Vector3, MixingErrorV1> {
+    if maximum_iterations == 0
+        || !residual_tolerance.is_finite()
+        || residual_tolerance <= 0.0
+    {
+        return Err(MixingErrorV1::InvalidChart);
+    }
+    let mut q = start;
+    for _ in 0..maximum_iterations {
+        let jet = compose_constraint_jet(circle_plane_projection_jet(q)?, chart)?;
+        if jet.residual[0].abs().max(jet.residual[1].abs()) <= residual_tolerance {
+            return Ok(q);
+        }
+        let displacement = metric_normal_projection_step(mass, jet)?;
+        for index in 0..3 {
+            q[index] = finite(q[index] + displacement[index])?;
+        }
+    }
+    let residual = compose_constraint_jet(circle_plane_projection_jet(q)?, chart)?.residual;
+    if residual[0].abs().max(residual[1].abs()) <= residual_tolerance {
+        Ok(q)
+    } else {
+        Err(MixingErrorV1::NonConvergentProjection)
+    }
+}
+
+/// Exact nearest point on the unit circle in z=0 for the identity mass metric.
+pub fn circle_plane_nearest_point(q: Vector3) -> Result<Vector3, MixingErrorV1> {
+    validate_vector3(q)?;
+    let radius = (q[0] * q[0] + q[1] * q[1]).sqrt();
+    if !radius.is_finite() || radius <= f64::MIN_POSITIVE {
+        return Err(MixingErrorV1::SingularConstraintJacobian);
+    }
+    Ok([q[0] / radius, q[1] / radius, 0.0])
 }
 
 pub fn constraint_kinematics(
@@ -377,6 +457,18 @@ fn mat_mul3(left: &Matrix3, right: &Matrix3) -> Result<Matrix3, MixingErrorV1> {
         }
     }
     Ok(output)
+}
+
+fn solve_spd2(matrix: Matrix2, rhs: Vector2) -> Result<Vector2, MixingErrorV1> {
+    let off_diagonal = 0.5 * (matrix[0][1] + matrix[1][0]);
+    let determinant = finite(matrix[0][0] * matrix[1][1] - off_diagonal * off_diagonal)?;
+    if matrix[0][0] <= 0.0 || determinant <= 0.0 {
+        return Err(MixingErrorV1::SingularConstraintJacobian);
+    }
+    Ok([
+        finite((matrix[1][1] * rhs[0] - off_diagonal * rhs[1]) / determinant)?,
+        finite((matrix[0][0] * rhs[1] - off_diagonal * rhs[0]) / determinant)?,
+    ])
 }
 
 fn solve_spd3(matrix: Matrix3, rhs: Vector3) -> Result<Vector3, MixingErrorV1> {
@@ -777,6 +869,43 @@ mod tests {
                 assert_close(w_q[row][column], w_y[row][column], 2.0e-13);
             }
         }
+    }
+
+    #[test]
+    fn nonlinear_chart_changes_first_projection_step_but_not_metric_nearest_endpoint() {
+        let start = [1.5, 0.8, 0.7];
+        let mass = [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ];
+        let linear_chart = NonlinearMixingChartV1::new(0.0).unwrap();
+        let nonlinear_chart = chart();
+        let base_jet = compose_constraint_jet(
+            circle_plane_projection_jet(start).unwrap(),
+            linear_chart,
+        )
+        .unwrap();
+        let nonlinear_jet = compose_constraint_jet(
+            circle_plane_projection_jet(start).unwrap(),
+            nonlinear_chart,
+        )
+        .unwrap();
+        let first_linear = metric_normal_projection_step(mass, base_jet).unwrap();
+        let first_nonlinear = metric_normal_projection_step(mass, nonlinear_jet).unwrap();
+        assert!(
+            (first_linear[0] - first_nonlinear[0]).abs() > 1.0e-3
+                || (first_linear[1] - first_nonlinear[1]).abs() > 1.0e-3
+        );
+
+        let exact = circle_plane_nearest_point(start).unwrap();
+        let linear_solution =
+            iterate_circle_plane_projection(start, mass, linear_chart, 100, 2.0e-13).unwrap();
+        let nonlinear_solution =
+            iterate_circle_plane_projection(start, mass, nonlinear_chart, 100, 2.0e-13)
+                .unwrap();
+        assert_vec3_close(linear_solution, exact, 2.0e-11);
+        assert_vec3_close(nonlinear_solution, exact, 2.0e-11);
     }
 
     #[test]
