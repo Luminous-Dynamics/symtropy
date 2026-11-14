@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/sequential-diagnostic-case-v0.1.json",
+  "title": "Symtropy Sequential Diagnostic Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "decision_profile",
+    "states",
+    "actions",
+    "experiments",
+    "policy"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_role",
+        "method_ref",
+        "source_ref"
+      ],
+      "properties": {
+        "evidence_role": {
+          "enum": [
+            "INDEPENDENT_MEASUREMENT",
+            "EXTERNAL_CALIBRATION",
+            "EXPERT_ELICITATION",
+            "SIMULATION_ONLY"
+          ]
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_id",
+        "prior_probability",
+        "evidence"
+      ],
+      "properties": {
+        "state_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "prior_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "utility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_id",
+        "value"
+      ],
+      "properties": {
+        "state_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "utilities"
+      ],
+      "properties": {
+        "action_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "utilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/utility"
+          }
+        }
+      }
+    },
+    "likelihood": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_id",
+        "probability"
+      ],
+      "properties": {
+        "state_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome_id",
+        "likelihoods"
+      ],
+      "properties": {
+        "outcome_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "likelihoods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/likelihood"
+          }
+        }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experiment_id",
+        "cost",
+        "likelihood_evidence",
+        "domain_ref",
+        "outcomes",
+        "independence_group_ref",
+        "dependence_evidence_ref"
+      ],
+      "properties": {
+        "experiment_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "unit",
+            "boundary_ref",
+            "source_ref"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "$ref": "#/$defs/ref"
+            },
+            "boundary_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "source_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
+        },
+        "likelihood_evidence": {
+          "$ref": "#/$defs/evidence"
+        },
+        "domain_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/outcome"
+          }
+        },
+        "independence_group_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dependence_evidence_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "decision_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_profile_ref",
+        "decision_owner_ref",
+        "utility_validation_ref",
+        "utility_unit"
+      ],
+      "properties": {
+        "decision_profile_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "decision_owner_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "utility_validation_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "utility_unit": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/state"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "experiments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/experiment"
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "remaining_budget",
+        "budget_unit",
+        "maximum_measurements_remaining",
+        "maximum_horizon",
+        "minimum_net_value_to_continue",
+        "stop_consequence_ref",
+        "human_review_authority_ref",
+        "conditional_independence_assumption_ref"
+      ],
+      "properties": {
+        "remaining_budget": {
+          "type": "number",
+          "minimum": 0
+        },
+        "budget_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "maximum_measurements_remaining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "maximum_horizon": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "minimum_net_value_to_continue": {
+          "type": "number",
+          "minimum": 0
+        },
+        "stop_consequence_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "human_review_authority_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "conditional_independence_assumption_ref": {
+          "$ref": "#/$defs/ref"
+        }
+      }
+    }
+  }
+}
