@@ -1,0 +1,59 @@
+name: Time-dependent Manufacturing Capability
+
+on:
+  pull_request:
+    paths:
+      - "research/transformer-bench/src/bin/time-capability.rs"
+      - "research/transformer-bench/fixtures/time-capability-*.csv"
+      - "research/transformer-bench/TIME_DEPENDENT_PROCESS_CAPABILITY.md"
+      - "research/transformer-bench/Cargo.toml"
+      - ".github/workflows/time-capability-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: time-capability-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  time-capability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+      - name: Compile and test the capability diagnostic
+        run: cargo test --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability
+      - name: Stable synthetic process remains review-only
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability -- \
+            research/transformer-bench/fixtures/time-capability-stable-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-calibration-synthetic.csv \
+            "$RUNNER_TEMP/stable.csv"
+          grep -F "false,false,REVIEW_REQUIRED_PROCESS_STABILITY_NOT_ESTABLISHED" "$RUNNER_TEMP/stable.csv"
+      - name: Mean drift is detected despite a reportable pooled index
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability -- \
+            research/transformer-bench/fixtures/time-capability-mean-drift-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-calibration-synthetic.csv \
+            "$RUNNER_TEMP/mean-drift.csv"
+          grep -F "true,false,TIME_DEPENDENT_DRIFT_OR_VARIANCE_WARNING" "$RUNNER_TEMP/mean-drift.csv"
+      - name: Variance shift is detected even when window means match
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability -- \
+            research/transformer-bench/fixtures/time-capability-variance-shift-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-calibration-synthetic.csv \
+            "$RUNNER_TEMP/variance-shift.csv"
+          grep -F "false,true,TIME_DEPENDENT_DRIFT_OR_VARIANCE_WARNING" "$RUNNER_TEMP/variance-shift.csv"
+      - name: Expired calibration blocks capability estimates
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin time-capability -- \
+            research/transformer-bench/fixtures/time-capability-stable-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-spec-synthetic.csv \
+            research/transformer-bench/fixtures/time-capability-calibration-expired-negative.csv \
+            "$RUNNER_TEMP/expired.csv"
+          grep -F "BLOCKED_INVALID_METROLOGY" "$RUNNER_TEMP/expired.csv"

@@ -1,0 +1,13 @@
+candidate_id,gate_id,status,evidence_sha256
+baseline_demo,thermal-model,UNKNOWN,
+baseline_demo,dielectric-review,UNKNOWN,
+baseline_demo,short-circuit-review,UNKNOWN,
+baseline_demo,manufacturing-review,UNKNOWN,
+eco_core_demo,thermal-model,UNKNOWN,
+eco_core_demo,dielectric-review,UNKNOWN,
+eco_core_demo,short-circuit-review,UNKNOWN,
+eco_core_demo,manufacturing-review,UNKNOWN,
+compact_demo,thermal-model,UNKNOWN,
+compact_demo,dielectric-review,UNKNOWN,
+compact_demo,short-circuit-review,UNKNOWN,
+compact_demo,manufacturing-review,UNKNOWN,

@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0.0",
+  "profile_id": "south-africa-sans-utility-distribution-draft",
+  "status": "DRAFT",
+  "jurisdiction": {
+    "country_code": "ZA",
+    "region_name": "South Africa",
+    "subdivision_code": null,
+    "local_timezone": "Africa/Johannesburg"
+  },
+  "owner": {
+    "owner_type": "PROCUREMENT_AUTHORITY",
+    "name": "Exact municipality, distributor, Eskom or customer must be named before qualification",
+    "asset_or_tender_reference": null
+  },
+  "applicability": {
+    "transformer_classes": [
+      "Distribution transformer; rating, mount and utility scope pending selection"
+    ],
+    "technologies": [
+      "LIQUID_IMMERSED",
+      "DRY_TYPE"
+    ],
+    "frequency_hz": [
+      50
+    ],
+    "voltage_scope_v": "Must be bound to the named South African utility/owner specification and exact installation.",
+    "rated_power_scope_va": "Must be bound to the applicable current SANS and procurement specification.",
+    "environmental_conditions": [
+      "Ambient temperature, altitude, pollution, coastal/corrosion and installation conditions require site-specific selection."
+    ],
+    "excluded_cases": [
+      "Do not treat a public tender PDF or historical SANS copy as confirmation of the current edition."
+    ]
+  },
+  "documents": [
+    {
+      "document_id": "ZA-SANS780-LEAD",
+      "title": "SANS 780:2019 candidate historical reference copy",
+      "authority": "Secondary hosted copy; obtain edition/status from SABS before use",
+      "canonical_url": "https://irp.cdn-website.com/4e0aecb6/files/uploaded/SANS780_2019_Ed5.pdf",
+      "edition": "SANS 780:2019 candidate source only; current status not verified",
+      "publication_date": null,
+      "effective_from": null,
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "This is a lead for research, not evidence that the edition remains current or applies to a selected utility."
+    },
+    {
+      "document_id": "ZA-CITYPOWER-TENDER-LEAD",
+      "title": "City Power ground-mounted distribution transformer tender specification",
+      "authority": "City Power tender document hosted by South African eTender portal",
+      "canonical_url": "https://www.etenders.gov.za/home/Download/?blobName=47fa128d-b1d1-410c-a0fe-0bdee16b71f9.pdf&downloadedFileName=CP_TSSPEC_164+Rev+3+-+Ground+Mounted+Distribution+Transformers.pdf",
+      "edition": "Tender revision cited in filename; current applicability to a new project not verified",
+      "publication_date": null,
+      "effective_from": null,
+      "checked_at": "2026-10-29",
+      "verification_status": "UNVERIFIED",
+      "source_sha256": null,
+      "applicability_notes": "Check the issuing utility's current controlled specification and contract version. Do not generalize one ground-mounted tender to all South African transformers."
+    }
+  ],
+  "loss_evaluation": {
+    "method_id": "ZA_SANS_UTILITY_LOSS_CONVENTION_TO_BE_VERIFIED",
+    "load_point_convention": "Must be taken from the current SANS/utility procurement clauses for the exact transformer class.",
+    "reference_conditions": "Verify rated frequency, test temperature, IEC/SANS test-method adoption and required test evidence.",
+    "notes": "This profile intentionally remains DRAFT until a current SABS source and a named utility/owner specification are reviewed."
+  },
+  "economic_basis": {
+    "currency_code": "ZAR",
+    "price_basis": "UNKNOWN",
+    "price_year": null,
+    "fx_policy": "Keep ZAR price year and local tariff basis explicit; bind Eskom/municipal tariff schedule/version when lifecycle economics are evaluated."
+  },
+  "reviewers": [],
+  "limitations": [
+    "DRAFT: not a SANS, SABS, Eskom or municipal utility compliance determination.",
+    "Current SANS edition/status and exact utility specification have not been verified.",
+    "Site and climate conditions are not defaulted; they need actual site data."
+  ]
+}

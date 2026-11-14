@@ -1,0 +1,151 @@
+name: Manufacturing Acceptance Gate
+
+on:
+  pull_request:
+    paths:
+      - "research/transformer-bench/src/bin/manufacturing-acceptance.rs"
+      - "research/transformer-bench/src/bin/decision-policy-validate.rs"
+      - "research/transformer-bench/src/bin/manufacturing-robustness-evidence.rs"
+      - "research/transformer-bench/src/bin/assured-intervention-audit.rs"
+      - "research/transformer-bench/fixtures/manufacturing-*.csv"
+      - "research/transformer-bench/MANUFACTURING_ACCEPTANCE_GATE.md"
+      - "research/transformer-bench/MANUFACTURING_DECISION_POLICY.md"
+      - "research/transformer-bench/MANUFACTURING_ROBUSTNESS_EVIDENCE.md"
+      - "research/transformer-bench/MANUFACTURING_ASSURED_INTERVENTION.md"
+      - "research/transformer-bench/Cargo.toml"
+      - ".github/workflows/manufacturing-acceptance-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manufacturing-acceptance-gate-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Test the Rust benchmark workspace
+        run: cargo test --locked --manifest-path research/transformer-bench/Cargo.toml
+      - name: Positive manufacturing acceptance fixture
+        run: |
+          cargo run --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
+            "$RUNNER_TEMP/acceptance.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,4,0,0,0,0,0,true,NONE" "$RUNNER_TEMP/acceptance.csv"
+      - name: Expired calibration must block review
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-expired-negative.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
+            "$RUNNER_TEMP/expired.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,3,0,0,1,0,0,false,REQUIRED_MEASUREMENTS_NOT_PASSING" "$RUNNER_TEMP/expired.csv"
+      - name: Incomplete route must block review
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-missing-route-negative.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-synthetic.csv \
+            "$RUNNER_TEMP/route-missing.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,false,1,0,4,4,0,0,0,0,0,false,ROUTE_INCOMPLETE" "$RUNNER_TEMP/route-missing.csv"
+      - name: Guard-band overlap must remain indeterminate
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-acceptance -- \
+            research/transformer-bench/fixtures/manufacturing-ledger-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-product-route-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-route-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-test-plan-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-calibrations-synthetic.csv \
+            research/transformer-bench/fixtures/manufacturing-measurements-indeterminate-negative.csv \
+            "$RUNNER_TEMP/indeterminate.csv"
+          grep -F "TX-PROD-001,TX-2026-0001,ROUTE-2026-A,true,0,0,4,3,0,1,0,0,0,false,REQUIRED_MEASUREMENTS_NOT_PASSING" "$RUNNER_TEMP/indeterminate.csv"
+      - name: Audit assured intervention state machine
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin assured-intervention-audit -- \
+            research/transformer-bench/fixtures/assured-intervention-positive-synthetic.csv \
+            "$RUNNER_TEMP/intervention-report.csv"
+          grep -F "ACT-001,PROP-001,CLOSED,7,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,nonce-001,true,true,true,true" "$RUNNER_TEMP/intervention-report.csv"
+      - name: Reject premature intervention closure
+        run: |
+          if cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin assured-intervention-audit -- \
+            research/transformer-bench/fixtures/assured-intervention-premature-close-negative.csv \
+            "$RUNNER_TEMP/premature-close.csv" 2>"$RUNNER_TEMP/premature-close.err"; then
+            echo "premature closure was unexpectedly accepted"
+            exit 1
+          fi
+          grep -F "forbidden state transition EXECUTED -> CLOSED" "$RUNNER_TEMP/premature-close.err"
+      - name: Reject intervention nonce replay
+        run: |
+          if cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin assured-intervention-audit -- \
+            research/transformer-bench/fixtures/assured-intervention-nonce-replay-negative.csv \
+            "$RUNNER_TEMP/nonce-replay.csv" 2>"$RUNNER_TEMP/nonce-replay.err"; then
+            echo "nonce replay was unexpectedly accepted"
+            exit 1
+          fi
+          grep -F "nonce reused by another action" "$RUNNER_TEMP/nonce-replay.err"
+      - name: Reject expired intervention authorization
+        run: |
+          if cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin assured-intervention-audit -- \
+            research/transformer-bench/fixtures/assured-intervention-expired-authorization-negative.csv \
+            "$RUNNER_TEMP/expired-authorization.csv" 2>"$RUNNER_TEMP/expired-authorization.err"; then
+            echo "expired authorization was unexpectedly accepted"
+            exit 1
+          fi
+          grep -F "authorization occurred after proposal expiry" "$RUNNER_TEMP/expired-authorization.err"
+      - name: Validate robust acquisition evidence envelope
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin manufacturing-robustness-evidence -- \
+            "$RUNNER_TEMP/acceptance.csv" \
+            research/transformer-bench/fixtures/manufacturing-robustness-evidence-synthetic.csv \
+            "$RUNNER_TEMP/robustness-candidates.csv"
+          grep -F "TX-CAND-REP-001,0.95000000,0.05000000,0.00200000,125.00000000,USD_2026,true,ELIGIBLE," "$RUNNER_TEMP/robustness-candidates.csv"
+          grep -F "TX-CAND-OOD-002,0.08000000,0.91000000,0.01000000,95.00000000,USD_2026,true,ELIGIBLE," "$RUNNER_TEMP/robustness-candidates.csv"
+
+      - name: Validate a complete approved decision policy
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin decision-policy-validate -- \
+            research/transformer-bench/fixtures/manufacturing-decision-policy-synthetic.csv \
+            2026-10-30T00:00:00Z "$RUNNER_TEMP/decision-policy.csv"
+          grep -F "POLICY-SYN-001,REV-1,TX-ROUTINE-TEST,3,4,12,VALID_FOR_DECISION_SUPPORT,NONE" "$RUNNER_TEMP/decision-policy.csv"
+      - name: Expired decision policy must block reuse
+        run: |
+          cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin decision-policy-validate -- \
+            research/transformer-bench/fixtures/manufacturing-decision-policy-expired-negative.csv \
+            2026-10-30T00:00:00Z "$RUNNER_TEMP/decision-policy-expired.csv"
+          grep -F "POLICY-SYN-001,REV-1,TX-ROUTINE-TEST,3,4,12,BLOCKED,POLICY_OUTSIDE_EFFECTIVE_WINDOW" "$RUNNER_TEMP/decision-policy-expired.csv"
+      - name: Incomplete decision utility matrix must be rejected
+        run: |
+          if cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin decision-policy-validate -- \
+            research/transformer-bench/fixtures/manufacturing-decision-policy-incomplete-negative.csv \
+            2026-10-30T00:00:00Z "$RUNNER_TEMP/decision-policy-incomplete.csv" 2>"$RUNNER_TEMP/decision-policy-incomplete.err"; then
+            echo "incomplete utility matrix was unexpectedly accepted"
+            exit 1
+          fi
+          grep -F "decision matrix incomplete" "$RUNNER_TEMP/decision-policy-incomplete.err"
+      - name: Release must not maximize utility for prohibited outcomes
+        run: |
+          if cargo run --quiet --locked --manifest-path research/transformer-bench/Cargo.toml --bin decision-policy-validate -- \
+            research/transformer-bench/fixtures/manufacturing-decision-policy-unsafe-release-negative.csv \
+            2026-10-30T00:00:00Z "$RUNNER_TEMP/decision-policy-unsafe.csv" 2>"$RUNNER_TEMP/decision-policy-unsafe.err"; then
+            echo "unsafe release utility was unexpectedly accepted"
+            exit 1
+          fi
+          grep -F "release action must not maximize utility for release-prohibited outcome" "$RUNNER_TEMP/decision-policy-unsafe.err"
