@@ -1,0 +1,262 @@
+name: Thermodynamic Friction Authority Qualification
+
+on:
+  push:
+    branches:
+      - "ci/thermo-friction-authority-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thermo-friction-authority-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: c5229bb2921c7a1d0ecae3e652e7eb856c0da653
+  SCHEDULE_HEAD: 0c25dceefe2f560f70f037b7b155afc700b8f977
+  CADENCE_HEAD: e302e978d5a564b25e268fe4d31573ddd1ea2623
+
+jobs:
+  qualify:
+    name: Frozen thermo/friction authority / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact product subject and stacked lineage
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${CADENCE_HEAD}" "${SCHEDULE_HEAD}"
+          git merge-base --is-ancestor "${SCHEDULE_HEAD}" "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            rust-toolchain.toml \
+            crates/core/symtropy-physics/src/friction_coordinates.rs \
+            crates/core/symtropy-physics/src/friction_evidence.rs \
+            crates/core/symtropy-physics/src/friction_transaction.rs \
+            crates/core/symtropy-physics/src/friction_promotion.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            src/systems/engine_physics.rs \
+            src/systems/thermodynamic_transaction.rs \
+            src/systems/thermodynamic_runtime.rs \
+            src/systems/thermodynamic_close.rs \
+            src/systems/thermodynamic_commit.rs \
+            src/systems/thermodynamic_cadence.rs \
+            src/systems/thermodynamic_schedule.rs \
+            src/systems/friction_solver_coordinate_tests.rs \
+            > "${RUNNER_TEMP}/thermo-friction-authority-source-sha256.txt"
+          cat "${RUNNER_TEMP}/thermo-friction-authority-source-sha256.txt"
+
+      - name: Check workspace formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check core physics all targets
+        id: core_check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run core friction coordinate corpus
+        id: coordinate_tests
+        run: cargo test -p symtropy-physics --locked --lib friction_coordinates::tests
+
+      - name: Run core friction lifecycle corpora
+        id: friction_core_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --locked --lib friction_evidence
+          cargo test -p symtropy-physics --locked --lib friction_transaction
+          cargo test -p symtropy-physics --locked --lib friction_promotion
+
+      - name: Check launcher default all targets
+        id: launcher_default_check
+        run: cargo check -p symtropy-launcher --locked --all-targets
+
+      - name: Run launcher thermodynamic authority corpora
+        id: launcher_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --locked --lib friction_solver_coordinate_tests
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_runtime_tests
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_schedule::tests
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_cadence_tests
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_commit_tests
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_close_tests
+
+      - name: Check launcher with consciousness runtime
+        id: launcher_consciousness_check
+        run: cargo check -p symtropy-launcher --locked --all-targets --features consciousness-runtime
+
+      - name: Run thermodynamic authority corpora with consciousness runtime
+        id: consciousness_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime friction_solver_coordinate_tests
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_runtime_tests
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_schedule::tests
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_cadence_tests
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_commit_tests
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_close_tests
+
+      - name: Run strict focused Clippy
+        id: clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+          cargo clippy -p symtropy-launcher --locked --lib --features consciousness-runtime -- -D warnings
+
+      - name: Audit fixed-tick and solver-coordinate authority separation
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          coordinates=crates/core/symtropy-physics/src/friction_coordinates.rs
+          runtime=src/systems/thermodynamic_runtime.rs
+          schedule=src/systems/thermodynamic_schedule.rs
+
+          grep -Fq 'pub struct FrictionSolverCoordinates' "${coordinates}"
+          grep -Fq 'pub fn try_from_indices' "${coordinates}"
+          grep -Fq 'pub fn apply_friction_impulse_at' "${runtime}"
+          grep -Fq 'let fixed_tick = self.open_friction_tick()?' "${runtime}"
+          grep -Fq 'FrictionTransactionId::new(' "${runtime}"
+          grep -Fq 'active_handles: Option<Vec<BodyHandle>>' "${schedule}"
+          grep -Fq 'AwaitingPreparedClose' "${schedule}"
+          grep -Fq 'CensusBeforeConsequence' "${schedule}"
+
+          if grep -Eq 'pub[[:space:]]+struct[[:space:]]+FrictionSolverCoordinates[^}]*fixed_tick' "${coordinates}"; then
+            echo 'solver-local coordinate type unexpectedly owns fixed_tick' >&2
+            exit 1
+          fi
+          if grep -Fq 'bind_fixed_tick' "${coordinates}"; then
+            echo 'solver-local coordinate module exposes tick-binding convenience' >&2
+            exit 1
+          fi
+          if grep -Eq 'as[[:space:]]+u32' "${coordinates}"; then
+            echo 'lossy native-index cast found in friction coordinate authority' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CORE_CHECK_OUTCOME: ${{ steps.core_check.outcome }}
+          COORDINATE_TESTS_OUTCOME: ${{ steps.coordinate_tests.outcome }}
+          FRICTION_CORE_TESTS_OUTCOME: ${{ steps.friction_core_tests.outcome }}
+          LAUNCHER_DEFAULT_CHECK_OUTCOME: ${{ steps.launcher_default_check.outcome }}
+          LAUNCHER_TESTS_OUTCOME: ${{ steps.launcher_tests.outcome }}
+          LAUNCHER_CONSCIOUSNESS_CHECK_OUTCOME: ${{ steps.launcher_consciousness_check.outcome }}
+          CONSCIOUSNESS_TESTS_OUTCOME: ${{ steps.consciousness_tests.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+          AUTHORITY_AUDIT_OUTCOME: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT_OUTCOME: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/thermo-friction-authority-v01-receipt.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          outcomes = {
+              "subject": os.environ.get("SUBJECT_OUTCOME", "unknown"),
+              "source_identity": os.environ.get("SOURCE_OUTCOME", "unknown"),
+              "fmt": os.environ.get("FMT_OUTCOME", "unknown"),
+              "core_check": os.environ.get("CORE_CHECK_OUTCOME", "unknown"),
+              "coordinate_tests": os.environ.get("COORDINATE_TESTS_OUTCOME", "unknown"),
+              "friction_core_tests": os.environ.get("FRICTION_CORE_TESTS_OUTCOME", "unknown"),
+              "launcher_default_check": os.environ.get("LAUNCHER_DEFAULT_CHECK_OUTCOME", "unknown"),
+              "launcher_tests": os.environ.get("LAUNCHER_TESTS_OUTCOME", "unknown"),
+              "launcher_consciousness_check": os.environ.get("LAUNCHER_CONSCIOUSNESS_CHECK_OUTCOME", "unknown"),
+              "consciousness_tests": os.environ.get("CONSCIOUSNESS_TESTS_OUTCOME", "unknown"),
+              "clippy": os.environ.get("CLIPPY_OUTCOME", "unknown"),
+              "authority_audit": os.environ.get("AUTHORITY_AUDIT_OUTCOME", "unknown"),
+              "postflight": os.environ.get("POSTFLIGHT_OUTCOME", "unknown"),
+          }
+
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "thermodynamic-friction-authority-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "schedule_parent_head": os.environ["SCHEDULE_HEAD"],
+              "cadence_parent_head": os.environ["CADENCE_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "typed solver-local friction identity plus fixed-tick scheduler/runtime authority; default and consciousness-runtime launcher profiles",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "qualifies source compilation/tests/lints for the frozen scheduler/runtime/coordinate authority only; production plugin is not switched and world friction still uses legacy impulse-derived telemetry, so no production physical-heat or first-law closure claim",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/thermo-friction-authority-source-sha256.txt" \
+             "${RUNNER_TEMP}/thermo-friction-authority-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thermo-friction-authority-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/thermo-friction-authority-v01-receipt.json
+            ${{ runner.temp }}/thermo-friction-authority-v01-receipt.json.sha256
+            ${{ runner.temp }}/thermo-friction-authority-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
