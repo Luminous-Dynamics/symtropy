@@ -15,6 +15,8 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt;
 
+use crate::temporal::{BoundedEventTimeInterval, TemporalIntervalError};
+
 pub const STREAMING_ISOLATION_SLOTS: usize = 5;
 pub const STREAMING_RECEIPT_SCHEMA: &str = "liu-ice-streaming-diagnosis-receipt-v1";
 const PROBABILITY_TOLERANCE: f64 = 1e-6;
@@ -25,6 +27,14 @@ pub struct StreamingInputSample {
     pub recording_id: String,
     pub sample_index: u64,
     pub time_seconds: f64,
+    /// Half-width of the event-time interval in seconds.
+    pub timestamp_uncertainty_seconds: f64,
+    /// Source clock domain after mapping into the recording's declared timebase.
+    pub timebase_id: String,
+    /// True only when an upstream timebase qualification is available.
+    pub timebase_qualified: bool,
+    /// Digest of the timebase qualification evidence; hash integrity is not signer authentication.
+    pub timebase_qualification_sha256: String,
     /// Missing channels remain absent. No nominal-value imputation is performed.
     pub signals: BTreeMap<String, f64>,
 }
@@ -46,6 +56,10 @@ pub struct StreamingDiagnosisReceipt {
     pub recording_id: String,
     pub sample_index: u64,
     pub time_seconds: f64,
+    pub timestamp_uncertainty_seconds: f64,
+    pub timebase_id: String,
+    pub timebase_qualified: bool,
+    pub timebase_qualification_sha256: String,
     pub model_sha256: String,
     pub input_sha256: String,
     pub output: StreamingDiagnosisOutput,
@@ -59,6 +73,9 @@ pub enum StreamingError {
     EmptyIdentity,
     InvalidModelDigest,
     InvalidInputSample,
+    InvalidTimebase,
+    TimebaseChanged,
+    TemporalOrderUnproven,
     RecordingChanged,
     NonMonotonicSample,
     SampleSequenceGap,
@@ -83,6 +100,18 @@ impl fmt::Display for StreamingError {
             Self::InvalidInputSample => write!(
                 formatter,
                 "streaming input sample has invalid time or signal values"
+            ),
+            Self::InvalidTimebase => write!(
+                formatter,
+                "input requires a qualified timebase identity and SHA-256 evidence digest"
+            ),
+            Self::TimebaseChanged => write!(
+                formatter,
+                "timebase identity or qualification changed inside a streaming session"
+            ),
+            Self::TemporalOrderUnproven => write!(
+                formatter,
+                "timestamp uncertainty intervals overlap; strict event-time order is unproven"
             ),
             Self::RecordingChanged => write!(
                 formatter,
@@ -147,7 +176,9 @@ pub struct StreamingDiagnosisSession<D> {
     recording_id: String,
     model_sha256: String,
     previous_sample_index: Option<u64>,
-    previous_time_seconds: Option<f64>,
+    previous_time_interval: Option<BoundedEventTimeInterval>,
+    timebase_id: Option<String>,
+    timebase_qualification_sha256: Option<String>,
     previous_receipt_sha256: Option<String>,
     sample_count: u64,
     poisoned: bool,
@@ -172,7 +203,9 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
             recording_id,
             model_sha256,
             previous_sample_index: None,
-            previous_time_seconds: None,
+            previous_time_interval: None,
+            timebase_id: None,
+            timebase_qualification_sha256: None,
             previous_receipt_sha256: None,
             sample_count: 0,
             poisoned: false,
@@ -187,7 +220,7 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
         if self.poisoned {
             return Err(StreamingError::SessionPoisoned);
         }
-        validate_input_sample(sample)?;
+        let time_interval = validate_input_sample(sample)?;
         if sample.recording_id != self.recording_id {
             return Err(StreamingError::RecordingChanged);
         }
@@ -199,11 +232,22 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
                 return Err(StreamingError::SampleSequenceGap);
             }
         }
-        if self
-            .previous_time_seconds
-            .is_some_and(|previous| sample.time_seconds <= previous)
+        if let (Some(timebase_id), Some(qualification_sha256)) =
+            (&self.timebase_id, &self.timebase_qualification_sha256)
         {
-            return Err(StreamingError::NonMonotonicSample);
+            if sample.timebase_id != *timebase_id
+                || sample.timebase_qualification_sha256 != *qualification_sha256
+            {
+                return Err(StreamingError::TimebaseChanged);
+            }
+        }
+        if let Some(previous) = self.previous_time_interval {
+            if time_interval.is_strictly_before(previous) {
+                return Err(StreamingError::NonMonotonicSample);
+            }
+            if !time_interval.is_strictly_after(previous) {
+                return Err(StreamingError::TemporalOrderUnproven);
+            }
         }
 
         let input_sha256 = sha256_serializable(b"symtropy-liu-ice-streaming-input-v1\0", sample)?;
@@ -240,6 +284,10 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
             recording_id: sample.recording_id.clone(),
             sample_index: sample.sample_index,
             time_seconds: sample.time_seconds,
+            timestamp_uncertainty_seconds: sample.timestamp_uncertainty_seconds,
+            timebase_id: sample.timebase_id.clone(),
+            timebase_qualified: sample.timebase_qualified,
+            timebase_qualification_sha256: sample.timebase_qualification_sha256.clone(),
             model_sha256: self.model_sha256.clone(),
             input_sha256,
             output,
@@ -256,7 +304,9 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
         };
 
         self.previous_sample_index = Some(sample.sample_index);
-        self.previous_time_seconds = Some(sample.time_seconds);
+        self.previous_time_interval = Some(time_interval);
+        self.timebase_id = Some(sample.timebase_id.clone());
+        self.timebase_qualification_sha256 = Some(sample.timebase_qualification_sha256.clone());
         self.previous_receipt_sha256 = Some(receipt.receipt_sha256.clone());
         self.sample_count += 1;
         Ok(receipt)
@@ -292,7 +342,9 @@ pub fn validate_receipt_chain(
     }
     let mut previous_receipt: Option<&str> = None;
     let mut previous_index = None;
-    let mut previous_time = None;
+    let mut previous_time_interval: Option<BoundedEventTimeInterval> = None;
+    let timebase_id = receipts[0].timebase_id.as_str();
+    let timebase_qualification_sha256 = receipts[0].timebase_qualification_sha256.as_str();
     let recording_id = receipts[0].recording_id.as_str();
 
     for receipt in receipts {
@@ -304,8 +356,18 @@ pub fn validate_receipt_chain(
             || !is_sha256_hex(&receipt.receipt_sha256)
             || !receipt.time_seconds.is_finite()
             || receipt.time_seconds < 0.0
+            || !receipt.timestamp_uncertainty_seconds.is_finite()
+            || receipt.timestamp_uncertainty_seconds < 0.0
+            || !receipt.timebase_qualified
+            || receipt.timebase_id.trim().is_empty()
+            || !is_sha256_hex(&receipt.timebase_qualification_sha256)
         {
             return Err(StreamingError::ReceiptChainBreak);
+        }
+        if receipt.timebase_id != timebase_id
+            || receipt.timebase_qualification_sha256 != timebase_qualification_sha256
+        {
+            return Err(StreamingError::TimebaseChanged);
         }
         if receipt.model_sha256 != model_sha256 {
             return Err(StreamingError::MixedModelChain);
@@ -318,8 +380,18 @@ pub fn validate_receipt_chain(
                 return Err(StreamingError::SampleSequenceGap);
             }
         }
-        if previous_time.is_some_and(|previous| receipt.time_seconds <= previous) {
-            return Err(StreamingError::NonMonotonicSample);
+        let current_time_interval = BoundedEventTimeInterval::new(
+            receipt.time_seconds,
+            receipt.timestamp_uncertainty_seconds,
+        )
+        .map_err(|_| StreamingError::ReceiptChainBreak)?;
+        if let Some(previous) = previous_time_interval {
+            if current_time_interval.is_strictly_before(previous) {
+                return Err(StreamingError::NonMonotonicSample);
+            }
+            if !current_time_interval.is_strictly_after(previous) {
+                return Err(StreamingError::TemporalOrderUnproven);
+            }
         }
         if receipt.previous_receipt_sha256.as_deref() != previous_receipt {
             return Err(StreamingError::ReceiptChainBreak);
@@ -339,26 +411,36 @@ pub fn validate_receipt_chain(
             return Err(StreamingError::ReceiptIntegrityFailure);
         }
         previous_index = Some(receipt.sample_index);
-        previous_time = Some(receipt.time_seconds);
+        previous_time_interval = Some(current_time_interval);
         previous_receipt = Some(receipt.receipt_sha256.as_str());
     }
     Ok(())
 }
 
-fn validate_input_sample(sample: &StreamingInputSample) -> Result<(), StreamingError> {
+fn validate_input_sample(
+    sample: &StreamingInputSample,
+) -> Result<BoundedEventTimeInterval, StreamingError> {
     if sample.recording_id.trim().is_empty() {
         return Err(StreamingError::EmptyIdentity);
     }
-    if !sample.time_seconds.is_finite()
-        || sample.time_seconds < 0.0
-        || sample
-            .signals
-            .iter()
-            .any(|(name, value)| name.trim().is_empty() || !value.is_finite())
+    if !sample.timebase_qualified
+        || sample.timebase_id.trim().is_empty()
+        || !is_sha256_hex(&sample.timebase_qualification_sha256)
+    {
+        return Err(StreamingError::InvalidTimebase);
+    }
+    if sample
+        .signals
+        .iter()
+        .any(|(name, value)| name.trim().is_empty() || !value.is_finite())
     {
         return Err(StreamingError::InvalidInputSample);
     }
-    Ok(())
+    BoundedEventTimeInterval::new(
+        sample.time_seconds,
+        sample.timestamp_uncertainty_seconds,
+    )
+    .map_err(|_| StreamingError::InvalidInputSample)
 }
 
 fn validate_output(output: &StreamingDiagnosisOutput) -> Result<(), StreamingError> {
@@ -391,6 +473,10 @@ fn receipt_digest(receipt: &StreamingDiagnosisReceipt) -> Result<String, Streami
         receipt.recording_id.as_str(),
         receipt.sample_index,
         receipt.time_seconds,
+        receipt.timestamp_uncertainty_seconds,
+        receipt.timebase_id.as_str(),
+        receipt.timebase_qualified,
+        receipt.timebase_qualification_sha256.as_str(),
         receipt.model_sha256.as_str(),
         receipt.input_sha256.as_str(),
         &receipt.output,
@@ -452,6 +538,10 @@ mod tests {
             recording_id: "run-1".into(),
             sample_index: index,
             time_seconds,
+            timestamp_uncertainty_seconds: 0.0,
+            timebase_id: "run-1-clock".into(),
+            timebase_qualified: true,
+            timebase_qualification_sha256: "e".repeat(64),
             signals: BTreeMap::from([("ypic".into(), 1.0)]),
         }
     }
@@ -605,6 +695,66 @@ mod tests {
         assert_eq!(
             validate_receipt_chain(&[first, broken_parent]),
             Err(StreamingError::ReceiptChainBreak)
+        );
+    }
+
+    #[test]
+    fn overlapping_time_uncertainty_is_rejected_before_a_receipt_is_issued() {
+        let mut session = session();
+        let mut first = sample(0, 1.0);
+        first.timestamp_uncertainty_seconds = 0.02;
+        session.input(&first).unwrap();
+
+        let mut overlapping = sample(1, 1.03);
+        overlapping.timestamp_uncertainty_seconds = 0.02;
+        assert_eq!(
+            session.input(&overlapping),
+            Err(StreamingError::TemporalOrderUnproven)
+        );
+        assert_eq!(session.sample_count(), 1);
+        assert!(!session.is_poisoned());
+    }
+
+    #[test]
+    fn timebase_change_is_rejected_before_model_invocation() {
+        let mut session = session();
+        session.input(&sample(0, 1.0)).unwrap();
+        let mut changed = sample(1, 1.05);
+        changed.timebase_id = "unmapped-controller-clock".into();
+        assert_eq!(session.input(&changed), Err(StreamingError::TimebaseChanged));
+        assert_eq!(session.sample_count(), 1);
+        assert!(!session.is_poisoned());
+    }
+
+    #[test]
+    fn unqualified_or_unbound_clock_evidence_is_rejected() {
+        let mut session = session();
+        let mut unqualified = sample(0, 1.0);
+        unqualified.timebase_qualified = false;
+        assert_eq!(session.input(&unqualified), Err(StreamingError::InvalidTimebase));
+
+        let mut malformed_digest = sample(0, 1.0);
+        malformed_digest.timebase_qualification_sha256 = "not-a-digest".into();
+        assert_eq!(session.input(&malformed_digest), Err(StreamingError::InvalidTimebase));
+        assert_eq!(session.sample_count(), 0);
+    }
+
+    #[test]
+    fn receipt_chain_binds_timebase_and_uncertainty_intervals() {
+        let mut session = session();
+        let mut first = sample(0, 1.0);
+        first.timestamp_uncertainty_seconds = 0.01;
+        let first = session.input(&first).unwrap();
+        let mut second = sample(1, 1.05);
+        second.timestamp_uncertainty_seconds = 0.01;
+        let second = session.input(&second).unwrap();
+        assert!(validate_receipt_chain(&[first.clone(), second.clone()]).is_ok());
+
+        let mut tampered_clock = second;
+        tampered_clock.timebase_qualification_sha256 = "f".repeat(64);
+        assert_eq!(
+            validate_receipt_chain(&[first, tampered_clock]),
+            Err(StreamingError::TimebaseChanged)
         );
     }
 
