@@ -419,7 +419,7 @@ impl ObservationalTargetTrialProtocol {
                 || !stratum.minimum_propensity_overlap.is_finite()
                 || !(0.0..=1.0).contains(&stratum.minimum_propensity_overlap)
                 || !stratum.minimum_effective_sample_size_per_arm.is_finite()
-                || stratum.minimum_effective_sample_size_per_arm < 2.0
+                || stratum.minimum_effective_sample_size_per_arm < 1.0
             {
                 return Err(TargetTrialValidationError::InvalidProtocol(
                     stratum.stratum_id.clone(),
