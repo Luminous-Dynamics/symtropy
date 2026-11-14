@@ -36,10 +36,11 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 36,
+      "minItems": 40,
       "items": {
         "$ref": "#/$defs/case"
-      }
+      },
+      "maxItems": 40
     }
   },
   "$defs": {
@@ -769,7 +770,34 @@
           }
         },
         "expected_code": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "REVIEW_CANDIDATE",
+            "BLOCK_SUBJECT_IDENTITY",
+            "BLOCK_INDICATION_IDENTITY",
+            "BLOCK_METHOD_SCOPE",
+            "BLOCK_COVERAGE",
+            "BLOCK_ACCEPTANCE_BASIS",
+            "BLOCK_EQUIPMENT_CALIBRATION",
+            "BLOCK_EXAMINER_AUTHORITY",
+            "BLOCK_ISSUER_AUTHENTICATION",
+            "BLOCK_ARTIFACT_INTEGRITY",
+            "BLOCK_RIGHTS",
+            "BLOCK_REPORT_SUPERSEDED",
+            "BLOCK_REPORT_REVOKED",
+            "BLOCK_TEMPORAL_LEAKAGE",
+            "BLOCK_DISPOSITION",
+            "BLOCK_REPAIR_REQUIRED",
+            "BLOCK_REPAIR_ROUTE",
+            "BLOCK_REPAIR_AUTHORITY",
+            "BLOCK_REPAIR_LINEAGE",
+            "BLOCK_REPAIR_EVIDENCE",
+            "BLOCK_REINSPECTION",
+            "BLOCK_FINAL_RELEASE",
+            "BLOCK_SPLIT_LEAKAGE",
+            "BLOCK_FEEDBACK_CONFOUNDING",
+            "BLOCK_UNAUTHORIZED_PROMOTION"
+          ]
         }
       }
     }
