@@ -28,6 +28,12 @@ pub struct NewtonKantorovichInputsV1 {
     pub problem_id: String,
     pub linearization_id: String,
     pub norm_identity_id: String,
+    pub eta_problem_id: String,
+    pub gamma_problem_id: String,
+    pub eta_linearization_id: String,
+    pub gamma_linearization_id: String,
+    pub eta_norm_identity_id: String,
+    pub gamma_norm_identity_id: String,
     pub eta_receipt_id: String,
     pub gamma_bound_receipt_id: String,
     pub eta_upper_bound: f64,
@@ -132,8 +138,31 @@ pub fn certify_newton_kantorovich_local_root(
     validate_identity(&inputs.problem_id)?;
     validate_identity(&inputs.linearization_id)?;
     validate_identity(&inputs.norm_identity_id)?;
+    validate_identity(&inputs.eta_problem_id)?;
+    validate_identity(&inputs.gamma_problem_id)?;
+    validate_identity(&inputs.eta_linearization_id)?;
+    validate_identity(&inputs.gamma_linearization_id)?;
+    validate_identity(&inputs.eta_norm_identity_id)?;
+    validate_identity(&inputs.gamma_norm_identity_id)?;
     validate_identity(&inputs.eta_receipt_id)?;
     validate_identity(&inputs.gamma_bound_receipt_id)?;
+
+    if inputs.eta_problem_id != inputs.problem_id
+        || inputs.gamma_problem_id != inputs.problem_id
+    {
+        return Err(NewtonKantorovichErrorV1::ProblemIdentityMismatch);
+    }
+    if inputs.eta_linearization_id != inputs.linearization_id
+        || inputs.gamma_linearization_id != inputs.linearization_id
+    {
+        return Err(NewtonKantorovichErrorV1::LinearizationIdentityMismatch);
+    }
+    if inputs.eta_norm_identity_id != inputs.norm_identity_id
+        || inputs.gamma_norm_identity_id != inputs.norm_identity_id
+        || inputs.eta_norm_identity_id != inputs.gamma_norm_identity_id
+    {
+        return Err(NewtonKantorovichErrorV1::NormIdentityMismatch);
+    }
 
     if !inputs.eta_upper_bound.is_finite()
         || !inputs
@@ -230,6 +259,12 @@ mod tests {
             problem_id: "frozen-dumbbell-v0.1".to_owned(),
             linearization_id: "midpoint-kkt-jacobian-v0.1".to_owned(),
             norm_identity_id: "mass-delassus-block-norm-v0.1".to_owned(),
+            eta_problem_id: "frozen-dumbbell-v0.1".to_owned(),
+            gamma_problem_id: "frozen-dumbbell-v0.1".to_owned(),
+            eta_linearization_id: "midpoint-kkt-jacobian-v0.1".to_owned(),
+            gamma_linearization_id: "midpoint-kkt-jacobian-v0.1".to_owned(),
+            eta_norm_identity_id: "mass-delassus-block-norm-v0.1".to_owned(),
+            gamma_norm_identity_id: "mass-delassus-block-norm-v0.1".to_owned(),
             eta_receipt_id: "independent-kkt-residual-receipt-001".to_owned(),
             gamma_bound_receipt_id: "independent-preconditioned-jacobian-bound-001".to_owned(),
             eta_upper_bound: eta,
@@ -337,16 +372,40 @@ mod tests {
     #[test]
     fn mismatched_norm_identities_are_rejected() {
         let mut value = inputs(0.01, 1.0);
-        value.gamma_bound_receipt_id = "gamma-bound-with-different-norm".to_owned();
-        // A receipt ID may differ; the typed norm identity itself may not.
-        value.norm_identity_id = "mass-only-norm-v0.1".to_owned();
-        let mut mixed = value.clone();
-        mixed.linearization_id = "different-linearization".to_owned();
-        assert!(certify_newton_kantorovich_local_root(
-            &mixed,
-            NewtonKantorovichProfileV1::default()
-        )
-        .is_ok());
+        value.gamma_norm_identity_id = "euclidean-norm-v0.1".to_owned();
+        assert_eq!(
+            certify_newton_kantorovich_local_root(
+                &value,
+                NewtonKantorovichProfileV1::default()
+            ),
+            Err(NewtonKantorovichErrorV1::NormIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn mismatched_linearization_identities_are_rejected() {
+        let mut value = inputs(0.01, 1.0);
+        value.gamma_linearization_id = "different-jacobian".to_owned();
+        assert_eq!(
+            certify_newton_kantorovich_local_root(
+                &value,
+                NewtonKantorovichProfileV1::default()
+            ),
+            Err(NewtonKantorovichErrorV1::LinearizationIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn mismatched_problem_identities_are_rejected() {
+        let mut value = inputs(0.01, 1.0);
+        value.eta_problem_id = "other-physical-problem".to_owned();
+        assert_eq!(
+            certify_newton_kantorovich_local_root(
+                &value,
+                NewtonKantorovichProfileV1::default()
+            ),
+            Err(NewtonKantorovichErrorV1::ProblemIdentityMismatch)
+        );
     }
 
     #[test]
@@ -367,25 +426,7 @@ mod tests {
         );
     }
 
-    #[test]
-    fn mismatched_physical_norm_identities_are_rejected() {
-        let mut value = inputs(0.01, 1.0);
-        value.norm_identity_id = "mass-only-norm-v0.1".to_owned();
-        let mut profile_input = value.clone();
-        profile_input.norm_identity_id = "different-placeholder".to_owned();
-        // The API uses one shared norm identity; a mismatched identity cannot
-        // be represented without changing the schema. Empty IDs are rejected.
-        assert_eq!(
-            certify_newton_kantorovich_local_root(
-                &NewtonKantorovichInputsV1 {
-                    norm_identity_id: String::new(),
-                    ..profile_input
-                },
-                NewtonKantorovichProfileV1::default()
-            ),
-            Err(NewtonKantorovichErrorV1::EmptyEvidenceIdentity)
-        );
-    }
+
 }
 
 fn close(left: f64, right: f64, tolerance: f64) {
