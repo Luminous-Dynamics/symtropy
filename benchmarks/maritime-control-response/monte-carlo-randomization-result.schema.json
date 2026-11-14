@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-monte-carlo-randomization-result-v0.1.json",
+  "title": "Monte Carlo randomization result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "assignment_plan_sha256",
+    "randomization_frame_sha256",
+    "algorithm",
+    "seed_u64",
+    "draw_count",
+    "observed_treatment_minus_control",
+    "exceedance_count",
+    "p_value_plus_one",
+    "tail_probability_estimate",
+    "monte_carlo_standard_error",
+    "tail_probability_wilson_95",
+    "sampled_assignments_sha256",
+    "allocation_constraint_violations",
+    "exact_enumeration_used",
+    "maintenance_authorized",
+    "physical_restoration_authorized",
+    "operating_restriction_clearance_authorized"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-monte-carlo-randomization-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assignment_plan_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "randomization_frame_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "algorithm": {
+      "const": "splitmix64_v1"
+    },
+    "seed_u64": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709552000
+    },
+    "draw_count": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 2000000
+    },
+    "observed_treatment_minus_control": {
+      "type": "number"
+    },
+    "exceedance_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "p_value_plus_one": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "tail_probability_estimate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "monte_carlo_standard_error": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.5
+    },
+    "tail_probability_wilson_95": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "sampled_assignments_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "allocation_constraint_violations": {
+      "const": 0
+    },
+    "exact_enumeration_used": {
+      "const": false
+    },
+    "maintenance_authorized": {
+      "const": false
+    },
+    "physical_restoration_authorized": {
+      "const": false
+    },
+    "operating_restriction_clearance_authorized": {
+      "const": false
+    }
+  }
+}
