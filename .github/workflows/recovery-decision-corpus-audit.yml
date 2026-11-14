@@ -1,0 +1,68 @@
+name: Recovery Decision Corpus Audit
+
+on:
+  push:
+    branches: ["docs/recovery-decision-oracle-v0-1"]
+    paths:
+      - "docs/tech/recovery-decision-scenarios-v0.1.json"
+      - "tools/recovery-decision-corpus-audit/**"
+      - ".github/workflows/recovery-decision-corpus-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/RECOVERY_DECISION_ORACLE_V0_1.md"
+      - "docs/tech/recovery-decision-scenarios-v0.1.json"
+      - "tools/recovery-decision-corpus-audit/**"
+      - ".github/workflows/recovery-decision-corpus-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-decision-corpus-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Test independent corpus contract auditor
+        run: cargo test --manifest-path tools/recovery-decision-corpus-audit/Cargo.toml
+      - name: Audit corpus on the exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-decision-corpus-audit/Cargo.toml -- \
+            docs/tech/recovery-decision-scenarios-v0.1.json \
+            --source-commit "$source_commit" > recovery-decision-audit-receipt.json
+          jq -e '
+            .result == "pass"
+            and .schema_version == "recovery-decision-scenarios-v0.1"
+            and .scenario_count == 17
+            and .unique_scenario_count == 17
+            and .domain_profile_count == 8
+            and .gate_status_counts.BLOCK == 3
+            and .gate_status_counts.PASS == 13
+            and .gate_status_counts.UNKNOWN == 19
+            and .all_plan_only == true
+            and .claim_ceiling == "NO_ACTUATION_AUTHORIZED"
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+          ' recovery-decision-audit-receipt.json
+      - name: Upload exact-input audit receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-decision-audit-receipt
+          path: recovery-decision-audit-receipt.json
+          if-no-files-found: error

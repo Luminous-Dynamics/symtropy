@@ -1,0 +1,963 @@
+{
+  "schema_version": "recovery-decision-scenarios-v0.1",
+  "corpus_id": "RECOVERY-ORACLE-001",
+  "status": "synthetic-logic-fixtures",
+  "scenario_count": 17,
+  "units": {
+    "cost": "synthetic_eur_cents_per_qualified_unit",
+    "yield": "dimensionless_fraction",
+    "energy": "synthetic_kwh_per_qualified_unit"
+  },
+  "claim_ceiling": {
+    "real_world_measurements": false,
+    "field_accuracy_claimed": false,
+    "expected_actuation": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "contract": {
+    "gate_statuses": [
+      "PASS",
+      "BLOCK",
+      "UNKNOWN"
+    ],
+    "unknown_is_pass": false,
+    "failed_or_unknown_mandatory_gate_makes_affected_plan_feasible": false,
+    "unknown_evidence_disposition": "HOLD_FOR_EVIDENCE",
+    "human_or_domain_authority_review_required": true,
+    "domain_thresholds_transfer_between_profiles": false
+  },
+  "scenarios": [
+    {
+      "id": "REC-001-FOREST-DEADWOOD-HABITAT",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "recently_dead_standing_tree",
+      "evidence": [
+        {
+          "evidence_id": "REC-001-FOREST-DEADWOOD-HABITAT-E01",
+          "claim": "remote screening suggests timber potential",
+          "source_ref": "synthetic://REC-001-FOREST-DEADWOOD-HABITAT/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "ecological_retention_review",
+          "status": "BLOCK",
+          "reason": "habitat retention zone applies"
+        },
+        {
+          "gate": "permission",
+          "status": "UNKNOWN",
+          "reason": "not evaluated"
+        }
+      ],
+      "candidate_plans": [
+        "retain_in_place",
+        "ground_extraction",
+        "cable_extraction",
+        "helicopter_extraction"
+      ],
+      "expected_disposition": "BLOCK_RECOVERY_PLANS",
+      "expected_reason_codes": [
+        "DEADWOOD_RETENTION_REQUIRED",
+        "PERMISSION_UNKNOWN"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-002-FOREST-CABLE-BEATS-HELICOPTER",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "qualified-log-lot-synthetic",
+      "evidence": [
+        {
+          "evidence_id": "REC-002-FOREST-CABLE-BEATS-HELICOPTER-E01",
+          "claim": "synthetic qualified-volume estimate",
+          "source_ref": "synthetic://REC-002-FOREST-CABLE-BEATS-HELICOPTER/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-002-FOREST-CABLE-BEATS-HELICOPTER-E02",
+          "claim": "synthetic route assumptions",
+          "source_ref": "synthetic://REC-002-FOREST-CABLE-BEATS-HELICOPTER/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "permission",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "rigging_and_safety_review",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        }
+      ],
+      "candidate_plans": [
+        "cable_extraction",
+        "helicopter_extraction"
+      ],
+      "synthetic_estimates": {
+        "cable_extraction": {
+          "cost_cents_per_qualified_unit": 1500,
+          "qualified_yield_fraction": 0.82
+        },
+        "helicopter_extraction": {
+          "cost_cents_per_qualified_unit": 6000,
+          "qualified_yield_fraction": 0.82
+        }
+      },
+      "expected_disposition": "ELIGIBLE_FOR_HUMAN_REVIEW",
+      "preferred_plan_for_review": "cable_extraction",
+      "expected_reason_codes": [
+        "LOWER_SYNTHETIC_TOTAL_COST_PER_QUALIFIED_UNIT"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-003-FOREST-REMOTE-AIRLIFT-UNRESOLVED",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "remote-high-value-log-lot-synthetic",
+      "evidence": [
+        {
+          "evidence_id": "REC-003-FOREST-REMOTE-AIRLIFT-UNRESOLVED-E01",
+          "claim": "synthetic gross and qualified value estimates",
+          "source_ref": "synthetic://REC-003-FOREST-REMOTE-AIRLIFT-UNRESOLVED/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "permission",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "weather_and_aircraft_limits",
+          "status": "UNKNOWN",
+          "reason": "no current operational assessment"
+        },
+        {
+          "gate": "rigging_and_rotor_clearance",
+          "status": "UNKNOWN",
+          "reason": "unverified geometry"
+        },
+        {
+          "gate": "qualified_total_cost",
+          "status": "UNKNOWN",
+          "reason": "mobilization and flight-cycle estimates incomplete"
+        }
+      ],
+      "candidate_plans": [
+        "leave_in_place",
+        "cable_extraction",
+        "helicopter_extraction"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "WEATHER_OR_AIRCRAFT_LIMITS_UNKNOWN",
+        "RIGGING_CLEARANCE_UNKNOWN",
+        "TOTAL_COST_INCOMPLETE"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-004-FOREST-DECLINING-LIVE-TREE",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "living_tree_with_declining_vitality",
+      "evidence": [
+        {
+          "evidence_id": "REC-004-FOREST-DECLINING-LIVE-TREE-E01",
+          "claim": "remote imagery suggests canopy decline; mortality unconfirmed",
+          "source_ref": "synthetic://REC-004-FOREST-DECLINING-LIVE-TREE/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "tree_status_and_silvicultural_decision",
+          "status": "UNKNOWN",
+          "reason": "still living or status unresolved"
+        },
+        {
+          "gate": "permission",
+          "status": "UNKNOWN",
+          "reason": "not evaluated"
+        }
+      ],
+      "candidate_plans": [
+        "monitor",
+        "qualified_arborist_assessment",
+        "deadwood_salvage"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "LIVE_TREE_REQUIRES_SEPARATE_DECISION",
+        "PERMISSION_UNKNOWN"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE",
+      "domain_profile": "photovoltaic_reuse_v0",
+      "asset_class": "retired_pv_module",
+      "evidence": [
+        {
+          "evidence_id": "REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE-E01",
+          "claim": "visual inspection complete",
+          "source_ref": "synthetic://REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE-E02",
+          "claim": "insulation test pass",
+          "source_ref": "synthetic://REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE-E03",
+          "claim": "I-V curve within profile limits",
+          "source_ref": "synthetic://REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE/evidence/3",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE-E04",
+          "claim": "electroluminescence reviewed",
+          "source_ref": "synthetic://REC-005-PV-SECOND-LIFE-REVIEW-CANDIDATE/evidence/4",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "electrical_safety_profile",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "second_life_acceptance_profile",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "buyer_and_installation_authority",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        }
+      ],
+      "candidate_plans": [
+        "reuse_after_qualified_review",
+        "recycle"
+      ],
+      "synthetic_estimates": {
+        "reuse_after_qualified_review": {
+          "cost_cents_per_qualified_unit": 900,
+          "qualified_yield_fraction": 0.9
+        },
+        "recycle": {
+          "cost_cents_per_qualified_unit": 1200,
+          "qualified_yield_fraction": 0.95
+        }
+      },
+      "expected_disposition": "ELIGIBLE_FOR_HUMAN_REVIEW",
+      "preferred_plan_for_review": "reuse_after_qualified_review",
+      "expected_reason_codes": [
+        "PROFILE_TESTS_PASS_SYNTHETIC_FIXTURE_ONLY"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-006-PV-INSULATION-FAILURE",
+      "domain_profile": "photovoltaic_reuse_v0",
+      "asset_class": "retired_pv_module",
+      "evidence": [
+        {
+          "evidence_id": "REC-006-PV-INSULATION-FAILURE-E01",
+          "claim": "insulation resistance test failed",
+          "source_ref": "synthetic://REC-006-PV-INSULATION-FAILURE/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "electrical_safety_profile",
+          "status": "BLOCK",
+          "reason": "insulation test failure"
+        }
+      ],
+      "candidate_plans": [
+        "reuse_as_is",
+        "isolate_for_qualified_assessment",
+        "authorized_recycling"
+      ],
+      "expected_disposition": "BLOCK_AFFECTED_PLANS",
+      "expected_reason_codes": [
+        "INSULATION_FAILURE_BLOCKS_REUSE_AS_IS"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-007-WIND-BLADE-CONDITION-UNKNOWN",
+      "domain_profile": "wind_blade_recovery_v0",
+      "asset_class": "decommissioned_composite_blade",
+      "evidence": [
+        {
+          "evidence_id": "REC-007-WIND-BLADE-CONDITION-UNKNOWN-E01",
+          "claim": "visual condition summary only",
+          "source_ref": "synthetic://REC-007-WIND-BLADE-CONDITION-UNKNOWN/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-007-WIND-BLADE-CONDITION-UNKNOWN-E02",
+          "claim": "transport envelope incomplete",
+          "source_ref": "synthetic://REC-007-WIND-BLADE-CONDITION-UNKNOWN/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "structural_condition",
+          "status": "UNKNOWN",
+          "reason": "required tests not completed"
+        },
+        {
+          "gate": "handling_and_transport",
+          "status": "UNKNOWN",
+          "reason": "route and lift study absent"
+        }
+      ],
+      "candidate_plans": [
+        "repair_or_reuse",
+        "mechanical_recycling",
+        "other_qualified_recovery"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "BLADE_CONDITION_UNKNOWN",
+        "TRANSPORT_QUALIFICATION_MISSING"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-008-DISASTER-DEBRIS-ASBESTOS-UNKNOWN",
+      "domain_profile": "post_disaster_materials_v0",
+      "asset_class": "mixed_building_debris",
+      "evidence": [
+        {
+          "evidence_id": "REC-008-DISASTER-DEBRIS-ASBESTOS-UNKNOWN-E01",
+          "claim": "remote survey only",
+          "source_ref": "synthetic://REC-008-DISASTER-DEBRIS-ASBESTOS-UNKNOWN/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-008-DISASTER-DEBRIS-ASBESTOS-UNKNOWN-E02",
+          "claim": "building age/material history incomplete",
+          "source_ref": "synthetic://REC-008-DISASTER-DEBRIS-ASBESTOS-UNKNOWN/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "hazardous_material_screening",
+          "status": "UNKNOWN",
+          "reason": "asbestos and other contaminants not ruled out"
+        },
+        {
+          "gate": "worker_and_public_safety_plan",
+          "status": "UNKNOWN",
+          "reason": "no qualified work plan"
+        }
+      ],
+      "candidate_plans": [
+        "manual_sorting",
+        "robotic_sorting",
+        "reuse",
+        "recycling",
+        "authorized_specialist_assessment"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "CONTAMINATION_STATUS_UNKNOWN",
+        "SAFE_HANDLING_PLAN_MISSING"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW",
+      "domain_profile": "post_disaster_materials_v0",
+      "asset_class": "separated_concrete_aggregate",
+      "evidence": [
+        {
+          "evidence_id": "REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW-E01",
+          "claim": "batch identity preserved",
+          "source_ref": "synthetic://REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW-E02",
+          "claim": "contamination screen pass",
+          "source_ref": "synthetic://REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW-E03",
+          "claim": "laboratory material tests pass synthetic profile",
+          "source_ref": "synthetic://REC-009-CONCRETE-TESTED-ENGINEERING-REVIEW/evidence/3",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "contamination_profile",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "target_use_engineering_acceptance",
+          "status": "UNKNOWN",
+          "reason": "target application and authority not yet approved"
+        }
+      ],
+      "candidate_plans": [
+        "qualified_secondary_aggregate_review",
+        "downcycle",
+        "authorized_disposal"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "TARGET_USE_ACCEPTANCE_PENDING"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-010-BRIDGE-CRACK-SEVERITY-UNKNOWN",
+      "domain_profile": "infrastructure_component_v0",
+      "asset_class": "bridge_steel_component",
+      "evidence": [
+        {
+          "evidence_id": "REC-010-BRIDGE-CRACK-SEVERITY-UNKNOWN-E01",
+          "claim": "robotic imagery indicates possible crack; severity and extent uncertain",
+          "source_ref": "synthetic://REC-010-BRIDGE-CRACK-SEVERITY-UNKNOWN/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "structural_engineer_assessment",
+          "status": "UNKNOWN",
+          "reason": "qualified assessment missing"
+        },
+        {
+          "gate": "operating_authority",
+          "status": "UNKNOWN",
+          "reason": "no authority decision in input"
+        }
+      ],
+      "candidate_plans": [
+        "continue_operation",
+        "restrict_operation",
+        "repair",
+        "replace"
+      ],
+      "expected_disposition": "HOLD_FOR_AUTHORITY_REVIEW",
+      "expected_reason_codes": [
+        "DEFECT_SEVERITY_UNRESOLVED",
+        "OPERATING_AUTHORITY_MISSING"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-011-INDUSTRIAL-PUMP-REPAIR-CANDIDATE",
+      "domain_profile": "industrial_asset_recovery_v0",
+      "asset_class": "industrial_pump",
+      "evidence": [
+        {
+          "evidence_id": "REC-011-INDUSTRIAL-PUMP-REPAIR-CANDIDATE-E01",
+          "claim": "diagnostic coverage complete for selected failure modes",
+          "source_ref": "synthetic://REC-011-INDUSTRIAL-PUMP-REPAIR-CANDIDATE/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-011-INDUSTRIAL-PUMP-REPAIR-CANDIDATE-E02",
+          "claim": "parts availability confirmed synthetic fixture",
+          "source_ref": "synthetic://REC-011-INDUSTRIAL-PUMP-REPAIR-CANDIDATE/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "isolation_and_safe_work_plan",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        },
+        {
+          "gate": "repair_quality_acceptance",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        }
+      ],
+      "candidate_plans": [
+        "repair_and_test",
+        "replace_with_new",
+        "authorized_reconditioning"
+      ],
+      "synthetic_estimates": {
+        "repair_and_test": {
+          "cost_cents_per_qualified_unit": 4200,
+          "qualified_yield_fraction": 0.88
+        },
+        "replace_with_new": {
+          "cost_cents_per_qualified_unit": 7800,
+          "qualified_yield_fraction": 0.99
+        }
+      },
+      "expected_disposition": "ELIGIBLE_FOR_HUMAN_REVIEW",
+      "preferred_plan_for_review": "repair_and_test",
+      "expected_reason_codes": [
+        "LOWER_SYNTHETIC_LIFECYCLE_COST_CANDIDATE"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-012-SWOLLEN-BATTERY",
+      "domain_profile": "battery_recovery_v0",
+      "asset_class": "lithium_battery_pack",
+      "evidence": [
+        {
+          "evidence_id": "REC-012-SWOLLEN-BATTERY-E01",
+          "claim": "swelling reported; chemistry and internal state not fully characterized",
+          "source_ref": "synthetic://REC-012-SWOLLEN-BATTERY/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "thermal_and_electrical_hazard_profile",
+          "status": "BLOCK",
+          "reason": "swelling is a hazard signal requiring qualified handling"
+        }
+      ],
+      "candidate_plans": [
+        "ordinary_disassembly",
+        "isolate_and_transfer_to_authorized_specialist"
+      ],
+      "expected_disposition": "BLOCK_AFFECTED_PLANS",
+      "expected_reason_codes": [
+        "BATTERY_HAZARD_BLOCKS_ORDINARY_DISASSEMBLY"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-013-EWASTE-DATA-DISPOSITION-UNKNOWN",
+      "domain_profile": "electronic_recovery_v0",
+      "asset_class": "retired_compute_equipment",
+      "evidence": [
+        {
+          "evidence_id": "REC-013-EWASTE-DATA-DISPOSITION-UNKNOWN-E01",
+          "claim": "hardware test suggests possible reuse",
+          "source_ref": "synthetic://REC-013-EWASTE-DATA-DISPOSITION-UNKNOWN/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        },
+        {
+          "evidence_id": "REC-013-EWASTE-DATA-DISPOSITION-UNKNOWN-E02",
+          "claim": "data-owner disposition absent",
+          "source_ref": "synthetic://REC-013-EWASTE-DATA-DISPOSITION-UNKNOWN/evidence/2",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "data_security_and_ownership",
+          "status": "UNKNOWN",
+          "reason": "storage ownership and sanitization authority not evidenced"
+        }
+      ],
+      "candidate_plans": [
+        "resale_or_reuse",
+        "certified_data_sanitization",
+        "material_recycling"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "DATA_DISPOSITION_AUTHORITY_UNKNOWN"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-014-WATERCOURSE-WOODY-DEBRIS-RETENTION",
+      "domain_profile": "forest_salvage_v0",
+      "asset_class": "fallen_wood_in_watercourse",
+      "evidence": [
+        {
+          "evidence_id": "REC-014-WATERCOURSE-WOODY-DEBRIS-RETENTION-E01",
+          "claim": "remote survey detects woody debris; hydrologic and habitat role uncertain",
+          "source_ref": "synthetic://REC-014-WATERCOURSE-WOODY-DEBRIS-RETENTION/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "declared_fixture_inputs_only",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "flood_and_channel_assessment",
+          "status": "UNKNOWN",
+          "reason": "role in channel dynamics unresolved"
+        },
+        {
+          "gate": "habitat_and_permission_review",
+          "status": "UNKNOWN",
+          "reason": "retention value and authority not assessed"
+        }
+      ],
+      "candidate_plans": [
+        "retain_and_monitor",
+        "qualified_selective_removal_review"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "WATERCOURSE_ROLE_UNRESOLVED",
+        "HABITAT_AND_PERMISSION_REVIEW_REQUIRED"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-015-PV-PERFORMANCE-PASS-INSULATION-UNKNOWN",
+      "domain_profile": "photovoltaic_reuse_v0",
+      "asset_class": "retired_pv_module",
+      "evidence": [
+        {
+          "evidence_id": "REC-015-PV-PERFORMANCE-PASS-INSULATION-UNKNOWN-E01",
+          "claim": "I-V and electroluminescence screening pass; wet-leakage/insulation safety test is not yet available.",
+          "source_ref": "synthetic://REC-015-PV-PERFORMANCE-PASS-INSULATION-UNKNOWN/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Synthetic contract fixture; no empirical uncertainty distribution is asserted."
+          },
+          "coverage": "performance_screen_only_not_full_electrical_safety",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "performance_screen",
+          "status": "PASS",
+          "reason": "synthetic I-V and EL result only"
+        },
+        {
+          "gate": "insulation_and_wet_leakage_safety",
+          "status": "UNKNOWN",
+          "reason": "required independent safety test missing"
+        }
+      ],
+      "candidate_plans": [
+        "reuse_as_is",
+        "perform_insulation_test",
+        "authorized_recycling"
+      ],
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "PERFORMANCE_SCREENING_NOT_ELECTRICAL_SAFETY_CLEARANCE",
+        "INSULATION_TEST_REQUIRED"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-016-VOI-INSPECTION-WORTHWHILE",
+      "domain_profile": "industrial_asset_recovery_v0",
+      "asset_class": "industrial_pump",
+      "evidence": [
+        {
+          "evidence_id": "REC-016-VOI-INSPECTION-WORTHWHILE-E01",
+          "claim": "Current condition uncertainty could change the repair-versus-replace decision; values below are intentionally synthetic.",
+          "source_ref": "synthetic://REC-016-VOI-INSPECTION-WORTHWHILE/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Illustrative arithmetic only; not a calibrated probability or real price."
+          },
+          "coverage": "decision_relevant_condition_uncertainty_declared",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "repair_condition_qualification",
+          "status": "UNKNOWN",
+          "reason": "inspection result not yet available"
+        },
+        {
+          "gate": "safe_work_authorization",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        }
+      ],
+      "candidate_plans": [
+        "inspect_before_repair",
+        "repair_without_inspection",
+        "replace_without_inspection",
+        "hold"
+      ],
+      "value_of_information": {
+        "expected_decision_loss_avoided_cents": 2400,
+        "inspection_cost_cents": 600,
+        "delay_burden_cents": 250,
+        "inspection_risk_cents": 100,
+        "expected_net_value_cents": 1450,
+        "expected_information_action": "INSPECT",
+        "decision_rule": "inspect_when_expected_loss_avoided_exceeds_total_inspection_burden",
+        "unit": "synthetic_eur_cents",
+        "calibrated_probabilities_claimed": false
+      },
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "SYNTHETIC_EXPECTED_LOSS_AVOIDED_EXCEEDS_INSPECTION_BURDEN",
+        "CONDITION_GATE_STILL_UNKNOWN"
+      ],
+      "expected_actuation": false
+    },
+    {
+      "id": "REC-017-VOI-INSPECTION-NOT-WORTHWHILE-ALONE",
+      "domain_profile": "industrial_asset_recovery_v0",
+      "asset_class": "industrial_pump",
+      "evidence": [
+        {
+          "evidence_id": "REC-017-VOI-INSPECTION-NOT-WORTHWHILE-ALONE-E01",
+          "claim": "The proposed inspection has synthetic expected avoided loss below the sum of test, delay and inspection-risk burdens.",
+          "source_ref": "synthetic://REC-017-VOI-INSPECTION-NOT-WORTHWHILE-ALONE/evidence/1",
+          "method": "synthetic_fixture_input",
+          "evidence_class": "synthetic_assumption",
+          "uncertainty": {
+            "kind": "unquantified",
+            "note": "Illustrative arithmetic only; not a calibrated probability or real price."
+          },
+          "coverage": "decision_relevant_condition_uncertainty_declared",
+          "freshness_class": "synthetic_static"
+        }
+      ],
+      "mandatory_gates": [
+        {
+          "gate": "repair_condition_qualification",
+          "status": "UNKNOWN",
+          "reason": "condition remains unqualified"
+        },
+        {
+          "gate": "safe_work_authorization",
+          "status": "PASS",
+          "reason": "synthetic fixture only"
+        }
+      ],
+      "candidate_plans": [
+        "inspect_before_repair",
+        "hold",
+        "seek_lower_cost_test"
+      ],
+      "value_of_information": {
+        "expected_decision_loss_avoided_cents": 500,
+        "inspection_cost_cents": 600,
+        "delay_burden_cents": 150,
+        "inspection_risk_cents": 50,
+        "expected_net_value_cents": -300,
+        "expected_information_action": "DO_NOT_INSPECT_ON_VALUE_ALONE",
+        "decision_rule": "inspect_when_expected_loss_avoided_exceeds_total_inspection_burden",
+        "unit": "synthetic_eur_cents",
+        "calibrated_probabilities_claimed": false
+      },
+      "expected_disposition": "HOLD_FOR_EVIDENCE",
+      "expected_reason_codes": [
+        "SYNTHETIC_EXPECTED_LOSS_AVOIDED_BELOW_INSPECTION_BURDEN",
+        "CONDITION_GATE_STILL_UNKNOWN"
+      ],
+      "expected_actuation": false
+    }
+  ],
+  "evidence_contract": {
+    "required_fields": [
+      "evidence_id",
+      "claim",
+      "source_ref",
+      "method",
+      "evidence_class",
+      "uncertainty",
+      "coverage",
+      "freshness_class"
+    ],
+    "required_uncertainty_field": "kind",
+    "synthetic_fixture_evidence_only": true,
+    "source_reference_required": true,
+    "empirical_calibration_claimed": false
+  }
+}
