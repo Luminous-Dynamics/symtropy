@@ -1790,6 +1790,91 @@ mod tests {
     }
 
     #[test]
+    fn fixed_point_threshold_compares_values_in_the_declared_integer_scale() {
+        let mut functional_contract = contract();
+        functional_contract.performance_requirements[0].scale = 100;
+        functional_contract.performance_requirements[0].minimum_value = Some(6_000);
+
+        let mut candidate = option(
+            "fixed-point-candidate",
+            OptionTier::Avoid,
+            "design-fixed-point",
+            vec![
+                result(
+                    "nominal",
+                    "design-fixed-point",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 10_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 1_000,
+                        workflow_crew_minutes: 600,
+                        energy_wh: 2_000,
+                        carbon_gco2e: 1_500,
+                        rework_units: 0,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-fixed-point",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 11_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 1_200,
+                        workflow_crew_minutes: 700,
+                        energy_wh: 2_200,
+                        carbon_gco2e: 1_600,
+                        rework_units: 1,
+                    },
+                ),
+            ],
+        );
+
+        for scenario_result in candidate.scenario_results.values_mut() {
+            scenario_result
+                .performance_values
+                .insert("fire-rating-minutes".to_owned(), 5_999);
+        }
+
+        let below = evaluate_option_set(
+            &functional_contract,
+            &[stage(OptionTier::Avoid, StageDisposition::OpenForEvaluation)],
+            &scenarios(),
+            &[candidate.clone()],
+        )
+        .expect("well-formed fixed-point option");
+        let OptionStatus::NotRobustFeasible { failures } = &below.evaluations[0].status else {
+            panic!("value below the scaled minimum must fail");
+        };
+        assert!(failures.iter().all(|record| {
+            record.failures.contains(&ScenarioFailure::PerformanceBelowMinimum {
+                metric_id: "fire-rating-minutes".to_owned(),
+                minimum: 6_000,
+                actual: 5_999,
+            })
+        }));
+
+        let mut at_threshold = candidate;
+        for scenario_result in at_threshold.scenario_results.values_mut() {
+            scenario_result
+                .performance_values
+                .insert("fire-rating-minutes".to_owned(), 6_000);
+        }
+        let at = evaluate_option_set(
+            &functional_contract,
+            &[stage(OptionTier::Avoid, StageDisposition::OpenForEvaluation)],
+            &scenarios(),
+            &[at_threshold],
+        )
+        .expect("well-formed option at fixed-point threshold");
+        assert_eq!(
+            at.evaluations[0].status,
+            OptionStatus::RobustFeasibleFrontier
+        );
+    }
+
+    #[test]
     fn fixed_point_performance_scale_must_be_positive() {
         let mut invalid = contract();
         invalid.performance_requirements[0].scale = 0;
