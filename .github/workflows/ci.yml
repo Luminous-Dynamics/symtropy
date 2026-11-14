@@ -86,3 +86,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT predictive uncertainty evaluator
+      run: cargo test --locked -p wpt-predictive-uncertainty
+
+    - name: Validate WPT predictive uncertainty known-truth corpus
+      run: cargo run --locked -p wpt-predictive-uncertainty -- benchmarks/wpt-predictive-uncertainty/v1/known-truth.jsonl
