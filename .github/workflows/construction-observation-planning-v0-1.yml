@@ -3,7 +3,7 @@ name: Construction Observation Planning v0.1
 on:
   pull_request:
     branches:
-      - "research/construction-spacetime-occupancy-stacked-v0-3"
+      - "research/construction-spacetime-occupancy-time-index-stack-v0-1"
     paths:
       - "research/construction-observation-planning-v0-1/**"
       - ".github/workflows/construction-observation-planning-v0-1.yml"
