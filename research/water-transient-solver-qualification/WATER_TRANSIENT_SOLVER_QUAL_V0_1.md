@@ -217,6 +217,20 @@ Feature matrix must separately record support/validation for:
 
 No untested feature is silently credited.
 
+### Pinned reference cases and data rights
+
+The initial fixture/admission register is [reference-case-register-v0.1.json](reference-case-register-v0.1.json). It binds upstream commit, file path, Git blob identity, network counts, event configuration and reuse rights for:
+
+- Onizuka 1986 AWH valve closure (6 junctions, 3 reservoirs, 1 tank, 9 pipes, 2 valves; V1/V2 close at 10 s).
+- Nault 2018 pump shutdown (1,489 pipes; WTP_P4 closes at 5 s).
+- Nault 2018 pump startup (same declared base topology; WTP_P5 opens at 5 s).
+- Nault sudden withdrawal (a distinct topology: 1,491 pipes, 1,308 junctions, 2 reservoirs, 18 valves; TCV-1 changes at 5 s, with the paper README describing a 50 L/s withdrawal at J874).
+- TSNet Tnet1 EPANET input fixture (7 junctions, 1 reservoir, 9 pipes, 1 valve); the inspected input has no active timed transient control, so the event must be separately registered.
+- PTSNet TNET3 valve-operation example (VALVE-179 from setting 1 to 0 over 1–2 s); its package-resolved input bytes are not yet pinned.
+- Sheffield 141 m MDPE physical intrusion loop described by published experiments; high-frequency raw pressure/tracer traces and full calibration metadata are not yet admitted and require rights-aware acquisition.
+
+The register uses upstream Git blob identities as source pointers, **not** as SHA-256 digests of downloaded bytes. Raw physical records that have not been acquired stay explicitly "not_acquired"; no data should be reconstructed from published plots without a digitization and uncertainty protocol. Different Nault scenario files have different topologies and must not be pooled as an identical network. The Bentley `.wtg`/SQLite comparison files require an appropriate Bentley licence.
+
 ## 8. Metrics and targets
 
 For every sensor/event:
