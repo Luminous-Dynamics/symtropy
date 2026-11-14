@@ -1,6 +1,7 @@
 use aeroweift_surveillance_observability_oracle::{
-    evaluate, CoverageClaim, CoverageStatus, Observation, ObservationStatus,
-    ObservabilityAssessment, ObservabilityError, SensorModality, TrafficClass,
+    evaluate, CoverageClaim, CoverageEvidenceClass, CoverageStatus, Observation,
+    ObservationStatus, ObservabilityAssessment, ObservabilityError, SensorModality,
+    TrafficClass,
 };
 
 const GOLDEN_FIXTURE: &str = include_str!(
@@ -19,6 +20,9 @@ fn claim(
         claim_id,
         source_id,
         modality,
+        evidence_class: CoverageEvidenceClass::Synthetic,
+        profile_id: "synthetic-profile-v0",
+        environment_profile: "synthetic-day-clear",
         traffic_class,
         cell_id,
         start_tick: 0,
@@ -117,6 +121,8 @@ fn cooperative_track_requires_scoped_independent_coverage() {
             coverage_status: CoverageStatus::QualifiedCoverage,
             observation_status: ObservationStatus::QualifiedTrack,
             independent_family_count: 2,
+            qualified_claim_ids: vec!["adsb-a", "adsb-b"],
+            independent_family_ids: vec!["family-east", "family-west"],
             unresolved_possible_occupancy: false,
         }
     );
@@ -146,6 +152,39 @@ fn missing_report_outside_coverage_is_not_empty_airspace() {
     assert!(result.unresolved_possible_occupancy);
 }
 
+
+
+#[test]
+fn qualified_coverage_receipt_preserves_claim_and_family_lineage() {
+    let claims = [
+        claim(
+            "claim-east",
+            "rx-east",
+            SensorModality::Adsb,
+            TrafficClass::CooperativeCrewed,
+            "cell-lineage",
+            Some("family-east"),
+        ),
+        claim(
+            "claim-west",
+            "rx-west",
+            SensorModality::Adsb,
+            TrafficClass::CooperativeCrewed,
+            "cell-lineage",
+            Some("family-west"),
+        ),
+    ];
+    let result = assessment(
+        &claims,
+        None,
+        TrafficClass::CooperativeCrewed,
+        "cell-lineage",
+        5,
+        2,
+    );
+    assert_eq!(result.qualified_claim_ids, vec!["claim-east", "claim-west"]);
+    assert_eq!(result.independent_family_ids, vec!["family-east", "family-west"]);
+}
 
 #[test]
 fn no_report_even_inside_qualified_coverage_is_not_an_empty_sky() {
