@@ -173,6 +173,11 @@ fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,Strin
         if text(row,"cross_block_noise_contract")?!="independent"{return Err("cross-block covariance unknown: independence must be explicit".into());}
         let digest=text(row,"information_receipt_sha256")?;
         if !hex_digest(digest){return Err(format!("block {id} lacks a valid information receipt digest"));}
+        let mut receipt_material=row.clone();
+        receipt_material.as_object_mut().ok_or_else(||"block must be object".to_owned())?
+            .remove("information_receipt_sha256");
+        let canonical=serde_json::to_vec(&receipt_material).map_err(|e|format!("serialize block receipt: {e}"))?;
+        if sha256(&canonical)!=digest{return Err(format!("block {id} information receipt digest mismatch"));}
         let fim=matrix(row,"information_matrix",p)?;
         let eig=symmetric_eigenvalues(fim.clone())?;
         if eig.iter().any(|v|*v < -1.0e-9*eig[0].abs().max(1.0)){
@@ -368,14 +373,25 @@ pub fn evaluate(input:&Value,oracle:&Value,manifest:&Value)->Result<Value,String
     let greedy=if greedy_indices.is_empty(){None}else{Some(compute_subset(&blocks,&greedy_indices,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep)?)};
     let random=random_search(&blocks,p,target,tol,budget,sensor_budget,duration_budget,cal_budget,max_condition,min_sep,seed,trials)?;
     let expected=field(oracle,"expected")?;
-    let expected_best=field(expected,"exact_best_block_ids")?;
-    let exact_matches=exact_best.as_ref().is_some_and(|x|expected_matches(&x["selected_block_ids"],expected_best));
+    let exact_best_ids=field(expected,"exact_best_block_ids")?;
+    let exact_matches=exact_best.as_ref().is_some_and(|x|expected_matches(&x["selected_block_ids"],exact_best_ids));
+    let eligible_ids=eligible.iter().map(|x|x["selected_block_ids"].clone()).collect::<Vec<_>>();
+    let expected_eligible=field(expected,"exact_eligible_subset_ids")?;
+    let eligible_matches=expected_matches(&json!(eligible_ids),expected_eligible);
+    let pareto_ids=pareto.iter().map(|x|x["selected_block_ids"].clone()).collect::<Vec<_>>();
+    let expected_pareto=field(expected,"pareto_frontier_block_sets")?;
+    let pareto_matches=expected_matches(&json!(pareto_ids),expected_pareto);
     let greedy_state=greedy.as_ref().map(|x|x["subset_state"].clone()).unwrap_or(Value::Null);
-    let expected_greedy=field(expected,"greedy_expected_state")?;
-    let greedy_matches=expected_matches(&greedy_state,expected_greedy);
+    let greedy_ids=greedy.as_ref().map(|x|x["selected_block_ids"].clone()).unwrap_or(Value::Null);
+    let greedy_matches=expected_matches(&greedy_state,field(expected,"greedy_expected_state")?)
+        &&expected_matches(&greedy_ids,field(expected,"greedy_expected_block_ids")?);
+    let random_ids=random.as_ref().map(|x|x["selected_block_ids"].clone()).unwrap_or(Value::Null);
+    let random_state=random.as_ref().map(|x|x["subset_state"].clone()).unwrap_or(Value::Null);
+    let random_matches=expected_matches(&random_ids,field(expected,"random_best_block_ids")?)
+        &&expected_matches(&random_state,field(expected,"random_best_state")?);
     Ok(json!({
         "schema_version":"mixing-design-search-t0-evaluation-v0.1",
-        "verification_state":if exact_matches&&greedy_matches{"MatchedFrozenOracle"}else{"OracleMismatch"},
+        "verification_state":if exact_matches&&eligible_matches&&pareto_matches&&greedy_matches&&random_matches{"MatchedFrozenOracle"}else{"OracleMismatch"},
         "evidence_class":"synthetic_only","evidence_ceiling":EVIDENCE_CEILING,
         "candidate_block_count":blocks.len(),"enumerated_nonempty_subsets":subsets.len(),
         "eligible_subset_count":eligible.len(),"pareto_frontier":pareto,
@@ -383,7 +399,7 @@ pub fn evaluate(input:&Value,oracle:&Value,manifest:&Value)->Result<Value,String
         "greedy_joint_D_optimality_subset":greedy,
         "random_feasible_best":random,
         "random_seed":seed,"random_trials":trials,
-        "oracle_checks":{"exact_best_subset_match":exact_matches,"greedy_state_match":greedy_matches},
+        "oracle_checks":{"exact_best_subset_match":exact_matches,"all_eligible_subsets_match":eligible_matches,"pareto_frontier_match":pareto_matches,"greedy_subset_match":greedy_matches,"random_subset_match":random_matches},
         "all_subset_results":subsets,
         "nonclaims":[
             "Information matrices are precomputed sufficient statistics; this search does not validate their upstream sensitivity/covariance derivation.",
@@ -471,6 +487,16 @@ mod tests{
     #[test]fn random_baseline_is_deterministic_and_seeded(){
         let first=result();let second=result();
         assert_eq!(first["random_feasible_best"]["selected_block_ids"],second["random_feasible_best"]["selected_block_ids"]);
+    }
+    #[test]fn exact_oracle_checks_all_eligible_subsets_and_pareto_membership(){
+        let v=result();
+        assert_eq!(v["oracle_checks"]["all_eligible_subsets_match"],true);
+        assert_eq!(v["oracle_checks"]["pareto_frontier_match"],true);
+    }
+    #[test]fn information_block_receipt_digest_is_recomputed(){
+        let mut input=load("input");
+        input["blocks"][0]["information_matrix"][0][0]=json!(2.0);
+        assert!(validate(&input,&load("oracle"),&load("manifest")).is_err());
     }
     #[test]fn all_selected_blocks_require_independent_cross_block_noise_contract(){
         let mut input=load("input");input["blocks"][1]["cross_block_noise_contract"]=json!("unknown");
