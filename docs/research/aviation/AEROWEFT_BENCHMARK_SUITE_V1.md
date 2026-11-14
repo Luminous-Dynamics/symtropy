@@ -193,7 +193,7 @@ AeroWeft must not claim to outperform EUROCONTROL, FAA UTM, EASA U-space or NASA
 Start with synthetic golden cases and independently implemented mathematical oracles.
 
 Potential archived/research sources require separate admission:
-- **OpenSky Network:** useful historical and scientific air-traffic data. Its current data page describes full historical database access for university-affiliated researchers, government organisations and aviation authorities; private/commercial entities must contact OpenSky for a licence. Public API and individual scientific datasets have their own conditions. Do not assume unrestricted commercial training or redistribution.
+- **OpenSky Network:** useful historical and scientific air-traffic data. Its current terms state that any use by a commercial/for-profit entity requires written permission and a licence; operational REST API use in a live product, service or automated system also requires a prior written agreement, including for non-profits and government entities. Full historical Trino access is described for university-affiliated researchers, government organisations and aviation authorities. Public API and individual scientific datasets have their own conditions. Do not assume unrestricted commercial training, live use or redistribution.
 - **EUROCONTROL Demand Data Repository:** restricted stakeholder access and licence conditions; some API endpoints are ANSP-only. Do not describe it as an open public dataset.
 - **FAA UTM Field Test publications:** useful evidence about real-world test scope, data correlation, planning/coordination, identity/access and cybersecurity. Public reports do not automatically grant access to underlying operational data.
 - **South African civil aviation / aerodrome / airspace products:** require source, exact edition, legal applicability, data rights, freshness, coverage, transformations and vertical-datum review.
@@ -211,7 +211,7 @@ Each dataset must have a rights state such as CANDIDATE, RIGHTS_PENDING, RIGHTS_
 - NASA's 2026 ATMS project explicitly researches a shift from tactical to strategic traffic-flow and trajectory management while safely integrating new air vehicles with traditional operations.
 - Commercial vendors also advertise low-latency vehicle-to-vehicle and multi-domain tactical deconfliction. Such vendor performance claims should be treated as claims until independently measured on a matched workload.
 
-**Regulatory snapshots must be versioned.** The U.S. FAA BVLOS final rule (RIN 2120-AL82) was listed as pending EO 12866 review on the current OIRA page when this document was prepared. South Africa published 2026 Civil Aviation Regulations amendments in Government Gazette 55226; the exact current Part 101 text, commencement and applicability must be reviewed with SACAA / aviation counsel before any compliance statement.
+**Regulatory snapshots must be versioned.** The U.S. FAA BVLOS final rule (RIN 2120-AL82) was listed as Pending Review on OIRA's 14 November 2026 page (received 10 July 2026); this is a snapshot, not an indication that the rule is in force. South Africa's official Government Gazette 55226 (21 August 2026), Notice 7844, contains the Thirty-Third Amendment of the Civil Aviation Regulations 2026. It substitutes Part 101 regulation 101.01.2: the private-operation carve-out is limited to R-VLOS with a Class 1A or 1B RPA and prohibits dangerous goods aboard a UA. This is a narrow private-operations provision, not the complete rules for commercial/BVLOS operations or all medical cargo. Payload classification, exact consolidated Part 101 text, commencement and operation-specific permissions must be reviewed with SACAA / aviation counsel before any real deployment or compliance statement.
 
 ## 6. Confirmatory protocol
 
@@ -250,3 +250,10 @@ The initial fictional regional medical-cargo scenario is specified in
 [AEROWEFT-MEDCHAIN-001 #5181](https://github.com/Luminous-Dynamics/symtropy/issues/5181).
 It composes the existing multimodal optimizer and mission-chain/cargo contracts
 rather than introducing a parallel graph or mission engine.
+
+
+### Regulatory source snapshots checked 2026-11-14
+
+- U.S. OIRA, RIN 2120-AL82 status: https://www.reginfo.gov/public/do/eoReviewSearch?rin=2120-AL82
+- South African Government, Gazette 55226 / Notice 7844 (Thirty-Third Amendment, 21 August 2026): https://www.gov.za/sites/default/files/gcis_document/202608/55226gon7844.pdf
+- The cited Part 101 amendment appears at the Gazette's printed pages 121–122 (PDF pages 67–68). It changes regulation 101.01.2's private-operation provision. The benchmark does not interpret the legal applicability of any particular real mission.
