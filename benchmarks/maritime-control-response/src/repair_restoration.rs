@@ -61,6 +61,7 @@ pub struct CapabilityMeasurement {
     pub quality: MeasurementQuality,
     pub calibration: CalibrationState,
     pub calibration_record_sha256: Option<String>,
+    pub calibration_valid_until_seconds: Option<f64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -445,7 +446,16 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
             .as_deref()
             .is_some_and(|digest| !is_sha256_hex(digest));
         let verified_without_digest = measurement.calibration == CalibrationState::Verified
-            && measurement.calibration_record_sha256.is_none();
+            && (measurement.calibration_record_sha256.is_none()
+                || measurement
+                    .calibration_valid_until_seconds
+                    .is_none_or(|valid_until| {
+                        !valid_until.is_finite()
+                            || valid_until < measurement.available_at_seconds
+                    }));
+        let invalid_calibration_expiry = measurement
+            .calibration_valid_until_seconds
+            .is_some_and(|valid_until| !valid_until.is_finite());
         if measurement.measurement_id.trim().is_empty()
             || measurement.source_id.trim().is_empty()
             || !is_sha256_hex(&measurement.measurement_evidence_sha256)
@@ -458,6 +468,7 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
             || measurement.uncertainty_abs < 0.0
             || calibration_digest_invalid
             || verified_without_digest
+            || invalid_calibration_expiry
         {
             return Err(RepairVerificationError::InvalidMeasurement(
                 measurement.measurement_id.clone(),
@@ -885,6 +896,7 @@ mod tests {
             quality: MeasurementQuality::Valid,
             calibration: CalibrationState::Verified,
             calibration_record_sha256: Some(digest('d')),
+            calibration_valid_until_seconds: Some(1000.0),
         }
     }
 
@@ -1236,6 +1248,26 @@ mod tests {
         assert_eq!(
             evaluate_repair_restoration(&case),
             Err(RepairVerificationError::InvalidMeasurement("m-torque".into()))
+        );
+    }
+
+    #[test]
+    fn calibration_expiring_before_post_measurement_availability_is_rejected() {
+        let mut case = valid_case();
+        case.post_repair_episode.measurements[0].calibration_valid_until_seconds = Some(19.0);
+        assert_eq!(
+            evaluate_repair_restoration(&case),
+            Err(RepairVerificationError::InvalidMeasurement("m-torque".into()))
+        );
+    }
+
+    #[test]
+    fn acceptance_envelope_digest_must_match_owner_bound_envelopes() {
+        let mut case = valid_case();
+        case.binding.acceptance_envelope_sha256 = digest('9');
+        assert_eq!(
+            evaluate_repair_restoration(&case),
+            Err(RepairVerificationError::InvalidBinding)
         );
     }
 
