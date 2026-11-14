@@ -1,0 +1,336 @@
+{
+  "schema_version": "maritime-staged-capital-fixtures-v0.1",
+  "corpus_id": "SYNTH-MARITIME-CAPITAL-001",
+  "status": "synthetic_conformance_only_not_port_data",
+  "effects_enabled": false,
+  "units": {
+    "money": "synthetic_currency_unit",
+    "power": "MW",
+    "energy": "MWh",
+    "time": "integer periods from T0",
+    "service_capacity": "concurrent_slots"
+  },
+  "invariants": [
+    "Investment capacity is unavailable before commissioning.",
+    "Physical-resource identity is canonical and independent of graph-edge aliases.",
+    "Power, energy, occupancy, and throughput are distinct typed quantities.",
+    "Future scenario labels cannot inform decisions before their declared knowledge time.",
+    "Missing mandatory values never default to zero or available.",
+    "A partial search cannot claim global optimality."
+  ],
+  "cases": [
+    {
+      "case_id": "CAP-001",
+      "name": "capacity is unavailable before commissioning",
+      "inputs": {
+        "period": 1,
+        "existing_capacity": 1,
+        "investments": [
+          {
+            "id": "shore-power-2MW",
+            "capacity_delta": 2,
+            "unit": "MW",
+            "commission_period": 2
+          }
+        ],
+        "demand": {
+          "power_required": 2,
+          "unit": "MW"
+        },
+        "selected_strategy": {
+          "investment_ids": [
+            "shore-power-2MW"
+          ],
+          "commissioned_capacity_counted": 3
+        }
+      },
+      "expected": {
+        "disposition": "INFEASIBLE",
+        "reason": "CAPACITY_BEFORE_COMMISSIONING",
+        "hard_violations": 1
+      }
+    },
+    {
+      "case_id": "CAP-002",
+      "name": "investment exceeds budget",
+      "inputs": {
+        "budget": 10,
+        "investments": [
+          {
+            "id": "berth-module",
+            "cost": 7
+          },
+          {
+            "id": "shore-power",
+            "cost": 5
+          }
+        ],
+        "selected_investments": [
+          "berth-module",
+          "shore-power"
+        ]
+      },
+      "expected": {
+        "disposition": "INFEASIBLE",
+        "reason": "INVESTMENT_BUDGET_EXCEEDED",
+        "total_cost": 12,
+        "budget": 10
+      }
+    },
+    {
+      "case_id": "CAP-003",
+      "name": "two graph edges alias one physical feeder",
+      "inputs": {
+        "resource_capacity": {
+          "id": "GRID-FEEDER-A",
+          "physical_id": "FEEDER-7",
+          "capacity": 3,
+          "unit": "MW"
+        },
+        "assignments": [
+          {
+            "id": "OPS-BERTH-1",
+            "resource_edge": "EDGE-11",
+            "physical_resource_id": "FEEDER-7",
+            "amount": 2,
+            "unit": "MW"
+          },
+          {
+            "id": "OPS-SHORE-POWER-2",
+            "resource_edge": "EDGE-29",
+            "physical_resource_id": "FEEDER-7",
+            "amount": 2,
+            "unit": "MW"
+          }
+        ]
+      },
+      "expected": {
+        "disposition": "INFEASIBLE",
+        "reason": "PHYSICAL_CAPACITY_OVERCOMMITTED",
+        "demanded": 4,
+        "capacity": 3
+      }
+    },
+    {
+      "case_id": "CAP-004",
+      "name": "power and energy cannot be substituted",
+      "inputs": {
+        "shore_power_limit": {
+          "value": 1,
+          "unit": "MW"
+        },
+        "storage": {
+          "energy_capacity": 10,
+          "unit": "MWh"
+        },
+        "requested": {
+          "instantaneous_power": 2,
+          "unit": "MW"
+        },
+        "attempted_inference": {
+          "reason": "storage_MWh_used_as_instantaneous_MW"
+        }
+      },
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason": "INCOMPATIBLE_PHYSICAL_QUANTITIES",
+        "hard_violations": 1
+      }
+    },
+    {
+      "case_id": "CAP-005",
+      "name": "future demand is leaked into an earlier investment decision",
+      "inputs": {
+        "decision_period": 1,
+        "demand_observation": {
+          "period": 3,
+          "first_published_period": 3,
+          "value": 8,
+          "unit": "service_slots"
+        },
+        "selected_strategy": {
+          "uses_demand_value": 8,
+          "claims_known_at_period": 1
+        }
+      },
+      "expected": {
+        "disposition": "REJECTED_EVIDENCE",
+        "reason": "FUTURE_INFORMATION_LEAKAGE",
+        "investment_decision_admissible": false
+      }
+    },
+    {
+      "case_id": "CAP-006",
+      "name": "policy is treated as binding before its effective date",
+      "inputs": {
+        "decision_period": 2,
+        "policy": {
+          "id": "PORT-POLICY-V2",
+          "published_period": 3,
+          "effective_period": 4,
+          "rule": "shore_power_required_for_profile-X"
+        },
+        "strategy": {
+          "claims_rule_effective_at_period": 2
+        }
+      },
+      "expected": {
+        "disposition": "REJECTED_EVIDENCE",
+        "reason": "POLICY_EFFECTIVE_DATE_MISMATCH"
+      }
+    },
+    {
+      "case_id": "CAP-007",
+      "name": "portfolio ranking reverses when demand uptake changes",
+      "inputs": {
+        "portfolios": [
+          {
+            "id": "MODULAR",
+            "fixed_cost": 4,
+            "capacity": 2,
+            "expansion_cost": 2,
+            "expand_to": 4,
+            "commission_delay": 1
+          },
+          {
+            "id": "BUILD_LARGE",
+            "fixed_cost": 9,
+            "capacity": 4,
+            "expansion_cost": 0,
+            "commission_delay": 0
+          }
+        ],
+        "scenarios": [
+          {
+            "id": "LOW_DEMAND",
+            "demand": 2,
+            "service_shortage_penalty": 5,
+            "costs": {
+              "MODULAR": 4,
+              "BUILD_LARGE": 9
+            }
+          },
+          {
+            "id": "HIGH_DEMAND",
+            "demand": 4,
+            "service_shortage_penalty": 5,
+            "costs": {
+              "MODULAR": 11,
+              "BUILD_LARGE": 9
+            },
+            "service_outcome": {
+              "MODULAR": "one-period shortfall before expansion",
+              "BUILD_LARGE": "fully served"
+            },
+            "outcome_rule": "MODULAR total=4 initial cost + 2 expansion cost + 5 delay/service penalty; BUILD_LARGE total=9; high-demand scenario therefore reverses ranking."
+          }
+        ],
+        "note": "The outcome ordering is illustrative and must be derived by the oracle once delay/service-cost rules are fully specified; this fixture requires ranking reversal across the frozen scenario pair."
+      },
+      "expected": {
+        "disposition": "SENSITIVITY_CONTROL",
+        "requires_ranking_reversal": true,
+        "global_universal_winner_claim": false
+      }
+    },
+    {
+      "case_id": "CAP-008",
+      "name": "search cap prevents global optimality claim",
+      "inputs": {
+        "maximum_strategies": 3,
+        "evaluated_strategies": 3,
+        "strategy_space_complete": false,
+        "best_seen_cost": 8,
+        "unevaluated_strategies_lower_bound": 2
+      },
+      "expected": {
+        "disposition": "INCOMPLETE",
+        "global_optimality_claim": false,
+        "selected_plan_may_be_provisional": true
+      }
+    },
+    {
+      "case_id": "CAP-009",
+      "name": "missing mandatory investment price remains indeterminate",
+      "inputs": {
+        "investment": {
+          "id": "GRID-UPGRADE-1",
+          "capacity_delta": 2,
+          "capacity_unit": "MW",
+          "cost": null,
+          "cost_unit": null
+        },
+        "decision_requires_whole_life_cost": true
+      },
+      "expected": {
+        "disposition": "INDETERMINATE",
+        "reason": "MANDATORY_COST_UNKNOWN",
+        "no_zero_cost_imputation": true
+      }
+    },
+    {
+      "case_id": "CAP-010",
+      "name": "input-order permutations preserve canonical result",
+      "inputs": {
+        "investments": [
+          {
+            "id": "INV-B",
+            "cost": 3
+          },
+          {
+            "id": "INV-A",
+            "cost": 2
+          }
+        ],
+        "permuted_investments": [
+          {
+            "id": "INV-A",
+            "cost": 2
+          },
+          {
+            "id": "INV-B",
+            "cost": 3
+          }
+        ],
+        "scenarios": [
+          {
+            "id": "S-B"
+          },
+          {
+            "id": "S-A"
+          }
+        ],
+        "permuted_scenarios": [
+          {
+            "id": "S-A"
+          },
+          {
+            "id": "S-B"
+          }
+        ],
+        "manifest_seed": "SYNTH-CAPITAL-001"
+      },
+      "expected": {
+        "disposition": "DETERMINISTIC",
+        "canonical_result_digest_equal": true,
+        "required_replays": 100
+      }
+    }
+  ],
+  "claim_ceiling": {
+    "physical_truth_claim_authorized": false,
+    "capital_commitment_authorized": false,
+    "construction_authorized": false,
+    "dispatch_authorized": false,
+    "synthetic_pass_means": "finite model contract behavior only",
+    "not_established": [
+      "real investment viability",
+      "ROI",
+      "emissions savings",
+      "port demand",
+      "grid feasibility",
+      "permit compliance",
+      "seaworthiness"
+    ]
+  }
+}
