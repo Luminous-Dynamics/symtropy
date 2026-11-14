@@ -212,6 +212,18 @@ fn compare_windows(pair:&Value,regime:&str,asset_sha256:&str,max_uncertainty:f64
     let unavailable=|reason:&str|json!({"state":"NOT_EVALUATED","admissible":false,"reason_code":reason});
     let mismatch=|reason:&str,load:Option<f64>,speed:Option<f64>,ambient:Option<f64>|json!({"state":"CONTEXT_MISMATCH","admissible":false,"reason_code":reason,"load_delta_percent":load,"speed_delta_rpm":speed,"ambient_delta_c":ambient});
     if text(p,"profile_state")!=Some("PREREGISTERED"){return unavailable("COMPARISON_PROFILE_NOT_PREREGISTERED");}
+    let minimum_independent_episodes=p["minimum_independent_episodes_per_window"].as_u64().unwrap_or(0);
+    let episodes_a=a["independent_episode_count"].as_u64().unwrap_or(0);
+    let episodes_b=b["independent_episode_count"].as_u64().unwrap_or(0);
+    if episodes_a<minimum_independent_episodes||episodes_b<minimum_independent_episodes{
+        return json!({
+            "state":"NOT_EVALUATED","admissible":false,
+            "reason_code":"INDEPENDENT_EPISODE_COUNT_BELOW_PREREGISTERED_MINIMUM",
+            "minimum_independent_episodes_per_window":minimum_independent_episodes,
+            "window_a_independent_episode_count":episodes_a,
+            "window_b_independent_episode_count":episodes_b
+        });
+    }
     if common_tb.is_none()||common_digest.is_none(){return unavailable("CHANNEL_TIMEBASE_NOT_COMMON");}
     if text(a,"configuration_sha256")!=Some(asset_sha256)||text(b,"configuration_sha256")!=Some(asset_sha256){
         return unavailable("WINDOW_CONFIGURATION_MISMATCH");
@@ -259,6 +271,7 @@ fn compare_windows(pair:&Value,regime:&str,asset_sha256:&str,max_uncertainty:f64
         "asset_configuration_sha256":asset_sha256,
         "episode_definition_id":text(a,"episode_definition_id").unwrap_or(""),
         "episode_definition_sha256":text(a,"episode_definition_sha256").unwrap_or(""),
+        "minimum_independent_episodes_per_window":minimum_independent_episodes,
         "window_a":{"window_id":text(a,"window_id").unwrap_or(""),"recording_id":text(a,"recording_id").unwrap_or(""),
             "artifact_sha256":text(a,"artifact_sha256").unwrap_or(""),"configuration_sha256":text(a,"configuration_sha256").unwrap_or(""),"sample_count":a["sample_count"],
             "independent_episode_count":a["independent_episode_count"],
@@ -415,12 +428,15 @@ fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
         validate_window(&pair["measurement_window_a"],&format!("{path}.measurement_window_a"),text(pair,"measurement_window_id_a").unwrap_or(""),max_uncertainty,&mut errors);
         validate_window(&pair["measurement_window_b"],&format!("{path}.measurement_window_b"),text(pair,"measurement_window_id_b").unwrap_or(""),max_uncertainty,&mut errors);
         let policy=&pair["comparison_tolerances"];
-        exact_keys(policy,&["profile_id","profile_sha256","profile_state","maximum_load_delta_percent","maximum_speed_delta_rpm","maximum_ambient_temperature_delta_c","require_same_transient_state"],&[],&format!("{path}.comparison_tolerances"),&mut errors);
+        exact_keys(policy,&["profile_id","profile_sha256","profile_state","minimum_independent_episodes_per_window","maximum_load_delta_percent","maximum_speed_delta_rpm","maximum_ambient_temperature_delta_c","require_same_transient_state"],&[],&format!("{path}.comparison_tolerances"),&mut errors);
         if text(policy,"profile_id").is_none()||!policy.get("profile_sha256").and_then(Value::as_str).is_some_and(sha256){
             push(&mut errors,"COMPARISON_PROFILE_IDENTITY_INVALID",&path,"comparison policy requires ID and SHA-256");
         }
         if !matches!(text(policy,"profile_state"),Some("PREREGISTERED"|"DRAFT"|"UNKNOWN")){
             push(&mut errors,"COMPARISON_PROFILE_STATE_INVALID",&path,"invalid comparison policy state");
+        }
+        if policy["minimum_independent_episodes_per_window"].as_u64().is_none_or(|n|n<2||n>100000){
+            push(&mut errors,"INDEPENDENT_EPISODE_MINIMUM_INVALID",&format!("{path}.comparison_tolerances.minimum_independent_episodes_per_window"),"preregistered minimum must be an integer in 2..=100000");
         }
         for key in ["maximum_load_delta_percent","maximum_speed_delta_rpm","maximum_ambient_temperature_delta_c"]{
             if finite(policy,key).is_none_or(|v|v<0.0){push(&mut errors,"COMPARISON_TOLERANCE_INVALID",&format!("{path}.comparison_tolerances.{key}"),"finite nonnegative tolerance required");}
@@ -1007,6 +1023,41 @@ mod tests{
         let r=run(&v);
         assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"EPISODE_DEFINITION_MISMATCH");
         assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn episode_count_below_preregistered_minimum_withholds_pairwise_identifiability(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_a"]["independent_episode_count"]=json!(9);
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"INDEPENDENT_EPISODE_COUNT_BELOW_PREREGISTERED_MINIMUM");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["minimum_independent_episodes_per_window"],10);
+        assert_eq!(r["base_pair_results"][0]["pair_kernel_evaluated"],false);
+    }
+    #[test]
+    fn episode_count_at_preregistered_minimum_is_admissible(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_a"]["independent_episode_count"]=json!(10);
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"IDENTIFIABLE");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["state"],"MATCHED");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["window_a"]["independent_episode_count"],10);
+    }
+    #[test]
+    fn large_sample_count_cannot_substitute_for_independent_episodes(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_a"]["sample_count"]=json!(100000000);
+        v["pairs"][0]["measurement_window_a"]["independent_episode_count"]=json!(1);
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"INDEPENDENT_EPISODE_COUNT_BELOW_PREREGISTERED_MINIMUM");
+    }
+    #[test]
+    fn episode_minimum_must_be_preregistered_and_at_least_two(){
+        let mut v=fixture();
+        v["pairs"][0]["comparison_tolerances"]["minimum_independent_episodes_per_window"]=json!(1);
+        let errors=validate_case(&v).unwrap_err();
+        assert!(errors.iter().any(|e|e["code"]=="INDEPENDENT_EPISODE_MINIMUM_INVALID"));
     }
     #[test]
     fn recording_id_and_artifact_digest_must_agree(){

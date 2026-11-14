@@ -620,6 +620,7 @@
               "profile_id",
               "profile_sha256",
               "profile_state",
+              "minimum_independent_episodes_per_window",
               "maximum_load_delta_percent",
               "maximum_speed_delta_rpm",
               "maximum_ambient_temperature_delta_c",
@@ -655,6 +656,11 @@
               },
               "require_same_transient_state": {
                 "type": "boolean"
+              },
+              "minimum_independent_episodes_per_window": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 100000
               }
             }
           }

@@ -248,7 +248,8 @@
         "maximum_load_delta_percent": 1,
         "maximum_speed_delta_rpm": 5,
         "maximum_ambient_temperature_delta_c": 1,
-        "require_same_transient_state": true
+        "require_same_transient_state": true,
+        "minimum_independent_episodes_per_window": 10
       }
     }
   ],

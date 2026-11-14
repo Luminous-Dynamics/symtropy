@@ -463,3 +463,37 @@ A channel with `installed=false` cannot contribute even to a synthetic conforman
 Each per-channel interval pair now carries explicit references to the exact measurement window and raw-artifact digest for fault state A and fault state B, plus a versioned interval-derivation ID and SHA-256 identity. The adapter rejects a response row whose window ID or artifact digest differs from the pair's declared measurement windows, and rejects missing or malformed derivation identity.
 
 This closes a contract-level join gap: a matched pair of measurement-window records can no longer be combined with unrelated per-channel interval rows while still passing schema admission. It does **not** prove that the referenced archive bytes were downloaded or that the interval values were correctly calculated from those bytes. The output therefore continues to state `source_artifact_payloads_verified=false` and `physical_diagnosability_established=false`. Independent payload retrieval, digest verification and interval recomputation remain a separate evidence tier.
+
+
+## 13. Independent-episode admission and validation-evidence strength
+
+A sample count is not an independent-evidence count. The adapter now requires every preregistered comparison profile to declare `minimum_independent_episodes_per_window` (integer 2–100,000). A pair window below that threshold is withheld as `INSUFFICIENT_EVIDENCE` before the generic pair-separability kernel is called. The successful receipt records the threshold and both episode counts. Increasing the number of rows/windows from one physical episode cannot satisfy the gate.
+
+The threshold is a preregistered minimum admission rule, not a universal sample-size guarantee. For measured evaluation, choose it by an explicit power/precision analysis for the declared effect size, variability, false-isolation tolerance and independent sampling unit. Non-overlapping engine cycles within one recording can still be clustered within a run; confidence intervals and model comparisons must therefore cluster at the highest independent physical unit actually available (run, component, machine or site). If the episode boundaries or grouping basis cannot be substantiated, report the count as unverified and do not upgrade the physical-evidence claim.
+
+### Validation evidence profile — report alongside every benchmark score
+
+A recent registered 2026 systematic audit of rotating-machinery diagnosis proposes separating physical independence, domain shift, target-domain access, leakage risk and deployment evidence rather than collapsing them into classifier accuracy. Its audited 157 experiments were predominantly A0–A1; only 27 reached A2–A4, and only one reached the highest A4/B4 combination. Those proportions describe its access-influenced review cohort, not the entire literature. The framework is useful because it makes the scope of a generalization claim explicit.
+
+| Dimension | Level | Evidence meaning |
+|---|---|---|
+| Physical independence | A0 | Windows/samples without demonstrated independent acquisition units |
+| Physical independence | A1 | Separate runs or time blocks on the same physical component/apparatus |
+| Physical independence | A2 | Independent physical components/specimens |
+| Physical independence | A3 | Independent machines or test systems |
+| Physical independence | A4 | Independent sites, fleets or field populations |
+| Domain shift | B0 | No substantive shift |
+| Domain shift | B1 | Operating-condition shift (load, speed, ambient or duty cycle) |
+| Domain shift | B2 | Sensor, measurement-system or test-rig shift |
+| Domain shift | B3 | Machine/component-population or broader physical-distribution shift |
+| Domain shift | B4 | Site, fleet or open-industrial shift |
+
+Also report target-domain access separately (none, unlabeled adaptation, labeled adaptation, pretraining exposure, or unclear) and leakage risk separately (LOW, SOME_CONCERNS, HIGH, UNCLEAR). Adaptation is not automatically leakage; an untouched external test is not equivalent to target-adapted evaluation. Missing split/preprocessing reporting should remain UNCLEAR rather than being assumed low risk.
+
+This evidence profile is a descriptive vector, not a single scalar industrial-readiness score. A high A-level does not automatically imply a high B-level, and neither establishes calibration, OOD rejection, explainability, or operational safety.
+
+A second 2026 rotating-machinery study illustrates why measurement-chain evidence belongs beside the score: it used nested leave-one-replication-out evaluation across three replications, while also documenting an uncalibrated MEMS channel whose nominal sensitivity did not match its datasheet. The study appropriately limited the claims that depended on absolute amplitude. The relevant benchmark lesson is to audit sensor calibration and scale dependence, not to assume that nested splitting repairs measurement uncertainty.
+
+References:
+- Horvath, K. (2026). *From Benchmark Accuracy to Industrial Evidence: A Registered Systematic Map and Nested Experiment-Level Audit of Validation Credibility in AI-Based Rotating-Machinery Fault Diagnosis*. Vibration 9(4), 62. https://doi.org/10.3390/vibration9040062
+- (2026). *Machine learning condition monitoring systems for rotating machinery fault detection*. Frontiers in Mechanical Engineering, 12 November 2026. https://doi.org/10.3389/fmech.2026.1979480
