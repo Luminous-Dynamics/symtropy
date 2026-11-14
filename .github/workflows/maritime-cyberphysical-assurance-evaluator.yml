@@ -22,7 +22,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: maritime-cyberphysical-assurance-\${{ github.event.pull_request.number || github.ref }}
+  group: maritime-cyberphysical-assurance-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   verify:
@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -48,11 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           source_commit="$(git rev-parse HEAD)"
-          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           input="benchmarks/maritime-cyberphysical-assurance/corpus-v0.1.json"
           sha="$(sha256sum "$input" | awk '{print $1}')"
           cargo run --quiet --locked -p maritime-cyberphysical-assurance-evaluator -- "$input" --source-commit "$source_commit" --corpus-sha256 "$sha" > maritime-cyberphysical-assurance-receipt.json
-          jq -e --arg source "$source_commit" --arg sha "$sha" '.result == "pass" and .source_commit == $source and .corpus_sha256 == $sha and .scenario_count == 12 and .taxonomy_class_count == 12 and .exact_diagnosis_set_match_count == 12 and .false_unique_cause_count == 0 and .missed_component_count == 0 and .false_positive_component_count == 0 and .sensor_to_command_latency == "NOT_MEASURED" and .algorithm_compute_time_is_not_end_to_end_latency == true and .source_artifact_payloads_verified == false and .authority_boundary.read_only == true and .authority_boundary.generator_command == false and .authority_boundary.bess_command == false and .authority_boundary.topology_switching == false' maritime-cyberphysical-assurance-receipt.json
+          jq -e --arg source "$source_commit" --arg sha "$sha" '.result == "pass" and .source_commit == $source and .corpus_sha256 == $sha and .scenario_count == 12 and .taxonomy_class_count == 12 and .raw_sample_count == 5400 and .independent_episode_count == 12 and .exact_diagnosis_set_match_count == 12 and .false_unique_cause_count == 0 and .missed_component_count == 0 and .false_positive_component_count == 0 and .sensor_to_command_latency == "NOT_MEASURED" and .algorithm_compute_time_is_not_end_to_end_latency == true and .source_artifact_payloads_verified == false and .authority_boundary.read_only == true and .authority_boundary.generator_command == false and .authority_boundary.bess_command == false and .authority_boundary.topology_switching == false' maritime-cyberphysical-assurance-receipt.json
       - name: Upload synthetic assurance receipt
         uses: actions/upload-artifact@v4
         with:
