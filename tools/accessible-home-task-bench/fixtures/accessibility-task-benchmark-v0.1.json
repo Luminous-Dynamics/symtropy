@@ -1,0 +1,407 @@
+{
+  "schema_version": "0.1.0",
+  "fixture_kind": "synthetic_benchmark",
+  "fixture_id": "ACCESS-HOME-TASK-BENCH-001",
+  "claim_boundary": "Synthetic task-chain evidence triage only. No output certifies or establishes the safety, accessibility, usability, compliance, dimensions, or suitability of a real home, product, alarm, route, or building. Site measurements and qualified local professional review remain necessary.",
+  "scenarios": [
+    {
+      "id": "vision-lowlight-bathroom-route",
+      "title": "Resident-chosen low-light route to the bathroom",
+      "selected_needs": [
+        "vision",
+        "fatigue"
+      ],
+      "context": "Synthetic prompt for a resident who says orientation and low-effort night movement are important.",
+      "expected_assessment": "not_evaluable",
+      "tasks": [
+        {
+          "id": "reach-bathroom",
+          "title": "Bedroom to bathroom and back at night",
+          "expected_assessment": "not_evaluable",
+          "steps": [
+            {
+              "id": "find-route",
+              "title": "Find and follow the resident's chosen route",
+              "capabilities": [
+                {
+                  "id": "consistent-landmarks",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/consistent-landmarks",
+                  "review_with": "resident + selected orientation/access specialist",
+                  "note": "Fixture assertion only; not a field observation."
+                },
+                {
+                  "id": "night-route-lighting",
+                  "required": true,
+                  "evidence_state": "proposed",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/night-route-lighting",
+                  "review_with": "resident + lighting/access reviewer",
+                  "note": "Lighting preference and glare/fall risks require resident trial."
+                },
+                {
+                  "id": "obstruction-clearance",
+                  "required": true,
+                  "evidence_state": "unknown",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/obstruction-clearance",
+                  "review_with": "resident + site measurer",
+                  "note": "Actual furniture, doors and protrusions have not been measured."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vision-mobility-route-cue-conflict",
+      "title": "A preferred tactile route cue conflicts with a clear mobility route",
+      "selected_needs": [
+        "vision",
+        "mobility"
+      ],
+      "context": "Synthetic conflict injection: a preferred cue is declared to obstruct the selected mobility route.",
+      "expected_assessment": "blocked_by_declared_barrier",
+      "tasks": [
+        {
+          "id": "follow-tactile-route",
+          "title": "Follow the route without a mobility barrier",
+          "expected_assessment": "blocked_by_declared_barrier",
+          "steps": [
+            {
+              "id": "route-cue-and-clearance",
+              "title": "Use the cue while preserving route clearance",
+              "capabilities": [
+                {
+                  "id": "resident-approved-tactile-cue",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/resident-approved-tactile-cue",
+                  "review_with": "resident + selected orientation/access specialist",
+                  "note": "Preference asserted only for this synthetic test."
+                },
+                {
+                  "id": "unobstructed-mobility-clearance",
+                  "required": true,
+                  "evidence_state": "known_barrier",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/unobstructed-mobility-clearance",
+                  "review_with": "resident + access specialist / architect",
+                  "note": "Fixture declares an obstruction; this must block the task."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deaf-sleeping-smoke-alert",
+      "title": "A Deaf resident needs to notice a life-safety alert while asleep",
+      "selected_needs": [
+        "hearing"
+      ],
+      "context": "Synthetic scenario; never use its states to select or certify a real alarm.",
+      "expected_assessment": "not_evaluable",
+      "tasks": [
+        {
+          "id": "notice-sleep-alert",
+          "title": "Notice an alert and follow a resident-specific plan",
+          "expected_assessment": "not_evaluable",
+          "steps": [
+            {
+              "id": "approved-alert-chain",
+              "title": "Review alert device, placement and backup",
+              "capabilities": [
+                {
+                  "id": "approved-alert-device",
+                  "required": true,
+                  "evidence_state": "needs_professional_review",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/approved-alert-device",
+                  "review_with": "resident + qualified fire/electrical professional",
+                  "note": "Device suitability, coverage, installation and jurisdictional requirements need review."
+                },
+                {
+                  "id": "backup-power-and-testing",
+                  "required": true,
+                  "evidence_state": "unknown",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/backup-power-and-testing",
+                  "review_with": "qualified installer + responsible maintainer",
+                  "note": "Backup and ongoing tests are unspecified."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mobility-bathroom-transfer",
+      "title": "A mobility-device user needs to complete a bathroom transfer",
+      "selected_needs": [
+        "mobility",
+        "dexterity"
+      ],
+      "context": "Synthetic scenario: room labels do not prove actual maneuvering or transfer space.",
+      "expected_assessment": "not_evaluable",
+      "tasks": [
+        {
+          "id": "toilet-shower-transfer",
+          "title": "Approach, transfer, use fixtures and leave with privacy",
+          "expected_assessment": "not_evaluable",
+          "steps": [
+            {
+              "id": "approach-and-transfer",
+              "title": "Approach and transfer with the person's actual equipment",
+              "capabilities": [
+                {
+                  "id": "maneuvering-envelope",
+                  "required": true,
+                  "evidence_state": "needs_site_measurement",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/maneuvering-envelope",
+                  "review_with": "resident + access specialist / architect",
+                  "note": "Door swings, fixtures, equipment and resident method need site-specific measurements."
+                },
+                {
+                  "id": "transfer-side-and-support",
+                  "required": true,
+                  "evidence_state": "unknown",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/transfer-side-and-support",
+                  "review_with": "resident + occupational/access specialist",
+                  "note": "Preferred transfer side and chosen support arrangement are not recorded."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deafblind-visitor-notification",
+      "title": "A deafblind resident wants to be aware of a visitor",
+      "selected_needs": [
+        "deafblind"
+      ],
+      "context": "Synthetic example; notification and communication preferences must be selected by the resident.",
+      "expected_assessment": "not_evaluable",
+      "tasks": [
+        {
+          "id": "identify-visitor",
+          "title": "Notice, identify and decide how to respond to a visitor",
+          "expected_assessment": "not_evaluable",
+          "steps": [
+            {
+              "id": "resident-chosen-notification",
+              "title": "Try the chosen notification and communication chain",
+              "capabilities": [
+                {
+                  "id": "tactile-notification",
+                  "required": true,
+                  "evidence_state": "proposed",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/tactile-notification",
+                  "review_with": "deafblind resident + specialist chosen by the resident",
+                  "note": "Tactile meaning, placement, safe use and personal preference are not validated."
+                },
+                {
+                  "id": "visitor-identification-path",
+                  "required": true,
+                  "evidence_state": "unknown",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/visitor-identification-path",
+                  "review_with": "deafblind resident + chosen communication specialist",
+                  "note": "The resident's preferred way to identify a visitor has not been agreed."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "network-loss-essential-control",
+      "title": "Essential home control fails when network service is unavailable",
+      "selected_needs": [
+        "dexterity",
+        "cognitive"
+      ],
+      "context": "Synthetic fault injection: an essential lock or light can only be operated through a cloud-dependent interface.",
+      "expected_assessment": "blocked_by_declared_barrier",
+      "tasks": [
+        {
+          "id": "operate-control-offline",
+          "title": "Operate an essential function without network or phone access",
+          "expected_assessment": "blocked_by_declared_barrier",
+          "steps": [
+            {
+              "id": "offline-control",
+              "title": "Use an essential control during network outage",
+              "capabilities": [
+                {
+                  "id": "cloud-only-control",
+                  "required": true,
+                  "evidence_state": "known_barrier",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/cloud-only-control",
+                  "review_with": "resident + assistive-technology/electrical professional",
+                  "note": "Fixture declares no usable local/manual fallback."
+                },
+                {
+                  "id": "offline-operation-instructions",
+                  "required": true,
+                  "evidence_state": "unknown",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/offline-operation-instructions",
+                  "review_with": "resident + designer",
+                  "note": "Accessible offline instructions and recovery behavior are not defined."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fatigue-meal-preparation",
+      "title": "A resident selects a lower-effort meal-preparation routine",
+      "selected_needs": [
+        "fatigue",
+        "mobility"
+      ],
+      "context": "Positive synthetic control case; task-required capabilities are asserted verified only within this fixture.",
+      "expected_assessment": "evidence_complete_for_fixture",
+      "tasks": [
+        {
+          "id": "prepare-simple-meal",
+          "title": "Prepare a simple meal and finish the routine",
+          "expected_assessment": "evidence_complete_for_fixture",
+          "steps": [
+            {
+              "id": "stage-and-rest",
+              "title": "Reach work zone, place items down and take a seated break",
+              "capabilities": [
+                {
+                  "id": "resident-approved-rest-point",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/resident-approved-rest-point",
+                  "review_with": "resident + selected occupational/access specialist",
+                  "note": "Synthetic assertion that the chosen rest point suited the declared task."
+                },
+                {
+                  "id": "usable-work-zone",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/usable-work-zone",
+                  "review_with": "resident + kitchen designer/access specialist",
+                  "note": "Synthetic assertion of a task-specific mock-up, not a building measurement."
+                },
+                {
+                  "id": "usable-control-feedback",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/usable-control-feedback",
+                  "review_with": "resident + appliance supplier/access reviewer",
+                  "note": "Synthetic assertion that selected controls were tried for this test only."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sensory-cognitive-evening-routine",
+      "title": "A resident wants a lower-stimulation evening routine with predictable controls",
+      "selected_needs": [
+        "sensory",
+        "cognitive"
+      ],
+      "context": "Synthetic routine prompt; sensory preferences are not inferred from a label.",
+      "expected_assessment": "not_evaluable",
+      "tasks": [
+        {
+          "id": "settle-for-evening",
+          "title": "Adjust the room and settle for rest",
+          "expected_assessment": "not_evaluable",
+          "steps": [
+            {
+              "id": "light-sound-and-controls",
+              "title": "Use selected sensory controls for the evening routine",
+              "capabilities": [
+                {
+                  "id": "resident-chosen-light-range",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/resident-chosen-light-range",
+                  "review_with": "resident + lighting reviewer",
+                  "note": "Synthetic assertion that the chosen settings were trialled."
+                },
+                {
+                  "id": "quiet-refuge-option",
+                  "required": true,
+                  "evidence_state": "proposed",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/quiet-refuge-option",
+                  "review_with": "resident + acoustic/access reviewer",
+                  "note": "Option needs trial against real home noise and communication needs."
+                },
+                {
+                  "id": "predictable-control-state",
+                  "required": true,
+                  "evidence_state": "unknown",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/predictable-control-state",
+                  "review_with": "resident + designer",
+                  "note": "Control-state feedback and interruption recovery remain unspecified."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vision-hearing-intersection",
+      "title": "A resident combines low-vision and hearing-access preferences for communication",
+      "selected_needs": [
+        "vision",
+        "hearing"
+      ],
+      "context": "Synthetic interaction of sightlines, lighting, alert modality and communication preferences.",
+      "expected_assessment": "not_evaluable",
+      "tasks": [
+        {
+          "id": "communicate-and-notice-alert",
+          "title": "Communicate with a visitor while recognizing a notification",
+          "expected_assessment": "not_evaluable",
+          "steps": [
+            {
+              "id": "shared-space-communication",
+              "title": "Use the chosen communication setup and alert path",
+              "capabilities": [
+                {
+                  "id": "face-lighting-and-sightline",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/face-lighting-and-sightline",
+                  "review_with": "resident + chosen communication/access specialist",
+                  "note": "Fixture asserts this single setup only."
+                },
+                {
+                  "id": "chosen-visual-alert",
+                  "required": true,
+                  "evidence_state": "verified_for_declared_scope",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/chosen-visual-alert",
+                  "review_with": "resident + relevant device reviewer",
+                  "note": "Synthetic non-life-safety notification only; not alarm certification."
+                },
+                {
+                  "id": "backup-accessible-alert",
+                  "required": true,
+                  "evidence_state": "needs_professional_review",
+                  "evidence_ref": "synthetic://accessible-home-task-bench/v0.1/backup-accessible-alert",
+                  "review_with": "resident + qualified relevant professional",
+                  "note": "The appropriate redundant channel and system requirements still need review."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
