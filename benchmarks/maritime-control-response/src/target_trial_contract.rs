@@ -483,6 +483,14 @@ fn validate_timelines(
                 timeline.emulation_unit_id
             ));
         }
+        if strategy.intervention_kind == InterventionKind::DeferredOrUsualCare
+            && timeline.treatment_start_at_seconds.is_some()
+        {
+            blockers.push(format!(
+                "unit {} records a treatment start for a deferred/usual-care strategy",
+                timeline.emulation_unit_id
+            ));
+        }
         if let Some(treatment_start) = timeline.treatment_start_at_seconds {
             if !finite_non_negative(treatment_start)
                 || treatment_start < time_zero - TIME_TOLERANCE_SECONDS
@@ -558,11 +566,19 @@ fn validate_timelines(
         }
     }
 
-    let declared_counts = diagnostics
-        .strategy_arm_counts
-        .iter()
-        .map(|entry| (entry.strategy_id.as_str(), entry.emulation_entry_count))
-        .collect::<BTreeMap<_, _>>();
+    let mut declared_counts = BTreeMap::<&str, usize>::new();
+    for entry in &diagnostics.strategy_arm_counts {
+        if !strategy_map.contains_key(entry.strategy_id.as_str())
+            || declared_counts
+                .insert(entry.strategy_id.as_str(), entry.emulation_entry_count)
+                .is_some()
+        {
+            blockers.push(format!(
+                "strategy-arm count is unknown or duplicated: {}",
+                entry.strategy_id
+            ));
+        }
+    }
     for strategy in &protocol.treatment_strategies {
         let observed = arm_counts.get(&strategy.strategy_id).copied().unwrap_or(0);
         let declared = declared_counts
