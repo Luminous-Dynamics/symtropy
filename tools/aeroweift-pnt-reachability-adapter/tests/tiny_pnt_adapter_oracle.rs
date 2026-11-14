@@ -139,6 +139,14 @@ fn accepted_receipt_preserves_source_profile_clock_and_dependency_lineage() {
                 lineage.dependency_snapshot_id,
                 "synthetic-dependency-snapshot-a"
             );
+            assert_eq!(
+                lineage.independence_assessment,
+                IndependenceAssessment::QualifiedWithinProfile
+            );
+            assert_eq!(lineage.independent_family_count, 2);
+            assert_eq!(lineage.minimum_independent_families, 2);
+            assert_eq!(lineage.source_position_bounds.east_m, iv(100.0, 101.0));
+            assert_eq!(lineage.velocity_bounds.east_mps, iv(4.0, 5.0));
         }
         other => panic!("expected primary receipt, got {other:?}"),
     }
