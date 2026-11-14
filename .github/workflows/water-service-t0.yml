@@ -89,6 +89,7 @@ jobs:
             research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json \
             research/water-intrusion-coupling/manifest-v0.1.json \
             artifacts/water-chemical-fate-t0/receipt.json
+            artifacts/water-mixing-fidelity-t0/receipt.json
       - name: Evaluate non-ideal mixing fidelity T0 exact checked-out revision
         id: mixing_fidelity
         env:
@@ -123,6 +124,11 @@ jobs:
             research/water-intrusion-coupling/chemical-fate-comparator-register-v0.1.json
             research/water-intrusion-coupling/chemical-fate-t0-cases-v0.1.json
             research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json
+                        research/water-intrusion-coupling/MIXING_FIDELITY_BENCHMARK_PROTOCOL_V0_1.md
+                        research/water-intrusion-coupling/mixing-fidelity-comparator-register-v0.1.json
+                        research/water-intrusion-coupling/mixing-fidelity-manifest-v0.1.json
+                        research/water-intrusion-coupling/mixing-fidelity-t0-cases-v0.1.json
+                        research/water-intrusion-coupling/mixing-fidelity-t0-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
             artifacts/water-chemical-fate-t0/receipt.json
