@@ -1,0 +1,70 @@
+name: Job-shop reference benchmark
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/jobshop-reference-benchmark.yml"
+      - "crates/tools/jobshop-reference-benchmark/**"
+      - "docs/JOBSHOP_REFERENCE_BENCHMARK_V0_1.md"
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/jobshop-reference-benchmark.yml"
+      - "crates/tools/jobshop-reference-benchmark/**"
+      - "docs/JOBSHOP_REFERENCE_BENCHMARK_V0_1.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jobshop-reference-benchmark
+  cancel-in-progress: true
+
+jobs:
+  oracle:
+    name: Pinned instance parser and tiny exact oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- --check
+
+      - name: Run locked offline tests
+        run: cargo test --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml --all-targets -- -D warnings
+
+      - name: Smoke-test pinned and exact fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          taillard="$(cargo run --quiet --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- summarize crates/tools/jobshop-reference-benchmark/fixtures/ta01.txt)"
+          printf '%s\n' "$taillard"
+          grep -Fq 'jobs=15 machines=15 operations=225' <<< "$taillard"
+          adams="$(cargo run --quiet --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- summarize crates/tools/jobshop-reference-benchmark/fixtures/abz5.txt)"
+          printf '%s\n' "$adams"
+          grep -Fq 'jobs=10 machines=10 operations=100' <<< "$adams"
+          tiny="$(cargo run --quiet --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- solve-exact crates/tools/jobshop-reference-benchmark/fixtures/tiny_cross_2x2.txt)"
+          printf '%s\n' "$tiny"
+          grep -Fq 'optimality=proved makespan=3 lower_bound=3' <<< "$tiny"
+          grep -Fq 'scheduled_operations=4' <<< "$tiny"
+          grep -Fq 'operation job=0 index=0 machine=0 start=0 finish=2' <<< "$tiny"
+          grep -Fq 'operation job=1 index=0 machine=1 start=0 finish=2' <<< "$tiny"
+          heuristic="$(cargo run --quiet --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- dispatch-mwkr crates/tools/jobshop-reference-benchmark/fixtures/ta01.txt)"
+          printf '%s\n' "$heuristic"
+          grep -Fq 'optimality=not_proven' <<< "$heuristic"
+          grep -Fq 'feasibility=pass scheduled_operations=225' <<< "$heuristic"
+          grep -Fq 'operation job=0 index=0 machine=6' <<< "$heuristic"
+          if cargo run --quiet --locked --offline --manifest-path crates/tools/jobshop-reference-benchmark/Cargo.toml -- solve-exact crates/tools/jobshop-reference-benchmark/fixtures/ta01.txt; then
+            echo "large-instance exact solve unexpectedly succeeded" >&2
+            exit 1
+          fi
