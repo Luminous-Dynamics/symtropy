@@ -1171,11 +1171,13 @@ mod tests {
         include_str!("../../cases/forest-model-set-adequacy-development-v0.1.json");
 
     #[test]
-    fn observation_corpus_manifest_has_nine_expected_dispositions() {
+    fn observation_corpus_executes_nine_synthetic_rule_cases() {
         let receipt = evaluate(OBSERVATION_FIXTURE.as_bytes()).expect("observation corpus parses");
-        assert_eq!(receipt["result"], "MANIFEST_VALID");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_RULES");
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
-        assert_eq!(receipt["negative_controls_executed"], false);
+        assert_eq!(receipt["synthetic_rule_cases_executed"], true);
+        assert_eq!(receipt["production_observation_adapter"], "NOT_IMPLEMENTED");
+        assert_eq!(receipt["external_data_ingested"], false);
     }
 
     #[test]
@@ -1185,6 +1187,34 @@ mod tests {
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
         let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
         assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn observation_input_mutation_changes_rule_disposition_and_fails() {
+        let mut manifest: Value = serde_json::from_str(OBSERVATION_FIXTURE).expect("valid corpus");
+        manifest["cases"][4]["input"]["validity_state"] = json!("valid");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn no_acquisition_is_preserved_as_missing_not_zero() {
+        let mut manifest: Value = serde_json::from_str(OBSERVATION_FIXTURE).expect("valid corpus");
+        let receipt = evaluate(OBSERVATION_FIXTURE.as_bytes()).expect("observation corpus parses");
+        let check = receipt["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|check| {
+                check["detail"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("GEDI-ISS-STORAGE-GAP-001")
+            })
+            .expect("GEDI storage-gap check is present");
+        assert_eq!(check["passed"], true);
+        assert_eq!(manifest["cases"][1]["input"]["acquisition_status"], "no_acquisition");
     }
 
     #[test]
