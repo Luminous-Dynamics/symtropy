@@ -171,7 +171,7 @@ Where multiple products refer to the same event or plot, keep their dependent vi
 
 ## 7. Negative-control corpus
 
-The companion JSON file defines synthetic cases for:
+The companion JSON file defines nine synthetic expected-disposition cases for:
 1. plot-mean versus GEDI-footprint support mismatch;
 2. GEDI ISS storage interval misread as forest loss;
 3. TMF degradation mislabelled as tree mortality;
@@ -182,7 +182,7 @@ The companion JSON file defines synthetic cases for:
 8. the PNG security/logistics omissions promoted to healthy/absent forest;
 9. a single NFI / plot census treated as a longitudinal growth or mortality panel without a matched prior census.
 
-These cases currently define expected dispositions; they are not yet wired into the Rust accounting verifier. The accounting verifier's PASS must not be represented as passing these observation-operator cases.
+These cases are validated as a manifest by the standalone Rust verifier, which returns MANIFEST_VALID only when the expected dispositions and non-execution claim ceiling are coherent. The verifier does not yet execute them against a production observation adapter. MANIFEST_VALID must not be represented as passing the underlying observation-operator negative controls.
 
 ## 8. Ownership
 
