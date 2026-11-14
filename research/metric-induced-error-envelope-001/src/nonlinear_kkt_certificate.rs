@@ -411,6 +411,36 @@ mod tests {
     }
 
     #[test]
+    fn analytic_scalar_quadratic_root_lies_on_the_certified_radius() {
+        // F(x) = eta + x + gamma*x^2/2, x0=0, A=F'(0)=1.
+        // Thus eta and gamma are exact, not sampled, and the nonzero root
+        // is -2*eta/(1+sqrt(1-2*gamma*eta)).
+        let eta = 0.1;
+        let gamma = 2.0;
+        let receipt = certify_newton_kantorovich_local_root(
+            &inputs(eta, gamma),
+            NewtonKantorovichProfileV1::default(),
+        )
+        .unwrap();
+        let radius = receipt.local_solution_radius.unwrap();
+        let exact_root = -2.0 * eta
+            / (1.0 + (1.0 - 2.0 * gamma * eta).sqrt());
+        let residual = eta + exact_root + 0.5 * gamma * exact_root * exact_root;
+
+        close(exact_root.abs(), radius, 2.0e-14);
+        close(residual, 0.0, 2.0e-14);
+        close(
+            1.0 + gamma * exact_root,
+            (1.0 - 2.0 * gamma * eta).sqrt(),
+            2.0e-14,
+        );
+        assert_eq!(
+            receipt.status,
+            NewtonKantorovichStatusV1::ConditionalLocalRootCertificate
+        );
+    }
+
+    #[test]
     fn invalid_upper_bounds_and_nonfinite_inputs_fail_closed() {
         assert_eq!(
             certify_newton_kantorovich_local_root(
