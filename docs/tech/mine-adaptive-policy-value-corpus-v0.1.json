@@ -1,0 +1,79 @@
+{
+  "suite_id": "MINE-ADAPTIVE-POLICY-VALUE-001",
+  "suite_version": "0.1.0",
+  "evidence_class": "public_authored_synthetic_policy_tournament",
+  "claim_ceiling": "Constructed four-world policy counterexample only. Utility units are dimensionless synthetic scores; no economic, geological, recovery, safety, or real-mine performance is implied.",
+  "probability_basis_points": 10000,
+  "utility_model": {
+    "a_high_grade_utility_units": 120,
+    "a_low_grade_utility_units": 60,
+    "b_high_grade_utility_units": 140,
+    "b_low_grade_utility_units": 20,
+    "assay_cost_units": 2,
+    "assay_delivery_delay_epochs": 1,
+    "prior_knowledge": "Each of the four high/low A/B realizations has equal prior probability; a qualified assay deterministically reveals the assayed lot's synthetic high/low state at the following epoch."
+  },
+  "scenarios": [
+    {
+      "scenario_id": "WORLD_A_HIGH_B_HIGH",
+      "probability_basis_points": 2500,
+      "a_high_grade": true,
+      "b_high_grade": true,
+      "expected": {
+        "static_net_units": 120,
+        "two_stage_net_units": 118,
+        "rolling_horizon_net_units": 118,
+        "clairvoyant_upper_bound_units": 140
+      }
+    },
+    {
+      "scenario_id": "WORLD_A_HIGH_B_LOW",
+      "probability_basis_points": 2500,
+      "a_high_grade": true,
+      "b_high_grade": false,
+      "expected": {
+        "static_net_units": 120,
+        "two_stage_net_units": 118,
+        "rolling_horizon_net_units": 118,
+        "clairvoyant_upper_bound_units": 120
+      }
+    },
+    {
+      "scenario_id": "WORLD_A_LOW_B_HIGH",
+      "probability_basis_points": 2500,
+      "a_high_grade": false,
+      "b_high_grade": true,
+      "expected": {
+        "static_net_units": 60,
+        "two_stage_net_units": 138,
+        "rolling_horizon_net_units": 136,
+        "clairvoyant_upper_bound_units": 140
+      }
+    },
+    {
+      "scenario_id": "WORLD_A_LOW_B_LOW",
+      "probability_basis_points": 2500,
+      "a_high_grade": false,
+      "b_high_grade": false,
+      "expected": {
+        "static_net_units": 60,
+        "two_stage_net_units": 18,
+        "rolling_horizon_net_units": 56,
+        "clairvoyant_upper_bound_units": 60
+      }
+    }
+  ],
+  "expected_aggregate": {
+    "static_weighted_mean_net_units": 90,
+    "two_stage_weighted_mean_net_units": 98,
+    "rolling_horizon_weighted_mean_net_units": 107,
+    "clairvoyant_weighted_mean_upper_bound_units": 115,
+    "static_mean_regret_units": 25,
+    "two_stage_mean_regret_units": 17,
+    "rolling_horizon_mean_regret_units": 8,
+    "trace_violations": 0,
+    "nonanticipativity_violations": 0,
+    "rolling_regret_reduction_vs_two_stage_basis_points": 5294,
+    "rolling_regret_reduction_vs_static_basis_points": 6800
+  }
+}
