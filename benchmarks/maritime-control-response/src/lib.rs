@@ -772,8 +772,13 @@ pub fn evaluate_command_response(
     if pair.command_value.is_some_and(|value| !value.is_finite()) {
         return Err(EvalError::InvalidCommandResponsePair);
     }
-    let command_time = match (pair.command_time_seconds, pair.command_timestamp_uncertainty_seconds) {
-        (Some(value), Some(uncertainty)) if value.is_finite() && uncertainty.is_finite() && uncertainty >= 0.0 => {
+    let command_time = match (
+        pair.command_time_seconds,
+        pair.command_timestamp_uncertainty_seconds,
+    ) {
+        (Some(value), Some(uncertainty))
+            if value.is_finite() && uncertainty.is_finite() && uncertainty >= 0.0 =>
+        {
             match BoundedEventTimeInterval::new(value, uncertainty) {
                 Ok(interval) => interval,
                 Err(_) => return Err(EvalError::InvalidCommandResponsePair),
@@ -784,8 +789,13 @@ pub fn evaluate_command_response(
             return Ok(result);
         }
     };
-    let response_time = match (pair.response_time_seconds, pair.response_timestamp_uncertainty_seconds) {
-        (Some(value), Some(uncertainty)) if value.is_finite() && uncertainty.is_finite() && uncertainty >= 0.0 => {
+    let response_time = match (
+        pair.response_time_seconds,
+        pair.response_timestamp_uncertainty_seconds,
+    ) {
+        (Some(value), Some(uncertainty))
+            if value.is_finite() && uncertainty.is_finite() && uncertainty >= 0.0 =>
+        {
             match BoundedEventTimeInterval::new(value, uncertainty) {
                 Ok(interval) => interval,
                 Err(_) => return Err(EvalError::InvalidCommandResponsePair),
