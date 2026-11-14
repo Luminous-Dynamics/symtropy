@@ -1,0 +1,57 @@
+{
+  "schema_version": "filter-t1-cell-flow-oracle-v0.1",
+  "evidence_class": "synthetic_design_arithmetic",
+  "evidence_ceiling": "flow_range_compatibility_and_ideal_hydraulic_arithmetic_only_no_filter_or_pressure_system_qualification",
+  "independently_recomputed": true,
+  "results": [
+    {
+      "case_id": "FILTER-T1-001-household-below-pump-min",
+      "expected": {
+        "flow_m3_s": 0.00016666666666666666,
+        "mean_velocity_m_s": 2.1220659078919373,
+        "community_pump_compatible": false
+      }
+    },
+    {
+      "case_id": "FILTER-T1-002-community-at-pump-min",
+      "expected": {
+        "flow_m3_s": 0.0002,
+        "mean_velocity_m_s": 0.15915494309189532,
+        "community_pump_compatible": true
+      }
+    },
+    {
+      "case_id": "FILTER-T1-003-community-at-pump-max",
+      "expected": {
+        "flow_m3_s": 0.001,
+        "mean_velocity_m_s": 0.7957747154594766,
+        "community_pump_compatible": true
+      }
+    },
+    {
+      "case_id": "FILTER-T1-004-household-low-flow",
+      "expected": {
+        "flow_m3_s": 0.0000016666666666666667,
+        "mean_velocity_m_s": 0.058946275219220495,
+        "community_pump_compatible": false
+      }
+    }
+  ],
+  "fixed_checks": {
+    "household_max_l_min": 10,
+    "pump_min_l_min": 12,
+    "household_pump_overlap_l_min": 0,
+    "community_overlap_l_min": [
+      12,
+      60
+    ],
+    "community_40mm_id_velocity_m_s": [
+      0.15915494309189532,
+      0.7957747154594766
+    ],
+    "reservoir_turnover_minutes_at_12_l_min": 20.833333333333332,
+    "reservoir_turnover_minutes_at_60_l_min": 4.166666666666667,
+    "hydraulic_power_w_at_0_2_l_s_5m": 9.81,
+    "hydraulic_power_w_at_1_l_s_25m": 245.25
+  }
+}

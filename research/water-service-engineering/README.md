@@ -107,3 +107,8 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Filter T1 clean-water hydraulic/inspection cell
+
+The design basis [FILTER_T1_CELL_DESIGN_BASIS_V0_1.md](./FILTER_T1_CELL_DESIGN_BASIS_V0_1.md), four [flow-profile cases](./filter-t1-cell-flow-profiles-v0.1.json), separate [oracle](./filter-t1-cell-flow-oracle-v0.1.json), schema and manifest are linked to [#5087](https://github.com/Luminous-Dynamics/symtropy/issues/5087). The benchmark checks household/community flow compatibility with PUMP-T1-CW-01; household POU flow does not overlap the current community pump envelope and therefore requires a separate low-flow loop.

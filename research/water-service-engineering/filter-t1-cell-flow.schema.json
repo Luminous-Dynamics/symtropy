@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Filter T1 cell flow-profile inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "water_density_kg_m3",
+    "gravity_m_s2",
+    "reservoir_usable_volume_l",
+    "community_pipe_candidate_actual_id_mm",
+    "profiles",
+    "pump_t1_reference",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "filter-t1-cell-flow-profiles-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_design_arithmetic"
+    },
+    "evidence_ceiling": {
+      "const": "flow_range_compatibility_and_ideal_hydraulic_arithmetic_only_no_filter_or_pressure_system_qualification"
+    },
+    "water_density_kg_m3": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "gravity_m_s2": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "reservoir_usable_volume_l": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "community_pipe_candidate_actual_id_mm": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "profile_id",
+          "scale"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string"
+          },
+          "scale": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pump_t1_reference": {
+      "type": "object",
+      "required": [
+        "flow_l_min",
+        "tdh_m",
+        "reservoir_usable_l",
+        "actual_id_candidate_mm",
+        "source"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^FILTER-T1-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flow_l_min",
+              "actual_id_mm"
+            ],
+            "properties": {
+              "flow_l_min": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "actual_id_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

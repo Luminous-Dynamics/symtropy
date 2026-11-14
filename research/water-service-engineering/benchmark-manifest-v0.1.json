@@ -160,5 +160,13 @@
     "independent_oracle": "research/water-service-engineering/t0-known-answer-oracle-v0.1.json",
     "case_count": 23,
     "status": "source_level_replay_23_of_23_matched_native_rust_unverified"
+  },
+  "filter_t1_cell": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5087",
+    "protocol": "research/water-service-engineering/FILTER_T1_CELL_DESIGN_BASIS_V0_1.md",
+    "profiles": "research/water-service-engineering/filter-t1-cell-flow-profiles-v0.1.json",
+    "oracle": "research/water-service-engineering/filter-t1-cell-flow-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/filter-t1-cell-flow.schema.json",
+    "status": "parametric_design_basis_and_synthetic_flow_arithmetic_only"
   }
 }
