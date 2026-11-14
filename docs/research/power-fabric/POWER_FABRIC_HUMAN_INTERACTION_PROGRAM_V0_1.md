@@ -184,7 +184,7 @@ Set numerical usability and time thresholds after a baseline study and preregist
 
 Maintain a jurisdiction- and edition-aware applicability register. Do not bake unverified clauses into code.
 
-- **South Africa:** SANS 10142-1 and the Electrical Installation Regulations, including the competent registered-person, inspection, testing and CoC boundaries. Confirm the exact current SABS edition and amendments before normative rule mapping; public industry notices in 2026 use differing edition notation.
+- **South Africa:** SANS 10142-1 and the Electrical Installation Regulations, including the competent registered-person, inspection, testing and CoC boundaries. ECA(SA) announced a SANS 10142-1 Edition 3.3 webinar on 2 September 2026. Confirm the exact current SABS publication, amendments, effective status and applicable clauses before normative rule mapping; an association webinar notice is not itself proof of the authoritative edition or legal applicability.
 - **IEC 60364-8-82:2022 + AMD1:2026:** prosumer low-voltage installations with local generation/storage and grid-connected, islanded and stand-alone operation.
 - Apply product, assembly, protection, wiring, utility-interconnection and workplace-safety requirements only within their actual scope.
 - Treat human-factors guidance as design input, not as an alternative to electrical engineering approval.
@@ -194,6 +194,7 @@ Research references:
 1. Shaping Frontline Practices: A Scoping Review of Human Factors Implicated in Electrical Safety Incidents (2021): https://www.mdpi.com/2313-576X/7/4/76
 2. ECA(SA), correct and permanent circuit/device marking and labelling in SANS 10142-1 (7 Oct 2026): https://ecasa.co.za/member-support/wired-to-comply-understanding-the-standard-test-report-part-4/
 3. ECA(SA), current-edition availability notice (26 Jun 2026): https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/
+4. ECA(SA), SANS 10142-1 Edition 3.3 webinar notice (2 Sep 2026): https://ecasa.co.za/member-support/missed-the-sans-10142-1-edition-3-3-webinar-catch-up-with-the-recording/
 4. IEC, IEC 60364-8-82:2022 + AMD1:2026 consolidated publication (16 Apr 2026): https://webstore.iec.ch/en/publication/113148
 5. South African Department of Employment and Labour, CoC and registered-contractor reminder (22 Oct 2025): https://www.gov.za/news/media-statements/employment-and-labour-electrical-installation-laws-and-certificate-compliance
 6. NFPA 70E public input record on additional electrical safety-by-design methods: https://docinfofiles.nfpa.org/files/AboutTheCodes/70E/70E_A2023_EEW_AAA_FD_PIResponses.pdf
