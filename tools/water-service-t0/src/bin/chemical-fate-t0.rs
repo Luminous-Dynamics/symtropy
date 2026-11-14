@@ -10,7 +10,7 @@ const PROGRAMME: &str = "WATER-INTRUSION-CHEMICAL-FATE-T0";
 const PROFILE: &str = "LUMINOUS-WATER-CHEMICAL-FATE-T0";
 const INPUT_CEILING: &str =
     "analytical_reaction_and_model_scope_contracts_only_no_physical_chemical_qualification";
-const CASE_COUNT: usize = 12;
+const CASE_COUNT: usize = 13;
 
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
     value.get(key).ok_or_else(|| format!("missing JSON field: {key}"))
@@ -117,13 +117,17 @@ fn compute(case: &Value) -> Result<Value, String> {
             Ok(json!({
                 "chemical_disposition": "ANALYTICAL_FIRST_ORDER_KNOWN_ANSWER",
                 "parent_remaining_concentration_mg_l": remaining,
-                "parent_transformed_concentration_mg_l": transformed,
+                "parent_loss_concentration_equivalent_mg_l": transformed,
                 "qualification_status": "NotRun",
                 "potability_claim_permitted": false,
                 "release_authorized": false
             }))
         }
         "CF-T0-002-sequential-reaction-unequal-rate-constants" => {
+            require(
+                text(inputs, "concentration_basis")? == "conserved_moiety_equivalent",
+                "sequential species must use a common conserved-moiety concentration basis",
+            )?;
             let initial = number(inputs, "initial_A_mg_l")?;
             let k1 = number(inputs, "k1_h_inv")?;
             let k2 = number(inputs, "k2_h_inv")?;
@@ -153,6 +157,10 @@ fn compute(case: &Value) -> Result<Value, String> {
             }))
         }
         "CF-T0-003-sequential-reaction-equal-rate-limit" => {
+            require(
+                text(inputs, "concentration_basis")? == "conserved_moiety_equivalent",
+                "sequential species must use a common conserved-moiety concentration basis",
+            )?;
             let initial = number(inputs, "initial_A_mg_l")?;
             let k1 = number(inputs, "k1_h_inv")?;
             let k2 = number(inputs, "k2_h_inv")?;
@@ -314,6 +322,51 @@ fn compute(case: &Value) -> Result<Value, String> {
             )?;
             Ok(invalid("NEGATIVE_CONCENTRATION_OR_RATE"))
         }
+        "CF-T0-013-stoichiometric-molecular-weight-conversion" => {
+            let initial = number(inputs, "initial_parent_mmol_l")?;
+            let remaining = number(inputs, "remaining_parent_mmol_l")?;
+            let stoich_b = number(inputs, "product_B_stoich_mol_per_mol_parent")?;
+            let stoich_c = number(inputs, "product_C_stoich_mol_per_mol_parent")?;
+            let mw_a = number(inputs, "molecular_weight_parent_g_mol")?;
+            let mw_b = number(inputs, "molecular_weight_B_g_mol")?;
+            let mw_c = number(inputs, "molecular_weight_C_g_mol")?;
+            require(
+                initial >= 0.0 && remaining >= 0.0 && remaining <= initial,
+                "parent molar concentrations must be non-negative and remaining <= initial",
+            )?;
+            require(
+                stoich_b >= 0.0 && stoich_c >= 0.0,
+                "product stoichiometric coefficients must be non-negative",
+            )?;
+            require(
+                mw_a > 0.0 && mw_b > 0.0 && mw_c > 0.0,
+                "molecular weights must be positive",
+            )?;
+            let reacted = initial - remaining;
+            // mmol/L multiplied by g/mol is numerically mg/L.
+            let initial_mass = initial * mw_a;
+            let remaining_mass = remaining * mw_a;
+            let product_b_mass = reacted * stoich_b * mw_b;
+            let product_c_mass = reacted * stoich_c * mw_c;
+            let recovered = remaining_mass + product_b_mass + product_c_mass;
+            let residual = initial_mass - recovered;
+            require(
+                residual.abs() <= 1.0e-9 * initial_mass.abs().max(1.0),
+                "declared product stoichiometry does not close the synthetic mass ledger",
+            )?;
+            Ok(json!({
+                "chemical_disposition": "ANALYTICAL_STOICHIOMETRIC_MASS_CONVERSION",
+                "initial_parent_mass_mg_l": initial_mass,
+                "remaining_parent_mass_mg_l": remaining_mass,
+                "product_B_mass_mg_l": product_b_mass,
+                "product_C_mass_mg_l": product_c_mass,
+                "recovered_total_mass_mg_l": recovered,
+                "mass_residual_mg_l": residual,
+                "qualification_status": "NotRun",
+                "potability_claim_permitted": false,
+                "release_authorized": false
+            }))
+        }
         other => Err(format!("unrecognized chemical-fate T0 case: {other}")),
     }
 }
@@ -374,6 +427,8 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
         ("ph", "dimensionless"),
         ("temperature", "degC"),
         ("flow", "L/s"),
+        ("conserved_moiety_concentration", "mg/L_conserved_moiety_equivalent"),
+        ("molar_concentration", "mmol/L"),
     ] {
         require(text(units, key)? == unit, &format!("unit mismatch for {key}"))?;
     }
@@ -651,7 +706,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twelve_chemical_fate_cases_match_frozen_oracle() {
+    fn all_thirteen_chemical_fate_cases_match_frozen_oracle() {
         let result = evaluated();
         assert_eq!(result["result_count"], CASE_COUNT);
         assert_eq!(result["matched_case_count"], CASE_COUNT);
@@ -756,6 +811,24 @@ mod tests {
             .iter().find(|row| row["case_id"] == "CF-T0-012-negative-concentration-or-rate")
             .unwrap();
         assert_eq!(row["computed"]["chemical_disposition"], "INVALID_INPUT");
+    }
+
+    #[test]
+    fn stoichiometric_mass_conversion_uses_molecular_weights() {
+        let result = evaluated();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| {
+                row["case_id"] == "CF-T0-013-stoichiometric-molecular-weight-conversion"
+            })
+            .unwrap();
+        assert_eq!(row["computed"]["initial_parent_mass_mg_l"], 100.0);
+        assert_eq!(row["computed"]["remaining_parent_mass_mg_l"], 60.0);
+        assert_eq!(row["computed"]["product_B_mass_mg_l"], 20.0);
+        assert_eq!(row["computed"]["product_C_mass_mg_l"], 20.0);
+        assert_eq!(row["computed"]["mass_residual_mg_l"], 0.0);
     }
 
     #[test]
