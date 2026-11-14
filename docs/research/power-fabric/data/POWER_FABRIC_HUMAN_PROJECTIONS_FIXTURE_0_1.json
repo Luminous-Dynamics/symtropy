@@ -1,0 +1,45 @@
+{
+  "graph_id": "building:test",
+  "revision_id": "revision:7",
+  "graph_content_digest": "sha256:graph:7",
+  "scope_statement": "Synthetic residential declared supply map",
+  "graph_maturity": "DesignOnly",
+  "revision_current": true,
+  "stale_modules": ["module:inverter"],
+  "loads": [
+    {
+      "load_id": "load:lighting",
+      "status": "DeclaredSourcePathFound",
+      "paths": [
+        { "source_id": "source:grid", "node_ids": ["source:grid", "load:lighting"], "edge_ids": ["edge:grid-lighting"] }
+      ]
+    },
+    {
+      "load_id": "load:water-pump",
+      "status": "NoDeclaredSourcePath",
+      "paths": []
+    }
+  ],
+  "expected_by_audience": {
+    "resident": {
+      "shows_source_ids": false,
+      "shows_path_details": false,
+      "required_notices": ["DeclaredPathIsNotLiveFlow", "NoSafeToTouchConclusion", "NotInstallationApproval", "DesignOnlyGraph", "StaleModuleConfiguration", "NoDeclaredPathIsNotIsolation"]
+    },
+    "operator": {
+      "shows_source_ids": true,
+      "shows_path_details": false,
+      "required_notices": ["DeclaredPathIsNotLiveFlow", "NoSafeToTouchConclusion", "NotInstallationApproval", "DesignOnlyGraph", "StaleModuleConfiguration", "NoDeclaredPathIsNotIsolation"]
+    },
+    "qualified_practitioner": {
+      "shows_source_ids": true,
+      "shows_path_details": true,
+      "required_notices": ["DeclaredPathIsNotLiveFlow", "NoSafeToTouchConclusion", "NotInstallationApproval", "DesignOnlyGraph", "StaleModuleConfiguration", "LimitedPathWitnessPolicy", "NoDeclaredPathIsNotIsolation"]
+    },
+    "emergency_responder": {
+      "shows_source_ids": true,
+      "shows_path_details": true,
+      "required_notices": ["DeclaredPathIsNotLiveFlow", "NoSafeToTouchConclusion", "NotInstallationApproval", "DesignOnlyGraph", "StaleModuleConfiguration", "LimitedPathWitnessPolicy", "NoDeclaredPathIsNotIsolation"]
+    }
+  }
+}
