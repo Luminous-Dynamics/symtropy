@@ -323,7 +323,7 @@ fn lowercase_hex(bytes: &[u8]) -> String {
     output
 }
 
-fn integrity_digest<'a>(integrity: &'a [(String, JsonValue)]) -> Result<&'a str, WireError> {
+fn integrity_digest(integrity: &[(String, JsonValue)]) -> Result<&str, WireError> {
     let digest = require_string(integrity, "payload_sha256")
         .map_err(|_| WireError::InvalidIntegrityField("payload_sha256"))?;
     if digest.len() != 64
