@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "campaign_id": "symtropy-ccd-analytic-v0",
+  "scenario_family": "continuous_collision_detection",
+  "status": "qualification_fixture_not_performance_result",
+  "units": {
+    "length": "m",
+    "velocity": "m/s",
+    "time": "s",
+    "toi": "s",
+    "plane_equation": "normal dot position = offset"
+  },
+  "implementation": {
+    "query_api": "checked_and_compatibility",
+    "sphere_sphere_algorithm": "closest_approach",
+    "sphere_halfspace_algorithm": "normalized_plane_linear_toi",
+    "world_activation": {
+      "absolute_speed_guard_m_per_s": 5.0,
+      "maximum_swept_radius_fraction": 0.5,
+      "activation_is_heuristic": true
+    },
+    "unsupported": [
+      "rotational_sweep",
+      "box_ccd",
+      "capsule_ccd",
+      "arbitrary_convex_ccd"
+    ]
+  },
+  "fixtures": [
+    {
+      "id": "head_on_sphere_pair",
+      "initial_positions_m": [[0.0, 0.0], [5.0, 0.0]],
+      "velocities_m_per_s": [[5.0, 0.0], [0.0, 0.0]],
+      "radii_m": [0.5, 0.5],
+      "dt_s": 1.0,
+      "expected_toi_s": 0.8,
+      "expected": "hit"
+    },
+    {
+      "id": "grazing_sphere_pair",
+      "initial_positions_m": [[0.0, 0.0], [5.0, 1.0]],
+      "velocities_m_per_s": [[5.0, 0.0], [0.0, 0.0]],
+      "radii_m": [0.5, 0.5],
+      "dt_s": 1.0,
+      "expected_toi_s": 1.0,
+      "expected": "tangent_hit"
+    },
+    {
+      "id": "near_tangent_miss",
+      "initial_positions_m": [[0.0, 0.0], [5.0, 1.00001]],
+      "velocities_m_per_s": [[5.0, 0.0], [0.0, 0.0]],
+      "radii_m": [0.5, 0.5],
+      "dt_s": 1.0,
+      "expected": "miss"
+    },
+    {
+      "id": "large_separation_high_speed",
+      "initial_positions_m": [[0.0, 0.0], [1000000.0, 0.0]],
+      "velocities_m_per_s": [[1000000.0, 0.0], [0.0, 0.0]],
+      "radii_m": [0.5, 0.5],
+      "dt_s": 1.0,
+      "expected_toi_s": 0.999999,
+      "expected": "hit"
+    },
+    {
+      "id": "sub_threshold_small_sphere_plane",
+      "initial_position_m": [0.0, 0.01, 0.0],
+      "velocity_m_per_s": [0.0, -1.0, 0.0],
+      "radius_m": 0.001,
+      "plane_normal": [0.0, 1.0, 0.0],
+      "plane_offset_m": 0.0,
+      "dt_s": 0.016,
+      "expected_toi_s": 0.009,
+      "expected": "integrated_world_no_tunnel"
+    },
+    {
+      "id": "scaled_plane_normal",
+      "initial_position_m": [0.0, 5.0, 0.0],
+      "velocity_m_per_s": [0.0, -500.0, 0.0],
+      "radius_m": 0.5,
+      "plane_normal_variants": [[0.0, 1.0, 0.0], [0.0, 17.0, 0.0]],
+      "plane_offset_variants": [0.0, 0.0],
+      "dt_s": 0.016,
+      "expected_equivalent_hit": true
+    }
+  ],
+  "negative_controls": [
+    "negative_radius",
+    "non_finite_position_or_velocity",
+    "invalid_time_step",
+    "zero_plane_normal",
+    "separating_sphere_pair",
+    "zero_relative_velocity",
+    "near_tangent_miss",
+    "impact_after_dt"
+  ],
+  "acceptance": {
+    "checked_api_distinguishes_invalid_from_no_hit": true,
+    "toi_seconds_within_interval": true,
+    "plane_normal_scale_invariance": true,
+    "no_non_finite_hit_outputs": true,
+    "small_sphere_sub_threshold_world_test": true,
+    "cross_platform_bitwise_determinism_claimed": false,
+    "physical_validation_claimed": false,
+    "industry_superiority_claimed": false
+  },
+  "comparison_metrics": [
+    "toi_absolute_error_s",
+    "contact_distance_residual_m",
+    "false_negative_count",
+    "false_positive_count",
+    "post_step_penetration_depth_m",
+    "ccd_query_time_ns",
+    "world_step_time_ns",
+    "energy_per_successful_collision_query_when_sensor_supported"
+  ],
+  "required_repetitions": 20
+}

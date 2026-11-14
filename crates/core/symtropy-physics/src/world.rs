@@ -466,11 +466,9 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // 1b. Continuous Collision Detection (CCD): fast-moving bodies can
         // tunnel straight through thin colliders within a single discrete
-        // step. For bodies exceeding `ccd::CCD_SPEED_THRESHOLD`, sweep the
-        // pre-integration position forward along the post-integration
-        // velocity and clamp to the time-of-impact if a hit is found, so
-        // narrowphase (step 3) sees a body sitting at the surface instead of
-        // having skipped past it.
+        // step. Sweep spheres when their absolute speed exceeds the guard or
+        // their per-step displacement exceeds a declared fraction of radius.
+        // Clamp to the time-of-impact so narrowphase sees the body at contact.
         self.run_ccd_pass(&pre_integration_positions, dt);
 
         // 2. Broadphase: find potentially colliding pairs (incremental static cache)
@@ -770,8 +768,10 @@ impl<const D: usize> PhysicsWorld<D> {
     /// Continuous collision detection sweep for fast-moving bodies.
     ///
     /// Only spheres are supported (matching `ccd.rs`'s analytical solvers).
-    /// For each dynamic, non-sleeping sphere body whose speed exceeds
-    /// `ccd::CCD_SPEED_THRESHOLD`, sweeps against every other body's
+    /// A dynamic, non-sleeping sphere is swept when its speed exceeds the
+    /// absolute guard or its per-step displacement exceeds a fraction of its
+    /// radius. This is a scale-aware activation heuristic, not a proof of no
+    /// tunnelling when a sweep is skipped. The sphere is swept against every other body's
     /// pre-integration position:
     /// - vs. `HalfSpace` colliders: `ccd::sphere_halfspace`
     /// - vs. `Sphere` colliders: `ccd::sphere_sphere`
@@ -790,14 +790,14 @@ impl<const D: usize> PhysicsWorld<D> {
                 continue;
             }
             let vel_i = self.bodies[i].linear_velocity;
-            if vel_i.norm() <= ccd::CCD_SPEED_THRESHOLD {
-                continue;
-            }
             let Some(sphere_i) = self.bodies[i].collider.as_any().downcast_ref::<Sphere<D>>()
             else {
                 continue;
             };
             let radius_i = sphere_i.radius;
+            if !ccd::should_sweep_sphere(vel_i.norm(), radius_i, dt) {
+                continue;
+            }
             let pos_i0 = pre_integration_positions[i];
 
             let mut earliest: Option<ccd::CcdHit<D>> = None;
@@ -2559,5 +2559,34 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+    #[test]
+    fn small_sphere_below_absolute_speed_threshold_does_not_tunnel() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let ground = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(HalfSpace::<3>::new(SVector::from([0.0, 1.0, 0.0]), 0.0)),
+        );
+        world.add_body(ground);
+
+        let sphere = world.add_sphere(Point::new([0.0, 0.01, 0.0]), 0.001, 1.0);
+        world.body_mut(sphere).unwrap().linear_velocity = SVector::from([0.0, -1.0, 0.0]);
+
+        // Speed 1 m/s is below the legacy 5 m/s absolute guard, but the
+        // 16 mm swept distance is much larger than half the 1 mm radius.
+        world.step(0.016);
+
+        let body = world.body(sphere).unwrap();
+        assert!(
+            body.position()[1] >= 0.001 - 1e-8,
+            "sphere tunneled through the plane: y={}",
+            body.position()[1]
+        );
+        assert!(
+            body.position()[1] < 0.002,
+            "unexpected CCD clamp: y={}",
+            body.position()[1]
+        );
     }
 }
