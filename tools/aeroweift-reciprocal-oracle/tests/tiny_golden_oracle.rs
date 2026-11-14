@@ -102,6 +102,68 @@ fn capacity_reduction_cannot_create_a_joint_schedule() {
     assert!(enumerate_joint_schedules(&reduced).len() <= enumerate_joint_schedules(&RESOURCES).len());
 }
 
+
+#[test]
+fn adjacent_half_open_claims_do_not_overlap_but_intersecting_claims_do() {
+    use aeroweift_reciprocal_oracle::{RouteOption, ResourceClaim};
+
+    const FIRST: [ResourceClaim; 1] = [ResourceClaim {
+        resource_id: "shared-crossing",
+        start_tick: 0,
+        end_tick: 1,
+    }];
+    const ADJACENT: [ResourceClaim; 1] = [ResourceClaim {
+        resource_id: "shared-crossing",
+        start_tick: 1,
+        end_tick: 2,
+    }];
+    const OVERLAPPING: [ResourceClaim; 1] = [ResourceClaim {
+        resource_id: "shared-crossing",
+        start_tick: 0,
+        end_tick: 2,
+    }];
+
+    const ROUTE_FIRST: RouteOption = RouteOption {
+        route_id: "first",
+        aircraft_id: "aircraft-a",
+        deadline_tick: 3,
+        arrival_by_branch: [Some(1), Some(1)],
+        claims: &FIRST,
+    };
+    const ROUTE_ADJACENT: RouteOption = RouteOption {
+        route_id: "adjacent",
+        aircraft_id: "aircraft-b",
+        deadline_tick: 3,
+        arrival_by_branch: [Some(2), Some(2)],
+        claims: &ADJACENT,
+    };
+    const ROUTE_OVERLAPPING: RouteOption = RouteOption {
+        route_id: "overlapping",
+        aircraft_id: "aircraft-b",
+        deadline_tick: 3,
+        arrival_by_branch: [Some(2), Some(2)],
+        claims: &OVERLAPPING,
+    };
+
+    let one_crossing = [ResourceCapacity {
+        resource_id: "shared-crossing",
+        capacity: 1,
+    }];
+
+    assert!(resource_claims_fit(
+        &[&ROUTE_FIRST, &ROUTE_ADJACENT],
+        &one_crossing
+    ));
+    assert!(!resource_claims_fit(
+        &[&ROUTE_FIRST, &ROUTE_OVERLAPPING],
+        &one_crossing
+    ));
+    assert_eq!(
+        resource_claims_fit(&[&ROUTE_FIRST, &ROUTE_ADJACENT], &one_crossing),
+        resource_claims_fit(&[&ROUTE_ADJACENT, &ROUTE_FIRST], &one_crossing)
+    );
+}
+
 #[test]
 fn unknown_resources_and_invalid_time_claims_fail_closed() {
     use aeroweift_reciprocal_oracle::{RouteOption, ResourceClaim};
