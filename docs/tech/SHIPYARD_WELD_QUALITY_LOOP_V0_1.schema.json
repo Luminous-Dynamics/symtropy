@@ -1,0 +1,777 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shipyard-weld-quality-loop-v0.1.schema.json",
+  "title": "Shipyard Weld Inspection and Repair Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_cases",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.shipyard-weld-quality-loop"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_chain"
+      ],
+      "properties": {
+        "valid_chain": {
+          "$ref": "#/$defs/record"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 36,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "maybeString": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_kind",
+        "evaluation_cutoff_utc",
+        "dataset_group",
+        "subject",
+        "inspection",
+        "repair",
+        "learning"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "evaluation_cutoff_utc": {
+          "$ref": "#/$defs/date"
+        },
+        "dataset_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_id",
+            "component_id",
+            "serial_id",
+            "joint_id",
+            "workpiece_revision",
+            "weld_region_id",
+            "pass_ids",
+            "material_group",
+            "material_heat_lot",
+            "process_family",
+            "thickness_class"
+          ],
+          "properties": {
+            "asset_id": {
+              "type": "string"
+            },
+            "component_id": {
+              "type": "string"
+            },
+            "serial_id": {
+              "type": "string"
+            },
+            "joint_id": {
+              "type": "string"
+            },
+            "workpiece_revision": {
+              "type": "string"
+            },
+            "weld_region_id": {
+              "type": "string"
+            },
+            "pass_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "material_group": {
+              "type": "string"
+            },
+            "material_heat_lot": {
+              "type": "string"
+            },
+            "process_family": {
+              "type": "string"
+            },
+            "thickness_class": {
+              "type": "string"
+            }
+          }
+        },
+        "inspection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inspection_id",
+            "revision",
+            "method",
+            "coverage",
+            "acceptance_basis",
+            "equipment",
+            "examiner",
+            "timing",
+            "artifact",
+            "indications",
+            "disposition"
+          ],
+          "properties": {
+            "inspection_id": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "string"
+            },
+            "method": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "method_id",
+                "technique_id",
+                "procedure_ref",
+                "procedure_revision",
+                "qualified_scope",
+                "material_scope",
+                "thickness_scope",
+                "process_scope"
+              ],
+              "properties": {
+                "method_id": {
+                  "type": "string"
+                },
+                "technique_id": {
+                  "type": "string"
+                },
+                "procedure_ref": {
+                  "type": "string"
+                },
+                "procedure_revision": {
+                  "type": "string"
+                },
+                "qualified_scope": {
+                  "type": "string"
+                },
+                "material_scope": {
+                  "type": "string"
+                },
+                "thickness_scope": {
+                  "type": "string"
+                },
+                "process_scope": {
+                  "type": "string"
+                }
+              }
+            },
+            "coverage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "plan_ref",
+                "required_extent",
+                "actual_extent",
+                "inspected_length_mm",
+                "required_length_mm",
+                "sampling_plan_ref",
+                "batch_id"
+              ],
+              "properties": {
+                "plan_ref": {
+                  "type": "string"
+                },
+                "required_extent": {
+                  "enum": [
+                    "complete_synthetic",
+                    "sampled_synthetic"
+                  ]
+                },
+                "actual_extent": {
+                  "enum": [
+                    "complete_synthetic",
+                    "partial_synthetic",
+                    "sampled_synthetic"
+                  ]
+                },
+                "inspected_length_mm": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "required_length_mm": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "sampling_plan_ref": {
+                  "type": "string"
+                },
+                "batch_id": {
+                  "type": "string"
+                }
+              }
+            },
+            "acceptance_basis": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "project_spec_ref",
+                "revision",
+                "criteria_ref",
+                "criteria_revision",
+                "quality_level",
+                "ndt_acceptance_level",
+                "basis_relationship"
+              ],
+              "properties": {
+                "project_spec_ref": {
+                  "type": "string"
+                },
+                "revision": {
+                  "type": "string"
+                },
+                "criteria_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "criteria_revision": {
+                  "type": "string"
+                },
+                "quality_level": {
+                  "type": "string"
+                },
+                "ndt_acceptance_level": {
+                  "type": "string"
+                },
+                "basis_relationship": {
+                  "enum": [
+                    "separately_declared_not_equivalent",
+                    "direct_equivalence",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "equipment": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "equipment_id",
+                "probe_id",
+                "software_revision",
+                "calibration_ref",
+                "calibration_state",
+                "calibration_valid_until_utc"
+              ],
+              "properties": {
+                "equipment_id": {
+                  "type": "string"
+                },
+                "probe_id": {
+                  "type": "string"
+                },
+                "software_revision": {
+                  "type": "string"
+                },
+                "calibration_ref": {
+                  "type": "string"
+                },
+                "calibration_state": {
+                  "enum": [
+                    "current",
+                    "expired",
+                    "unknown"
+                  ]
+                },
+                "calibration_valid_until_utc": {
+                  "$ref": "#/$defs/date"
+                }
+              }
+            },
+            "examiner": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "examiner_id",
+                "qualification_ref",
+                "qualification_scope",
+                "status",
+                "valid_until_utc",
+                "issuer"
+              ],
+              "properties": {
+                "examiner_id": {
+                  "type": "string"
+                },
+                "qualification_ref": {
+                  "type": "string"
+                },
+                "qualification_scope": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "current",
+                    "expired",
+                    "unknown"
+                  ]
+                },
+                "valid_until_utc": {
+                  "$ref": "#/$defs/date"
+                },
+                "issuer": {
+                  "type": "string"
+                }
+              }
+            },
+            "timing": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observed_at_utc",
+                "acquired_at_utc",
+                "evaluated_at_utc",
+                "report_issued_at_utc",
+                "retrieved_at_utc"
+              ],
+              "properties": {
+                "observed_at_utc": {
+                  "$ref": "#/$defs/date"
+                },
+                "acquired_at_utc": {
+                  "$ref": "#/$defs/date"
+                },
+                "evaluated_at_utc": {
+                  "$ref": "#/$defs/date"
+                },
+                "report_issued_at_utc": {
+                  "$ref": "#/$defs/date"
+                },
+                "retrieved_at_utc": {
+                  "$ref": "#/$defs/date"
+                }
+              }
+            },
+            "artifact": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "raw_artifact_ref",
+                "raw_artifact_sha256",
+                "derivative_ref",
+                "derivative_sha256",
+                "processing_revision",
+                "rights_status",
+                "issuer_authentication"
+              ],
+              "properties": {
+                "raw_artifact_ref": {
+                  "type": "string"
+                },
+                "raw_artifact_sha256": {
+                  "$ref": "#/$defs/digest"
+                },
+                "derivative_ref": {
+                  "type": "string"
+                },
+                "derivative_sha256": {
+                  "$ref": "#/$defs/digest"
+                },
+                "processing_revision": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "rights_status": {
+                  "enum": [
+                    "synthetic_not_applicable",
+                    "reviewed_permitted",
+                    "review_required"
+                  ]
+                },
+                "issuer_authentication": {
+                  "enum": [
+                    "synthetic_issuer_declared",
+                    "verified_by_owner",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "indications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "indication_id",
+                  "weld_region_id",
+                  "pass_id",
+                  "location_ref",
+                  "reported_type",
+                  "extent_mm",
+                  "uncertainty_mm",
+                  "confidence",
+                  "artifact_ref"
+                ],
+                "properties": {
+                  "indication_id": {
+                    "type": "string"
+                  },
+                  "weld_region_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "pass_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "location_ref": {
+                    "type": "string"
+                  },
+                  "reported_type": {
+                    "type": "string"
+                  },
+                  "extent_mm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "uncertainty_mm": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "confidence": {
+                    "enum": [
+                      "synthetic_high",
+                      "synthetic_medium",
+                      "unknown"
+                    ]
+                  },
+                  "artifact_ref": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "disposition": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "criteria_ref",
+                "issuer",
+                "authority_scope",
+                "reason_ref",
+                "supersedes_ref",
+                "revocation_ref"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "accepted_synthetic",
+                    "rejected",
+                    "inconclusive",
+                    "pending",
+                    "unknown"
+                  ]
+                },
+                "criteria_ref": {
+                  "type": "string"
+                },
+                "issuer": {
+                  "type": "string"
+                },
+                "authority_scope": {
+                  "type": "string"
+                },
+                "reason_ref": {
+                  "type": "string"
+                },
+                "supersedes_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "revocation_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "repair": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "route_ref",
+            "route_revision",
+            "authority_ref",
+            "authority_status",
+            "source_indication_ref",
+            "workpiece_revision_after",
+            "repair_region_id",
+            "execution_trace_ref",
+            "execution_trace_sha256",
+            "completed_at_utc",
+            "reinspection_ref",
+            "reinspection_status",
+            "reinspection_region_id",
+            "final_release_ref",
+            "final_release_status"
+          ],
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "route_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "route_revision": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "authority_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "authority_status": {
+              "enum": [
+                "approved_synthetic",
+                "not_required",
+                "unknown",
+                "revoked"
+              ]
+            },
+            "source_indication_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "workpiece_revision_after": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "repair_region_id": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "execution_trace_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "execution_trace_sha256": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/digest"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "completed_at_utc": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "reinspection_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "reinspection_status": {
+              "enum": [
+                "accepted_synthetic",
+                "inconclusive",
+                "rejected",
+                "not_required",
+                "unknown"
+              ]
+            },
+            "reinspection_region_id": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "final_release_ref": {
+              "type": "string"
+            },
+            "final_release_status": {
+              "enum": [
+                "accepted_synthetic",
+                "pending",
+                "unknown",
+                "revoked"
+              ]
+            }
+          }
+        },
+        "learning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "model_revision",
+            "training_group",
+            "evaluation_group",
+            "evaluation_split",
+            "physical_weld_group",
+            "prediction_task",
+            "hypothesis_status",
+            "proposed_change_ref",
+            "owner_authorization_ref",
+            "inspection_method_group",
+            "coverage_group",
+            "denominator_kind"
+          ],
+          "properties": {
+            "model_id": {
+              "type": "string"
+            },
+            "model_revision": {
+              "type": "string"
+            },
+            "training_group": {
+              "type": "string"
+            },
+            "evaluation_group": {
+              "type": "string"
+            },
+            "evaluation_split": {
+              "enum": [
+                "train",
+                "validation",
+                "test",
+                "held_out"
+              ]
+            },
+            "physical_weld_group": {
+              "type": "string"
+            },
+            "prediction_task": {
+              "enum": [
+                "risk_hypothesis_only",
+                "defect_detection",
+                "root_cause_ranking"
+              ]
+            },
+            "hypothesis_status": {
+              "enum": [
+                "proposal_pending_review",
+                "adjudicated",
+                "rejected"
+              ]
+            },
+            "proposed_change_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "owner_authorization_ref": {
+              "$ref": "#/$defs/maybeString"
+            },
+            "inspection_method_group": {
+              "type": "string"
+            },
+            "coverage_group": {
+              "type": "string"
+            },
+            "denominator_kind": {
+              "enum": [
+                "inspected_weld_length",
+                "inspected_area",
+                "inspected_volume",
+                "joint_count"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "enum": [
+            "set"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "base": {
+          "const": "valid_chain"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
