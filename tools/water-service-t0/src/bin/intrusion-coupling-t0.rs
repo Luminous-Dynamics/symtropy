@@ -197,6 +197,10 @@ fn verify_stage_chain(stages: &BTreeMap<String, Value>) -> Result<Option<Value>,
             valid_sha256(output_digest),
             &format!("invalid output digest for stage {stage_id}"),
         )?;
+        require(
+            text(stage, "digest_origin")? == "synthetic_fixture_marker",
+            "T0 stage digest must be declared as a synthetic fixture marker",
+        )?;
 
         let stage_timebase = text(stage, "timebase_id")?;
         if stage_timebase != timebase {
@@ -288,10 +292,16 @@ fn verify_observations(
         let observation = by_kind
             .get(kind)
             .ok_or_else(|| format!("missing observation after validation: {kind}"))?;
-        if text(observation, "evidence_class")? != "measured" {
+        if text(observation, "evidence_class")? != "synthetic_fixture" {
+            return Ok(Some(indeterminate("OBSERVATION_EVIDENCE_CLASS_INVALID_FOR_T0")));
+        }
+        if text(observation, "observation_origin")? != "measurement_channel" {
             return Ok(Some(indeterminate(
                 "MODEL_OUTPUT_CANNOT_SUBSTITUTE_FOR_MEASURED_OBSERVATION",
             )));
+        }
+        if text(observation, "digest_origin")? != "synthetic_fixture_marker" {
+            return Ok(Some(indeterminate("OBSERVATION_PROVENANCE_INCOMPLETE")));
         }
         let Some(digest) = observation
             .get("raw_data_digest")
@@ -372,7 +382,7 @@ fn compute(case: &Value) -> Result<Value, String> {
         "interface_disposition": "CHAIN_CONTRACT_VALID_FOR_BOUNDED_MODEL_COMPARISON",
         "qualification_status": "NotRun",
         "stage_count": map.len(),
-        "measured_observation_count": observations.len(),
+        "observation_channel_count": observations.len(),
         "potability_claim_permitted": false,
         "release_authorized": false
     }))
