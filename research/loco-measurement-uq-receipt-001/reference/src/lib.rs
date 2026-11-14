@@ -19,6 +19,9 @@ pub struct ScopeBinding {
     pub scenario_manifest_digest: String,
     pub test_manifest_digest: String,
     pub measurement_window_id: String,
+    pub physical_boundary_manifest_digest: String,
+    pub physical_state_predecessor_digest: String,
+    pub physical_state_result_digest: String,
 }
 
 /// Physical or derived quantity whose measurement evidence is being qualified.
@@ -282,6 +285,18 @@ fn validate_scope(scope: &ScopeBinding, report: &mut UncertaintyAuditReport) {
         (
             "measurement_window_id",
             scope.measurement_window_id.as_str(),
+        ),
+        (
+            "physical_boundary_manifest_digest",
+            scope.physical_boundary_manifest_digest.as_str(),
+        ),
+        (
+            "physical_state_predecessor_digest",
+            scope.physical_state_predecessor_digest.as_str(),
+        ),
+        (
+            "physical_state_result_digest",
+            scope.physical_state_result_digest.as_str(),
         ),
     ] {
         if !nonempty(value) {
@@ -1185,6 +1200,9 @@ mod tests {
             scenario_manifest_digest: "scenario-digest".into(),
             test_manifest_digest: "test-manifest-digest".into(),
             measurement_window_id: "window-001".into(),
+            physical_boundary_manifest_digest: "physical-boundary-digest".into(),
+            physical_state_predecessor_digest: "physical-state-before".into(),
+            physical_state_result_digest: "physical-state-after".into(),
         }
     }
 
@@ -1471,6 +1489,244 @@ mod tests {
         assert!(report.findings.iter().any(|finding| {
             finding.code == "DERIVED_INPUT_UNCERTAINTY_SET_MISMATCH"
         }));
+    }
+
+    #[test]
+    fn independence_without_a_scoped_receipt_is_rejected() {
+        let mut audit = profile();
+        audit.uncertainty_receipts[0].dependence[0].disposition =
+            DependenceDisposition::IndependenceSupported {
+                independence_receipt_digest: String::new(),
+            };
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "INDEPENDENCE_EVIDENCE_RECEIPT_EMPTY"));
+    }
+
+    #[test]
+    fn dependence_receipt_must_bind_the_exact_component_set() {
+        let mut audit = profile();
+        audit.uncertainty_receipts[0].dependence[0].component_ids.clear();
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "DEPENDENCE_COMPONENT_SET_MISMATCH"));
+    }
+
+    #[test]
+    fn shared_source_across_channels_requires_one_joint_dependence_receipt() {
+        let mut audit = profile();
+        let shared_source = "shared-calibration-source";
+        let shared_group = "shared-calibration-group";
+        audit.uncertainty_receipts[0].components[0].source_receipt_digest = shared_source.into();
+        audit.uncertainty_receipts[0].components[0].dependence_group_id = shared_group.into();
+        audit.uncertainty_receipts[0].dependence[0].dependence_group_id = shared_group.into();
+        audit.uncertainty_receipts[0].dependence[0].disposition =
+            DependenceDisposition::JointModel {
+                joint_model_receipt_digest: "joint-cross-channel-model".into(),
+            };
+
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
+        audit.measurements.push(measurement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+            Some("uq-voltage-001"),
+        ));
+        let mut voltage = uncertainty("uq-voltage-001", "voltage-001");
+        voltage.components[0].source_receipt_digest = shared_source.into();
+        voltage.components[0].dependence_group_id = shared_group.into();
+        voltage.dependence[0].dependence_group_id = shared_group.into();
+        voltage.dependence[0].disposition = DependenceDisposition::JointModel {
+            joint_model_receipt_digest: "joint-cross-channel-model".into(),
+        };
+        audit.uncertainty_receipts.push(voltage);
+
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Qualified);
+    }
+
+    #[test]
+    fn shared_source_with_different_group_ids_is_rejected() {
+        let mut audit = profile();
+        audit.uncertainty_receipts[0].components[0].source_receipt_digest =
+            "shared-calibration-source".into();
+        audit.uncertainty_receipts[0].components[0].dependence_group_id =
+            "torque-shared-group".into();
+        audit.uncertainty_receipts[0].dependence[0].dependence_group_id =
+            "torque-shared-group".into();
+        audit.uncertainty_receipts[0].dependence[0].disposition =
+            DependenceDisposition::JointModel {
+                joint_model_receipt_digest: "joint-model-a".into(),
+            };
+
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
+        audit.measurements.push(measurement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+            Some("uq-voltage-001"),
+        ));
+        let mut voltage = uncertainty("uq-voltage-001", "voltage-001");
+        voltage.components[0].source_receipt_digest = "shared-calibration-source".into();
+        voltage.components[0].dependence_group_id = "voltage-shared-group".into();
+        voltage.dependence[0].dependence_group_id = "voltage-shared-group".into();
+        voltage.dependence[0].disposition = DependenceDisposition::JointModel {
+            joint_model_receipt_digest: "joint-model-a".into(),
+        };
+        audit.uncertainty_receipts.push(voltage);
+
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "SHARED_SOURCE_GROUP_ID_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn shared_source_with_different_joint_model_receipts_is_rejected() {
+        let mut audit = profile();
+        let source = "shared-calibration-source";
+        let group = "shared-calibration-group";
+        audit.uncertainty_receipts[0].components[0].source_receipt_digest = source.into();
+        audit.uncertainty_receipts[0].components[0].dependence_group_id = group.into();
+        audit.uncertainty_receipts[0].dependence[0].dependence_group_id = group.into();
+        audit.uncertainty_receipts[0].dependence[0].disposition =
+            DependenceDisposition::JointModel {
+                joint_model_receipt_digest: "joint-model-a".into(),
+            };
+
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
+        audit.measurements.push(measurement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+            Some("uq-voltage-001"),
+        ));
+        let mut voltage = uncertainty("uq-voltage-001", "voltage-001");
+        voltage.components[0].source_receipt_digest = source.into();
+        voltage.components[0].dependence_group_id = group.into();
+        voltage.dependence[0].dependence_group_id = group.into();
+        voltage.dependence[0].disposition = DependenceDisposition::JointModel {
+            joint_model_receipt_digest: "joint-model-b".into(),
+        };
+        audit.uncertainty_receipts.push(voltage);
+
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "SHARED_SOURCE_DEPENDENCE_DECISION_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn required_channel_must_match_its_declared_measurand() {
+        let mut audit = profile();
+        audit.measurements[0].kind = MeasurementKind::AngularVelocity;
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "MEASUREMENT_KIND_MISMATCH"));
+    }
+
+    #[test]
+    fn missing_required_motor_thermal_node_is_unknown() {
+        let mut audit = profile();
+        audit.measurement_requirements.push(requirement(
+            "motor-temp",
+            MeasurementKind::ThermalNode("motor".into()),
+        ));
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Unknown);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "REQUIRED_MEASUREMENT_MISSING"));
+    }
+
+    #[test]
+    fn stale_calibration_is_unknown_even_when_uncertainty_budget_is_current() {
+        let mut audit = profile();
+        audit.measurements[0].end_tick = 149;
+        audit.measurements[0].calibration_valid_through_tick = 149;
+        audit.uncertainty_receipts[0].valid_through_tick = 250;
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Unknown);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "CALIBRATION_STALE_OR_NOT_YET_VALID"));
+    }
+
+    #[test]
+    fn calibration_must_cover_the_entire_measurement_window() {
+        let mut audit = profile();
+        audit.measurements[0].calibration_valid_through_tick = 199;
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "CALIBRATION_NOT_VALID_FOR_MEASUREMENT_WINDOW"
+        }));
+    }
+
+    #[test]
+    fn uncertainty_receipt_must_cover_the_entire_measurement_window() {
+        let mut audit = profile();
+        audit.uncertainty_receipts[0].valid_through_tick = 199;
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "UNCERTAINTY_VALIDITY_DOES_NOT_COVER_MEASUREMENT_WINDOW"
+        }));
+    }
+
+    #[test]
+    fn physical_state_reset_changes_the_measurement_scope_identity() {
+        let mut audit = profile();
+        audit.measurements[0].scope.physical_state_predecessor_digest =
+            "unexpected-reset-state".into();
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "MEASUREMENT_SCOPE_MISMATCH"));
+    }
+
+    #[test]
+    fn raw_measurement_artifact_mutation_is_rejected() {
+        let mut audit = profile();
+        audit.measurements[0].measurement_artifact_digest = "mutated-raw-artifact".into();
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "UNCERTAINTY_MEASUREMENT_BINDING_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn upstream_rejected_uncertainty_cannot_be_upgraded() {
+        let mut audit = profile();
+        audit.uncertainty_receipts[0].disposition = EvidenceDisposition::Rejected;
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report
+            .findings
+            .iter()
+            .any(|finding| finding.code == "UPSTREAM_UNCERTAINTY_REJECTED"));
     }
 
     #[test]
