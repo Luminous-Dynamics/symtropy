@@ -103,7 +103,8 @@
         "properties": {
           "sensor_id": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Physical transducer identity. All channel aliases for one physical sensor must retain the same measurement_principle and independence_group_ref; the adapter enforces this cross-channel invariant."
           },
           "channel_id": {
             "type": "string",
@@ -118,7 +119,8 @@
           },
           "independence_group_ref": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Reviewed independent measurement-principle group. Multiple channels or aliases from the same sensor/principle must use the same group; distinct names do not establish independence."
           },
           "unit": {
             "type": "string",
