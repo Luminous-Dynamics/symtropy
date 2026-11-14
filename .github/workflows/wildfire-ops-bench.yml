@@ -1,0 +1,97 @@
+name: Wildfire Operations Resilience Benchmark
+
+on:
+  push:
+    branches: ["research/wildfire-ops-benchmark-v0-1"]
+    paths:
+      - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
+      - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "tools/wildfire-ops-bench/**"
+      - ".github/workflows/wildfire-ops-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/WILDFIRE_OPS_BENCHMARK_V0_1.md"
+      - "benchmarks/fixtures/WILDFIRE_OPS_V0_1.json"
+      - "tools/wildfire-ops-bench/**"
+      - ".github/workflows/wildfire-ops-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wildfire-ops-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Format validator
+        run: cargo fmt --manifest-path tools/wildfire-ops-bench/Cargo.toml --check
+
+      - name: Run validator and negative-control tests
+        run: cargo test --manifest-path tools/wildfire-ops-bench/Cargo.toml
+
+      - name: Validate frozen corpus and emit exact-head receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin wildfire-ops-bench -- \
+            benchmarks/fixtures/WILDFIRE_OPS_V0_1.json \
+            --source-commit "$source_commit" > wildfire-ops-reference-receipt.json
+          export SOURCE_COMMIT="$source_commit"
+          jq -e '
+            .result == "pass"
+            and .benchmark_id == "WILDFIRE-OPS-001"
+            and .scenario_count == 6
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit == env.SOURCE_COMMIT)
+            and (.scenarios | length == 6)
+            and (.scenarios | all(.status == "pass"))
+            and (.scenarios | all(.B1_static_shortest_route != null))
+            and (.scenarios | all(.B3_evidence_bounded_feasible_choice != null))
+            and (.benchmark_summary.scenario_count == 6)
+            and (.benchmark_summary.B1_static_shortest_route.selected_infeasible_plan_count == 5)
+            and (.benchmark_summary.B1_static_shortest_route.actual_blocked_edge_violations_against_oracle == 2)
+            and (.benchmark_summary.B1_static_shortest_route.expected_choice_match_count == 1)
+            and (.benchmark_summary.B1_static_shortest_route.expected_choice_mismatch_count == 5)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.selected_infeasible_plan_count == 0)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.abstention_count == 3)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.expected_choice_match_count == 6)
+            and (.benchmark_summary.B3_evidence_bounded_feasible_choice.expected_choice_mismatch_count == 0)
+          ' wildfire-ops-reference-receipt.json
+
+      - name: Independently recompute receipt choices and scorecard
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wildfire-ops-bench/Cargo.toml --bin verify_receipt -- \
+            benchmarks/fixtures/WILDFIRE_OPS_V0_1.json \
+            wildfire-ops-reference-receipt.json \
+            "$source_commit"
+
+      - name: Upload deterministic reference receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: wildfire-ops-reference-receipt
+          path: wildfire-ops-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90

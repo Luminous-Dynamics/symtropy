@@ -1,0 +1,538 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WILDFIRE-OPS-001",
+  "classification": "synthetic_only",
+  "created_at": "2026-10-20T00:00:00Z",
+  "units": {
+    "travel_time": "minutes",
+    "demand": "synthetic_people",
+    "capacity": "synthetic_people",
+    "accessible_demand": "synthetic_assisted_trips"
+  },
+  "source_boundaries": {
+    "active_input_rule": "Only observations observed_at at or before case as_of may enter candidate projection.",
+    "oracle_truth_is_hidden": true,
+    "rationale": "All identifiers, routes, hazards, demand, capacities and outcomes are synthetic. A passed fixture does not prove real-world safety."
+  },
+  "allowed_observation_kinds": [
+    "hotspot_detection",
+    "operational_perimeter",
+    "road_status",
+    "lifeline_status",
+    "post_fire_severity",
+    "watershed_assessment"
+  ],
+  "allowed_statuses": [
+    "confirmed",
+    "reported",
+    "unknown",
+    "stale",
+    "conflicted"
+  ],
+  "cases": [
+    {
+      "case_id": "HOTSPOT-NOT-PERIMETER-001",
+      "as_of": "2026-07-01T12:00:00Z",
+      "incident_phase": "active_response",
+      "demand": {
+        "people": 10,
+        "assisted_trips": 2
+      },
+      "hazard_observations": [
+        {
+          "id": "OBS-HOT-1",
+          "kind": "hotspot_detection",
+          "status": "reported",
+          "observed_at": "2026-07-01T11:50:00Z",
+          "source": "synthetic_satellite_sensor",
+          "claim": "thermal_anomaly_point"
+        },
+        {
+          "id": "OBS-SEVERITY-FUTURE",
+          "kind": "post_fire_severity",
+          "status": "confirmed",
+          "observed_at": "2026-08-01T12:00:00Z",
+          "source": "synthetic_retrospective_map",
+          "claim": "postfire_severity"
+        }
+      ],
+      "edges": [],
+      "lifelines": [],
+      "shelters": [],
+      "plans": [],
+      "common_cause_groups": [],
+      "oracle_truth": {
+        "actual_blocked_edge_ids": [],
+        "affected_zone_ids": [],
+        "confirmed_perimeter_exists": false,
+        "expected_candidate_plan_id": null
+      },
+      "expected_invariants": [
+        "hotspot detections remain point observations and do not establish an operational perimeter",
+        "post-fire severity observed after as_of is excluded from active-response projection",
+        "no candidate evacuation plan means evaluator reports no_candidate_plan rather than inventing a safe route"
+      ]
+    },
+    {
+      "case_id": "EVAC-ROAD-LOSS-002",
+      "as_of": "2026-07-02T12:00:00Z",
+      "incident_phase": "active_response",
+      "demand": {
+        "people": 80,
+        "assisted_trips": 10
+      },
+      "hazard_observations": [
+        {
+          "id": "OBS-PERIM-2",
+          "kind": "operational_perimeter",
+          "status": "confirmed",
+          "observed_at": "2026-07-02T11:40:00Z",
+          "source": "synthetic_incident_command",
+          "claim": "perimeter_received"
+        }
+      ],
+      "edges": [
+        {
+          "id": "R-FAST",
+          "status": "confirmed",
+          "state": "blocked",
+          "observed_at": "2026-07-02T11:45:00Z"
+        },
+        {
+          "id": "R-ALT",
+          "status": "confirmed",
+          "state": "open",
+          "observed_at": "2026-07-02T11:45:00Z"
+        }
+      ],
+      "lifelines": [],
+      "shelters": [
+        {
+          "id": "SHELTER-1",
+          "capacity": 100,
+          "accessible_capacity": 12,
+          "status": "confirmed",
+          "observed_at": "2026-07-02T11:55:00Z"
+        },
+        {
+          "id": "SHELTER-2",
+          "capacity": 100,
+          "accessible_capacity": 12,
+          "status": "confirmed",
+          "observed_at": "2026-07-02T11:55:00Z"
+        }
+      ],
+      "plans": [
+        {
+          "id": "PLAN-FAST",
+          "shelter_id": "SHELTER-1",
+          "edge_ids": [
+            "R-FAST"
+          ],
+          "travel_minutes": 12,
+          "required_lifeline_ids": []
+        },
+        {
+          "id": "PLAN-ALT",
+          "shelter_id": "SHELTER-2",
+          "edge_ids": [
+            "R-ALT"
+          ],
+          "travel_minutes": 22,
+          "required_lifeline_ids": []
+        }
+      ],
+      "common_cause_groups": [],
+      "oracle_truth": {
+        "actual_blocked_edge_ids": [
+          "R-FAST"
+        ],
+        "affected_zone_ids": [
+          "ZONE-2"
+        ],
+        "confirmed_perimeter_exists": true,
+        "expected_candidate_plan_id": "PLAN-ALT"
+      },
+      "expected_invariants": [
+        "static shortest route selects the 12-minute blocked route and must be flagged infeasible",
+        "candidate policy selects only the 22-minute route using confirmed-open edge evidence",
+        "route loss must not be hidden by the shortest-travel-time objective"
+      ]
+    },
+    {
+      "case_id": "COMMON-CAUSE-LIFELINE-003",
+      "as_of": "2026-07-03T12:00:00Z",
+      "incident_phase": "active_response",
+      "demand": {
+        "people": 60,
+        "assisted_trips": 8
+      },
+      "hazard_observations": [
+        {
+          "id": "OBS-COMMON-3",
+          "kind": "operational_perimeter",
+          "status": "confirmed",
+          "observed_at": "2026-07-03T11:45:00Z",
+          "source": "synthetic_incident_command",
+          "claim": "perimeter_received"
+        }
+      ],
+      "edges": [
+        {
+          "id": "R-PRIMARY",
+          "status": "confirmed",
+          "state": "open",
+          "observed_at": "2026-07-03T11:40:00Z"
+        },
+        {
+          "id": "R-REDUNDANT",
+          "status": "confirmed",
+          "state": "open",
+          "observed_at": "2026-07-03T11:40:00Z"
+        }
+      ],
+      "lifelines": [
+        {
+          "id": "COMMS-PRIMARY",
+          "status": "confirmed",
+          "state": "unavailable",
+          "observed_at": "2026-07-03T11:44:00Z"
+        },
+        {
+          "id": "POWER-PRIMARY",
+          "status": "confirmed",
+          "state": "unavailable",
+          "observed_at": "2026-07-03T11:44:00Z"
+        },
+        {
+          "id": "COMMS-SATELLITE",
+          "status": "confirmed",
+          "state": "available",
+          "observed_at": "2026-07-03T11:44:00Z"
+        }
+      ],
+      "shelters": [
+        {
+          "id": "SHELTER-3",
+          "capacity": 80,
+          "accessible_capacity": 10,
+          "status": "confirmed",
+          "observed_at": "2026-07-03T11:55:00Z"
+        },
+        {
+          "id": "SHELTER-4",
+          "capacity": 80,
+          "accessible_capacity": 10,
+          "status": "confirmed",
+          "observed_at": "2026-07-03T11:55:00Z"
+        }
+      ],
+      "plans": [
+        {
+          "id": "PLAN-DEPENDENT",
+          "shelter_id": "SHELTER-3",
+          "edge_ids": [
+            "R-PRIMARY"
+          ],
+          "travel_minutes": 15,
+          "required_lifeline_ids": [
+            "COMMS-PRIMARY",
+            "POWER-PRIMARY"
+          ]
+        },
+        {
+          "id": "PLAN-RESILIENT",
+          "shelter_id": "SHELTER-4",
+          "edge_ids": [
+            "R-REDUNDANT"
+          ],
+          "travel_minutes": 24,
+          "required_lifeline_ids": [
+            "COMMS-SATELLITE"
+          ]
+        }
+      ],
+      "common_cause_groups": [
+        {
+          "id": "CC-3",
+          "trigger": "synthetic_fire_corridor",
+          "affected_lifeline_ids": [
+            "COMMS-PRIMARY",
+            "POWER-PRIMARY"
+          ],
+          "affected_edge_ids": [
+            "R-PRIMARY"
+          ],
+          "status": "declared_synthetic_dependency"
+        }
+      ],
+      "oracle_truth": {
+        "actual_blocked_edge_ids": [],
+        "affected_zone_ids": [
+          "ZONE-3"
+        ],
+        "confirmed_perimeter_exists": true,
+        "expected_candidate_plan_id": "PLAN-RESILIENT"
+      },
+      "expected_invariants": [
+        "multiple lifeline failures linked to one declared common cause are not treated as independent unrelated events",
+        "candidate policy rejects plans requiring unavailable lifelines",
+        "a redundant communications option is treated separately from the failed primary system"
+      ]
+    },
+    {
+      "case_id": "MISSING-CONFLICTING-OBSERVATIONS-004",
+      "as_of": "2026-07-04T12:00:00Z",
+      "incident_phase": "active_response",
+      "demand": {
+        "people": 35,
+        "assisted_trips": 6
+      },
+      "hazard_observations": [
+        {
+          "id": "OBS-STALE-PERIM-4",
+          "kind": "operational_perimeter",
+          "status": "stale",
+          "observed_at": "2026-07-03T00:00:00Z",
+          "source": "synthetic_incident_command",
+          "claim": "perimeter_received"
+        },
+        {
+          "id": "OBS-CONFLICT-4",
+          "kind": "hotspot_detection",
+          "status": "conflicted",
+          "observed_at": "2026-07-04T11:00:00Z",
+          "source": "synthetic_sensor_pair",
+          "claim": "thermal_anomaly_point"
+        }
+      ],
+      "edges": [
+        {
+          "id": "R-UNKNOWN",
+          "status": "unknown",
+          "state": "unknown",
+          "observed_at": "2026-07-04T11:30:00Z"
+        },
+        {
+          "id": "R-CONFLICT",
+          "status": "conflicted",
+          "state": "unknown",
+          "observed_at": "2026-07-04T11:35:00Z"
+        }
+      ],
+      "lifelines": [],
+      "shelters": [
+        {
+          "id": "SHELTER-5",
+          "capacity": 60,
+          "accessible_capacity": 10,
+          "status": "confirmed",
+          "observed_at": "2026-07-04T11:55:00Z"
+        },
+        {
+          "id": "SHELTER-6",
+          "capacity": 60,
+          "accessible_capacity": 10,
+          "status": "confirmed",
+          "observed_at": "2026-07-04T11:55:00Z"
+        }
+      ],
+      "plans": [
+        {
+          "id": "PLAN-UNKNOWN",
+          "shelter_id": "SHELTER-5",
+          "edge_ids": [
+            "R-UNKNOWN"
+          ],
+          "travel_minutes": 8,
+          "required_lifeline_ids": []
+        },
+        {
+          "id": "PLAN-CONFLICT",
+          "shelter_id": "SHELTER-6",
+          "edge_ids": [
+            "R-CONFLICT"
+          ],
+          "travel_minutes": 10,
+          "required_lifeline_ids": []
+        }
+      ],
+      "common_cause_groups": [],
+      "oracle_truth": {
+        "actual_blocked_edge_ids": [
+          "R-UNKNOWN"
+        ],
+        "affected_zone_ids": [
+          "ZONE-4"
+        ],
+        "confirmed_perimeter_exists": false,
+        "expected_candidate_plan_id": null
+      },
+      "expected_invariants": [
+        "unknown and conflicted road states do not count as confirmed-open",
+        "candidate policy abstains when no plan meets hard evidence constraints",
+        "stale perimeter evidence is not promoted to current confirmation"
+      ]
+    },
+    {
+      "case_id": "ACCESSIBLE-EVACUATION-005",
+      "as_of": "2026-07-05T12:00:00Z",
+      "incident_phase": "active_response",
+      "demand": {
+        "people": 24,
+        "assisted_trips": 12
+      },
+      "hazard_observations": [
+        {
+          "id": "OBS-PERIM-5",
+          "kind": "operational_perimeter",
+          "status": "confirmed",
+          "observed_at": "2026-07-05T11:45:00Z",
+          "source": "synthetic_incident_command",
+          "claim": "perimeter_received"
+        }
+      ],
+      "edges": [
+        {
+          "id": "R-NEAR",
+          "status": "confirmed",
+          "state": "open",
+          "observed_at": "2026-07-05T11:45:00Z"
+        },
+        {
+          "id": "R-ACCESSIBLE",
+          "status": "confirmed",
+          "state": "open",
+          "observed_at": "2026-07-05T11:45:00Z"
+        }
+      ],
+      "lifelines": [],
+      "shelters": [
+        {
+          "id": "SHELTER-NEAR",
+          "capacity": 40,
+          "accessible_capacity": 4,
+          "status": "confirmed",
+          "observed_at": "2026-07-05T11:55:00Z"
+        },
+        {
+          "id": "SHELTER-ACCESSIBLE",
+          "capacity": 40,
+          "accessible_capacity": 14,
+          "status": "confirmed",
+          "observed_at": "2026-07-05T11:55:00Z"
+        }
+      ],
+      "plans": [
+        {
+          "id": "PLAN-NEAR",
+          "shelter_id": "SHELTER-NEAR",
+          "edge_ids": [
+            "R-NEAR"
+          ],
+          "travel_minutes": 8,
+          "required_lifeline_ids": []
+        },
+        {
+          "id": "PLAN-ACCESSIBLE",
+          "shelter_id": "SHELTER-ACCESSIBLE",
+          "edge_ids": [
+            "R-ACCESSIBLE"
+          ],
+          "travel_minutes": 15,
+          "required_lifeline_ids": []
+        }
+      ],
+      "common_cause_groups": [],
+      "oracle_truth": {
+        "actual_blocked_edge_ids": [],
+        "affected_zone_ids": [
+          "ZONE-5"
+        ],
+        "confirmed_perimeter_exists": true,
+        "expected_candidate_plan_id": "PLAN-ACCESSIBLE"
+      },
+      "expected_invariants": [
+        "accessible-trip capacity is a hard constraint rather than a post-hoc score",
+        "shorter travel time cannot compensate for insufficient accessible capacity",
+        "candidate policy chooses the feasible accessible shelter"
+      ]
+    },
+    {
+      "case_id": "POSTFIRE-RECOVERY-006",
+      "as_of": "2026-07-06T12:00:00Z",
+      "incident_phase": "active_response",
+      "demand": {
+        "people": 16,
+        "assisted_trips": 3
+      },
+      "hazard_observations": [
+        {
+          "id": "OBS-HOT-6",
+          "kind": "hotspot_detection",
+          "status": "reported",
+          "observed_at": "2026-07-06T11:10:00Z",
+          "source": "synthetic_satellite_sensor",
+          "claim": "thermal_anomaly_point"
+        },
+        {
+          "id": "OBS-BURN-6",
+          "kind": "post_fire_severity",
+          "status": "confirmed",
+          "observed_at": "2026-08-15T12:00:00Z",
+          "source": "synthetic_retrospective_map",
+          "claim": "postfire_severity"
+        },
+        {
+          "id": "OBS-WATERSHED-6",
+          "kind": "watershed_assessment",
+          "status": "confirmed",
+          "observed_at": "2026-08-20T12:00:00Z",
+          "source": "synthetic_retrospective_assessment",
+          "claim": "postfire_watershed_assessment"
+        }
+      ],
+      "edges": [
+        {
+          "id": "R-RECOVERY",
+          "status": "unknown",
+          "state": "unknown",
+          "observed_at": "2026-07-06T11:40:00Z"
+        }
+      ],
+      "lifelines": [],
+      "shelters": [
+        {
+          "id": "SHELTER-7",
+          "capacity": 30,
+          "accessible_capacity": 5,
+          "status": "confirmed",
+          "observed_at": "2026-07-06T11:55:00Z"
+        }
+      ],
+      "plans": [
+        {
+          "id": "PLAN-RECOVERY",
+          "shelter_id": "SHELTER-7",
+          "edge_ids": [
+            "R-RECOVERY"
+          ],
+          "travel_minutes": 10,
+          "required_lifeline_ids": []
+        }
+      ],
+      "common_cause_groups": [],
+      "oracle_truth": {
+        "actual_blocked_edge_ids": [],
+        "affected_zone_ids": [],
+        "confirmed_perimeter_exists": false,
+        "expected_candidate_plan_id": null
+      },
+      "expected_invariants": [
+        "future post-fire severity and watershed products are excluded from active-response candidate projection",
+        "retrospective recovery evidence is retained as a different phase and never used to establish active fire perimeter",
+        "unknown road status blocks a claim that the evacuation plan is feasible"
+      ]
+    }
+  ]
+}
