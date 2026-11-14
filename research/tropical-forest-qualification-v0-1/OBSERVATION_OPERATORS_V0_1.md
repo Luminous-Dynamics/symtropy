@@ -87,7 +87,7 @@ FAO FAM reference PNG_2019_MNFI_v01_M_v01_A_ESS; producer PNG Forest Authority. 
 
 **Critical limitation:** PNG is not the entire island of New Guinea. The actual microdata live in a country-owned external repository; confidentiality and access conditions are set by that repository. A catalogue record or public method description is not permission to use row-level data. The listed 5–10 year inventory cycle is not proof that a compatible follow-up census has been completed and admitted.
 
-### C. JRC Tropical Moist Forest v2025
+### G. JRC Tropical Moist Forest v2025
 
 **Observed:** 30 m Landsat Collection 2 wall-to-wall annual change layers for 1990–2025, including tropical moist forest extent, degradation, deforestation and post-disturbance regrowth. The product deliberately distinguishes temporary disturbance while forest remains forested from transition to non-forest.
 
@@ -100,7 +100,7 @@ FAO FAM reference PNG_2019_MNFI_v01_M_v01_A_ESS; producer PNG Forest Authority. 
 
 **Scoring:** compare predicted disturbance state and transition timing through the TMF class operator. TMF degradation is not tree mortality, nor is it automatically permanent conversion. Keep TMF class metrics separate from stem mortality and biomass metrics.
 
-### G. MapBiomas Collection 11 (Brazil)
+### H. MapBiomas Collection 11 (Brazil)
 
 **Observed:** annual Brazil land-cover / land-use classes at 30 m for 1985–2025, with collection- and class/year-specific accuracy information. It is a Brazil product, not a pan-Amazon, Congo or New Guinea forest truth layer.
 
@@ -113,13 +113,15 @@ FAO FAM reference PNG_2019_MNFI_v01_M_v01_A_ESS; producer PNG Forest Authority. 
 
 **Scoring:** evaluate only inside its declared geographic coverage and with its class semantics. Cross-region use outside Brazil is `OUT_OF_DOMAIN`, not a low-confidence observation or a negative result.
 
-### E. Papua New Guinea National Forest Inventory
+## 3. Source metadata references
 
-FAO announced publication of Papua New Guinea's multipurpose national forest inventory in the Food and Agriculture Microdata (FAM) Catalogue on 15 March 2026. The announcement describes a nationally representative forest assessment covering forest resources, biodiversity, carbon stocks, land use and community socioeconomic conditions.
+- Amazon RAINFOR / EIDC 2017–2019 record and Open Government Licence: https://catalogue.ceh.ac.uk/documents/63d4b774-4e03-4db2-95ad-dcca18f0d681
+- NASA / ORNL DAAC Sustainable Landscapes Brazil 2009–2018: https://doi.org/10.3334/ORNLDAAC/2007
+- DRC NFI 2017–2021 FAM record: https://microdata.fao.org/index.php/catalog/2732
+- Papua New Guinea Multipurpose NFI FAM record: https://microdata.fao.org/index.php/catalog/2943
+- FAO PNG inventory publication notice: https://www.fao.org/in-action/boosting-transparency-forest-data/news-and-events/news/detail/papua-new-guinea-publishes-national-forest-inventory-in-fam-catalogue/en
 
-Before use, verify the actual catalogue package, sampling design, variables, row-level disclosure, release terms and permissions with the Papua New Guinea Forest Authority / FAO. Catalogue visibility is not blanket authorization to redistribute microdata or publish sensitive locations.
-
-## 3. Canonical observation claim
+## 4. Canonical observation claim
 
 Every admitted observation must retain:
 
@@ -137,7 +139,7 @@ Every admitted observation must retain:
 
 Observation, source-derived label, model inference, simulated state, intervention and decision remain distinct record types.
 
-## 4. Non-interchangeability and missingness
+## 5. Non-interchangeability and missingness
 
 The following states are not synonyms:
 
@@ -153,7 +155,7 @@ The following states are not synonyms:
 
 Only the final state can support a negative ecological claim, and only when the source's detectability and coverage are independently qualified for the target class, support and time interval. No-data, cloud, sparse sampling, or a missing plot census cannot become "forest absent", "no disturbance", "zero biomass" or "healthy forest".
 
-## 5. Leakage-resistant evaluation
+## 6. Leakage-resistant evaluation
 
 Split by the unit of independent evidence, not by convenient rows or pixels:
 
