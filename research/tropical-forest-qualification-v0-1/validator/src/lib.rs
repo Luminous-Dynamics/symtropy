@@ -190,9 +190,337 @@ fn causally_reachable_cells(
 ///
 /// Structurally malformed JSON returns Err. A well-formed manifest with failed semantic
 /// invariants returns a receipt whose result is FAIL.
+
+fn parse_coordinates(
+    value: &Value,
+    label: &str,
+    width: usize,
+    height: usize,
+) -> Result<(BTreeSet<(usize, usize)>, usize), String> {
+    let coordinates = value
+        .as_array()
+        .ok_or_else(|| format!("{label} must be an array"))?;
+    let mut set = BTreeSet::new();
+    let mut duplicates = 0;
+    for (index, coordinate) in coordinates.iter().enumerate() {
+        let pair = coordinate
+            .as_array()
+            .ok_or_else(|| format!("{label}[{index}] must be a two-item coordinate"))?;
+        if pair.len() != 2 {
+            return Err(format!("{label}[{index}] must contain exactly two coordinates"));
+        }
+        let x = pair[0]
+            .as_u64()
+            .ok_or_else(|| format!("{label}[{index}][0] must be a non-negative integer"))?
+            as usize;
+        let y = pair[1]
+            .as_u64()
+            .ok_or_else(|| format!("{label}[{index}][1] must be a non-negative integer"))?
+            as usize;
+        if x >= width || y >= height {
+            return Err(format!("{label}[{index}] lies outside the declared grid"));
+        }
+        if !set.insert((x, y)) {
+            duplicates += 1;
+        }
+    }
+    Ok((set, duplicates))
+}
+
+fn open_component_count(
+    open_cells: &BTreeSet<(usize, usize)>,
+) -> usize {
+    let mut remaining = open_cells.clone();
+    let mut components = 0;
+    while let Some(start) = remaining.pop_first() {
+        components += 1;
+        let mut queue = VecDeque::from([start]);
+        while let Some((x, y)) = queue.pop_front() {
+            let neighbors = [
+                (x.wrapping_sub(1), y),
+                (x.saturating_add(1), y),
+                (x, y.wrapping_sub(1)),
+                (x, y.saturating_add(1)),
+            ];
+            for neighbor in neighbors {
+                if remaining.remove(&neighbor) {
+                    queue.push_back(neighbor);
+                }
+            }
+        }
+    }
+    components
+}
+
+fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let expected: BTreeMap<&'static str, &'static str> = [
+        ("PLOT-GEDI-SUPPORT-MISMATCH-001", "BLOCKED_SUPPORT_MISMATCH"),
+        ("GEDI-ISS-STORAGE-GAP-001", "UNOBSERVED_NO_ACQUISITION"),
+        ("TMF-DEGRADATION-NOT-MORTALITY-001", "REJECT_LABEL_SEMANTIC_MISMATCH"),
+        ("MAPBIOMAS-BRAZIL-TRANSFER-001", "OUT_OF_DOMAIN"),
+        ("CLOUD-OR-NODATA-NO-CHANGE-001", "UNOBSERVED_CLOUD_OR_QA_MASK"),
+        ("PLOT-CAMPAIGN-LEAKAGE-001", "REJECT_LEAKAGE"),
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(&mut checks, "OBS-CORPUS-VERSION-001", version == "0.1.0",
+        format!("schema_version={version}"));
+    push_check(&mut checks, "OBS-CORPUS-IDENTITY-001",
+        benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001",
+        format!("benchmark={benchmark}; corpus={corpus_id}"));
+    push_check(&mut checks, "OBS-CORPUS-CLAIM-CEILING-001",
+        status == "SPECIFICATION_FIXTURES_NOT_YET_EVALUATED"
+            && ceiling.contains("No real source data ingested"),
+        "corpus must remain explicitly unevaluated specification data");
+
+    for (index, case) in cases.iter().enumerate() {
+        let id = case.get("case_id").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
+        let disposition = case.get("expected_disposition").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
+        let condition = case.get("condition").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].condition must be a string"))?;
+        let invariant = case.get("invariant").and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].invariant must be a string"))?;
+        let unique = seen.insert(id.to_string());
+        let exact_disposition = expected.get(id).copied() == Some(disposition);
+        push_check(
+            &mut checks,
+            "OBS-CASE-SEMANTICS-001",
+            unique && exact_disposition && !condition.trim().is_empty() && !invariant.trim().is_empty(),
+            format!("case={id}; expected={}; declared={disposition}; unique={unique}",
+                expected.get(id).copied().unwrap_or("UNKNOWN_CASE")),
+        );
+    }
+    push_check(&mut checks, "OBS-CASE-COVERAGE-001",
+        seen.len() == expected.len() && cases.len() == expected.len(),
+        format!("{} unique cases; {} required", seen.len(), expected.len()));
+
+    let runner = string_at(manifest, &["execution", "runner"])?;
+    let external = at(manifest, &["execution", "external_data_ingested"])?
+        .as_bool().ok_or_else(|| "external_data_ingested must be boolean".to_string())?;
+    let rights = string_at(manifest, &["execution", "rights_adjudication"])?;
+    push_check(&mut checks, "OBS-NO-EXECUTION-CLAIM-001",
+        runner == "NOT_IMPLEMENTED" && !external && rights == "NOT_RUN",
+        "manifest validation is not execution of the observation negative controls");
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks.iter().map(|check| json!({
+        "id": check.id, "passed": check.passed, "detail": check.detail
+    })).collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "MANIFEST_VALID" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "negative_controls_executed": false,
+        "external_data_ingested": false,
+        "ecological_observation_validation": "NOT_ESTABLISHED"
+    }))
+}
+
+fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["case_corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let width = at(manifest, &["grid", "width"])?
+        .as_u64().ok_or_else(|| "grid.width must be a positive integer".to_string())? as usize;
+    let height = at(manifest, &["grid", "height"])?
+        .as_u64().ok_or_else(|| "grid.height must be a positive integer".to_string())? as usize;
+    if width == 0 || height == 0 || width.checked_mul(height).is_none() {
+        return Err("grid dimensions must be non-zero and fit addressable memory".to_string());
+    }
+
+    let law = string_at(manifest, &["synthetic_light_law", "equation"])?;
+    let k = number_at(manifest, &["synthetic_light_law", "extinction_coefficient_k"])?;
+    let calibrated = at(manifest, &["synthetic_light_law", "calibrated"])?
+        .as_bool().ok_or_else(|| "synthetic_light_law.calibrated must be boolean".to_string())?;
+    let arrangements = at(manifest, &["arrangements"])?
+        .as_array().ok_or_else(|| "arrangements must be an array".to_string())?;
+    if arrangements.len() != 2 {
+        return Err("canopy v0.1 requires exactly two arrangements".to_string());
+    }
+
+    let mut checks = Vec::new();
+    push_check(&mut checks, "CANOPY-FIXTURE-IDENTITY-001",
+        version == "0.1.0" && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "CANOPY-GAP-REPRESENTATION-001",
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"));
+    push_check(&mut checks, "CANOPY-CLAIM-CEILING-001",
+        status == "ANALYTICAL_SYNTHETIC_FIXTURES_NOT_YET_EXECUTED"
+            && !calibrated
+            && ceiling.contains("not calibrated"),
+        "light rule and fixture must remain synthetic and uncalibrated");
+    push_check(&mut checks, "CANOPY-LIGHT-LAW-001",
+        law == "T(x,y) = exp(-k * LAI(x,y))" && k >= 0.0,
+        format!("law={law}; k={k}; calibrated={calibrated}"));
+
+    let expected_cells = width * height;
+    let mut outputs = Vec::new();
+    let mut total_lai_reference: Option<f64> = None;
+    let mut mean_lai_reference: Option<f64> = None;
+    let mut component_counts = Vec::new();
+    for (index, arrangement) in arrangements.iter().enumerate() {
+        let id = string_at(arrangement, &["arrangement_id"])?;
+        let occupied_expected = number_at(arrangement, &["occupied_cell_count"])? as usize;
+        let open_expected = number_at(arrangement, &["open_cell_count"])? as usize;
+        let occupied_lai = number_at(arrangement, &["occupied_lai"])?;
+        let open_lai = number_at(arrangement, &["open_lai"])?;
+        let declared_total_lai = number_at(arrangement, &["total_lai"])?;
+        let declared_mean_lai = number_at(arrangement, &["mean_lai"])?;
+        let declared_components = number_at(arrangement, &["open_component_count_four_neighbour"])? as usize;
+
+        let (occupied, occupied_duplicates) = parse_coordinates(
+            at(arrangement, &["occupied_coordinates"])?,
+            &format!("arrangements[{index}].occupied_coordinates"),
+            width, height,
+        )?;
+        let (open, open_duplicates) = parse_coordinates(
+            at(arrangement, &["open_coordinates"])?,
+            &format!("arrangements[{index}].open_coordinates"),
+            width, height,
+        )?;
+        let disjoint = occupied.is_disjoint(&open);
+        let full_coverage = occupied.len() + open.len() == expected_cells
+            && occupied.union(&open).count() == expected_cells;
+        let counts_match = occupied.len() == occupied_expected
+            && open.len() == open_expected
+            && occupied_duplicates == 0
+            && open_duplicates == 0;
+        let total_lai = occupied.len() as f64 * occupied_lai
+            + open.len() as f64 * open_lai;
+        let mean_lai = total_lai / expected_cells as f64;
+        let components = open_component_count(&open);
+        let occupied_transmittance = (-k * occupied_lai).exp();
+        let open_transmittance = (-k * open_lai).exp();
+        let expected_occupied_transmittance =
+            number_at(arrangement, &["expected_spatial_transmittance", "occupied"])?;
+        let expected_open_transmittance =
+            number_at(arrangement, &["expected_spatial_transmittance", "open"])?;
+        let expected_uniform_transmittance =
+            number_at(arrangement, &["expected_uniform_patch_transmittance"])?;
+        let baseline_mean_lai =
+            number_at(manifest, &["uniform_patch_baseline", "mean_lai"])?;
+        let baseline_transmittance =
+            number_at(manifest, &["uniform_patch_baseline", "predicted_transmittance_every_cell"])?;
+        let uniform_calculated = (-k * mean_lai).exp();
+        let spatial_mean = (occupied_transmittance * occupied.len() as f64
+            + open_transmittance * open.len() as f64)
+            / expected_cells as f64;
+
+        let valid = disjoint
+            && full_coverage
+            && counts_match
+            && close_enough(total_lai, declared_total_lai, 1e-9)
+            && close_enough(mean_lai, declared_mean_lai, 1e-9)
+            && components == declared_components
+            && close_enough(occupied_transmittance, expected_occupied_transmittance, 1e-9)
+            && close_enough(open_transmittance, expected_open_transmittance, 1e-9)
+            && close_enough(uniform_calculated, expected_uniform_transmittance, 1e-9)
+            && close_enough(uniform_calculated, baseline_transmittance, 1e-9)
+            && close_enough(mean_lai, baseline_mean_lai, 1e-9);
+
+        push_check(&mut checks, "CANOPY-ARRANGEMENT-GEOMETRY-001", valid,
+            format!("arrangement={id}; cells={expected_cells}; occupied={}, open={}, disjoint={disjoint}, full_coverage={full_coverage}, components={components}/{declared_components}, total_lai={total_lai}, mean_lai={mean_lai}",
+                occupied.len(), open.len()));
+
+        if let Some(reference) = total_lai_reference {
+            push_check(&mut checks, "CANOPY-AGGREGATE-EQUIVALENCE-001",
+                close_enough(reference, total_lai, 1e-9),
+                format!("arrangement={id}; total_lai={total_lai}; reference={reference}"));
+        } else {
+            total_lai_reference = Some(total_lai);
+        }
+        if let Some(reference) = mean_lai_reference {
+            push_check(&mut checks, "CANOPY-MEAN-EQUIVALENCE-001",
+                close_enough(reference, mean_lai, 1e-9),
+                format!("arrangement={id}; mean_lai={mean_lai}; reference={reference}"));
+        } else {
+            mean_lai_reference = Some(mean_lai);
+        }
+        component_counts.push(components);
+        outputs.push(json!({
+            "arrangement_id": id,
+            "occupied_cells": occupied.len(),
+            "open_cells": open.len(),
+            "total_lai": total_lai,
+            "mean_lai": mean_lai,
+            "open_components_four_neighbour": components,
+            "occupied_transmittance": occupied_transmittance,
+            "open_transmittance": open_transmittance,
+            "spatial_mean_transmittance": spatial_mean,
+            "uniform_patch_transmittance": uniform_calculated
+        }));
+    }
+
+    let components_differ = component_counts.len() == 2 && component_counts[0] != component_counts[1];
+    let spatial_vs_uniform_differs = outputs.iter().all(|result| {
+        let spatial = result["spatial_mean_transmittance"].as_f64().unwrap_or(f64::NAN);
+        let uniform = result["uniform_patch_transmittance"].as_f64().unwrap_or(f64::NAN);
+        (spatial - uniform).abs() > 0.05
+    });
+    push_check(&mut checks, "CANOPY-TOPOLOGY-DIFFERENCE-001", components_differ,
+        format!("open component counts={component_counts:?}"));
+    push_check(&mut checks, "CANOPY-UNIFORM-BASELINE-LOSS-001", spatial_vs_uniform_differs,
+        "spatially heterogeneous transmittance mean must differ from uniform transmission at the aggregate mean LAI");
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks.iter().map(|check| json!({
+        "id": check.id, "passed": check.passed, "detail": check.detail
+    })).collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "case_corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_GEOMETRY" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "arrangements": outputs,
+        "ecological_light_model_calibration": "NOT_ESTABLISHED",
+        "field_validation": "NOT_ESTABLISHED"
+    }))
+}
+
+/// Dispatch a JSON fixture to its domain-specific verifier and return a deterministic receipt.
+///
+/// This command verifies manifests and analytical/synthetic invariants only. It does not
+/// imply ecological calibration, observation-model validation, or field performance.
 pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
-    let manifest: Value =
-        serde_json::from_slice(raw).map_err(|error| format!("invalid JSON manifest: {error}"))?;
+    let manifest: Value = serde_json::from_slice(raw)
+        .map_err(|error| format!("invalid JSON manifest: {error}"))?;
+    if manifest.get("corpus_id").is_some() {
+        return validate_observation_corpus(raw, &manifest);
+    }
+    if manifest.get("case_corpus_id").is_some() {
+        return validate_canopy_fixture(raw, &manifest);
+    }
+    evaluate_biomass(raw, manifest)
+}
+
+fn evaluate_biomass(raw: &[u8], manifest: Value) -> Result<Value, String> {
 
     let schema_version = string_at(&manifest, &["schema_version"])?;
     let benchmark_id = string_at(&manifest, &["benchmark_id"])?;
@@ -506,6 +834,56 @@ mod tests {
 
     const FIXTURE: &str =
         include_str!("../../cases/forest-patch-accounting-synthetic-001.json");
+
+    const OBSERVATION_FIXTURE: &str =
+        include_str!("../../cases/forest-observation-operator-negative-controls-v0.1.json");
+    const CANOPY_FIXTURE: &str =
+        include_str!("../../cases/canopy-gap-representation-synthetic-v0.1.json");
+
+    #[test]
+    fn observation_corpus_manifest_has_six_expected_dispositions() {
+        let receipt = evaluate(OBSERVATION_FIXTURE.as_bytes()).expect("observation corpus parses");
+        assert_eq!(receipt["result"], "MANIFEST_VALID");
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["negative_controls_executed"], false);
+    }
+
+    #[test]
+    fn observation_corpus_semantic_mutation_is_rejected() {
+        let mut manifest: Value = serde_json::from_str(OBSERVATION_FIXTURE).expect("valid corpus");
+        manifest["cases"][1]["expected_disposition"] = json!("OBSERVED_ABSENCE");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn canopy_geometry_fixture_preserves_aggregate_and_gap_distinctions() {
+        let receipt = evaluate(CANOPY_FIXTURE.as_bytes()).expect("canopy fixture parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_GEOMETRY");
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(
+            receipt["arrangements"][0]["total_lai"],
+            receipt["arrangements"][1]["total_lai"]
+        );
+        assert_ne!(
+            receipt["arrangements"][0]["open_components_four_neighbour"],
+            receipt["arrangements"][1]["open_components_four_neighbour"]
+        );
+        assert_eq!(receipt["ecological_light_model_calibration"], "NOT_ESTABLISHED");
+    }
+
+    #[test]
+    fn canopy_duplicate_coordinate_is_rejected() {
+        let mut manifest: Value = serde_json::from_str(CANOPY_FIXTURE).expect("valid canopy fixture");
+        let duplicate = manifest["arrangements"][0]["open_coordinates"][0].clone();
+        manifest["arrangements"][0]["occupied_coordinates"]
+            .as_array_mut().unwrap().push(duplicate);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated canopy fixture");
+        let receipt = evaluate(&bytes).expect("well-formed fixture returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
 
     #[test]
     fn committed_fixture_passes_all_synthetic_contract_checks() {
