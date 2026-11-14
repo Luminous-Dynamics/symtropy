@@ -739,12 +739,10 @@ pub fn evaluate_filter_eli_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
         let sample_state = string(input, &["sample_state"])?;
         let sample_claim_binding_valid = boolean(input, &["sample_claim_binding_valid"])?;
 
-        if throughput < 0.0
-            || elapsed_hours < 0.0
-            || flow < 0.0
-            || differential_pressure < 0.0
-        {
-            return Err(format!("{id}: filter service measurements must be nonnegative"));
+        if throughput < 0.0 || elapsed_hours < 0.0 || flow < 0.0 || differential_pressure < 0.0 {
+            return Err(format!(
+                "{id}: filter service measurements must be nonnegative"
+            ));
         }
 
         let sample_value = match at(input, &["effluent_concentration_mg_l"])? {
@@ -765,7 +763,9 @@ pub fn evaluate_filter_eli_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
             }
             "rejected_qc" => {
                 if sample_value.is_some() {
-                    return Err(format!("{id}: rejected lab sample must not carry a claim value"));
+                    return Err(format!(
+                        "{id}: rejected lab sample must not carry a claim value"
+                    ));
                 }
                 "REJECTED_LAB_SAMPLE_NOT_CLAIM_EVIDENCE"
             }
@@ -790,7 +790,11 @@ pub fn evaluate_filter_eli_f0(inputs: &Value, oracle: &Value) -> Result<Value, S
                     "SAMPLE_VALUE_MISSING"
                 }
             }
-            _ => return Err(format!("{id}: unsupported claim sample state {sample_state}")),
+            _ => {
+                return Err(format!(
+                    "{id}: unsupported claim sample state {sample_state}"
+                ));
+            }
         };
 
         let service_disposition = if !configuration_matches {
@@ -915,11 +919,8 @@ mod tests {
 
     #[test]
     fn all_thirteen_filter_eli_f0_cases_match_separate_oracle() {
-        let result = evaluate_filter_eli_f0(
-            &load("filter_eli_inputs"),
-            &load("filter_eli_oracle"),
-        )
-        .expect("filter ELI F0 evaluation must complete");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
         assert_eq!(result["result_count"], 13);
         assert_eq!(result["matched_case_count"], 13);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
@@ -928,28 +929,28 @@ mod tests {
 
     #[test]
     fn filter_eli_missing_sample_is_not_no_breakthrough() {
-        let result = evaluate_filter_eli_f0(
-            &load("filter_eli_inputs"),
-            &load("filter_eli_oracle"),
-        )
-        .expect("filter ELI F0 evaluation must complete");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
         let row = result["results"]
             .as_array()
             .unwrap()
             .iter()
             .find(|row| row["case_id"] == "FILTER-F0-008-missing-effluent-sample")
             .unwrap();
-        assert_eq!(row["computed"]["claim_sample_disposition"], "NO_CURRENT_CLAIM_SAMPLE");
-        assert_eq!(row["computed"]["service_disposition"], "WITHIN_DECLARED_SERVICE_ENVELOPE");
+        assert_eq!(
+            row["computed"]["claim_sample_disposition"],
+            "NO_CURRENT_CLAIM_SAMPLE"
+        );
+        assert_eq!(
+            row["computed"]["service_disposition"],
+            "WITHIN_DECLARED_SERVICE_ENVELOPE"
+        );
     }
 
     #[test]
     fn filter_eli_below_loq_is_censored_not_zero() {
-        let result = evaluate_filter_eli_f0(
-            &load("filter_eli_inputs"),
-            &load("filter_eli_oracle"),
-        )
-        .expect("filter ELI F0 evaluation must complete");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
         let row = result["results"]
             .as_array()
             .unwrap()
@@ -964,11 +965,8 @@ mod tests {
 
     #[test]
     fn filter_eli_breakthrough_requires_accepted_claim_bound_sample() {
-        let result = evaluate_filter_eli_f0(
-            &load("filter_eli_inputs"),
-            &load("filter_eli_oracle"),
-        )
-        .expect("filter ELI F0 evaluation must complete");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
         let row = result["results"]
             .as_array()
             .unwrap()
@@ -983,11 +981,8 @@ mod tests {
 
     #[test]
     fn filter_eli_never_emits_water_safety_or_release_claims() {
-        let result = evaluate_filter_eli_f0(
-            &load("filter_eli_inputs"),
-            &load("filter_eli_oracle"),
-        )
-        .expect("filter ELI F0 evaluation must complete");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
         for row in result["results"].as_array().unwrap() {
             assert_eq!(row["computed"]["water_safety_claim_allowed"], false);
             assert_eq!(row["computed"]["potability_claim_allowed"], false);
@@ -998,18 +993,18 @@ mod tests {
 
     #[test]
     fn filter_eli_noncontinuous_counter_history_is_untrusted() {
-        let result = evaluate_filter_eli_f0(
-            &load("filter_eli_inputs"),
-            &load("filter_eli_oracle"),
-        )
-        .expect("filter ELI F0 evaluation must complete");
+        let result = evaluate_filter_eli_f0(&load("filter_eli_inputs"), &load("filter_eli_oracle"))
+            .expect("filter ELI F0 evaluation must complete");
         let row = result["results"]
             .as_array()
             .unwrap()
             .iter()
             .find(|row| row["case_id"] == "FILTER-F0-013-service-counter-reset-unreconciled")
             .unwrap();
-        assert_eq!(row["computed"]["service_disposition"], "SERVICE_HISTORY_UNTRUSTED");
+        assert_eq!(
+            row["computed"]["service_disposition"],
+            "SERVICE_HISTORY_UNTRUSTED"
+        );
     }
 
     #[test]
