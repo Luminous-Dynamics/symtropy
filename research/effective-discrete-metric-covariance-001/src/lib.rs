@@ -31,6 +31,7 @@ pub enum EffectiveMetricErrorV1 {
     DampingNotPositiveSemidefinite,
     StiffnessNotPositiveSemidefinite,
     EffectiveMetricNotPositiveDefinite,
+    EffectiveMetricOutsideConditionEnvelope,
     SingularBasis,
     BasisNotUnimodular,
     IntegerArithmeticOverflow,
@@ -226,10 +227,12 @@ impl IntegerFrame2V1 {
 
     pub fn inverse_basis(&self) -> Matrix2 {
         let [[a, b], [c, d]] = self.basis_to_physical;
-        let determinant = a * d - b * c;
+        let determinant = i128::from(a) * i128::from(d)
+            - i128::from(b) * i128::from(c);
+        let determinant = determinant as f64;
         [
-            [d as f64 / determinant as f64, -b as f64 / determinant as f64],
-            [-c as f64 / determinant as f64, a as f64 / determinant as f64],
+            [d as f64 / determinant, -(b as f64) / determinant],
+            [-(c as f64) / determinant, a as f64 / determinant],
         ]
     }
 }
@@ -413,6 +416,9 @@ pub fn solve_discrete_step(
         mass_velocity[0] - h * stiffness_position[0] + h * problem.force_covector[0],
         mass_velocity[1] - h * stiffness_position[1] + h * problem.force_covector[1],
     ];
+    if right_hand_side.iter().any(|value| !value.is_finite()) {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
 
     let next_velocity = solve(effective_metric, right_hand_side, profile)?;
     let next_position = [
@@ -423,10 +429,17 @@ pub fn solve_discrete_step(
         (next_velocity[0] - problem.velocity[0]) / h,
         (next_velocity[1] - problem.velocity[1]) / h,
     ];
+    if next_position
+        .iter()
+        .chain(step_acceleration.iter())
+        .any(|value| !value.is_finite())
+    {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
 
     let effective_metric_condition_inf = condition_inf(effective_metric, profile)?;
     if effective_metric_condition_inf > profile.maximum_effective_condition_inf {
-        return Err(EffectiveMetricErrorV1::EffectiveMetricNotPositiveDefinite);
+        return Err(EffectiveMetricErrorV1::EffectiveMetricOutsideConditionEnvelope);
     }
 
     let reconstructed = apply(effective_metric, next_velocity);
@@ -436,11 +449,22 @@ pub fn solve_discrete_step(
     ];
     let backward_scale = matrix_inf(effective_metric) * vector_inf(next_velocity)
         + vector_inf(right_hand_side);
+    if residual.iter().any(|value| !value.is_finite()) || !backward_scale.is_finite() {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
     let backward_residual_inf = vector_inf(residual) / backward_scale.max(f64::MIN_POSITIVE);
-    let discrete_work = h * (
-        problem.force_covector[0] * next_velocity[0]
-            + problem.force_covector[1] * next_velocity[1]
-    );
+    let discrete_work = h
+        * (problem.force_covector[0] * next_velocity[0]
+            + problem.force_covector[1] * next_velocity[1]);
+    let quadratic_potential_before = 0.5 * quadratic(problem.stiffness, problem.position);
+    let quadratic_potential_after = 0.5 * quadratic(problem.stiffness, next_position);
+    if !backward_residual_inf.is_finite()
+        || !discrete_work.is_finite()
+        || !quadratic_potential_before.is_finite()
+        || !quadratic_potential_after.is_finite()
+    {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
 
     Ok(DiscreteStepResultV1 {
         effective_metric,
@@ -451,8 +475,8 @@ pub fn solve_discrete_step(
         effective_metric_condition_inf,
         backward_residual_inf,
         discrete_work,
-        quadratic_potential_before: 0.5 * quadratic(problem.stiffness, problem.position),
-        quadratic_potential_after: 0.5 * quadratic(problem.stiffness, next_position),
+        quadratic_potential_before,
+        quadratic_potential_after,
     })
 }
 
@@ -630,7 +654,7 @@ mod tests {
     }
 
     #[test]
-    fn non_spd_effective_metric_and_singular_basis_fail_closed() {
+    fn indefinite_stiffness_and_nonunimodular_basis_fail_closed() {
         let mut problem = fixture(1.0);
         problem.stiffness = [[-100.0, 0.0], [0.0, -100.0]];
         assert_eq!(
