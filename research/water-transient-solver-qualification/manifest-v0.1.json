@@ -28,7 +28,10 @@
     "T0_never_authorizes_surge_design_or_operational_action",
     "vendor_documented_scope_is_not_independent_solver_qualification",
     "exact_build_modules_options_and_licence_state_are_required_for_each_trial",
-    "paired_results_require_feature_activation_and_physical_boundary_parity"
+    "paired_results_require_feature_activation_and_physical_boundary_parity",
+    "MOC_performance_requires_space_time_convergence_and_memory_reporting",
+    "negative_pressure_PDD_demand_zero_assumption_is_not_reverse_flow_intrusion",
+    "Unlicense_classifier_without_text_does_not_authorize_unverified_code_reuse"
   ],
   "comparators": {
     "published_open_source_candidate": "EPANET-AWH DOI 10.1016/j.jwpe.2026.110770",
@@ -36,6 +39,19 @@
     "physical_reference": "Sheffield intrusion and pressure-transient publications, rights-aware raw data acquisition required"
   },
   "reference_feature_matrix_file": "reference-feature-matrix-v0.1.json",
-  "comparator_count": 5,
-  "required_feature_activation_record": true
+  "comparator_count": 7,
+  "required_feature_activation_record": true,
+  "open_source_moc_comparators": [
+    {
+      "id": "tsnet_0_3_1",
+      "source_revision": "27e616a8e2048a431eed27b00a08322d49035a52",
+      "licence": "MIT confirmed in repository LICENSE; setup.py says 0.3.1 while README says 0.2.2 and HISTORY lists 0.3.0"
+    },
+    {
+      "id": "ptsnet_0_1_7",
+      "source_revision": "0b5c562518372f45aa3248c58544da0cd23d3368",
+      "licence": "Unlicense classifier in setup.py/PyPI; root licence text not found in inspected paths, confirm before reuse"
+    }
+  ],
+  "performance_comparison_rule": "MOC versus algebraic AWH comparisons require matched physical boundary physics and held-out pressure-error coverage; report reach count, common timestep, Courant condition, grid refinement, hardware, memory and scaling efficiency. Raw wall-clock speed alone is not comparable."
 }
