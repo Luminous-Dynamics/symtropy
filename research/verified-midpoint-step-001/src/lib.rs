@@ -1157,6 +1157,33 @@ mod tests {
     }
 
     #[test]
+    fn mass_metric_radius_bound_covers_all_signs_of_dense_cross_terms() {
+        let mut metric = [[0.0; 6]; 6];
+        for index in 0..6 {
+            metric[index][index] = 1.0;
+        }
+        metric[0][0] = 2.0;
+        metric[1][1] = 2.0;
+        metric[0][1] = -1.0;
+        metric[1][0] = -1.0;
+        let radii = [1.0, 1.0, 0.0, 0.0, 0.0, 0.0];
+
+        let upper = mass_metric_radius_upper(&metric, &radii).unwrap();
+        let worst_case_squared = 2.0 + 1.0 + 1.0 + 2.0;
+        assert!(upper >= worst_case_squared.sqrt());
+
+        // The sign pattern [1, -1] achieves the absolute-cross-term bound.
+        let signed_error = [1.0, -1.0, 0.0, 0.0, 0.0, 0.0];
+        let mut physical_squared = 0.0;
+        for row in 0..6 {
+            for column in 0..6 {
+                physical_squared += signed_error[row] * metric[row][column] * signed_error[column];
+            }
+        }
+        assert_eq!(physical_squared, worst_case_squared);
+    }
+
+    #[test]
     fn wrong_mass_inverse_constraint_transpose_is_rejected() {
         let mut problem = fixture();
         problem.mass_inverse_jacobian_transpose[0][0] = -0.75;
