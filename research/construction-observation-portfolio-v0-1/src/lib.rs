@@ -230,6 +230,7 @@ fn build_campaign(
     covered_work_unit_ids.sort();
     uncovered_work_unit_ids.sort();
 
+    let mut attributed_work_units = BTreeSet::new();
     for action_index in selected_indices {
         let action = actions[*action_index];
         let covered_ids: Vec<String> = work_needs
@@ -237,6 +238,7 @@ fn build_campaign(
             .enumerate()
             .filter(|(index, need)| {
                 covered[*index]
+                    && !attributed_work_units.contains(need.work_unit_id.as_str())
                     && action
                         .covered_region_ids
                         .iter()
@@ -244,6 +246,7 @@ fn build_campaign(
             })
             .map(|(_, need)| need.work_unit_id.clone())
             .collect();
+        attributed_work_units.extend(covered_ids.iter().map(String::as_str));
 
         total_observation_duration_minutes = total_observation_duration_minutes
             .checked_add(action.duration_minutes)
@@ -547,11 +550,11 @@ mod tests {
         regions: &[&str],
         x: i64,
         resource: &str,
-        start: u64,
-        end: u64,
+        interval: (u64, u64),
         crew: u64,
         cost: u64,
     ) -> ObservationAction {
+        let (start, end) = interval;
         let task_id = format!("task-{id}");
         ObservationAction {
             action_id: id.to_owned(),
@@ -619,8 +622,8 @@ mod tests {
     #[test]
     fn exact_campaign_selects_two_complementary_actions() {
         let actions = vec![
-            action("scan-a", &["a"], 0, "r-a", 0, 60_000, 5, 100),
-            action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 6, 120),
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
+            action("scan-b", &["b"], 2_000, "r-b", (0, 60_000), 6, 120),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
         let (occupancy, reservations) = books(&actions, 1);
@@ -643,15 +646,24 @@ mod tests {
         );
         assert_eq!(result.best_campaign.total_crew_minutes, 11);
         assert_eq!(result.best_campaign.total_cost_minor_units, 220);
+        assert_eq!(
+            result
+                .best_campaign
+                .selected_actions
+                .iter()
+                .map(|action| action.covered_work_unit_ids.len())
+                .sum::<usize>(),
+            2
+        );
         assert_eq!(result.best_campaign.cost_currency_code.as_deref(), Some("USD"));
     }
 
     #[test]
     fn exact_search_beats_largest_coverage_greedy_counterexample() {
         let actions = vec![
-            action("large-expensive", &["a", "b"], 0, "r-large", 0, 60_000, 10, 900),
-            action("cheap-a", &["a"], 2_000, "r-a", 0, 60_000, 2, 100),
-            action("cheap-bc", &["b", "c"], 4_000, "r-bc", 0, 60_000, 4, 100),
+            action("large-expensive", &["a", "b"], 0, "r-large", (0, 60_000), 10, 900),
+            action("cheap-a", &["a"], 2_000, "r-a", (0, 60_000), 2, 100),
+            action("cheap-bc", &["b", "c"], 4_000, "r-bc", (0, 60_000), 4, 100),
         ];
         let needs = vec![
             need("unit-a", "a"),
@@ -680,8 +692,8 @@ mod tests {
     #[test]
     fn pairwise_spatial_conflict_prevents_complete_campaign() {
         let actions = vec![
-            action("scan-a", &["a"], 0, "r-a", 0, 60_000, 5, 100),
-            action("scan-b", &["b"], 250, "r-b", 0, 60_000, 5, 100),
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
+            action("scan-b", &["b"], 250, "r-b", (0, 60_000), 5, 100),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
         let (occupancy, reservations) = books(&actions, 1);
@@ -707,8 +719,8 @@ mod tests {
     #[test]
     fn shared_resource_capacity_prevents_pairwise_campaign_admission() {
         let actions = vec![
-            action("scan-a", &["a"], 0, "shared-hoist", 0, 60_000, 5, 100),
-            action("scan-b", &["b"], 2_000, "shared-hoist", 0, 60_000, 5, 100),
+            action("scan-a", &["a"], 0, "shared-hoist", (0, 60_000), 5, 100),
+            action("scan-b", &["b"], 2_000, "shared-hoist", (0, 60_000), 5, 100),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
         let (occupancy, reservations) = books(&actions, 1);
@@ -732,9 +744,9 @@ mod tests {
     #[test]
     fn search_budget_exhaustion_is_not_reported_as_optimal_or_infeasible() {
         let actions = vec![
-            action("scan-a", &["a"], 0, "r-a", 0, 60_000, 5, 100),
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
             action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
-            action("scan-c", &["c"], 4_000, "r-c", 0, 60_000, 5, 100),
+            action("scan-c", &["c"], 4_000, "r-c", (0, 60_000), 5, 100),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b"), need("unit-c", "c")];
         let (occupancy, reservations) = books(&actions, 1);
@@ -750,7 +762,7 @@ mod tests {
     #[test]
     fn planning_does_not_mutate_live_resource_or_occupancy_books() {
         let actions = vec![
-            action("scan-a", &["a"], 0, "r-a", 0, 60_000, 5, 100),
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
             action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
@@ -768,7 +780,7 @@ mod tests {
     #[test]
     fn mixed_currencies_are_rejected_before_search() {
         let mut actions = vec![
-            action("scan-a", &["a"], 0, "r-a", 0, 60_000, 5, 100),
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
             action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
         ];
         actions[1].cost_currency_code = "EUR".to_owned();
@@ -819,8 +831,7 @@ mod tests {
                     &["a"],
                     i64::try_from(index).expect("small index") * 2_000,
                     &format!("resource-{index:02}"),
-                    0,
-                    60_000,
+                    (0, 60_000),
                     1,
                     1,
                 )
@@ -847,7 +858,7 @@ mod tests {
     #[test]
     fn duplicate_occupancy_and_reservation_ids_are_rejected() {
         let mut actions = vec![
-            action("scan-a", &["a"], 0, "r-a", 0, 60_000, 5, 100),
+            action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
             action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
         ];
         actions[1].occupancy.occupancy_id = actions[0].occupancy.occupancy_id.clone();
