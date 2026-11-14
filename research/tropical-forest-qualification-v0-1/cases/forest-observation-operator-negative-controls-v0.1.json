@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001",
+  "status": "SPECIFICATION_FIXTURES_NOT_YET_EVALUATED",
+  "claim_ceiling": "Expected dispositions only. No real source data ingested and no observation operator implemented or validated.",
+  "cases": [
+    {
+      "case_id": "PLOT-GEDI-SUPPORT-MISMATCH-001",
+      "source_type_a": "permanent_plot_census",
+      "source_type_b": "gedi_l4a_v2_1",
+      "condition": "Plot mean biomass is compared directly with a single approximately 25 m GEDI footprint without footprint/plot overlap aggregation or a declared support model.",
+      "expected_disposition": "BLOCKED_SUPPORT_MISMATCH",
+      "invariant": "No direct comparison across incompatible spatial support."
+    },
+    {
+      "case_id": "GEDI-ISS-STORAGE-GAP-001",
+      "source_type": "gedi_l4a_v2_1",
+      "condition": "No GEDI acquisitions exist during March 2023 to April 2024 while the instrument was stored on the ISS.",
+      "expected_disposition": "UNOBSERVED_NO_ACQUISITION",
+      "invariant": "No acquisition cannot be converted to zero biomass, absence, or no change."
+    },
+    {
+      "case_id": "TMF-DEGRADATION-NOT-MORTALITY-001",
+      "source_type": "jrc_tmf_v2025",
+      "condition": "A TMF degraded-forest label is automatically copied into the tree-demography mortality target.",
+      "expected_disposition": "REJECT_LABEL_SEMANTIC_MISMATCH",
+      "invariant": "Forest degradation while forest remains forested is not a stem mortality observation."
+    },
+    {
+      "case_id": "MAPBIOMAS-BRAZIL-TRANSFER-001",
+      "source_type": "mapbiomas_collection_11_brazil",
+      "target_region": "Congo Basin",
+      "condition": "A Brazil-only MapBiomas Collection 11 class layer is presented as a validated Congo observation.",
+      "expected_disposition": "OUT_OF_DOMAIN",
+      "invariant": "Regional data coverage must be explicitly checked; product absence is not an observation."
+    },
+    {
+      "case_id": "CLOUD-OR-NODATA-NO-CHANGE-001",
+      "source_type": "satellite_optical_product",
+      "condition": "A cloud-masked or missing tile is coded as stable forest / no change.",
+      "expected_disposition": "UNOBSERVED_CLOUD_OR_QA_MASK",
+      "invariant": "Missing or invalid coverage cannot be promoted to a negative change label."
+    },
+    {
+      "case_id": "PLOT-CAMPAIGN-LEAKAGE-001",
+      "source_type": "permanent_plot_census",
+      "condition": "Stems from one plot or repeated campaigns from one site are randomly split between training and blind test.",
+      "expected_disposition": "REJECT_LEAKAGE",
+      "invariant": "Splits must group by independent plot/site/campaign and respect temporal dependence."
+    }
+  ],
+  "execution": {
+    "runner": "NOT_IMPLEMENTED",
+    "external_data_ingested": false,
+    "rights_adjudication": "NOT_RUN",
+    "expected_disposition_oracle": "declared in each case"
+  }
+}
