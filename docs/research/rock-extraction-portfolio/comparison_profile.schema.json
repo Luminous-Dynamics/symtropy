@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/comparison_profile.schema.json",
+  "title": "Rock Extraction Comparison Profile v1",
+  "description": "Defines one preregistered comparison boundary. Schema validity does not authenticate referenced profiles or prove protocol adequacy.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "profile_id",
+    "protocol_ref",
+    "task_profile_ref",
+    "material_cohort_ref",
+    "material_pairing_ref",
+    "geometry_profile_ref",
+    "acceptance_profile_ref",
+    "site_context_ref",
+    "metrology_protocol_ref",
+    "energy_boundary_ref",
+    "energy_basis",
+    "included_subsystems",
+    "time_basis",
+    "study_design",
+    "minimum_replicates_per_arm"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "material_cohort_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "material_pairing_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "geometry_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_context_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metrology_protocol_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "energy_boundary_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "energy_basis": {
+      "enum": [
+        "FacilityElectricalInput",
+        "MachineElectricalInput",
+        "DeclaredSystemEnergy"
+      ]
+    },
+    "included_subsystems": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "time_basis": {
+      "const": "FullCycle"
+    },
+    "study_design": {
+      "enum": [
+        "RandomizedBlocked",
+        "RandomizedMatchedPair",
+        "ObservationalMatched",
+        "ObservationalAdjacentInterval",
+        "SingleArm"
+      ]
+    },
+    "minimum_replicates_per_arm": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false
+}

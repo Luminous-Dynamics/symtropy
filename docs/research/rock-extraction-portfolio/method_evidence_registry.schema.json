@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/method_evidence_registry.schema.json",
+  "title": "Symtropy Rock Extraction Method Evidence Registry",
+  "description": "Research-only evidence registry. This schema validates the shape of claims, not the truth or engineering qualification of any claim.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "registry_id",
+    "registry_version",
+    "status",
+    "claim_ceiling",
+    "evidence_scale",
+    "evidence_rules",
+    "methods"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "registry_id": {
+      "const": "symtropy.rock-extraction.method-evidence"
+    },
+    "registry_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "literature_reference_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_scale": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "meaning"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "R0",
+              "R1",
+              "R2",
+              "R3",
+              "R4",
+              "R5"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "meaning": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evidence_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "methods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "mechanism",
+          "family",
+          "application_evidence",
+          "not_demonstrated",
+          "primary_metrics"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+          },
+          "mechanism": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "application_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "application",
+                "tier",
+                "basis",
+                "sources"
+              ],
+              "properties": {
+                "application": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tier": {
+                  "enum": [
+                    "R0",
+                    "R1",
+                    "R2",
+                    "R3",
+                    "R4",
+                    "R5",
+                    "R0-R1",
+                    "R1-R2",
+                    "R2-R3",
+                    "R3-R4",
+                    "R4-R5",
+                    "R1_hypothesis",
+                    "archaeological_and_replicative",
+                    "archaeological_field_evidence"
+                  ]
+                },
+                "basis": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "not_demonstrated": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "primary_metrics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$comment": "Implementations must additionally enforce unique methods[].id values; JSON Schema uniqueItems only compares full objects."
+}

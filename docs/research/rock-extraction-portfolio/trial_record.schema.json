@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/rock-extraction-portfolio/trial_record.schema.json",
+  "title": "Rock Extraction Trial Record v1",
+  "description": "One measured trial record. The schema validates shape, not source authenticity, calibration, protocol adequacy, or physical correctness.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "trial_id",
+    "profile_ref",
+    "protocol_ref",
+    "task_profile_ref",
+    "material_cohort_ref",
+    "material_pairing_ref",
+    "specimen_ref",
+    "geometry_profile_ref",
+    "acceptance_profile_ref",
+    "site_context_ref",
+    "metrology_protocol_ref",
+    "method_profile_ref",
+    "machine_profile_ref",
+    "tool_profile_ref",
+    "arm",
+    "energy",
+    "accepted_output",
+    "time"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "material_cohort_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "material_pairing_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "geometry_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_context_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metrology_protocol_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "method_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "machine_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tool_profile_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "arm": {
+      "enum": [
+        "MechanicalBaseline",
+        "Candidate"
+      ]
+    },
+    "energy": {
+      "type": "object",
+      "required": [
+        "total_energy_kwh",
+        "standard_uncertainty_kwh",
+        "basis",
+        "boundary_ref",
+        "energy_accounting_ref",
+        "included_subsystems",
+        "evidence_role",
+        "calibration_ref",
+        "source_ref"
+      ],
+      "properties": {
+        "total_energy_kwh": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "standard_uncertainty_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "basis": {
+          "enum": [
+            "FacilityElectricalInput",
+            "MachineElectricalInput",
+            "DeclaredSystemEnergy"
+          ]
+        },
+        "boundary_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "included_subsystems": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_role": {
+          "enum": [
+            "IndependentMeasurement",
+            "DerivedFromIndependentMeasurements"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "energy_accounting_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "accepted_output": {
+      "type": "object",
+      "required": [
+        "accepted_solid_volume_m3",
+        "standard_uncertainty_m3",
+        "basis",
+        "evidence_role",
+        "calibration_ref",
+        "source_ref"
+      ],
+      "properties": {
+        "accepted_solid_volume_m3": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "standard_uncertainty_m3": {
+          "type": "number",
+          "minimum": 0
+        },
+        "basis": {
+          "const": "AcceptedSolidVolume"
+        },
+        "evidence_role": {
+          "enum": [
+            "IndependentMeasurement",
+            "DerivedFromIndependentMeasurements"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "time": {
+      "type": "object",
+      "required": [
+        "elapsed_hours",
+        "standard_uncertainty_hours",
+        "basis",
+        "evidence_role",
+        "calibration_ref",
+        "source_ref"
+      ],
+      "properties": {
+        "elapsed_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "standard_uncertainty_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "basis": {
+          "const": "FullCycle"
+        },
+        "evidence_role": {
+          "enum": [
+            "IndependentMeasurement",
+            "DerivedFromIndependentMeasurements"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineage_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_role": {
+                "const": "DerivedFromIndependentMeasurements"
+              }
+            },
+            "required": [
+              "evidence_role"
+            ]
+          },
+          "then": {
+            "required": [
+              "lineage_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "specimen_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "matched_pair_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required by the cross-record validator for RandomizedMatchedPair and ObservationalMatched designs; one baseline and one candidate record must share each pair reference."
+    }
+  },
+  "additionalProperties": false
+}
