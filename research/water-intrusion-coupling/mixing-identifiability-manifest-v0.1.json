@@ -32,11 +32,12 @@
   "evidence_status": {
     "snapshot_date": "2026-11-14",
     "synthetic_cases": 10,
-    "independent_fixture_oracle_cross_check": "pending",
-    "rust_unit_tests_authored": 6,
+    "independent_fixture_oracle_cross_check": "10_of_10_matched",
+    "rust_unit_tests_authored": 10,
     "native_rust_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
     "hosted_ci_exact_head": "pending",
     "physical_tracer_tests": "not_performed",
-    "raw_physical_measurements": "none"
+    "raw_physical_measurements": "none",
+    "independent_check_method": "separate JavaScript Gaussian-elimination implementation evaluated excitation rank, outlet observability and refusal semantics against the frozen oracle; Rust binary was not executed"
   }
 }
