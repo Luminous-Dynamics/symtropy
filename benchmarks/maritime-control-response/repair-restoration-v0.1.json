@@ -36,7 +36,7 @@
   "paradigm": {
     "repair_assertion_is_not_restoration": "A work order or technician statement records an intervention; it does not prove that a physical function was restored.",
     "matched_conditions": "Pre- and post-repair episodes must satisfy frozen load/speed/ambient/control-mode tolerances before a restoration comparison is eligible.",
-    "independent_measurement": "Every post-repair capability result requires a currently valid, calibrated measurement whose principle and dependency domain are outside the diagnostic evidence path.",
+    "independent_measurement": "Every post-repair capability result requires a currently valid, calibrated measurement whose principle and dependency domain are outside the diagnostic evidence path. The same independent reference measurement principle and dependency domain must be used for both pre-repair baseline and post-repair verification, preventing a measurement-method change from masquerading as repair effect.",
     "per_capability_non_compensation": "Required capabilities are reported separately. A pass for the repaired function cannot compensate for regression in another required function.",
     "causal_ceiling": "Even matched pre/post evidence without concurrent changes establishes an observed association only. Causal repair-effect claims require an appropriate controlled/counterfactual design."
   },
@@ -89,7 +89,11 @@
     "Every required non-target capability is checked for regression.",
     "No single aggregate score may compensate for a non-target capability regression.",
     "Concurrent changes must downgrade attribution to confounded; a before/after difference alone is not causal proof.",
-    "The evaluator always emits false for physical-restoration authorization, maintenance authorization and operating-restriction clearance."
+    "The evaluator always emits false for physical-restoration authorization, maintenance authorization and operating-restriction clearance.",
+    "Each measurement must bind observed_at and available_at, with observed_at no earlier than the episode start and available_at no later than episode end.",
+    "A Verified calibration state must reference a valid calibration-record SHA-256 digest.",
+    "Pre-repair and post-repair capability measurements must use the same independent reference measurement principle and dependency domain.",
+    "Both pre-repair baseline and post-repair verification paths must be independent of the diagnostic measurement principles and dependency domains."
   ],
   "comparators": [
     {
