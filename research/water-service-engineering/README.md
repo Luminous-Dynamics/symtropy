@@ -107,3 +107,8 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## Claim-scoped filter barrier assurance M0
+
+The new [FILTER_BARRIER_ASSURANCE_PROTOCOL_V0_1.md](./FILTER_BARRIER_ASSURANCE_PROTOCOL_V0_1.md) defines household, community and municipal assurance, backed by eight synthetic [cases](./filter-barrier-assurance-cases-v0.1.json), a separate [oracle](./filter-barrier-assurance-oracle-v0.1.json), Draft 2020-12 [schema](./filter-barrier-assurance.schema.json) and [manifest](./filter-barrier-assurance-manifest-v0.1.json). The Rust evaluator and CLI keep product claim qualification, current observation, bypass/media/sensor/maintenance state and laboratory sample evidence separate. The evaluator always refuses to assert potability or SANS compliance.
