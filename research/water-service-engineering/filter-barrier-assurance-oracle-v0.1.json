@@ -74,6 +74,15 @@
         "sample_evidence_disposition": "NOT_AVAILABLE",
         "potability_or_compliance_claim_allowed": false
       }
+    },
+    {
+      "case_id": "FBA-009-critical-sensor-calibration-expired",
+      "expected": {
+        "qualification_disposition": "UNKNOWN",
+        "current_operating_disposition": "UNKNOWN",
+        "sample_evidence_disposition": "NOT_AVAILABLE",
+        "potability_or_compliance_claim_allowed": false
+      }
     }
   ]
 }
