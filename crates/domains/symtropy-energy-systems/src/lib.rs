@@ -22,6 +22,7 @@ mod infrastructure_ir;
 mod module_contract;
 mod resilience;
 mod service_graph;
+mod standards_adapter;
 
 pub use change_impact::{
     ChangeImpactError, DependencyGraph, DerivedArtifact, InputChange, InputChangeReceipt,
@@ -55,6 +56,12 @@ pub use module_contract::{
     ConnectionEnvelope, DcPolarity, DcPort, ElectricalInterface, ElectricalInterfaceKind,
     EvidenceClaim, EvidencePolicy, ModuleClass, ModuleEvidenceClass, ModuleIdentity,
     ModulePort, PortContractError, PortDirection, PowerModule, QuantityRange,
+};
+pub use standards_adapter::{
+    compare_semantic_round_trip, AdapterError, AdapterRun, AdapterRunStatus,
+    ExtensionDisposition, ExtensionMapping, LossEntry, MappingOutcome, MappingProfile,
+    MappingRecord, SemanticAtom, SemanticRoundTripResult, SourceSemanticRef,
+    StandardPublicationStatus, StandardReference, TargetSemanticRef,
 };
 pub use service_graph::{
     GraphEvidence, GraphEvidenceState, GraphMaturity, GraphRevision, LoadCoverageStatus,
