@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-observational-target-trial-diagnostics-v0.1.json",
+  "title": "Observational maritime maintenance emulation diagnostics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "trial_id",
+    "data_snapshot_sha256",
+    "eligible_emulation_entry_count",
+    "independent_cluster_count",
+    "strategy_arm_counts",
+    "overlap",
+    "followup_completeness_fraction",
+    "assumption_assessments",
+    "negative_control_status",
+    "unit_timelines"
+  ],
+  "properties": {
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_snapshot_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "eligible_emulation_entry_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "independent_cluster_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "strategy_arm_counts": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "strategy_id",
+          "emulation_entry_count"
+        ],
+        "properties": {
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "emulation_entry_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "overlap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "common_support_fraction",
+        "minimum_arm_effective_sample_size",
+        "maximum_absolute_standardized_mean_difference",
+        "maximum_stabilized_weight"
+      ],
+      "properties": {
+        "common_support_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_arm_effective_sample_size": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_absolute_standardized_mean_difference": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_stabilized_weight": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "followup_completeness_fraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "assumption_assessments": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain",
+          "status",
+          "evidence_sha256",
+          "reviewer_ref"
+        ],
+        "properties": {
+          "domain": {
+            "enum": [
+              "consistency",
+              "conditional_exchangeability",
+              "positivity",
+              "no_interference",
+              "censoring_exchangeability",
+              "measurement_validity"
+            ]
+          },
+          "status": {
+            "enum": [
+              "supported",
+              "violated",
+              "unknown"
+            ]
+          },
+          "evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "reviewer_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "negative_control_status": {
+      "enum": [
+        "supported",
+        "violated",
+        "unknown"
+      ]
+    },
+    "unit_timelines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "emulation_unit_id",
+          "asset_id",
+          "strategy_id",
+          "eligible_at_seconds",
+          "strategy_assignment_at_seconds",
+          "followup_start_at_seconds",
+          "treatment_start_at_seconds",
+          "followup_end_at_seconds",
+          "followup_end_reason",
+          "baseline_covariates"
+        ],
+        "properties": {
+          "emulation_unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "eligible_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "strategy_assignment_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "followup_start_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "treatment_start_at_seconds": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "followup_end_at_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "followup_end_reason": {
+            "enum": [
+              "outcome",
+              "censoring",
+              "competing_event",
+              "administrative_end"
+            ]
+          },
+          "baseline_covariates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "covariate_id",
+                "available_at_seconds",
+                "evidence_sha256"
+              ],
+              "properties": {
+                "covariate_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "available_at_seconds": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "evidence_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
