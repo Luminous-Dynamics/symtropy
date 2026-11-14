@@ -6,9 +6,9 @@ version = 4
 name = "aeroweift-pnt-reachability-adapter"
 version = "0.1.0"
 dependencies = [
- "aeroweift-reachability-core",
+ "aeroweft-reachability-core",
 ]
 
 [[package]]
-name = "aeroweift-reachability-core"
+name = "aeroweft-reachability-core"
 version = "0.1.0"
