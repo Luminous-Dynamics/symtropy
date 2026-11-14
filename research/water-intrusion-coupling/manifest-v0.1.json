@@ -41,7 +41,14 @@
     "a_valid_chain_contract_is_not_a_qualified_physical_model",
     "no_chain_result_authorizes_potability_or_release",
     "synthetic_observation_markers_are_not_acquired_measurement_digests",
-    "modelled_observation_origin_cannot_pass_as_measured"
+    "modelled_observation_origin_cannot_pass_as_measured",
+    "chemical_fate_T0_requires_water_matrix_temperature_and_pH_for_parameter_transfer",
+    "reaction_kinetic_parameters_are_never_replaced_with_generic_literature_values_or_zero",
+    "unmeasured_residual_moiety_stream_never_becomes_zero",
+    "bulk_wall_and_tank_species_scope_must_match_the_selected_chemical_model",
+    "EPANET_MSX_EPANET_2_2_hydraulics_are_not_pressure_driven_water_hammer",
+    "dispersion_required_by_scenario_must_be_enabled_and_qualified",
+    "chemical_fate_arithmetic_pass_is_not_physical_chemical_qualification"
   ],
   "evidence_status_snapshot": {
     "snapshot_date": "2026-11-14",
@@ -51,8 +58,17 @@
     "native_cargo_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
     "model_or_solver_physical_qualification": "not_performed",
     "raw_physical_measurements_acquired": "none_in_this_t0_fixture",
-    "digest_semantics": "synthetic_fixture_markers_only_not_raw_data_or_model_output_SHA256"
+    "digest_semantics": "synthetic_fixture_markers_only_not_raw_data_or_model_output_SHA256",
+    "chemical_fate_t0_cases": 12,
+    "chemical_fate_source_level_oracle_replay": "pending_independent_replay",
+    "chemical_fate_native_rust_tests": "pending_exact_head_hosted_workflow",
+    "chemical_fate_field_lab_validation": "not_performed"
   },
   "digest_semantics": "output_digest and raw_data_digest_marker in T0 fixtures are synthetic_fixture_marker values, not hashes of source bytes; production must use SHA-256 over exact serialized stage outputs and raw observations",
-  "observation_evidence_semantics": "all case rows are synthetic_fixture. observation_origin=measurement_channel means a future required channel, not acquired data. No actual measurement is present."
+  "observation_evidence_semantics": "all case rows are synthetic_fixture. observation_origin=measurement_channel means a future required channel, not acquired data. No actual measurement is present.",
+  "chemical_fate_cases_file": "chemical-fate-t0-cases-v0.1.json",
+  "chemical_fate_oracle_file": "chemical-fate-t0-oracle-v0.1.json",
+  "chemical_fate_comparator_register_file": "chemical-fate-comparator-register-v0.1.json",
+  "chemical_fate_scenario_count": 12,
+  "chemical_fate_evidence_ceiling": "analytical_reaction_and_model_scope_contracts_only_no_physical_chemical_qualification"
 }
