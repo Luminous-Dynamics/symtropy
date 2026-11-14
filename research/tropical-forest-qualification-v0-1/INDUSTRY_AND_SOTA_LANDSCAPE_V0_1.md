@@ -119,7 +119,7 @@ This is the central bridge between monitoring vendors and ecological process mod
 
 A product that renders more layers or reports more alerts is not automatically more useful. Compare whether the system changes a decision or reduces expected loss at equal field cost, crew-hours, delay, access, and ecological disturbance.
 
-Reuse Sol-Atlas's existing EVSI and spatial-sampling work. Do not create another EVSI kernel.
+Reuse Sol-Atlas's existing EVSI and spatial-sampling work and Symtropy #2171. Do not create another EVSI kernel. The forest-specific [decision-value tournament #5223](https://github.com/Luminous-Dynamics/symtropy/issues/5223) tests the distinction explicitly: a high-entropy measurement can have zero EVSI when the loss matrix is state-invariant, while a moderate-uncertainty observation can be valuable when it changes the preferred action. Its public v0.1 corpus includes worked arithmetic, but does not yet measure an implemented policy or real conservation outcome.
 
 ### E. Community / rights / custody as first-class interfaces
 
