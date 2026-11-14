@@ -39,7 +39,9 @@
     "measured_observation_requires_raw_digest_calibration_and_valid_method",
     "a_model_output_is_never_relabelled_as_a_sensor_or_lab_observation",
     "a_valid_chain_contract_is_not_a_qualified_physical_model",
-    "no_chain_result_authorizes_potability_or_release"
+    "no_chain_result_authorizes_potability_or_release",
+    "synthetic_observation_markers_are_not_acquired_measurement_digests",
+    "modelled_observation_origin_cannot_pass_as_measured"
   ],
   "evidence_status_snapshot": {
     "snapshot_date": "2026-11-14",
@@ -49,5 +51,7 @@
     "upstream_model_qualification": "not_performed",
     "physical_t1_chain_validation": "not_performed",
     "potable_water_health_or_sans_claim": "not_performed"
-  }
+  },
+  "digest_semantics": "synthetic_fixture_marker_only; not hashes of raw observations or actual model outputs",
+  "observation_evidence_semantics": "all case observation rows are synthetic_fixture; observation_origin identifies the represented source class; no actual physical measurement is claimed"
 }
