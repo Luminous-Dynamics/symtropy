@@ -1,0 +1,276 @@
+{
+  "schema_version": "adaptive-recovery-regret-v0.1",
+  "decision_profile_id": "forest_salvage_synthetic_case_v0.1",
+  "case_id": "ARR-FOREST-001",
+  "status": "synthetic-logic-fixture",
+  "scenario_count": 5,
+  "policy_count": 6,
+  "units": {
+    "scenario_cost": "synthetic_eur_cents_per_scenario",
+    "regret": "synthetic_eur_cents_per_scenario",
+    "inspection": "synthetic_eur_cents"
+  },
+  "scenario_semantics": {
+    "probabilities_supplied": false,
+    "aggregation": "unweighted scenario sum; not an expected-value estimate or probability distribution",
+    "regret_definition": "chosen eligible operation cost plus incurred inspection cost minus cheapest gate-PASS operation cost in that scenario",
+    "infeasible_policy": "any selected operation with BLOCK/UNKNOWN gate makes the policy ineligible for the scenario set",
+    "observation_model": "initial decisions may depend only on initial_observation; a post_inspection_observation is accessible only after choosing inspect"
+  },
+  "claim_ceiling": {
+    "expected_actuation": false,
+    "real_world_measurements": false,
+    "field_accuracy_claimed": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "scenarios": [
+    {
+      "id": "S01_ACCESS_CLEAR_LOW_HANDLING",
+      "initial_observation": "access_clear",
+      "post_inspection_observation": "handling_low",
+      "action_options": {
+        "ground": {
+          "cost_cents": 100,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_GROUND_ACCESS_PASS"
+        },
+        "cable": {
+          "cost_cents": 180,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_CABLE_ROUTE_PASS"
+        },
+        "airlift": {
+          "cost_cents": 240,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_AIRLIFT_ROUTE_PASS"
+        },
+        "retain": {
+          "cost_cents": 300,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_OPTION"
+        }
+      }
+    },
+    {
+      "id": "S02_ACCESS_CLEAR_HIGH_HANDLING",
+      "initial_observation": "access_clear",
+      "post_inspection_observation": "handling_high",
+      "action_options": {
+        "ground": {
+          "cost_cents": 250,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_GROUND_ACCESS_PASS_HIGH_HANDLING"
+        },
+        "cable": {
+          "cost_cents": 180,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_CABLE_ROUTE_PASS"
+        },
+        "airlift": {
+          "cost_cents": 240,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_AIRLIFT_ROUTE_PASS"
+        },
+        "retain": {
+          "cost_cents": 300,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_OPTION"
+        }
+      }
+    },
+    {
+      "id": "S03_REMOTE_ROUGH_ACCESS",
+      "initial_observation": "remote_rough",
+      "post_inspection_observation": null,
+      "action_options": {
+        "ground": {
+          "cost_cents": 250,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_GROUND_ACCESS_HIGH_COST"
+        },
+        "cable": {
+          "cost_cents": 100,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_CABLE_ROUTE_PASS"
+        },
+        "airlift": {
+          "cost_cents": 220,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_AIRLIFT_ROUTE_PASS"
+        },
+        "retain": {
+          "cost_cents": 300,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_OPTION"
+        }
+      }
+    },
+    {
+      "id": "S04_WET_GROUND_CABLE_ONLY",
+      "initial_observation": "cable_only",
+      "post_inspection_observation": null,
+      "action_options": {
+        "ground": {
+          "cost_cents": 120,
+          "gate_status": "BLOCK",
+          "reason_code": "GROUND_ACCESS_BLOCKED_BY_SYNTHETIC_WET_SOIL_LIMIT"
+        },
+        "cable": {
+          "cost_cents": 150,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_CABLE_ROUTE_PASS"
+        },
+        "airlift": {
+          "cost_cents": 230,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_AIRLIFT_ROUTE_PASS"
+        },
+        "retain": {
+          "cost_cents": 300,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_OPTION"
+        }
+      }
+    },
+    {
+      "id": "S05_HABITAT_RETENTION_REQUIRED",
+      "initial_observation": "habitat_sensitive",
+      "post_inspection_observation": null,
+      "action_options": {
+        "ground": {
+          "cost_cents": 100,
+          "gate_status": "BLOCK",
+          "reason_code": "ECOLOGICAL_RETENTION_GATE_BLOCKS_GROUND_RECOVERY"
+        },
+        "cable": {
+          "cost_cents": 150,
+          "gate_status": "BLOCK",
+          "reason_code": "ECOLOGICAL_RETENTION_GATE_BLOCKS_CABLE_RECOVERY"
+        },
+        "airlift": {
+          "cost_cents": 220,
+          "gate_status": "BLOCK",
+          "reason_code": "ECOLOGICAL_RETENTION_GATE_BLOCKS_AIRLIFT"
+        },
+        "retain": {
+          "cost_cents": 300,
+          "gate_status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_REQUIRED"
+        }
+      }
+    }
+  ],
+  "policies": [
+    {
+      "id": "fixed_ground",
+      "initial_decisions": {
+        "access_clear": "ground",
+        "remote_rough": "ground",
+        "cable_only": "ground",
+        "habitat_sensitive": "ground"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": false,
+      "expected_ineligible_scenario_ids": [
+        "S04_WET_GROUND_CABLE_ONLY",
+        "S05_HABITAT_RETENTION_REQUIRED"
+      ],
+      "expected_total_scenario_cost_cents": null,
+      "expected_worst_regret_cents": null,
+      "expected_total_regret_cents": null
+    },
+    {
+      "id": "fixed_cable",
+      "initial_decisions": {
+        "access_clear": "cable",
+        "remote_rough": "cable",
+        "cable_only": "cable",
+        "habitat_sensitive": "cable"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": false,
+      "expected_ineligible_scenario_ids": [
+        "S05_HABITAT_RETENTION_REQUIRED"
+      ],
+      "expected_total_scenario_cost_cents": null,
+      "expected_worst_regret_cents": null,
+      "expected_total_regret_cents": null
+    },
+    {
+      "id": "fixed_airlift",
+      "initial_decisions": {
+        "access_clear": "airlift",
+        "remote_rough": "airlift",
+        "cable_only": "airlift",
+        "habitat_sensitive": "airlift"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": false,
+      "expected_ineligible_scenario_ids": [
+        "S05_HABITAT_RETENTION_REQUIRED"
+      ],
+      "expected_total_scenario_cost_cents": null,
+      "expected_worst_regret_cents": null,
+      "expected_total_regret_cents": null
+    },
+    {
+      "id": "retain_all",
+      "initial_decisions": {
+        "access_clear": "retain",
+        "remote_rough": "retain",
+        "cable_only": "retain",
+        "habitat_sensitive": "retain"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": true,
+      "expected_ineligible_scenario_ids": [],
+      "expected_total_scenario_cost_cents": 1500,
+      "expected_worst_regret_cents": 200,
+      "expected_total_regret_cents": 670
+    },
+    {
+      "id": "visible_context_adaptive",
+      "initial_decisions": {
+        "access_clear": "ground",
+        "remote_rough": "cable",
+        "cable_only": "cable",
+        "habitat_sensitive": "retain"
+      },
+      "post_inspection_decisions": {},
+      "inspection_cost_cents": 0,
+      "expected_feasible": true,
+      "expected_ineligible_scenario_ids": [],
+      "expected_total_scenario_cost_cents": 900,
+      "expected_worst_regret_cents": 70,
+      "expected_total_regret_cents": 70
+    },
+    {
+      "id": "inspect_then_adapt",
+      "initial_decisions": {
+        "access_clear": "inspect",
+        "remote_rough": "cable",
+        "cable_only": "cable",
+        "habitat_sensitive": "retain"
+      },
+      "post_inspection_decisions": {
+        "handling_low": "ground",
+        "handling_high": "cable"
+      },
+      "inspection_cost_cents": 40,
+      "expected_feasible": true,
+      "expected_ineligible_scenario_ids": [],
+      "expected_total_scenario_cost_cents": 910,
+      "expected_worst_regret_cents": 40,
+      "expected_total_regret_cents": 80
+    }
+  ],
+  "expected_frontier": [
+    "inspect_then_adapt",
+    "visible_context_adaptive"
+  ],
+  "algorithm_id": "scenario-observation-regret-frontier-v0.1"
+}

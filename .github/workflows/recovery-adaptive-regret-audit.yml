@@ -1,0 +1,98 @@
+name: Recovery Adaptive Regret Audit
+
+on:
+  push:
+    branches: ["feat/recovery-adaptive-regret-v0-1"]
+    paths:
+      - "docs/tech/recovery-adaptive-regret-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_ADAPTIVE_REGRET_V0_1.md"
+      - "tools/recovery-adaptive-regret-audit/**"
+      - ".github/workflows/recovery-adaptive-regret-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/recovery-adaptive-regret-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_ADAPTIVE_REGRET_V0_1.md"
+      - "tools/recovery-adaptive-regret-audit/**"
+      - ".github/workflows/recovery-adaptive-regret-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-adaptive-regret-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adaptive-regret-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Run independent scenario-policy tests
+        run: cargo test --manifest-path tools/recovery-adaptive-regret-audit/Cargo.toml
+      - name: Evaluate forest policies on exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-adaptive-regret-audit/Cargo.toml -- \
+            docs/tech/recovery-adaptive-regret-corpus-v0.1.json \
+            --source-commit "$source_commit" > recovery-adaptive-regret-forest-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 5
+            and .policy_count == 6
+            and .operation_action_count == 4
+            and .feasible_policy_count == 3
+            and .frontier == ["inspect_then_adapt", "visible_context_adaptive"]
+            and .expected_frontier_matches == true
+            and .all_plan_only == true
+            and .aggregation_semantics == "unweighted synthetic scenario sums; not a probability, expected value or field forecast"
+            and any(.policy_results[]; .policy_id == "inspect_then_adapt" and .total_unweighted_scenario_cost_cents == 910 and .worst_case_regret_cents == 40 and .total_unweighted_regret_cents == 80)
+            and any(.policy_results[]; .policy_id == "visible_context_adaptive" and .total_unweighted_scenario_cost_cents == 900 and .worst_case_regret_cents == 70 and .total_unweighted_regret_cents == 70)
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+          ' recovery-adaptive-regret-forest-receipt.json
+      - name: Evaluate PV policies on exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-adaptive-regret-audit/Cargo.toml -- \
+            docs/tech/recovery-adaptive-regret-pv-corpus-v0.1.json \
+            --source-commit "$source_commit" > recovery-adaptive-regret-pv-receipt.json
+          jq -e '
+            .result == "pass"
+            and .profile_id == "photovoltaic_second_life_synthetic_v0.1"
+            and .scenario_count == 3
+            and .policy_count == 3
+            and .operation_action_count == 3
+            and .feasible_policy_count == 2
+            and .frontier == ["inspect_then_route", "recycle_only"]
+            and .expected_frontier_matches == true
+            and .all_plan_only == true
+            and any(.policy_results[]; .policy_id == "inspect_then_route" and .total_unweighted_scenario_cost_cents == 550 and .worst_case_regret_cents == 60 and .total_unweighted_regret_cents == 120)
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+          ' recovery-adaptive-regret-pv-receipt.json
+      - name: Upload exact-input adaptive-policy receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-adaptive-regret-receipts
+          path: |
+            recovery-adaptive-regret-forest-receipt.json
+            recovery-adaptive-regret-pv-receipt.json
+          if-no-files-found: error
