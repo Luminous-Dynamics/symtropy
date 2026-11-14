@@ -103,10 +103,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let unit_counts = [16usize, 32, 64, 128, 256, 1_000, 10_000];
     for unit_count in unit_counts {
         let trial = synthetic_trial(unit_count);
-        let config = MonteCarloRandomizationConfig {
-            seed_u64: SEED,
-            draw_count: DRAW_COUNT,
-        };
+        let config = MonteCarloRandomizationConfig::new(
+            SEED,
+            DRAW_COUNT,
+            "d".repeat(64),
+            format!("benchmark-preregistration://monte-carlo-v0.1/{unit_count}"),
+        );
 
         let started = Instant::now();
         let result = estimate_monte_carlo_randomization_p_value(&trial, config)?;
@@ -123,6 +125,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "algorithm": result.algorithm,
                 "unit_draws": unit_draws,
                 "elapsed_micros": elapsed.as_micros(),
+                "analysis_plan_sha256": result.analysis_plan_sha256,
+                "preregistration_record_ref": result.preregistration_record_ref,
+                "seed_commitment_sha256": result.seed_commitment_sha256,
+                "configuration_sha256": result.configuration_sha256,
                 "draws_per_second": DRAW_COUNT as f64 / seconds,
                 "unit_draws_per_second": unit_draws as f64 / seconds,
                 "allocation_constraint_violations": result.allocation_constraint_violations,
