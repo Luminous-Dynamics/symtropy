@@ -81,6 +81,7 @@ pub struct ObservationalTargetTrialProtocol {
     pub causal_graph_sha256: String,
     pub propensity_model_sha256: String,
     pub propensity_fit_data_sha256: String,
+    pub propensity_fit_covariate_ids: Vec<String>,
     pub propensity_floor: f64,
     pub propensity_ceiling: f64,
     pub time_zero_tolerance_seconds: f64,
@@ -143,6 +144,8 @@ pub struct ObservationalTargetTrialUnit {
     /// Probability of assignment to the repair strategy, estimated from
     /// pre-treatment covariates only and bound to the protocol model/data digests.
     pub propensity_repair: f64,
+    pub propensity_evidence_sha256: String,
+    pub propensity_available_at_seconds: f64,
     pub baseline_covariates: Vec<BaselineCovariateMeasurement>,
     pub followup_status: FollowupStatus,
     pub censoring_at_seconds: Option<f64>,
@@ -182,6 +185,7 @@ pub enum TargetTrialNotIdentifiedReason {
     OutcomeNotInFollowupWindow,
     OutcomeEvidenceUnavailable,
     OutcomeMeasurementContractMismatch,
+    PropensityEvidenceUnavailable,
     AssumptionReviewReferenceMissing,
 }
 
@@ -395,6 +399,20 @@ impl ObservationalTargetTrialProtocol {
                 ));
             }
         }
+        let mut propensity_covariates = BTreeSet::new();
+        for id in &self.propensity_fit_covariate_ids {
+            if id.trim().is_empty() || !propensity_covariates.insert(id.as_str()) {
+                return Err(TargetTrialValidationError::InvalidProtocol(
+                    "propensity-fit covariate IDs must be non-empty and unique".into(),
+                ));
+            }
+        }
+        if propensity_covariates != covariates.iter().map(|id| id.as_str()).collect() {
+            return Err(TargetTrialValidationError::InvalidProtocol(
+                "propensity model must use exactly the declared pre-treatment baseline covariates".into(),
+            ));
+        }
+
         let mut strata = BTreeSet::new();
         for stratum in &self.strata {
             if stratum.stratum_id.trim().is_empty()
@@ -472,6 +490,9 @@ impl ObservationalTargetTrialDataset {
             }
             if !unit.propensity_repair.is_finite()
                 || !(0.0..=1.0).contains(&unit.propensity_repair)
+                || !is_sha256_hex(&unit.propensity_evidence_sha256)
+                || !unit.propensity_available_at_seconds.is_finite()
+                || unit.propensity_available_at_seconds < 0.0
             {
                 return Err(TargetTrialValidationError::InvalidPropensity(
                     unit.unit_id.clone(),
@@ -525,6 +546,8 @@ impl ObservationalTargetTrialDataset {
                     || !outcome.available_at_seconds.is_finite()
                     || !outcome.calibration_valid_from_seconds.is_finite()
                     || !outcome.calibration_valid_until_seconds.is_finite()
+                    || outcome.calibration_valid_from_seconds < 0.0
+                    || outcome.calibration_valid_until_seconds < outcome.calibration_valid_from_seconds
                     || !outcome.uncertainty_abs.is_finite()
                     || outcome.uncertainty_abs < 0.0
                 {
@@ -602,6 +625,11 @@ pub fn evaluate_observational_target_trial_design(
             || unit.propensity_repair > protocol.propensity_ceiling
         {
             reasons.insert(TargetTrialNotIdentifiedReason::PropensityOutsideDeclaredSupport);
+        }
+        if unit.propensity_available_at_seconds
+            > unit_time_zero + protocol.time_zero_tolerance_seconds
+        {
+            reasons.insert(TargetTrialNotIdentifiedReason::PropensityEvidenceUnavailable);
         }
 
         let observed_covariates = unit
@@ -910,6 +938,10 @@ mod tests {
             causal_graph_sha256: digest('c'),
             propensity_model_sha256: digest('d'),
             propensity_fit_data_sha256: digest('e'),
+            propensity_fit_covariate_ids: vec![
+                "baseline_severity".into(),
+                "load_band_score".into(),
+            ],
             propensity_floor: 0.05,
             propensity_ceiling: 0.95,
             time_zero_tolerance_seconds: 0.01,
@@ -991,6 +1023,8 @@ mod tests {
                     assignment_at_seconds: 100.0,
                     followup_start_seconds: 100.0,
                     propensity_repair: propensity,
+                    propensity_evidence_sha256: digest_from_u64(5_000 + suffix),
+                    propensity_available_at_seconds: 95.0,
                     baseline_covariates: vec![
                         BaselineCovariateMeasurement {
                             covariate_id: "baseline_severity".into(),
@@ -1098,6 +1132,16 @@ mod tests {
     }
 
     #[test]
+    fn propensity_evidence_available_after_time_zero_is_not_identified() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0].propensity_available_at_seconds = 101.0;
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::PropensityEvidenceUnavailable
+        ));
+    }
+
+    #[test]
     fn propensity_outside_preregistered_support_is_not_identified() {
         let (mut dataset, _) = fixture();
         dataset.units[0].propensity_repair = 0.99;
@@ -1190,6 +1234,6 @@ mod tests {
         assert_eq!(protocol["schema_version"], OBSERVATIONAL_TARGET_TRIAL_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["scope"]["causal_estimates_enabled"], false);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 10);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 13);
     }
 }
