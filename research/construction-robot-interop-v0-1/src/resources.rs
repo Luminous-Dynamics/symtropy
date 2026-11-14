@@ -568,11 +568,36 @@ impl ReservationBook {
             return Ok(());
         }
 
-        self.current_site_epoch = new_site_epoch;
-        for record in self.reservations.values_mut() {
-            if record.state == ReservationState::Active {
-                record.state = ReservationState::Invalidated;
+        // Use the active-resource index rather than walking historical reservation
+        // records. Preflight every active ID before mutating so index corruption is a
+        // typed failure and cannot leave a partially invalidated epoch transition.
+        let active_ids: Vec<(String, String)> = self
+            .active_by_resource
+            .iter()
+            .flat_map(|(resource_id, reservation_ids)| {
+                reservation_ids
+                    .iter()
+                    .map(move |reservation_id| (resource_id.clone(), reservation_id.clone()))
+            })
+            .collect();
+        for (resource_id, reservation_id) in &active_ids {
+            let record = self
+                .reservations
+                .get(reservation_id)
+                .ok_or_else(|| ReservationError::IndexInconsistent(reservation_id.clone()))?;
+            if record.state != ReservationState::Active
+                || record.request.resource_id != *resource_id
+            {
+                return Err(ReservationError::IndexInconsistent(reservation_id.clone()));
             }
+        }
+
+        self.current_site_epoch = new_site_epoch;
+        for (_, reservation_id) in active_ids {
+            self.reservations
+                .get_mut(&reservation_id)
+                .expect("active index preflight validated reservation")
+                .state = ReservationState::Invalidated;
         }
         self.active_by_resource.clear();
         self.time_buckets.clear();
@@ -1418,6 +1443,52 @@ mod tests {
             book.reserve(request("r1", "robot-1", 200, 300, 350, 1), 200),
             Err(ReservationError::ReservationIdConsumed)
         );
+    }
+
+    #[test]
+    fn site_epoch_invalidation_scans_active_index_not_historical_reservations() {
+        let mut book = book(u32::MAX);
+        for index in 0..2_000_u64 {
+            let start = 10_000 + index * 10;
+            let item = request(
+                &format!("history-{index}"),
+                &format!("robot-{index}"),
+                start,
+                start + 5,
+                start + 100,
+                1,
+            );
+            book.reserve(item, 0).expect("historical reservation");
+        }
+        for index in 0..1_900_u64 {
+            book.release(
+                &format!("history-{index}"),
+                &format!("robot-{index}"),
+            )
+            .expect("owner release");
+        }
+
+        assert_eq!(
+            book.active_reservation_count_for_resource("work-zone-A"),
+            Ok(100)
+        );
+        book.advance_site_epoch("site-epoch-2")
+            .expect("active-only epoch invalidation");
+
+        assert_eq!(
+            book.active_reservation_count_for_resource("work-zone-A"),
+            Ok(0)
+        );
+        assert_eq!(book.reservations.len(), 2_000);
+        assert_eq!(book.state("history-0"), Some(ReservationState::Released));
+        assert_eq!(
+            book.state("history-1999"),
+            Some(ReservationState::Invalidated)
+        );
+        assert!(book.expiry_index.is_empty());
+        assert!(book.time_buckets.is_empty());
+        assert!(book.global_by_resource.is_empty());
+        assert!(book.active_by_resource.is_empty());
     }
 
     #[test]
