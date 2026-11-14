@@ -1613,7 +1613,9 @@ mod tests {
     fn successful_residual_receipt_exposes_conservative_temporal_bounds() {
         let pair = response_pair();
         let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
-        assert_eq!(result.status, ResponseStatus::MismatchOutsideCalibratedEnvelope);
+        // The configured uncertainty envelope admits this residual; this test
+        // verifies the receipt's conservative time bounds, not a fault mismatch.
+        assert_eq!(result.status, ResponseStatus::WithinCalibratedEnvelope);
         let evidence = result.temporal_evidence.unwrap();
         assert_eq!(evidence.command_available_earliest_seconds, 0.45);
         assert_eq!(evidence.prediction_latest_seconds, 0.45);
