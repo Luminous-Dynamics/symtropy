@@ -1,0 +1,65 @@
+name: water-mixing-design-search-t0
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/water-mixing-design-search-t0.yml"
+      - "tools/water-service-t0/**"
+      - "research/water-intrusion-coupling/mixing-design-search-t0-*.json"
+      - "research/water-intrusion-coupling/MIXING_DESIGN_SEARCH_V0_1.md"
+  push:
+    branches:
+      - main
+      - research/water-mixing-design-search-t0-v0.1
+    paths:
+      - ".github/workflows/water-mixing-design-search-t0.yml"
+      - "tools/water-service-t0/**"
+      - "research/water-intrusion-coupling/mixing-design-search-t0-*.json"
+      - "research/water-intrusion-coupling/MIXING_DESIGN_SEARCH_V0_1.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-mixing-design-search-t0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-design-search-t0:
+    name: Rust format, tests, clippy and exhaustive subset oracle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/water-service-t0/Cargo.toml --all -- --check
+
+      - name: Run native Rust tests
+        run: cargo test --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-design-search-t0
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-design-search-t0 -- -D warnings
+
+      - name: Run exhaustive subset search and oracle replay
+        env:
+          WATER_MIXING_SEARCH_T0_REVISION: ${{ github.sha }}
+        run: |
+          cargo run --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-design-search-t0 -- \
+            research/water-intrusion-coupling/mixing-design-search-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/mixing-design-search-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/mixing-design-search-t0-manifest-v0.1.json \
+            artifacts/water-mixing-design-search-t0/receipt.json
+
+      - name: Archive synthetic subset-search receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-mixing-design-search-t0-${{ github.sha }}
+          path: artifacts/water-mixing-design-search-t0/receipt.json
+          if-no-files-found: warn

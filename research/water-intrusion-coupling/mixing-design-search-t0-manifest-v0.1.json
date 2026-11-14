@@ -1,0 +1,12 @@
+{
+  "schema_version": "mixing-design-search-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-DESIGN-SEARCH-001",
+  "block_count": 5,
+  "block_ids": [
+    "A-inlet-one",
+    "B-inlet-two",
+    "C-nuisance-one-calibration",
+    "D-nuisance-two-calibration",
+    "E-high-information-low-discrimination"
+  ]
+}
