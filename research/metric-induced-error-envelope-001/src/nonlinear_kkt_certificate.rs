@@ -62,14 +62,16 @@ pub enum NewtonKantorovichInconclusiveReasonV1 {
     ContractionIsNotStrict,
 }
 
-/// Result status. INCONCLUSIVE is distinct from invalid input.
+/// Result status is conditional on the validity of both supplied upper bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NewtonKantorovichStatusV1 {
-    CertifiedLocalRoot,
+    ConditionalLocalRootCertificate,
     Inconclusive(NewtonKantorovichInconclusiveReasonV1),
 }
 
-/// Replayable scalar result tied to the caller-supplied evidence identities.
+/// Replayable scalar result tied to caller-supplied evidence identities.
+/// ConditionalLocalRootCertificate means the scalar inequalities hold assuming
+/// both upper-bound records are sound; this module does not authenticate them.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NewtonKantorovichReceiptV1 {
     pub problem_id: String,
@@ -232,7 +234,7 @@ pub fn certify_newton_kantorovich_local_root(
             NewtonKantorovichInconclusiveReasonV1::ContractionFactorExceedsProfile,
         )
     } else {
-        NewtonKantorovichStatusV1::CertifiedLocalRoot
+        NewtonKantorovichStatusV1::ConditionalLocalRootCertificate
     };
 
     Ok(NewtonKantorovichReceiptV1 {
@@ -283,7 +285,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             receipt.status,
-            NewtonKantorovichStatusV1::CertifiedLocalRoot
+            NewtonKantorovichStatusV1::ConditionalLocalRootCertificate
         );
 
         let radius = receipt.local_solution_radius.unwrap();
@@ -335,7 +337,7 @@ mod tests {
             NewtonKantorovichProfileV1::default(),
         )
         .unwrap();
-        assert_eq!(receipt.status, NewtonKantorovichStatusV1::CertifiedLocalRoot);
+        assert_eq!(receipt.status, NewtonKantorovichStatusV1::ConditionalLocalRootCertificate);
         assert_eq!(receipt.local_solution_radius, Some(0.4));
         assert_eq!(receipt.contraction_factor, Some(0.0));
     }
@@ -347,7 +349,7 @@ mod tests {
             NewtonKantorovichProfileV1::default(),
         )
         .unwrap();
-        assert_eq!(receipt.status, NewtonKantorovichStatusV1::CertifiedLocalRoot);
+        assert_eq!(receipt.status, NewtonKantorovichStatusV1::ConditionalLocalRootCertificate);
         assert_eq!(receipt.local_solution_radius, Some(0.0));
         assert_eq!(receipt.contraction_factor, Some(0.0));
     }
