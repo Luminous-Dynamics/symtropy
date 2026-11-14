@@ -625,6 +625,58 @@ mod tests {
         assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
     }
 
+
+    #[test]
+    fn changed_module_configuration_changes_mapping_graph_and_build_lock_digests() {
+        let document = doc(RelationshipDirection::Directed);
+        let original_profile = profile();
+        let mut changed_profile = profile();
+        changed_profile.object_module_identities.insert(
+            "source:grid".into(),
+            crate::ModuleIdentity::new(
+                "module:grid-inverter",
+                "hardware:R2",
+                "sha256:replacement-configuration",
+                true,
+            ).unwrap(),
+        );
+
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &original_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &changed_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+
+        assert_eq!(
+            original.receipt().source_document_digest(),
+            changed.receipt().source_document_digest()
+        );
+        assert_ne!(
+            original.receipt().mapping_profile_digest(),
+            changed.receipt().mapping_profile_digest()
+        );
+        assert_ne!(
+            original.receipt().service_graph_payload_digest(),
+            changed.receipt().service_graph_payload_digest()
+        );
+        assert_ne!(
+            original.receipt().build_lock_digest(),
+            changed.receipt().build_lock_digest()
+        );
+        assert_eq!(
+            changed.compilation().graph().node("source:grid").unwrap()
+                .module_identity().unwrap().configuration_digest(),
+            "sha256:replacement-configuration"
+        );
+    }
+
     #[test]
     fn changed_dependency_lock_digest_changes_build_lock_digest() {
         let document = doc(RelationshipDirection::Directed);
