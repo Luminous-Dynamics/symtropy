@@ -1,0 +1,175 @@
+{
+  "schema_version": "water-mixing-benchmark-source-register-v0.1",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "evidence_date": "2026-11-14",
+  "sources": [
+    {
+      "source_id": "EPANET-2.2",
+      "title": "EPANET 2.2 analysis algorithms",
+      "url": "https://usepa.github.io/EPANET2.2/12_analysis_algorithms.html",
+      "evidence_class": "software_reference",
+      "role": "network-scale hydraulic and water-quality reference; complete junction mixing and tank model baselines",
+      "availability": "public_documentation",
+      "limitations": [
+        "not physical junction mixing truth",
+        "tank idealizations require physical qualification"
+      ]
+    },
+    {
+      "source_id": "HO-2008",
+      "title": "Solute Mixing Models for Water-Distribution Pipe Networks",
+      "url": "https://doi.org/10.1061/(ASCE)0733-9429(2008)134:9(1236)",
+      "evidence_class": "analytical_reduced_order",
+      "role": "junction bulk-mixing comparator and bounds",
+      "availability": "publication",
+      "limitations": [
+        "applicability depends on geometry and flow regime",
+        "not a substitute for held-out physical tracer validation"
+      ]
+    },
+    {
+      "source_id": "SHAO-2014",
+      "title": "Experimental testing and modeling analysis of solute mixing at water distribution pipe junctions",
+      "url": "https://doi.org/10.1016/j.watres.2014.02.053",
+      "evidence_class": "published_physical_experiment",
+      "role": "junction geometry/flow mixing comparator",
+      "availability": "publication; raw-data access to be checked",
+      "limitations": [
+        "published evidence is not automatically an open raw-data corpus"
+      ]
+    },
+    {
+      "source_id": "CROWTHER-DANDY-2012",
+      "title": "Model comparisons for tracer experiments at a clear water storage tank",
+      "url": "https://doi.org/10.7158/W10-835.2012",
+      "evidence_class": "published_physical_experiment",
+      "role": "tank RTD and compartment/CFD comparator",
+      "availability": "publication; raw-data access to be checked",
+      "limitations": [
+        "single studied tank; do not generalize model ranking universally"
+      ]
+    },
+    {
+      "source_id": "WEBER-2026",
+      "title": "Modeling Incomplete Solute Mixing at Pipe Junctions in Water Distribution Networks: Parametric CFD Simulations and a Predictive Regression Approach",
+      "url": "https://doi.org/10.1061/JHEND8.HYENG-14715",
+      "evidence_class": "CFD_and_reduced_order_regression",
+      "role": "2026 geometry-aware cross-junction regression comparator",
+      "availability": "published online 2026-09-19; supporting data/models available on reasonable request",
+      "limitations": [
+        "full reproduction requires access to author data/model",
+        "paper scope is cross junctions and declared parameter domain"
+      ]
+    },
+    {
+      "source_id": "OPENFOAM-SCALARTRANSPORT-2606",
+      "title": "OpenFOAM v2606 scalar transport function object",
+      "url": "https://doc.openfoam.com/2606/tools/post-processing/function-objects/solvers/scalarTransport/",
+      "evidence_class": "software_reference",
+      "role": "open scalar transport/CFD comparator",
+      "availability": "public_documentation",
+      "limitations": [
+        "boundedness and accuracy depend on numerical scheme and configuration",
+        "must record exact version, mesh and scheme"
+      ]
+    },
+    {
+      "source_id": "WATERGEMS-ENGINE-COMPAT",
+      "title": "Bentley HAMMER 2026 EPANET feature compatibility documentation",
+      "url": "https://docs.bentley.com/LiveContent/web/OpenFlows%20Water%20-%20HAMMER-v2026/Help/en/topics/1481500/GUID-6F646F4A-759E-4CD2-A974-69973C8A9F50.html",
+      "evidence_class": "commercial_software_reference",
+      "role": "commercial network engine/version compatibility comparator",
+      "availability": "public_product_documentation",
+      "limitations": [
+        "record exact engine compatibility mode and algorithm version",
+        "feature matrix is not an independent physical mixing validation"
+      ]
+    },
+    {
+      "source_id": "EXETER-WDN-BENCHMARKS",
+      "title": "University of Exeter Centre for Water Systems benchmark problems",
+      "url": "https://www.exeter.ac.uk/research/centres/cws/resources/benchmarks/",
+      "evidence_class": "network_model_benchmark",
+      "role": "network-scale EPANET input and cross-network integration tests",
+      "availability": "public_benchmark_page_and_linked_inputs",
+      "limitations": [
+        "network topology/operation benchmarks are not physical tracer truth"
+      ]
+    },
+    {
+      "source_id": "DITEC-WDN",
+      "title": "DiTEC-WDN: A Large-Scale Dataset of Hydraulic Scenarios across Multiple Water Distribution Networks",
+      "url": "https://doi.org/10.1038/s41597-025-06026-0",
+      "evidence_class": "synthetic_hydraulic_dataset",
+      "role": "large-scale network-level generalization, scenario and data-pipeline benchmark",
+      "availability": "public_dataset; verify licence and exact artifacts at ingestion",
+      "limitations": [
+        "36,000 simulated scenarios and graph states are not physical junction/tank tracer measurements"
+      ]
+    },
+    {
+      "source_id": "ENET-FLUIDLAB",
+      "title": "Politecnico di Milano FluidLab E-NET experimental facilities",
+      "url": "https://www.fluidlab.polimi.it/exp/",
+      "evidence_class": "physical_testbed_facility",
+      "role": "candidate host network for future controlled non-potable T1 trials",
+      "availability": "facility contact and EPANET input file listed publicly",
+      "limitations": [
+        "installed tracer injection/concentration/mass-recovery equipment not confirmed",
+        "access and permission not established"
+      ]
+    },
+    {
+      "source_id": "ENET-SCALING-2026",
+      "title": "From Real to Laboratory Scale: Simulation and Scaling Methodology for a New Benchmark Water Distribution Network Model",
+      "url": "https://doi.org/10.1007/s11269-026-04785-y",
+      "evidence_class": "numerical_physical_testbed_scaling_study",
+      "role": "hydraulic scaling and laboratory testbed design comparator",
+      "availability": "open_access_publication",
+      "limitations": [
+        "paper reports numerical JX/E-NET counterpart comparison; physical tracer validation is future work",
+        "hydraulic similitude alone is not scalar-mixing qualification"
+      ]
+    },
+    {
+      "source_id": "HOMAEI-ADAPTIVE-SAMPLING-2026",
+      "title": "Conformal prediction-driven adaptive sampling for digital water twins",
+      "url": "https://doi.org/10.1016/j.icte.2026.01.010",
+      "evidence_class": "adjacent_sensor_uncertainty_method",
+      "role": "adaptive sampling and coverage methodology comparator",
+      "availability": "open_access_publication",
+      "limitations": [
+        "demand forecasting tasks, not local junction mixing"
+      ]
+    },
+    {
+      "source_id": "AMVCP-WATER-FORECAST-2026",
+      "title": "Adaptive multi-domain uncertainty quantification for digital twin water forecasting",
+      "url": "https://doi.org/10.1016/j.mlwa.2025.100812",
+      "evidence_class": "adjacent_uncertainty_transfer_method",
+      "role": "regime-aware conformal coverage and calibration-transfer methodology comparator",
+      "availability": "open_access_publication",
+      "limitations": [
+        "regional demand forecasting, not physical tracer mixing"
+      ]
+    },
+    {
+      "source_id": "WDS-ML-LEAKBENCH-2026",
+      "title": "Benchmarking Diverse Learning Architectures for Leak Detection and Localization in Water Distribution Systems",
+      "url": "https://doi.org/10.1016/j.jwpe.2026.110114",
+      "evidence_class": "adjacent_synthetic_network_benchmark",
+      "role": "fair comparison design across ML architectures, leak size, sensor density and noise",
+      "availability": "publication; code/data availability to verify",
+      "limitations": [
+        "leak detection/localization is not junction mixing or tank RTD"
+      ]
+    }
+  ],
+  "ingestion_rules": [
+    "Store evidence_class with every imported dataset and derived result.",
+    "Do not combine simulated network states and physical tracer observations into one leaderboard.",
+    "Record version, licence, source digest, geometry identity, operating regime and transformation receipts.",
+    "Use whole-network, whole-geometry, whole-facility and whole-scale holdouts where supported.",
+    "Record missing data and access conditions; do not infer open reproducibility from an abstract."
+  ]
+}
