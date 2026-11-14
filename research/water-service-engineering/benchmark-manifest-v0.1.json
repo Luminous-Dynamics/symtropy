@@ -170,6 +170,7 @@
     "schema": "research/water-service-engineering/filter-barrier-assurance.schema.json",
     "cli": "tools/water-service-t0/src/bin/filter-barrier-assurance.rs",
     "status": "synthetic_claim_scoped_barrier_state_contract_only",
-    "evidence_ceiling": "no_filter_product_or_water_safety_claim"
+    "evidence_ceiling": "no_filter_product_or_water_safety_claim",
+    "case_count": 9
   }
 }
