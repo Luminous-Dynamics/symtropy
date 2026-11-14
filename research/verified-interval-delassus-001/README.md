@@ -32,7 +32,7 @@ For constraint residual r, the minimum kinetic correction is bounded by ||r||_2 
 
 ## Tests
 
-Six tests cover exact coefficient fixtures, uncertain mass/J sample coverage, dense coordinate re-basing, rank-deficient constraint abstention, non-SPD mass abstention, and residual/multiplier bound production.
+Nine tests cover exact coefficient fixtures, uncertain mass/J sample coverage, dense coordinate re-basing, rank-deficient constraint abstention, non-SPD and near-singular mass abstention, asymmetric interval-mass rejection, a wrong-J-transpose negative control, and independent coverage of the residual/multiplier norm bounds.
 
 ## Arithmetic contract
 
