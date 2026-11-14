@@ -1,0 +1,81 @@
+name: Diagnostic Claim Revision Contract
+
+on:
+  pull_request:
+    branches: [research/liu-ice-dx2027-edition-profile-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/diagnosis_revision.rs"
+      - "benchmarks/maritime-control-response/src/lib.rs"
+      - "benchmarks/maritime-control-response/diagnostic-claim-revision-*"
+      - "benchmarks/maritime-control-response/diagnostic-claim-revision.schema.json"
+      - "docs/tech/DIAGNOSTIC_CLAIM_REVISION_V0_1.md"
+      - ".github/workflows/diagnostic-claim-revision-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnostic-claim-revision-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  diagnostic-revision-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate protocol, corpus and receipt schema
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.26.0
+
+      - name: Run structural and adversarial fixture checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/maritime-control-response")
+          schema = json.loads((root / "diagnostic-claim-revision.schema.json").read_text())
+          protocol = json.loads((root / "diagnostic-claim-revision-v0.1.json").read_text())
+          corpus = json.loads((root / "diagnostic-claim-revision-cases-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          assert protocol["schema_version"] == "symtropy-diagnostic-revision-v0.1"
+          assert protocol["status"] == "protocol_only_not_executed"
+          assert len(protocol["hard_gates"]) >= 12
+          assert len(corpus["cases"]) == 14
+          assert len({case["id"] for case in corpus["cases"]}) == 14
+          assert all(case["expected_contract_result"] for case in corpus["cases"])
+          print("Protocol, strict schema and 14-case corpus: PASS")
+          PY
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify complete crate formatting
+        working-directory: benchmarks/maritime-control-response
+        run: cargo fmt -- --check
+
+      - name: Run diagnostic revision unit tests
+        working-directory: benchmarks/maritime-control-response
+        run: cargo test --locked --lib diagnosis_revision::tests
+
+      - name: Run strict library Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib -- -D warnings
