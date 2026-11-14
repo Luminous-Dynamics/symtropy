@@ -1,0 +1,339 @@
+name: PHYS-OBS-08 Fixed Simulation Cadence Qualification
+
+on:
+  push:
+    branches:
+      - "ci/fixed-simulation-cadence-v0.1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fixed-simulation-cadence-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRODUCT_HEAD: 4783eefacbdd9911f8ba7ef368b544fc328844cb
+  PRODUCT_PARENT: 1a9a81bc224be5d5e828cfbbdc5f3d9a30a13d13
+
+jobs:
+  qualify:
+    name: Frozen PHYS-OBS-08 fixed cadence / Rust 1.96
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact product subject and independent timing lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          test "$(git rev-parse "${PRODUCT_HEAD}^")" = "${PRODUCT_PARENT}"
+          test "$(git rev-list --count "${PRODUCT_PARENT}..${PRODUCT_HEAD}")" = "1"
+
+          mapfile -t changed < <(git diff --name-only "${PRODUCT_PARENT}..${PRODUCT_HEAD}" | sort)
+          mapfile -t expected < <(printf '%s\n' \
+            crates/core/symtropy-physics/FIXED_SIMULATION_CADENCE_EVIDENCE_V01.md \
+            crates/core/symtropy-physics/src/fixed_cadence.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/fixed_cadence_evidence_v01.rs | sort)
+          test "${#changed[@]}" = "4"
+          test "${changed[*]}" = "${expected[*]}"
+
+          assert_blob() {
+            local ref="$1" path="$2" expected="$3"
+            test "$(git rev-parse "${ref}:${path}")" = "${expected}"
+          }
+
+          # Frozen product and PHYS-OBS-07 objects.
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/FIXED_SIMULATION_CADENCE_EVIDENCE_V01.md b226bd3e21ce36b0632d99b04add625e73be2481
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/src/fixed_cadence.rs fb2e1ef3ca1268e719d51466e00747def763a9cd
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/src/lib.rs b2cf4aae295d642887d37df100317284a2395208
+          assert_blob "${PRODUCT_HEAD}" crates/core/symtropy-physics/tests/fixed_cadence_evidence_v01.rs 8bf42e43f3e36fa799106a1b6adc9bab31a350a0
+          for ref in "${PRODUCT_PARENT}" "${PRODUCT_HEAD}"; do
+            assert_blob "${ref}" crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md 8bb81f780dc9fc60c2814618cc05bf0984e51419
+            assert_blob "${ref}" crates/core/symtropy-physics/src/timed_evidence.rs b331c05431032d231ef5164a3a9b0ac5b858610e
+            assert_blob "${ref}" crates/core/symtropy-physics/src/world.rs 7dccf283f858c4874c96425fd7aa8aa3e176a557
+            assert_blob "${ref}" crates/core/symtropy-physics/src/integrator.rs c2e32f1bc14adf249f3b797e54209d501e491d9d
+          done
+
+          # PHYS-OBS-08 remains independent from sampled-presence joins.
+          test ! -e crates/core/symtropy-physics/src/sampled_presence.rs
+          test ! -e crates/core/symtropy-physics/tests/consecutive_sampled_presence_v01.rs
+          test ! -e crates/core/symtropy-physics/src/timed_sampled_presence.rs
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt,clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/FIXED_SIMULATION_CADENCE_EVIDENCE_V01.md \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/fixed_cadence.rs \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/integrator.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/fixed_cadence_evidence_v01.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            > "${RUNNER_TEMP}/fixed-simulation-cadence-source-sha256.txt"
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check physics all targets
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run fixed-cadence theorem
+        run: cargo test -p symtropy-physics --locked --test fixed_cadence_evidence_v01
+
+      - name: Run exact-step-receipt regression
+        run: cargo test -p symtropy-physics --locked --test exact_step_receipt_v01
+
+      - name: Run issued-endpoint regression
+        run: cargo test -p symtropy-physics --locked --test qualified_stamped_endpoint_v01
+
+      - name: Run sealed evidence-authority regression
+        run: cargo test -p symtropy-physics --locked --test sealed_evidence_authority_v01
+
+      - name: Run physics library tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Run strict physics Clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Audit fixed-cadence construction, dyadic arithmetic, and unit path
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          fixed = Path('crates/core/symtropy-physics/src/fixed_cadence.rs').read_text()
+          timed = Path('crates/core/symtropy-physics/src/timed_evidence.rs').read_text()
+          evidence = Path('crates/core/symtropy-physics/src/evidence_authority.rs').read_text()
+          authority = Path('crates/core/symtropy-physics/src/identity_authority.rs').read_text()
+          world = Path('crates/core/symtropy-physics/src/world.rs').read_text()
+          integrator = Path('crates/core/symtropy-physics/src/integrator.rs').read_text()
+          contract = Path('crates/core/symtropy-physics/FIXED_SIMULATION_CADENCE_EVIDENCE_V01.md').read_text()
+          tests = Path('crates/core/symtropy-physics/tests/fixed_cadence_evidence_v01.rs').read_text()
+
+          cadence_derive = re.search(
+              r'#\[derive\(([^)]*)\)\]\s*pub struct LocalFixedSimulationCadence', fixed
+          )
+          assert cadence_derive
+          cadence_traits = {p.strip() for p in cadence_derive.group(1).split(',')}
+          assert {'Copy', 'Clone', 'Debug', 'Hash', 'PartialEq', 'Eq'} <= cadence_traits
+          assert not ({'Serialize', 'Deserialize'} & cadence_traits)
+
+          receipt_derive = re.search(
+              r'#\[derive\(([^)]*)\)\]\s*pub struct LocalFixedCadenceStepReceipt', fixed
+          )
+          assert receipt_derive
+          receipt_traits = {p.strip() for p in receipt_derive.group(1).split(',')}
+          assert {'Debug', 'PartialEq', 'Eq'} <= receipt_traits
+          assert not ({'Clone', 'Copy', 'Serialize', 'Deserialize'} & receipt_traits)
+
+          receipt_start = fixed.index('pub struct LocalFixedCadenceStepReceipt')
+          receipt_end = fixed.index('\n}\n', receipt_start) + 2
+          receipt_block = fixed[receipt_start:receipt_end]
+          assert 'execution: LocalQualifiedStepExecutionReceipt' in receipt_block
+          assert 'cadence: LocalFixedSimulationCadence' in receipt_block
+          assert all(
+              not line.lstrip().startswith('pub ')
+              for line in receipt_block.splitlines()[1:]
+          )
+          receipt_impl_start = fixed.index('impl LocalFixedCadenceStepReceipt')
+          receipt_impl_end = fixed.index('\n}\n', receipt_impl_start) + 2
+          receipt_impl = fixed[receipt_impl_start:receipt_impl_end]
+          assert 'pub fn new' not in receipt_impl
+          assert 'pub const fn new' not in receipt_impl
+          assert 'execution_receipt(&self) -> &LocalQualifiedStepExecutionReceipt' in receipt_impl
+          assert 'impl From<' not in fixed
+          assert 'impl TryFrom<' not in fixed
+          assert 'Serialize' not in fixed
+          assert 'Deserialize' not in fixed
+
+          wrapper_start = fixed.index('pub struct LocalFixedCadenceEvidencePhysicsAuthorityWorld')
+          wrapper_end = fixed.index('\n}\n', wrapper_start) + 2
+          wrapper_block = fixed[wrapper_start:wrapper_end]
+          fields = [line.strip() for line in wrapper_block.splitlines()[1:] if ':' in line]
+          assert fields == [
+              'receipted: LocalReceiptedEvidencePhysicsAuthorityWorld<D>,',
+              'cadence: LocalFixedSimulationCadence,',
+          ]
+
+          seal_start = fixed.index('pub fn seal(')
+          seal_open = fixed.index('{', seal_start)
+          seal_sig = fixed[seal_start:seal_open]
+          assert 'LocalNamespacePhysicsAuthorityWorld<D>' in seal_sig
+          assert 'LocalFixedSimulationCadence' in seal_sig
+          assert 'LocalReceiptedEvidencePhysicsAuthorityWorld<D>' not in seal_sig
+          assert 'LocalEvidencePhysicsAuthorityWorld<D>' not in seal_sig
+
+          wrapper_impl_start = fixed.index(
+              'impl<const D: usize> LocalFixedCadenceEvidencePhysicsAuthorityWorld'
+          )
+          wrapper_impl_end = fixed.index('\n}\n\nfn exact_dyadic', wrapper_impl_start) + 2
+          wrapper_impl = fixed[wrapper_impl_start:wrapper_impl_end]
+          for forbidden in (
+              'pub fn step_authorized(',
+              'pub fn step_authorized_with_callback(',
+              'into_receipted',
+              'into_evidence',
+              'receipted_mut',
+              'evidence_authority_mut',
+              'DerefMut',
+          ):
+              assert forbidden not in wrapper_impl
+          assert 'pub fn step_authorized_fixed(' in wrapper_impl
+          assert 'pub fn step_authorized_fixed_with_callback(' in wrapper_impl
+
+          pure_start = fixed.index('pub fn step_authorized_fixed(')
+          pure_end = fixed.index('\n    /// Execute exactly one callback-coupled', pure_start)
+          pure = fixed[pure_start:pure_end]
+          assert 'dt:' not in pure.split(') ->', 1)[0]
+          assert pure.count('self.receipted.step_authorized(self.cadence.executed_dt())?') == 1
+
+          callback_start = fixed.index('pub fn step_authorized_fixed_with_callback(')
+          callback_end = fixed.index('\n    /// Leave the fixed profile', callback_start)
+          callback = fixed[callback_start:callback_end]
+          assert 'dt:' not in callback.split(') ->', 1)[0]
+          assert callback.count(
+              '.step_authorized_with_callback(self.cadence.executed_dt(), callback)?'
+          ) == 1
+
+          # Single-source exact dyadic interpretation.
+          for marker in (
+              'raw_exponent = ((bits >> 52) & BINARY64_EXPONENT_MASK) as i32',
+              '(fraction, -1074)',
+              'BINARY64_HIDDEN_BIT | fraction',
+              'raw_exponent - 1023 - 52',
+              'while significand & 1 == 0',
+              'significand >>= 1',
+              'exponent2 += 1',
+          ):
+              assert marker in fixed
+          assert 'numerator' not in fixed
+          assert 'denominator' not in fixed
+
+          # Freeze the direct simulation-seconds execution path. No unit scale
+          # conversion is admitted between cadence bits and the integrator dt.
+          assert 'self.evidence.step_authorized(dt)?' in timed
+          assert 'self.namespace.authority_world_mut().step_authorized(dt)' in evidence
+          assert 'self.world.step(dt);' in authority
+          assert 'self.step_internal(dt, &mut noop);' in world
+          assert 'self.step_internal(dt, callback);' in world
+          assert 'integrator::integrate(body, &self.gravity, dt);' in world
+          assert 'Integrate a single rigid body forward by dt seconds.' in integrator
+          assert 'pub fn integrate<const D: usize>' in integrator
+          assert 'dt: f64' in integrator
+
+          for name in (
+              'cadence_rejects_nonpositive_or_nonfinite_values_and_preserves_exact_bits',
+              'exact_dyadic_projection_is_canonical_for_normal_and_subnormal_values',
+              'fixed_steps_issue_precommitment_receipts_with_exact_cadence_bits',
+              'callback_fixed_step_uses_the_same_precommitted_cadence',
+              'endpoint_sample_after_fixed_step_has_the_same_strong_stamp',
+              'reseal_under_same_or_changed_cadence_starts_a_fresh_temporal_incarnation',
+          ):
+              assert name in tests
+
+          for claim in (
+              'minimum positive subnormal',
+              'must **not** simply return the ordinary PHYS-OBS-07 receipt',
+              'first fixed-cadence Inside sample N',
+              '0 credited transitions',
+              'No cumulative elapsed interval',
+              'No continuous occupancy',
+          ):
+              assert claim in contract
+          PY
+
+      - name: Unchanged-subject postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          sha256sum \
+            crates/core/symtropy-physics/FIXED_SIMULATION_CADENCE_EVIDENCE_V01.md \
+            crates/core/symtropy-physics/EXACT_QUALIFIED_STEP_EXECUTION_RECEIPT_V01.md \
+            crates/core/symtropy-physics/src/fixed_cadence.rs \
+            crates/core/symtropy-physics/src/timed_evidence.rs \
+            crates/core/symtropy-physics/src/evidence_authority.rs \
+            crates/core/symtropy-physics/src/identity_authority.rs \
+            crates/core/symtropy-physics/src/world.rs \
+            crates/core/symtropy-physics/src/integrator.rs \
+            crates/core/symtropy-physics/src/qualified_endpoint.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            crates/core/symtropy-physics/tests/fixed_cadence_evidence_v01.rs \
+            crates/core/symtropy-physics/tests/exact_step_receipt_v01.rs \
+            crates/core/symtropy-physics/tests/qualified_stamped_endpoint_v01.rs \
+            > "${RUNNER_TEMP}/fixed-simulation-cadence-source-sha256-post.txt"
+          diff -u \
+            "${RUNNER_TEMP}/fixed-simulation-cadence-source-sha256.txt" \
+            "${RUNNER_TEMP}/fixed-simulation-cadence-source-sha256-post.txt"
+
+      - name: Emit qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          receipt = {
+              'theorem': 'PHYS-OBS-08 precommitted fixed simulation cadence evidence v0.1',
+              'product_head': os.environ['PRODUCT_HEAD'],
+              'product_parent': os.environ['PRODUCT_PARENT'],
+              'single_timing_authority': 'positive-finite-binary64-dt-bits',
+              'simulation_time_unit': 'seconds-as-integrator-dt-contract',
+              'hidden_dt_scale_conversion': False,
+              'exact_dyadic_projection': True,
+              'fresh_temporal_incarnation_on_seal': True,
+              'raw_dt_step_api_while_fixed': False,
+              'generic_receipt_retroactive_promotion': False,
+              'fixed_receipt_precommitment_authority': True,
+              'read_only_generic_receipt_projection': True,
+              'sampled_presence_ancestry_present': False,
+              'first_sample_duration_credit': 0,
+              'cumulative_simulation_time_authority': False,
+              'wall_clock_or_utc_authority': False,
+              'si_metrology_authority': False,
+              'continuous_occupancy_authority': False,
+              'dwell_arrival_authority': False,
+              'persistent_or_settlement_authority': False,
+          }
+          Path('fixed-simulation-cadence-qualification-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          PY
+
+      - name: Upload qualification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixed-simulation-cadence-${{ env.PRODUCT_HEAD }}
+          path: |
+            fixed-simulation-cadence-qualification-receipt.json
+            ${{ runner.temp }}/fixed-simulation-cadence-source-sha256.txt
+            ${{ runner.temp }}/fixed-simulation-cadence-source-sha256-post.txt
+          if-no-files-found: error
