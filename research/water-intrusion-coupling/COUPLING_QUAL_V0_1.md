@@ -24,14 +24,14 @@ Every stage names its model and exact revision, consumed upstream output digests
 
 ## 3. Independent observation plane
 
-Pressure traces, signed physical defect flow and laboratory tracer samples are not model outputs. Each measured observation must include its own raw-data digest, common timebase, calibration state and valid method. Modelled pressure or predicted tracer concentration cannot be relabelled as sensor or lab observations.
+Pressure traces, signed physical defect flow and laboratory tracer samples are not model outputs. In this T0 fixture, all observation rows are explicitly synthetic_fixture: observation_origin=measurement_channel describes the future channel required, not an acquired measurement; observation_origin=modelled is the negative control. Repeated 64-character digest values are synthetic_fixture_marker values, not hashes of real raw records or model outputs. Production interfaces must bind actual SHA-256 digests of raw bytes, common timebase, calibration state, method and custody. Modelled pressure or predicted tracer concentration cannot be relabelled as sensor or lab observations.
 
 The timebase contract is shared across the chain. Missing or inconsistent timebase identity is indeterminate, not silently shifted. Event time and clock uncertainty remain explicit. The clock_uncertainty_ms value is a bound/estimate supplied by a traceable synchronization method, not a default.
 
 ## 4. Executable T0 interface vectors
 
 The eight synthetic cases exercise:
-- a valid five-stage contract with three measured observation types;
+- a valid five-stage contract with three required measurement-channel types represented by synthetic fixture rows;
 - modelled pressure incorrectly offered as a measurement;
 - mismatched observation timebase;
 - upstream digest mismatch;
@@ -47,7 +47,7 @@ The evaluator returns CHAIN_CONTRACT_VALID_FOR_BOUNDED_MODEL_COMPARISON only whe
 - exact model/source revisions and stage input/output digests;
 - no stage silently receives a different upstream result than the one declared;
 - common timebase and explicit clock uncertainty;
-- measured observations independently identified and provenance-bound;
+- measurement-channel requirements independently identified; actual observations must be provenance-bound when acquired;
 - missing chemical/reaction scope is marked unmodelled/indeterminate;
 - validity-domain and uncertainty states propagate downstream;
 - mass-balance residuals are reported with measurement/model uncertainty; missing streams are unresolved, not zero;
