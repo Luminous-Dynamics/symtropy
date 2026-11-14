@@ -84,9 +84,9 @@ jobs:
 
           ids = [row["case_id"] for row in inputs["cases"]]
           oracle_ids = [row["case_id"] for row in oracle["cases"]]
-          if len(ids) != 8 or len(set(ids)) != 8 or len(oracle_ids) != 8 or len(set(oracle_ids)) != 8:
+          if len(ids) != 9 or len(set(ids)) != 9 or len(oracle_ids) != 9 or len(set(oracle_ids)) != 9:
               raise SystemExit("FILTER_BARRIER_CASE_IDENTITY_FAIL")
-          if sorted(ids) != sorted(oracle_ids) or manifest["case_count"] != 8:
+          if sorted(ids) != sorted(oracle_ids) or manifest["case_count"] != 9:
               raise SystemExit("FILTER_BARRIER_INPUT_ORACLE_MANIFEST_FAIL")
           if any(row.get("expected") is not None for row in inputs["cases"]):
               raise SystemExit("FILTER_BARRIER_INPUT_EMBEDS_ORACLE_FAIL")
@@ -101,11 +101,12 @@ jobs:
               "FBA-006-no-challenge-evidence": "NOT_QUALIFIED",
               "FBA-007-replaced-no-requalification": "UNKNOWN",
               "FBA-008-scope-mismatch": "CLAIM_SCOPE_MISMATCH",
+              "FBA-009-critical-sensor-calibration-expired": "UNKNOWN",
           }
           actual = {row["case_id"]: row["expected"]["qualification_disposition"] for row in oracle["cases"]}
           if any(actual.get(case_id) != state for case_id, state in required.items()):
               raise SystemExit("FILTER_BARRIER_NEGATIVE_CONTROL_ORACLE_FAIL")
-          print("FILTER_BARRIER_M0_PASS: 8 synthetic fixtures, claim scope and fail-closed negative controls verified")
+          print("FILTER_BARRIER_M0_PASS: 9 synthetic fixtures, claim scope and fail-closed negative controls verified")
           PY
       - name: Evaluate filter barrier assurance M0 at exact revision
         id: filter_barrier_assurance
