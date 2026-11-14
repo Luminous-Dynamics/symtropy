@@ -710,12 +710,12 @@ mod tests {
         let mut input = base_input();
         input.profile_samples = vec![
             sample(0, Some(0), Some(100)),
-            sample(1_000, Some(0), Some(0)),
-            sample(2_000, Some(0), Some(-100)),
+            sample(1_000, Some(0), Some(-100)),
+            sample(2_000, Some(0), Some(100)),
         ];
         let report = evaluate_profile_pair(&input).expect("zero-crossing profile should measure");
         assert_eq!(report.signed_area_change_um2, 0);
-        assert_eq!(report.absolute_area_change_um2, 50_000);
+        assert_eq!(report.absolute_area_change_um2, 100_000);
     }
 
     #[test]
