@@ -19,6 +19,9 @@ pub enum ForecastError {
     InvalidUnit,
     MixedEvaluationSlice,
     NumericOverflow,
+    InvalidProbability,
+    EmptyEventIdentity,
+    MixedEventSlice,
 }
 
 impl fmt::Display for ForecastError {
@@ -326,6 +329,200 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
     })
 }
 
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BinaryEventForecast {
+    pub forecast_id: String,
+    pub event_name: String,
+    pub horizon_days: u32,
+    /// None means the forecast abstained; it is not interpreted as probability zero.
+    pub event_probability: Option<f64>,
+    pub observed_event: bool,
+    pub baseline_probability: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BinaryEventCaseScore {
+    pub model_brier: Option<f64>,
+    pub baseline_brier: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReliabilityBin {
+    pub lower_bound: f64,
+    pub upper_bound: f64,
+    pub case_count: usize,
+    pub mean_forecast_probability: Option<f64>,
+    pub observed_event_frequency: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BrierSummary {
+    pub eligible_case_count: usize,
+    pub forecast_case_count: usize,
+    pub abstained_case_count: usize,
+    pub forecast_coverage_fraction: f64,
+    pub mean_model_brier: Option<f64>,
+    pub mean_baseline_brier_paired: Option<f64>,
+    pub mean_baseline_brier_all: f64,
+    /// Positive is better: 1 - model Brier / paired baseline Brier.
+    pub brier_skill_score: Option<f64>,
+    pub reliability_bins: Vec<ReliabilityBin>,
+    pub disposition: &'static str,
+}
+
+/// Brier score for a Bernoulli event probability and a binary observation.
+pub fn brier_score(probability: f64, observed_event: bool) -> Result<f64, ForecastError> {
+    if !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
+        return Err(ForecastError::InvalidProbability);
+    }
+    let observed = if observed_event { 1.0 } else { 0.0 };
+    Ok((probability - observed).powi(2))
+}
+
+pub fn score_binary_event_case(
+    case: &BinaryEventForecast,
+) -> Result<BinaryEventCaseScore, ForecastError> {
+    if case.forecast_id.trim().is_empty() || case.event_name.trim().is_empty() {
+        return Err(ForecastError::EmptyEventIdentity);
+    }
+    let baseline_brier = brier_score(case.baseline_probability, case.observed_event)?;
+    let model_brier = match case.event_probability {
+        Some(probability) => Some(brier_score(probability, case.observed_event)?),
+        None => None,
+    };
+    Ok(BinaryEventCaseScore {
+        model_brier,
+        baseline_brier,
+    })
+}
+
+fn reliability_bin_index(probability: f64) -> usize {
+    if probability < 0.2 {
+        0
+    } else if probability < 0.4 {
+        1
+    } else if probability < 0.6 {
+        2
+    } else if probability < 0.8 {
+        3
+    } else {
+        4
+    }
+}
+
+/// Summarize binary event forecasts with five fixed-width reliability bins.
+/// Abstentions count in eligible coverage but do not enter Brier or reliability-bin scores.
+pub fn summarize_binary_event_forecasts(
+    cases: &[BinaryEventForecast],
+) -> Result<BrierSummary, ForecastError> {
+    if cases.is_empty() {
+        return Err(ForecastError::InvalidEnsembleSize);
+    }
+    let first = &cases[0];
+    if first.event_name.trim().is_empty() {
+        return Err(ForecastError::EmptyEventIdentity);
+    }
+
+    let mut ids = BTreeSet::new();
+    let mut forecast_case_count = 0usize;
+    let mut model_brier_total = 0.0;
+    let mut paired_baseline_total = 0.0;
+    let mut all_baseline_total = 0.0;
+    let mut bin_counts = [0usize; 5];
+    let mut bin_probability_totals = [0.0; 5];
+    let mut bin_event_counts = [0usize; 5];
+
+    for case in cases {
+        if !ids.insert(case.forecast_id.as_str()) {
+            return Err(ForecastError::DuplicateForecastIdentity);
+        }
+        if case.event_name != first.event_name || case.horizon_days != first.horizon_days {
+            return Err(ForecastError::MixedEventSlice);
+        }
+        let score = score_binary_event_case(case)?;
+        all_baseline_total += score.baseline_brier;
+        if let (Some(model_brier), Some(probability)) = (score.model_brier, case.event_probability) {
+            forecast_case_count += 1;
+            model_brier_total += model_brier;
+            paired_baseline_total += score.baseline_brier;
+            let bin_index = reliability_bin_index(probability);
+            bin_counts[bin_index] += 1;
+            bin_probability_totals[bin_index] += probability;
+            if case.observed_event {
+                bin_event_counts[bin_index] += 1;
+            }
+        }
+    }
+
+    let eligible_case_count = cases.len();
+    let abstained_case_count = eligible_case_count - forecast_case_count;
+    let forecast_coverage_fraction =
+        count_as_f64(forecast_case_count)? / count_as_f64(eligible_case_count)?;
+    let mean_baseline_brier_all = all_baseline_total / count_as_f64(eligible_case_count)?;
+    let reliability_bins = (0..5)
+        .map(|index| {
+            let case_count = bin_counts[index];
+            let lower_bound = f64::from(u32::try_from(index).unwrap_or_default()) * 0.2;
+            let upper_bound = if index == 4 { 1.0 } else { lower_bound + 0.2 };
+            ReliabilityBin {
+                lower_bound,
+                upper_bound,
+                case_count,
+                mean_forecast_probability: if case_count == 0 {
+                    None
+                } else {
+                    Some(bin_probability_totals[index] / count_as_f64(case_count).unwrap_or(1.0))
+                },
+                observed_event_frequency: if case_count == 0 {
+                    None
+                } else {
+                    Some(
+                        f64::from(u32::try_from(bin_event_counts[index]).unwrap_or_default())
+                            / count_as_f64(case_count).unwrap_or(1.0),
+                    )
+                },
+            }
+        })
+        .collect();
+
+    if forecast_case_count == 0 {
+        return Ok(BrierSummary {
+            eligible_case_count,
+            forecast_case_count,
+            abstained_case_count,
+            forecast_coverage_fraction,
+            mean_model_brier: None,
+            mean_baseline_brier_paired: None,
+            mean_baseline_brier_all,
+            brier_skill_score: None,
+            reliability_bins,
+            disposition: "NO_FORECAST_COVERAGE",
+        });
+    }
+
+    let paired_count = count_as_f64(forecast_case_count)?;
+    let model_mean = model_brier_total / paired_count;
+    let baseline_mean = paired_baseline_total / paired_count;
+    let brier_skill_score = if baseline_mean > 0.0 {
+        Some(1.0 - model_mean / baseline_mean)
+    } else {
+        None
+    };
+    Ok(BrierSummary {
+        eligible_case_count,
+        forecast_case_count,
+        abstained_case_count,
+        forecast_coverage_fraction,
+        mean_model_brier: Some(model_mean),
+        mean_baseline_brier_paired: Some(baseline_mean),
+        mean_baseline_brier_all,
+        brier_skill_score,
+        reliability_bins,
+        disposition: "SCORED_WITH_EXPLICIT_EVENT_FORECAST_COVERAGE",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -340,6 +537,56 @@ mod tests {
             model_samples: model.to_vec(),
             baseline_samples: baseline.to_vec(),
         }
+    }
+
+
+    #[test]
+    fn brier_score_matches_known_binary_probabilities() {
+        assert_eq!(brier_score(0.8, true), Ok(0.04));
+        assert!((brier_score(0.1, false).unwrap() - 0.01).abs() < 1e-12);
+    }
+
+    #[test]
+    fn brier_score_rejects_probabilities_outside_unit_interval() {
+        assert_eq!(brier_score(-0.01, true), Err(ForecastError::InvalidProbability));
+        assert_eq!(brier_score(1.01, false), Err(ForecastError::InvalidProbability));
+        assert_eq!(brier_score(f64::NAN, true), Err(ForecastError::InvalidProbability));
+    }
+
+    #[test]
+    fn binary_event_summary_keeps_abstention_in_coverage_denominator() {
+        let cases = [
+            BinaryEventForecast { forecast_id: "a".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: Some(0.8), observed_event: true, baseline_probability: 0.5 },
+            BinaryEventForecast { forecast_id: "b".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: Some(0.1), observed_event: false, baseline_probability: 0.5 },
+            BinaryEventForecast { forecast_id: "c".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: None, observed_event: true, baseline_probability: 0.5 },
+        ];
+        let result = summarize_binary_event_forecasts(&cases).expect("Brier summary");
+        assert_eq!(result.eligible_case_count, 3);
+        assert_eq!(result.forecast_case_count, 2);
+        assert_eq!(result.abstained_case_count, 1);
+        assert!((result.forecast_coverage_fraction - (2.0 / 3.0)).abs() < 1e-12);
+        assert_eq!(result.reliability_bins.iter().map(|bin| bin.case_count).sum::<usize>(), 2);
+    }
+
+    #[test]
+    fn binary_event_summary_has_no_brier_skill_when_all_abstain() {
+        let result = summarize_binary_event_forecasts(&[
+            BinaryEventForecast { forecast_id: "a".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: None, observed_event: true, baseline_probability: 0.5 },
+        ]).expect("all-abstention Brier summary");
+        assert_eq!(result.forecast_coverage_fraction, 0.0);
+        assert_eq!(result.mean_model_brier, None);
+        assert_eq!(result.brier_skill_score, None);
+        assert_eq!(result.disposition, "NO_FORECAST_COVERAGE");
+    }
+
+    #[test]
+    fn binary_event_summary_rejects_duplicate_and_mixed_horizon_cases() {
+        let first = BinaryEventForecast { forecast_id: "same".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: Some(0.5), observed_event: true, baseline_probability: 0.5 };
+        let mut duplicate = first.clone();
+        assert_eq!(summarize_binary_event_forecasts(&[first.clone(), duplicate.clone()]), Err(ForecastError::DuplicateForecastIdentity));
+        duplicate.forecast_id = "other".to_string();
+        duplicate.horizon_days = 90;
+        assert_eq!(summarize_binary_event_forecasts(&[first, duplicate]), Err(ForecastError::MixedEventSlice));
     }
 
     #[test]
