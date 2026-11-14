@@ -2,12 +2,12 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use construction_automation_portfolio_core::{
-    solve_portfolio, CostBreakdown, EligibilityStatus, ExecutionMode, ModeEligibility, ModeOption,
-    PortfolioPolicy, PortfolioProblem, RequiredWorkUnit,
+    CostBreakdown, EligibilityStatus, ExecutionMode, ModeEligibility, ModeOption, PortfolioPolicy,
+    PortfolioProblem, RequiredWorkUnit, solve_portfolio,
 };
 use construction_robot_interop_core::resources::{ReservationBook, ReservationRequest};
 use construction_spacetime_occupancy_core::{SiteBinding, SpatialOccupancyBook};
- 
+
 fn request(id: &str, resource_id: &str, start: u64, end: u64) -> ReservationRequest {
     ReservationRequest {
         reservation_id: format!("reservation-{id}"),
@@ -49,7 +49,11 @@ fn option(id: &str, unit: &str, mode: ExecutionMode, start: u64, end: u64) -> Mo
         },
         reservation_requests: vec![request(
             id,
-            if mode == ExecutionMode::Robot { "robot-fleet" } else { "human-crew" },
+            if mode == ExecutionMode::Robot {
+                "robot-fleet"
+            } else {
+                "human-crew"
+            },
             start,
             end,
         )],
@@ -68,16 +72,32 @@ fn run(size: usize) {
             acceptance_contract_ref: format!("acceptance:{id}"),
             predecessor_work_unit_ids: Vec::new(),
             mode_options: vec![
-                option(&format!("human-{id}"), &id, ExecutionMode::Human, start, start + 5_000),
-                option(&format!("robot-{id}"), &id, ExecutionMode::Robot, start, start + 3_000),
+                option(
+                    &format!("human-{id}"),
+                    &id,
+                    ExecutionMode::Human,
+                    start,
+                    start + 5_000,
+                ),
+                option(
+                    &format!("robot-{id}"),
+                    &id,
+                    ExecutionMode::Robot,
+                    start,
+                    start + 3_000,
+                ),
             ],
         });
     }
 
-    let mut resources = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
-        .expect("resource book");
-    resources.register_resource("human-crew", u32::MAX).expect("human capacity");
-    resources.register_resource("robot-fleet", u32::MAX).expect("robot capacity");
+    let mut resources =
+        ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("resource book");
+    resources
+        .register_resource("human-crew", u32::MAX)
+        .expect("human capacity");
+    resources
+        .register_resource("robot-fleet", u32::MAX)
+        .expect("robot capacity");
     let occupancies = SpatialOccupancyBook::new(
         SiteBinding {
             floor_id: "benchmark-floor".to_owned(),
@@ -97,15 +117,15 @@ fn run(size: usize) {
         initial_occupancies: occupancies,
     };
     let start = Instant::now();
-    let result = solve_portfolio(&problem, PortfolioPolicy::ExactPareto)
-        .expect("portfolio search");
+    let result = solve_portfolio(&problem, PortfolioPolicy::ExactPareto).expect("portfolio search");
     let elapsed = start.elapsed();
     println!(
         "work_units={size} evaluated_states={} feasible={} frontier={} exhaustive={} elapsed_ms={:.3}",
         result.evaluated_states,
         result.feasible_portfolio_count,
         result.pareto_frontier.len(),
-        result.completeness == construction_automation_portfolio_core::SearchCompleteness::Exhaustive,
+        result.completeness
+            == construction_automation_portfolio_core::SearchCompleteness::Exhaustive,
         elapsed.as_secs_f64() * 1_000.0
     );
     black_box(result);
