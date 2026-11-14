@@ -1347,11 +1347,17 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
             .as_array()
             .ok_or_else(|| format!("cases[{index}].samples must be an array"))?;
         let mut samples = Vec::with_capacity(sample_values.len());
+        let mut sample_geometry_error = None;
         for (sample_index, sample) in sample_values.iter().enumerate() {
             let sample_id = string_at(sample, &["sample_id"])?;
             let crs = string_at(sample, &["crs"])?;
-            let bounds = rect_from_json(at(sample, &["bounds"])?)
-                .map_err(|error| format!("cases[{index}].samples[{sample_index}].bounds: {error}"))?;
+            let bounds = match rect_from_json(at(sample, &["bounds"])? ) {
+                Ok(bounds) => bounds,
+                Err(error) => {
+                    sample_geometry_error = Some(error);
+                    break;
+                }
+            };
             let valid = at(sample, &["valid"])?
                 .as_bool()
                 .ok_or_else(|| format!("cases[{index}].samples[{sample_index}].valid must be boolean"))?;
@@ -1363,11 +1369,14 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
             });
         }
 
-        let actual = support_kernel::qualify_rectangular_support(
-            &target_crs,
-            target_rect,
-            &samples,
-        );
+        let actual = match sample_geometry_error {
+            Some(error) => Err(error),
+            None => support_kernel::qualify_rectangular_support(
+                &target_crs,
+                target_rect,
+                &samples,
+            ),
+        };
         let expected_error = case.get("expected_error").and_then(Value::as_str);
         let (case_passed, detail, row) = if let Some(expected_error) = expected_error {
             match actual {
