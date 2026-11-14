@@ -189,6 +189,10 @@ fn validate_window(window:&Value,path:&str,expected_id:&str,max_uncertainty:f64,
     for key in ["start_timestamp_uncertainty_ms","end_timestamp_uncertainty_ms"]{
         if finite(window,key).is_some_and(|v|v<0.0||v>max_uncertainty){push(errors,"WINDOW_UNCERTAINTY_INVALID",&format!("{path}.{key}"),"uncertainty outside case maximum");}
     }
+    if finite(window,"start_timestamp_ms").is_some_and(|v|v<0.0)
+        ||finite(window,"end_timestamp_ms").is_some_and(|v|v<0.0){
+        push(errors,"WINDOW_TIMESTAMP_INVALID",path,"timestamps must be nonnegative");
+    }
     if finite(window,"load_percent").is_some_and(|v|!(0.0..=100.0).contains(&v)){push(errors,"WINDOW_LOAD_INVALID",&format!("{path}.load_percent"),"load outside 0..=100");}
     if finite(window,"speed_rpm").is_some_and(|v|v<0.0){push(errors,"WINDOW_SPEED_INVALID",&format!("{path}.speed_rpm"),"speed must be nonnegative");}
     if !matches!(text(window,"transient_state"),Some("steady"|"transient"|"mixed"|"unknown")){
@@ -204,9 +208,13 @@ fn validate_window(window:&Value,path:&str,expected_id:&str,max_uncertainty:f64,
 fn compare_windows(pair:&Value,regime:&str,max_uncertainty:f64,common_tb:Option<&str>,common_digest:Option<&str>)->Value{
     let a=&pair["measurement_window_a"];let b=&pair["measurement_window_b"];let p=&pair["comparison_tolerances"];
     let unavailable=|reason:&str|json!({"state":"NOT_EVALUATED","admissible":false,"reason_code":reason});
-    let mismatch=|reason:&str,load:f64,speed:f64,ambient:f64|json!({"state":"CONTEXT_MISMATCH","admissible":false,"reason_code":reason,"load_delta_percent":load,"speed_delta_rpm":speed,"ambient_delta_c":ambient});
+    let mismatch=|reason:&str,load:Option<f64>,speed:Option<f64>,ambient:Option<f64>|json!({"state":"CONTEXT_MISMATCH","admissible":false,"reason_code":reason,"load_delta_percent":load,"speed_delta_rpm":speed,"ambient_delta_c":ambient});
     if text(p,"profile_state")!=Some("PREREGISTERED"){return unavailable("COMPARISON_PROFILE_NOT_PREREGISTERED");}
     if common_tb.is_none()||common_digest.is_none(){return unavailable("CHANNEL_TIMEBASE_NOT_COMMON");}
+    if !matches!(text(a,"transient_state"),Some("steady"|"transient"|"mixed"))
+        ||!matches!(text(b,"transient_state"),Some("steady"|"transient"|"mixed")){
+        return unavailable("TRANSIENT_STATE_NOT_QUALIFIED");
+    }
     for w in [a,b]{
         if text(w,"timebase_qualification_state")!=Some("qualified")||text(w,"timebase_id")!=common_tb||text(w,"timebase_qualification_sha256")!=common_digest{
             return unavailable("WINDOW_TIMEBASE_NOT_COMMON_AND_QUALIFIED");
@@ -220,7 +228,7 @@ fn compare_windows(pair:&Value,regime:&str,max_uncertainty:f64,common_tb:Option<
     ) else{return unavailable("WINDOW_TIME_INTERVAL_MISSING");};
     if !((ae+aeu)<(bs-bsu)||(be+beu)<(as_-asu)){return unavailable("FAULT_WINDOWS_OVERLAP_OR_ORDER_UNPROVEN");}
     if text(a,"regime_id")!=Some(regime)||text(b,"regime_id")!=Some(regime)||text(a,"regime_id")!=text(b,"regime_id"){
-        return mismatch("OPERATING_REGIME_MISMATCH",f64::NAN,f64::NAN,f64::NAN);
+        return mismatch("OPERATING_REGIME_MISMATCH",None,None,None);
     }
     let ld=(finite(a,"load_percent").unwrap_or(f64::NAN)-finite(b,"load_percent").unwrap_or(f64::NAN)).abs();
     let sd=(finite(a,"speed_rpm").unwrap_or(f64::NAN)-finite(b,"speed_rpm").unwrap_or(f64::NAN)).abs();
@@ -230,7 +238,7 @@ fn compare_windows(pair:&Value,regime:&str,max_uncertainty:f64,common_tb:Option<
         ||sd>finite(p,"maximum_speed_delta_rpm").unwrap_or(0.0)
         ||ad>finite(p,"maximum_ambient_temperature_delta_c").unwrap_or(0.0)
         ||(p["require_same_transient_state"].as_bool()==Some(true)&&text(a,"transient_state")!=text(b,"transient_state")){
-        return mismatch("OPERATING_CONTEXT_OUTSIDE_PREREGISTERED_TOLERANCES",ld,sd,ad);
+        return mismatch("OPERATING_CONTEXT_OUTSIDE_PREREGISTERED_TOLERANCES",Some(ld),Some(sd),Some(ad));
     }
     if text(a,"artifact_sha256")==text(b,"artifact_sha256")&&text(a,"recording_id")!=text(b,"recording_id"){
         return unavailable("RECORDING_IDENTITY_CONFLICT");
@@ -841,6 +849,36 @@ mod tests{
         let r=run(&v);
         assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"IDENTIFIABLE");
         assert_eq!(r["base_pair_results"][0]["window_comparison"]["state"],"MATCHED");
+    }
+    #[test]
+    fn ambient_context_mismatch_withholds_pairwise_identifiability(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_b"]["ambient_temperature_c"]=json!(40.0);
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"OPERATING_CONTEXT_OUTSIDE_PREREGISTERED_TOLERANCES");
+    }
+    #[test]
+    fn transient_state_mismatch_withholds_pairwise_identifiability(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_b"]["transient_state"]=json!("transient");
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn unknown_transient_state_is_not_matched(){
+        let mut v=fixture();
+        v["pairs"][0]["measurement_window_b"]["transient_state"]=json!("unknown");
+        let r=run(&v);
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"TRANSIENT_STATE_NOT_QUALIFIED");
+    }
+    #[test]
+    fn draft_tolerance_profile_cannot_admit_a_pair(){
+        let mut v=fixture();
+        v["pairs"][0]["comparison_tolerances"]["profile_state"]=json!("DRAFT");
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+        assert_eq!(r["base_pair_results"][0]["window_comparison"]["reason_code"],"COMPARISON_PROFILE_NOT_PREREGISTERED");
     }
     #[test]
     fn authority_boundary_is_non_authoritative(){
