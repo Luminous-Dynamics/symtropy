@@ -259,6 +259,6 @@
   "integrity": {
     "canonicalization": "RFC8785-JCS-UTF8",
     "digest_scope": "top_level_without_integrity",
-    "payload_sha256": "caca630c5fbd91cd3afe917ad1deade3fa860be876403f4652e6179c52073e3e"
+    "payload_sha256": "dcb4672f36b37d18e69c8cb5f1f750dfcf0b506cd1bd0831e21eb2f6c9dc5dd3"
   }
 }
