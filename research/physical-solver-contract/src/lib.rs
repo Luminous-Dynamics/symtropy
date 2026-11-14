@@ -13,6 +13,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+pub mod symmetry_handoff;
+
 pub type Check<T> = Result<T, String>;
 const REQUEST_SCHEMA: &str = "physical-solver-request-v0.1";
 const RECEIPT_SCHEMA: &str = "physical-solver-validation-receipt-v0.1";
