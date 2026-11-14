@@ -400,6 +400,64 @@ pub fn validate_receipt(input: &[u8]) -> Result<ValidatedReceipt, WireError> {
 
 const UQ_SIDECAR_PROTOCOL_ID: &str = "LOCO-JOINT-UQ-SIDECAR-001";
 
+/// Evidence quality retained from upstream uncertainty receipts and dependencies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UqEvidenceDisposition {
+    /// Every applicable channel and required uncertainty dependency is qualified.
+    Qualified,
+    /// Required evidence or a shared-source dependence declaration is unresolved.
+    Unknown,
+    /// A numerical propagation or coverage condition is not conclusive.
+    Inconclusive,
+    /// An upstream evidence owner explicitly rejected the measurement result.
+    Rejected,
+}
+
+fn downgrade_uq_disposition(
+    current: &mut UqEvidenceDisposition,
+    next: UqEvidenceDisposition,
+) {
+    let rank = |disposition| match disposition {
+        UqEvidenceDisposition::Qualified => 0,
+        UqEvidenceDisposition::Unknown => 1,
+        UqEvidenceDisposition::Inconclusive => 2,
+        UqEvidenceDisposition::Rejected => 3,
+    };
+    if rank(next) > rank(*current) {
+        *current = next;
+    }
+}
+
+fn parse_uq_disposition(value: &str) -> Result<UqEvidenceDisposition, WireError> {
+    match value {
+        "qualified" => Ok(UqEvidenceDisposition::Qualified),
+        "unknown" => Ok(UqEvidenceDisposition::Unknown),
+        "inconclusive" => Ok(UqEvidenceDisposition::Inconclusive),
+        "rejected" => Ok(UqEvidenceDisposition::Rejected),
+        _ => Err(WireError::InvalidField("uncertainty evidence disposition")),
+    }
+}
+
+fn decimal_i128_field(
+    object: &[(String, JsonValue)],
+    field: &'static str,
+) -> Result<i128, WireError> {
+    require_string(object, field)?
+        .parse::<i128>()
+        .map_err(|_| WireError::InvalidField(field))
+}
+
+fn optional_nonempty_string(
+    object: &[(String, JsonValue)],
+    field: &'static str,
+) -> Result<Option<String>, WireError> {
+    match optional_string(object, field)? {
+        Some(value) if !value.trim().is_empty() => Ok(Some(value.to_owned())),
+        Some(_) => Err(WireError::InvalidField(field)),
+        None => Ok(None),
+    }
+}
+
 /// Verified cross-packet measurement-uncertainty sidecar summary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedUqSidecar {
@@ -425,6 +483,8 @@ pub struct ValidatedUqSidecar {
     pub uncertainty_receipt_count: usize,
     /// Number of derived-result lineage receipts.
     pub derived_result_count: usize,
+    /// Strongest evidence disposition retained without upgrading upstream results.
+    pub evidence_disposition: UqEvidenceDisposition,
     /// Always false; evidence packets do not authorize actuation.
     pub actuation_authorized: bool,
     /// Always false; evidence packets do not certify conformity.
@@ -980,7 +1040,7 @@ mod tests {
     const GOLDEN_UQ_SIDECAR: &str =
         include_str!("../../fixtures/joint_uq_sidecar_v0_1_complete.json");
     const GOLDEN_UQ_DIGEST: &str =
-        "dcb4672f36b37d18e69c8cb5f1f750dfcf0b506cd1bd0831e21eb2f6c9dc5dd3";
+        "ec6a8e8fa9b0f709cd605bc3a9c2ee95222e0d6259d71d1291bb35aefe0b5045";
 
     fn resign_uq_sidecar(input: &str) -> String {
         let placeholder = "0000000000000000000000000000000000000000000000000000000000000000";
