@@ -1,0 +1,41 @@
+name: Accessible home Leptos prototype
+
+on:
+  pull_request:
+    paths:
+      - "tools/accessible-home-leptos/**"
+      - "docs/built-environment/accessible-home-*"
+      - ".github/workflows/accessible-home-leptos.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/accessible-home-leptos/**"
+      - "docs/built-environment/accessible-home-*"
+      - ".github/workflows/accessible-home-leptos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accessible-home-leptos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Format, model tests, JSON validation and Wasm compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust and WebAssembly target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/accessible-home-leptos/Cargo.toml -- --check
+      - name: Test resident-requirements model
+        run: cargo test --manifest-path tools/accessible-home-leptos/Cargo.toml --lib
+      - name: Validate machine-readable qualification gates
+        run: python3 -c 'import json; json.load(open("docs/built-environment/accessible-home-qualification-gates-v0.1.json", encoding="utf-8"))'
+      - name: Compile the Leptos frontend to WebAssembly
+        run: cargo check --manifest-path tools/accessible-home-leptos/Cargo.toml --target wasm32-unknown-unknown
