@@ -65,7 +65,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-east",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         },
         {
           "id": "adsb-rx-2",
@@ -81,7 +82,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-west",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": {
@@ -122,7 +124,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-a",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": null,
@@ -155,7 +158,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-adsb",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": null,
@@ -189,7 +193,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-eoir",
           "profile_id": "synthetic-eoir-daylight-v0",
-          "environment_profile": "synthetic-day-clear"
+          "environment_profile": "synthetic-day-clear",
+          "upstream_degraded": false
         }
       ],
       "observation": {
@@ -230,7 +235,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "shared-time-power-net",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         },
         {
           "id": "rx-2",
@@ -246,7 +252,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "shared-time-power-net",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         },
         {
           "id": "rx-3",
@@ -262,7 +269,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "shared-time-power-net",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": null,
@@ -295,7 +303,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": false,
           "independent_family_id": null,
-          "profile_id": "synthetic-tdoa-profile-v0"
+          "profile_id": "synthetic-tdoa-profile-v0",
+          "upstream_degraded": false
         },
         {
           "id": "tdoa-pair-b",
@@ -311,7 +320,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": false,
           "independent_family_id": null,
-          "profile_id": "synthetic-tdoa-profile-v0"
+          "profile_id": "synthetic-tdoa-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": null,
@@ -344,7 +354,8 @@
           "pnt_time_qualified": false,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-timed",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": {
@@ -386,7 +397,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-eoir-2",
           "profile_id": "synthetic-eoir-daylight-v0",
-          "environment_profile": "synthetic-occluded"
+          "environment_profile": "synthetic-occluded",
+          "upstream_degraded": false
         }
       ],
       "observation": null,
@@ -434,7 +446,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-positive-adsb",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         },
         {
           "id": "positive-eoir",
@@ -450,7 +463,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-positive-eoir",
-          "profile_id": "synthetic-eoir-daylight-v0"
+          "profile_id": "synthetic-eoir-daylight-v0",
+          "upstream_degraded": false
         }
       ],
       "evaluations": [
@@ -518,7 +532,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-nr-east",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         },
         {
           "id": "adsb-no-report-b",
@@ -534,7 +549,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-nr-west",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "upstream_degraded": false
         }
       ],
       "observation": null,
@@ -544,6 +560,40 @@
         "independent_family_count": 2,
         "unresolved_possible_occupancy": true,
         "meaning": "Even qualified class-specific coverage does not turn an individual missing report into an assertion of zero physical traffic."
+      }
+    },
+    {
+      "id": "explicitly-degraded-sensor-service",
+      "cell_id": "cell-degraded-a",
+      "tick": 5,
+      "traffic_class": "cooperative-crewed",
+      "minimum_independent_families": 1,
+      "claims": [
+        {
+          "id": "degraded-adsb-claim",
+          "source_id": "receiver-degraded",
+          "sensor_modality": "ADS-B",
+          "traffic_class": "cooperative-crewed",
+          "cell_id": "cell-degraded-a",
+          "start_tick": 0,
+          "end_tick": 10,
+          "evidence_class": "synthetic",
+          "coverage_qualified": true,
+          "environment_qualified": true,
+          "upstream_degraded": true,
+          "pnt_time_qualified": true,
+          "dependency_inventory_complete": true,
+          "independent_family_id": "family-degraded",
+          "profile_id": "synthetic-adsb-profile-v0"
+        }
+      ],
+      "observation": null,
+      "expected": {
+        "coverage_status": "DEGRADED",
+        "observation_status": "NO_OBSERVATION",
+        "independent_family_count": 0,
+        "unresolved_possible_occupancy": true,
+        "meaning": "A declared degraded sensor/service state does not count as full coverage."
       }
     }
   ],
@@ -560,7 +610,8 @@
     "Qualified coverage is not proof of zero traffic or a clearance to treat all untracked space as free.",
     "Unresolved or not-qualified surveillance returns possible occupancy or not-assessable, never an empty occupancy set.",
     "The adapter performs no DAA avoidance, tactical instruction, flight control or operational authorization.",
-    "A no-report observation remains unresolved even when the cell has a qualified coverage claim; coverage is not proof of zero traffic."
+    "A no-report observation remains unresolved even when the cell has a qualified coverage claim; coverage is not proof of zero traffic.",
+    "An explicitly degraded upstream sensor/service claim does not count toward fully qualified independent coverage."
   ],
   "required_mutations": [
     "Remove one cooperative ADS-B report while preserving the cell; no empty-space claim may be created.",
@@ -571,6 +622,7 @@
     "Change PNT/time qualification from true to false; the affected track cannot remain qualified.",
     "Change EO/IR environment qualification from true to false; that cell becomes not-qualified.",
     "Permute claims and observations while preserving IDs and meanings; semantic results must remain identical.",
-    "Remove all cooperative observations while preserving qualified coverage; the outcome remains NO_OBSERVATION with unresolved possible occupancy."
+    "Remove all cooperative observations while preserving qualified coverage; the outcome remains NO_OBSERVATION with unresolved possible occupancy.",
+    "Change an otherwise qualified claim to upstream-degraded; it must no longer contribute to independent full-coverage count."
   ]
 }
