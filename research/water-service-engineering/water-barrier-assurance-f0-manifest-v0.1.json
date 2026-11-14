@@ -6,7 +6,7 @@
   "input_corpus": "research/water-service-engineering/water-barrier-assurance-f0-cases-v0.1.json",
   "oracle": "research/water-service-engineering/water-barrier-assurance-f0-oracle-v0.1.json",
   "schema": "research/water-service-engineering/water-barrier-assurance-f0.schema.json",
-  "case_count": 18,
+  "case_count": 19,
   "microbial_reference": {
     "source": "WHO International Scheme for Household Water Treatment Technologies, Round IV",
     "protocol_version": "4.0",
@@ -36,5 +36,29 @@
     "release_authorized_is_always_false",
     "potability_claim_permitted_is_always_false"
   ],
-  "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim"
+  "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim",
+  "protocol_evidence_scope": {
+    "bacteria": {
+      "required_protocol_id": "WHO_HWT_FILTRATION",
+      "required_protocol_version": "4.0",
+      "basis": "DIRECT_CHALLENGE_TEST"
+    },
+    "viruses": {
+      "required_protocol_id": "WHO_HWT_FILTRATION",
+      "required_protocol_version": "4.0",
+      "basis": "DIRECT_CHALLENGE_TEST"
+    },
+    "protozoa": {
+      "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
+      "required_protocol_version": "ROUND_IV",
+      "basis": "WHO_SCHEME_DECISION",
+      "note": "A product-specific WHO scheme decision or separate applicable test must support the claim; WHO filtration protocol v4.0 Table 3 alone tests bacteria and viruses and does not by itself establish protozoa reduction."
+    },
+    "arsenic": {
+      "required_protocol_id": "NSF_ANSI_53",
+      "required_protocol_version": "2025",
+      "basis": "CERTIFICATE_CLAIM",
+      "note": "Synthetic placeholder only; deployed evidence requires exact certified model and contaminant scope."
+    }
+  }
 }
