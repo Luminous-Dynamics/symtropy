@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/validation-report-v0.1.schema.json",
+  "title": "Legal Evidence Benchmark Corpus Validation Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "dataset_kind",
+    "corpus_sha256",
+    "authority_count",
+    "case_count",
+    "claim_ceiling",
+    "metamorphic_pair_count"
+  ],
+  "properties": {
+    "status": {
+      "const": "VALID"
+    },
+    "dataset_kind": {
+      "const": "synthetic_only"
+    },
+    "corpus_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "authority_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metamorphic_pair_count": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

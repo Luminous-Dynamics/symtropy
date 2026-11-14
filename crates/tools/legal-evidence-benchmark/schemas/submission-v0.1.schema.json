@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-evidence-benchmark/schemas/submission-v0.1.schema.json",
+  "title": "Legal Evidence Benchmark Candidate Submission v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "system_id",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "system_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "action",
+          "claim_codes",
+          "citations"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "answer",
+              "clarify",
+              "abstain",
+              "reject_source"
+            ]
+          },
+          "claim_codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/citation"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "role",
+        "span_id"
+      ],
+      "properties": {
+        "authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "binding_in_scope",
+            "persuasive_only",
+            "policy_only",
+            "metadata_only",
+            "unverified"
+          ]
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
