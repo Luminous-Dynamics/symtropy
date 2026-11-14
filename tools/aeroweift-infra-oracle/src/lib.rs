@@ -118,6 +118,8 @@ pub const SITE_UNKNOWN_STATUS: RecoverySite = RecoverySite {
 
 const NORTH_SITES: [RecoverySite; 2] = [SITE_NORTH_A, SITE_NORTH_B];
 const DIVERSE_SITES: [RecoverySite; 2] = [SITE_NORTH_A, SITE_SOUTH_C];
+const NORTH_AB_PLUS_C_SITES: [RecoverySite; 3] =
+    [SITE_NORTH_A, SITE_NORTH_B, SITE_SOUTH_C];
 const UNKNOWN_ONLY: [RecoverySite; 1] = [SITE_UNKNOWN_STATUS];
 
 /// Two nominally separate north sites sharing weather, power and access.
@@ -133,6 +135,11 @@ pub const PORTFOLIO_DIVERSE_AC: RecoveryPortfolio = RecoveryPortfolio {
 };
 
 /// Portfolio containing only a geometry-only unknown-status site.
+pub const PORTFOLIO_NORTH_AB_PLUS_C: RecoveryPortfolio = RecoveryPortfolio {
+    portfolio_id: "north-a-b-plus-south-c",
+    sites: &NORTH_AB_PLUS_C_SITES,
+};
+
 pub const PORTFOLIO_UNKNOWN_ONLY: RecoveryPortfolio = RecoveryPortfolio {
     portfolio_id: "unknown-status-only",
     sites: &UNKNOWN_ONLY,
