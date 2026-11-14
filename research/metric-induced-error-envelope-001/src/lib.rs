@@ -573,10 +573,11 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         let mut mass_times_basis = [[0.0; N]; N];
         for (row, output_row) in mass_times_basis.iter_mut().enumerate() {
             for (column, output) in output_row.iter_mut().enumerate() {
-                let mut value = 0.0;
-                for inner in 0..N {
-                    value += metric_from.matrix[row][inner] * self.matrix[inner][column];
-                }
+                let value = metric_from.matrix[row]
+                    .iter()
+                    .zip(self.matrix.iter())
+                    .map(|(mass_value, basis_row)| mass_value * basis_row[column])
+                    .sum::<f64>();
                 if !value.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
                 }
@@ -587,10 +588,12 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         let mut upper = [[0.0; N]; N];
         for (row, output_row) in upper.iter_mut().enumerate() {
             for (column, output) in output_row.iter_mut().enumerate().skip(row) {
-                let mut value = 0.0;
-                for inner in 0..N {
-                    value += self.matrix[inner][row] * mass_times_basis[inner][column];
-                }
+                let value = self
+                    .matrix
+                    .iter()
+                    .zip(mass_times_basis.iter())
+                    .map(|(basis_row, product_row)| basis_row[row] * product_row[column])
+                    .sum::<f64>();
                 if !value.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
                 }
