@@ -1,0 +1,9 @@
+scenario_id,scenario_basis,source_ref,airframe_mass_factor,cd0_factor,cruise_speed_factor,air_density_factor,propulsive_efficiency_factor,battery_energy_factor,route_distance_factor,assumed_max_lift_coefficient_factor
+nominal,synthetic_stress,illustrative-stress-suite-v0.1,1,1,1,1,1,1,1,1
+overweight_plus_5pct,synthetic_stress,illustrative-stress-suite-v0.1,1.05,1,1,1,1,1,1,1
+drag_model_bias_plus_10pct,synthetic_stress,illustrative-stress-suite-v0.1,1,1.10,1,1,1,1,1,1
+low_density_minus_10pct,synthetic_stress,illustrative-stress-suite-v0.1,1,1,1,0.90,1,1,1,1
+propulsive_efficiency_minus_10pct,synthetic_stress,illustrative-stress-suite-v0.1,1,1,1,1,0.90,1,1,1
+battery_capacity_minus_10pct,synthetic_stress,illustrative-stress-suite-v0.1,1,1,1,1,1,0.90,1,1
+route_distance_plus_10pct,synthetic_stress,illustrative-stress-suite-v0.1,1,1,1,1,1,1,1.10,1
+combined_adverse,synthetic_stress,illustrative-stress-suite-v0.1,1.05,1.10,1.05,0.90,0.90,0.90,1.10,0.90
