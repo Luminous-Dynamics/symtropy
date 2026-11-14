@@ -271,7 +271,7 @@ session. The test definitions and workflow are present; they are not claimed
 as passed evidence.
 
 
-## 13. Benchmark data admission and matched industry comparators
+## 13. Benchmark data admission and matched industry comparators\n\nThe standalone [AeroWeft Benchmark Suite V1](AEROWEFT_BENCHMARK_SUITE_V1.md) defines the full seven-track evaluation, baselines, rights-aware data admission and confirmatory protocol.
 
 AeroWeft must maintain two separate evaluation tracks:
 
