@@ -152,7 +152,7 @@ Use the shared matched-trial contract (#5075) for sensor parity, time grid, topo
 
 ## 8. T0 scenario contract
 
-The initial synthetic vector set is in [intrusion-t0-scenarios-v0.1.json](intrusion-t0-scenarios-v0.1.json).
+The synthetic inputs are in [intrusion-t0-scenarios-v0.1.json](intrusion-t0-scenarios-v0.1.json), and the expected outputs are frozen separately in [intrusion-t0-oracle-v0.1.json](intrusion-t0-oracle-v0.1.json). The manifest binds the two files and their ordered case identities.
 
 It is deliberately a **state/evidence contract**, not a pressure-transient simulator. Each vector tests a distinct decision boundary: pressure event without evidence of ingress; direct tracer evidence; unknown pathway; missing sample; stale calibration; insufficient detection limit; mass-balance gap; downstream detection; and pressure-restoration-only claims.
 
