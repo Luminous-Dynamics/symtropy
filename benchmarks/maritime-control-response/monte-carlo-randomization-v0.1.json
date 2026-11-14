@@ -86,7 +86,8 @@
     "A zero-exceedance draw set reports the plus-one minimum p-value 1/(B+1), never p = 0.",
     "The v0.1 benchmark harness reports elapsed time and draw throughput with runner/CPU metadata; it does not claim peak-memory measurements.",
     "The result JSON Schema is validated against a checked-in synthetic example result payload.",
-    "Both config and result schemas admit the exact full unsigned-64-bit maximum seed and reject values outside the u64 range."
+    "Both config and result schemas admit the exact full unsigned-64-bit maximum seed and reject values outside the u64 range.",
+    "A frozen 200-seed regression panel compares each Monte Carlo Wilson interval against the exact Fisher tail probability; its 90% minimum coverage assertion is a deterministic regression guard, not a claim of global nominal coverage."
   ],
   "comparators": [
     {
@@ -200,7 +201,8 @@
     "benchmark_draws_per_second",
     "benchmark_unit_draws_per_second",
     "result_schema_example_validation",
-    "unsigned_64_bit_seed_boundary_validation"
+    "unsigned_64_bit_seed_boundary_validation",
+    "wilson_exact_tail_coverage_across_frozen_seed_panel"
   ],
   "aspirations_not_achieved": [
     "100% byte-identical replay for identical version, seed and trial inputs.",
