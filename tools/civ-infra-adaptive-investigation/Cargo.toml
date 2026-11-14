@@ -1,0 +1,19 @@
+[package]
+name = "civ-infra-adaptive-investigation"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Conservative finite-state adaptive investigation policy evaluator"
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

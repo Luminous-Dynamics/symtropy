@@ -1,0 +1,120 @@
+{
+  "schema_version": "civ-infra-adaptive-investigation/v0.1",
+  "world_id": "synthetic-rail-bridge-tunnel-adaptive-v0.1",
+  "candidate_ids": ["surface-detour", "bridge-alternative", "tunnel-alternative"],
+  "state_signatures": [
+    {
+      "state_id": "stable-dry-ground",
+      "signature": {
+        "feasible_candidates": ["surface-detour", "bridge-alternative", "tunnel-alternative"],
+        "infeasible_candidates": [],
+        "unknown_candidates": [],
+        "frontier_candidates": ["surface-detour", "bridge-alternative", "tunnel-alternative"]
+      },
+      "upstream_case_ref": "synthetic-adaptive-world#stable-dry-ground"
+    },
+    {
+      "state_id": "bridge-scour-risk",
+      "signature": {
+        "feasible_candidates": ["surface-detour", "tunnel-alternative"],
+        "infeasible_candidates": ["bridge-alternative"],
+        "unknown_candidates": [],
+        "frontier_candidates": ["surface-detour", "tunnel-alternative"]
+      },
+      "upstream_case_ref": "synthetic-adaptive-world#bridge-scour-risk"
+    },
+    {
+      "state_id": "tunnel-groundwater-risk",
+      "signature": {
+        "feasible_candidates": ["surface-detour", "bridge-alternative"],
+        "infeasible_candidates": ["tunnel-alternative"],
+        "unknown_candidates": [],
+        "frontier_candidates": ["surface-detour", "bridge-alternative"]
+      },
+      "upstream_case_ref": "synthetic-adaptive-world#tunnel-groundwater-risk"
+    },
+    {
+      "state_id": "marginal-ground",
+      "signature": {
+        "feasible_candidates": ["surface-detour", "bridge-alternative"],
+        "infeasible_candidates": [],
+        "unknown_candidates": ["tunnel-alternative"],
+        "frontier_candidates": ["surface-detour", "bridge-alternative"]
+      },
+      "upstream_case_ref": "synthetic-adaptive-world#marginal-ground"
+    },
+    {
+      "state_id": "unresolved-geology",
+      "signature": {
+        "feasible_candidates": ["surface-detour"],
+        "infeasible_candidates": [],
+        "unknown_candidates": ["bridge-alternative", "tunnel-alternative"],
+        "frontier_candidates": ["surface-detour"]
+      },
+      "upstream_case_ref": "synthetic-adaptive-world#unresolved-geology"
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "bridge-screen",
+      "description": "Synthetic first-stage screen; marginal and unresolved states are compatible with both outcomes.",
+      "compatibility_report_ref": "synthetic-compatibility-report:bridge-screen-v0.1",
+      "compatibility_report_sha256": null,
+      "model_support": "open",
+      "outcomes": [
+        {
+          "outcome_id": "bridge-clear",
+          "compatible_state_ids": ["stable-dry-ground", "tunnel-groundwater-risk", "marginal-ground", "unresolved-geology"]
+        },
+        {
+          "outcome_id": "bridge-concern",
+          "compatible_state_ids": ["bridge-scour-risk", "marginal-ground", "unresolved-geology"]
+        }
+      ]
+    },
+    {
+      "action_id": "tunnel-borehole",
+      "description": "Synthetic second-stage tunnel-oriented investigation; ground uncertainty permits multiple compatible states.",
+      "compatibility_report_ref": "synthetic-compatibility-report:tunnel-borehole-v0.1",
+      "compatibility_report_sha256": null,
+      "model_support": "open",
+      "outcomes": [
+        {
+          "outcome_id": "tunnel-dry",
+          "compatible_state_ids": ["stable-dry-ground", "bridge-scour-risk", "marginal-ground", "unresolved-geology"]
+        },
+        {
+          "outcome_id": "tunnel-wet",
+          "compatible_state_ids": ["tunnel-groundwater-risk", "marginal-ground", "unresolved-geology"]
+        }
+      ]
+    },
+    {
+      "action_id": "bridge-focused-core",
+      "description": "Synthetic bridge-specific follow-up used only after a bridge-concern branch.",
+      "compatibility_report_ref": "synthetic-compatibility-report:bridge-focused-core-v0.1",
+      "compatibility_report_sha256": null,
+      "model_support": "open",
+      "outcomes": [
+        {
+          "outcome_id": "bridge-indicator",
+          "compatible_state_ids": ["bridge-scour-risk", "marginal-ground", "unresolved-geology"]
+        },
+        {
+          "outcome_id": "no-bridge-indicator",
+          "compatible_state_ids": ["stable-dry-ground", "tunnel-groundwater-risk", "marginal-ground", "unresolved-geology"]
+        }
+      ]
+    }
+  ],
+  "candidate_policy": {
+    "root_action_id": "bridge-screen",
+    "branches": [
+      {"at_action_id": "bridge-screen", "outcome_id": "bridge-clear", "next_action_id": "tunnel-borehole"},
+      {"at_action_id": "bridge-screen", "outcome_id": "bridge-concern", "next_action_id": "bridge-focused-core"}
+    ],
+    "support_failure_terminal": "review_required",
+    "max_supported_action_depth": 2
+  },
+  "claim_ceiling": "synthetic_compatibility_graph_only_no_physical_measurement_or_engineering_validity_claim"
+}

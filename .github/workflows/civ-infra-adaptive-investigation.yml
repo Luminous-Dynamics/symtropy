@@ -1,0 +1,67 @@
+name: CIV-INFRA Adaptive Investigation
+
+on:
+  pull_request:
+    paths:
+      - "tools/civ-infra-adaptive-investigation/**"
+      - "docs/tech/CIV_INFRA_ADAPTIVE_INVESTIGATION_POLICY_V0_1.md"
+      - ".github/workflows/civ-infra-adaptive-investigation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/civ-infra-adaptive-investigation/**"
+      - "docs/tech/CIV_INFRA_ADAPTIVE_INVESTIGATION_POLICY_V0_1.md"
+      - ".github/workflows/civ-infra-adaptive-investigation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Record source and toolchain identity
+        run: |
+          rustc --version
+          cargo --version
+          git rev-parse HEAD
+
+      - name: Format check
+        run: cargo fmt --manifest-path tools/civ-infra-adaptive-investigation/Cargo.toml -- --check
+
+      - name: Run locked tests
+        run: cargo test --locked --manifest-path tools/civ-infra-adaptive-investigation/Cargo.toml
+
+      - name: Run frozen fixture through CLI
+        run: |
+          cargo run --locked --manifest-path tools/civ-infra-adaptive-investigation/Cargo.toml -- \
+            tools/civ-infra-adaptive-investigation/fixtures/adaptive-investigation-v0.1.json \
+            "$RUNNER_TEMP/adaptive-investigation-report.json"
+          fixture_sha="$(sha256sum tools/civ-infra-adaptive-investigation/fixtures/adaptive-investigation-v0.1.json | cut -d ' ' -f 1)"
+          jq -e --arg fixture_sha "$fixture_sha" '
+            .schema_version == "civ-infra-adaptive-investigation/v0.1" and
+            .input_sha256 == $fixture_sha and
+            .state_count == 5 and
+            .candidate_count == 3 and
+            .action_count == 3 and
+            .policy_depth_limit == 2 and
+            .support_failure_leaf_count == 3 and
+            .supported_leaf_count == 4 and
+            (.claim_ceiling | contains("no_physical_measurement"))
+          ' "$RUNNER_TEMP/adaptive-investigation-report.json"
+
+      - name: Hash report
+        run: sha256sum "$RUNNER_TEMP/adaptive-investigation-report.json"
