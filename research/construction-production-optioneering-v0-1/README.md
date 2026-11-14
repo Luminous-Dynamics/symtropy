@@ -10,14 +10,14 @@ Compare different ways of delivering the same declared functional outcome before
 
 ## Implemented v0.1
 
-- Homogeneous functional-unit contract with required units, acceptance contract, assessment horizon, hard-gate IDs and fixed-point performance bounds.
+- Homogeneous functional-unit contract with required units, acceptance-contract digest, declared currency, carbon assessment-boundary reference, assessment horizon, hard-gate IDs and fixed-point performance requirements with explicit integer scales.
 - Stage decisions bound to accountable owner, project context, evidence references and rationale.
 - `Unknown` stops the hierarchy; it never means “no avoidance option exists”.
 - Closed/no-applicable stages require evidence before moving to the next tier.
-- Every candidate binds the same functional contract while carrying its own design revision digest.
+- Every candidate binds the same functional contract ID and digest while carrying its own design revision digest. Each scenario's independent acceptance evidence binds both the exact functional-contract digest and exact option design digest.
 - Each candidate must provide one result for every frozen scenario; missing/extra scenario results are typed errors.
 - Every required scenario must contain independent acceptance, every required hard gate, minimum accepted units and required performance bounds.
-- Robust objectives are worst-case across the full scenario set; no scenario probabilities are accepted or invented.
+- Robust objectives are per-metric worst-case across the full scenario set; no scenario probabilities are accepted or invented. This is a conservative objective vector, not a joint single-scenario prediction.
 - Whole-life cost is direct + shared + maintenance + repair + end-of-life cost within the same declared assessment horizon.
 - Pareto dominance considers whole-life cost, elapsed time, workflow crew time, energy, carbon, material mass and rework separately.
 - No weighted scalar trades safety/quality hard gates against cost, speed or carbon.
@@ -28,7 +28,12 @@ Compare different ways of delivering the same declared functional outcome before
 cargo fmt --manifest-path research/construction-production-optioneering-v0-1/Cargo.toml -- --check
 cargo test --manifest-path research/construction-production-optioneering-v0-1/Cargo.toml --locked
 cargo clippy --manifest-path research/construction-production-optioneering-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+cargo bench --manifest-path research/construction-production-optioneering-v0-1/Cargo.toml --locked --bench frontier_scale
 ```
+
+## Synthetic benchmark harness
+
+The dependency-free frontier benchmark evaluates 10, 100, 500, 1,000 and 2,000 alternatives across two frozen scenarios, with 11 repeated runs and p50/p95/p99 evaluation latency. The Linux CI job runs this harness after metadata/lockfile, format, tests and strict Clippy. These are local evaluator timings only; they do not represent construction-hours, schedule quality or field productivity.
 
 ## Claim ceiling
 
