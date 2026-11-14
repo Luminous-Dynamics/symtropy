@@ -48,6 +48,27 @@
       "condition": "Stems from one plot or repeated campaigns from one site are randomly split between training and blind test.",
       "expected_disposition": "REJECT_LEAKAGE",
       "invariant": "Splits must group by independent plot/site/campaign and respect temporal dependence."
+    },
+    {
+      "case_id": "DRC-INACCESSIBLE-SAMPLE-UNITS-001",
+      "source_type": "drc_nfi_2017_2021",
+      "condition": "The 21 of 321 planned DRC NFI sampling units not surveyed because of inaccessibility or conflict-affected conditions are encoded as forest absence or zero biomass.",
+      "expected_disposition": "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED",
+      "invariant": "Unsurveyed sampling units are missing observations and must preserve missingness reason; they are not negative forest labels."
+    },
+    {
+      "case_id": "PNG-SECURITY-LOGISTICS-OMISSIONS-001",
+      "source_type": "png_multipurpose_nfi_2016_2019",
+      "condition": "Clusters not surveyed due to security or logistical constraints are encoded as healthy forest, absent forest, or zero biomass.",
+      "expected_disposition": "UNOBSERVED_SECURITY_OR_LOGISTICS",
+      "invariant": "Unsurveyed clusters cannot be used as either positive or negative forest-state observations."
+    },
+    {
+      "case_id": "SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001",
+      "source_type": "national_inventory_or_single_campaign_plot_census",
+      "condition": "One admitted inventory/census record is used to claim plot-specific growth, mortality, recruitment rates or recovery trajectories without a matched earlier or later census of the same plot under a comparable protocol.",
+      "expected_disposition": "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE",
+      "invariant": "A cross-sectional stock/state observation cannot establish a temporal transition rate without a compatible repeat measurement."
     }
   ],
   "execution": {
