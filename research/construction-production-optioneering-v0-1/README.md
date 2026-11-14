@@ -36,11 +36,12 @@ cargo bench --manifest-path research/construction-production-optioneering-v0-1/C
 
 ## Machine-readable input contract and frozen reference corpus
 
-- JSON Schema: [optioneering-input-v0.1.schema.json](schemas/optioneering-input-v0.1.schema.json), Git blob SHA-1 `1d82c52d65f88e7786df6805ed21b6c37de8339d`.
-- Frozen reference input: [reference-floor-matched-contrasts-v0.1.json](fixtures/reference-floor-matched-contrasts-v0.1.json), Git blob SHA-1 `3fc8b2a83ac7051276240e32abc2b76c3e04fe48`.
+- JSON Schema: [optioneering-input-v0.1.schema.json](schemas/optioneering-input-v0.1.schema.json), Git blob SHA-1 `80d5d08e68aef488bfb4a54cf0f3d411c63c00bc`.
+- Frozen reference input: [reference-floor-matched-contrasts-v0.1.json](fixtures/reference-floor-matched-contrasts-v0.1.json), Git blob SHA-1 `eea9d4d291fdf70e7f7c6143ba2e926226880cf9`.
 - The fixture contains one 100 m² homogeneous accepted-output contract, two deterministic scenarios (nominal and outage/rework), and four options: in-situ baseline, scheduler-only improvement, prefabricated method, and prefabricated-plus-robot combined intervention.
+- Every scenario result declares `measurement_basis = full_required_quantity`: all cost, duration, crew, energy, carbon, material and rework metrics describe the complete required 100 m² batch, not per-square-metre values.
 - The option profiles identify design, method, scheduler and fleet revisions. The three alternatives explicitly reference the in-situ baseline for matched comparison.
-- These are Git blob SHA-1 object IDs, not SHA-256 content hashes. The current Rust crate evaluates typed in-memory structures; a JSON ingestion/Schema-validation adapter is not yet included. External adapters should validate against the published schema before translating to the Rust API.
+- These are Git blob SHA-1 object IDs, not SHA-256 content hashes. The current Rust crate rejects per-functional-unit metrics in v0.1 and evaluates typed in-memory structures; a JSON ingestion/Schema-validation adapter is not yet included. External adapters should validate against the published schema before translating to the Rust API.
 
 ## Synthetic benchmark harness
 
