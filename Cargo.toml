@@ -144,6 +144,7 @@ members = [
     "crates/domains/symtropy-devconsole",
     "crates/core/symtropy-math",
     "crates/core/symtropy-physics",
+    "crates/core/symtropy-qualification",
     "crates/core/symtropy-core-stable",
     "crates/core/symtropy-hdc-core",
     "crates/domains/symtropy-hdc-physics",
