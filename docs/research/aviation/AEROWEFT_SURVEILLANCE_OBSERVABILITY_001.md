@@ -100,7 +100,7 @@ The observability adapter does not invent unobserved aircraft kinematics. Unknow
 
 Golden fixture: fixtures/aeroweift-surveillance-observability/tiny-coverage-gap-v0.json.
 
-All cells, aircraft, sources, time intervals, modalities and failure domains are fictional. The fixture covers eleven scenarios:
+All cells, aircraft, sources, time intervals, modalities and failure domains are fictional. The fixture covers twelve scenarios:
 1. cooperative aircraft inside a valid ADS-B coverage claim;
 2. cooperative aircraft outside that claim;
 3. non-cooperative crewed aircraft in an ADS-B-only volume;
@@ -118,6 +118,7 @@ Expected outcomes:
 - Three receiver IDs with one shared failure-domain family do not count as three independent families.
 - Unknown TDoA timing dependency yields INDETERMINATE, not qualified multilateration coverage.
 - Losing PNT/time integrity invalidates the affected time-dependent track claim, not the physical aircraft.
+- An explicitly degraded sensor/service claim is not counted as full coverage.
 - Missing reports without independent qualified coverage become NO_OBSERVATION with unresolved possible occupancy, never an empty sky.
 - Even when class-specific coverage is qualified, an individual NO_OBSERVATION does not assert zero traffic; unresolved possible occupancy remains true.
 - EO/IR claims apply only within their declared environment envelope.
