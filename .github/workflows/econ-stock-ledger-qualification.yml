@@ -1,0 +1,189 @@
+name: ECON-00/01 Stock Ledger Qualification
+
+on:
+  push:
+    branches:
+      - "ci/econ-stock-ledger-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: econ-stock-ledger-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 5f73e4965cd525411a6ecf7375d1f681ff7b1f31
+
+jobs:
+  qualify:
+    name: Frozen ECON-00/01 / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 1
+
+      - name: Assert executed product subject
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "expected_product_head=${PRODUCT_HEAD}"
+          echo "actual_product_head=${actual}"
+          test "${actual}" = "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-core/src/economic.rs \
+            crates/core/symtropy-core/src/lib.rs \
+            crates/core/symtropy-core/ECONOMIC_STOCK_LEDGER_V01.md \
+            > "${RUNNER_TEMP}/econ-source-sha256.txt"
+          cat "${RUNNER_TEMP}/econ-source-sha256.txt"
+
+      - name: Check formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check symtropy-core all targets
+        id: check
+        run: cargo check -p symtropy-core --locked --all-targets
+
+      - name: Run ECON-00/01 theorem corpus
+        id: econ_tests
+        run: cargo test -p symtropy-core --locked --lib economic::tests
+
+      - name: Run complete symtropy-core library regression
+        id: core_tests
+        run: cargo test -p symtropy-core --locked --lib
+
+      - name: Run strict symtropy-core Clippy
+        id: clippy
+        run: cargo clippy -p symtropy-core --locked --all-targets --all-features -- -D warnings
+
+      - name: Audit authority surface
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source=crates/core/symtropy-core/src/economic.rs
+          contract=crates/core/symtropy-core/ECONOMIC_STOCK_LEDGER_V01.md
+
+          grep -Fq 'pub enum StockEvent' "${source}"
+          grep -Fq 'TransferOwnership' "${source}"
+          grep -Fq 'TransferCustody' "${source}"
+          grep -Fq 'Relocate' "${source}"
+          grep -Fq 'Deplete' "${source}"
+          grep -Fq 'pub fn transact' "${source}"
+          grep -Fq 'replay_entries(&candidate_entries)? != candidate_lots' "${source}"
+          grep -Fq 'This economic module does not change those values' "${contract}"
+
+          if grep -Eq 'pub[[:space:]]+fn[[:space:]]+set_(quantity|owner|custodian|location)' "${source}"; then
+            echo 'forbidden generic authority setter found' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code -- . ':!Cargo.lock'
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+          ECON_TESTS_OUTCOME: ${{ steps.econ_tests.outcome }}
+          CORE_TESTS_OUTCOME: ${{ steps.core_tests.outcome }}
+          CLIPPY_OUTCOME: ${{ steps.clippy.outcome }}
+          AUTHORITY_AUDIT_OUTCOME: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT_OUTCOME: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/econ-stock-ledger-v01-receipt.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          outcomes = {
+              "subject": os.environ.get("SUBJECT_OUTCOME", "unknown"),
+              "source_identity": os.environ.get("SOURCE_OUTCOME", "unknown"),
+              "fmt": os.environ.get("FMT_OUTCOME", "unknown"),
+              "check": os.environ.get("CHECK_OUTCOME", "unknown"),
+              "econ_tests": os.environ.get("ECON_TESTS_OUTCOME", "unknown"),
+              "core_tests": os.environ.get("CORE_TESTS_OUTCOME", "unknown"),
+              "clippy": os.environ.get("CLIPPY_OUTCOME", "unknown"),
+              "authority_audit": os.environ.get("AUTHORITY_AUDIT_OUTCOME", "unknown"),
+              "postflight": os.environ.get("POSTFLIGHT_OUTCOME", "unknown"),
+          }
+
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "ECON-00-01-economic-authority-stock-ledger-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "scope": "crates/core/symtropy-core economic stock ledger plus complete symtropy-core lib regression",
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "typed economic identity/authority, explicit stock mutation provenance, same-spec split conservation, transactional rollback, and exact event-history replay only; no prices, finance, mass/energy conservation across transformations, industrial qualification, legal title, or LOD reconciliation authority",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/econ-source-sha256.txt" "${RUNNER_TEMP}/econ-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: econ-stock-ledger-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/econ-stock-ledger-v01-receipt.json
+            ${{ runner.temp }}/econ-stock-ledger-v01-receipt.json.sha256
+            ${{ runner.temp }}/econ-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
