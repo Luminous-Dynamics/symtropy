@@ -1,0 +1,150 @@
+{
+  "schema_version": "symtropy-marine-observational-target-trial-v0.1",
+  "status": "protocol_only_not_executed",
+  "title": "Observational maritime target-trial design validator and confounding-by-indication falsification",
+  "parent_issue": 5113,
+  "parent_estimator_issue": 5108,
+  "randomized_reference_pr": "Luminous-Dynamics/symtropy#5111",
+  "restoration_reference_pr": "Luminous-Dynamics/symtropy#5105",
+  "scope": {
+    "owns": [
+      "target-trial protocol structure",
+      "per-unit aligned time-zero validation",
+      "treatment-version binding",
+      "baseline covariate timing and leakage checks",
+      "coarsened propensity overlap and effective sample size diagnostics",
+      "follow-up/censoring and concurrent intervention checks",
+      "outcome measurement/calibration evidence checks",
+      "synthetic confounding-by-indication association negative control"
+    ],
+    "does_not_own": [
+      "causal effect estimation",
+      "unmeasured-confounding identification",
+      "longitudinal g-methods",
+      "RUL forecasting",
+      "maintenance policy optimization",
+      "restoration authorization",
+      "work orders",
+      "actuation"
+    ]
+  },
+  "paradigm": {
+    "per_unit_time_zero": "Eligibility, treatment assignment and follow-up start must align within each asset. Different assets may enter at different wall-clock times; forcing one cohort-wide timestamp would be incorrect.",
+    "observational_boundary": "Observational assignment is not randomized. Structural eligibility is not identification; the report never emits an effect estimate.",
+    "confounding_by_indication": "A synthetic oracle demonstrates how a true beneficial repair may appear harmful in crude observational means when baseline severity affects both treatment assignment and outcome."
+  },
+  "protocol_requirements": [
+    "Eligibility rules, target population and analysis plan are digest-bound and preregistered.",
+    "Treatment and comparator strategy versions are distinct and explicitly named.",
+    "Time zero is defined per unit and aligns eligibility, assignment and follow-up start within the declared tolerance.",
+    "Baseline covariates are observed and available before that unit's time zero; post-treatment covariates are rejected.",
+    "Every declared baseline covariate is present for each eligible unit.",
+    "Each unit belongs to exactly one declared stratum and has one independent unit ID.",
+    "Propensity estimates bind the declared propensity model and fit-data digests and must lie within a preregistered support interval.",
+    "Each stratum declares minimum repair/comparator counts, minimum coarsened propensity overlap and minimum effective sample size per arm.",
+    "The report distinguishes positivity failure from insufficient effective sample size.",
+    "Treatment versions must match the strategy arm assigned to each unit.",
+    "Concurrent interventions block single-intervention attribution until resolved or explicitly modeled.",
+    "Complete follow-up requires a source-bound outcome measured after the declared horizon.",
+    "Censoring, preventive replacement, competing events, loss to follow-up and administrative censoring are not relabeled as successful outcomes.",
+    "Outcome evidence binds source, method, dependency domain, quality, calibration record, calibration validity interval and absolute uncertainty.",
+    "Calibration must be effective by outcome observation and remain valid through evidence availability.",
+    "Review references are required for exchangeability, treatment versions, censoring and interference.",
+    "The report always states causal_effect_estimated=false and all authorization fields false."
+  ],
+  "reasons": [
+    "time_zero_misaligned",
+    "missing_baseline_covariate",
+    "post_treatment_covariate_leakage",
+    "treatment_version_mismatch",
+    "positivity_failure",
+    "insufficient_effective_sample_size",
+    "propensity_outside_declared_support",
+    "followup_incomplete",
+    "censoring_requires_model",
+    "concurrent_intervention_unresolved",
+    "outcome_missing",
+    "outcome_not_in_followup_window",
+    "outcome_evidence_unavailable",
+    "outcome_measurement_contract_mismatch",
+    "assumption_review_reference_missing"
+  ],
+  "metrics": [
+    "time_zero_alignment_rate",
+    "post_treatment_leakage_rejection_rate",
+    "treatment_version_mismatch_rate",
+    "propensity_overlap_by_stratum",
+    "effective_sample_size_by_arm",
+    "followup_completeness",
+    "censoring_fraction_by_reason",
+    "unresolved_concurrent_intervention_rate",
+    "outcome_provenance_completeness",
+    "calibration_validity_rejection_rate",
+    "unadjusted_association_bias_vs_synthetic_truth",
+    "sign_reversal_rate_under_confounding_by_indication",
+    "not_identified_rate"
+  ],
+  "cases": [
+    {
+      "case_id": "OT01",
+      "scenario": "Complete synthetic cohort with asset-specific aligned time zero, two strategy arms per stratum and valid outcome evidence.",
+      "expected": "structurally_eligible_under_declared_assumptions"
+    },
+    {
+      "case_id": "OT02",
+      "scenario": "Unadjusted observational difference reverses the sign of the true positive repair effect due to residual confounding by indication.",
+      "expected": "association_negative_control_sign_reversal"
+    },
+    {
+      "case_id": "OT03",
+      "scenario": "Treatment assignment time differs from per-unit eligibility time beyond tolerance.",
+      "expected": "not_identified_time_zero_misaligned"
+    },
+    {
+      "case_id": "OT04",
+      "scenario": "A post-treatment covariate is used as a baseline variable.",
+      "expected": "not_identified_post_treatment_leakage"
+    },
+    {
+      "case_id": "OT05",
+      "scenario": "One stratum contains no comparator strategy units.",
+      "expected": "not_identified_positivity_failure"
+    },
+    {
+      "case_id": "OT06",
+      "scenario": "Preventive replacement censors follow-up before the declared horizon.",
+      "expected": "not_identified_censoring"
+    },
+    {
+      "case_id": "OT07",
+      "scenario": "A controller tune occurs concurrently with the physical repair.",
+      "expected": "not_identified_concurrent_intervention"
+    },
+    {
+      "case_id": "OT08",
+      "scenario": "Outcome calibration expires before the outcome evidence becomes available.",
+      "expected": "not_identified_outcome_evidence"
+    },
+    {
+      "case_id": "OT09",
+      "scenario": "All baseline covariates are present and pre-treatment, but asset-specific time zeros differ.",
+      "expected": "valid_per_unit_time_zero"
+    },
+    {
+      "case_id": "OT10",
+      "scenario": "A propensity score lies outside the preregistered support floor/ceiling.",
+      "expected": "not_identified_propensity_support"
+    },
+    {
+      "case_id": "OT11",
+      "scenario": "One baseline covariate is missing for an eligible asset.",
+      "expected": "not_identified_missing_baseline"
+    },
+    {
+      "case_id": "OT12",
+      "scenario": "The intervention version recorded for an asset differs from the preregistered treatment strategy.",
+      "expected": "rejected_treatment_version_mismatch"
+    }
+  ],
+  "claim_ceiling": "The P0 module validates target-trial design structure under declared metadata and reports not-identified reasons. It does not estimate a causal effect, prove conditional exchangeability, authenticate source evidence, establish censoring exchangeability, identify unmeasured confounding, transport to marine engines, or authorize maintenance/operation."
+}
