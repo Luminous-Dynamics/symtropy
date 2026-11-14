@@ -263,6 +263,92 @@ fn open_component_count(
     components
 }
 
+fn adjudicate_observation_case(case: &Value) -> Result<&'static str, String> {
+    let id = string_at(case, &["case_id"])?;
+    match id.as_str() {
+        "PLOT-GEDI-SUPPORT-MISMATCH-001" => {
+            let left = string_at(case, &["input", "left_support"])?;
+            let right = string_at(case, &["input", "right_support"])?;
+            let overlap_applied = at(case, &["input", "overlap_operator_applied"])?
+                .as_bool().ok_or_else(|| "overlap_operator_applied must be boolean".to_string())?;
+            let conversion_declared = at(case, &["input", "support_conversion_declared"])?
+                .as_bool().ok_or_else(|| "support_conversion_declared must be boolean".to_string())?;
+            Ok(if left != right && !overlap_applied && !conversion_declared {
+                "BLOCKED_SUPPORT_MISMATCH"
+            } else {
+                "SUPPORT_MISMATCH_CONTROL_NOT_TRIGGERED"
+            })
+        }
+        "GEDI-ISS-STORAGE-GAP-001" => {
+            let status = string_at(case, &["input", "acquisition_status"])?;
+            Ok(if status == "no_acquisition" {
+                "UNOBSERVED_NO_ACQUISITION"
+            } else {
+                "ACQUISITION_PRESENT_REQUIRES_QUALITY_REVIEW"
+            })
+        }
+        "TMF-DEGRADATION-NOT-MORTALITY-001" => {
+            let source_class = string_at(case, &["input", "source_class"])?;
+            let target = string_at(case, &["input", "target_variable"])?;
+            Ok(if source_class == "degraded_forest" && target == "tree_mortality" {
+                "REJECT_LABEL_SEMANTIC_MISMATCH"
+            } else {
+                "LABEL_SEMANTIC_MISMATCH_CONTROL_NOT_TRIGGERED"
+            })
+        }
+        "MAPBIOMAS-BRAZIL-TRANSFER-001" => {
+            let source = string_at(case, &["input", "source_coverage_country"])?;
+            let target = string_at(case, &["input", "target_country"])?;
+            Ok(if source != target { "OUT_OF_DOMAIN" } else { "TARGET_WITHIN_DECLARED_COUNTRY" })
+        }
+        "CLOUD-OR-NODATA-NO-CHANGE-001" => {
+            let validity = string_at(case, &["input", "validity_state"])?;
+            Ok(if validity == "cloud_masked" || validity == "no_data" || validity == "qa_invalid" {
+                "UNOBSERVED_CLOUD_OR_QA_MASK"
+            } else {
+                "OBSERVATION_VALID_REQUIRES_SOURCE_OPERATOR"
+            })
+        }
+        "PLOT-CAMPAIGN-LEAKAGE-001" => {
+            let unit = string_at(case, &["input", "split_group_unit"])?;
+            let same_plot = at(case, &["input", "same_plot_across_splits"])?
+                .as_bool().ok_or_else(|| "same_plot_across_splits must be boolean".to_string())?;
+            Ok(if unit == "stem" && same_plot { "REJECT_LEAKAGE" } else { "NO_WITHIN_PLOT_SPLIT_CONFLICT_DETECTED" })
+        }
+        "DRC-INACCESSIBLE-SAMPLE-UNITS-001" => {
+            let status = string_at(case, &["input", "survey_status"])?;
+            let reason = string_at(case, &["input", "unsurveyed_reason"])?;
+            Ok(if status == "not_surveyed" && (reason == "inaccessible" || reason == "conflict_affected" || reason == "inaccessible_conflict_affected") {
+                "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED"
+            } else {
+                "SURVEYED_OR_OTHER_MISSINGNESS_REQUIRES_REVIEW"
+            })
+        }
+        "PNG-SECURITY-LOGISTICS-OMISSIONS-001" => {
+            let status = string_at(case, &["input", "survey_status"])?;
+            let reason = string_at(case, &["input", "unsurveyed_reason"])?;
+            Ok(if status == "not_surveyed" && (reason == "security" || reason == "logistics" || reason == "security_or_logistics") {
+                "UNOBSERVED_SECURITY_OR_LOGISTICS"
+            } else {
+                "SURVEYED_OR_OTHER_MISSINGNESS_REQUIRES_REVIEW"
+            })
+        }
+        "SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001" => {
+            let count = usize_at(case, &["input", "census_count"])?;
+            let repeats = at(case, &["input", "matched_repeat_measurements"])?
+                .as_bool().ok_or_else(|| "matched_repeat_measurements must be boolean".to_string())?;
+            let rate_claim = at(case, &["input", "longitudinal_rate_claim"])?
+                .as_bool().ok_or_else(|| "longitudinal_rate_claim must be boolean".to_string())?;
+            Ok(if rate_claim && count < 2 && !repeats {
+                "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"
+            } else {
+                "LONGITUDINAL_SUPPORT_REQUIRES_PROTOCOL_REVIEW"
+            })
+        }
+        _ => Err(format!("unsupported observation case id: {id}")),
+    }
+}
+
 fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected: BTreeMap<&'static str, &'static str> = [
         ("PLOT-GEDI-SUPPORT-MISMATCH-001", "BLOCKED_SUPPORT_MISMATCH"),
@@ -296,7 +382,8 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
             && corpus_id == "FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001",
         format!("benchmark={benchmark}; corpus={corpus_id}"));
     push_check(&mut checks, "OBS-CORPUS-CLAIM-CEILING-001",
-        status == "SPECIFICATION_FIXTURES_NOT_YET_EVALUATED"
+        status == "SYNTHETIC_RULE_FIXTURES_NOT_REAL_OBSERVATIONS"
+            && ceiling.contains("Only the deterministic rules")
             && ceiling.contains("No real source data ingested"),
         "corpus must remain explicitly unevaluated specification data");
 
@@ -313,13 +400,17 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         let expected_disposition = expected
             .iter()
             .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
-        let exact_disposition = expected_disposition == Some(disposition);
+        let derived_disposition = adjudicate_observation_case(case)?;
+        let exact_disposition = expected_disposition == Some(disposition)
+            && derived_disposition == disposition;
         push_check(
             &mut checks,
-            "OBS-CASE-SEMANTICS-001",
+            "OBS-CASE-RULE-EXECUTION-001",
             unique && exact_disposition && !condition.trim().is_empty() && !invariant.trim().is_empty(),
-            format!("case={id}; expected={}; declared={disposition}; unique={unique}",
-                expected_disposition.unwrap_or("UNKNOWN_CASE")),
+            format!(
+                "case={id}; derived={derived_disposition}; expected={}; declared={disposition}; unique={unique}",
+                expected_disposition.unwrap_or("UNKNOWN_CASE")
+            ),
         );
     }
     push_check(&mut checks, "OBS-CASE-COVERAGE-001",
@@ -327,12 +418,16 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         format!("{} unique cases; {} required", seen.len(), expected.len()));
 
     let runner = string_at(manifest, &["execution", "runner"])?;
+    let adapter = string_at(manifest, &["execution", "production_observation_adapter"])?;
     let external = at(manifest, &["execution", "external_data_ingested"])?
         .as_bool().ok_or_else(|| "external_data_ingested must be boolean".to_string())?;
+    let synthetic_executed = at(manifest, &["execution", "synthetic_rule_cases_executed"])?
+        .as_bool().ok_or_else(|| "synthetic_rule_cases_executed must be boolean".to_string())?;
     let rights = string_at(manifest, &["execution", "rights_adjudication"])?;
-    push_check(&mut checks, "OBS-NO-EXECUTION-CLAIM-001",
-        runner == "NOT_IMPLEMENTED" && !external && rights == "NOT_RUN",
-        "manifest validation is not execution of the observation negative controls");
+    push_check(&mut checks, "OBS-SYNTHETIC-EXECUTION-BOUNDARY-001",
+        runner == "SYNTHETIC_RULE_ENGINE" && adapter == "NOT_IMPLEMENTED"
+            && !external && synthetic_executed && rights == "NOT_RUN",
+        "the Rust rule engine executes synthetic descriptors only; production adapters, external data and rights decisions remain unexecuted");
 
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks.iter().map(|check| json!({
@@ -344,11 +439,12 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         "benchmark_id": benchmark,
         "corpus_id": corpus_id,
         "source_manifest_sha256": sha256_hex(raw),
-        "result": if passed { "MANIFEST_VALID" } else { "FAIL" },
+        "result": if passed { "PASS_SYNTHETIC_RULES" } else { "FAIL" },
         "checks_passed": checks.iter().filter(|check| check.passed).count(),
         "checks_total": checks.len(),
         "checks": check_values,
-        "negative_controls_executed": false,
+        "synthetic_rule_cases_executed": true,
+        "production_observation_adapter": "NOT_IMPLEMENTED",
         "external_data_ingested": false,
         "ecological_observation_validation": "NOT_ESTABLISHED"
     }))
