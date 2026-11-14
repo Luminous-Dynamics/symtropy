@@ -151,7 +151,9 @@
           "outcome_calibration_status",
           "outcome_calibration_record_sha256",
           "outcome_calibration_valid_until_seconds",
-          "outcome_uncertainty_abs"
+          "outcome_uncertainty_abs",
+          "baseline_calibration_valid_from_seconds",
+          "outcome_calibration_valid_from_seconds"
         ],
         "properties": {
           "unit_id": {
@@ -291,6 +293,14 @@
             "minimum": 0
           },
           "outcome_uncertainty_abs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "baseline_calibration_valid_from_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "outcome_calibration_valid_from_seconds": {
             "type": "number",
             "minimum": 0
           }
