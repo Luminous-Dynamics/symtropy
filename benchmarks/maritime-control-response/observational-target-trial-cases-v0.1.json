@@ -64,8 +64,8 @@
     },
     {
       "case_id": "OT13",
-      "scenario": "The propensity estimate is produced or becomes available after an asset's time zero.",
-      "expected": "not_identified_propensity_temporal_leakage"
+      "scenario": "The propensity model declares a post-treatment covariate outside the preregistered baseline set.",
+      "expected": "rejected_post_treatment_propensity_feature"
     }
   ]
 }
