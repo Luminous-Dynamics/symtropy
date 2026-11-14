@@ -1,0 +1,47 @@
+name: Manufacturing conformity risk reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/risk_oracle.rs"
+      - "tools/manufacturing-conformity/risk-README.md"
+      - "tools/manufacturing-conformity/risk-expected.csv"
+      - ".github/workflows/manufacturing-conformity-risk.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/risk_oracle.rs"
+      - "tools/manufacturing-conformity/risk-README.md"
+      - "tools/manufacturing-conformity/risk-expected.csv"
+      - ".github/workflows/manufacturing-conformity-risk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  risk-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run exact risk tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-conformity/risk_oracle.rs -o "$RUNNER_TEMP/conformity-risk-tests"
+          "$RUNNER_TEMP/conformity-risk-tests"
+      - name: Build and verify synthetic conformity risk campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-conformity/risk_oracle.rs -o "$RUNNER_TEMP/conformity-risk"
+          "$RUNNER_TEMP/conformity-risk" --verify
+      - name: Check deterministic risk report
+        run: |
+          "$RUNNER_TEMP/conformity-risk" --csv > "$RUNNER_TEMP/risk-a.csv"
+          "$RUNNER_TEMP/conformity-risk" --csv > "$RUNNER_TEMP/risk-b.csv"
+          diff -u "$RUNNER_TEMP/risk-a.csv" "$RUNNER_TEMP/risk-b.csv"
+          diff -u tools/manufacturing-conformity/risk-expected.csv "$RUNNER_TEMP/risk-a.csv"
+          cat "$RUNNER_TEMP/risk-a.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/manufacturing-conformity/risk_oracle.rs tools/manufacturing-conformity/risk-expected.csv "$RUNNER_TEMP/risk-a.csv"
