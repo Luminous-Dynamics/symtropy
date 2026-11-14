@@ -51,7 +51,8 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 fn cholesky(a: &Matrix) -> Result<Matrix, String> {
     let n = a.len();
     if n == 0 || a.iter().any(|row| row.len() != n) { return Err("covariance must be non-empty and square".into()); }
-    let scale = a.iter().enumerate().map(|(i,row)| row[i].abs()).fold(0.0_f64, f64::max).max(1.0);
+    let scale = a.iter().enumerate().map(|(i,row)| row[i].abs()).fold(0.0_f64, f64::max);
+    if scale <= 0.0 { return Err("measurement covariance has no positive diagonal scale".into()); }
     for i in 0..n { for j in 0..n {
         if (a[i][j]-a[j][i]).abs() > 1.0e-10*scale {
             return Err("measurement covariance is not symmetric".into());
@@ -117,7 +118,7 @@ fn symmetric_eigenvalues(mut a: Matrix) -> Result<Vec<f64>, String> {
     let n=a.len();
     if n==0 || a.iter().any(|row|row.len()!=n) { return Err("eigenvalue matrix must be square".into()); }
     if n==1 { return Ok(vec![a[0][0]]); }
-    let scale=a.iter().flatten().map(|v|v.abs()).fold(0.0_f64,f64::max).max(1.0);
+    let scale=a.iter().flatten().map(|v|v.abs()).fold(0.0_f64,f64::max).max(1.0e-300);
     let max_iter=100*n*n;
     let mut converged=false;
     for _ in 0..max_iter {
@@ -226,7 +227,7 @@ fn model_separation(case:&Value,covariance:&Matrix)->Result<(Vec<Value>,f64),Str
         let solved=solve_spd(&l,&delta)?;
         let distance=dot(&delta,&solved).max(0.0).sqrt();
         minimum=minimum.min(distance);
-        pairs.push(json!({"model_a":models[i].0,"model_b":models[j].0,"mahalanobis_separation":distance}));
+        pairs.push(json!({"model_a":models[i].0.clone(),"model_b":models[j].0.clone(),"mahalanobis_separation":distance}));
     }}
     Ok((pairs,minimum))
 }
@@ -331,11 +332,11 @@ fn dominates(a:&Value,b:&Value)->bool {
     no_worse && strictly
 }
 fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<(),String> {
-    if text(input,"schema_version")?!="mixing-design-t0-input-v0.1" {return Err("unexpected input schema".into());}
+    if text(input,"schema_version")? != "mixing-design-t0-input-v0.1" {return Err("unexpected input schema".into());}
     if text(input,"programme_id")?!=PROGRAMME || text(oracle,"programme_id")?!=PROGRAMME || text(manifest,"programme_id")?!=PROGRAMME {
         return Err("programme identity mismatch".into());
     }
-    if text(oracle,"schema_version")?!="mixing-design-t0-oracle-v0.1" {return Err("unexpected oracle schema".into());}
+    if text(oracle,"schema_version")? != "mixing-design-t0-oracle-v0.1" {return Err("unexpected oracle schema".into());}
     if field(oracle,"physical_qualification_established")?.as_bool()!=Some(false)
         || field(oracle,"potability_claim_permitted")?.as_bool()!=Some(false)
         || field(oracle,"release_authorized")?.as_bool()!=Some(false) {
