@@ -49,22 +49,46 @@ pub fn sphere_sphere<const D: usize>(
     radius_b: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
+    if !radius_a.is_finite()
+        || radius_a < 0.0
+        || !radius_b.is_finite()
+        || radius_b < 0.0
+        || !dt.is_finite()
+        || dt < 0.0
+        || !pos_a.iter().all(|value| value.is_finite())
+        || !pos_b.iter().all(|value| value.is_finite())
+        || !vel_a.iter().all(|value| value.is_finite())
+        || !vel_b.iter().all(|value| value.is_finite())
+    {
+        return None;
+    }
+
     let dp = pos_b - pos_a;
     let dv = vel_b - vel_a;
-    let r = radius_a + radius_b;
+    let radius = radius_a + radius_b;
+    if !radius.is_finite() {
+        return None;
+    }
 
     let a = dv.dot(&dv);
     let b = 2.0 * dp.dot(&dv);
-    let c = dp.dot(&dp) - r * r;
+    let c = dp.dot(&dp) - radius * radius;
+    if !a.is_finite() || !b.is_finite() || !c.is_finite() {
+        return None;
+    }
 
-    // Already overlapping at t=0
+    // Already overlapping at t=0.
     if c <= 0.0 {
-        let normal = if dp.norm() > 1e-15 {
-            dp.normalize()
+        let distance = dp.norm();
+        if !distance.is_finite() {
+            return None;
+        }
+        let normal = if distance > 1e-15 {
+            dp / distance
         } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
+            let mut normal = SVector::zeros();
+            normal[0] = 1.0;
+            normal
         };
         return Some(CcdHit {
             toi: 0.0,
@@ -73,58 +97,53 @@ pub fn sphere_sphere<const D: usize>(
         });
     }
 
-    // No relative motion
+    // No meaningful relative motion.
     if a < 1e-20 {
         return None;
     }
 
     let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        return None; // No intersection
+    if !discriminant.is_finite() || discriminant < 0.0 {
+        return None;
     }
 
-    let sqrt_disc = discriminant.sqrt();
-    let t1 = (-b - sqrt_disc) / (2.0 * a);
-
-    // We want the earliest positive t within [0, dt]
-    if t1 >= 0.0 && t1 <= dt {
-        let pos_a_t = pos_a + vel_a * t1;
-        let pos_b_t = pos_b + vel_b * t1;
-        let delta = pos_b_t - pos_a_t;
-        let normal = if delta.norm() > 1e-15 {
-            delta.normalize()
-        } else {
-            let mut n = SVector::zeros();
-            n[0] = 1.0;
-            n
-        };
-        Some(CcdHit {
-            toi: t1,
-            point: pos_a_t + normal * radius_a,
-            normal,
-        })
+    // Use the q-form of the quadratic roots to reduce cancellation when
+    // |b| is large relative to the discriminant.
+    let sqrt_discriminant = discriminant.sqrt();
+    let q = -0.5 * (b + b.signum() * sqrt_discriminant);
+    let (root_a, root_b) = if q.abs() > 1e-15 {
+        (q / a, c / q)
     } else {
-        let t2 = (-b + sqrt_disc) / (2.0 * a);
-        if t2 >= 0.0 && t2 <= dt {
-            let pos_a_t = pos_a + vel_a * t2;
-            let pos_b_t = pos_b + vel_b * t2;
-            let delta = pos_b_t - pos_a_t;
-            let normal = if delta.norm() > 1e-15 {
-                delta.normalize()
-            } else {
-                let mut n = SVector::zeros();
-                n[0] = 1.0;
-                n
-            };
-            Some(CcdHit {
-                toi: t2,
-                point: pos_a_t + normal * radius_a,
-                normal,
-            })
-        } else {
-            None // Intersection happens outside [0, dt]
-        }
+        let repeated_root = -b / (2.0 * a);
+        (repeated_root, repeated_root)
+    };
+
+    let toi = [root_a, root_b]
+        .into_iter()
+        .filter(|time| time.is_finite() && *time >= 0.0 && *time <= dt)
+        .min_by(f64::total_cmp)?;
+
+    let pos_a_t = pos_a + vel_a * toi;
+    let pos_b_t = pos_b + vel_b * toi;
+    let delta = pos_b_t - pos_a_t;
+    let distance = delta.norm();
+    if !distance.is_finite() {
+        return None;
     }
+    let normal = if distance > 1e-15 {
+        delta / distance
+    } else {
+        let mut normal = SVector::zeros();
+        normal[0] = 1.0;
+        normal
+    };
+    let point = pos_a_t + normal * radius_a;
+    if !point.iter().all(|value| value.is_finite()) || !normal.iter().all(|value| value.is_finite())
+    {
+        return None;
+    }
+
+    Some(CcdHit { toi, point, normal })
 }
 
 /// Swept sphere vs half-space (infinite plane): find time of impact.
@@ -139,37 +158,66 @@ pub fn sphere_halfspace<const D: usize>(
     plane_offset: f64,
     dt: f64,
 ) -> Option<CcdHit<D>> {
-    let signed_dist = plane_normal.dot(pos) - plane_offset;
+    if !radius.is_finite()
+        || radius < 0.0
+        || !plane_offset.is_finite()
+        || !dt.is_finite()
+        || dt < 0.0
+        || !pos.iter().all(|value| value.is_finite())
+        || !vel.iter().all(|value| value.is_finite())
+        || !plane_normal.iter().all(|value| value.is_finite())
+    {
+        return None;
+    }
 
-    // Already penetrating
+    // A plane is represented by n · x = offset. Normalize both n and
+    // offset so geometric results are invariant under positive scaling of
+    // the plane equation (n, offset) -> (k*n, k*offset).
+    let normal_length = plane_normal.norm();
+    if !normal_length.is_finite() || normal_length <= 1e-15 {
+        return None;
+    }
+    let unit_normal = plane_normal / normal_length;
+    let signed_dist = (plane_normal.dot(pos) - plane_offset) / normal_length;
+    if !signed_dist.is_finite() {
+        return None;
+    }
+
+    // Already touching or penetrating.
     if signed_dist <= radius {
-        let contact = pos - plane_normal * signed_dist;
+        let contact = pos - unit_normal * signed_dist;
+        if !contact.iter().all(|value| value.is_finite()) {
+            return None;
+        }
         return Some(CcdHit {
             toi: 0.0,
             point: contact,
-            normal: *plane_normal,
+            normal: unit_normal,
         });
     }
 
-    let vel_toward_plane = -plane_normal.dot(vel);
-    if vel_toward_plane <= 0.0 {
-        return None; // Moving away from plane
+    let vel_toward_plane = -unit_normal.dot(vel);
+    if !vel_toward_plane.is_finite() || vel_toward_plane <= 0.0 {
+        return None;
     }
 
-    // Time to reach distance = radius from plane
-    let t = (signed_dist - radius) / vel_toward_plane;
-
-    if t >= 0.0 && t <= dt {
-        let pos_t = pos + vel * t;
-        let contact = pos_t - plane_normal * radius;
-        Some(CcdHit {
-            toi: t,
-            point: contact,
-            normal: *plane_normal,
-        })
-    } else {
-        None
+    // Time to reach signed distance = radius from the plane.
+    let toi = (signed_dist - radius) / vel_toward_plane;
+    if !toi.is_finite() || toi < 0.0 || toi > dt {
+        return None;
     }
+
+    let pos_t = pos + vel * toi;
+    let contact = pos_t - unit_normal * radius;
+    if !contact.iter().all(|value| value.is_finite()) {
+        return None;
+    }
+
+    Some(CcdHit {
+        toi,
+        point: contact,
+        normal: unit_normal,
+    })
 }
 
 #[cfg(test)]
@@ -258,6 +306,114 @@ mod tests {
             (hit.toi - 0.0).abs() < 1e-12,
             "already penetrating: TOI = 0"
         );
+    }
+
+    #[test]
+    fn sphere_halfspace_is_invariant_to_plane_normal_scaling() {
+        let position = SVector::from([0.0, 5.0, 0.0]);
+        let velocity = SVector::from([0.0, -500.0, 0.0]);
+        let unit_normal = SVector::from([0.0, 1.0, 0.0]);
+        let scaled_normal = SVector::from([0.0, 10.0, 0.0]);
+
+        let unit_hit =
+            sphere_halfspace(&position, &velocity, 0.5, &unit_normal, 2.0, 0.01).unwrap();
+        let scaled_hit =
+            sphere_halfspace(&position, &velocity, 0.5, &scaled_normal, 20.0, 0.01).unwrap();
+
+        assert!((unit_hit.toi - 0.005).abs() < 1e-12);
+        assert!((scaled_hit.toi - unit_hit.toi).abs() < 1e-12);
+        assert!((scaled_hit.point - unit_hit.point).norm() < 1e-12);
+        assert!((scaled_hit.normal - unit_hit.normal).norm() < 1e-12);
+        assert!((scaled_hit.point[1] - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_halfspace_rejects_degenerate_or_non_finite_inputs() {
+        let position = SVector::from([0.0, 5.0, 0.0]);
+        let velocity = SVector::from([0.0, -5.0, 0.0]);
+        let zero_normal = SVector::zeros();
+        let valid_normal = SVector::from([0.0, 1.0, 0.0]);
+        let invalid_velocity = SVector::from([0.0, f64::NAN, 0.0]);
+
+        assert!(sphere_halfspace(&position, &velocity, 0.5, &zero_normal, 0.0, 1.0).is_none());
+        assert!(
+            sphere_halfspace(&position, &invalid_velocity, 0.5, &valid_normal, 0.0, 1.0).is_none()
+        );
+        assert!(sphere_halfspace(&position, &velocity, -0.5, &valid_normal, 0.0, 1.0).is_none());
+        assert!(sphere_halfspace(&position, &velocity, 0.5, &valid_normal, 0.0, -1.0).is_none());
+    }
+
+    #[test]
+    fn sphere_sphere_rejects_non_finite_and_negative_inputs() {
+        let position_a = SVector::from([0.0, 0.0, 0.0]);
+        let velocity_a = SVector::from([10.0, 0.0, 0.0]);
+        let position_b = SVector::from([5.0, 0.0, 0.0]);
+        let velocity_b = SVector::from([-10.0, 0.0, 0.0]);
+        let invalid_position = SVector::from([f64::INFINITY, 0.0, 0.0]);
+
+        assert!(
+            sphere_sphere(
+                &invalid_position,
+                &velocity_a,
+                0.5,
+                &position_b,
+                &velocity_b,
+                0.5,
+                1.0
+            )
+            .is_none()
+        );
+        assert!(
+            sphere_sphere(
+                &position_a,
+                &velocity_a,
+                -0.5,
+                &position_b,
+                &velocity_b,
+                0.5,
+                1.0
+            )
+            .is_none()
+        );
+        assert!(
+            sphere_sphere(
+                &position_a,
+                &velocity_a,
+                0.5,
+                &position_b,
+                &velocity_b,
+                0.5,
+                f64::NAN
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn sphere_sphere_head_on_toi_matches_analytic_solution() {
+        let position_a = SVector::from([0.0, 0.0, 0.0]);
+        let velocity_a = SVector::from([10.0, 0.0, 0.0]);
+        let position_b = SVector::from([5.0, 0.0, 0.0]);
+        let velocity_b = SVector::from([-10.0, 0.0, 0.0]);
+        let radius_a = 0.5;
+        let radius_b = 0.5;
+
+        let hit = sphere_sphere(
+            &position_a,
+            &velocity_a,
+            radius_a,
+            &position_b,
+            &velocity_b,
+            radius_b,
+            1.0,
+        )
+        .unwrap();
+
+        let gap = 5.0 - radius_a - radius_b;
+        let closing_speed = 20.0;
+        let analytic_toi = gap / closing_speed;
+        assert!((hit.toi - analytic_toi).abs() < 1e-12);
+        assert!((hit.normal - SVector::from([1.0, 0.0, 0.0])).norm() < 1e-12);
     }
 
     #[test]
