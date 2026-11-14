@@ -31,6 +31,17 @@ The module deliberately owns only revision mechanics:
 
 A sequential likelihood ratio crossing is not itself proof of a physical cause. A behavioral-set singleton is only unique within its declared catalogue. The revision ledger preserves those claim ceilings rather than upgrading them.
 
+## Two timelines, two products
+
+The competition stream and the engineering disposition are deliberately different products:
+
+- **Sample output stream:** one output per input sample, indexed and timestamped, append-only. A later sample never edits an earlier output. These are the immutable historical predictions evaluated by the competition.
+- **Current engineering disposition:** an as-of-now view assembled from a sequence of revision receipts. It can change after later evidence becomes available, but every change appends a new revision and leaves the earlier disposition intact.
+
+For example, an output at sample 2,400 may remain `fault_a` forever in the streaming receipt archive. A later independent measurement available at sample 2,520 may support an appended engineering reassessment from `fault_a` to `fault_b`. The system must not rewrite sample 2,400, backdate the later measurement, or claim that the earlier output was never emitted.
+
+This lets an evaluator separately score historical sample-level behaviour and the quality/timeliness of subsequent engineering correction. A revision ledger must never be used to retroactively improve the official streaming score.
+
 ## Contract
 
 Each receipt binds a fixed run, recording, asset, configuration digest, model digest and hypothesis-catalogue digest. Model or configuration changes start a new lineage; they do not silently alter the meaning of prior revisions.
