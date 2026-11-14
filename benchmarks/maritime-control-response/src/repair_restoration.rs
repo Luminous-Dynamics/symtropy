@@ -9,6 +9,7 @@
 //! authenticate issuers, prove causal effects, or establish durable safe life.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
@@ -48,6 +49,7 @@ pub struct OperatingCondition {
 pub struct CapabilityMeasurement {
     pub measurement_id: String,
     pub source_id: String,
+    pub measurement_evidence_sha256: String,
     pub metric_id: String,
     pub measurement_principle_id: String,
     pub dependency_domain_id: String,
@@ -98,6 +100,9 @@ pub struct CapabilityEnvelope {
 pub struct RepairVerificationBinding {
     pub asset_id: String,
     pub component_id: String,
+    pub diagnostic_revision_receipt_sha256: String,
+    pub acceptance_envelope_owner_ref: String,
+    pub acceptance_envelope_sha256: String,
     pub configuration_before_sha256: String,
     pub configuration_after_sha256: String,
     pub diagnostic_measurement_principle_ids: Vec<String>,
@@ -106,14 +111,27 @@ pub struct RepairVerificationBinding {
     pub capability_envelopes: Vec<CapabilityEnvelope>,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InterventionKind {
+    PhysicalComponentRepair,
+    SensorReplacementOrCalibration,
+    ControllerOrConfigurationChange,
+    InspectionOnly,
+    ShamOrNoOp,
+    Other,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct RepairRecord {
     pub repair_id: String,
     pub component_id: String,
+    pub intervention_kind: InterventionKind,
     pub action_description: String,
     /// A pointer to an external authorization record; this crate does not verify authority.
     pub authorization_record_ref: String,
+    pub authorization_record_sha256: String,
     pub repair_record_sha256: String,
     pub started_at_seconds: f64,
     pub completed_at_seconds: f64,
@@ -198,6 +216,7 @@ pub enum NotEvaluableReason {
     MeasurementUncertaintyTooLarge,
     NoIndependentVerificationPath,
     UncertaintyOverlapsAcceptanceBoundary,
+    InterventionNotPhysicalComponentRepair,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -213,6 +232,9 @@ pub struct RepairVerificationReport {
     pub pre_repair_episode_id: String,
     pub post_repair_episode_id: String,
     pub repair_record_sha256: String,
+    pub diagnostic_revision_receipt_sha256: String,
+    pub acceptance_envelope_sha256: String,
+    pub case_sha256: String,
     pub physical_restoration_authorized: bool,
     pub maintenance_authorized: bool,
     pub operating_restriction_clearance_authorized: bool,
@@ -236,6 +258,7 @@ pub enum RepairVerificationError {
     InvalidEpisodeWindow(String),
     InvalidMeasurement(String),
     InvalidConditionTolerance(String),
+    Serialization,
 }
 
 impl fmt::Display for RepairVerificationError {
@@ -257,11 +280,31 @@ impl fmt::Display for RepairVerificationError {
             Self::InvalidEpisodeWindow(id) => write!(formatter, "invalid test episode window: {id}"),
             Self::InvalidMeasurement(id) => write!(formatter, "invalid measurement values or identity: {id}"),
             Self::InvalidConditionTolerance(id) => write!(formatter, "invalid condition tolerance: {id}"),
+            Self::Serialization => write!(formatter, "failed to serialize repair-restoration evidence"),
         }
     }
 }
 
 impl std::error::Error for RepairVerificationError {}
+
+fn sha256_serializable<T: Serialize>(
+    domain: &[u8],
+    value: &T,
+) -> Result<String, RepairVerificationError> {
+    let bytes = serde_json::to_vec(value).map_err(|_| RepairVerificationError::Serialization)?;
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update(bytes);
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+fn capability_envelopes_sha256(
+    envelopes: &[CapabilityEnvelope],
+) -> Result<String, RepairVerificationError> {
+    let mut canonical = envelopes.to_vec();
+    canonical.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    sha256_serializable(b"symtropy-marine-capability-envelope-set-v1\\0", &canonical)
+}
 
 fn is_sha256_hex(value: &str) -> bool {
     value.len() == 64
@@ -278,6 +321,21 @@ impl RepairVerificationBinding {
             || self.diagnostic_dependency_domain_ids.is_empty()
             || self.condition_tolerances.is_empty()
             || self.capability_envelopes.is_empty()
+        {
+            return Err(RepairVerificationError::InvalidBinding);
+        }
+        if !is_sha256_hex(&self.diagnostic_revision_receipt_sha256)
+            || !is_sha256_hex(&self.acceptance_envelope_sha256)
+            || !is_sha256_hex(&self.configuration_before_sha256)
+            || !is_sha256_hex(&self.configuration_after_sha256)
+        {
+            return Err(RepairVerificationError::InvalidDigest);
+        }
+        if self.acceptance_envelope_owner_ref.trim().is_empty() {
+            return Err(RepairVerificationError::InvalidBinding);
+        }
+        if capability_envelopes_sha256(&self.capability_envelopes)?
+            != self.acceptance_envelope_sha256
         {
             return Err(RepairVerificationError::InvalidBinding);
         }
@@ -389,6 +447,7 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
             && measurement.calibration_record_sha256.is_none();
         if measurement.measurement_id.trim().is_empty()
             || measurement.source_id.trim().is_empty()
+            || !is_sha256_hex(&measurement.measurement_evidence_sha256)
             || measurement.metric_id.trim().is_empty()
             || measurement.measurement_principle_id.trim().is_empty()
             || measurement.dependency_domain_id.trim().is_empty()
@@ -456,7 +515,9 @@ fn validate_repair(case: &RepairVerificationCase) -> Result<(), RepairVerificati
     {
         return Err(RepairVerificationError::EmptyIdentity);
     }
-    if !is_sha256_hex(&case.repair.repair_record_sha256) {
+    if !is_sha256_hex(&case.repair.authorization_record_sha256)
+        || !is_sha256_hex(&case.repair.repair_record_sha256)
+    {
         return Err(RepairVerificationError::InvalidDigest);
     }
     if !case.repair.started_at_seconds.is_finite()
