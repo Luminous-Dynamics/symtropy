@@ -11,6 +11,8 @@ The crate validates and normalizes only explicit metadata and array structure:
 - explicit R/Z units, time units, flux units and grid layout;
 - right-handed cylindrical (R, φ, Z) coordinates and the declared poloidal-field definition;
 - explicit COCOS flags and quantity sign metadata;
+- immutable convention-profile ID and declared SHA-256 bound into each normalization receipt;
+- explicit `convention_profile_payload_verified=false` in v0.1; the declared profile digest is not treated as proof that profile bytes were fetched or hashed;
 - monotonic axes and timestamps, frame counts, array dimensions and finite values;
 - explicit normalization receipts and stale-identity checks.
 
@@ -49,7 +51,7 @@ cargo test --manifest-path Cargo.toml
 cargo run --manifest-path Cargo.toml --bin verify_fixture_corpus
 ```
 
-The binary checks only fixture-corpus structure and required case identities. It does not call the production normalizer. Unit tests exercise the typed validator and normalization behavior.
+The binary checks only fixture-corpus structure and required case identities. It does not call the production normalizer. The crate contains 23 authored Rust unit tests, including convention-profile identity and stale-profile refusal tests. These tests have not been executed in this authoring environment.
 
 ## Claim ceiling
 
