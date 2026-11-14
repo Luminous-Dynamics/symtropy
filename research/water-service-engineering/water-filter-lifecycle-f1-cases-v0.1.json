@@ -1,0 +1,505 @@
+{
+  "schema_version": "water-filter-lifecycle-f1-cases-v0.1",
+  "evidence_class": "synthetic_protocol_schedule_contract",
+  "evidence_ceiling": "protocol_schedule_and_record_integrity_only_no_filter_performance_or_WHO_certification_claim",
+  "base_run": {
+    "protocol": {
+      "protocol_id": "WHO_HWT_FILTRATION",
+      "version": "4.0"
+    },
+    "product": {
+      "model_id": "SYN-FILTER-MODEL-01",
+      "configuration_id": "SYN-CONFIG-01",
+      "production_lot": "SYN-LOT-A",
+      "declared_capacity_l": 100,
+      "operator_manual_revision": "SYN-MANUAL-01",
+      "end_of_life_indicator": "SERVICE_REPLACE_INSTRUCTION",
+      "end_of_life_instructions": "Replace at declared cumulative throughput; synthetic fixture only."
+    },
+    "units": [
+      {
+        "serial": "SYN-UF-UNIT-001",
+        "manufacturing_lot": "SYN-LOT-A"
+      },
+      {
+        "serial": "SYN-UF-UNIT-002",
+        "manufacturing_lot": "SYN-LOT-A"
+      },
+      {
+        "serial": "SYN-UF-UNIT-003",
+        "manufacturing_lot": "SYN-LOT-A"
+      }
+    ],
+    "test_waters": [
+      "GTW",
+      "CTW"
+    ],
+    "daily_water_characteristics": [
+      {
+        "test_day": 1,
+        "test_water": "GTW",
+        "sampled_at_utc": "2030-01-01T09:00:00Z",
+        "profile_id": "WHO_HWT_GTW_PROFILE_V4",
+        "residual_chlorine_mg_l": 0.02,
+        "pH": 7.2,
+        "turbidity_ntu": 1,
+        "temperature_c": 20,
+        "tds_mg_l": 300,
+        "alkalinity_mg_l_as_caco3": 100,
+        "retained_sample_id": "WATER-RETAIN-DAY-1"
+      },
+      {
+        "test_day": 2,
+        "test_water": "GTW",
+        "sampled_at_utc": "2030-01-02T17:00:00Z",
+        "profile_id": "WHO_HWT_GTW_PROFILE_V4",
+        "residual_chlorine_mg_l": 0.02,
+        "pH": 7.2,
+        "turbidity_ntu": 1,
+        "temperature_c": 20,
+        "tds_mg_l": 300,
+        "alkalinity_mg_l_as_caco3": 100,
+        "retained_sample_id": "WATER-RETAIN-DAY-2"
+      },
+      {
+        "test_day": 3,
+        "test_water": "CTW",
+        "sampled_at_utc": "2030-01-03T09:00:00Z",
+        "profile_id": "WHO_HWT_CTW_TECHNOLOGY_PROFILE_V4",
+        "residual_chlorine_mg_l": 0.02,
+        "pH": 7.2,
+        "turbidity_ntu": 35,
+        "temperature_c": 20,
+        "tds_mg_l": 1500,
+        "alkalinity_mg_l_as_caco3": 100,
+        "retained_sample_id": "WATER-RETAIN-DAY-3"
+      },
+      {
+        "test_day": 4,
+        "test_water": "CTW",
+        "sampled_at_utc": "2030-01-04T17:00:00Z",
+        "profile_id": "WHO_HWT_CTW_TECHNOLOGY_PROFILE_V4",
+        "residual_chlorine_mg_l": 0.02,
+        "pH": 7.2,
+        "turbidity_ntu": 35,
+        "temperature_c": 20,
+        "tds_mg_l": 1500,
+        "alkalinity_mg_l_as_caco3": 100,
+        "retained_sample_id": "WATER-RETAIN-DAY-4"
+      }
+    ],
+    "sample_events": [
+      {
+        "event_id": "SYN-UF-UNIT-001-DAY-1-GTW-START",
+        "unit_serial": "SYN-UF-UNIT-001",
+        "test_day": 1,
+        "test_water": "GTW",
+        "collection_point": "START",
+        "timestamp_utc": "2030-01-01T09:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-GTW-DAY-1",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-001-DAY-1",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-001-DAY-1",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-001-DAY-2-GTW-END",
+        "unit_serial": "SYN-UF-UNIT-001",
+        "test_day": 2,
+        "test_water": "GTW",
+        "collection_point": "END",
+        "timestamp_utc": "2030-01-02T17:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-GTW-DAY-2",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-001-DAY-2",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-001-DAY-2",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-001-DAY-3-CTW-START",
+        "unit_serial": "SYN-UF-UNIT-001",
+        "test_day": 3,
+        "test_water": "CTW",
+        "collection_point": "START",
+        "timestamp_utc": "2030-01-03T09:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-CTW-DAY-3",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-001-DAY-3",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-001-DAY-3",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-001-DAY-4-CTW-END",
+        "unit_serial": "SYN-UF-UNIT-001",
+        "test_day": 4,
+        "test_water": "CTW",
+        "collection_point": "END",
+        "timestamp_utc": "2030-01-04T17:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-CTW-DAY-4",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-001-DAY-4",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-001-DAY-4",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-002-DAY-1-GTW-START",
+        "unit_serial": "SYN-UF-UNIT-002",
+        "test_day": 1,
+        "test_water": "GTW",
+        "collection_point": "START",
+        "timestamp_utc": "2030-01-01T09:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-GTW-DAY-1",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-002-DAY-1",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-002-DAY-1",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-002-DAY-2-GTW-END",
+        "unit_serial": "SYN-UF-UNIT-002",
+        "test_day": 2,
+        "test_water": "GTW",
+        "collection_point": "END",
+        "timestamp_utc": "2030-01-02T17:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-GTW-DAY-2",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-002-DAY-2",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-002-DAY-2",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-002-DAY-3-CTW-START",
+        "unit_serial": "SYN-UF-UNIT-002",
+        "test_day": 3,
+        "test_water": "CTW",
+        "collection_point": "START",
+        "timestamp_utc": "2030-01-03T09:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-CTW-DAY-3",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-002-DAY-3",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-002-DAY-3",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-002-DAY-4-CTW-END",
+        "unit_serial": "SYN-UF-UNIT-002",
+        "test_day": 4,
+        "test_water": "CTW",
+        "collection_point": "END",
+        "timestamp_utc": "2030-01-04T17:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-CTW-DAY-4",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-002-DAY-4",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-002-DAY-4",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-003-DAY-1-GTW-START",
+        "unit_serial": "SYN-UF-UNIT-003",
+        "test_day": 1,
+        "test_water": "GTW",
+        "collection_point": "START",
+        "timestamp_utc": "2030-01-01T09:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-GTW-DAY-1",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-003-DAY-1",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-003-DAY-1",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-003-DAY-2-GTW-END",
+        "unit_serial": "SYN-UF-UNIT-003",
+        "test_day": 2,
+        "test_water": "GTW",
+        "collection_point": "END",
+        "timestamp_utc": "2030-01-02T17:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-GTW-DAY-2",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-003-DAY-2",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-003-DAY-2",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-003-DAY-3-CTW-START",
+        "unit_serial": "SYN-UF-UNIT-003",
+        "test_day": 3,
+        "test_water": "CTW",
+        "collection_point": "START",
+        "timestamp_utc": "2030-01-03T09:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-CTW-DAY-3",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-003-DAY-3",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-003-DAY-3",
+        "cleaning_during_seeding_or_sampling": false
+      },
+      {
+        "event_id": "SYN-UF-UNIT-003-DAY-4-CTW-END",
+        "unit_serial": "SYN-UF-UNIT-003",
+        "test_day": 4,
+        "test_water": "CTW",
+        "collection_point": "END",
+        "timestamp_utc": "2030-01-04T17:00:00Z",
+        "void_volume_l": 0.1,
+        "seed_volume_l": 1,
+        "effluent_sample_volume_l": 3,
+        "flow_start_l_min": 1,
+        "flow_at_sample_l_min": 0.9,
+        "influent_sample_id": "INFLUENT-CTW-DAY-4",
+        "effluent_sample_id": "EFFLUENT-SYN-UF-UNIT-003-DAY-4",
+        "chain_of_custody_id": "COC-SYN-UF-UNIT-003-DAY-4",
+        "cleaning_during_seeding_or_sampling": false
+      }
+    ],
+    "maintenance_events": [],
+    "primary_treatment_component_replaced": false,
+    "end_test": {
+      "reason": "SCHEDULE_COMPLETE",
+      "initial_flow_l_min": 1,
+      "final_flow_l_min": 0.9,
+      "recovered_after_permitted_cleaning": false,
+      "cumulative_volume_l": 100
+    }
+  },
+  "cases": [
+    {
+      "case_id": "WFL-F1-001-complete-who-v4-schedule",
+      "operations": [],
+      "expected_status": "PASS_PROTOCOL_SCHEDULE"
+    },
+    {
+      "case_id": "WFL-F1-002-only-two-production-units",
+      "operations": [
+        {
+          "op": "REMOVE_UNIT",
+          "target": "SYN-UF-UNIT-003"
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-003-ctw-water-omitted",
+      "operations": [
+        {
+          "op": "REMOVE_TEST_WATER",
+          "target": "CTW"
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-004-day-four-sample-missing",
+      "operations": [
+        {
+          "op": "REMOVE_EVENT",
+          "target": "SYN-UF-UNIT-003-DAY-4-CTW-END"
+        }
+      ],
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-005-seeding-volume-too-low",
+      "operations": [
+        {
+          "op": "SET_EVENT_FIELD",
+          "target": "SYN-UF-UNIT-001-DAY-1-GTW-START",
+          "field": "seed_volume_l",
+          "value": 0.5
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-006-effluent-sample-under-three-litres",
+      "operations": [
+        {
+          "op": "SET_EVENT_FIELD",
+          "target": "SYN-UF-UNIT-002-DAY-2-GTW-END",
+          "field": "effluent_sample_volume_l",
+          "value": 2.5
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-007-cleaning-during-sample",
+      "operations": [
+        {
+          "op": "SET_EVENT_FIELD",
+          "target": "SYN-UF-UNIT-001-DAY-3-CTW-START",
+          "field": "cleaning_during_seeding_or_sampling",
+          "value": true
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-008-primary-treatment-component-replaced",
+      "operations": [
+        {
+          "op": "SET_PRIMARY_COMPONENT_REPLACED",
+          "value": true
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-009-unrecoverable-clogging-over-75-percent",
+      "operations": [
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "reason",
+          "value": "UNRECOVERABLE_CLOGGING"
+        },
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "final_flow_l_min",
+          "value": 0.2
+        }
+      ],
+      "expected_status": "PASS_EARLY_CLOGGING_STOP"
+    },
+    {
+      "case_id": "WFL-F1-010-clogging-restored-by-permitted-cleaning",
+      "operations": [
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "reason",
+          "value": "UNRECOVERABLE_CLOGGING"
+        },
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "final_flow_l_min",
+          "value": 0.2
+        },
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "recovered_after_permitted_cleaning",
+          "value": true
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-011-flow-decline-only-60-percent",
+      "operations": [
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "reason",
+          "value": "UNRECOVERABLE_CLOGGING"
+        },
+        {
+          "op": "SET_END_TEST_FIELD",
+          "field": "final_flow_l_min",
+          "value": 0.4
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-012-duplicate-effluent-sample-id",
+      "operations": [
+        {
+          "op": "SET_EVENT_FIELD",
+          "target": "SYN-UF-UNIT-003-DAY-4-CTW-END",
+          "field": "effluent_sample_id",
+          "value": "EFFLUENT-SYN-UF-UNIT-001-DAY-1"
+        }
+      ],
+      "expected_status": "FAIL"
+    },
+    {
+      "case_id": "WFL-F1-013-daily-test-water-ph-missing",
+      "operations": [
+        {
+          "op": "REMOVE_WATER_FIELD",
+          "target": "2",
+          "field": "pH"
+        }
+      ],
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-014-chain-of-custody-missing",
+      "operations": [
+        {
+          "op": "SET_EVENT_FIELD",
+          "target": "SYN-UF-UNIT-002-DAY-3-CTW-START",
+          "field": "chain_of_custody_id",
+          "value": ""
+        }
+      ],
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-015-manufacturer-end-of-life-instruction-missing",
+      "operations": [
+        {
+          "op": "SET_PRODUCT_FIELD",
+          "field": "end_of_life_indicator",
+          "value": ""
+        }
+      ],
+      "expected_status": "INCOMPLETE"
+    },
+    {
+      "case_id": "WFL-F1-016-permitted-nonprimary-prefilter-replacement-recorded",
+      "operations": [
+        {
+          "op": "ADD_MAINTENANCE_EVENT",
+          "value": {
+            "component_role": "NON_PRIMARY_PRE_FILTER",
+            "timestamp_utc": "2030-01-02T11:00:00Z",
+            "recorded": true,
+            "reason": "scheduled turbidity prefilter service",
+            "during_seeding_or_sampling": false
+          }
+        }
+      ],
+      "expected_status": "PASS_PROTOCOL_SCHEDULE"
+    }
+  ]
+}
