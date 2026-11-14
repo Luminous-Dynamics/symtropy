@@ -130,6 +130,10 @@ An observed-domain transfer operator can be sub-stochastic. Add an explicit unre
 
 For a junction, the physical steady-state control volume may have no intended storage, but the experiment still needs an explicit recovery window, every outlet, and an accounting for uncertainty and any delayed/sample-system effects. For a tank, the long tail and remaining tank inventory make the time horizon and known storage especially important.
 
+### Implementation boundary
+
+The existing mixing-fidelity T0 v0.1 junction evaluator is deliberately a closed-boundary synthetic operator: it requires each inlet fraction column to sum to one and rejects a non-normalized column. It does not renormalize a bad column, but it also does not yet accept a partial observed-domain operator plus an explicit unknown residual channel. That executable gap is now tracked separately in [WATER-MIXING-MASS-ACCOUNTING-QUAL-001 / #5242](https://github.com/Luminous-Dynamics/symtropy/issues/5242). The residual ledger described above is a research contract, not an implemented capability of the current T0 evaluators.
+
 ## 8. Comparator update
 
 The benchmark should include:
