@@ -34,31 +34,33 @@
     "post_treatment_lab_verification_is_required_for_authority_review",
     "lab_sample_scope_is_sample_time_location_analyte_only",
     "release_authorized_is_always_false",
-    "potability_claim_permitted_is_always_false"
+    "potability_claim_permitted_is_always_false",
+    "protocol_id_version_and_claim_basis_must_match_for_each_required_hazard",
+    "WHO_HWT_FILTRATION_V4_BACTERIA_VIRUS_EVIDENCE_DOES_NOT_IMPLY_PROTOZOA_CREDIT"
   ],
   "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim",
   "protocol_evidence_scope": {
     "bacteria": {
       "required_protocol_id": "WHO_HWT_FILTRATION",
       "required_protocol_version": "4.0",
-      "basis": "DIRECT_CHALLENGE_TEST"
+      "required_claim_basis": "DIRECT_CHALLENGE_TEST"
     },
     "viruses": {
       "required_protocol_id": "WHO_HWT_FILTRATION",
       "required_protocol_version": "4.0",
-      "basis": "DIRECT_CHALLENGE_TEST"
+      "required_claim_basis": "DIRECT_CHALLENGE_TEST"
     },
     "protozoa": {
       "required_protocol_id": "WHO_HWT_SCHEME_PRODUCT_REPORT",
       "required_protocol_version": "ROUND_IV",
-      "basis": "WHO_SCHEME_DECISION",
-      "note": "A product-specific WHO scheme decision or separate applicable test must support the claim; WHO filtration protocol v4.0 Table 3 alone tests bacteria and viruses and does not by itself establish protozoa reduction."
+      "required_claim_basis": "WHO_SCHEME_DECISION",
+      "note": "A product-specific WHO Scheme decision or separately applicable test must support protozoa credit. WHO HWT filtration protocol v4.0 Table 3 has bacteria and virus challenge criteria; filtration-v4 results alone do not establish protozoa reduction."
     },
     "arsenic": {
       "required_protocol_id": "NSF_ANSI_53",
       "required_protocol_version": "2025",
-      "basis": "CERTIFICATE_CLAIM",
-      "note": "Synthetic placeholder only; deployed evidence requires exact certified model and contaminant scope."
+      "required_claim_basis": "CERTIFICATE_CLAIM",
+      "note": "Synthetic protocol placeholder only. Any deployed claim must bind to the exact current certificate, model, configuration and listed contaminant claim."
     }
   }
 }
