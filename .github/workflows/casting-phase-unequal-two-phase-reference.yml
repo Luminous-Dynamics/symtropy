@@ -1,0 +1,47 @@
+name: Unequal-property two-phase Stefan analytical reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/two_phase_unequal.rs"
+      - "tools/casting-phase-reference/unequal-two-phase-README.md"
+      - "tools/casting-phase-reference/unequal-two-phase-expected.csv"
+      - ".github/workflows/casting-phase-unequal-two-phase-reference.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/casting-phase-reference/two_phase_unequal.rs"
+      - "tools/casting-phase-reference/unequal-two-phase-README.md"
+      - "tools/casting-phase-reference/unequal-two-phase-expected.csv"
+      - ".github/workflows/casting-phase-unequal-two-phase-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/casting-phase-reference/two_phase_unequal.rs -o "$RUNNER_TEMP/two-phase-unequal-tests"
+          "$RUNNER_TEMP/two-phase-unequal-tests"
+      - name: Build and verify unequal-property reference
+        run: |
+          rustc --edition=2024 -D warnings tools/casting-phase-reference/two_phase_unequal.rs -o "$RUNNER_TEMP/two-phase-unequal"
+          "$RUNNER_TEMP/two-phase-unequal" --verify
+      - name: Compare deterministic output with frozen reference
+        run: |
+          "$RUNNER_TEMP/two-phase-unequal" --csv > "$RUNNER_TEMP/unequal-a.csv"
+          "$RUNNER_TEMP/two-phase-unequal" --csv > "$RUNNER_TEMP/unequal-b.csv"
+          diff -u "$RUNNER_TEMP/unequal-a.csv" "$RUNNER_TEMP/unequal-b.csv"
+          diff -u tools/casting-phase-reference/unequal-two-phase-expected.csv "$RUNNER_TEMP/unequal-a.csv"
+          cat "$RUNNER_TEMP/unequal-a.csv"
+      - name: Emit exact source and output digests
+        run: |
+          sha256sum tools/casting-phase-reference/two_phase_unequal.rs tools/casting-phase-reference/unequal-two-phase-expected.csv "$RUNNER_TEMP/unequal-a.csv"
