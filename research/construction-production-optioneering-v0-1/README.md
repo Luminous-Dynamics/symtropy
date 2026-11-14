@@ -50,3 +50,8 @@ The dependency-free frontier benchmark evaluates 10, 100, 500, 1,000 and 2,000 a
 ## Claim ceiling
 
 This crate evaluates caller-supplied synthetic scenario records and evidence references. It does not authenticate those references, calculate actual life-cycle assessment, establish sensor/inspection accuracy, prove structural or fire compliance, design a building, authorize work or demonstrate construction productivity/cost/carbon savings. All metrics are only comparable inside the exact same functional-unit contract and assessment boundary.
+
+
+### Fixed-point metric units
+
+Each performance metric declares a positive fixed-point divisor `scale`. Stored bounds and scenario values use the same integer scale, with physical metric value equal to stored integer divided by scale. The Rust contract type and JSON Schema both require this field.
