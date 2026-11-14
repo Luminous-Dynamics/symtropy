@@ -1,0 +1,157 @@
+{
+  "schema_version": "liu-ice-published-six-solution-baselines-v0.1",
+  "status": "literature_reference_not_reproduced",
+  "source": {
+    "title": "A fault diagnosis benchmark of technical systems with incomplete data — six solutions",
+    "authors": "Daniel Jung et al.",
+    "journal": "Control Engineering Practice",
+    "volume": 164,
+    "article_number": "106427",
+    "publication_year": 2025,
+    "doi": "10.1016/j.conengprac.2025.106427",
+    "challenge": "IFAC Safeprocess 2024 LiU-ICE engine diagnosis challenge",
+    "source_pdf": "https://www.iri.upc.edu/files/scidoc/3087-A-fault-diagnosis-benchmark-of-technical-systems-with-incomplete-data---six-solutions.pdf",
+    "open_access_license": "CC-BY-4.0"
+  },
+  "protocol_context": {
+    "source_benchmark": "Earlier IFAC Safeprocess 2024 iteration on the same Volvo spark-ignition engine test bench",
+    "reported_data": "17 files including an additional fault-free scenario; approximately 8.5 operating hours after the challenge's later test data release",
+    "training_description": "One nominal and seven fault scenarios, each a full WLTP cycle; faults introduced at approximately 120 seconds and persist to end",
+    "test_design": "Evaluation data include fault magnitudes held out from the training magnitude bands; paper reports averages over its evaluation datasets",
+    "historical_metrics": {
+      "one_minus_far": "Percentage of non-fault samples correctly left without an alarm",
+      "tdr": "Percentage of fault samples where a fault is detected",
+      "tir": "Among detected faults, percentage where the true fault is ranked highest"
+    },
+    "comparability_warning": "These published 2024 challenge results are historical reference points. TIR is a top-ranked diagnosis measure; current DX2026 LiU-ICE FIA is the average probability assigned to the true diagnosis among correctly detected fault samples. The old mean percentages are not current DX2026 scores and cannot be algebraically converted into the current probability-based metric.",
+    "second_warning": "The old evaluation splits, data releases, metrics and challenge interface may differ from DX2026. Reimplement each method against the exact recovered old protocol first, then run a separate matched DX2026 experiment using current official training data, hidden-test evaluation where accessible, and the official current score."
+  },
+  "solutions": [
+    {
+      "id": "published_solution_1_care_engine",
+      "authors": "Anna Sztyber-Betley",
+      "method_family": "normal_model_residuals_adaptive_bounds_qda_lsvc",
+      "method": "Offline healthy-only prediction models generate 13 residuals; adaptive bounds use segmented residual-versus-measurement fits with ±2 standard deviations. Exponentially weighted diagnostic signals (alpha 0.002) feed QDA fault detection; residual features feed a Linear SVC with a 50-component Nystroem map for isolation.",
+      "strengths": "Explicit residual layer; online sample processing; healthy-only predictor training; adaptive residual thresholding.",
+      "observed_limitations": "Dynamic end-of-cycle false positives; old validation accuracy and training performance separated; isolation validation 82.5% after a 99.7% training result, with unknown labels appearing more often in validation.",
+      "historical_mean_percent": {
+        "one_minus_far": 92.2,
+        "tdr": 87.3,
+        "tir": 50.1
+      },
+      "reproduction_status": "not_reproduced",
+      "source_sections": [
+        "3. Solution, first participant",
+        "Table 13"
+      ]
+    },
+    {
+      "id": "published_solution_2_rls_open_set_residuals",
+      "authors": "Francesco Corrini, Andrea Arici, Nicolas Anselmi, Mirko Mazzoleni",
+      "method_family": "recursive_least_squares_structural_residuals_open_set",
+      "method": "Four RLS local models create time-varying coefficient residual pairs. Residual signatures are linked to fault sensitivity through structural/MSO analysis; open-set detectors are trained on residual-insensitive regions. Batch residual distributions and Gaussian/KL similarity are used to detect departures and support unknown-fault decisions.",
+      "strengths": "Uses control/actuator and physical signals; encodes model-derived fault sensitivities; open-set classification; local residual features are low-dimensional.",
+      "observed_limitations": "MSO measurement sets and partial causal models could be ambiguous under feedback; some residual signatures react to multiple faults; reported isolation remained incomplete for coupled faults.",
+      "historical_mean_percent": {
+        "one_minus_far": 100,
+        "tdr": 83.1,
+        "tir": 85.5
+      },
+      "reproduction_status": "not_reproduced",
+      "source_sections": [
+        "4. Solution, second participant",
+        "Table 5",
+        "Table 13"
+      ]
+    },
+    {
+      "id": "published_solution_3_distribution_kl_matching",
+      "authors": "Jiamin Xu, Siwen Mo, Zixuan Xu, Chongpan Yang, Zhile Du",
+      "method_family": "gaussian_window_distribution_matching_kl",
+      "method": "Sliding sensor windows are fitted with Gaussian distributions; pairwise KL divergence and historical distributions provide fault similarity scores. Overlapping windows reuse scarce fault examples and support threshold-based unknown-fault rejection.",
+      "strengths": "Uses distributional summaries rather than individual noisy samples; makes limited training data more reusable; has an explicit unknown-fault threshold.",
+      "observed_limitations": "Window/step and distribution assumptions affect computation and sensitivity; the reported mean false-alarm burden is very high relative to the other methods.",
+      "historical_mean_percent": {
+        "one_minus_far": 58.4,
+        "tdr": 84.5,
+        "tir": 48.8
+      },
+      "reproduction_status": "not_reproduced",
+      "source_sections": [
+        "5. Solution, third participant",
+        "Table 13"
+      ]
+    },
+    {
+      "id": "published_solution_4_residual_anfis",
+      "authors": "Hossein Safaeipour, Mehdi Forouzanfar, Vahid Mirahi, Anna Pinnarelli, Vicenç Puig",
+      "method_family": "healthy_model_residual_fixed_threshold_anfis",
+      "method": "A healthy-system model and fixed residual thresholds drive cumulative alarm-density logic. Four dedicated ANFIS models isolate the individual known fault classes; faults are first treated as unknown until a specific isolation model provides evidence.",
+      "strengths": "Best historical average TDR (97.2%) and 99.9% one-minus-FAR; explicit event confirmation logic and per-fault isolation models.",
+      "observed_limitations": "Mean historical top-ranked isolation 68.0%; air-mass-flow sensor cases were weaker; depends on persistent faults and sequential-fault assumptions; threshold, window and ANFIS parameters require exact recovery.",
+      "historical_mean_percent": {
+        "one_minus_far": 99.9,
+        "tdr": 97.2,
+        "tir": 68
+      },
+      "reproduction_status": "not_reproduced",
+      "source_sections": [
+        "6. Solution, fourth participant",
+        "Table 13"
+      ]
+    },
+    {
+      "id": "published_solution_5_ccdnn_multiview",
+      "authors": "Qiao Deng, Yufei Liu, Jiakun Liu, Haobin Ke, Wanting Zhu",
+      "method_family": "canonical_correlation_guided_multiview_deep_network",
+      "method": "A CCDNN aligns two selected signal views using a canonical-correlation constraint inside a task-specific deep classifier; a redundancy filter projects out correlated feature components before fusion.",
+      "strengths": "Explicit multi-view feature alignment and redundancy control; end-to-end classification objective.",
+      "observed_limitations": "Variable/view selection is consequential; historical aggregate false-alarm burden was high and mean TIR low; learned correlation is not proof of causal/independent evidence.",
+      "historical_mean_percent": {
+        "one_minus_far": 30.5,
+        "tdr": 87.4,
+        "tir": 37.2
+      },
+      "reproduction_status": "not_reproduced",
+      "source_sections": [
+        "7. Solution, fifth participant",
+        "Table 13"
+      ]
+    },
+    {
+      "id": "published_solution_6_vae_svm_ensemble",
+      "authors": "Silke Merkelbach, Maryam Ahang, Homayoun Najjaran",
+      "method_family": "dual_vae_detection_isolation_one_class_svm",
+      "method": "A VAE/MLP detects normal versus fault; a second VAE/MLP isolates among known classes; a one-class SVM acts as an unknown-fault signal. Outputs are combined by a fixed ensemble rule.",
+      "strengths": "Separates anomaly detection, known-class isolation and novelty scoring; probabilistic latent representation.",
+      "observed_limitations": "The paper says unknown-fault recognition was not validated for the competition; fault-free samples could be forced into a known class after a false detection; performance degraded on unfamiliar data/severities.",
+      "historical_mean_percent": {
+        "one_minus_far": 36.2,
+        "tdr": 78.6,
+        "tir": 42.3
+      },
+      "reproduction_status": "not_reproduced",
+      "source_sections": [
+        "8. Solution, sixth participant",
+        "Table 12",
+        "Table 13"
+      ]
+    }
+  ],
+  "matched_reproduction_rules": [
+    "Recover each team's exact feature selection, model structure, hyperparameters, thresholds, preprocessing, windowing, training data, validation split and online update order from the paper and supplementary/code artifacts.",
+    "Do not silently replace a method's original algorithm with a convenient modern approximation; label faithful reproduction versus reimplementation separately.",
+    "Use independent whole-recording splits; do not use random 20 Hz row splits for confirmatory evaluation.",
+    "Recover the original 2024 challenge datasets and metrics if available. Historical table values are sanity checks, not guaranteed reproduction targets under a new data split.",
+    "For the current DX2026 track, adapt each method to the sample-at-a-time Python interface and current five-slot output contract, preserve past outputs, and recompute all metrics with the official 2026 evaluator.",
+    "Report both the original historical metrics and current official FAR/TDR/FIA/total score; never relabel TIR as FIA.",
+    "Report event recall, p50/p95 latency, false alarms per observed normal hour, per-magnitude and per-cycle performance, unknown false-known/abstention, model size, inference time and peak memory for all methods.",
+    "Freeze code/model/data/split/evaluator digests; disclose compute and dependency versions; cluster uncertainty by independent recording/run."
+  ],
+  "research_hypotheses_not_results": [
+    "A calibrated hybrid that combines local model residuals, regime-conditioned response envelopes and an explicit ambiguity set may retain the low false-alarm profile of structural/residual methods while improving fault isolation.",
+    "A sample-level detector with an episode-level confirmation policy may improve operational detection delay/false-alarm trade-offs, but thresholds must be tuned on validation data and frozen before confirmatory evaluation.",
+    "A calibrated open-set head should be compared against the historical unknown-class heuristics of the RLS-open-set and VAE/SVM methods using false-known rate and risk-coverage, not only TIR.",
+    "Multi-view fusion should be tested with explicit dependency and common-cause controls; cross-view correlation is not independent evidence and must not inflate diagnostic confidence."
+  ]
+}

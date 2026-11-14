@@ -1,0 +1,326 @@
+{
+  "schema_version": "liu-ice-active-evidence-selection-v0.7",
+  "status": "protocol_only_not_executed",
+  "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
+  "method": {
+    "objective": "Expected information gain in nats: I(H;O) = H(H) - sum_o P(o) H(H|o).",
+    "utility": "EIG / (1 + expected_cost_seconds/cost_penalty_scale_seconds + expected_delay_seconds/delay_penalty_scale_seconds + risk_score_ppm/risk_penalty_scale_ppm).",
+    "likelihood_contract": "For every hypothesis, conditional probabilities across all declared outcomes sum to one; each likelihood table binds the stable sorted hypothesis-space digest, independent of the current prior.",
+    "prior_contract": "Prior probabilities are finite, non-negative and sum to one. The stable hypothesis-space digest excludes probabilities; the prior-distribution digest includes them. Both are content-addressed separately.",
+    "calibration_contract": "Likelihood model and calibration digests must be present. Their statistical calibration and signer/source trust are established upstream; digest shape alone does not prove model validity.",
+    "uncertainty_scenarios": {
+      "description": "Represent calibrated likelihood uncertainty as a frozen finite set of plausible scenarios. Each scenario supplies a normalized outcome likelihood table for the same hypothesis manifest.",
+      "scenario_weights": "Positive scenario weights sum to one and define the expected information gain across the declared uncertainty set.",
+      "expected_information_gain": "Weighted mean of scenario-specific expected information gain.",
+      "worst_case_information_gain": "Minimum scenario-specific expected information gain across the entire declared scenario set.",
+      "eligibility": "Require worst-case expected information gain over the entire frozen calibrated scenario set; a candidate also requires independently reviewed likelihood calibration before it is eligible. An optimistic weighted mean cannot compensate for an uninformative plausible scenario.",
+      "qualification": "A candidate with one point-estimate table may be ranked as a provisional point-model result but is not epistemically robust-qualified. Two or more distinct calibrated scenarios are required for that status."
+    },
+    "risk_score": {
+      "definition": "risk_score_ppm is a declared policy score, not a calibrated probability or safety certification.",
+      "evidence": "Each candidate binds a separate risk_assessment_sha256 reference. The evidence content, method, scope, signer, review status, expiry and authority must be checked upstream.",
+      "consequence": "A missing, malformed or unreviewed risk-evidence reference makes the candidate ineligible."
+    },
+    "observation_update": {
+      "objective": "After evidence is acquired by an authorized external system, update the hypothesis posterior. This is a read-only calculation and never acquires evidence or executes another action.",
+      "candidate_binding": "The update verifies the exact candidate ID and candidate manifest digest from the frozen selection catalogue; a candidate changed after selection is rejected.",
+      "receipt_binding": "The observation receipt SHA-256 and outcome ID are mandatory. The digest links the external receipt but does not authenticate its signer, sensor, timestamp or authority.",
+      "posterior": "For one point-likelihood table, realize_probe_observation computes p(h|o). For persistent multi-scenario likelihoods, use src/joint_scenario_posterior.rs to update p(h,s|o) and derive p(h) and p(s) marginals. The older point-model updater continues to reject multi-scenario candidates; there is no silent marginalization fallback.",
+      "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction may be negative for an individual surprising outcome even though expected information gain is non-negative and KL is non-negative.",
+      "scenario_uncertainty": "The joint ledger maintains one posterior over persistent scenario identity across repeated observations. It does not reapply the original scenario weights as a fresh draw at each sample."
+    },
+    "likelihood_calibration_review": {
+      "requirement": "Every candidate must carry an independent calibration-review receipt digest and a review state. Candidates not independently reviewed remain in the assessment ledger but are ineligible.",
+      "receipt_binding": "The candidate manifest and calibration catalogue bind the likelihood-model SHA, calibration SHA, reviewer receipt SHA and review state.",
+      "qualification": "A caller-supplied boolean and digest are not self-authenticating. The reviewer identity, competence, independence, report contents, signature, scope and revocation state must be verified by the upstream trust service.",
+      "point_estimate_rule": "A point-estimate likelihood table may be scored as a provisional diagnostic hypothesis, but it is not multi-scenario assessed and cannot qualify the robust evidence-selection track."
+    },
+    "identity_contract": {
+      "hypothesis_space_digest": "SHA-256 over the sorted unique hypothesis IDs only. It is immutable across sequential posterior updates and binds every candidate likelihood table.",
+      "prior_distribution_digest": "SHA-256 over the sorted hypothesis IDs and exact current probabilities. It changes whenever evidence changes the posterior and is separately bound into each selection portfolio.",
+      "candidate_binding": "Candidate likelihood models bind the stable hypothesis-space digest, never a transient prior distribution.",
+      "portfolio_binding": "Every ranking portfolio binds both the stable hypothesis-space digest and the exact prior-distribution digest used for that decision.",
+      "sequential_update": "After applying an externally acquired observation, carry the returned posterior and observation ledger into a new selection round. Reuse of a candidate likelihood model is permitted only when the stable hypothesis-space digest still matches; every new round has a new prior-distribution digest."
+    },
+    "chernoff_information": {
+      "definition": "C_ij = -log(min_s sum_o p(o|h_i)^s p(o|h_j)^(1-s)); report the minimum across all positive-prior pairs.",
+      "grid": "100 fixed uniform intervals over s in [0,1]; grid is identical across candidates.",
+      "robust_scenario_rule": "Take the minimum pairwise Chernoff information over every validated scenario; scenario IDs, weights and outcome spaces are checked against the candidate manifest.",
+      "relationship_to_eig": "EIG measures average posterior entropy reduction for an observation; pairwise Chernoff information measures the separation of the hardest fault-mode pair under repeated observations.",
+      "assumptions": "The asymptotic error-exponent interpretation assumes repeated conditionally independent observations from a stationary likelihood regime. It is not a finite-sample error guarantee or one-shot confidence score."
+    },
+    "sequential_update_policy": {
+      "status": "joint_hypothesis_scenario_ledger_supported",
+      "point_likelihood_model": "The existing point-likelihood updater remains available for a single frozen point table and binds the current posterior ledger.",
+      "persistent_scenario_model": "The new joint_scenario_posterior module initializes p(H,S)=p(H)*p(S), then updates p(H,S) with scenario-specific p(o|H,S). It carries posterior p(S) forward across observations rather than reusing initial scenario weights.",
+      "scope": "One ledger is bound to one immutable selected candidate likelihood model, hypothesis-space digest, scenario IDs/weights, calibration review receipt and outcome catalogue. Switching candidate, channel, likelihood model, calibration or scenario set requires a new selection and ledger.",
+      "ledger": "The append-only ledger binds candidate manifest, stable hypothesis-space digest, scenario-set digest, ordered joint posterior cells, ordered observation receipts, parent ledger digest, observation count and its own digest.",
+      "rule": "Multi-scenario sequential update is supported only through the joint posterior ledger. The point-only updater remains fail-closed for multi-scenario candidates.",
+      "factorized_prior_assumption": "v0.1 genesis prior assumes p(H,S)=p(H)*p(S). A dependent joint prior requires a separately reviewed extension.",
+      "no_silent_fallback": true,
+      "claim_ceiling": "Source-authored joint posterior mechanics and synthetic mathematical fixtures only; no field observation, real-likelihood calibration or physical diagnostic claim."
+    },
+    "joint_scenario_ledger": {
+      "path": "joint-scenario-posterior-v0.1.json",
+      "schema_version": "symtropy-joint-hypothesis-scenario-posterior-v0.1",
+      "rust_module": "src/joint_scenario_posterior.rs",
+      "status": "source_authored_ci_pending",
+      "genesis": "p(H,S)=p(H)*p(S)",
+      "update": "p_t(H,S|o) proportional to p_(t-1)(H,S)*p(o|H,S)",
+      "posterior_outputs": [
+        "joint_posterior",
+        "hypothesis_marginal",
+        "scenario_marginal",
+        "log_evidence_increment",
+        "joint_entropy",
+        "realized_joint_entropy_reduction",
+        "realized_joint_kl_divergence"
+      ],
+      "claim_ceiling": "One fixed candidate/scenario catalogue only; does not authenticate sensor receipts or validate likelihood scenario coverage."
+    },
+    "portfolio_replay": {
+      "status": "source_contract_implemented_ci_pending",
+      "frozen_inputs": [
+        "exact sorted prior distribution",
+        "complete candidate catalogue with candidate manifest digests",
+        "full frozen ProbeSelectionPolicy including cost/delay/risk limits and utility scales"
+      ],
+      "replay_rule": "select_probe_baseline reruns rank_diagnostic_probes from the stored prior, exact candidate catalogue and retained policy, then compares the complete resulting portfolio before selecting any baseline.",
+      "forged_assessment_control": "Caller-edited eligibility flags, rejection reasons, ranking or assessment metrics are rejected with SelectionReplayMismatch.",
+      "purpose": "Prevent a caller from mutating a rejected candidate into the eligible set or manipulating baseline selection after the original risk/authority/calibration gates ran.",
+      "limitation": "Deterministic replay demonstrates internal consistency against the supplied source/policy; it does not authenticate source code, policy issuer, authority signer or physical evidence."
+    }
+  },
+  "candidate_classes": {
+    "passive_measurement": {
+      "eligible_when": "Read-only access is approved and an authority-evidence digest is attached.",
+      "execution_by_selector": false
+    },
+    "operator_inspection": {
+      "eligible_when": "Policy permits inspection, an upstream authorization state is human_authorized, and an authority-evidence digest is attached.",
+      "execution_by_selector": false
+    },
+    "controlled_perturbation": {
+      "eligible_when": false,
+      "disposition": "Always excluded by this selector. A separate safety case, hazard analysis, system owner and explicit control authority are required; this ranking module cannot authorize or execute one."
+    }
+  },
+  "comparators": [
+    {
+      "id": "no_additional_evidence",
+      "method": "Keep current posterior and stop evidence acquisition."
+    },
+    {
+      "id": "cheapest_eligible",
+      "method": "Choose the eligible candidate with minimum declared cost; tie-break by candidate ID."
+    },
+    {
+      "id": "maximum_eig_only",
+      "method": "Choose the eligible candidate with greatest expected information gain, ignoring cost/delay/risk only after hard gates."
+    },
+    {
+      "id": "eig_per_cost",
+      "method": "Choose eligible candidate with greatest EIG divided by one plus normalized cost."
+    },
+    {
+      "id": "seeded_random_eligible",
+      "method": "Choose among the exact same eligible set using a frozen seed manifest."
+    },
+    {
+      "id": "risk_adjusted_worst_case_eig",
+      "method": "Proposed selector: minimum expected information gain across all declared likelihood scenarios, adjusted by frozen cost, delay and risk scales, after hard authority/safety gates."
+    },
+    {
+      "id": "maximum_worst_case_pairwise_chernoff_information",
+      "method": "Choose the eligible candidate with the greatest weakest-pairwise Chernoff information across every declared likelihood scenario, using a frozen 100-interval s-grid and the identical hard-eligible candidate catalogue."
+    }
+  ],
+  "required_metrics": [
+    "prior_entropy_nats",
+    "expected_information_gain_nats",
+    "expected_posterior_entropy_nats",
+    "realized_posterior_entropy_nats_when_outcome_observed",
+    "diagnostic_decision_change_rate",
+    "cost_to_identification_seconds",
+    "elapsed_time_to_identification_seconds",
+    "operator_inspection_time_seconds",
+    "number_of_eligible_candidates",
+    "number_of_rejected_candidates_by_reason",
+    "authority_gate_violations",
+    "controlled_perturbations_recommended",
+    "unsafe_probe_recommendations",
+    "false_unique_root_cause_rate",
+    "worst_case_expected_information_gain_nats",
+    "likelihood_scenario_count",
+    "realized_entropy_reduction_nats",
+    "realized_kl_divergence_nats",
+    "posterior_entropy_nats",
+    "scenario_posterior_entropy_min_nats",
+    "scenario_posterior_entropy_max_nats",
+    "possible_likelihood_scenario_count",
+    "impossible_likelihood_scenario_count",
+    "observation_candidate_manifest_match",
+    "multi_scenario_assessed",
+    "likelihood_calibration_reviewed_by_independent_validator",
+    "likelihood_calibration_catalogue_sha256",
+    "likelihood_review_rejection_count",
+    "prior_distribution_sha256",
+    "hypothesis_space_sha256",
+    "minimum_pairwise_chernoff_information_nats",
+    "worst_case_pairwise_chernoff_information_nats",
+    "chernoff_discretization_intervals",
+    "portfolio_replay_match",
+    "portfolio_replay_mismatch_rejection_count"
+  ],
+  "hard_gates": [
+    "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
+    "candidate likelihood tables are calibrated on data disjoint from confirmatory evaluation",
+    "candidate manifests bind the evidence model, calibration, outcome likelihoods, cost, delay, risk and authority reference",
+    "an authority reference digest is not treated as cryptographic signer verification; upstream trust and permission checks remain mandatory",
+    "controlled perturbations are never eligible or recommended by this selector",
+    "read-only measurement candidates require upstream approved-read-only authority",
+    "operator inspections require upstream human authorization and an explicit policy enabling inspection",
+    "unknown, missing or denied authority fails closed",
+    "zero expected-information-gain candidates are not recommended by default",
+    "no sensor read, inspection, actuation, maintenance order or controller write is performed by the selector",
+    "all baselines use the identical candidate catalogue, likelihood tables and hard eligibility set",
+    "random baseline seed and comparator configuration are frozen before confirmatory outcomes",
+    "the scenario ID set is unique and frozen before confirmatory outcomes",
+    "every scenario likelihood table is normalized for each hypothesis and uses the same sorted hypothesis manifest",
+    "scenario weights are finite, strictly positive and sum to one",
+    "eligibility and risk-adjusted utility use the minimum scenario-specific expected information gain, not only a weighted mean",
+    "one-scenario point estimates are visibly marked not epistemically robust-qualified",
+    "no scenario may be added, removed, reweighted or recalibrated after observing confirmatory outcomes",
+    "each candidate binds a risk-assessment digest distinct from the likelihood calibration digest",
+    "risk_score_ppm is never described as a measured probability or safety certification",
+    "risk assessment content, method, scope, reviewer identity, expiry and revocation are independently checked upstream",
+    "a realized posterior update is allowed only for an observation receipt bound to the exact selected candidate manifest digest",
+    "unknown observed outcome IDs fail closed and zero-probability observations return an explicit impossible-outcome result",
+    "scenario-marginalized posterior uses the frozen scenario weights and common outcome space",
+    "report realized entropy reduction separately from KL posterior-to-prior; an individual outcome may increase entropy",
+    "observation receipt integrity digest does not authenticate the acquisition source, sensor, signer or authority",
+    "posterior update does not itself schedule or acquire another observation, conduct inspection, authorize action or actuate equipment",
+    "store the posterior and observation result as a separate append-only artifact; do not overwrite the original selection result",
+    "a realized posterior update is allowed only for an observation receipt bound to the exact selected candidate manifest digest",
+    "unknown outcome IDs fail closed and zero-probability observations return an explicit impossible-outcome result",
+    "scenario-marginalized posterior uses frozen scenario weights and identical declared outcome spaces",
+    "report realized entropy reduction separately from KL posterior-to-prior; individual observations may increase entropy",
+    "observation receipt integrity digest does not authenticate the acquisition source, sensor, signer, timestamp or authority",
+    "posterior update does not schedule or acquire another observation, conduct inspection, authorize action or actuate equipment",
+    "store posterior and observation result as a separate append-only artifact; do not overwrite the original selection result",
+    "every candidate carries a digest for an independently reviewed likelihood-calibration receipt",
+    "a candidate without the independent calibration-review state is not eligible even if its likelihood table is normalized",
+    "candidate manifests and the calibration catalogue bind reviewer receipt digest, review state, calibration/model digests and hypothesis/likelihood scenario sets",
+    "multi-scenario assessment is reported separately from independent calibration review; scenario count alone never qualifies epistemic robustness",
+    "upstream trust verifies reviewer identity, independence, competence, report contents, signature, scope and revocation; caller-supplied flags/digests are not authentication",
+    "hypothesis-space digest covers sorted hypothesis IDs only and is invariant to changes in prior probabilities",
+    "each selection portfolio binds the exact current prior-distribution digest separately from the stable hypothesis-space digest",
+    "sequential posterior updates may reuse a candidate likelihood model only when its stable hypothesis-space digest matches",
+    "each externally acquired observation receipt can be applied once to a continuous posterior ledger; duplicate receipts are rejected",
+    "all Chernoff comparator candidates use the same hard-eligible catalogue and frozen hypothesis/outcome spaces",
+    "the s-grid resolution is fixed before confirmatory evaluation and identical across candidates",
+    "the minimum across all positive-prior hypothesis pairs is reported; averaging away an inseparable pair is prohibited",
+    "the worst-case Chernoff value is the minimum across every preregistered likelihood-uncertainty scenario",
+    "Chernoff information is not translated into finite-sample error or one-shot diagnostic confidence without a separately justified dependence and sample-size model",
+    "Chernoff candidate comparisons use the same frozen hypothesis IDs, positive-prior support, outcome space and eligible catalogue",
+    "all likelihood uncertainty scenarios have unique IDs, normalized positive weights, identical outcome spaces and content-addressed calibration",
+    "the worst-case Chernoff distance retains the weakest positive-prior hypothesis pair and the least-separable scenario",
+    "the s-grid is frozen before confirmatory evaluation and the result is not treated as a finite-sample error bound",
+    "multi-scenario likelihood uncertainty is treated as persistent epistemic model uncertainty, not a new independent scenario draw for every observation",
+    "multi-scenario candidates may be ranked, but sequential posterior update fails closed until a joint hypothesis-by-scenario posterior ledger is implemented and replayed",
+    "point-likelihood sequential update status is disclosed separately from multi-scenario robust ranking status",
+    "persistent multi-scenario sequential updates use a joint p(hypothesis,scenario) posterior; fixed scenario weights are not re-drawn for every observation",
+    "joint ledger genesis records the explicit factorized p(H)*p(S) prior assumption",
+    "posterior scenario probabilities are updated after each observation and carried into the next ledger state",
+    "one joint posterior ledger is bound to one immutable selected candidate, hypothesis space, scenario set and calibration manifest",
+    "every sequential observation appends a unique receipt digest and parent-ledger digest in order",
+    "candidate, channel, likelihood model, calibration or scenario-set changes require a new selection decision and ledger",
+    "every baseline selection replays the complete probe portfolio from the exact frozen prior, candidate manifests and full policy before using eligibility flags",
+    "tampering with an assessment eligibility flag, rejection list, ranking or metric must fail with SelectionReplayMismatch"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "information_efficiency",
+      "target": "At least 10% lower median cost-to-identification than the cheapest-eligible baseline at equal or better final diagnostic decision quality, on matched independent cases.",
+      "status": "aspirational"
+    },
+    {
+      "id": "decision_value",
+      "target": "Higher realized posterior entropy reduction than seeded-random and cost-only baselines, with confidence intervals clustered by independent recording/engine run.",
+      "status": "aspirational"
+    },
+    {
+      "id": "authority_safety",
+      "target": "Zero unauthorized or controlled perturbations recommended; zero read-only selector execution or actuation.",
+      "status": "aspirational"
+    },
+    {
+      "id": "epistemic_honesty",
+      "target": "No unique root-cause output when multiple hypotheses remain admissible after the selected evidence.",
+      "status": "aspirational"
+    },
+    {
+      "id": "robust_information_gain",
+      "target": "The selected evidence candidate retains positive worst-case expected information gain across every preregistered calibrated likelihood scenario, and exceeds the best matched baseline lower bound.",
+      "status": "aspirational"
+    },
+    {
+      "id": "calibration_uncertainty",
+      "target": "Empirical likelihood-scenario coverage is measured on independent episodes and no confirmatory outcome is used to construct the uncertainty set.",
+      "status": "aspirational"
+    },
+    {
+      "id": "realized_information_gain_fidelity",
+      "target": "Across held-out observed outcomes, mean realized KL(posterior || prior) agrees with independently replayed expected information gain within a preregistered numerical tolerance.",
+      "status": "aspirational"
+    },
+    {
+      "id": "posterior_replay",
+      "target": "100% of observation receipts reproduce the same posterior from the frozen candidate, prior and likelihood-scenario manifests.",
+      "status": "aspirational"
+    },
+    {
+      "id": "chernoff_separation_baseline",
+      "target": "Compare minimum worst-case pairwise Chernoff selection with risk-adjusted worst-case EIG, cost-only and seeded-random baselines on identical authorized candidate catalogues; demonstrate improved realized diagnosis error or cost-to-identification under independent repeated-evidence episodes.",
+      "status": "aspirational"
+    },
+    {
+      "id": "chernoff_separation_value",
+      "target": "Compare worst-case pairwise Chernoff selection against robust EIG, cheapest-only and seeded-random on identical authorized candidate sets; show lower realized diagnosis error or cost-to-identification on independent repeated-evidence episodes.",
+      "status": "aspirational"
+    },
+    {
+      "id": "joint_hypothesis_scenario_posterior",
+      "target": "Implement and independently replay sequential Bayesian updates over the joint hypothesis × persistent-calibration-scenario posterior, with correct posterior scenario weights and no repeated-observation overconfidence.",
+      "status": "aspirational"
+    },
+    {
+      "id": "joint_persistent_scenario_posterior",
+      "target": "Replay the same p(H,S) posterior from every ordered observation receipt and show scenario posterior weights evolve rather than resetting to their initial calibration weights.",
+      "status": "aspirational"
+    },
+    {
+      "id": "joint_posterior_vs_remarginalized_baseline",
+      "target": "On repeated evidence under a synthetic persistent calibration scenario, the joint posterior must outperform the intentionally incorrect per-observation re-marginalization comparator on posterior calibration and evidence replay.",
+      "status": "aspirational"
+    },
+    {
+      "id": "portfolio_replay_integrity",
+      "target": "Every baseline decision is reproducibly derived from the exact frozen candidate catalogue, posterior and policy; all eligibility-tampering negative controls are rejected.",
+      "status": "aspirational"
+    }
+  ],
+  "evidence_boundaries": {
+    "data_status": "No physical observation likelihoods or benchmark-selected actions have been evaluated in this workstream.",
+    "simulation_status": "Synthetic contract tests verify entropy ranking and hard exclusions only; they do not establish real diagnostic utility or safety.",
+    "authority_status": "Authorization enum and digest are caller-supplied references. Signature verification, identity, scope, expiry, issuer authority and revocation are external mandatory checks.",
+    "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim.",
+    "scenario_status": "The Rust selector evaluates caller-supplied likelihood scenarios. It does not create or statistically validate the scenario set or establish its coverage of reality.",
+    "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector.",
+    "realized_update_status": "The Rust updater calculates a posterior from caller-supplied likelihoods and an external receipt digest; it does not collect or authenticate observations, and no physical observation has been evaluated.",
+    "calibration_review": "The source selector checks review receipt digest shape and a caller-supplied independent-review flag. It does not authenticate the reviewer or prove calibration validity; upstream signed verification remains mandatory.",
+    "chernoff_status": "This implementation computes a finite-grid separation estimate from caller-supplied likelihoods. It does not validate conditional independence, calibrate likelihoods or guarantee finite-sample fault-isolation error.",
+    "scenario_sequential_updates": "Multi-scenario candidate ranking is implemented; sequential Bayesian posterior updates are blocked until the joint hypothesis-scenario posterior is represented and replayed.",
+    "joint_scenario_posterior": "A Rust source module now implements a candidate-bound joint hypothesis × persistent-scenario posterior ledger with append-only receipt chaining. It is source-authored and not yet exact-head compile/test verified; scenario calibration and receipt authentication remain upstream."
+  }
+}

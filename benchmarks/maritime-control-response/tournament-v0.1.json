@@ -1,0 +1,986 @@
+{
+  "schema_version": "liu-ice-tournament-v0.1",
+  "benchmark_id": "LIU-ICE-DX37",
+  "status": "protocol_only_not_executed",
+  "source": "https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index",
+  "source_data_sha256": null,
+  "frozen_model_artifact_sha256": null,
+  "claim_ceiling": "No benchmark performance or physical transfer claim until source data, split, model and evaluator identities are pinned and exact runs are reproduced.",
+  "split_protocols": [
+    {
+      "id": "official_competition",
+      "purpose": "Reproduce the official benchmark interface, score and split exactly when the downloadable protocol and payload are recovered.",
+      "status": "requires_data_and_protocol_audit",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "whole_recording_grouped",
+      "purpose": "Keep every sample and overlapping window from a recording in one split.",
+      "status": "required",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "held_out_driving_cycle",
+      "purpose": "Test transfer to a driving cycle absent from model fitting and conformal calibration.",
+      "status": "required_if_metadata_and_independent_recordings_permit",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "leave_one_fault_recording_out",
+      "purpose": "Sensitivity analysis of scarce per-fault recordings; report all fold outcomes, do not inflate them to independent engine trials.",
+      "status": "required_sensitivity",
+      "row_randomization_allowed": false
+    },
+    {
+      "id": "cross_engine_or_fleet",
+      "purpose": "Assess cross-engine, cross-bench or vessel transfer.",
+      "status": "not_supported_by_single_bench_public_dataset",
+      "row_randomization_allowed": false
+    }
+  ],
+  "comparators": [
+    {
+      "id": "official_fault_diagnosis_toolbox",
+      "family": "analytical_model_based",
+      "role": "Published structural/model-based reference; exact implementation and configuration must be recovered.",
+      "status": "reproduction_required"
+    },
+    {
+      "id": "state_only_residual",
+      "family": "model_based_or_spc",
+      "role": "Physical-response channels only; no requested command channels.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "command_only",
+      "family": "statistical_or_ml",
+      "role": "Requested commands and operating context only; tests whether the control signal alone leaks the fault label.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "naive_early_fusion",
+      "family": "statistical_or_ml",
+      "role": "Concatenate requested commands and physical response features with a matched classifier/capacity.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "command_conditioned_response",
+      "family": "dynamic_model",
+      "role": "Predict physical response conditional on command, disturbance context and regime; score calibrated residuals.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "regime_gated_control_aware",
+      "family": "dynamic_model_or_fusion",
+      "role": "Separate operating regime before response comparison; use bounded selective inference for unsupported regimes.",
+      "status": "research_candidate_not_yet_benchmarked"
+    },
+    {
+      "id": "selective_unknown_fault",
+      "family": "open_set_or_conformal",
+      "role": "Known-fault isolation with an explicit unknown/abstain decision and risk-coverage reporting.",
+      "status": "implementation_required"
+    },
+    {
+      "id": "physics_informed_inverse_twin",
+      "family": "physics_based_inverse_model",
+      "role": "Calibrated physical engine model that evaluates multiple fault/degradation parameter hypotheses against the measured response. Preserve every admissible solution and report ambiguity rather than selecting a single minimum without identifiability evidence.",
+      "status": "research_candidate_requires_model_and_parameter_validation"
+    },
+    {
+      "id": "published_solution_1_care_engine",
+      "family": "adaptive_residual_qda_lsvc",
+      "role": "CAREngine: healthy-only neural/linear residual models, segmented adaptive ±2σ bounds, EWMA diagnostic features, QDA detection, Nystroem+LSVC isolation.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 92.2,
+        "tdr_percent": 87.3,
+        "tir_percent": 50.1
+      }
+    },
+    {
+      "id": "published_solution_2_rls_open_set_residuals",
+      "family": "rls_open_set_residuals",
+      "role": "Four RLS local engine models; time-varying coefficient residual signatures; MSO/fault-sensitivity analysis; open-set residual-insensitive-region detectors.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 100,
+        "tdr_percent": 83.1,
+        "tir_percent": 85.5
+      }
+    },
+    {
+      "id": "published_solution_3_distribution_kl_matching",
+      "family": "distribution_kl_matching",
+      "role": "Sliding-window Gaussian distribution descriptors with KL-divergence matching and thresholds for known/unknown residual patterns.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 58.4,
+        "tdr_percent": 84.5,
+        "tir_percent": 48.8
+      }
+    },
+    {
+      "id": "published_solution_4_residual_anfis",
+      "family": "residual_anfis",
+      "role": "Healthy-system model, residual thresholds, cumulative alarm-density confirmation, four dedicated ANFIS isolation models.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 99.9,
+        "tdr_percent": 97.2,
+        "tir_percent": 68
+      }
+    },
+    {
+      "id": "published_solution_5_ccdnn_multiview",
+      "family": "ccdnn_multiview",
+      "role": "Canonical-correlation-guided deep network with two views and redundancy filtering for correlated multivariate features.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 30.5,
+        "tdr_percent": 87.4,
+        "tir_percent": 37.2
+      }
+    },
+    {
+      "id": "published_solution_6_vae_svm_ensemble",
+      "family": "dual_vae_svm_ensemble",
+      "role": "Separate VAE/MLP detectors for fault detection and known-fault isolation plus a one-class SVM unknown-fault signal.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 36.2,
+        "tdr_percent": 78.6,
+        "tir_percent": 42.3
+      }
+    },
+    {
+      "id": "behavioral_set_intersection",
+      "family": "behavioral_set_diagnosis",
+      "method": "Set-valued intersection of calibrated, regime-specific multivariate behavioral envelopes with observation-uncertainty intervals; return all admissible hypotheses and preserve ambiguity.",
+      "status": "protocol_only_not_executed",
+      "claim_ceiling": "singleton only within frozen catalogue; never global unique physical cause"
+    },
+    {
+      "id": "published_dx2026_graybox_lstm",
+      "family": "physics_informed_grey_box_state_space_lstm",
+      "role": "Current DX2026 LiU-ICE public hidden-test reference: physically informed recurrent hidden states, four MSO/virtual-sensor residuals, fixed diagnosis matrix, adaptive covariate-shift compensation, and explicit debounce/warm-up. Faithful reproduction required before matched comparison.",
+      "status": "published_reference_not_reproduced",
+      "source": "10.4230/OASIcs.DX.2026.15",
+      "historical_reference": {
+        "tdr_percent": 92.26,
+        "one_minus_far_percent": 92.14,
+        "far_percent": 7.86,
+        "fia_percent": 79.62,
+        "official_score_percent": 88.01
+      },
+      "reference_manifest": "published-dx2026-graybox-baseline-v0.1.json"
+    },
+    {
+      "id": "anytime_valid_sequential_likelihood_ratio",
+      "family": "sequential_statistical_test",
+      "role": "Fixed-channel simple-null/simple-alternative likelihood-ratio e-process, with optional stopping and family-wise Bonferroni allocation.",
+      "status": "research_candidate_not_yet_benchmarked"
+    }
+  ],
+  "primary_metrics": [
+    {
+      "id": "official_total_score",
+      "definition": "((1 - FAR) + TDR + FIA) / 3",
+      "aggregation": "official_sample_level",
+      "status": "exact_metric_implemented"
+    },
+    {
+      "id": "false_alarm_rate",
+      "definition": "False-alarm samples / no-fault samples",
+      "aggregation": "official_sample_level_and_per_recording"
+    },
+    {
+      "id": "true_detection_rate",
+      "definition": "Detected fault samples / fault samples",
+      "aggregation": "official_sample_level_and_per_recording"
+    },
+    {
+      "id": "fault_isolation_accuracy",
+      "definition": "Mean probability assigned to the true fault slot among correctly detected fault samples; not top-1 accuracy.",
+      "aggregation": "official_sample_level_and_per_fault"
+    }
+  ],
+  "operational_metrics": [
+    "event_recall",
+    "event_detection_latency",
+    "false_alarms_per_observed_normal_hour",
+    "per_fault_macro_recall",
+    "per_driving_cycle_score",
+    "unknown_fault_false_known_rate",
+    "abstention_rate",
+    "risk_coverage_curve",
+    "episode_level_calibration_coverage_and_sharpness",
+    "worst_recording_and_worst_cycle_performance",
+    "inference_latency_p50_p95",
+    "peak_memory_bytes",
+    "model_artifact_bytes",
+    "inverse_solution_set_cardinality",
+    "false_unique_root_cause_rate",
+    "parameter_identifiability_rank_or_condition",
+    "mean_detection_latency_seconds",
+    "duplicate_alarm_count_during_detected_events",
+    "late_alarm_count_during_missed_events",
+    "transient_burst_count",
+    "observed_normal_exposure_seconds",
+    "isolation_top1_accuracy",
+    "mean_true_class_probability",
+    "p50_per_sample_inference_plus_receipt_latency_ms",
+    "p95_per_sample_inference_plus_receipt_latency_ms",
+    "p99_per_sample_inference_plus_receipt_latency_ms",
+    "streaming_input_output_cardinality_mismatch_count",
+    "streaming_sample_sequence_gap_count",
+    "streaming_historical_output_mutation_count",
+    "streaming_receipt_chain_validation_rate",
+    "worst_case_expected_information_gain_nats",
+    "likelihood_scenario_count",
+    "risk_evidence_unreviewed_candidate_count",
+    "admissible_hypothesis_set_size",
+    "ambiguous_hypothesis_set_rate",
+    "unknown_out_of_support_rate",
+    "not_evaluable_rate",
+    "unique_within_catalogue_rate",
+    "false_unique_within_catalogue_rate",
+    "behavioral_envelope_coverage",
+    "worst_regime_admissible_set_size",
+    "command_prediction_temporal_order_unproven_count",
+    "response_prediction_temporal_order_unproven_count",
+    "timebase_qualification_rejection_count"
+  ],
+  "hard_evidence_gates": [
+    "model, source data, evaluator, feature map and split manifests are content-addressed",
+    "no recording, temporal window or overlapping-window leakage across train/calibration/test",
+    "all baselines receive the same permitted channel set and evaluation examples",
+    "tuning is completed before the frozen confirmatory evaluation",
+    "no-fault and unknown-fault negative controls are reported separately",
+    "unsupported or insufficiently calibrated regimes remain not_evaluated rather than normal",
+    "commands are never treated as actual actuator movement or physical delivery",
+    "physical feedback roles require an independently reviewed instrument/I-O dictionary",
+    "no single sample-level scalar can override material per-fault or per-cycle regressions",
+    "a physical inverse model must report non-unique admissible parameter/fault hypotheses; a single optimizer minimum is not a root-cause proof",
+    "fault-event onsets and offsets are bound to an authoritative annotation or independently recorded injection manifest; approximate prose timings are not ground truth",
+    "alarm debounce, merge-gap, detection deadline and observation-gap policy are frozen before confirmatory evaluation",
+    "event-to-alarm matching is one-to-one; alarms before fault onset cannot be counted as early fault detections",
+    "false-alarm exposure excludes unobserved time gaps and fault-active intervals; the exact exposure denominator is reported",
+    "event-level uncertainty is resampled by independent recording/engine run, never by 20 Hz rows or alarm windows",
+    "each benchmark run binds the exact shift-matrix digest, shift axis, holdout manifest digest and independent test recording count",
+    "condition-shift retention, fault-semantic unknown rejection and joint C+F robustness are reported as distinct outcomes",
+    "a leave-one-known-fault-family-out result is labelled a surrogate open-set test, not proof of a previously unseen physical mechanism",
+    "no C+F transfer claim is made unless independent test recordings cover the joint held-out fault-family and operating-cycle cell",
+    "active evidence selection binds exact hypothesis prior, label space, likelihood model/calibration, candidate catalogue and policy digests",
+    "all value-of-information baselines share the same candidate catalogue and hard eligibility set",
+    "authority digest shape is not signer verification; issuer identity, authority scope, expiry and revocation are verified upstream",
+    "active selector cannot execute observations or inspections and cannot recommend controlled perturbations",
+    "streaming inference accepts one new sample per call and emits exactly one current five-slot output",
+    "the stream rejects sample-index gaps and non-monotonic timestamps before model invocation",
+    "invalid model outputs and uncertain model-side failures poison the stateful session",
+    "previous output values cannot be revised through the streaming API",
+    "per-sample receipts bind frozen model identity, input/output digests and previous receipt",
+    "Python/MATLAB adapter parity and no-retroactive-update checks are separate from Rust-core tests",
+    "active evidence eligibility is based on worst-case EIG across the complete frozen scenario set, not only a weighted average",
+    "reproduce the six published LiU-ICE reference solutions under the same audited protocol wherever their method/configuration details are recoverable",
+    "do not treat the 2026 control-aware marine simulation paper as a matched LiU-ICE or real-engine baseline",
+    "risk_score_ppm is a policy score rather than a probability and each candidate binds its risk assessment evidence",
+    "a qualified active evidence decision requires an upstream authority-owner review of the candidate risk-assessment catalogue",
+    "the Zenodo Marine Engine Fault dataset remains a separate protocol and label space from LiU-ICE until an independently reviewed semantic mapping exists",
+    "cross-benchmark runs bind separate archive/file-index/variable-dictionary/normalization digests and whole-file split manifests for each dataset",
+    "the 16-file Marine Engine Fault dataset is not treated as 16 independent engines or a fleet sample",
+    "the two anomaly-only injection-nozzle recordings are excluded from onset-latency metrics unless an independent injection-time source exists",
+    "the five runs with empty Compressor Filter Loss or Turbine Back Pressure values preserve missingness and do not impute zero",
+    "the three-row CSV header and baseline-versus-scenario 70/73-column schema are validated against the published variable dictionary before parsing",
+    "CC BY 4.0 metadata is recorded, but actual archive bytes, file inventory and license notices are audited before repackaging or redistribution",
+    "a diagnostic-evidence candidate is ineligible until its likelihood calibration has an independently reviewed receipt reference",
+    "the selector distinguishes multi-scenario assessment from independent calibration review; scenario count does not qualify a likelihood model",
+    "qualified decision-support runs bind the likelihood-calibration catalogue and upstream independent-review verification digest",
+    "upstream trust verifies calibration reviewer identity, independence, competence, signed report, scope and revocation",
+    "all six published 2024 LiU-ICE solutions are represented as separate, named comparators rather than a single aggregate suite",
+    "historical paper scores are labelled as 2024 challenge literature and are never copied into current DX2026 score fields",
+    "historical TIR is never relabelled as current probability-based FIA",
+    "faithful reproduction records architecture, channel selection, preprocessing, training data, thresholds, split, model artifact, runtime and dependency digests",
+    "a reimplementation is labelled separately from a faithful reproduction; missing original artifacts and assumptions are disclosed",
+    "all reproduced and new methods are scored on the exact same current split, sample interface, official scorer and permitted data access before ranking",
+    "each run binds the exact nine-dimension deployability matrix digest and nine individual evidence states",
+    "no single weighted deployability/readiness score may mask an unimplemented or unreviewed criterion",
+    "resource efficiency requires reference-hardware latency, throughput, memory and receipt-overhead measurement",
+    "adversarial robustness distinguishes integrity checking from authenticated source identity and authorization",
+    "confidentiality claims require exercised access, retention, export, redaction and deletion controls",
+    "verification assurance reports source-written, locally compiled, exact-head CI, independently replayed, testbed-validated and field-evaluated states separately",
+    "overall deployability is not claimed until each dimension has independent evidence and review",
+    "behavioral-set comparator returns all calibrated admissible hypotheses rather than forcing the highest scoring class",
+    "overlapping normal/fault behavioral envelopes produce an ambiguity set",
+    "zero matching envelopes produce unknown/out-of-support rather than a forced known class",
+    "every behavioral envelope is regime-specific, source-bound, independently calibration-reviewed and digest-replayed",
+    "singleton diagnosis is qualified only relative to the complete frozen declared hypothesis catalogue and never as global physical uniqueness",
+    "candidate likelihood models bind a stable hypothesis-space digest that excludes prior probabilities",
+    "every selection portfolio separately binds the exact prior/posterior distribution digest used for that round",
+    "after an acquired observation updates the posterior, the unchanged candidate likelihood model can be replayed only if the stable hypothesis-space digest matches",
+    "sequential observation receipts form one ledger chain; replayed receipt digests cannot be applied twice",
+    "the current DX2026 official grey-box LSTM result is included as a literature reference and is not labelled reproduced until the original train/evaluation protocol and model details are recovered",
+    "published Table 7 TDR, 1-FAR, FIA and score are preserved as separate metrics; score is never recomputed from older TIR",
+    "reproduction stress tests include the published FTP75 Standard intake-manifold -10% and WLTP intercooler-pressure +8% failure cells",
+    "startup fault cases are evaluated separately from post-warm-up cases; adaptation cannot silently absorb a startup fault into the healthy reference",
+    "startup adaptation uses a frozen independently qualified live baseline while new observations are assessed in a separate shadow lane",
+    "faults present at sample zero or during warm-up cannot be silently assimilated into the active healthy baseline",
+    "candidate shadow data are append-only, content-addressed and never influence live predictions",
+    "any known or unknown alarm, ambiguous hypothesis set, out-of-support regime, missing sensor or invalid command-response timing quarantines the full candidate",
+    "a candidate can only produce a review package after its frozen sample window and multiple independently verified attestations from separate dependency domains",
+    "the adaptation guard has no baseline commit, activation or authority function",
+    "live baseline replacement requires separate owner approval, rollback evidence and full prior-regime regression",
+    "the exact published DX2026 FTP75 Standard f_pim -10% boundary is retained as an ambiguity falsification case",
+    "the same f_pim -10% magnitude under FTP75 Highway is evaluated using a separate regime-specific catalogue and cannot transfer singleton confidence back to Standard",
+    "the published WLTP f_pic +8% case may trigger detection but must remain unknown/out-of-support if no declared known envelope matches",
+    "published comparator metrics are references only; synthetic envelope tests do not reproduce the underlying waveforms or establish Symtropy superiority",
+    "a singleton behavioral hypothesis is unique only within the frozen declared catalogue; global physical uniqueness is never inferred from local envelope disjointness",
+    "deployability dimensions remain non-compensatory and no aggregate readiness score may convert a failed dimension into a pass",
+    "active-evidence comparator tournament includes a worst-case pairwise Chernoff baseline over the identical eligible candidate set",
+    "Chernoff results retain the minimum hypothesis-pair and uncertainty-scenario value and disclose the fixed s-grid",
+    "no asymptotic Chernoff error exponent is described as a finite-sample LiU-ICE diagnosis guarantee",
+    "the active evidence baseline tournament includes worst-case pairwise Chernoff separation and reports its asymptotic-independence assumption",
+    "sequential-evidence tests bind one fixed channel, null/alternative likelihood table, calibration review and model per session",
+    "anytime false-alarm control is claimed only when the conditional null likelihood process remains valid under the observed history",
+    "the current stationary likelihood model is not applied to serially dependent or shifted data without a separately validated conditional likelihood model",
+    "multiple simultaneous fault alternatives use a family-wise alpha allocation; no per-test threshold is reused without adjustment",
+    "unsupported outcomes poison the process and are never converted into infinite fault evidence",
+    "an anytime e-process threshold crossing is a statistical model-pair flag, not a physical root-cause or operational authority claim",
+    "multi-scenario active-evidence ranking is not conflated with multi-scenario sequential posterior updating; joint hypothesis-scenario state must be retained across observations",
+    "multi-scenario sequential inference uses an explicit joint hypothesis × persistent-scenario posterior ledger",
+    "joint-ledger genesis binds p(H)*p(S) and makes the initial independence assumption explicit",
+    "each observation updates p(H,S) using its scenario-specific likelihood; posterior p(S) is carried forward rather than reset",
+    "joint posterior, hypothesis marginal and scenario marginal are normalized and recomputed on every update",
+    "joint-ledger receipt chain is append-only, rejects duplicate observation receipts and binds every parent ledger digest",
+    "joint sequential ledger is bound to one immutable candidate, likelihood model, calibration review, hypothesis space and scenario set",
+    "changing candidate, channel, model, calibration, scenario set or outcome space requires a new evidence selection and ledger",
+    "a published marine-engine accuracy score is a literature reference until the complete data package and exact source split are recovered",
+    "the published iScience article's 99.45% headline must not be compared with a Symtropy score until the full eleven-state dataset and matching split are obtained",
+    "the public GitHub sample for the iScience article currently contains 1,025 rows and only one observed label; it cannot establish an eleven-state reproduction",
+    "public baseline code uses a shuffled row-level 80/20 split; reproduce the article's stated 70/30 and five-fold protocol separately and add run/load/vessel-grouped holdouts",
+    "placeholder model code and incomplete public dataset snapshots must not be represented as reproduced baselines",
+    "the 2026 multi-source dataset's four source domains (simulation, bench, real vessel, virtual-real fault fusion) are separate evaluation strata",
+    "the published 70.18% zero-shot virtual-to-real result remains a literature baseline until dataset bytes, source-domain membership and evaluation protocol are audited",
+    "virtual-real superimposed fault data are never represented as observed shipboard fault events",
+    "the article license is not automatically the dataset license; verify dataset access and reuse terms independently",
+    "baseline selector replays the full evidence portfolio from frozen prior, candidates and policy",
+    "caller-edited eligibility or rejected-candidate flags cannot be used to select an evidence probe",
+    "sequential e-process counts one predeclared calibrated block as one evidence unit, never one raw 20 Hz row",
+    "block manifest, aggregation protocol and dependence-review receipt are bound to model and evidence receipts",
+    "duplicate block IDs, overlapping blocks and blocks below the frozen minimum separation are rejected",
+    "non-overlap alone is not treated as proof of conditional independence or validity of the null e-process"
+  ],
+  "calibration": {
+    "unit": "one maximum residual score per independent recording/episode",
+    "coverage_targets_ppm": [
+      900000,
+      950000,
+      990000
+    ],
+    "minimum_independent_episodes": {
+      "900000": 9,
+      "950000": 19,
+      "990000": 99
+    },
+    "exchangeability_status": "assumption_not_proven",
+    "when_insufficient": "mark the affected regime not_evaluated; do not borrow samples across regimes after inspecting test outcomes"
+  },
+  "research_targets_not_achieved": [
+    {
+      "id": "score_gain",
+      "target": "At least +0.05 absolute official score versus the best faithfully reproduced baseline on the same frozen split, with FAR no worse.",
+      "status": "aspirational"
+    },
+    {
+      "id": "event_gain",
+      "target": "At least +5 percentage points event recall over the best matched baseline at the same false-alarm budget.",
+      "status": "aspirational"
+    },
+    {
+      "id": "unknown_fault_safety",
+      "target": "At most 5% false-known rate on independent unknown-fault episodes; abstention and insufficient evidence reported separately.",
+      "status": "aspirational"
+    },
+    {
+      "id": "transfer_retention",
+      "target": "No more than 2 percentage points loss in macro fault recall on each supported held-out driving cycle, relative to matched in-cycle performance.",
+      "status": "aspirational"
+    },
+    {
+      "id": "calibration",
+      "target": "Nominal marginal coverage within ±5 percentage points on independent episodes, only for regimes with sufficient calibration support.",
+      "status": "aspirational"
+    },
+    {
+      "id": "inverse_identifiability_honesty",
+      "target": "Zero unique root-cause claims when two or more fault/parameter hypotheses remain inside the preregistered calibrated acceptance region.",
+      "status": "aspirational"
+    },
+    {
+      "id": "event_recall_at_fixed_false_alarm_exposure",
+      "target": "At least +5 percentage points event recall versus the best matched baseline without increasing false alarms per observed normal hour, with recording-clustered uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "event_detection_latency",
+      "target": "P95 event confirmation latency at or below 5 seconds on supported held-out episodes, or at least 20% lower than the best matched baseline at a non-increased false-alarm rate.",
+      "status": "aspirational"
+    },
+    {
+      "id": "streaming_cardinality_and_no_rewrite",
+      "target": "Zero missing/duplicate outputs, zero index gaps, and zero historical output mutations across all benchmark replay samples.",
+      "status": "aspirational"
+    },
+    {
+      "id": "streaming_latency",
+      "target": "P95 per-sample inference plus receipt latency below 10 ms on declared reference hardware at 20 Hz, with bounded memory and no queue growth.",
+      "status": "aspirational"
+    },
+    {
+      "id": "robust_value_of_information",
+      "target": "Selected evidence has positive worst-case expected information gain across every frozen calibrated likelihood scenario and reduces realized cost-to-identification versus cheapest-only and seeded-random matched baselines.",
+      "status": "aspirational"
+    },
+    {
+      "id": "cross_language_parity",
+      "target": "Exact golden-vector parity between Rust core and compliant Python or MATLAB adapter.",
+      "status": "aspirational"
+    },
+    {
+      "id": "external_marine_dataset_held_out_load",
+      "target": "Improve worst-held-out-load event recall by at least 5 percentage points at no higher false-alarm exposure than the best matched baseline, with file-level uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "cross_dataset_semantic_transfer",
+      "target": "Demonstrate positive or quantify negative transfer between LiU-ICE and Marine Engine Fault using reviewed component/function mappings, separate label spaces and independent split manifests.",
+      "status": "aspirational"
+    },
+    {
+      "id": "deployability_criteria_coverage",
+      "target": "Independent evidence for all nine deployability dimensions with no dimension inferred from another.",
+      "status": "aspirational"
+    },
+    {
+      "id": "resource_measurement",
+      "target": "Published p95/p99 latency, memory, throughput, receipt overhead and energy per sample on a pinned edge reference device.",
+      "status": "aspirational"
+    },
+    {
+      "id": "assurance_bundle",
+      "target": "All externally qualified results replay from exact data/model/evaluator/manifest digests and an independently reviewed evidence bundle.",
+      "status": "aspirational"
+    },
+    {
+      "id": "behavioral_set_coverage",
+      "target": "Empirical envelope coverage within ±5 percentage points of declared marginal target on independent held-out recordings.",
+      "status": "aspirational"
+    },
+    {
+      "id": "ambiguity_honesty",
+      "target": "Zero forced top-one diagnosis when multiple hypotheses remain admissible.",
+      "status": "aspirational"
+    },
+    {
+      "id": "out_of_support",
+      "target": "At least 95% detection of independent out-of-support episodes at no more than 1% false unknown alarms on supported normal episodes.",
+      "status": "aspirational"
+    },
+    {
+      "id": "behavioral_diagnostic_gain",
+      "target": "At least +5 percentage points event recall versus a matched selective classifier without increasing false alarms per observed normal hour, while preserving ambiguity.",
+      "status": "aspirational"
+    },
+    {
+      "id": "dx2026_sota_score_frontier",
+      "target": "On the matched DX2026 protocol, exceed the published 88.01% official score by at least 2.00 absolute percentage points while keeping FAR at or below 7.86%, and report all 12 per-condition cells with no hidden aggregate masking.",
+      "status": "aspirational"
+    },
+    {
+      "id": "dx2026_debounce_frontier",
+      "target": "Achieve p95 event confirmation latency at or below 0.50 seconds on supported onset-annotated cases at FAR no higher than the reproduced DX2026 baseline, without retroactively changing predictions.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_fault_non_masking",
+      "target": "Zero startup-fault episodes absorbed into an adaptive healthy baseline; each startup fault must be detected or explicitly abstained within 0.50 seconds, with no automatic baseline mutation.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_fault_masking_elimination",
+      "target": "Zero startup faults absorbed into the healthy reference over fault-at-zero, fault-during-warmup, sensor-bias and mode-shift falsification suites.",
+      "status": "aspirational"
+    },
+    {
+      "id": "shadow_baseline_zero_mutation",
+      "target": "Zero live-baseline digest changes during shadow collection, quarantine and independent review.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_detection_continuity",
+      "target": "Continue reference detection from sample zero while shadow adaptation runs, with p95 supported-event detection/abstention <=0.50 seconds at the matched false-alarm budget.",
+      "status": "aspirational"
+    },
+    {
+      "id": "published_boundary_ambiguity_honesty",
+      "target": "On source-matched boundary cases, zero forced singleton diagnoses where calibrated behavioral sets overlap; the true fault remains in the admissible set.",
+      "status": "aspirational"
+    },
+    {
+      "id": "published_boundary_unknown_rejection",
+      "target": "On the f_pic +8% type boundary, detect the anomaly while refusing unsupported known-cause isolation.",
+      "status": "aspirational"
+    },
+    {
+      "id": "anytime_familywise_false_alarm",
+      "target": "On independent no-fault episodes, the sequential process maintains empirical family-wise false-alarm probability at or below its configured bound within clustered uncertainty across arbitrary preregistered stopping rules.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_time_to_detection",
+      "target": "Reduce median and p95 time-to-detection versus a matched fixed-window likelihood baseline at the same family-wise false-alarm budget.",
+      "status": "aspirational"
+    },
+    {
+      "id": "persistent_joint_scenario_update",
+      "target": "Demonstrate exact replay of a joint p(H,S) posterior over multiple sequential observations, including posterior scenario-weight changes and zero reset of the original scenario prior.",
+      "status": "aspirational"
+    },
+    {
+      "id": "joint_vs_naive_remarginalization",
+      "target": "On matched repeated-outcome episodes, compare the joint ledger with an intentionally incorrect per-observation scenario-remarginalization baseline; show lower posterior calibration error and no overconfidence.",
+      "status": "aspirational"
+    },
+    {
+      "id": "iscience_baseline_reproduction",
+      "target": "Reproduce the 99.45% published iScience headline only after obtaining the complete 11-state dataset and the exact original protocol; independently report source-grouped transfer and leakage-resistant results.",
+      "status": "blocked_on_full_data_and_split_provenance"
+    },
+    {
+      "id": "multisource_zero_shot_reproduction",
+      "target": "Reproduce the 70.18% zero-shot virtual-to-real reference under its exact published source-domain split before claiming improvement.",
+      "status": "blocked_on_dataset_access_and_protocol_audit"
+    },
+    {
+      "id": "virtual_real_transfer_gain",
+      "target": "After matched reproduction, improve zero-shot virtual-to-real accuracy by at least 5 absolute points while maintaining or improving per-fault macro recall, calibration and worst-domain performance.",
+      "status": "aspirational"
+    },
+    {
+      "id": "active_selection_portfolio_replay",
+      "target": "Zero baseline selections accepted from a modified or non-replayable eligibility portfolio.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_block_pseudoreplication",
+      "target": "Zero raw-sample pseudo-replication, block-identity duplication, overlap or minimum-separation violations accepted into the sequential e-process.",
+      "status": "aspirational"
+    }
+  ],
+  "prohibited_claims": [
+    "cross-engine transfer from a single engine test bench",
+    "shipboard or fleet reliability from a laboratory engine dataset",
+    "actuator delivery confirmation from requested command signals",
+    "physical root cause from a residual threshold alone",
+    "superiority to a vendor product without a matched public protocol and baseline"
+  ],
+  "inverse_identifiability_protocol": {
+    "scope": "Applicable only to a calibrated physical inverse/digital-twin comparator with explicit fault/degradation parameters and a validated parameter-to-signal map.",
+    "local_sensitivity": "Compute a dimensionless, uncertainty-whitened sensitivity Jacobian over the declared engine configuration and supported operating regime: J = Sigma^(-1/2) * d(h(theta))/d(theta) * D_theta, where D_theta scales parameters to preregistered dimensionless ranges.",
+    "required_reports": [
+      "singular_values",
+      "numerical_rank",
+      "rank_tolerance",
+      "condition_number",
+      "null_space_dimension",
+      "admissible_hypothesis_set_size",
+      "connected_ambiguity_components"
+    ],
+    "global_ambiguity": "Explore declared parameter bounds with multi-start/profile or interval methods; accept hypotheses only when residual statistics are within an independently calibrated model-plus-measurement uncertainty region. Freeze the acceptance rule before confirmatory evaluation.",
+    "disposition_rules": {
+      "UNIQUE_WITHIN_DECLARED_MODEL": "Exactly one connected admissible hypothesis component and full, sufficiently conditioned local sensitivity rank under the preregistered tolerance.",
+      "AMBIGUOUS_EQUIVALENCE_CLASS": "Multiple admissible hypothesis components, rank deficiency, or condition number beyond the preregistered limit.",
+      "NOT_EVALUATED": "Missing model calibration, parameter map, uncertainty region, configuration identity or supported operating regime."
+    },
+    "caution": "Full local Jacobian rank is not proof of global uniqueness. Never convert the optimizer's lowest-residual parameter vector into a unique physical cause without admissible-set and ambiguity checks."
+  },
+  "operational_metric_definitions": {
+    "inverse_solution_set_cardinality": "Number of disconnected admissible fault/degradation parameter-hypothesis components under the frozen calibration acceptance rule.",
+    "false_unique_root_cause_rate": "Cases where a system emits one unique physical cause although the reference admissible set contains multiple components or fails the preregistered identifiability condition.",
+    "parameter_identifiability_rank_or_condition": "Numerical rank, singular spectrum and condition number of the dimensionless uncertainty-whitened response-sensitivity Jacobian, with tolerance and parameter scaling disclosed."
+  },
+  "event_evaluation": {
+    "schema_version": "liu-ice-event-metrics-v0.1",
+    "status": "protocol_only_not_executed",
+    "onset_and_offset_source": "authoritative sample annotations or independently recorded injection log; public approximate onset wording is insufficient",
+    "alarm_debounce": {
+      "minimum_positive_samples": 3,
+      "merge_positive_samples_gap_seconds": 0.15,
+      "confirmation_time": "timestamp of the third positive sample in the merged alarm episode",
+      "reset_on_explicit_negative_sample": true,
+      "merge_only_consecutive_positive_samples": true,
+      "positive_run_must_not_bridge_unobserved_gap": true,
+      "effective_merge_gap_seconds": "min(merge_positive_samples_gap_seconds, maximum_observation_gap_seconds)"
+    },
+    "timing": {
+      "maximum_detection_latency_seconds": 10,
+      "maximum_observation_gap_seconds": 0.1,
+      "normal_exposure": "sum only adjacent observation intervals no longer than the configured maximum gap, minus overlap with fault-active intervals",
+      "missing_observation_gaps_count_as_exposure": false
+    },
+    "matching": {
+      "rule": "one_to_one",
+      "alarm_must_start_at_or_after_fault_onset": true,
+      "confirmation_must_precede_both_deadline_and_fault_end": true,
+      "pre_onset_alarm": "false_alarm_not_detection",
+      "repeated_alarm": "duplicate_alarm_or_late_alarm_reported_separately"
+    },
+    "required_reports": [
+      "fault_event_count",
+      "event_recall",
+      "mean_median_p95_and_max_detection_latency_seconds",
+      "false_alarm_count",
+      "false_alarms_per_observed_normal_hour",
+      "observed_normal_exposure_seconds",
+      "duplicate_alarm_count_during_detected_events",
+      "late_alarm_count_during_missed_events",
+      "transient_burst_count",
+      "event_isolation_top1_accuracy",
+      "mean_true_class_probability"
+    ],
+    "uncertainty_unit": "independent_recording_or_engine_run",
+    "claim_ceiling": "synthetic event-contract tests only until authoritative event labels, source data bytes and a frozen model run are audited",
+    "temporal_uncertainty_status": "point_annotations_not_yet_interval_qualified",
+    "physical_latency_precision_claim_allowed": false,
+    "required_before_latency_precision_claim": [
+      "fault onset and offset annotation source identity",
+      "annotation timestamp uncertainty interval",
+      "same qualified timebase identity and qualification digest as observations",
+      "conservative event-to-alarm latency interval calculation"
+    ]
+  },
+  "shift_matrix": {
+    "path": "shift-matrix-v0.1.json",
+    "schema_version": "liu-ice-shift-matrix-v0.1",
+    "status": "protocol_only_not_executed",
+    "axes": [
+      "C_SHIFT_DRIVING_CYCLE",
+      "C_SHIFT_AMBIENT_ENVELOPE",
+      "F_SHIFT_HELD_OUT_FAULT_FAMILY",
+      "C_PLUS_F_SHIFT",
+      "MAGNITUDE_SHIFT_WITHIN_FAMILY",
+      "SENSOR_CHAIN_SHIFT"
+    ],
+    "core_rule": "Condition shift, fault-semantic shift and combined shift are separate claims. Passing one axis never qualifies another.",
+    "independent_unit": "recording_or_engine_run",
+    "cross_engine_fleet": "unsupported_until_independent_engine_or_fleet_units_are_available"
+  },
+  "active_evidence_selection": {
+    "path": "active-evidence-selection-v0.1.json",
+    "schema_version": "liu-ice-active-evidence-selection-v0.7",
+    "status": "protocol_only_not_executed",
+    "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
+    "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
+    "comparators": [
+      "no_additional_evidence",
+      "cheapest_eligible",
+      "maximum_eig_only",
+      "eig_per_cost",
+      "seeded_random_eligible",
+      "risk_adjusted_worst_case_eig",
+      "maximum_worst_case_pairwise_chernoff_information"
+    ],
+    "eligibility": "Hard authority and safety eligibility first; require worst-case EIG above the frozen policy floor.",
+    "epistemic_rule": "Multiple scenario likelihoods are required for multi_scenario_assessed; independently reviewed likelihood calibration and worst-case EIG are both required for eligibility. Signer identity and calibration validity remain upstream trust duties.",
+    "execution_performed": false,
+    "actuation_authorized": false,
+    "controlled_perturbations_recommended": 0,
+    "claim_ceiling": "caller-supplied calibrated scenario tables and synthetic mathematical contracts only; no field acquisition or active intervention",
+    "risk_evidence": {
+      "risk_score_ppm": "caller-supplied policy score, not a calibrated probability",
+      "required_reference": "risk_assessment_sha256 per candidate",
+      "qualification": "upstream owner review, authority scope, signer, expiry and revocation checks must be evidenced before a qualified decision-support run",
+      "selector_authorizes_action": false
+    },
+    "multi_scenario_assessed": "Reports whether multiple likelihood scenarios were assessed; this is not itself a calibration qualification.",
+    "likelihood_calibration_reviewed_by_independent_validator": true,
+    "calibration_review_requirement": "Every eligible candidate binds an independent calibration-review receipt; the independent review state is caller-supplied and must be authenticated upstream.",
+    "identity_contract": {
+      "hypothesis_space": "stable sorted hypothesis IDs only; remains unchanged as beliefs update",
+      "prior_distribution": "separate digest over sorted IDs and exact probabilities; changes after every posterior update",
+      "candidate_model_binding": "candidate likelihood tables bind the stable hypothesis-space digest, not a transient posterior",
+      "sequential_update": "recompute portfolio with updated posterior and same stable hypothesis-space identity; append the external observation receipt to the ledger"
+    },
+    "chernoff": {
+      "grid_intervals": 100,
+      "metric": "minimum pairwise Chernoff information over positive-prior fault hypotheses, then minimum across all likelihood uncertainty scenarios",
+      "assumption": "asymptotic repeated conditionally independent observations; not a finite-sample diagnostic error guarantee"
+    },
+    "sequential_updates": {
+      "status": "joint_hypothesis_scenario_ledger_supported",
+      "point_likelihood_model": "The original point-likelihood posterior updater remains available for a single frozen model.",
+      "persistent_scenario_model": "A separate joint ledger updates p(H,S) using p(outcome|H,S), carries posterior scenario weights forward and derives p(H) and p(S) marginals.",
+      "implementation": "src/joint_scenario_posterior.rs",
+      "protocol": "joint-scenario-posterior-v0.1.json",
+      "scope": "One fixed selected candidate, likelihood model, calibration review, hypothesis space, scenario set and outcome space per ledger. Switching evidence model or channel requires a new selection and ledger.",
+      "genesis_assumption": "p(H,S)=p(H)*p(S)",
+      "claim_ceiling": "Source-authored joint posterior mechanics and synthetic fixtures only until exact-head compilation, tests, independent mathematical review and calibrated real likelihood scenarios."
+    },
+    "portfolio_replay": {
+      "status": "source_contract_implemented_ci_pending",
+      "full_policy_retained": true,
+      "replays_rank_diagnostic_probes_before_baseline_selection": true,
+      "rejects_forged_eligibility_flags": true,
+      "error": "SelectionReplayMismatch",
+      "limitation": "deterministic integrity only; not signer or code authenticity"
+    },
+    "portfolio_replay_match": false
+  },
+  "streaming_contract": {
+    "path": "streaming-contract-v0.1.json",
+    "schema_version": "liu-ice-streaming-contract-v0.1",
+    "status": "protocol_only_not_executed",
+    "rust_module": "src/streaming_contract.rs",
+    "one_sample_one_output": true,
+    "historical_output_mutation": false,
+    "contiguous_sample_index": true,
+    "monotonic_timestamp": true,
+    "model_error_poisoning": true,
+    "receipt_chain": true,
+    "official_adapter_languages": [
+      "Python",
+      "MATLAB"
+    ],
+    "rust_core_direct_submission_compatible": false,
+    "adapter_status": "not_implemented",
+    "claim_ceiling": "append-only Rust source contract and synthetic tests only",
+    "bounded_time_intervals": true,
+    "timebase_identity_bound": true,
+    "overlap_rejected_before_model": true,
+    "timebase_qualification_sha256_bound": true,
+    "timestamp_uncertainty_is_not_clock_sync": true,
+    "temporal_contract_version": "bounded-event-time-v0.1"
+  },
+  "literature_comparators": {
+    "same_benchmark": "Jung et al., A fault diagnosis benchmark of technical systems with incomplete data — six solutions, Control Engineering Practice 164 (2025), 106427. https://doi.org/10.1016/j.conengprac.2025.106427",
+    "adjacent_marine_research": "Lin et al., Fault diagnosis of marine diesel engine via control-aware domain-adversarial network (2026). The published abstract reports thermodynamic simulation results and explicitly notes absence of real-engine validation. https://doi.org/10.1177/01423312261487500",
+    "deployment_assessment": "The 2026 industrial CPS/ICS deployability survey finds that accuracy is much more commonly assessed than other deployment criteria; use a wider readiness matrix rather than accuracy-only comparisons. https://doi.org/10.1007/s10207-026-01330-1",
+    "standards_alignment": "ISO 13379-1:2025 diagnostic guidance is contextual alignment, not certification. https://www.iso.org/standard/88027.html",
+    "current_dx2026_official_solution": {
+      "title": "Physics-Informed ML Diagnostic Engine: DXC’26 LiU-ICE Track Solution",
+      "doi": "10.4230/OASIcs.DX.2026.15",
+      "status": "published_reference_not_reproduced",
+      "result": "TDR 92.26%, 1-FAR 92.14%, FIA 79.62%, official score 88.01%",
+      "known_edge_cases": [
+        "FTP75 Standard f_pim -10%: TDR 21.12%",
+        "WLTP f_pic +8%: FIA 0.00%, 1-FAR 34.61%",
+        "0.75 second debounce adds detection latency",
+        "90 second adaptation warm-up can mask faults present at startup"
+      ],
+      "protocol_file": "published-dx2026-graybox-baseline-v0.1.json"
+    }
+  },
+  "external_dataset_track": {
+    "path": "external-marine-engine-dataset-v0.1.json",
+    "schema_version": "symtropy-marine-external-dataset-track-v0.1",
+    "status": "archive_payload_audited_no_model_evaluation",
+    "dataset_doi": "10.5281/zenodo.19857425",
+    "dataset_license": "CC-BY-4.0",
+    "purpose": "Separate external evaluation track for physically induced marine-engine fault scenarios across fixed loads; never pooled with LiU-ICE.",
+    "evaluation_tracks": [
+      "archive_and_signal_semantics_audit",
+      "within_dataset_held_out_load",
+      "leave_one_fault_family_out",
+      "missing_channel_and_sensor_chain",
+      "event_latency",
+      "cross_benchmark_transfer"
+    ],
+    "class_mapping_rule": "No direct sample-level class mapping. Reviewed component/function mappings only where dictionaries, units and fault mechanisms justify equivalence.",
+    "engine_transfer": "unsupported: one MU323DGSC test-bench identity is not a multi-engine or fleet sample",
+    "execution_status": "archive_payload_audited_no_model_evaluation",
+    "dataset_file_inventory": {
+      "publisher_reported_recording_data_csv_count": 16,
+      "archive_csv_entry_count": 18,
+      "metadata_csv_artifact_count": 2,
+      "audit_status": "completed_by_exact_head_rust_csv_auditor_run_43377608370",
+      "claim_ceiling": "The current exact-head Rust audit receipt verifies archive bytes, 16 recording CSVs, baseline/scenario schemas, time columns and metadata hashes. It does not validate publisher labels, physical root causes or model accuracy.",
+      "recording_files": 16,
+      "baseline_files": 1,
+      "scenario_files": 15,
+      "archive_csv_entries": 18,
+      "metadata_csv_artifacts": 2,
+      "archive_audit_receipt_id": 14014574182,
+      "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b"
+    },
+    "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
+    "time_column_mapping": {
+      "baseline": {
+        "column": "Time",
+        "index": 0,
+        "unit": "sec"
+      },
+      "scenario": {
+        "column": "Time_rel",
+        "index": 1,
+        "unit": "sec"
+      }
+    },
+    "audit_receipt": {
+      "run_id": 43377608370,
+      "run_number": 168,
+      "head_sha": "153250ea314270f955c77dd1c8801ddf4af04615",
+      "job_id": 131727651115,
+      "artifact_id": 14014574182,
+      "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182",
+      "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
+      "recording_csv_files": 16,
+      "baseline_files": 1,
+      "scenario_files": 15,
+      "rust_tests_passed": 121,
+      "rust_tests_failed": 0
+    },
+    "claim_ceiling": "Archive SHA-256, publisher checksum, recording-file inventory, role-specific time schema and raw CSV syntax were verified by successful exact-head Rust audit run 43377608370 (#168), artifact 14014574182. No model has been trained or scored; no physical root-cause, cross-engine or fleet validation claim."
+  },
+  "published_comparator_reference": {
+    "path": "published-six-solution-baselines-v0.1.json",
+    "source": "Jung et al., Control Engineering Practice 164 (2025), 106427",
+    "doi": "10.1016/j.conengprac.2025.106427",
+    "challenge_iteration": "IFAC Safeprocess 2024 LiU-ICE",
+    "status": "literature_reference_not_reproduced",
+    "metric_semantics": {
+      "historical_tir": "Top-ranked true fault among detected fault events",
+      "current_dx2026_fia": "Average probability assigned to the true diagnosis among correctly detected faulty samples",
+      "comparability": "Historical TIR is not current DX2026 FIA; re-evaluate each reproduction on identical current data/splits with current official score."
+    },
+    "reproduction_required": true
+  },
+  "deployability_matrix": {
+    "path": "deployability-matrix-v0.1.json",
+    "schema_version": "symtropy-industrial-diagnostic-deployability-v0.1",
+    "status": "evidence_matrix_defined_not_executed",
+    "dimensions": 9,
+    "criteria": [
+      "detection_accuracy",
+      "operational_resilience",
+      "adaptability",
+      "real_time_responsiveness",
+      "resource_efficiency",
+      "adversarial_robustness",
+      "data_confidentiality",
+      "explainability",
+      "verification_assurance"
+    ],
+    "non_compensatory": true,
+    "overall_status": "not_deployable_claimed",
+    "aggregate_readiness_score_allowed": false,
+    "source_doi": "10.1007/s10207-026-01330-1",
+    "rule": "Each dimension is separately evidenced and reviewed. No dimension can be inferred from another and no weighted score can override a missing dimension."
+  },
+  "behavioral_set_diagnosis": {
+    "path": "behavioral-set-diagnosis-v0.1.json",
+    "schema_version": "symtropy-behavioral-set-diagnosis-v0.1",
+    "status": "protocol_only_not_executed",
+    "comparator": "behavioral_set_intersection",
+    "output_rule": "Return the complete set of hypotheses whose calibrated multivariate behavioral envelopes intersect the observed measurement-uncertainty box within a supported regime.",
+    "unknown_rule": "Zero admissible hypotheses is unknown_or_out_of_support; missing/stale/conflicted inputs and unsupported regimes are not_evaluable.",
+    "uniqueness_rule": "A singleton is unique only within the frozen declared catalogue; global unique physical cause is prohibited.",
+    "finite_sample_calibration_minima": {
+      "coverage_900000_ppm": 9,
+      "coverage_950000_ppm": 19,
+      "coverage_990000_ppm": 99
+    },
+    "execution_performed": false,
+    "trained_model_present": false,
+    "physical_validation": false,
+    "claim_ceiling": "source contract and synthetic fixtures only",
+    "global_unique_physical_cause_claim_allowed": false
+  },
+  "startup_adaptation_guard": {
+    "path": "startup-adaptation-guard-v0.1.json",
+    "schema_version": "symtropy-startup-adaptation-guard-v0.1",
+    "status": "protocol_only_not_executed",
+    "implementation": "src/startup_adaptation.rs",
+    "live_baseline_mutation_by_guard": false,
+    "live_reference_detection_during_shadow_collection": true,
+    "automatic_baseline_commit": false,
+    "minimum_shadow_samples": 1800,
+    "minimum_independent_health_attestations": 2,
+    "failure_policy": "quarantine candidate; do not alter live reference",
+    "claim_ceiling": "source contract and synthetic fixtures only"
+  },
+  "dx2026_boundary_falsification": {
+    "path": "dx2026-boundary-falsification-v0.1.json",
+    "schema_version": "liu-ice-dx2026-boundary-falsification-v0.1",
+    "status": "protocol_only_not_executed",
+    "source_baseline": "published-dx2026-graybox-baseline-v0.1.json",
+    "cases": [
+      "FTP75 Standard f_pim -10%: require ambiguity when regime-specific normal/fault envelopes overlap; no forced singleton.",
+      "FTP75 Highway f_pim -10%: allow a singleton only within a separate supported highway catalogue.",
+      "WLTP f_pic +8%: retain anomaly detection but return unknown/out-of-support when no known behavioral envelope matches."
+    ],
+    "principle": "Diagnosis ambiguity and out-of-support are valid outputs; the classifier must not manufacture a known physical cause merely because detection fired.",
+    "claim_ceiling": "synthetic calibrated-envelope counterexamples only; the published DX2026 paper is not reproduced"
+  },
+  "sequential_evidence": {
+    "path": "sequential-evidence-v0.2.json",
+    "schema_version": "symtropy-sequential-evidence-v0.2",
+    "status": "protocol_only_not_executed",
+    "rust_module": "src/sequential_evidence.rs",
+    "evidence_unit_kind": "non_overlapping_calibrated_block",
+    "raw_sample_pseudoreplication_allowed": false,
+    "unique_block_ids": true,
+    "non_overlapping_blocks": true,
+    "minimum_block_separation_required": true,
+    "block_aggregation_and_dependence_review_bound": true,
+    "optional_stopping_claim": "model_conditional_ville_bound_for_valid_block_level_null_e_process",
+    "familywise_control": "bonferroni",
+    "physical_cause_claim_allowed": false,
+    "claim_ceiling": "synthetic block-level likelihood mechanics only; block independence and likelihood calibration not validated",
+    "block_independence_note": "Non-overlap alone is not proof of independence; the block-level dependence assumption must be independently reviewed and bound before confirmatory use."
+  },
+  "published_marine_engine_baseline_audit": {
+    "path": "published-marine-engine-baseline-audit-v0.1.json",
+    "schema_version": "symtropy-published-marine-engine-baseline-audit-v0.1",
+    "status": "public_release_preflight_incomplete_not_reproduced",
+    "publication_doi": "10.1016/j.isci.2025.114345",
+    "article_reported_accuracy_percent": 99.45,
+    "public_code_repository": "xiezaimi-png/Thermal-fault-diagnosis-of-diesel-engines",
+    "public_repository_csv_rows": 1025,
+    "public_repository_csv_classes": 1,
+    "paper_described_states": 11,
+    "reproduced": false,
+    "claim_ceiling": "The public repository snapshot is not sufficient to reproduce the published 11-state result. Its root CSV contains one label only, and the full paper dataset is stated to be available from the corresponding author on request."
+  },
+  "multisource_virtual_real_transfer": {
+    "path": "multi-source-virtual-real-transfer-v0.1.json",
+    "schema_version": "symtropy-marine-multisource-virtual-real-transfer-v0.1",
+    "status": "published_dataset_reference_access_not_yet_audited",
+    "publication_doi": "10.1038/s41597-026-07924-7",
+    "source_domains": 4,
+    "reported_fault_modes": 10,
+    "reported_zero_shot_virtual_to_real_accuracy_percent": 70.18,
+    "reproduced": false,
+    "dataset_bytes_audited": false,
+    "dataset_license_verified": false,
+    "claim_ceiling": "New target for multi-source domain transfer. No dataset bytes, split membership, license or 70.18% result have been independently audited."
+  },
+  "temporal_evidence_contract": {
+    "status": "source_authored_ci_pending",
+    "module": "src/temporal.rs",
+    "command_response_evaluator": "evaluate_command_response",
+    "streaming_evaluator": "StreamingDiagnosisSession",
+    "interval_rule": "earliest(current_event) > latest(previous_event)",
+    "overlap_disposition": "not_evaluable",
+    "timebase_identity_bound": true,
+    "clock_synchronization_implemented": false,
+    "clock_qualification_authentication_implemented": false,
+    "event_annotation_uncertainty": "not_yet_interval_qualified",
+    "claim_ceiling": "software contract over declared timebase evidence only; not a synchronization implementation or physical clock-network qualification"
+  }
+}

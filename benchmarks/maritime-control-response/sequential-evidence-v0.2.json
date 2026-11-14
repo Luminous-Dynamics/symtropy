@@ -1,0 +1,150 @@
+{
+  "schema_version": "symtropy-sequential-evidence-v0.2",
+  "status": "protocol_only_not_executed",
+  "purpose": "Evaluate calibrated evidence for one declared fault hypothesis against a no-fault null as independent, non-overlapping evidence blocks arrive, while preserving optional-stopping Type-I error control under the declared block-level null law.",
+  "model": {
+    "schema_version": "symtropy-sequential-evidence-model-v0.2",
+    "evidence_unit_kind": "non_overlapping_calibrated_block",
+    "likelihood_table": "A fixed categorical outcome distribution under a simple null and one simple alternative, calibrated on the exact frozen block-aggregation protocol and one frozen channel.",
+    "statistic": "log E_t = sum_j log(P_alt(B_j)/P_null(B_j)); one update per accepted block, never one update per raw sensor sample.",
+    "block_semantics": "Each block has a unique evidence-unit ID, recording/channel identity, start/end times, block manifest digest and aggregation protocol digest. Blocks cannot overlap, must meet the preregistered minimum separation, and must be produced by the exact aggregation protocol covered by calibration.",
+    "dependence_review": "A separately reviewed dependence receipt binds the assumed minimum separation and block construction. Its digest is content reference only; issuer identity, authority, signature, scope and revocation are verified upstream. The source code cannot prove physical or statistical independence.",
+    "decision": "Cross the per-alternative threshold when E_t >= 1 / alpha_i; return model_conditional_evidence_threshold_crossed, never a physical-cause or operating-safety claim.",
+    "support": "Every listed outcome has positive null probability. An observed outcome outside the frozen support poisons the session; zero-null-probability observations are never turned into infinite evidence.",
+    "replay": "Each receipt binds the evidence-unit ID, block start/end and manifest digest, model, calibration, aggregation protocol, dependence-review receipt, input receipt, prior receipt, log e-value and threshold."
+  },
+  "familywise_control": {
+    "method": "bonferroni",
+    "budget_units": "parts per million",
+    "allocation": "alpha_i = floor(familywise_alpha_ppm / alternative_count); sum_i alpha_i <= familywise_alpha_ppm.",
+    "default": {
+      "familywise_alpha_ppm": 1000,
+      "alternative_count": 4,
+      "per_alternative_alpha_ppm": 250,
+      "log_evidence_threshold": 8.294049640102028
+    },
+    "threshold": "log(1 / alpha_i)",
+    "dependence_between_alternatives": "No independence assumption is required for the Bonferroni family-wise bound, but each individual null e-process must remain valid."
+  },
+  "comparators": [
+    {
+      "id": "fixed_window_non_overlapping_block_test",
+      "method": "Evaluate one frozen calibrated block outcome per predeclared non-overlapping evidence unit."
+    },
+    {
+      "id": "block_level_sprt_likelihood_ratio",
+      "method": "Accumulate the same block-level simple-null/simple-alternative likelihood ratio using a fixed decision schedule."
+    },
+    {
+      "id": "anytime_valid_block_e_process",
+      "method": "The proposed process can be inspected after every accepted block and stopped at any data-dependent block count; validity follows from Ville's inequality under the block-level validity assumptions."
+    },
+    {
+      "id": "naive_raw_sample_pseudoreplication",
+      "method": "Deliberately invalid negative control that treats every highly correlated raw sensor sample as an independent e-process update; it must not be used for operational evidence."
+    },
+    {
+      "id": "posterior_entropy_eig",
+      "method": "Measure average expected posterior entropy reduction; this is evidence-acquisition utility, not a Type-I error guarantee."
+    },
+    {
+      "id": "worst_case_pairwise_chernoff",
+      "method": "Compare asymptotic pairwise mode separation under repeated block outcomes; this is not a finite-sample false-alarm guarantee."
+    }
+  ],
+  "validity_conditions": {
+    "observations": "The null and alternative block-outcome distributions must be valid for the declared block aggregation and dependence regime. Independent-block validity is an externally reviewed assumption, not inferred from non-overlap alone. The exact block protocol and separation are frozen before confirmatory testing.",
+    "channel": "One frozen channel, sensor semantics, operating regime, block aggregation protocol and likelihood table per session. Changing channel or block construction within a session is unsupported.",
+    "model": "The null and alternative likelihood distributions are fixed before confirmatory block outcomes; both are normalized and every supported block outcome has positive probability under each.",
+    "calibration": "Likelihoods are calibrated on disjoint independent episodes using the same block aggregation. A changed block length, overlap, minimum separation, sensor set or regime requires a new likelihood model and calibration.",
+    "dependence": "Every accepted block binds an independent-unit ID, block manifest, minimum temporal separation and dependence-review receipt. Repeated rows, overlapping windows and multiple outcomes from the same predeclared episode do not count as separate evidence units.",
+    "optional_stopping": "Under a valid nonnegative null e-process, Ville's inequality gives P(sup_t E_t >= 1/alpha_i) <= alpha_i, so users may inspect or stop at any accepted block without inflating the individual test's Type-I error.",
+    "multiple_faults": "Bonferroni allocation across the declared alternative count bounds the probability of any false fault alarm under the shared no-fault null by the family-wise alpha budget.",
+    "block_independence": "Every accepted block binds an independent-unit ID, block manifest, minimum temporal separation and a reviewed dependence assumption. Non-overlap alone is not proof of independence. Repeated rows, overlapping windows and multiple outcomes from the same predeclared episode do not count as separate evidence units."
+  },
+  "protocol_constraints": {
+    "one_block_one_receipt": true,
+    "raw_sample_pseudoreplication_prohibited": true,
+    "unique_evidence_unit_ids": true,
+    "contiguous_block_ordinals": true,
+    "strictly_monotonic_block_times": true,
+    "non_overlapping_blocks": true,
+    "minimum_block_separation_required": true,
+    "block_manifest_and_aggregation_bound": true,
+    "dependence_review_bound_to_model": true,
+    "model_and_calibration_bound_per_session": true,
+    "receipt_chain_replay": true,
+    "unknown_outcome_poisons_session": true,
+    "zero_probability_is_not_infinite_evidence": true,
+    "threshold_crossing_not_unique_cause": true,
+    "threshold_crossing_not_operational_authority": true
+  },
+  "required_metrics": [
+    "sequential_log_evalue",
+    "per_alternative_alpha_ppm",
+    "familywise_alpha_ppm",
+    "alternative_count",
+    "threshold_crossed",
+    "independent_evidence_block_count",
+    "raw_sensor_sample_count_per_block",
+    "observations_to_threshold",
+    "time_to_threshold_seconds",
+    "block_overlap_rejection_count",
+    "insufficient_block_separation_rejection_count",
+    "duplicate_evidence_unit_rejection_count",
+    "raw_sample_pseudoreplication_attempt_rejection_count",
+    "false_alarms_per_observed_normal_hour",
+    "fault_event_recall",
+    "p95_event_detection_latency_seconds",
+    "receipt_chain_validation_rate",
+    "unknown_outcome_poison_count",
+    "model_calibration_stratum",
+    "null_model_drift_or_misspecification_rate"
+  ],
+  "hard_gates": [
+    "null and alternative IDs, channel, model digest, calibration digest, block aggregation digest, dependence review digest and outcome likelihood table are frozen before confirmatory testing",
+    "null and alternative block outcome probabilities each sum to one and every listed outcome has positive probability under each",
+    "each accepted update corresponds to exactly one unique block ID and a source-bound block manifest",
+    "raw 20 Hz rows and overlapping windows cannot be counted as separate independent evidence units",
+    "blocks cannot overlap and must meet the model's minimum temporal separation",
+    "calibration uses the same block aggregation protocol, channel, regime and minimum separation as confirmatory testing",
+    "one block outcome is appended in log space and replayed from the source-bound observation receipt",
+    "an unsupported outcome poisons the session rather than producing infinite evidence",
+    "the block-level null outcome law and independence/exchangeability assumptions are reviewed upstream and bound by a dependence-review receipt",
+    "the block stream is contiguous and the same model, likelihood table, dependence review and aggregation protocol are used for the entire session",
+    "Bonferroni per-alternative alpha is no greater than the allocated family-wise budget divided by the number of tested alternatives",
+    "optional-stopping claims are conditional on the block-level null e-process validity conditions; non-overlap alone is not proof of independence",
+    "a threshold crossing is a statistical flag for the declared model pair, not unique physical cause isolation or a maintenance/operating instruction",
+    "changed channel, controller mode, block aggregation, calibration, likelihood version or unsupported regime requires a new evidence session and model identity",
+    "receipt integrity is not signer authentication, trusted time or proof of physical sensor truth"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "optional_stopping_false_alarm_control",
+      "target": "Across frozen no-fault replay episodes and predeclared block-level optional stopping rules, empirical family-wise false-alarm probability remains at or below the configured bound within independent-episode uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_block_detection_latency",
+      "target": "Improve median and p95 fault-event detection latency versus a fixed-window block baseline at the same family-wise false-alarm budget, on matched independent episodes.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_receipt_replay",
+      "target": "100% block receipt-chain and log-evidence replay on all accepted independent units, with zero raw-sample pseudo-replication.",
+      "status": "aspirational"
+    },
+    {
+      "id": "dependence_robustness",
+      "target": "Under a frozen synthetic repeated-sample dependence falsification suite, raw-sample pseudo-replication is always rejected and block-level evidence remains within the declared null false-alarm bound when the reviewed block model is valid.",
+      "status": "aspirational"
+    }
+  ],
+  "evidence_boundaries": {
+    "implementation": "src/sequential_evidence.rs is source-authored; no real engine block likelihood model or dependence-review receipt has been calibrated or evaluated.",
+    "validity": "The optional-stopping guarantee is mathematical and model-conditional; non-overlap and synthetic unit tests do not validate real-world block independence or likelihood calibration.",
+    "non_authority": "A crossed threshold is not physical proof, unique isolation, maintenance authority, controller write permission or ODD clearance.",
+    "cross_engine": "A single engine test-bench cannot establish cross-engine or fleet validity."
+  },
+  "claim_ceiling": "Synthetic block-level likelihood mechanics and receipt replay only until block likelihoods are independently calibrated, dependence assumptions reviewed, independent null episodes audited, and event-level comparator runs completed."
+}

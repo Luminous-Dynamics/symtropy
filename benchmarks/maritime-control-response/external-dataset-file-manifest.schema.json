@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/marine-external-file-manifest-v1.json",
+  "title": "Marine Engine Fault external dataset file manifest",
+  "description": "Audited file inventory and whole-file split contract for Zenodo 10.5281/zenodo.19857425. It describes metadata; it does not prove the archive bytes or labels are truthful.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_doi",
+    "dataset_license",
+    "archive_sha256",
+    "archive_size_bytes",
+    "archive_md5",
+    "dataset_index_sha256",
+    "variable_dictionary_sha256",
+    "normalization_script_sha256",
+    "files",
+    "split_manifest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-file-manifest-v1"
+    },
+    "dataset_doi": {
+      "const": "10.5281/zenodo.19857425"
+    },
+    "dataset_license": {
+      "const": "CC-BY-4.0"
+    },
+    "archive_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dataset_index_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "variable_dictionary_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "normalization_script_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "files": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/file"
+      }
+    },
+    "split_manifest": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/split_manifest"
+        }
+      ]
+    },
+    "archive_md5": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "archive_size_bytes": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_id",
+        "relative_path",
+        "sha256",
+        "row_count",
+        "schema",
+        "header_rows",
+        "recorded_column_count",
+        "role",
+        "fault_family",
+        "load_points_percent",
+        "anomaly_state_label_present",
+        "contains_pre_anomaly_samples",
+        "event_latency_eligible",
+        "missing_channels"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "schema": {
+          "enum": [
+            "baseline70",
+            "scenario73"
+          ]
+        },
+        "header_rows": {
+          "const": 3
+        },
+        "recorded_column_count": {
+          "enum": [
+            70,
+            73
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline_reference",
+            "fault_scenario"
+          ]
+        },
+        "fault_family": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "compressor_air_filter_clogging",
+                "air_cooler_fouling",
+                "injection_valve_nozzle_clogging",
+                "cooling_water_pump_cavitation",
+                "turbine_degradation"
+              ]
+            }
+          ]
+        },
+        "load_points_percent": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 90
+          }
+        },
+        "anomaly_state_label_present": {
+          "type": "boolean"
+        },
+        "contains_pre_anomaly_samples": {
+          "type": "boolean"
+        },
+        "event_latency_eligible": {
+          "type": "boolean"
+        },
+        "missing_channels": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "Compressor Filter Loss",
+              "Turbine Back Pressure"
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "baseline_reference"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "schema": {
+                "const": "baseline70"
+              },
+              "recorded_column_count": {
+                "const": 70
+              },
+              "fault_family": {
+                "type": "null"
+              },
+              "anomaly_state_label_present": {
+                "const": false
+              },
+              "contains_pre_anomaly_samples": {
+                "const": false
+              },
+              "event_latency_eligible": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "fault_scenario"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "schema": {
+                "const": "scenario73"
+              },
+              "recorded_column_count": {
+                "const": 73
+              },
+              "fault_family": {
+                "enum": [
+                  "compressor_air_filter_clogging",
+                  "air_cooler_fouling",
+                  "injection_valve_nozzle_clogging",
+                  "cooling_water_pump_cavitation",
+                  "turbine_degradation"
+                ]
+              },
+              "anomaly_state_label_present": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "contains_pre_anomaly_samples": {
+                "const": true
+              }
+            },
+            "required": [
+              "contains_pre_anomaly_samples"
+            ]
+          },
+          "then": {
+            "properties": {
+              "event_latency_eligible": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "contains_pre_anomaly_samples": {
+                "const": false
+              },
+              "role": {
+                "const": "fault_scenario"
+              }
+            },
+            "required": [
+              "contains_pre_anomaly_samples",
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "event_latency_eligible": {
+                "const": false
+              },
+              "fault_family": {
+                "const": "injection_valve_nozzle_clogging"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "split_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "assignments"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "assignments": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "file_id",
+              "split"
+            ],
+            "properties": {
+              "file_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "split": {
+                "enum": [
+                  "train",
+                  "calibration",
+                  "validation",
+                  "test"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

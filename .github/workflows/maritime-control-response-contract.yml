@@ -57,8 +57,15 @@ jobs:
             (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1") and
             (.event_evaluation.status == "protocol_only_not_executed") and
             (.event_evaluation.alarm_debounce.minimum_positive_samples == 3) and
+            (.event_evaluation.alarm_debounce.reset_on_explicit_negative_sample == true) and
+            (.event_evaluation.alarm_debounce.merge_only_consecutive_positive_samples == true) and
+            (.event_evaluation.alarm_debounce.positive_run_must_not_bridge_unobserved_gap == true) and
             (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10) and
             (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
+            (.event_evaluation.temporal_uncertainty_status == "point_annotations_not_yet_interval_qualified") and
+            (.event_evaluation.physical_latency_precision_claim_allowed == false) and
+            (.temporal_evidence_contract.event_annotation_uncertainty == "not_yet_interval_qualified") and
+            (.event_evaluation.required_before_latency_precision_claim | length == 4) and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.status == "protocol_only_not_executed") and
             (.shift_matrix.axes | length == 6) and
@@ -66,7 +73,7 @@ jobs:
             (.shift_matrix.axes | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
             (.shift_matrix.axes | index("C_PLUS_F_SHIFT") != null) and
             (.shift_matrix.cross_engine_fleet | contains("unsupported")) and
-            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.6") and
+            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.7") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
             (.active_evidence_selection.comparators | length == 7) and
             (.active_evidence_selection.comparators | index("maximum_worst_case_pairwise_chernoff_information") != null) and
@@ -74,10 +81,28 @@ jobs:
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
             (.active_evidence_selection.sequential_updates.status == "joint_hypothesis_scenario_ledger_supported") and
+            (.active_evidence_selection.portfolio_replay.status == "source_contract_implemented_ci_pending") and
+            (.active_evidence_selection.portfolio_replay.replays_rank_diagnostic_probes_before_baseline_selection == true) and
+            (.active_evidence_selection.portfolio_replay.rejects_forged_eligibility_flags == true) and
+            (.active_evidence_selection.portfolio_replay.error == "SelectionReplayMismatch") and
+            (.active_evidence_selection.portfolio_replay_match == false) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.status == "protocol_only_not_executed") and
             (.streaming_contract.one_sample_one_output == true) and
+            (.streaming_contract.bounded_time_intervals == true) and
+            (.streaming_contract.timebase_identity_bound == true) and
+            (.streaming_contract.overlap_rejected_before_model == true) and
+            (.streaming_contract.timebase_qualification_sha256_bound == true) and
+            (.streaming_contract.timestamp_uncertainty_is_not_clock_sync == true) and
+            (.streaming_contract.temporal_contract_version == "bounded-event-time-v0.1") and
             (.streaming_contract.historical_output_mutation == false) and
+            (.temporal_evidence_contract.status == "source_authored_ci_pending") and
+            (.temporal_evidence_contract.module == "src/temporal.rs") and
+            (.temporal_evidence_contract.interval_rule | contains("earliest(current_event)")) and
+            (.temporal_evidence_contract.overlap_disposition == "not_evaluable") and
+            (.temporal_evidence_contract.clock_synchronization_implemented == false) and
+            (.temporal_evidence_contract.clock_qualification_authentication_implemented == false) and
+            (.temporal_evidence_contract.event_annotation_uncertainty == "not_yet_interval_qualified") and
             (.streaming_contract.rust_core_direct_submission_compatible == false) and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
             (.external_dataset_track.status == "archive_payload_audited_no_model_evaluation") and
@@ -103,8 +128,14 @@ jobs:
             (.startup_adaptation_guard.status == "protocol_only_not_executed") and
             (.dx2026_boundary_falsification.schema_version == "liu-ice-dx2026-boundary-falsification-v0.1") and
             (.dx2026_boundary_falsification.status == "protocol_only_not_executed") and
-            (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.1") and
-            (.sequential_evidence.status == "protocol_only_not_executed")
+            (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.2") and
+            (.sequential_evidence.status == "protocol_only_not_executed") and
+            (.sequential_evidence.model.evidence_unit_kind == "non_overlapping_calibrated_block") and
+            (.sequential_evidence.raw_sample_pseudoreplication_allowed == false) and
+            (.sequential_evidence.non_overlapping_blocks == true) and
+            (.sequential_evidence.minimum_block_separation_required == true) and
+            (.sequential_evidence.block_aggregation_and_dependence_review_bound == true) and
+            (.sequential_evidence.block_independence_note | contains("not proof of independence"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate standalone shift matrix
@@ -128,7 +159,7 @@ jobs:
         run: |
           set -euo pipefail
           jq -e '
-            .schema_version == "liu-ice-active-evidence-selection-v0.6" and
+            .schema_version == "liu-ice-active-evidence-selection-v0.7" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 7) and
             ([.comparators[].id] | unique | length == 7) and
@@ -138,6 +169,9 @@ jobs:
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
             (.method.sequential_update_policy.status == "joint_hypothesis_scenario_ledger_supported") and
             (.method.sequential_update_policy.no_silent_fallback == true) and
+            (.method.portfolio_replay.status == "source_contract_implemented_ci_pending") and
+            (.method.portfolio_replay.replay_rule | contains("reruns rank_diagnostic_probes")) and
+            (.method.portfolio_replay.forged_assessment_control | contains("SelectionReplayMismatch")) and
             (.hard_gates | length >= 50) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             (.evidence_boundaries.authority_status | contains("external mandatory checks"))
@@ -148,7 +182,16 @@ jobs:
           set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
+            .temporal_contract_version == "bounded-event-time-v0.1" and
             .status == "protocol_only_not_executed" and
+            (.event_time_claim_boundary.streaming_samples == "bounded_intervals_and_qualified_timebase_required") and
+            (.event_time_claim_boundary.event_annotations == "point_timestamps_only_not_interval_qualified") and
+            (.event_time_claim_boundary.event_latency_claim | contains("must remain limited")) and
+            (.event_time_claim_boundary.clock_qualification | contains("upstream responsibilities")) and
+            (.stream_invariants.temporal_order | contains("strictly later")) and
+            (.stream_invariants.timebase_identity | contains("qualification SHA-256")) and
+            ([.receipt.fields[]] | index("timestamp_uncertainty_seconds") != null) and
+            ([.receipt.fields[]] | index("timebase_qualification_sha256") != null) and
             (.interface.historical_output_mutation == false) and
             (.stream_invariants.sample_sequence | contains("contiguous")) and
             (.competition_adapter.adapter_status == "not_implemented") and
@@ -167,11 +210,29 @@ jobs:
           ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
 
           jq -e '
-            .schema_version == "symtropy-sequential-evidence-v0.1" and
+            .schema_version == "symtropy-sequential-evidence-v0.2" and
             .status == "protocol_only_not_executed" and
+            (.protocol_constraints.one_block_one_receipt == true) and
+            (.protocol_constraints.contiguous_block_ordinals == true) and
+            (.protocol_constraints.raw_sample_pseudoreplication_prohibited == true) and
+            (.protocol_constraints.non_overlapping_blocks == true) and
+            (.protocol_constraints.minimum_block_separation_required == true) and
+            (.validity_conditions.block_independence | contains("not proof of independence")) and
             (.familywise_control != null) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
-          ' benchmarks/maritime-control-response/sequential-evidence-v0.1.json >/dev/null
+          ' benchmarks/maritime-control-response/sequential-evidence-v0.2.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-joint-hypothesis-scenario-posterior-v0.1" and
+            .status == "source_authored_ci_pending" and
+            (.scope.prior | contains("p(H,S)=p(H)*p(S)")) and
+            (.scope.scenario_space | contains("identical outcome ID space")) and
+            (.ledger.binds | index("parent ledger digest") != null) and
+            (.hard_gates | length >= 15) and
+            (.comparators | length == 3) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
+            (.limitations.claim_ceiling | contains("independent mathematical review"))
+          ' benchmarks/maritime-control-response/joint-scenario-posterior-v0.1.json >/dev/null
 
           jq -e '
             .schema_version == "symtropy-startup-adaptation-guard-v0.1" and
@@ -275,13 +336,21 @@ jobs:
             (.properties.protocol.required | index("deployability_assessment") != null) and
             (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
             (.properties.protocol.required | index("sequential_evidence") != null) and
-            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.6") and
+            (.properties.protocol.properties.sequential_evidence.properties.schema_version.const == "symtropy-sequential-evidence-v0.2") and
+            (.properties.protocol.properties.sequential_evidence.required | index("evidence_unit_kind") != null) and
+            (.properties.protocol.properties.sequential_evidence.required | index("block_aggregation_protocol_sha256") != null) and
+            (.properties.protocol.properties.sequential_evidence.required | index("dependence_review_receipt_sha256") != null) and
+            (.properties.protocol.properties.sequential_evidence.properties.evidence_unit_kind.enum | index("non_overlapping_calibrated_block") != null) and
+            (.properties.protocol.properties.sequential_evidence.properties.independent_evidence_block_count.minimum == 0) and
+            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.7") and
+            (.properties.protocol.properties.active_evidence_selection.required | index("portfolio_replay_match") != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.portfolio_replay_match.type == "boolean") and
             (.properties.protocol.properties.active_evidence_selection.properties.execution_performed.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.sequential_update_status.enum | index("multi_scenario_blocked_joint_posterior_missing") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.joint_scenario_posterior_ledger_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.active_evidence_selection.allOf | length >= 3) and
+            (.properties.protocol.properties.active_evidence_selection.allOf | length >= 4) and
             ([.properties.protocol.properties.active_evidence_selection.allOf[].if.properties.sequential_update_status.const] | index("joint_hypothesis_scenario_ledger_qualified") != null) and
             ([.properties.protocol.properties.active_evidence_selection.allOf[].if.properties.sequential_update_status.const] | index("multi_scenario_blocked_joint_posterior_missing") != null) and
             ([.properties.protocol.properties.active_evidence_selection.allOf[].if.properties.sequential_update_status.const] | index("joint_scenario_ledger_synthetic_contract_only") != null) and
