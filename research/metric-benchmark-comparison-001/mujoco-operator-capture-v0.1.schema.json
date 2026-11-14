@@ -36,7 +36,9 @@
     "mass_1_site_world_position",
     "mass_2_site_world_position",
     "model_state_qpos",
-    "model_state_qvel"
+    "model_state_qvel",
+    "engine_archive_sha256",
+    "model_sha256"
   ],
   "properties": {
     "schema_version": {
@@ -202,6 +204,13 @@
       "items": {
         "type": "number"
       }
+    },
+    "engine_archive_sha256": {
+      "const": "8df1308b2900a4ed6c18717ebbc9d66d53ab3fe7a4da860a7d5b21f94607299d"
+    },
+    "model_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   }
 }
