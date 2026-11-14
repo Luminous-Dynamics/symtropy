@@ -16,7 +16,7 @@ This module is only a scale-up of the **randomization reference distribution**. 
 Rust module: `src/monte_carlo_randomization.rs`.
 
 - **Assignment space:** all assignments satisfying the frozen treatment/control counts in each declared stratum.
-- **Sampler:** partial Fisher–Yates within each stratum. Bounded integer selection uses rejection, not biased modulo reduction.
+- **Sampler:** partial Fisher–Yates within each stratum. Bounded integer selection uses rejection, not biased modulo reduction. A separate verifier recounts every generated stratum before the statistic or assignment digest is updated; a malformed block fails closed.
 - **PRNG:** SplitMix64 with frozen constants and a golden-vector test. It is a deterministic simulation PRNG, not a cryptographic generator.
 - **Randomization:** each sampled assignment is uniform over the admissible fixed-count block assignment space. Draws are with replacement.
 - **Statistic:** absolute value of the same stratum-size-weighted difference in observed means used by the exact reference.
@@ -47,7 +47,7 @@ The deterministic seed makes a run reproducible; it does **not** prove that an e
 
 ## Falsification and benchmark suite
 
-The manifest contains fourteen scenarios:
+The manifest contains sixteen scenarios:
 1. byte-identical replay for identical seed and inputs;
 2. different seed changes the sampled-assignment digest;
 3. plus-one correction never returns zero;
@@ -61,9 +61,11 @@ The manifest contains fourteen scenarios:
 11. zero blocked-allocation constraint violations;
 12. sampling/instrument/ATE uncertainty and authorization channels remain distinct;
 13. a valid 10,001-unit trial is rejected before sampling;
-14. the fixed-budget Rust throughput profile emits replay-bound metrics without a machine-independent speed threshold.
+14. the fixed-budget Rust throughput profile emits replay-bound metrics without a machine-independent speed threshold;
+15. an independent recount rejects an invalid sampled block before statistic evaluation;
+16. zero exceedances still produce the plus-one minimum p-value.
 
-The Rust suite currently contains fourteen tests. An opt-in `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL throughput/replay records. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
+The Rust suite currently contains sixteen tests. An opt-in `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL throughput/replay records. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
 
 ## SOTA comparison and next benchmarks
 
