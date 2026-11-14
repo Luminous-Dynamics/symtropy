@@ -494,6 +494,48 @@ mod tests {
         assert_eq!(r.graph().node("source:grid").unwrap().evidence().state(),GraphEvidenceState::Unknown);
         assert!(r.report().evidence_gaps().iter().any(|g|g.reason()==EvidenceGapReason::ClaimUnknown));
     }
+
+    #[test]
+    fn verified_claim_domain_is_not_implicitly_promoted_to_independent_review() {
+        let original = doc(RelationshipDirection::Directed);
+        let verified_source = IrObject::new(
+            ObjectIdentity::new("source:grid", BTreeMap::new()).unwrap(),
+            ns("utility_source"),
+            vec![PropertyClaim::new(
+                "claim:source",
+                "label",
+                ClaimDomain::Verified,
+                ClaimState::Value(PropertyValue::Text { value: "Grid".into() }),
+                ClaimProvenance::new("fixture", Some("evidence:verified".into()), None).unwrap(),
+            ).unwrap()],
+        ).unwrap();
+        let load = original.objects()["load:lighting"].clone();
+        let edge = original.relationships()["edge:grid-lighting"].clone();
+        let changed = PowerFabricDocument::new(
+            IrSchemaVersion::current(),
+            "document:1",
+            "revision:ir:verified",
+            vec![verified_source, load],
+            vec![edge],
+            Vec::new(),
+        ).unwrap();
+
+        // The profile maps Declared only. Verified remains unmapped/unknown.
+        let result = compile_ir_to_service_graph(
+            &changed,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+        ).unwrap();
+        assert_eq!(
+            result.graph().node("source:grid").unwrap().evidence().state(),
+            GraphEvidenceState::Unknown
+        );
+        assert!(result.report().evidence_gaps().iter().any(|gap| {
+            gap.reason() == EvidenceGapReason::ClaimDomainNotMapped
+                && gap.selected_claim_id() == Some("claim:source")
+        }));
+    }
+
     #[test]
     fn relationship_without_evidence_remains_unknown_and_is_reported() {
         let d=doc(RelationshipDirection::Directed);
