@@ -23,6 +23,14 @@ Standalone Rust contract for bulk textile feed, singulation and sensor-ready pre
 
 A classifier's conditional accuracy cannot be reported as the line's end-to-end performance.
 
+## Synthetic challenge corpus
+
+- `feed-cases.example.json` contains 18 positive and adversarial event-accounting cases.
+- `feed-cases.schema.json` defines the versioned corpus shape.
+- The Rust corpus test executes every case mutation, compares exact expected finding codes, and refuses to emit metrics for invalid runs.
+
+The corpus is synthetic. It qualifies event semantics and denominator handling only; it is not evidence of physical presentation or line performance.
+
 ## Validation boundaries
 
 The verifier checks event accounting and the declared observation/evidence references. It does not authenticate evidence issuers, control feeders/robots, prove that an item was physically observed, validate the image/sensor, determine fibre composition, measure plant throughput, or prove downstream acceptance. Physical trials must still bind run, line, configuration, lot, item, attempt, operator and instrument identities.
