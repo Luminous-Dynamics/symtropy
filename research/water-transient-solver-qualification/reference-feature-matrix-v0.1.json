@@ -451,6 +451,10 @@
         {
           "feature": "pressure_dependent_demand_initialization",
           "status": "documentation_described"
+        },
+        {
+          "feature": "bidirectional_reverse_flow_through_leak_boundary_at_negative_pressure",
+          "status": "not_supported_by_documented_backflow_preventer_assumption"
         }
       ],
       "known_limitations": [
@@ -458,7 +462,8 @@
         "MOC_requires_spatial_reaches_and_a_Courant_consistent_common_time_step; compare only after time_step_and_reach_convergence",
         "TSNet_PDD_negative_pressure_behavior_sets_demand_to_zero_under_an_assumption_of_backflow_prevention_at_each_node; not a bidirectional intrusion boundary model",
         "steady_initialization_and_transient_solver_are_distinct_model_stages; bind both engines_and_initial_state",
-        "Python_dependency_stack_is_for_research_comparison_only_not_adopted_as_Luminous_production_runtime"
+        "Python_dependency_stack_is_for_research_comparison_only_not_adopted_as_Luminous_production_runtime",
+        "TSNet_transient_leak_emitter_discharge_is_set_to_zero_at_negative_pressure_under_an_assumption_of_a_backflow_preventer_at_the_leaking_node; this does_not_model_contaminant_ingress_through_that_defect"
       ],
       "verification_required": [
         "pin_Python_WNTR_and_dependency_lock",
@@ -468,7 +473,9 @@
         "verify_negative_pressure_PDD_and_reverse_flow_semantics",
         "compare_device_boundary_models_and_friction_modes",
         "measure_memory_runtime_and_error_vs_mesh_refinement",
-        "independently_validate_against_physical_pressure_records"
+        "independently_validate_against_physical_pressure_records",
+        "distinguish_customer_PDD_zero_demand_from_actual_signed_pipe_flow",
+        "verify_negative_pressure_leak_emitter_does_not_suppress_ingress_in_the_target_geometry_or_use_a_separately_validated_bidirectional_defect_boundary"
       ]
     },
     {
