@@ -1,0 +1,134 @@
+{
+  "schema_version": "filter-barrier-assurance-cases-v0.1",
+  "evidence_class": "synthetic_barrier_state_contract_fixture",
+  "evidence_ceiling": "synthetic_contract_semantics_only_no_filter_or_water_safety_claim",
+  "cases": [
+    {
+      "case_id": "FBA-001-qualified-in-profile",
+      "inputs": {
+        "requested_claim_scope": "microbial_bacteria",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "microbial_bacteria"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available"
+      }
+    },
+    {
+      "case_id": "FBA-002-open-bypass",
+      "inputs": {
+        "requested_claim_scope": "microbial_bacteria",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "microbial_bacteria"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "open",
+        "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available"
+      }
+    },
+    {
+      "case_id": "FBA-003-critical-sensor-offline",
+      "inputs": {
+        "requested_claim_scope": "health_chemical",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "health_chemical"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "offline",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "sample_result_present"
+      }
+    },
+    {
+      "case_id": "FBA-004-out-of-envelope",
+      "inputs": {
+        "requested_claim_scope": "microbial_virus",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "microbial_virus"
+        ],
+        "operating_envelope_status": "out_of_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available"
+      }
+    },
+    {
+      "case_id": "FBA-005-expired-media",
+      "inputs": {
+        "requested_claim_scope": "aesthetic",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "aesthetic"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "media_service_state": "expired",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available"
+      }
+    },
+    {
+      "case_id": "FBA-006-no-challenge-evidence",
+      "inputs": {
+        "requested_claim_scope": "microbial_protozoa",
+        "independent_challenge_status": "missing",
+        "qualified_claim_scopes": [],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available"
+      }
+    },
+    {
+      "case_id": "FBA-007-replaced-no-requalification",
+      "inputs": {
+        "requested_claim_scope": "RO_solute",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "RO_solute"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "requalification_pending",
+        "lab_sample_state": "sample_flagged_for_authority_review"
+      }
+    },
+    {
+      "case_id": "FBA-008-scope-mismatch",
+      "inputs": {
+        "requested_claim_scope": "microbial_virus",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "aesthetic",
+          "health_chemical"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available"
+      }
+    }
+  ]
+}
