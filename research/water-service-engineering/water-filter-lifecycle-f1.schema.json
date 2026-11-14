@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water filter lifecycle F1 mutation corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "base_run",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "water-filter-lifecycle-f1-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_protocol_schedule_contract"
+    },
+    "evidence_ceiling": {
+      "const": "protocol_schedule_and_record_integrity_only_no_filter_performance_or_WHO_certification_claim"
+    },
+    "base_run": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "product",
+        "units",
+        "test_waters",
+        "daily_water_characteristics",
+        "sample_events",
+        "maintenance_events",
+        "primary_treatment_component_replaced",
+        "end_test"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "operations",
+          "expected_status"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^WFL-F1-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "op"
+              ],
+              "properties": {
+                "op": {
+                  "enum": [
+                    "REMOVE_UNIT",
+                    "REMOVE_TEST_WATER",
+                    "REMOVE_EVENT",
+                    "SET_EVENT_FIELD",
+                    "SET_END_TEST_FIELD",
+                    "SET_PRIMARY_COMPONENT_REPLACED",
+                    "REMOVE_WATER_FIELD",
+                    "SET_PRODUCT_FIELD",
+                    "ADD_MAINTENANCE_EVENT"
+                  ]
+                },
+                "target": {
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string"
+                },
+                "value": {}
+              }
+            }
+          },
+          "expected_status": {
+            "enum": [
+              "PASS_PROTOCOL_SCHEDULE",
+              "PASS_EARLY_CLOGGING_STOP",
+              "INCOMPLETE",
+              "FAIL"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
