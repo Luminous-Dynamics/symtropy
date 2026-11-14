@@ -17,6 +17,7 @@ mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
 mod infrastructure_ir;
+mod interop;
 mod module_contract;
 mod service_graph;
 
@@ -24,6 +25,12 @@ pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
+};
+pub use interop::{
+    InformationLoss, InformationLossCategory, InteropError, MappingDirection, MappingEntry,
+    MappingLedger, MappingLedgerStatus, MappingProfile, RoundTripDifference, RoundTripResult,
+    RoundTripStatus, SemanticInventory, SemanticItem, SemanticItemKind, StandardPublicationStatus,
+    StandardReference, TransformationOutcome,
 };
 pub use infrastructure_ir::{
     ClaimDomain, ClaimProvenance, ClaimState, ExtensionOwner, IrError, IrObject,

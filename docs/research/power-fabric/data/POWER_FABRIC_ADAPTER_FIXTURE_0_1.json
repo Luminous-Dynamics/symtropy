@@ -1,0 +1,34 @@
+{
+  "profile": {
+    "profile_id": "iec-81346-reference-designations",
+    "profile_version": "0.1",
+    "adapter_version": "adapter:0.1.0",
+    "direction": "round_trip",
+    "standard": {
+      "designation": "ISO 81346-10",
+      "part": null,
+      "edition": "2022",
+      "amendment": null,
+      "publication_status": "published",
+      "jurisdiction": "international"
+    }
+  },
+  "source_inventory": {
+    "document_id": "source:building-a:rev-7",
+    "document_digest": "sha256:source-fixture-only",
+    "items": [
+      { "item_id": "object:distribution-board", "kind": "object", "namespace": "urn:site:designation", "semantic_digest": "sha256:board-semantic", "in_scope": true },
+      { "item_id": "relationship:feeds-circuit", "kind": "relationship", "namespace": "urn:site:relationship", "semantic_digest": "sha256:feeds-semantic", "in_scope": true },
+      { "item_id": "extension:vendor-config", "kind": "extension", "namespace": "urn:vendor:extension", "semantic_digest": "sha256:vendor-extension-semantic", "in_scope": true },
+      { "item_id": "property:out-of-profile", "kind": "property", "namespace": "urn:site:property", "semantic_digest": "sha256:property-outside-scope", "in_scope": false }
+    ]
+  },
+  "mapping_entries": [
+    { "source_item_id": "object:distribution-board", "outcome": "exact_preservation", "target_item_ids": ["object:distribution-board"], "mapping_rule_id": "rule:object-identity", "information_losses": [], "explanation": null },
+    { "source_item_id": "relationship:feeds-circuit", "outcome": "semantically_equivalent", "target_item_ids": ["relationship:feeds-circuit"], "mapping_rule_id": "rule:feeds-semantics", "information_losses": [], "explanation": null },
+    { "source_item_id": "extension:vendor-config", "outcome": "explicitly_lossy", "target_item_ids": ["extension:vendor-config"], "mapping_rule_id": "rule:extension-fallback", "information_losses": [{ "loss_id": "loss:vendor-extension", "category": "extension", "description": "Target profile cannot represent one vendor-specific configuration property." }], "explanation": null },
+    { "source_item_id": "property:out-of-profile", "outcome": "not_in_scope", "target_item_ids": [], "mapping_rule_id": null, "information_losses": [], "explanation": "Property is explicitly outside this frozen reference-designation profile." }
+  ],
+  "expected_ledger_status": "complete_with_explicit_losses",
+  "expected_round_trip_status": "equivalent_with_explicit_losses"
+}
