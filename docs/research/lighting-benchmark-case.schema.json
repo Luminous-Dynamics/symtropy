@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/lighting-benchmark-case.schema.json",
+  "title": "Symtropy lighting benchmark case v0.1",
+  "description": "Scenario input contract for reproducible lighting-service research cases. Its targets are case-specific research inputs, not universal regulatory limits.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "status",
+    "application",
+    "purpose",
+    "claim_boundary",
+    "coordinate_system",
+    "room",
+    "task_surface",
+    "candidate_domain",
+    "service_targets",
+    "energy_boundary",
+    "required_outputs",
+    "negative_controls",
+    "determinism"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "case_id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9-]{2,80}$" },
+    "status": { "enum": ["synthetic-only", "simulation-calibrated", "physical-measurement"] },
+    "application": { "type": "string", "minLength": 1 },
+    "purpose": { "type": "string", "minLength": 1 },
+    "claim_boundary": { "type": "string", "minLength": 1 },
+    "coordinate_system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origin", "x_axis", "y_axis", "z_axis", "units"],
+      "properties": {
+        "origin": { "type": "string", "minLength": 1 },
+        "x_axis": { "type": "string", "minLength": 1 },
+        "y_axis": { "type": "string", "minLength": 1 },
+        "z_axis": { "type": "string", "minLength": 1 },
+        "units": { "const": "metres" }
+      }
+    },
+    "room": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["length_m", "width_m", "height_m", "surface_reflectance_fraction", "daylight_enabled", "ambient_luminaires"],
+      "properties": {
+        "length_m": { "type": "number", "exclusiveMinimum": 0 },
+        "width_m": { "type": "number", "exclusiveMinimum": 0 },
+        "height_m": { "type": "number", "exclusiveMinimum": 0 },
+        "surface_reflectance_fraction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ceiling", "walls_uniform", "floor"],
+          "properties": {
+            "ceiling": { "type": "number", "minimum": 0, "maximum": 1 },
+            "walls_uniform": { "type": "number", "minimum": 0, "maximum": 1 },
+            "floor": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "daylight_enabled": { "type": "boolean" },
+        "ambient_luminaires": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "task_surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "origin_xyz_m", "length_x_m", "width_y_m", "diffuse_reflectance_fraction", "measurement_grid"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["horizontal_work_plane", "vertical_task_plane", "custom_plane"] },
+        "origin_xyz_m": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "number" },
+            { "type": "number" },
+            { "type": "number" }
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "length_x_m": { "type": "number", "exclusiveMinimum": 0 },
+        "width_y_m": { "type": "number", "exclusiveMinimum": 0 },
+        "diffuse_reflectance_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "measurement_grid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["spacing_m", "include_edges", "expected_points"],
+          "properties": {
+            "spacing_m": { "type": "number", "exclusiveMinimum": 0 },
+            "include_edges": { "type": "boolean" },
+            "expected_points": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "candidate_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixture_type", "maximum_wall_power_w", "emitter_height_above_task_plane_min_m", "emitter_height_above_task_plane_max_m", "maximum_fixture_envelope_m", "permitted_design_variables", "input_data_rule"],
+      "properties": {
+        "fixture_type": { "type": "string", "minLength": 1 },
+        "maximum_wall_power_w": { "type": "number", "exclusiveMinimum": 0 },
+        "emitter_height_above_task_plane_min_m": { "type": "number", "minimum": 0 },
+        "emitter_height_above_task_plane_max_m": { "type": "number", "minimum": 0 },
+        "maximum_fixture_envelope_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "type": "number", "exclusiveMinimum": 0 },
+            "y": { "type": "number", "exclusiveMinimum": 0 },
+            "z": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "permitted_design_variables": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "input_data_rule": { "type": "string", "minLength": 1 }
+      }
+    },
+    "service_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["units", "average_illuminance_min_lx", "minimum_grid_illuminance_min_lx", "minimum_to_average_uniformity_min", "target_semantics", "hard_gate_policy"],
+      "properties": {
+        "units": { "const": "lux" },
+        "average_illuminance_min_lx": { "type": "number", "exclusiveMinimum": 0 },
+        "minimum_grid_illuminance_min_lx": { "type": "number", "minimum": 0 },
+        "minimum_to_average_uniformity_min": { "type": "number", "minimum": 0, "maximum": 1 },
+        "target_semantics": { "type": "string", "minLength": 1 },
+        "hard_gate_policy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "energy_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["meter_location", "include_driver_loss", "include_control_and_sensor_power", "include_standby_power_when_in_scope", "power_limit_w"],
+      "properties": {
+        "meter_location": { "type": "string", "minLength": 1 },
+        "include_driver_loss": { "type": "boolean" },
+        "include_control_and_sensor_power": { "type": "boolean" },
+        "include_standby_power_when_in_scope": { "type": "boolean" },
+        "power_limit_w": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "required_outputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "illuminance_grid_lx",
+          "average_illuminance_lx",
+          "minimum_illuminance_lx",
+          "maximum_illuminance_lx",
+          "minimum_to_average_uniformity",
+          "wall_input_power_w",
+          "energy_per_compliant_task_hour_wh",
+          "hard_gate_statuses",
+          "solver_call_count",
+          "runtime_ms",
+          "input_and_output_hashes"
+        ]
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "missing_photometric_input",
+          "non_finite_or_negative_power",
+          "illumination_grid_shape_mismatch",
+          "candidate_exceeds_power_limit",
+          "candidate_below_service_target",
+          "unknown_color_or_flicker_gate_when_required"
+        ]
+      }
+    },
+    "determinism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_seed", "same_inputs_same_reference_metrics", "solver_version_and_settings_must_be_recorded"],
+      "properties": {
+        "base_seed": { "type": "integer", "minimum": 0 },
+        "same_inputs_same_reference_metrics": { "const": true },
+        "solver_version_and_settings_must_be_recorded": { "const": true }
+      }
+    }
+  }
+}

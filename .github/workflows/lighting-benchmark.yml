@@ -1,0 +1,52 @@
+name: lighting-benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/lighting-benchmark/**"
+      - "docs/research/LIGHTING_SYSTEMS_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
+      - "docs/research/lighting-benchmark-case.schema.json"
+      - "docs/research/lighting-run-receipt.schema.json"
+      - "docs/research/fixtures/task-light-room-v0.1.json"
+      - ".github/workflows/lighting-benchmark.yml"
+  push:
+    paths:
+      - "tools/lighting-benchmark/**"
+      - "docs/research/LIGHTING_SYSTEMS_DESIGN_BENCHMARK_V0_1.md"
+      - "docs/research/LIGHTING_ROBUST_SEARCH_AND_MEASUREMENT_V0_1.md"
+      - "docs/research/lighting-benchmark-case.schema.json"
+      - "docs/research/lighting-run-receipt.schema.json"
+      - "docs/research/fixtures/task-light-room-v0.1.json"
+      - ".github/workflows/lighting-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check JSON syntax
+        run: |
+          python3 -m json.tool docs/research/lighting-benchmark-case.schema.json > /dev/null
+          python3 -m json.tool docs/research/lighting-run-receipt.schema.json > /dev/null
+          python3 -m json.tool docs/research/fixtures/task-light-room-v0.1.json > /dev/null
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lighting-benchmark/Cargo.toml -- --check
+      - name: Run evaluator contract tests
+        run: cargo test --manifest-path tools/lighting-benchmark/Cargo.toml --locked
+      - name: Run synthetic demonstration
+        run: cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-benchmark-demo
+      - name: Emit and count stress corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --manifest-path tools/lighting-benchmark/Cargo.toml --locked --bin lighting-stress-matrix > lighting-stress-matrix.csv
+          test "$(wc -l < lighting-stress-matrix.csv)" -eq 31
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/lighting-benchmark/Cargo.toml --locked -- -D warnings

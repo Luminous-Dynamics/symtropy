@@ -1,0 +1,22 @@
+[package]
+name = "lighting-benchmark"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "AGPL-3.0-or-later"
+publish = false
+default-run = "lighting-benchmark-demo"
+description = "Fail-closed reference evaluator for Symtropy lighting-service benchmark cases"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "lighting-benchmark-demo"
+path = "src/main.rs"
+
+[[bin]]
+name = "lighting-stress-matrix"
+path = "src/stress_main.rs"
+
+[workspace]
