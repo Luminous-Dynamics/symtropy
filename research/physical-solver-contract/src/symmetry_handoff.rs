@@ -58,6 +58,73 @@ fn digest(value: &Value, key: &str, at: &str) -> Check<String> {
     Ok(value)
 }
 
+const OBLIGATIONS: &[&str] = &[
+    "mass_metric_congruence",
+    "force_covector_duality",
+    "momentum_one_form",
+    "constraint_jacobian",
+    "generator_metric_isometry",
+    "discrete_step_equivariance",
+    "physical_observables",
+    "numerical_error_envelope",
+    "full_task_semantics",
+];
+
+fn valid_status(value: &str) -> bool {
+    ["PASS", "FAIL", "INCONCLUSIVE", "NOT_APPLICABLE"].contains(&value)
+}
+
+/// Re-check claim-promotion dependencies without treating them as physical proof.
+fn promotion_invariants_hold(handoff: &Value) -> Check<bool> {
+    let source = field(handoff, "source_math_receipt", "handoff")?;
+    let receiver = field(handoff, "receiver_verification", "handoff")?;
+    let claims = field(handoff, "claims", "handoff")?;
+    let source_status = string(source, "qualification_status", "source_math_receipt")?;
+    let receiver_status = string(receiver, "status", "receiver_verification")?;
+    let physical_status = string(claims, "physical_step_equivariance_status", "claims")?;
+    let authority = string(claims, "physical_equivalence_authority", "claims")?;
+    let search_pruning = field(claims, "scientific_search_pruning_authorized", "claims")?
+        .as_bool()
+        .ok_or_else(|| "claims.scientific_search_pruning_authorized must be boolean".to_owned())?;
+
+    if !valid_status(&source_status)
+        || !valid_status(&receiver_status)
+        || !valid_status(&physical_status)
+        || !["NONE", "BOUNDED_STEP_MAP_ONLY"].contains(&authority.as_str())
+    {
+        return Err("handoff contains an unsupported status or authority value".to_owned());
+    }
+
+    let obligations = field(receiver, "obligations", "receiver_verification")?;
+    let mut all_obligations_pass = true;
+    for obligation in OBLIGATIONS {
+        let status = string(obligations, obligation, "receiver_verification.obligations")?;
+        if !valid_status(&status) {
+            return Err(format!("unsupported receiver obligation status: {obligation}={status}"));
+        }
+        all_obligations_pass &= status == "PASS";
+    }
+
+    if receiver_status == "PASS" && !all_obligations_pass {
+        return Ok(false);
+    }
+    if physical_status == "PASS"
+        && (source_status != "PASS"
+            || receiver_status != "PASS"
+            || !all_obligations_pass
+            || authority != "BOUNDED_STEP_MAP_ONLY")
+    {
+        return Ok(false);
+    }
+    if authority == "BOUNDED_STEP_MAP_ONLY" && physical_status != "PASS" {
+        return Ok(false);
+    }
+    if physical_status != "PASS" && authority != "NONE" {
+        return Ok(false);
+    }
+    Ok(!search_pruning)
+}
+
 fn expected_artifacts(handoff: &Value) -> Check<BTreeMap<String, String>> {
     let source = field(handoff, "source_math_receipt", "handoff")?;
     let physical = field(handoff, "physical_problem", "handoff")?;
@@ -176,6 +243,7 @@ pub fn verify_symmetry_handoff_artifact_bundle(
     )?;
     let manifest_handoff_sha256 = digest(&manifest, "handoff_sha256", "manifest")?;
     let handoff_digest_match = manifest_handoff_sha256 == handoff_sha256;
+    let promotion_invariants_hold = promotion_invariants_hold(&handoff)?;
     let expected = expected_artifacts(&handoff)?;
     let entries = field(&manifest, "artifacts", "manifest")?
         .as_array()
@@ -198,7 +266,7 @@ pub fn verify_symmetry_handoff_artifact_bundle(
     };
 
     let mut results = Vec::with_capacity(entries.len());
-    let mut has_failure = !handoff_digest_match || search_pruning;
+    let mut has_failure = !handoff_digest_match || !promotion_invariants_hold || search_pruning;
     let mut has_unresolved = false;
 
     for (index, entry) in entries.iter().enumerate() {
@@ -328,6 +396,7 @@ pub fn verify_symmetry_handoff_artifact_bundle(
         "handoff_sha256": handoff_sha256,
         "manifest_sha256": manifest_sha256,
         "handoff_digest_match": handoff_digest_match,
+        "promotion_invariants_hold": promotion_invariants_hold,
         "verification_status": verification_status,
         "artifact_binding_only": true,
         "physical_claim_authority_created": false,
@@ -523,6 +592,7 @@ mod tests {
         let report =
             verify_symmetry_handoff_artifact_bundle(&handoff, &manifest, &root.0).unwrap();
         assert_eq!(report["verification_status"], "PASS");
+        assert_eq!(report["promotion_invariants_hold"], true);
         assert_eq!(report["artifact_binding_only"], true);
         assert_eq!(report["physical_claim_authority_created"], false);
         assert_eq!(report["physical_status_promoted"], false);
@@ -530,6 +600,29 @@ mod tests {
         assert_eq!(report["physical_step_equivariance_status"], "INCONCLUSIVE");
         assert_eq!(report["scientific_search_pruning_authorized"], false);
         assert_eq!(report["verified_artifact_count"], ROLES.len());
+    }
+
+    #[test]
+    fn mathematically_qualified_source_cannot_promote_inconclusive_receiver() {
+        let root = TestRoot::new();
+        let (handoff, manifest) = build_bundle(&root);
+        let mut value: Value = serde_json::from_slice(&handoff).unwrap();
+        value["claims"]["physical_step_equivariance_status"] = json!("PASS");
+        value["claims"]["physical_equivalence_authority"] = json!("BOUNDED_STEP_MAP_ONLY");
+        let changed_handoff = serde_json::to_vec(&value).unwrap();
+        let mut manifest_value: Value = serde_json::from_slice(&manifest).unwrap();
+        manifest_value["handoff_sha256"] = json!(sha256_hex(&changed_handoff));
+        let report = verify_symmetry_handoff_artifact_bundle(
+            &changed_handoff,
+            &serde_json::to_vec(&manifest_value).unwrap(),
+            &root.0,
+        )
+        .unwrap();
+        assert_eq!(report["handoff_digest_match"], true);
+        assert_eq!(report["verification_status"], "FAIL");
+        assert_eq!(report["promotion_invariants_hold"], false);
+        assert_eq!(report["receiver_physical_status"], "INCONCLUSIVE");
+        assert_eq!(report["physical_status_promoted"], false);
     }
 
     #[test]
