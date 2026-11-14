@@ -666,7 +666,7 @@ pub fn evaluate(
 }
 
 pub fn evaluate_filter_barrier_assurance(inputs: &Value, oracle: &Value) -> Result<Value, String> {
-    const EXPECTED_CASES: usize = 8;
+    const EXPECTED_CASES: usize = 9;
     const CEILING: &str = "synthetic_contract_semantics_only_no_filter_or_water_safety_claim";
 
     if string(inputs, &["schema_version"])? != "filter-barrier-assurance-cases-v0.1"
@@ -716,6 +716,7 @@ pub fn evaluate_filter_barrier_assurance(inputs: &Value, oracle: &Value) -> Resu
         let envelope = string(i, &["operating_envelope_status"])?;
         let bypass = string(i, &["bypass_state"])?;
         let sensor = string(i, &["sensor_health"])?;
+        let calibration = string(i, &["calibration_state"])?;
         let media = string(i, &["media_service_state"])?;
         let maintenance = string(i, &["maintenance_state"])?;
         let lab = string(i, &["lab_sample_state"])?;
@@ -736,6 +737,8 @@ pub fn evaluate_filter_barrier_assurance(inputs: &Value, oracle: &Value) -> Resu
             ("UNKNOWN", "UNKNOWN")
         } else if sensor == "degraded" {
             ("DEGRADED", "NOT_OBSERVED")
+        } else if calibration != "current" {
+            ("UNKNOWN", "UNKNOWN")
         } else if maintenance == "requalification_pending" {
             ("UNKNOWN", "UNKNOWN")
         } else if challenge != "valid" {
@@ -857,8 +860,8 @@ mod tests {
             &load("filter_barrier_oracle"),
         )
         .expect("filter barrier cases must evaluate");
-        assert_eq!(result["result_count"], 8);
-        assert_eq!(result["matched_case_count"], 8);
+        assert_eq!(result["result_count"], 9);
+        assert_eq!(result["matched_case_count"], 9);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
         assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
     }
@@ -898,6 +901,23 @@ mod tests {
             .find(|row| row["case_id"] == "FBA-003-critical-sensor-offline")
             .unwrap();
         assert_eq!(row["computed"]["qualification_disposition"], "UNKNOWN");
+    }
+
+    #[test]
+    fn expired_sensor_calibration_makes_barrier_state_unknown() {
+        let result = evaluate_filter_barrier_assurance(
+            &load("filter_barrier_inputs"),
+            &load("filter_barrier_oracle"),
+        )
+        .expect("filter barrier cases must evaluate");
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["case_id"] == "FBA-009-critical-sensor-calibration-expired")
+            .unwrap();
+        assert_eq!(row["computed"]["qualification_disposition"], "UNKNOWN");
+        assert_eq!(row["computed"]["current_operating_disposition"], "UNKNOWN");
     }
 
     #[test]
