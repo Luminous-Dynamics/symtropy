@@ -10,7 +10,7 @@ use crate::{
     RelationshipDirection, ServiceEdge, ServiceEdgeKind, ServiceGraph,
     ServiceGraphError, ServiceNode, ServiceNodeKind,
 };
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -60,8 +60,11 @@ impl GraphCompileContext {
 pub struct IrGraphMappingProfile {
     profile_id: String,
     profile_version: String,
+    #[serde(serialize_with = "serialize_object_kind_map")]
     object_kind_map: BTreeMap<NamespacedType, ServiceNodeKind>,
+    #[serde(serialize_with = "serialize_relationship_kind_map")]
     relationship_kind_map: BTreeMap<NamespacedType, ServiceEdgeKind>,
+    #[serde(serialize_with = "serialize_domain_evidence_map")]
     domain_evidence_map: BTreeMap<ClaimDomain, GraphEvidenceState>,
     object_evidence_claim_ids: BTreeMap<String, String>,
 }
@@ -98,6 +101,64 @@ impl IrGraphMappingProfile {
 
     pub fn profile_id(&self) -> &str { &self.profile_id }
     pub fn profile_version(&self) -> &str { &self.profile_version }
+}
+
+
+#[derive(Serialize)]
+struct ObjectKindMapEntry<'a> {
+    source: &'a NamespacedType,
+    target: ServiceNodeKind,
+}
+
+fn serialize_object_kind_map<S>(
+    value: &BTreeMap<NamespacedType, ServiceNodeKind>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| ObjectKindMapEntry { source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
+}
+
+#[derive(Serialize)]
+struct RelationshipKindMapEntry<'a> {
+    source: &'a NamespacedType,
+    target: ServiceEdgeKind,
+}
+
+fn serialize_relationship_kind_map<S>(
+    value: &BTreeMap<NamespacedType, ServiceEdgeKind>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| RelationshipKindMapEntry { source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
+}
+
+#[derive(Serialize)]
+struct DomainEvidenceMapEntry {
+    source: ClaimDomain,
+    target: GraphEvidenceState,
+}
+
+fn serialize_domain_evidence_map<S>(
+    value: &BTreeMap<ClaimDomain, GraphEvidenceState>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| DomainEvidenceMapEntry { source: *source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
