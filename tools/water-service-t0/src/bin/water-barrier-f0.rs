@@ -66,7 +66,7 @@ fn run() -> Result<i32, String> {
     let (manifest_bytes, manifest) = read_json(&manifest_path)?;
 
     if manifest["benchmark_id"] != "WATER-BARRIER-ASSURANCE-F0-001"
-        || manifest["case_count"] != 18
+        || manifest["case_count"] != 19
         || manifest["evidence_ceiling"]
             != "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim"
         || schema["$schema"] != "https://json-schema.org/draft/2020-12/schema"
@@ -82,7 +82,7 @@ fn run() -> Result<i32, String> {
     let no_mismatches = evaluation["mismatches"]
         .as_array()
         .is_some_and(Vec::is_empty);
-    let success = total == 18 && matched == 18 && no_mismatches;
+    let success = total == 19 && matched == 19 && no_mismatches;
 
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
     let lock_bytes =
