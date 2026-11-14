@@ -764,6 +764,167 @@ mod tests {
         }
     }
 
+    /// Independent test oracle: enumerate every active reservation for the requested
+    /// resource, apply the exact conservative interval predicate, then run the half-open
+    /// peak-capacity event sweep. This deliberately bypasses all temporal indexes.
+    fn full_scan_capacity_preview(
+        book: &ReservationBook,
+        candidate: &ReservationRequest,
+        now_ms: u64,
+    ) -> Result<ReservationOutcome, ReservationError> {
+        let capacity = book
+            .resources
+            .get(&candidate.resource_id)
+            .copied()
+            .ok_or(ReservationError::UnknownResource)?;
+        let candidate_start = candidate
+            .interval_start_ms
+            .saturating_sub(candidate.clock_uncertainty_ms);
+        let candidate_end = candidate
+            .interval_end_ms
+            .saturating_add(candidate.clock_uncertainty_ms);
+        let candidate_earliest_expiry = candidate
+            .expires_at_ms
+            .saturating_sub(candidate.clock_uncertainty_ms);
+        if candidate_earliest_expiry <= now_ms {
+            return Err(ReservationError::RequestAlreadyExpired);
+        }
+        if candidate_start < now_ms {
+            return Err(ReservationError::InvalidInterval);
+        }
+        if candidate_earliest_expiry < candidate_end {
+            return Err(ReservationError::ExpiryBeforeEnd);
+        }
+
+        let mut events: Vec<(u64, bool, u64)> = Vec::new();
+        for record in book.reservations.values() {
+            if record.state != ReservationState::Active
+                || record.request.resource_id != candidate.resource_id
+            {
+                continue;
+            }
+            let earliest_expiry = record
+                .request
+                .expires_at_ms
+                .saturating_sub(record.request.clock_uncertainty_ms);
+            if earliest_expiry <= now_ms {
+                continue;
+            }
+            let existing_start = record
+                .request
+                .interval_start_ms
+                .saturating_sub(record.request.clock_uncertainty_ms);
+            let existing_end = record
+                .request
+                .interval_end_ms
+                .saturating_add(record.request.clock_uncertainty_ms);
+            if overlaps(candidate_start, candidate_end, existing_start, existing_end) {
+                events.push((existing_start, true, u64::from(record.request.units)));
+                events.push((existing_end, false, u64::from(record.request.units)));
+            }
+        }
+
+        events.push((candidate_start, true, u64::from(candidate.units)));
+        events.push((candidate_end, false, u64::from(candidate.units)));
+        events.sort_unstable_by_key(|(timestamp, is_start, _)| (*timestamp, *is_start));
+
+        let mut current_units = 0_u64;
+        let mut peak_units = 0_u64;
+        for (_, is_start, units) in events {
+            if is_start {
+                current_units = current_units
+                    .checked_add(units)
+                    .ok_or(ReservationError::CapacityOverflow)?;
+                peak_units = peak_units.max(current_units);
+            } else {
+                current_units = current_units
+                    .checked_sub(units)
+                    .ok_or(ReservationError::CapacityOverflow)?;
+            }
+        }
+
+        if peak_units > u64::from(capacity) {
+            return Err(ReservationError::CapacityExceeded {
+                capacity,
+                requested_total: u32::try_from(peak_units)
+                    .map_err(|_| ReservationError::CapacityOverflow)?,
+            });
+        }
+        Ok(ReservationOutcome::Granted)
+    }
+
+    #[test]
+    fn indexed_capacity_verdict_matches_independent_full_scan_event_sweep() {
+        let mut book = book_with_uncertainty(u32::MAX, 500);
+        book.register_resource("work-zone-B", u32::MAX)
+            .expect("second resource");
+
+        for index in 0..48_u64 {
+            let start = 1_000 + ((index * 997) % 18_000);
+            let duration = match index % 4 {
+                0 => 200,
+                1 => 1_200,
+                2 => 4_500,
+                _ => 7_000,
+            };
+            let uncertainty = [0, 50, 250, 500][(index % 4) as usize];
+            let mut item = request(
+                &format!("oracle-existing-{index}"),
+                &format!("robot-{index}"),
+                start,
+                start + duration,
+                start + duration + uncertainty + 10_000,
+                1 + (index % 3) as u32,
+            );
+            item.resource_id = if index % 3 == 0 {
+                "work-zone-B".to_owned()
+            } else {
+                "work-zone-A".to_owned()
+            };
+            item.clock_uncertainty_ms = uncertainty;
+            book.reserve(item, 0)
+                .expect("seed reservation with nonbinding capacity");
+        }
+
+        for capacity in [1_u32, 2, 3, 4, 5, 8] {
+            book.resources
+                .insert("work-zone-A".to_owned(), capacity);
+            for (start_index, start) in
+                [500_u64, 1_000, 2_500, 5_000, 9_999, 12_000, 18_000, 25_000].into_iter().enumerate()
+            {
+                for (duration_index, duration) in [100_u64, 250, 1_000, 5_000, 12_000]
+                    .into_iter()
+                    .enumerate()
+                {
+                    for units in [1_u32, 2, 3] {
+                        let uncertainty = [0_u64, 50, 250, 500]
+                            [(start_index + duration_index + units as usize) % 4];
+                        let end = start + duration;
+                        let mut candidate = request(
+                            &format!(
+                                "oracle-candidate-{capacity}-{start_index}-{duration_index}-{units}"
+                            ),
+                            "candidate-owner",
+                            start,
+                            end,
+                            end + uncertainty + 10_000,
+                            units,
+                        );
+                        candidate.clock_uncertainty_ms = uncertainty;
+
+                        let indexed = book.preview_reservation(&candidate, 0);
+                        let full_scan = full_scan_capacity_preview(&book, &candidate, 0);
+                        assert_eq!(
+                            indexed,
+                            full_scan,
+                            "capacity verdict diverged: capacity={capacity}, candidate={candidate:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn reference_full_scan_and_indexed_broad_phase_agree_on_overlap_completeness() {
         let mut book = book_with_uncertainty(100, 500);
