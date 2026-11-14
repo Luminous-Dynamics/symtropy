@@ -420,13 +420,13 @@ impl<const D: usize> Default for StaticBroadphase<D> {
 /// Separates the body list into dynamic and non-dynamic entries:
 /// - Dynamic–dynamic: brute-force O(n_dyn²), acceptable for typical games
 ///   where the number of actively moving bodies is small.
-/// - Dynamic–static: linear scan against the prebuilt `StaticBroadphase`.
-///   For large static geometry this avoids re-packing static bodies into the
-///   LBVH every frame.
+/// - Dynamic–cached: linear scan against the prebuilt `StaticBroadphase`.
+/// - Kinematic–cached: explicit comparisons preserve Static–Kinematic and
+///   Kinematic–Kinematic pairs while omitting Static–Static pairs.
 ///
-/// For very large dynamic counts (≥ BRUTE_FORCE_THRESHOLD) the existing
-/// `find_pairs` (full LBVH over all bodies) is called instead, since it is
-/// superior at scale.
+/// When the combined Dynamic + Kinematic count reaches
+/// `BRUTE_FORCE_THRESHOLD`, the standard full-LBVH path is used to avoid
+/// quadratic active-vs-cached scans.
 pub fn find_pairs_incremental<const D: usize>(
     bodies: &[RigidBody<D>],
     static_bp: &StaticBroadphase<D>,
@@ -447,9 +447,17 @@ pub fn find_pairs_incremental<const D: usize>(
         .map(BpEntry::from_body)
         .collect();
 
-    // For large dynamic counts fall back to the full LBVH path which is more
-    // efficient at scale. The static cache saves rebuilding the full tree.
-    if dynamic.len() >= BRUTE_FORCE_THRESHOLD {
+    // The active-vs-cached implementation below is quadratic in the number
+    // of moving entries and cached entries. Once Dynamic + Kinematic reaches
+    // the established small-N crossover, use the standard LBVH path instead.
+    // This also prevents a large kinematic population from bypassing the
+    // existing dynamic-only fallback.
+    let kinematic_count = static_bp
+        .entries
+        .iter()
+        .filter(|entry| entry.body_type == BodyType::Kinematic)
+        .count();
+    if dynamic.len() + kinematic_count >= BRUTE_FORCE_THRESHOLD {
         return find_pairs(bodies);
     }
 
@@ -473,9 +481,41 @@ pub fn find_pairs_incremental<const D: usize>(
         }
     }
 
-    // Dynamic–static pairs (linear scan against cached static AABB entries)
+    // Dynamic–cached pairs (linear scan against cached Static/Kinematic entries).
     for dyn_entry in &dynamic {
         pairs.extend(static_bp.query_against(dyn_entry));
+    }
+
+    // The cached partition also contains Kinematic bodies. The reference
+    // broadphase permits Static–Kinematic and Kinematic–Kinematic pairs, even
+    // though Static–Static pairs are excluded. Compare each kinematic entry
+    // against the cached partition; for Kinematic–Kinematic, use handle order
+    // to visit each unordered pair once. Without this pass the incremental
+    // path silently omits these pairs whenever it is selected.
+    for kinematic in static_bp
+        .entries
+        .iter()
+        .filter(|entry| entry.body_type == BodyType::Kinematic)
+    {
+        for other in &static_bp.entries {
+            if other.handle == kinematic.handle {
+                continue;
+            }
+            if other.body_type == BodyType::Kinematic && other.handle < kinematic.handle {
+                continue;
+            }
+
+            let group_ok = (kinematic.collision_group & other.collision_mask != 0)
+                && (other.collision_group & kinematic.collision_mask != 0);
+            if group_ok && kinematic.aabb.overlaps(&other.aabb) {
+                let (ha, hb) = (kinematic.handle, other.handle);
+                if ha < hb {
+                    pairs.push(BroadphasePair(ha, hb));
+                } else {
+                    pairs.push(BroadphasePair(hb, ha));
+                }
+            }
+        }
     }
 
     pairs.sort_unstable_by_key(|p| (p.0, p.1));
@@ -687,6 +727,145 @@ mod tests {
             incremental, standard,
             "incremental must match standard broadphase"
         );
+    }
+
+    #[test]
+    fn incremental_includes_static_kinematic_and_kinematic_kinematic_pairs() {
+        use symtropy_math::Transform;
+
+        let kinematic = |handle, position| {
+            RigidBody::<3>::new(
+                BodyHandle(handle),
+                BodyType::Kinematic,
+                Transform::from_translation(position),
+                Box::new(Sphere::unit()),
+                0.0,
+                SVector::zeros(),
+            )
+        };
+        let bodies = vec![
+            RigidBody::<3>::static_body(BodyHandle(0), Point::origin(), Box::new(Sphere::unit())),
+            RigidBody::<3>::static_body(
+                BodyHandle(1),
+                Point::new([0.5, 0.0, 0.0]),
+                Box::new(Sphere::unit()),
+            ),
+            kinematic(2, Point::new([0.25, 0.0, 0.0])),
+            kinematic(3, Point::new([1.0, 0.0, 0.0])),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(4), Point::new([0.75, 0.0, 0.0]), 1.0, 1.0),
+        ];
+
+        let mut static_bp = StaticBroadphase::new();
+        static_bp.rebuild(&bodies);
+        let mut incremental = find_pairs_incremental(&bodies, &static_bp);
+        let mut reference = find_pairs_brute(&bodies);
+        incremental.sort_unstable_by_key(|p| (p.0, p.1));
+        reference.sort_unstable_by_key(|p| (p.0, p.1));
+
+        let expected = vec![
+            BroadphasePair(BodyHandle(0), BodyHandle(2)),
+            BroadphasePair(BodyHandle(0), BodyHandle(3)),
+            BroadphasePair(BodyHandle(0), BodyHandle(4)),
+            BroadphasePair(BodyHandle(1), BodyHandle(2)),
+            BroadphasePair(BodyHandle(1), BodyHandle(3)),
+            BroadphasePair(BodyHandle(1), BodyHandle(4)),
+            BroadphasePair(BodyHandle(2), BodyHandle(3)),
+            BroadphasePair(BodyHandle(2), BodyHandle(4)),
+            BroadphasePair(BodyHandle(3), BodyHandle(4)),
+        ];
+        assert_eq!(
+            reference, expected,
+            "reference contract changed unexpectedly"
+        );
+        assert_eq!(
+            incremental, reference,
+            "incremental path must preserve all allowed pairs involving kinematics"
+        );
+    }
+
+    fn deterministic_broadphase_unit(state: &mut u64) -> f64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((*state >> 32) % 1_000_001) as f64 / 1_000_000.0
+    }
+
+    fn seeded_mixed_body_corpus(seed: u64, count: usize) -> Vec<RigidBody<3>> {
+        let mut state = seed;
+        let mut bodies = Vec::with_capacity(count);
+        for index in 0..count {
+            let handle = BodyHandle(index);
+            let position = if index < 6 {
+                // Deliberately overlapping seed fixtures guarantee positive
+                // controls for all three body types.
+                Point::new([index as f64 * 0.3, 0.0, 0.0])
+            } else {
+                Point::new([
+                    deterministic_broadphase_unit(&mut state) * 20.0 - 10.0,
+                    deterministic_broadphase_unit(&mut state) * 20.0 - 10.0,
+                    deterministic_broadphase_unit(&mut state) * 20.0 - 10.0,
+                ])
+            };
+            let radius = if index < 6 {
+                1.0
+            } else {
+                0.15 + deterministic_broadphase_unit(&mut state) * 1.1
+            };
+            let body_type = match index % 3 {
+                0 => BodyType::Static,
+                1 => BodyType::Kinematic,
+                _ => BodyType::Dynamic,
+            };
+            let mut body = match body_type {
+                BodyType::Static => RigidBody::<3>::static_body(
+                    handle,
+                    position,
+                    Box::new(Sphere::new(Point::origin(), radius)),
+                ),
+                BodyType::Kinematic => RigidBody::<3>::new(
+                    handle,
+                    BodyType::Kinematic,
+                    symtropy_math::Transform::from_translation(position),
+                    Box::new(Sphere::new(Point::origin(), radius)),
+                    0.0,
+                    SVector::zeros(),
+                ),
+                BodyType::Dynamic => RigidBody::<3>::dynamic_sphere(handle, position, radius, 1.0),
+            };
+
+            body.collision_group = 1 << (index % 3);
+            body.collision_mask = if index < 6 {
+                0b111
+            } else {
+                (deterministic_broadphase_unit(&mut state) * 7.0) as u32 + 1
+            };
+            bodies.push(body);
+        }
+        bodies
+    }
+
+    #[test]
+    fn incremental_mixed_body_corpora_match_bruteforce() {
+        // Exercise the incremental branch below its active-body crossover.
+        // Multiple deterministic seeds, scene sizes, and collision masks guard
+        // against correctness being an artifact of one hand-picked arrangement.
+        for seed in [1, 2, 3, 5, 8, 13, 21, 34] {
+            for count in [3, 7, 17, 41, 49] {
+                let bodies = seeded_mixed_body_corpus(seed, count);
+                let mut static_bp = StaticBroadphase::new();
+                static_bp.rebuild(&bodies);
+
+                let mut incremental = find_pairs_incremental(&bodies, &static_bp);
+                let mut reference = find_pairs_brute(&bodies);
+                incremental.sort_unstable_by_key(|p| (p.0, p.1));
+                reference.sort_unstable_by_key(|p| (p.0, p.1));
+
+                assert_eq!(
+                    incremental, reference,
+                    "incremental/reference mismatch for seed {seed}, count {count}"
+                );
+            }
+        }
     }
 
     #[test]
