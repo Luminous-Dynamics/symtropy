@@ -88,7 +88,7 @@ jobs:
       - name: Check out exact source revision
         uses: actions/checkout@v4
         with:
-          ref: ${{{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
           persist-credentials: false
 
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
-          expected="${{{ github.event.pull_request.head.sha || github.sha }}"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
           test "$actual" = "$expected"
 
       - name: Install pinned Rust toolchain
@@ -141,21 +141,26 @@ jobs:
           expected = {x["path"].replace("\\", "/")
                       for x in manifest["public_record_metadata"]["archive"]["file_inventory"]}
           with zipfile.ZipFile(archive_path) as archive:
-              files = [item for item in archive.infolist() if not item.is_dir()]
+              members = archive.infolist()
+              files = [item for item in members if not item.is_dir()]
               observed = set()
+              all_names = set()
               total = 0
-              for item in files:
+              for item in members:
                   name = item.filename
                   path = pathlib.PurePosixPath(name)
                   mode = (item.external_attr >> 16) & 0o170000
-                  if (path.is_absolute() or any(p in ("", ".", "..") for p in path.parts)
+                  raw_parts = name.rstrip("/").split("/")
+                  if (path.is_absolute() or any(p in ("", ".", "..") for p in raw_parts)
                       or "\\" in name or name.startswith("/")
                       or (len(name) > 1 and name[1] == ":") or mode == stat.S_IFLNK):
                       raise SystemExit(f"unsafe ZIP member: {name!r}")
-                  if name in observed:
+                  if name in all_names:
                       raise SystemExit(f"duplicate ZIP member: {name!r}")
-                  observed.add(name)
-                  total += item.file_size
+                  all_names.add(name)
+                  if not item.is_dir():
+                      observed.add(name)
+                      total += item.file_size
               if observed != expected:
                   raise SystemExit(
                       f"ZIP inventory mismatch: missing={sorted(expected-observed)}, "
@@ -234,7 +239,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marine-engine-fault-payload-audit-${{{ github.run_id }}
-          path: ${{{ runner.temp }}/marine-engine-fault-audit-report.json
+          name: marine-engine-fault-payload-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/marine-engine-fault-audit-report.json
           if-no-files-found: warn
           retention-days: 90
