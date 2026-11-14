@@ -1240,6 +1240,14 @@ mod tests {
         assert_eq!(protocol["schema_version"], MAINTENANCE_EFFECT_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["estimator"]["exact_test_limit_units"], 16);
+        assert!(
+            protocol["hard_gates"].as_array().unwrap().len() >= 29
+        );
+        assert!(
+            protocol["estimator"]["measurement_provenance"]
+                .as_object()
+                .is_some()
+        );
         assert_eq!(
             corpus["schema_version"],
             "symtropy-marine-maintenance-effect-cases-v0.1"
