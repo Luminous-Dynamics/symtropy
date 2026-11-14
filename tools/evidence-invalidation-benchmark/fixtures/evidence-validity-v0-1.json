@@ -1,0 +1,230 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "synthetic_only",
+  "artifacts": [
+    {
+      "id": "terrain-01",
+      "kind": "terrain",
+      "revision": "site-a-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "terrain_profile", "scope_id": "site-A" },
+      "coverage": "complete",
+      "source_content": "terrain survey benchmark source v1\n",
+      "source_sha256": "4213cfa1a65e1080b58ce5f77796b311198332a79475d1188dc79ebced758a35",
+      "depends_on": []
+    },
+    {
+      "id": "survey-01",
+      "kind": "survey",
+      "revision": "survey-a-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "survey_state", "scope_id": "site-A" },
+      "coverage": "complete",
+      "source_content": "site survey evidence source v1\n",
+      "source_sha256": "c9a07e8fd1e36a604b9f3f3558946cd6b7f4dcab97adca7124ba2f4659946303",
+      "depends_on": [
+        { "artifact_id": "terrain-01", "invalidates_on": ["terrain_changed"] }
+      ]
+    },
+    {
+      "id": "concept-01",
+      "kind": "design_revision",
+      "revision": "concept-a-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "design_feasibility", "scope_id": "site-A" },
+      "coverage": "complete",
+      "source_content": "design revision source v1\n",
+      "source_sha256": "835e41df115926b14a8d53c40b0d09cface20396df731cce5431d61e8ac7c3ea",
+      "depends_on": [
+        { "artifact_id": "terrain-01", "invalidates_on": ["terrain_changed", "survey_protocol_changed"] },
+        { "artifact_id": "survey-01", "invalidates_on": ["survey_protocol_changed"] }
+      ]
+    },
+    {
+      "id": "material-batch-01",
+      "kind": "material_batch",
+      "revision": "batch-17-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "material_origin", "scope_id": "batch-17" },
+      "coverage": "complete",
+      "source_content": "batch provenance source v1\n",
+      "source_sha256": "a69ebe7bc09f812b4f382055ae769a3250adf84340472400253dc1b220910fca",
+      "depends_on": [
+        { "artifact_id": "concept-01", "invalidates_on": ["design_revision_changed"] }
+      ]
+    },
+    {
+      "id": "commissioning-01",
+      "kind": "commissioning",
+      "revision": "commissioning-a-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "commissioning_current", "scope_id": "site-A" },
+      "coverage": "complete",
+      "source_content": "commissioning evidence source v1\n",
+      "source_sha256": "50a1cdd885093bddd8bcfe4d298d499532ee61983468245b16c569047504a941",
+      "depends_on": [
+        { "artifact_id": "concept-01", "invalidates_on": ["design_revision_changed"] },
+        { "artifact_id": "material-batch-01", "invalidates_on": ["supplier_substitution", "material_batch_revoked"] }
+      ]
+    },
+    {
+      "id": "furnishing-01",
+      "kind": "furnishing",
+      "revision": "interior-a-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "interior_spec", "scope_id": "interior-A" },
+      "coverage": "complete",
+      "source_content": "furnishing record source v1\n",
+      "source_sha256": "fd7b02d5a5ddf6ef39f7242bf22865bf7048afa8c5838ff8d203a191bb55d85a",
+      "depends_on": []
+    },
+    {
+      "id": "revoked-certificate-01",
+      "kind": "certificate",
+      "revision": "certificate-batch-99-r1",
+      "validity": "revoked",
+      "claim_scope": { "claim_id": "material_origin", "scope_id": "batch-99" },
+      "coverage": "complete",
+      "source_content": "revoked certificate source v1\n",
+      "source_sha256": "c8d4b2b096c91f7d85e772c048df43a440ef0fb2aa591a4c5ae140927dc83dca",
+      "depends_on": []
+    },
+    {
+      "id": "partial-survey-01",
+      "kind": "survey",
+      "revision": "survey-b-partial-r1",
+      "validity": "valid",
+      "claim_scope": { "claim_id": "survey_state", "scope_id": "site-B" },
+      "coverage": "partial",
+      "source_content": "partial survey source v1\n",
+      "source_sha256": "2f2579ad8c3ad4d898761431cca59d11acc6f2a199fca26bb266169f3e39f1d9",
+      "depends_on": []
+    },
+    {
+      "id": "unknown-groundwater-01",
+      "kind": "survey",
+      "revision": "groundwater-b-r1",
+      "validity": "unknown",
+      "claim_scope": { "claim_id": "groundwater_state", "scope_id": "site-B" },
+      "coverage": "unknown",
+      "source_content": "unknown groundwater source v1\n",
+      "source_sha256": "184c0a4800027aed8aa732a59419a82b53e94ace8327f18e0bb20aa2de76e8c9",
+      "depends_on": []
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "baseline",
+      "events": [],
+      "claim_uses": [
+        { "artifact_id": "terrain-01", "claim_id": "terrain_profile", "scope_id": "site-A" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A" },
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A" },
+        { "artifact_id": "revoked-certificate-01", "claim_id": "material_origin", "scope_id": "batch-99" },
+        { "artifact_id": "partial-survey-01", "claim_id": "survey_state", "scope_id": "site-B" },
+        { "artifact_id": "unknown-groundwater-01", "claim_id": "groundwater_state", "scope_id": "site-B" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "site-A" }
+      ],
+      "expected_stale": [],
+      "expected_superseded": [],
+      "expected_claims": [
+        { "artifact_id": "terrain-01", "claim_id": "terrain_profile", "scope_id": "site-A", "disposition": "accepted" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A", "disposition": "accepted" },
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17", "disposition": "accepted" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A", "disposition": "accepted" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A", "disposition": "accepted" },
+        { "artifact_id": "revoked-certificate-01", "claim_id": "material_origin", "scope_id": "batch-99", "disposition": "rejected_status" },
+        { "artifact_id": "partial-survey-01", "claim_id": "survey_state", "scope_id": "site-B", "disposition": "incomplete_coverage" },
+        { "artifact_id": "unknown-groundwater-01", "claim_id": "groundwater_state", "scope_id": "site-B", "disposition": "unknown" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "site-A", "disposition": "out_of_scope" }
+      ]
+    },
+    {
+      "id": "terrain-change",
+      "events": [
+        { "id": "terrain-change-01", "trigger": "terrain_changed", "changed_artifact_id": "terrain-01" }
+      ],
+      "claim_uses": [
+        { "artifact_id": "terrain-01", "claim_id": "terrain_profile", "scope_id": "site-A" },
+        { "artifact_id": "survey-01", "claim_id": "survey_state", "scope_id": "site-A" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A" },
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A" }
+      ],
+      "expected_stale": ["commissioning-01", "concept-01", "material-batch-01", "survey-01"],
+      "expected_superseded": ["terrain-01"],
+      "expected_claims": [
+        { "artifact_id": "terrain-01", "claim_id": "terrain_profile", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "survey-01", "claim_id": "survey_state", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17", "disposition": "rejected_status" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A", "disposition": "accepted" }
+      ]
+    },
+    {
+      "id": "supplier-substitution",
+      "events": [
+        { "id": "supplier-substitution-01", "trigger": "supplier_substitution", "changed_artifact_id": "material-batch-01" }
+      ],
+      "claim_uses": [
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A" }
+      ],
+      "expected_stale": ["commissioning-01"],
+      "expected_superseded": ["material-batch-01"],
+      "expected_claims": [
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17", "disposition": "rejected_status" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A", "disposition": "accepted" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A", "disposition": "accepted" }
+      ]
+    },
+    {
+      "id": "furnishing-change",
+      "events": [
+        { "id": "furnishing-change-01", "trigger": "furnishing_substituted", "changed_artifact_id": "furnishing-01" }
+      ],
+      "claim_uses": [
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A" }
+      ],
+      "expected_stale": [],
+      "expected_superseded": ["furnishing-01"],
+      "expected_claims": [
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A", "disposition": "rejected_status" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A", "disposition": "accepted" }
+      ]
+    },
+    {
+      "id": "terrain-change-duplicate",
+      "events": [
+        { "id": "terrain-change-01", "trigger": "terrain_changed", "changed_artifact_id": "terrain-01" },
+        { "id": "terrain-change-01", "trigger": "terrain_changed", "changed_artifact_id": "terrain-01" }
+      ],
+      "claim_uses": [
+        { "artifact_id": "terrain-01", "claim_id": "terrain_profile", "scope_id": "site-A" },
+        { "artifact_id": "survey-01", "claim_id": "survey_state", "scope_id": "site-A" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A" },
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A" }
+      ],
+      "expected_stale": ["commissioning-01", "concept-01", "material-batch-01", "survey-01"],
+      "expected_superseded": ["terrain-01"],
+      "expected_claims": [
+        { "artifact_id": "terrain-01", "claim_id": "terrain_profile", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "survey-01", "claim_id": "survey_state", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "concept-01", "claim_id": "design_feasibility", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "material-batch-01", "claim_id": "material_origin", "scope_id": "batch-17", "disposition": "rejected_status" },
+        { "artifact_id": "commissioning-01", "claim_id": "commissioning_current", "scope_id": "site-A", "disposition": "rejected_status" },
+        { "artifact_id": "furnishing-01", "claim_id": "interior_spec", "scope_id": "interior-A", "disposition": "accepted" }
+      ]
+    }
+  ]
+}
