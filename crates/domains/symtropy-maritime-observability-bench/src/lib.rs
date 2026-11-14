@@ -748,7 +748,14 @@ fn pair_assessments(input:&Value,report:&EvaluationReport)->Vec<Value>{
         let refs:Vec<Value>=grouped.into_iter().map(|((artifact,sha,role),channels)|json!({
             "artifact_id":artifact,"sha256":sha,"evidence_role":role,"channel_ids":channels.into_iter().collect::<Vec<_>>()
         })).collect();
-        json!({"fault_a":declaration["fault_a"],"fault_b":declaration["fault_b"],"state":pair_state(&result.status),"method":"structural","evidence_refs":refs})
+        json!({
+            "fault_a":declaration["fault_a"],
+            "fault_b":declaration["fault_b"],
+            "state":pair_state(&result.status),
+            "method":"structural",
+            "observed_independent_principles":result.observed_independent_principles,
+            "evidence_refs":refs
+        })
     }).collect()
 }
 
