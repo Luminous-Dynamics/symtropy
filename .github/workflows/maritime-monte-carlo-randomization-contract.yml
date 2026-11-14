@@ -6,6 +6,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "benchmarks/maritime-control-response/src/monte_carlo_randomization.rs"
+      - "benchmarks/maritime-control-response/benches/monte_carlo_randomization.rs"
+      - "benchmarks/maritime-control-response/Cargo.toml"
       - "benchmarks/maritime-control-response/src/lib.rs"
       - "benchmarks/maritime-control-response/monte-carlo-randomization-*"
       - "docs/tech/MARITIME_MONTE_CARLO_RANDOMIZATION_V0_1.md"
@@ -60,8 +62,8 @@ jobs:
           assert protocol["algorithm"]["max_draws"] == 2000000
           assert protocol["algorithm"]["max_total_unit_draws"] == 100000000
           assert len(protocol["hard_gates"]) >= 28
-          assert len(corpus["cases"]) == 13
-          assert len({case["case_id"] for case in corpus["cases"]}) == 13
+          assert len(corpus["cases"]) == 14
+          assert len({case["case_id"] for case in corpus["cases"]}) == 14
           assert config_schema["additionalProperties"] is False
           assert result_schema["additionalProperties"] is False
           assert "randomization_frame_sha256" in result_schema["required"]
@@ -83,6 +85,10 @@ jobs:
         working-directory: benchmarks/maritime-control-response
         run: cargo test --locked --lib
 
-      - name: Run strict library Clippy
+      - name: Compile performance benchmark harness
         working-directory: benchmarks/maritime-control-response
-        run: cargo clippy --locked --lib -- -D warnings
+        run: cargo bench --locked --no-run --bench monte_carlo_randomization
+
+      - name: Run strict library and benchmark Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib --bench monte_carlo_randomization -- -D warnings
