@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 //! Minimal headless spatial cohort-canopy kernel for synthetic process tests.
 //!
 //! This module is an analytical representation experiment, not a calibrated radiation,
