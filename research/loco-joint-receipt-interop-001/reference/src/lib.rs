@@ -183,6 +183,8 @@ pub enum WireError {
     UqSidecarBindingMismatch(&'static str),
     /// A UQ sidecar has an invalid measurement/uncertainty/derived-result join.
     UqSidecarLineageMismatch(&'static str),
+    /// A required channel or currently valid evidence is missing/incomplete.
+    UqSidecarIncompleteEvidence(&'static str),
 }
 
 impl fmt::Display for WireError {
@@ -409,6 +411,14 @@ pub struct ValidatedUqSidecar {
     pub payload_sha256: String,
     /// Exact parent causal-receipt payload digest.
     pub parent_receipt_payload_sha256: String,
+    /// Audit tick used to assess calibration and uncertainty receipt freshness.
+    pub evaluation_tick: u64,
+    /// Number of predeclared measurement channel requirements.
+    pub measurement_requirement_count: usize,
+    /// Number of channels marked Required.
+    pub required_measurement_count: usize,
+    /// Number of channels explicitly marked NotApplicable.
+    pub not_applicable_requirement_count: usize,
     /// Number of instrument-backed or derived measurements.
     pub measurement_count: usize,
     /// Number of uncertainty budget / coverage receipts.
@@ -441,6 +451,26 @@ fn array_field<'a>(
         Some(_) => Err(WireError::InvalidField(field)),
         None => Err(WireError::MissingField(field)),
     }
+}
+
+fn optional_string<'a>(
+    object: &'a [(String, JsonValue)],
+    field: &'static str,
+) -> Result<Option<&'a str>, WireError> {
+    match get_member(object, field) {
+        Some(JsonValue::String(value)) => Ok(Some(value)),
+        Some(JsonValue::Null) => Ok(None),
+        Some(_) => Err(WireError::InvalidField(field)),
+        None => Err(WireError::MissingField(field)),
+    }
+}
+
+fn decimal_u64_field(
+    object: &[(String, JsonValue)],
+    field: &'static str,
+) -> Result<u64, WireError> {
+    let value = require_string(object, field)?;
+    value.parse::<u64>().map_err(|_| WireError::InvalidField(field))
 }
 
 fn require_false(object: &[(String, JsonValue)], field: &'static str) -> Result<(), WireError> {
@@ -517,6 +547,12 @@ pub fn validate_uq_sidecar(
     if schema_version != SCHEMA_VERSION {
         return Err(WireError::InvalidField("schema_version"));
     }
+    if require_string(sidecar_fields, "profile_id")?.trim().is_empty()
+        || require_string(sidecar_fields, "profile_version")? != SCHEMA_VERSION
+    {
+        return Err(WireError::InvalidField("profile_id/profile_version"));
+    }
+    let evaluation_tick = decimal_u64_field(sidecar_fields, "evaluation_tick")?;
     require_false(sidecar_fields, "actuation_authorized")?;
     require_false(sidecar_fields, "conformity_certified")?;
 
@@ -619,12 +655,78 @@ pub fn validate_uq_sidecar(
         get_member(sidecar_fields, "scope").ok_or(WireError::MissingField("scope"))?;
     let scope_digest = canonical_value_sha256(scope_value);
 
+    let requirements = array_field(sidecar_fields, "measurement_requirements")?;
     let measurements = array_field(sidecar_fields, "measurements")?;
     let receipts = array_field(sidecar_fields, "uncertainty_receipts")?;
     let derived_results = array_field(sidecar_fields, "derived_results")?;
     if measurements.is_empty() || receipts.is_empty() {
         return Err(WireError::UqSidecarLineageMismatch(
             "empty measurements or uncertainty receipts",
+        ));
+    }
+
+    let mut requirements_by_id: BTreeMap<
+        String,
+        (&[(String, JsonValue)], &'static str),
+    > = BTreeMap::new();
+    let mut required_thermal_nodes = BTreeSet::new();
+    let mut required_measurement_count = 0_usize;
+    let mut not_applicable_requirement_count = 0_usize;
+    for requirement_value in requirements {
+        let JsonValue::Object(requirement) = requirement_value else {
+            return Err(WireError::InvalidField("measurement_requirements"));
+        };
+        let measurement_id = require_string(requirement, "measurement_id")?.to_owned();
+        let applicability = object_field(requirement, "applicability")?;
+        let applicability_kind = require_string(applicability, "kind")?;
+        let kind = require_string(requirement, "kind")?;
+        let node_id = optional_string(requirement, "node_id")?;
+        if kind == "thermal_node" {
+            let node = node_id.ok_or(WireError::InvalidField("measurement_requirements.node_id"))?;
+            if applicability_kind == "required" {
+                required_thermal_nodes.insert(node.to_owned());
+            }
+        } else if node_id.is_some() {
+            return Err(WireError::InvalidField("measurement_requirements.node_id"));
+        }
+        let stored_kind = match applicability_kind {
+            "required" => {
+                required_measurement_count += 1;
+                "required"
+            }
+            "not_applicable" => {
+                not_applicable_requirement_count += 1;
+                if require_string(applicability, "reason")?.trim().is_empty() {
+                    return Err(WireError::InvalidField("measurement_requirements.reason"));
+                }
+                "not_applicable"
+            }
+            _ => return Err(WireError::InvalidField("measurement_requirements.applicability")),
+        };
+        if requirements_by_id
+            .insert(measurement_id, (requirement, stored_kind))
+            .is_some()
+        {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "duplicate measurement requirement identity",
+            ));
+        }
+    }
+    if requirements_by_id.is_empty() {
+        return Err(WireError::UqSidecarIncompleteEvidence(
+            "measurement requirements missing",
+        ));
+    }
+    let parent_thermal = object_field(parent_fields, "thermal")?;
+    let parent_required_thermal_nodes =
+        required_array_strings(parent_thermal, "required_node_ids")?;
+    let sidecar_required_thermal_nodes = required_thermal_nodes
+        .iter()
+        .map(|node| (*node).to_owned())
+        .collect::<BTreeSet<_>>();
+    if sidecar_required_thermal_nodes != parent_required_thermal_nodes {
+        return Err(WireError::UqSidecarBindingMismatch(
+            "required thermal node set",
         ));
     }
 
@@ -642,6 +744,50 @@ pub fn validate_uq_sidecar(
                 "duplicate measurement identity",
             ));
         }
+    }
+
+    let mut required_measurement_ids = BTreeSet::new();
+    for (measurement_id, (requirement, applicability)) in &requirements_by_id {
+        match *applicability {
+            "required" => {
+                required_measurement_ids.insert(measurement_id.clone());
+                let measurement = measurements_by_id.get(measurement_id).ok_or(
+                    WireError::UqSidecarIncompleteEvidence("required channel missing"),
+                )?;
+                require_equal_string_fields(
+                    requirement,
+                    "kind",
+                    measurement,
+                    "kind",
+                    "required measurement kind",
+                )?;
+                if optional_string(requirement, "node_id")?
+                    != optional_string(measurement, "node_id")?
+                {
+                    return Err(WireError::UqSidecarBindingMismatch(
+                        "required measurement node identity",
+                    ));
+                }
+            }
+            "not_applicable" => {
+                if measurements_by_id.contains_key(measurement_id) {
+                    return Err(WireError::UqSidecarLineageMismatch(
+                        "NotApplicable channel supplied",
+                    ));
+                }
+            }
+            _ => {
+                return Err(WireError::InvalidField(
+                    "measurement_requirements.applicability",
+                ));
+            }
+        }
+    }
+    let observed_measurement_ids = measurements_by_id.keys().cloned().collect::<BTreeSet<_>>();
+    if observed_measurement_ids != required_measurement_ids {
+        return Err(WireError::UqSidecarLineageMismatch(
+            "measurement set differs from Required channel set",
+        ));
     }
 
     let mut receipts_by_id: BTreeMap<String, &[(String, JsonValue)]> = BTreeMap::new();
@@ -672,6 +818,40 @@ pub fn validate_uq_sidecar(
         if require_string(receipt, "measurement_id")? != measurement_id {
             return Err(WireError::UqSidecarLineageMismatch(
                 "measurement/uncertainty identity mismatch",
+            ));
+        }
+        let start_tick = decimal_u64_field(measurement, "start_tick")?;
+        let end_tick = decimal_u64_field(measurement, "end_tick")?;
+        let calibration_from = decimal_u64_field(measurement, "calibration_valid_from_tick")?;
+        let calibration_through = decimal_u64_field(measurement, "calibration_valid_through_tick")?;
+        let receipt_from = decimal_u64_field(receipt, "valid_from_tick")?;
+        let receipt_through = decimal_u64_field(receipt, "valid_through_tick")?;
+        if start_tick > end_tick
+            || calibration_from > calibration_through
+            || receipt_from > receipt_through
+        {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "measurement/calibration/uncertainty interval inverted",
+            ));
+        }
+        if calibration_from > start_tick || calibration_through < end_tick {
+            return Err(WireError::UqSidecarBindingMismatch(
+                "calibration does not cover measurement window",
+            ));
+        }
+        if receipt_from > start_tick || receipt_through < end_tick {
+            return Err(WireError::UqSidecarBindingMismatch(
+                "uncertainty receipt does not cover measurement window",
+            ));
+        }
+        if evaluation_tick < calibration_from || evaluation_tick > calibration_through {
+            return Err(WireError::UqSidecarIncompleteEvidence(
+                "calibration not valid at evaluation tick",
+            ));
+        }
+        if evaluation_tick < receipt_from || evaluation_tick > receipt_through {
+            return Err(WireError::UqSidecarIncompleteEvidence(
+                "uncertainty receipt not valid at evaluation tick",
             ));
         }
         for field in [
@@ -772,6 +952,10 @@ pub fn validate_uq_sidecar(
         schema_version: schema_version.to_owned(),
         payload_sha256: observed_digest,
         parent_receipt_payload_sha256: parent_report.payload_sha256,
+        evaluation_tick,
+        measurement_requirement_count: requirements.len(),
+        required_measurement_count,
+        not_applicable_requirement_count,
         measurement_count: measurements.len(),
         uncertainty_receipt_count: receipts.len(),
         derived_result_count: derived_results.len(),
