@@ -238,7 +238,10 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "wave-speed interval must be ordered",
             )?;
             require(density > 0.0 && gravity > 0.0, "fluid properties must be positive")?;
-            require(velocity_change >= 0.0, "this envelope case requires non-negative velocity change")?;
+            require(
+                velocity_change >= 0.0,
+                "this envelope case requires non-negative velocity change",
+            )?;
             require(closure >= 0.0, "closure duration must be non-negative")?;
             require(initial_pressure > 0.0, "initial absolute pressure must be positive")?;
 
