@@ -1,0 +1,195 @@
+{
+  "schema_version": "liu-ice-dx2027-profile-v0.1",
+  "benchmark_id": "LIU-ICE-DX-SAFEPROCESS-2027",
+  "edition": 2027,
+  "status": "official_source_metadata_only_archive_not_acquired",
+  "source": {
+    "title": "LiU-ICE Industrial Fault Diagnosis Benchmark 2027",
+    "organization": "Linköping University",
+    "url": "https://vehsys.gitlab-pages.liu.se/dx_safeprocess_benchmarks/liuice/",
+    "description": "Anomaly Detection and Fault Isolation with Incomplete Data",
+    "comparison_edition_url": "https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index"
+  },
+  "acquisition": {
+    "download_link_published": true,
+    "archive_status": "linked_not_downloaded",
+    "archive_sha256": null,
+    "archive_bytes_acquired": false,
+    "file_inventory": [],
+    "recording_manifest_sha256": null,
+    "license_status": "not_verified_from_archive_or_download_terms",
+    "redistribution_permission_verified": false
+  },
+  "dataset": {
+    "training_dataset_count_reported": 41,
+    "training_cycle": "WLTP",
+    "test_may_include_other_cycles": true,
+    "reported_fault_recordings_per_known_family_min": 2,
+    "reported_fault_recordings_per_known_family_max": 7,
+    "sample_rate_hz": 20,
+    "fault_onset_seconds_approx": 120,
+    "fault_persists_to_recording_end": true,
+    "each_training_dataset_one_fault_scenario": true,
+    "model_parameters_known": false,
+    "available_signals_sufficient_to_uniquely_determine_model_parameters": false,
+    "sensors": [
+      {
+        "id": "ypic",
+        "role": "physical_response",
+        "description": "Intercooler pressure"
+      },
+      {
+        "id": "yTic",
+        "role": "physical_response",
+        "description": "Intercooler temperature"
+      },
+      {
+        "id": "ypim",
+        "role": "physical_response",
+        "description": "Intake manifold pressure"
+      },
+      {
+        "id": "ywaf",
+        "role": "physical_response",
+        "description": "Mass flow through the air filter"
+      },
+      {
+        "id": "yxpos",
+        "role": "candidate_actuator_feedback",
+        "description": "Throttle actuator position",
+        "semantics_review": "instrument_and_io_dictionary_review_required"
+      },
+      {
+        "id": "yomega",
+        "role": "physical_response",
+        "description": "Engine speed"
+      },
+      {
+        "id": "ypamb",
+        "role": "disturbance_context",
+        "description": "Ambient pressure"
+      },
+      {
+        "id": "yTamb",
+        "role": "disturbance_context",
+        "description": "Ambient temperature"
+      }
+    ],
+    "actuator_signals": [
+      {
+        "id": "umf",
+        "role": "control_intent",
+        "description": "Requested injected fuel mass"
+      },
+      {
+        "id": "uwg",
+        "role": "control_intent",
+        "description": "Requested wastegate actuator position"
+      }
+    ],
+    "fault_labels_as_published": [
+      "f_pic",
+      "y_pim",
+      "y_waf",
+      "f_iml"
+    ],
+    "fault_label_crosswalk": [
+      {
+        "source_fault_label": "f_pic",
+        "physical_signal": "ypic",
+        "isolation_slot": "f_pic",
+        "mapping_status": "direct_name_match"
+      },
+      {
+        "source_fault_label": "y_pim",
+        "physical_signal": "ypim",
+        "isolation_slot": "f_pim",
+        "mapping_status": "needs_official_evaluator_crosscheck"
+      },
+      {
+        "source_fault_label": "y_waf",
+        "physical_signal": "ywaf",
+        "isolation_slot": "f_waf",
+        "mapping_status": "needs_official_evaluator_crosscheck"
+      },
+      {
+        "source_fault_label": "f_iml",
+        "physical_signal": "intake_manifold_leakage",
+        "isolation_slot": "f_iml",
+        "mapping_status": "direct_fault_family_match"
+      }
+    ],
+    "fault_mechanism": "Sensor faults are multiplicative y=(1+f)*x and may alter closed-loop plant behaviour; intake manifold leakage is induced by opening a valve."
+  },
+  "interface": {
+    "input_method": "Input(sample)",
+    "one_output_per_sample": true,
+    "historical_outputs_may_be_revised": false,
+    "detection_type": "boolean",
+    "isolation_vector_length": 5,
+    "isolation_class_order": [
+      "f_pic",
+      "f_pim",
+      "f_waf",
+      "f_iml",
+      "f_x"
+    ],
+    "when_detection_is_false_probability_sum": 0,
+    "when_detection_is_true_probability_sum": 1,
+    "class_api_language_statement": "Initialization and Input(sample) are described for MATLAB or Python.",
+    "submission_language_statement": "The evaluation section later says submitted code should be executable in Python and cannot include other licensed software.",
+    "language_policy_status": "source_text_requires_organizer_confirmation"
+  },
+  "scoring": {
+    "false_alarm_rate": "FAR",
+    "true_detection_rate": "TDR",
+    "fault_isolation_accuracy": "FIA",
+    "total_score_formula": "((1 - FAR) + TDR + FIA) / 3",
+    "evaluation_uses_secret_test_data": true,
+    "calibration_data_restriction": "provided_training_data_only"
+  },
+  "edition_comparison": {
+    "dx2026_training_dataset_count_reported": 26,
+    "dx2027_training_dataset_count_reported": 41,
+    "counts_are_distinct_edition_profiles": true,
+    "dx2026_score_may_be_reused_as_dx2027_result": false
+  },
+  "source_ambiguities": [
+    {
+      "id": "training-count-narrative",
+      "description": "The page first describes one nominal and seven fault-scenario datasets, then explicitly states that training data consists of 41 datasets.",
+      "required_resolution": "Use 41 as the explicit reported training count while asking the organizers to clarify the earlier narrative sentence."
+    },
+    {
+      "id": "fault-label-aliases",
+      "description": "The filename/fault list uses y_pim and y_waf, while the five-slot isolation interface uses f_pim and f_waf.",
+      "required_resolution": "Preserve source spellings and verify the mapping against the official evaluation code before training or scoring."
+    },
+    {
+      "id": "submission-language",
+      "description": "The interface section allows MATLAB or Python, while the evaluation section says submitted code should be executable in Python.",
+      "required_resolution": "Confirm the actual 2027 submission packaging and runtime requirement with organizers."
+    }
+  ],
+  "claim_ceiling": {
+    "source_metadata_audited": true,
+    "archive_bytes_audited": false,
+    "file_schema_audited": false,
+    "model_reproduced": false,
+    "benchmark_score_claim_allowed": false,
+    "physical_validation_claim_allowed": false,
+    "cross_engine_transfer_claim_allowed": false
+  },
+  "calibration_feasibility": {
+    "independent_calibration_unit": "recording",
+    "reported_max_recordings_per_known_fault_family": 7,
+    "required_independent_episodes_for_split_conformal_coverage": {
+      "0.90": 9,
+      "0.95": 19,
+      "0.99": 99
+    },
+    "per_fault_90pct_split_conformal_feasible_from_reported_training_count": false,
+    "pooled_marginal_coverage_claims_per_fault_coverage": false,
+    "claim_note": "At most seven recordings per known fault family is below the nine independent calibration episodes needed for a 90% finite-sample split-conformal marginal guarantee. A pooled calibration result is not a per-fault guarantee."
+  }
+}

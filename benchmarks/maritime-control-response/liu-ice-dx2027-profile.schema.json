@@ -1,0 +1,501 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/liu-ice-dx2027-profile-v0.1.json",
+  "title": "LiU-ICE DX/Safeprocess 2027 official metadata profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "edition",
+    "status",
+    "source",
+    "acquisition",
+    "dataset",
+    "interface",
+    "scoring",
+    "edition_comparison",
+    "source_ambiguities",
+    "claim_ceiling",
+    "calibration_feasibility"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "liu-ice-dx2027-profile-v0.1"
+    },
+    "benchmark_id": {
+      "const": "LIU-ICE-DX-SAFEPROCESS-2027"
+    },
+    "edition": {
+      "const": 2027
+    },
+    "status": {
+      "const": "official_source_metadata_only_archive_not_acquired"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "organization",
+        "url",
+        "description",
+        "comparison_edition_url"
+      ],
+      "properties": {
+        "title": {
+          "const": "LiU-ICE Industrial Fault Diagnosis Benchmark 2027"
+        },
+        "organization": {
+          "const": "Linköping University"
+        },
+        "url": {
+          "const": "https://vehsys.gitlab-pages.liu.se/dx_safeprocess_benchmarks/liuice/"
+        },
+        "description": {
+          "const": "Anomaly Detection and Fault Isolation with Incomplete Data"
+        },
+        "comparison_edition_url": {
+          "const": "https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index"
+        }
+      }
+    },
+    "acquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "download_link_published",
+        "archive_status",
+        "archive_sha256",
+        "archive_bytes_acquired",
+        "file_inventory",
+        "recording_manifest_sha256",
+        "license_status",
+        "redistribution_permission_verified"
+      ],
+      "properties": {
+        "download_link_published": {
+          "const": true
+        },
+        "archive_status": {
+          "const": "linked_not_downloaded"
+        },
+        "archive_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "archive_bytes_acquired": {
+          "const": false
+        },
+        "file_inventory": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "recording_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "license_status": {
+          "const": "not_verified_from_archive_or_download_terms"
+        },
+        "redistribution_permission_verified": {
+          "const": false
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "training_dataset_count_reported",
+        "training_cycle",
+        "test_may_include_other_cycles",
+        "reported_fault_recordings_per_known_family_min",
+        "reported_fault_recordings_per_known_family_max",
+        "sample_rate_hz",
+        "fault_onset_seconds_approx",
+        "fault_persists_to_recording_end",
+        "each_training_dataset_one_fault_scenario",
+        "model_parameters_known",
+        "available_signals_sufficient_to_uniquely_determine_model_parameters",
+        "sensors",
+        "actuator_signals",
+        "fault_labels_as_published",
+        "fault_label_crosswalk",
+        "fault_mechanism"
+      ],
+      "properties": {
+        "training_dataset_count_reported": {
+          "const": 41
+        },
+        "training_cycle": {
+          "const": "WLTP"
+        },
+        "test_may_include_other_cycles": {
+          "const": true
+        },
+        "reported_fault_recordings_per_known_family_min": {
+          "const": 2
+        },
+        "reported_fault_recordings_per_known_family_max": {
+          "const": 7
+        },
+        "sample_rate_hz": {
+          "const": 20
+        },
+        "fault_onset_seconds_approx": {
+          "const": 120
+        },
+        "fault_persists_to_recording_end": {
+          "const": true
+        },
+        "each_training_dataset_one_fault_scenario": {
+          "const": true
+        },
+        "model_parameters_known": {
+          "const": false
+        },
+        "available_signals_sufficient_to_uniquely_determine_model_parameters": {
+          "const": false
+        },
+        "sensors": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "role",
+              "description"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "physical_response",
+                  "candidate_actuator_feedback",
+                  "disturbance_context"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "semantics_review": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "actuator_signals": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "role",
+              "description"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "role": {
+                "const": "control_intent"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "fault_labels_as_published": {
+          "const": [
+            "f_pic",
+            "y_pim",
+            "y_waf",
+            "f_iml"
+          ]
+        },
+        "fault_label_crosswalk": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source_fault_label",
+              "physical_signal",
+              "isolation_slot",
+              "mapping_status"
+            ],
+            "properties": {
+              "source_fault_label": {
+                "type": "string"
+              },
+              "physical_signal": {
+                "type": "string"
+              },
+              "isolation_slot": {
+                "type": "string"
+              },
+              "mapping_status": {
+                "enum": [
+                  "direct_name_match",
+                  "direct_fault_family_match",
+                  "needs_official_evaluator_crosscheck"
+                ]
+              }
+            }
+          }
+        },
+        "fault_mechanism": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_method",
+        "one_output_per_sample",
+        "historical_outputs_may_be_revised",
+        "detection_type",
+        "isolation_vector_length",
+        "isolation_class_order",
+        "when_detection_is_false_probability_sum",
+        "when_detection_is_true_probability_sum",
+        "class_api_language_statement",
+        "submission_language_statement",
+        "language_policy_status"
+      ],
+      "properties": {
+        "input_method": {
+          "const": "Input(sample)"
+        },
+        "one_output_per_sample": {
+          "const": true
+        },
+        "historical_outputs_may_be_revised": {
+          "const": false
+        },
+        "detection_type": {
+          "const": "boolean"
+        },
+        "isolation_vector_length": {
+          "const": 5
+        },
+        "isolation_class_order": {
+          "const": [
+            "f_pic",
+            "f_pim",
+            "f_waf",
+            "f_iml",
+            "f_x"
+          ]
+        },
+        "when_detection_is_false_probability_sum": {
+          "const": 0
+        },
+        "when_detection_is_true_probability_sum": {
+          "const": 1
+        },
+        "class_api_language_statement": {
+          "type": "string"
+        },
+        "submission_language_statement": {
+          "type": "string"
+        },
+        "language_policy_status": {
+          "const": "source_text_requires_organizer_confirmation"
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "false_alarm_rate",
+        "true_detection_rate",
+        "fault_isolation_accuracy",
+        "total_score_formula",
+        "evaluation_uses_secret_test_data",
+        "calibration_data_restriction"
+      ],
+      "properties": {
+        "false_alarm_rate": {
+          "const": "FAR"
+        },
+        "true_detection_rate": {
+          "const": "TDR"
+        },
+        "fault_isolation_accuracy": {
+          "const": "FIA"
+        },
+        "total_score_formula": {
+          "const": "((1 - FAR) + TDR + FIA) / 3"
+        },
+        "evaluation_uses_secret_test_data": {
+          "const": true
+        },
+        "calibration_data_restriction": {
+          "const": "provided_training_data_only"
+        }
+      }
+    },
+    "edition_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dx2026_training_dataset_count_reported",
+        "dx2027_training_dataset_count_reported",
+        "counts_are_distinct_edition_profiles",
+        "dx2026_score_may_be_reused_as_dx2027_result"
+      ],
+      "properties": {
+        "dx2026_training_dataset_count_reported": {
+          "const": 26
+        },
+        "dx2027_training_dataset_count_reported": {
+          "const": 41
+        },
+        "counts_are_distinct_edition_profiles": {
+          "const": true
+        },
+        "dx2026_score_may_be_reused_as_dx2027_result": {
+          "const": false
+        }
+      }
+    },
+    "source_ambiguities": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "required_resolution"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "training-count-narrative",
+              "fault-label-aliases",
+              "submission-language"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "required_resolution": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_metadata_audited",
+        "archive_bytes_audited",
+        "file_schema_audited",
+        "model_reproduced",
+        "benchmark_score_claim_allowed",
+        "physical_validation_claim_allowed",
+        "cross_engine_transfer_claim_allowed"
+      ],
+      "properties": {
+        "source_metadata_audited": {
+          "const": true
+        },
+        "archive_bytes_audited": {
+          "const": false
+        },
+        "file_schema_audited": {
+          "const": false
+        },
+        "model_reproduced": {
+          "const": false
+        },
+        "benchmark_score_claim_allowed": {
+          "const": false
+        },
+        "physical_validation_claim_allowed": {
+          "const": false
+        },
+        "cross_engine_transfer_claim_allowed": {
+          "const": false
+        }
+      }
+    },
+    "calibration_feasibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_calibration_unit",
+        "reported_max_recordings_per_known_fault_family",
+        "required_independent_episodes_for_split_conformal_coverage",
+        "per_fault_90pct_split_conformal_feasible_from_reported_training_count",
+        "pooled_marginal_coverage_claims_per_fault_coverage",
+        "claim_note"
+      ],
+      "properties": {
+        "independent_calibration_unit": {
+          "const": "recording"
+        },
+        "reported_max_recordings_per_known_fault_family": {
+          "const": 7
+        },
+        "required_independent_episodes_for_split_conformal_coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "0.90",
+            "0.95",
+            "0.99"
+          ],
+          "properties": {
+            "0.90": {
+              "const": 9
+            },
+            "0.95": {
+              "const": 19
+            },
+            "0.99": {
+              "const": 99
+            }
+          }
+        },
+        "per_fault_90pct_split_conformal_feasible_from_reported_training_count": {
+          "const": false
+        },
+        "pooled_marginal_coverage_claims_per_fault_coverage": {
+          "const": false
+        },
+        "claim_note": {
+          "type": "string",
+          "minLength": 40
+        }
+      }
+    }
+  }
+}
