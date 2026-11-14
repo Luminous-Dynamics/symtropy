@@ -146,8 +146,10 @@ fn evidence_role(raw:Option<&str>,channel:&Channel,context:EvaluationContext<'_>
         Some("SYNTHETIC_CONFORMANCE_FIXTURE")
             if context.evidence_class==PairEvidenceClass::SyntheticConformanceFixture
                 && text(&channel.raw,"source_role")==Some("synthetic_fixture")
+                && channel.raw["installed"].as_bool()==Some(true)
                 && channel.raw["configuration_sha256"].as_str()==Some(context.asset_sha256)
                 && text(&channel.raw,"quality_state")==Some("current")
+                && channel.raw["derived_from_channel_ids"].as_array().is_some_and(|items|items.is_empty())
             => PairEvidenceRole::SyntheticConformanceFixture,
         Some("INDEPENDENT_MEASUREMENT")
             if context.evidence_class==PairEvidenceClass::Measured
@@ -317,6 +319,11 @@ fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
     if items.is_empty(){push(&mut errors,"CHANNELS_EMPTY","$.channels","at least one channel required");}
     if items.len()>4096{push(&mut errors,"CHANNEL_LIMIT","$.channels","maximum 4096 channels");}
     let mut channels=BTreeMap::new();
+    // One physical transducer cannot be declared as multiple independent
+    // measurement-principle groups merely by assigning different channel IDs.
+    // Multiple channels from one sensor are allowed only when they retain the
+    // same reviewed principle and independence-group identity.
+    let mut physical_sensor_principles:BTreeMap<String,(String,String)>=BTreeMap::new();
     for (i,item) in items.iter().enumerate(){
         let path=format!("$.channels[{i}]");
         exact_keys(item,&["sensor_id","channel_id","installed","measurement_principle","independence_group_ref","unit","source_role","quality_state","calibration_state","configuration_sha256","dependency_groups","derived_from_channel_ids","timebase_id","timestamp_uncertainty_ms","timebase_qualification_state","timebase_qualification_sha256"],&[] ,&path,&mut errors);
@@ -324,6 +331,24 @@ fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
         if id.is_empty(){push(&mut errors,"CHANNEL_ID_REQUIRED",&format!("{path}.channel_id"),"channel ID required");continue;}
         if text(item,"sensor_id").is_none()||text(item,"measurement_principle").is_none()||text(item,"independence_group_ref").is_none()||text(item,"unit").is_none(){
             push(&mut errors,"CHANNEL_IDENTITY_REQUIRED",&path,"sensor, measurement principle, independent-principle group and unit are required");
+        } else {
+            let sensor_id=text(item,"sensor_id").unwrap_or("").to_owned();
+            let mapping=(
+                text(item,"measurement_principle").unwrap_or("").to_owned(),
+                text(item,"independence_group_ref").unwrap_or("").to_owned()
+            );
+            if let Some(previous)=physical_sensor_principles.get(&sensor_id) {
+                if previous!=&mapping {
+                    push(
+                        &mut errors,
+                        "SENSOR_INDEPENDENCE_MAPPING_CONFLICT",
+                        &path,
+                        "one physical sensor ID cannot map to multiple measurement principles or independence groups"
+                    );
+                }
+            } else {
+                physical_sensor_principles.insert(sensor_id,mapping);
+            }
         }
         if item["installed"].as_bool().is_none(){push(&mut errors,"INSTALLED_REQUIRED",&path,"installed must be boolean");}
         if !matches!(text(item,"source_role"),Some("measured"|"derived"|"reconstructed"|"simulated"|"synthetic_fixture")){
@@ -718,6 +743,30 @@ mod tests{
         v["channels"][2]["calibration_state"]=json!("expired");
         let r=run(&v);
         assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+    }
+    #[test]
+    fn one_physical_sensor_cannot_claim_two_independent_principles(){
+        let mut v=fixture();
+        v["channels"][1]["sensor_id"]=v["channels"][0]["sensor_id"].clone();
+        v["channels"][1]["independence_group_ref"]=json!("claimed-independent-pressure-b");
+        let errors=validate_case(&v).unwrap_err();
+        assert!(errors.iter().any(|e|e["code"]=="SENSOR_INDEPENDENCE_MAPPING_CONFLICT"));
+    }
+    #[test]
+    fn same_sensor_aliases_in_one_principle_group_still_count_once(){
+        let mut v=fixture();
+        v["channels"][1]["sensor_id"]=v["channels"][0]["sensor_id"].clone();
+        let r=run(&v);
+        assert_eq!(r["base_pair_results"][0]["observed_independent_principles"],3);
+    }
+    #[test]
+    fn uninstalled_synthetic_channel_cannot_contribute(){
+        let mut v=fixture();
+        v["pairs"][0]["minimum_independent_principles"]=json!(3);
+        v["channels"][3]["installed"]=json!(false);
+        let r=run(&v);
+        assert_eq!(status(&r,"fuel-restriction-vs-injector-degradation"),"INSUFFICIENT_EVIDENCE");
+        assert_eq!(r["base_pair_results"][0]["observed_independent_principles"],2);
     }
     #[test]
     fn derived_channel_cannot_contribute_as_independent_measurement(){
