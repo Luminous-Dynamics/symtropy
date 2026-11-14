@@ -47,7 +47,7 @@ The deterministic seed makes a run reproducible; it does **not** prove that an e
 
 ## Falsification and benchmark suite
 
-The manifest contains thirteen scenarios:
+The manifest contains fourteen scenarios:
 1. byte-identical replay for identical seed and inputs;
 2. different seed changes the sampled-assignment digest;
 3. plus-one correction never returns zero;
@@ -60,9 +60,10 @@ The manifest contains thirteen scenarios:
 10. uniform subset frequencies within a fixed-count stratum;
 11. zero blocked-allocation constraint violations;
 12. sampling/instrument/ATE uncertainty and authorization channels remain distinct;
-13. a valid 10,001-unit trial is rejected before sampling.
+13. a valid 10,001-unit trial is rejected before sampling;
+14. the fixed-budget Rust throughput profile emits replay-bound metrics without a machine-independent speed threshold.
 
-The Rust suite currently contains fourteen tests. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
+The Rust suite currently contains fourteen tests. An opt-in `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL throughput/replay records. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
 
 ## SOTA comparison and next benchmarks
 
