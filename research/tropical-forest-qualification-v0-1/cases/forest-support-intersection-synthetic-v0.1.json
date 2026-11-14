@@ -3,7 +3,7 @@
   "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
   "corpus_id": "FOREST-SUPPORT-INTERSECTION-001",
   "status": "PUBLIC_SYNTHETIC_RECTANGLE_CASES_NOT_GIS",
-  "claim_ceiling": "Fourteen public cases validate exact axis-aligned rectangle intersections in one pre-declared planar coordinate system only. No arbitrary geometry, CRS transformation, positional uncertainty, value aggregation, real source data, or ecological calibration is established.",
+  "claim_ceiling": "Eighteen public cases validate exact axis-aligned rectangle intersections and deterministic minimum/maximum overlap envelopes under declared axis-aligned translation bounds in one pre-declared planar coordinate system only. No arbitrary geometry, CRS transformation, positional uncertainty probability distribution, value aggregation, real source data, or ecological calibration is established.",
   "coordinate_model": "LOCAL_PLANAR_METRES_ALREADY_TRANSFORMED",
   "cases": [
     {
@@ -477,6 +477,182 @@
         "valid_data_area": 0,
         "valid_data_coverage_fraction": 0,
         "disposition": "OUT_OF_SUPPORT"
+      }
+    },
+    {
+      "case_id": "SUPPORT-REGISTRATION-BOUNDS-ZERO-001",
+      "target_support": {
+        "crs": "LOCAL_METRE_GRID_A",
+        "bounds": [
+          0,
+          0,
+          10,
+          10
+        ]
+      },
+      "samples": [
+        {
+          "sample_id": "shift-zero",
+          "bounds": [
+            1,
+            1,
+            11,
+            11
+          ],
+          "valid": true,
+          "crs": "LOCAL_METRE_GRID_A"
+        }
+      ],
+      "expected": {
+        "geometric_overlap_area": 81,
+        "geometric_coverage_fraction": 0.81,
+        "valid_data_area": 81,
+        "valid_data_coverage_fraction": 0.81,
+        "disposition": "PARTIAL_GEOMETRIC_COVERAGE"
+      },
+      "registration_shift_bounds": {
+        "min_dx": 0,
+        "max_dx": 0,
+        "min_dy": 0,
+        "max_dy": 0
+      },
+      "expected_registration_bounds": {
+        "minimum_overlap_area_m2": 81,
+        "maximum_overlap_area_m2": 81,
+        "minimum_coverage_fraction": 0.81,
+        "maximum_coverage_fraction": 0.81
+      }
+    },
+    {
+      "case_id": "SUPPORT-REGISTRATION-BOUNDS-SYMMETRIC-001",
+      "target_support": {
+        "crs": "LOCAL_METRE_GRID_A",
+        "bounds": [
+          0,
+          0,
+          10,
+          10
+        ]
+      },
+      "samples": [
+        {
+          "sample_id": "shift-symmetric",
+          "bounds": [
+            0,
+            0,
+            10,
+            10
+          ],
+          "valid": true,
+          "crs": "LOCAL_METRE_GRID_A"
+        }
+      ],
+      "expected": {
+        "geometric_overlap_area": 100,
+        "geometric_coverage_fraction": 1,
+        "valid_data_area": 100,
+        "valid_data_coverage_fraction": 1,
+        "disposition": "COMPLETE_VALID_COVERAGE"
+      },
+      "registration_shift_bounds": {
+        "min_dx": -1,
+        "max_dx": 1,
+        "min_dy": -1,
+        "max_dy": 1
+      },
+      "expected_registration_bounds": {
+        "minimum_overlap_area_m2": 81,
+        "maximum_overlap_area_m2": 100,
+        "minimum_coverage_fraction": 0.81,
+        "maximum_coverage_fraction": 1
+      }
+    },
+    {
+      "case_id": "SUPPORT-REGISTRATION-BOUNDS-EDGE-001",
+      "target_support": {
+        "crs": "LOCAL_METRE_GRID_A",
+        "bounds": [
+          0,
+          0,
+          10,
+          10
+        ]
+      },
+      "samples": [
+        {
+          "sample_id": "shift-edge",
+          "bounds": [
+            10,
+            0,
+            20,
+            10
+          ],
+          "valid": true,
+          "crs": "LOCAL_METRE_GRID_A"
+        }
+      ],
+      "expected": {
+        "geometric_overlap_area": 0,
+        "geometric_coverage_fraction": 0,
+        "valid_data_area": 0,
+        "valid_data_coverage_fraction": 0,
+        "disposition": "OUT_OF_SUPPORT"
+      },
+      "registration_shift_bounds": {
+        "min_dx": -1,
+        "max_dx": 0,
+        "min_dy": 0,
+        "max_dy": 0
+      },
+      "expected_registration_bounds": {
+        "minimum_overlap_area_m2": 0,
+        "maximum_overlap_area_m2": 10,
+        "minimum_coverage_fraction": 0,
+        "maximum_coverage_fraction": 0.1
+      }
+    },
+    {
+      "case_id": "SUPPORT-REGISTRATION-BOUNDS-WIDE-001",
+      "target_support": {
+        "crs": "LOCAL_METRE_GRID_A",
+        "bounds": [
+          0,
+          0,
+          10,
+          10
+        ]
+      },
+      "samples": [
+        {
+          "sample_id": "shift-wide",
+          "bounds": [
+            0,
+            0,
+            10,
+            10
+          ],
+          "valid": true,
+          "crs": "LOCAL_METRE_GRID_A"
+        }
+      ],
+      "expected": {
+        "geometric_overlap_area": 100,
+        "geometric_coverage_fraction": 1,
+        "valid_data_area": 100,
+        "valid_data_coverage_fraction": 1,
+        "disposition": "COMPLETE_VALID_COVERAGE"
+      },
+      "registration_shift_bounds": {
+        "min_dx": -20,
+        "max_dx": 20,
+        "min_dy": -20,
+        "max_dy": 20
+      },
+      "expected_registration_bounds": {
+        "minimum_overlap_area_m2": 0,
+        "maximum_overlap_area_m2": 100,
+        "minimum_coverage_fraction": 0,
+        "maximum_coverage_fraction": 1
       }
     }
   ],
