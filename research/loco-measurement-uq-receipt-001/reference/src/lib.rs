@@ -1062,16 +1062,16 @@ pub fn audit_measurement_uncertainty(profile: &UncertaintyProfile) -> Uncertaint
     for requirement in &profile.measurement_requirements {
         match &requirement.applicability {
             MeasurementApplicability::Required => {
-                if let Some(measurement) = measurement_map.get(requirement.measurement_id.as_str())
+                if let Some(measurement) = measurement_map
+                    .get(requirement.measurement_id.as_str())
+                    && measurement.kind != requirement.kind
                 {
-                    if measurement.kind != requirement.kind {
-                        push(
-                            &mut report,
-                            EvidenceDisposition::Rejected,
-                            "MEASUREMENT_KIND_MISMATCH",
-                            &requirement.measurement_id,
-                        );
-                    }
+                    push(
+                        &mut report,
+                        EvidenceDisposition::Rejected,
+                        "MEASUREMENT_KIND_MISMATCH",
+                        &requirement.measurement_id,
+                    );
                 }
             }
             MeasurementApplicability::NotApplicable { .. } => {
