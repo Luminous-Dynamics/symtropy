@@ -9405,6 +9405,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-soil"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-terrain"
 version = "0.1.0"
 dependencies = [
