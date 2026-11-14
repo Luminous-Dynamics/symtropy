@@ -35,6 +35,17 @@ fn string(value: &Value, key: &str, at: &str) -> Check<String> {
         .ok_or_else(|| format!("{at}.{key} must be a string"))
 }
 
+fn require_exact_keys(value: &Value, allowed: &[&str], at: &str) -> Check<()> {
+    let value = object(value, at)?;
+    if let Some(key) = value.keys().find(|key| !allowed.contains(&key.as_str())) {
+        return Err(format!("{at} contains unknown field '{key}'"));
+    }
+    if let Some(key) = allowed.iter().find(|key| !value.contains_key(**key)) {
+        return Err(format!("{at}.{key} is required"));
+    }
+    Ok(())
+}
+
 fn digest(value: &Value, key: &str, at: &str) -> Check<String> {
     let value = string(value, key, at)?;
     if value.len() != 64
@@ -158,6 +169,11 @@ pub fn verify_symmetry_handoff_artifact_bundle(
         .as_bool()
         .ok_or_else(|| "claims.scientific_search_pruning_authorized must be boolean".to_owned())?;
 
+    require_exact_keys(
+        &manifest,
+        &["schema_version", "handoff_sha256", "artifacts"],
+        "manifest",
+    )?;
     let manifest_handoff_sha256 = digest(&manifest, "handoff_sha256", "manifest")?;
     let handoff_digest_match = manifest_handoff_sha256 == handoff_sha256;
     let expected = expected_artifacts(&handoff)?;
@@ -187,6 +203,11 @@ pub fn verify_symmetry_handoff_artifact_bundle(
 
     for (index, entry) in entries.iter().enumerate() {
         let at = format!("manifest.artifacts[{index}]");
+        require_exact_keys(
+            entry,
+            &["artifact_id", "role", "relative_path", "sha256", "byte_length"],
+            &at,
+        )?;
         let artifact_id = string(entry, "artifact_id", &at)?;
         let role = string(entry, "role", &at)?;
         let relative_path = string(entry, "relative_path", &at)?;
@@ -539,6 +560,69 @@ mod tests {
         assert!(report["artifact_results"].as_array().unwrap().iter().any(
             |result| result["status"] == "UNRESOLVED"
         ));
+    }
+
+    #[test]
+    fn manifest_digest_drift_fails_even_when_file_bytes_match_manifest() {
+        let root = TestRoot::new();
+        let (handoff, manifest) = build_bundle(&root);
+        let mut value: Value = serde_json::from_slice(&manifest).unwrap();
+        let entry = value["artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|entry| entry["role"] == "mass_metric")
+            .unwrap();
+        entry["sha256"] = json!("0".repeat(64));
+        let report = verify_symmetry_handoff_artifact_bundle(
+            &handoff,
+            &serde_json::to_vec(&value).unwrap(),
+            &root.0,
+        )
+        .unwrap();
+        assert_eq!(report["verification_status"], "FAIL");
+        assert!(report["artifact_results"].as_array().unwrap().iter().any(
+            |entry| entry["role"] == "mass_metric" && entry["status"] == "FAIL"
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlink_escape_is_unresolved() {
+        use std::os::unix::fs::symlink;
+
+        let root = TestRoot::new();
+        let outside = TestRoot::new();
+        let (handoff, manifest) = build_bundle(&root);
+        let outside_file = outside.0.join("external.bin");
+        fs::write(&outside_file, b"external").unwrap();
+        let escaped = root.0.join("artifacts/source_math_receipt.bin");
+        fs::remove_file(&escaped).unwrap();
+        symlink(&outside_file, &escaped).unwrap();
+
+        let report =
+            verify_symmetry_handoff_artifact_bundle(&handoff, &manifest, &root.0).unwrap();
+        assert_eq!(report["verification_status"], "UNRESOLVED");
+        assert!(report["artifact_results"].as_array().unwrap().iter().any(
+            |entry| entry["role"] == "source_math_receipt" && entry["status"] == "UNRESOLVED"
+        ));
+    }
+
+    #[test]
+    fn hard_pruning_claim_is_never_accepted_by_byte_verifier() {
+        let root = TestRoot::new();
+        let (handoff, manifest) = build_bundle(&root);
+        let mut changed: Value = serde_json::from_slice(&handoff).unwrap();
+        changed["claims"]["scientific_search_pruning_authorized"] = json!(true);
+        let report = verify_symmetry_handoff_artifact_bundle(
+            &serde_json::to_vec(&changed).unwrap(),
+            &manifest,
+            &root.0,
+        )
+        .unwrap();
+        assert_eq!(report["verification_status"], "FAIL");
+        assert_eq!(report["scientific_search_pruning_authorized"], true);
+        assert_eq!(report["physical_claim_authority_created"], false);
     }
 
     #[test]
