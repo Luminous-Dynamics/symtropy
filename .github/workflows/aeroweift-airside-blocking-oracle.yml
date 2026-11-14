@@ -1,0 +1,40 @@
+name: AeroWeft Airside Blocking Oracle
+
+on:
+  pull_request:
+    paths:
+      - "tools/aeroweift-airside-blocking-oracle/**"
+      - "fixtures/aeroweift-airside-blocking/**"
+      - ".github/workflows/aeroweift-airside-blocking-oracle.yml"
+  push:
+    branches:
+      - "research/aeroweFt-airside-blocking-oracle-001"
+    paths:
+      - "tools/aeroweift-airside-blocking-oracle/**"
+      - "fixtures/aeroweift-airside-blocking/**"
+      - ".github/workflows/aeroweift-airside-blocking-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aeroweift-airside-blocking-oracle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/aeroweift-airside-blocking-oracle/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/aeroweift-airside-blocking-oracle/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked --manifest-path tools/aeroweift-airside-blocking-oracle/Cargo.toml
