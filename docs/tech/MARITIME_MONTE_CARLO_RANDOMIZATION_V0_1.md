@@ -47,7 +47,7 @@ The deterministic seed makes a run reproducible; it does **not** prove that an e
 
 ## Falsification and benchmark suite
 
-The manifest contains twelve scenarios:
+The manifest contains thirteen scenarios:
 1. byte-identical replay for identical seed and inputs;
 2. different seed changes the sampled-assignment digest;
 3. plus-one correction never returns zero;
@@ -59,9 +59,10 @@ The manifest contains twelve scenarios:
 9. total unit-draw work budget enforced before sampling;
 10. uniform subset frequencies within a fixed-count stratum;
 11. zero blocked-allocation constraint violations;
-12. sampling/instrument/ATE uncertainty and authorization channels remain distinct.
+12. sampling/instrument/ATE uncertainty and authorization channels remain distinct;
+13. a valid 10,001-unit trial is rejected before sampling.
 
-The Rust suite currently contains thirteen tests. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
+The Rust suite currently contains fourteen tests. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials.
 
 ## SOTA comparison and next benchmarks
 
