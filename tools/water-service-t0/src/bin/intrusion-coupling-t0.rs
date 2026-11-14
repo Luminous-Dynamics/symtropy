@@ -55,7 +55,7 @@ fn require(condition: bool, message: &str) -> Result<(), String> {
     }
 }
 
-fn valid_sha256(value: &str) -> bool {
+fn valid_digest_marker(value: &str) -> bool {
     value.len() == 64
         && value
             .bytes()
@@ -194,7 +194,7 @@ fn verify_stage_chain(stages: &BTreeMap<String, Value>) -> Result<Option<Value>,
 
         let output_digest = text(stage, "output_digest")?;
         require(
-            valid_sha256(output_digest),
+            valid_digest_marker(output_digest),
             &format!("invalid output digest for stage {stage_id}"),
         )?;
         require(
@@ -304,12 +304,12 @@ fn verify_observations(
             return Ok(Some(indeterminate("OBSERVATION_PROVENANCE_INCOMPLETE")));
         }
         let Some(digest) = observation
-            .get("raw_data_digest")
+            .get("raw_data_digest_marker")
             .and_then(Value::as_str)
         else {
             return Ok(Some(indeterminate("OBSERVATION_PROVENANCE_INCOMPLETE")));
         };
-        if !valid_sha256(digest) {
+        if !valid_digest_marker(digest) {
             return Ok(Some(indeterminate("OBSERVATION_PROVENANCE_INCOMPLETE")));
         }
         if text(observation, "timebase_id")? != timebase {
@@ -327,7 +327,7 @@ fn verify_observations(
             )?;
             require(
                 text(observation, "sample_result")? == "detected",
-                "synthetic measured tracer sample must be detected",
+                "synthetic measurement-channel tracer sample must be detected",
             )?;
         } else {
             require(
