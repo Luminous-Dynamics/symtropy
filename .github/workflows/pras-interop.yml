@@ -1,0 +1,52 @@
+name: PRAS Interoperability
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/ai-data-centre-energy/pras/**"
+      - "benchmarks/ai-data-centre-energy/v1/pras-interop-fixtures.json"
+      - "docs/research/ai-data-centre-energy/PRAS_INTEROP_PROTOCOL.md"
+      - ".github/workflows/pras-interop.yml"
+  workflow_dispatch:
+  push:
+    branches: [main, "research/pras-interop-known-truth-v0.1"]
+    paths:
+      - "benchmarks/ai-data-centre-energy/pras/**"
+      - "benchmarks/ai-data-centre-energy/v1/pras-interop-fixtures.json"
+      - ".github/workflows/pras-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pras-interop:
+    name: PRAS 0.9.0 known-truth harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Julia 1.10
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.10"
+
+      - name: Instantiate pinned PRAS environment
+        run: julia --project=benchmarks/ai-data-centre-energy/pras -e 'using Pkg; Pkg.instantiate()'
+
+      - name: Run deterministic and stochastic PRAS interoperability tests
+        env:
+          PRAS_INTEROP_RESULT_PATH: ${{ runner.temp }}/pras-interop-results.json
+        run: julia --project=benchmarks/ai-data-centre-energy/pras benchmarks/ai-data-centre-energy/pras/run_pras_interop.jl
+
+      - name: Preserve execution receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pras-interop-results-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/pras-interop-results.json
+            benchmarks/ai-data-centre-energy/pras/Manifest.toml
+          if-no-files-found: warn
+          retention-days: 30
