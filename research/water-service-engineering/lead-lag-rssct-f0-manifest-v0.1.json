@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LEAD-LAG-RSSCT-F0-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5093",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+  "filter_eli_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5084",
+  "filter_cell_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5087",
+  "status": "synthetic_RSSCT_scaling_and_lead_lag_state_contract_only",
+  "input_corpus": "research/water-service-engineering/lead-lag-rssct-f0-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/lead-lag-rssct-f0-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/lead-lag-rssct-f0.schema.json",
+  "scaling_case_count": 6,
+  "lead_lag_case_count": 5,
+  "hard_rules": [
+    "CD_and_PD_scaling_results_reported_separately",
+    "RSSCT_is_not_pilot_validation",
+    "no_interstage_result_is_final_outlet_quality",
+    "no_sample_is_not_no_breakthrough",
+    "below_LOD_LOQ_is_censored_not_zero",
+    "final_outlet_release_is_never_authorized",
+    "bed_rotation_is_advisory_only",
+    "no_scaling_assumption_selected_from_holdout_after_seeing_results"
+  ],
+  "evidence_ceiling": "synthetic_scaling_arithmetic_and_sample_state_only_no_adsorbent_or_water_quality_claim"
+}
