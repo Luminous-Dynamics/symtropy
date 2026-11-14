@@ -33,6 +33,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
+## CI integration
+
+The standalone package has its own Cargo workspace boundary, so root `cargo fmt --all`, `cargo clippy --workspace` and root workspace checks do not include it. The repository CI workflow now has explicit steps for this manifest: `cargo fmt --manifest-path ... -- --check`, `cargo clippy --manifest-path ... --all-targets --all-features -- -D warnings`, and `cargo test --manifest-path ... --all-targets --all-features`. A queued workflow is not evidence that these steps passed.
+
 ## Headless canopy kernel
 
 The exported `canopy_kernel` module provides a minimal spatial cohort-to-cell LAI representation, explicit one-way cohort mortality, derived Beer–Lambert transmittance, four-neighbour gap components and an optical understory eligibility mask. It is a synthetic analytical kernel only; it does not implement crown allometry, multiple scattering, species physiology, recruitment, succession or a calibrated radiation model. Its eight unit tests are included in the library test suite.
