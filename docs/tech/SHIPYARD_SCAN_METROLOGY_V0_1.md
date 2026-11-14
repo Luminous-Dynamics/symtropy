@@ -19,7 +19,7 @@ This is aligned with the scope of ISO 10360-13:2021 for optical 3D coordinate me
 - Rust 2024 library, dependency-isolated nested Cargo workspace.
 - JSON Schema Draft 2020-12 input contract.
 - One frozen four-sample analytic profile pair and 32 negative-control descriptions.
-- 45 Rust library unit/mutation tests plus 3 CLI contract tests covering identity, calibration, registration, reference artefacts, scan coverage, missing points, surface compatibility, uncertainty, frame mismatch and claim promotion.
+- 48 Rust library unit/mutation tests plus 3 CLI contract tests covering identity, calibration, registration, reference artefacts, scan coverage, missing points, surface compatibility, uncertainty, frame mismatch and claim promotion.
 - CLI reproduces the frozen known-answer report.
 - Focused Rust 1.96 workflow runs formatting, tests, Clippy with warnings denied and exact report replay.
 
@@ -57,6 +57,6 @@ BAM's raw Tandem-GMAW archive remains RIGHTS_PENDING. This synthetic crate does 
 
 The profile integrator now treats the absolute surface-envelope area as the integral of the absolute piecewise-linear displacement, not the absolute value of each segment's signed integral. This matters when displacement crosses zero inside a segment: a line from +100 µm to −100 µm across 1,000 µm has zero signed area but 50,000 µm² absolute area. The earlier calculation cancelled this shape and understated the absolute change.
 
-The oracle now splits such a segment at its zero crossing and rounds the doubled-area rational upward at the half-µm² working boundary. Signed area is rounded to the nearest integer µm² with ties away from zero; absolute area is rounded outward/up. The signed-area uncertainty interval receives a 1 µm² rounding allowance. Added three tests for positive and negative half-µm² rounding and zero-crossing absolute area.
+The oracle now splits such a segment at its zero crossing and rounds the doubled-area rational upward at the half-µm² working boundary. Signed area is rounded to the nearest integer µm² with ties away from zero; absolute area is rounded outward/up. The signed-area uncertainty interval receives a 1 µm² rounding allowance. Signed mean displacement rounds to nearest whole µm with ties away from zero; RMSE is conservatively rounded upward to the next whole µm so sub-micrometre RMS error is never reported as zero. Added three tests for positive and negative half-µm² area rounding and zero-crossing absolute area, plus three tests for upward RMSE rounding and positive/negative half-µm mean rounding.
 
-Current test inventory: **45 library tests + 3 CLI tests**. These are authored Rust test declarations, not yet a Rust execution result.
+Current test inventory: **48 library tests + 3 CLI tests**. These are authored Rust test declarations, not yet a Rust execution result.
