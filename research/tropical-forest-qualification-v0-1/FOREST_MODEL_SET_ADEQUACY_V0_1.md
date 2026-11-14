@@ -48,6 +48,8 @@ Ensemble agreement addresses only agreement within the declared set. It cannot e
 ## 4. Case families
 
 The public corpus defines ten families:
+The current public development manifest contains **30 uniquely identified variants (three per family)**. These cases check that the family contract is represented consistently; they do not execute a candidate model-set detector, disclose hidden generator truth, or demonstrate omitted-mechanism detection. The corpus remains public and is deliberately not blind.
+
 
 1. Growth–mortality compensation: similar net biomass histories but different stocks / size structure.
 2. Recruitment–growth aliasing: similar total biomass but different cohort distributions.
