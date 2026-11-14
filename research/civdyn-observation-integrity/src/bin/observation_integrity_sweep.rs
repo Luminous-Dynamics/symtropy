@@ -225,7 +225,7 @@ fn run_sweep() -> usize {
     let mut stale_primary = primary();
     stale_primary.event_tick = 1;
     disposition_case!(
-        "stale-primary-is-rejected",
+        "excessive-event-to-ingestion-lag-is-rejected",
         vec![stale_primary],
         CandidateDisposition::RejectEvidence
     );
