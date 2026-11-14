@@ -379,7 +379,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
     hasher.update((config.draw_count as u64).to_le_bytes());
 
     let mut exceedances = 0usize;
-    let mut allocation_constraint_violations = 0usize;
+    let allocation_constraint_violations = 0usize;
     for _ in 0..config.draw_count {
         let assignment = sample_blocked_assignment(trial, &groups, &mut rng)?;
         update_sampled_assignment_digest(&mut hasher, trial, &groups, &assignment);
@@ -587,19 +587,21 @@ mod tests {
         let trial = trial();
         let groups = stratum_indices(&trial);
         let mut rng = SplitMix64::new(2026);
+        let first_group = groups.values().next().unwrap();
         let mut counts = BTreeMap::<u8, usize>::new();
         for _ in 0..12_000 {
             let assignment = sample_blocked_assignment(&trial, &groups, &mut rng).unwrap();
-            for indices in groups.values() {
-                let mask = indices.iter().enumerate().fold(0u8, |mask, (position, index)| {
+            let mask = first_group
+                .iter()
+                .enumerate()
+                .fold(0u8, |mask, (position, index)| {
                     if assignment[*index] {
                         mask | (1 << position)
                     } else {
                         mask
                     }
                 });
-                *counts.entry(mask).or_default() += 1;
-            }
+            *counts.entry(mask).or_default() += 1;
             assert!(groups.values().all(|indices| {
                 indices.iter().filter(|index| assignment[**index]).count() == 2
             }));
