@@ -3,13 +3,13 @@ name: Construction Observation Portfolio v0.1
 on:
   pull_request:
     branches:
-      - "research/construction-observation-planning-stack-v0-3"
+      - "research/construction-observation-planning-time-index-stack-v0-1"
     paths:
       - "research/construction-observation-portfolio-v0-1/**"
       - ".github/workflows/construction-observation-portfolio-v0-1.yml"
   push:
     branches:
-      - "research/construction-observation-portfolio-v0-1"
+      - "research/construction-observation-portfolio-time-index-stack-v0-1"
     paths:
       - "research/construction-observation-portfolio-v0-1/**"
       - ".github/workflows/construction-observation-portfolio-v0-1.yml"
