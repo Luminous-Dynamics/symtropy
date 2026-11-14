@@ -254,6 +254,16 @@ pub struct AcceptedClaimLineage {
     pub assessment_time_interval_utc_ms: [u64; 2],
     /// Exact Mycelix common-mode/dependency snapshot identity.
     pub dependency_snapshot_id: String,
+    /// Independence assessment from the exact observation snapshot.
+    pub independence_assessment: IndependenceAssessment,
+    /// Independent evidence-family count admitted under the profile.
+    pub independent_family_count: u16,
+    /// Minimum family count required by the operation profile.
+    pub minimum_independent_families: u16,
+    /// Position enclosure at the source observation epoch.
+    pub source_position_bounds: PositionBounds,
+    /// Velocity enclosure used to propagate the source observation.
+    pub velocity_bounds: VelocityBounds,
 }
 
 /// Result of the PNT/time admission and position-set expansion.
@@ -377,6 +387,11 @@ pub fn evaluate(input: &AdapterInput) -> AdapterOutcome {
                     input.assessment_time_upper_utc_ms,
                 ],
                 dependency_snapshot_id,
+                independence_assessment: claim.independence,
+                independent_family_count: claim.independent_family_count.unwrap_or(0),
+                minimum_independent_families: input.policy.minimum_independent_families,
+                source_position_bounds: claim.position,
+                velocity_bounds: claim.velocity,
             };
 
             if accepted_as_fallback {
