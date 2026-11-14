@@ -127,7 +127,7 @@ Run:
     cargo test --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml
     cargo clippy --locked --manifest-path research/loco-joint-receipt-interop-001/reference/Cargo.toml --all-targets -- -D warnings
 
-The golden fixture must produce SHA-256 \`cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8\`. The test corpus also verifies duplicate-key rejection, float / unsafe-integer rejection, UTF-16 property ordering, digest tampering, integrity-member exclusion and no-actuation-authority behavior.
+The parent golden fixture must produce SHA-256 \`cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8\`. The test corpus also verifies duplicate-key rejection, float / unsafe-integer rejection, UTF-16 property ordering, digest tampering, integrity-member exclusion and no-actuation-authority behavior.
 
 This remains synthetic wire-integrity qualification; it does not serialize the live \`AdapterReport\`, consume the receipt in Symthaea, authenticate the producer, validate measurements, or establish a physical joint result.
 
@@ -152,9 +152,11 @@ The synthetic packet contains:
 - an explicit Monte Carlo coverage receipt and convergence receipt for the derived energy result;
 - literal \`actuation_authorized: false\` and \`conformity_certified: false\`.
 
-The Rust reference now exposes \`validate_uq_sidecar(sidecar, parent)\`. It checks duplicate-key-free parsing, the sidecar JCS/SHA-256 digest, exact parent packet digest, physical scope equality, per-measurement uncertainty identity/scope bindings, and derived input/output receipt-set lineage. The Python Draft 2020-12 preflight separately checks the closed sidecar schema, full measurement-window calibration/UQ coverage, exact dependence component sets, cross-channel shared-source consistency, Monte Carlo convergence, and the known-answer digest.
+The Rust reference exposes `validate_uq_sidecar(sidecar, parent)`. Alongside duplicate-key-free parsing and JCS/SHA-256, it checks exact parent packet and physical-scope bindings, predeclared measurement-channel completeness, calibration and UQ validity over both the full measurement window and audit tick, per-measurement uncertainty identity, source-component/dependence-group coverage, consistent cross-channel shared-source group and joint-model receipts, derived input/output uncertainty-receipt lineage, coverage unit/scale and interval ordering, and upstream disposition preservation. A Monte Carlo interval without a convergence receipt downgrades to Inconclusive; upstream Unknown/Inconclusive/Rejected is never upgraded.
 
-The 10-case mutation inventory includes parent digest drift, actuator scope drift, source dependence group split, shared-model receipt mismatch, derived input-UQ omission, calibration expiry, missing Monte Carlo convergence, actuation authority escalation, duplicate JSON keys, and payload digest tampering.
+The complete uncertainty-receipt policy remains owned by [LOCO-MEASUREMENT-UQ-RECEIPT-001 #5062 / PR #5067](https://github.com/Luminous-Dynamics/symtropy/pull/5067). That independently tested Rust auditor remains the authoritative typed-profile completeness implementation; this wire adapter checks that the serialized sidecar remains bound to the exact causal packet and that no cross-packet identity/dependence contradictions are introduced. The Python Draft 2020-12 preflight independently checks the closed sidecar schema and golden fixture semantics.
+
+The Rust reference currently has 30 authored deterministic tests; they are not passing-test claims until the exact-head Rust 1.96 workflow passes. The 10-case mutation inventory includes parent digest drift, actuator scope drift, source dependence group split, shared-model receipt mismatch, derived input-UQ omission, calibration expiry, missing Monte Carlo convergence, actuation authority escalation, duplicate JSON keys, and payload digest tampering.
 
 ### Claim boundary
 
